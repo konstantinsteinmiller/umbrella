@@ -15,7 +15,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GamePixStrategy } from '@/utils/save/GamePixStrategy'
 
-const STATE_KEY = 'epicrolla_state'
+const STATE_KEY = 'merge-alchemy-lab_state'
 
 interface FakeLocal {
   get: (k: string) => string | null

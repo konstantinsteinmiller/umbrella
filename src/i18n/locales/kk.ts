@@ -22,7 +22,7 @@ export default {
       'items250': { 'name': 'Жинаушы', 'desc': 'Барлығы 250 зат жәшігін алыңыз.' }
     }
   },
-  'gameName': 'Epicrolla',
+  'gameName': 'merge-alchemy-lab',
   'cancel': 'Бас тарту',
   'close': 'Жабу',
   'ok': 'Жарайды',

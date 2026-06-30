@@ -22,7 +22,7 @@ export default {
       'items250': { 'name': 'Yig\'uvchi', 'desc': 'Jami 250 ta buyum qutisini oling.' }
     }
   },
-  'gameName': 'Epicrolla',
+  'gameName': 'merge-alchemy-lab',
   'cancel': 'Bekor qilish',
   'close': 'Yopish',
   'ok': 'Ok',
