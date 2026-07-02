@@ -1,27 +1,32 @@
 import { ref, type Ref } from 'vue'
 
 /**
- * Single-blob localStorage layer for merge-alchemy-lab.
+ * Single-blob localStorage layer for Merge Alchemy Lab.
  *
  * EVERY persisted gameplay value the game touches lives inside ONE in-memory
- * record — `merge-alchemy-labState` — and only ONE localStorage key is ever written:
- * `merge-alchemy-lab_state`. The cloud-sync subsystem (SaveManager / strategies) only
- * has to mirror this single key (plus the `__save_meta__` blob) for a complete
- * save. This keeps localStorage pollution minimal and makes cloud hydration a
- * single-object round-trip.
+ * record — `prismState` — and only ONE localStorage key is ever written:
+ * `prism_state` (GDD requirement: "Save all state variables in one Object named
+ * prism_state"). The cloud-sync subsystem (SaveManager / strategies) only has to
+ * mirror this single key (plus the `__save_meta__` blob) for a complete save.
+ * This keeps localStorage pollution minimal and makes cloud hydration a single-
+ * object round-trip.
  *
- * Field names inside the record use the `epic_` prefix for game progress
- * (`epic_stage`, `epic_coins`, …). A handful of cross-cutting subsystems that
- * were reused wholesale from the merge-alchemy-lab platform layer keep their original
- * `spinner_` field names (user settings, battle pass, daily rewards, the
- * ad-button cooldown) — these are now just keys INSIDE the one blob, not their
- * own localStorage entries, so there is no extra pollution.
+ * Field names inside the record: merge-game progress uses the `prism_` prefix
+ * (`prism_gold`, `prism_grid`, …). A handful of cross-cutting subsystems reused
+ * wholesale from the platform layer keep their original `spinner_` field names
+ * (user settings) and `epic_` field names (the shared coin wallet) — these are
+ * now just keys INSIDE the one blob, not their own localStorage entries, so
+ * there is no extra pollution.
  *
  * Writes are debounced (trailing edge, hard-capped) and hard-flushed on
  * `pagehide` / tab-hide so a close mid-burst never drops data.
+ *
+ * The exported function names (`getState`, `setState`, `reloadEpicState`, …) are
+ * kept stable because the platform layer imports them; only the storage key and
+ * the in-memory ref were renamed for the prism_state requirement.
  */
 
-export const STATE_KEY = 'merge-alchemy-lab_state'
+export const STATE_KEY = 'prism_state'
 
 /** Persisted values may be bare strings ("en"), stringified numbers ("120"),
  *  or stringified JSON. JSON.parse round-trips numbers/objects; bare strings
@@ -43,25 +48,24 @@ const persistRaw = (blob: Record<string, unknown>): void => {
 // The in-memory ref update is synchronous (consumers expect the new value to
 // be readable immediately), but the actual localStorage persist is coalesced
 // into a single trailing-edge write after PERSIST_DEBOUNCE_MS of quiet, with a
-// hard cap so a continuous stream (score ticking every frame) still flushes
-// roughly every PERSIST_MAX_WAIT_MS.
+// hard cap so a continuous stream still flushes roughly every PERSIST_MAX_WAIT_MS.
 const PERSIST_DEBOUNCE_MS = 200
 const PERSIST_MAX_WAIT_MS = 2500
 let persistTimer: ReturnType<typeof setTimeout> | null = null
 let firstDirtyAt = 0
 
 /** Force the debounced blob write to happen NOW — cancels the pending timer
- *  and writes `merge-alchemy-lab_state` to localStorage synchronously. Called from
- *  the page-hide handlers below and (via `useSaveStatus.flushSaveNow`) at hard
- *  checkpoints (stage change, upgrade, claim) so the cloud push starts
- *  immediately instead of waiting out the debounce. */
+ *  and writes `prism_state` to localStorage synchronously. Called from the
+ *  page-hide handlers below and (via `useSaveStatus.flushSaveNow`) at hard
+ *  checkpoints (upgrade bought, recipe discovered, gold spent) so the cloud
+ *  push starts immediately instead of waiting out the debounce. */
 export const flushPersist = (): void => {
   if (persistTimer != null) {
     clearTimeout(persistTimer)
     persistTimer = null
   }
   firstDirtyAt = 0
-  persistRaw(merge-alchemy-labState.value)
+  persistRaw(prismState.value)
 }
 
 const schedulePersist = (): void => {
@@ -73,7 +77,7 @@ const schedulePersist = (): void => {
   persistTimer = setTimeout(() => {
     persistTimer = null
     firstDirtyAt = 0
-    persistRaw(merge-alchemy-labState.value)
+    persistRaw(prismState.value)
   }, delay)
 }
 
@@ -123,39 +127,39 @@ const buildInitial = (): Record<string, unknown> => {
   return blob
 }
 
-/** The single in-memory aggregate of all persisted game state. */
-export const merge-alchemy-labState: Ref<Record<string, unknown>> = ref(buildInitial())
+/** The single in-memory aggregate of all persisted game state (`prism_state`). */
+export const prismState: Ref<Record<string, unknown>> = ref(buildInitial())
 
 /** Read a value out of the blob. `fallback` is returned when the key is
  *  absent. Type parameter is advisory — the layer does not validate shape. */
 export const getState = <T = unknown>(key: string, fallback?: T): T => {
-  const v = merge-alchemy-labState.value[key]
+  const v = prismState.value[key]
   return (v === undefined ? fallback : v) as T
 }
 
-export const hasState = (key: string): boolean => merge-alchemy-labState.value[key] !== undefined
+export const hasState = (key: string): boolean => prismState.value[key] !== undefined
 
 export const setState = (key: string, value: unknown): void => {
-  merge-alchemy-labState.value = { ...merge-alchemy-labState.value, [key]: value }
+  prismState.value = { ...prismState.value, [key]: value }
   schedulePersist()
 }
 
 export const removeState = (key: string): void => {
-  if (merge-alchemy-labState.value[key] === undefined) return
-  const next = { ...merge-alchemy-labState.value }
+  if (prismState.value[key] === undefined) return
+  const next = { ...prismState.value }
   delete next[key]
-  merge-alchemy-labState.value = next
+  prismState.value = next
   schedulePersist()
 }
 
 /** Re-read from localStorage. Used by the SaveManager hydrate watcher
  *  (`saveDataVersion`) so cloud-sourced updates show up in-memory. */
 export const reloadEpicState = (): void => {
-  merge-alchemy-labState.value = buildInitial()
+  prismState.value = buildInitial()
 }
 
 /** Test-only: wipe both the in-memory blob and the persisted entry. */
 export const __resetEpicState = (): void => {
-  merge-alchemy-labState.value = {}
+  prismState.value = {}
   try { localStorage.removeItem(STATE_KEY) } catch { /* harmless */ }
 }

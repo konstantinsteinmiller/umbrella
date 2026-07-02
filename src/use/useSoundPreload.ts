@@ -29,15 +29,14 @@ const GAMEPLAY_SFX: ReadonlyArray<string> = [
   'coin-pickup',
   'plastic-torn-1',
   'plastic-torn-2',
-  'gravity',
-  'dodge',
-  'shrapnel',
+  'water-splash',
   'lose',
   'win',
   'modal-open',
   'level-up',
   'reward-continue',
-  'happy'
+  'happy',
+  'celebration-3'
 ]
 
 let preloadStarted = false

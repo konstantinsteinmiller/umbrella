@@ -1,5 +1,5 @@
 import { ref, computed, watch, type Ref } from 'vue'
-import { getState, setState, merge-alchemy-labState } from '@/use/useEpicState'
+import { getState, setState, prismState } from '@/use/useEpicState'
 import { saveDataVersion, flushSaveNow } from '@/use/useSaveStatus'
 import { MISSIONS_KEY } from '@/keys'
 import useEpicConfig from '@/use/useEpicConfig'
@@ -93,7 +93,7 @@ const refresh = (): void => {
   if (next.day !== state.value.day) state.value = next
 }
 watch(saveDataVersion, refresh)
-watch(merge-alchemy-labState, refresh, { deep: false })
+watch(prismState, refresh, { deep: false })
 
 const persist = (): void => {
   setState(MISSIONS_KEY, state.value)

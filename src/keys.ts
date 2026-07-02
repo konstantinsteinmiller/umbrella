@@ -1,10 +1,31 @@
 // ─── Game-progress field catalogue ──────────────────────────────────────────
 //
-// Field names INSIDE the single `merge-alchemy-lab_state` blob (see `useEpicState.ts`).
+// Field names INSIDE the single `prism_state` blob (see `useEpicState.ts`).
 // These are not separate localStorage keys — they're properties of the one
 // persisted object — but they're still a contract with the player base:
 // renaming any of them strands existing players' progress on the old field.
 // Treat them as load-bearing constants.
+
+// ─── Merge Alchemy Lab (the live game) ──────────────────────────────────────
+// Cosmic Gold wallet (shared `useEpicConfig` wallet — kept as `epic_coins` so the
+// reused CoinBadge / coin-explosion VFX bind to it without a migration).
+export const GOLD_KEY = 'epic_coins'
+// The merge grid: a flat array of (tier:number | null), length rows*cols.
+export const GRID_KEY = 'prism_grid'
+// Lab upgrade levels: { heat, pressure, containment, automation }.
+export const PRISM_UPGRADES_KEY = 'prism_upgrades'
+// Discovered recipes: string[] of recipe ids placed into the Index book.
+export const PRISM_INDEX_KEY = 'prism_index'
+// Lifetime stats: { brews, merges, legendaries, sludge, maxTier, spawns }.
+export const PRISM_STATS_KEY = 'prism_stats'
+// First-session onboarding consumed flag (true once the first brew completes).
+export const PRISM_ONBOARDED_KEY = 'prism_onboarded'
+// Collection-page milestone multipliers already claimed: string[] of page ids.
+export const PRISM_PAGE_REWARDS_KEY = 'prism_page_rewards'
+// Highest ingredient tier the player has ever created (drives base-spawn unlocks).
+export const PRISM_MAX_TIER_KEY = 'prism_max_tier'
+// Permanent upgrade-cost discount (percent) accumulated from recipe effects.
+export const PRISM_DISCOUNT_KEY = 'prism_discount'
 
 export const STAGE_KEY = 'epic_stage'
 export const COINS_KEY = 'epic_coins'

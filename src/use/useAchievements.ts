@@ -1,5 +1,5 @@
 import { ref, computed, watch, type Ref } from 'vue'
-import { getState, setState, merge-alchemy-labState } from '@/use/useEpicState'
+import { getState, setState, prismState } from '@/use/useEpicState'
 import { saveDataVersion, flushSaveNow } from '@/use/useSaveStatus'
 import { ACHIEVEMENTS_KEY } from '@/keys'
 import useEpicConfig from '@/use/useEpicConfig'
@@ -96,7 +96,7 @@ const state: Ref<AchievementState> = ref(loadState())
 
 const refresh = (): void => { state.value = loadState() }
 watch(saveDataVersion, refresh)
-watch(merge-alchemy-labState, refresh, { deep: false })
+watch(prismState, refresh, { deep: false })
 
 const persist = (): void => {
   setState(ACHIEVEMENTS_KEY, state.value)
