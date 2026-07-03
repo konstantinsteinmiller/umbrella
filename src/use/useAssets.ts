@@ -288,6 +288,11 @@ export default () => {
   const preloadAssets = async (): Promise<void> => {
     loadingProgress.value = 0
     areAllAssetsLoaded.value = false
+    // Drop-in art overrides (art-todo.md) — probed in parallel, never awaited:
+    // the vector fallbacks render until a bitmap is confirmed decodable.
+    void import('@/use/useArtOverrides')
+      .then((m) => m.probeArtOverrides())
+      .catch(() => { /* non-critical: vector art stays */ })
     // ── HOT PATH ── Only what the FIRST gameplay frame needs: the grid /
     // prop sprites and the player's CURRENTLY-EQUIPPED ball skin. No sounds,
     // no bg-music, no non-selected skins, no result-screen art — those all

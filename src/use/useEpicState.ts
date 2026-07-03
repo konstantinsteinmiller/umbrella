@@ -5,8 +5,8 @@ import { ref, type Ref } from 'vue'
  *
  * EVERY persisted gameplay value the game touches lives inside ONE in-memory
  * record — `prismState` — and only ONE localStorage key is ever written:
- * `prism_state` (GDD requirement: "Save all state variables in one Object named
- * prism_state"). The cloud-sync subsystem (SaveManager / strategies) only has to
+ * `merge-idle-war_state` (GDD requirement: "Save all state variables in one Object named
+ * merge-idle-war_state"). The cloud-sync subsystem (SaveManager / strategies) only has to
  * mirror this single key (plus the `__save_meta__` blob) for a complete save.
  * This keeps localStorage pollution minimal and makes cloud hydration a single-
  * object round-trip.
@@ -23,10 +23,10 @@ import { ref, type Ref } from 'vue'
  *
  * The exported function names (`getState`, `setState`, `reloadEpicState`, …) are
  * kept stable because the platform layer imports them; only the storage key and
- * the in-memory ref were renamed for the prism_state requirement.
+ * the in-memory ref were renamed for the merge-idle-war_state requirement.
  */
 
-export const STATE_KEY = 'prism_state'
+export const STATE_KEY = 'merge-idle-war_state'
 
 /** Persisted values may be bare strings ("en"), stringified numbers ("120"),
  *  or stringified JSON. JSON.parse round-trips numbers/objects; bare strings
@@ -55,7 +55,7 @@ let persistTimer: ReturnType<typeof setTimeout> | null = null
 let firstDirtyAt = 0
 
 /** Force the debounced blob write to happen NOW — cancels the pending timer
- *  and writes `prism_state` to localStorage synchronously. Called from the
+ *  and writes `merge-idle-war_state` to localStorage synchronously. Called from the
  *  page-hide handlers below and (via `useSaveStatus.flushSaveNow`) at hard
  *  checkpoints (upgrade bought, recipe discovered, gold spent) so the cloud
  *  push starts immediately instead of waiting out the debounce. */
@@ -127,7 +127,7 @@ const buildInitial = (): Record<string, unknown> => {
   return blob
 }
 
-/** The single in-memory aggregate of all persisted game state (`prism_state`). */
+/** The single in-memory aggregate of all persisted game state (`merge-idle-war_state`). */
 export const prismState: Ref<Record<string, unknown>> = ref(buildInitial())
 
 /** Read a value out of the blob. `fallback` is returned when the key is

@@ -6,6 +6,75 @@ import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
 
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 
+// ─── Drop-in SFX overrides (full manifest: sound-todo.md) ────────────────────
+// Final battle SFX can be shipped WITHOUT a code change: drop the .ogg named
+// after the map key into `public/audio/sfx/` and it plays on the next load.
+// Until the file exists (or if it fails to fetch/decode) the mapped
+// placeholder — an SFX that already ships — plays instead, so every event
+// always makes a sound.
+export const SFX_FALLBACKS: Record<string, string> = {
+  // Merge grid
+  'unit-spawn': 'coin-pickup',
+  'spawn-tick': 'anchor-swap',
+  'merge-pop': 'level-up',
+  'unit-move': 'anchor-swap',
+  'grid-full': 'obstacle-hit',
+  'instant-spawn': 'celebration-1',
+  // Arena — deploy & combat
+  'deploy-land': 'stone-cut',
+  'field-merge': 'level-up',
+  'army-full': 'obstacle-hit',
+  'unit-shot': 'dodge',
+  'chain-zap': 'crystal-cut',
+  'frost-nova': 'crystal-cut',
+  'black-hole': 'gravity',
+  'enemy-death': 'shrapnel',
+  'fighter-death': 'obstacle-hit',
+  'gate-hit': 'obstacle-hit',
+  // Wave / boss theatre
+  'wave-start': 'modal-open',
+  'wave-cleared': 'win',
+  'boss-incoming': 'barricade',
+  'boss-death': 'celebration-3',
+  'enrage-roar': 'chainsaw-break',
+  'overrun': 'lose',
+  // Combo / fever / ultimate
+  'combo-tick': 'coin-pickup',
+  'fever-start': 'celebration-1',
+  'ult-ready': 'reward-continue',
+  'ult-cast': 'gravity',
+  'meteor-impact': 'explosion-1',
+  // Upgrades
+  'upgrade-buy': 'level-up',
+  'upgrade-denied': 'obstacle-hit'
+}
+
+const availableSfxOverrides = new Set<string>()
+let sfxProbeStarted = false
+/** Probe every override slot by decoding it — a real .ogg lands in the buffer
+ *  cache (so it's warm) and unlocks the final name; a 404 / bad file keeps the
+ *  placeholder. Idempotent; called from the background sound preload. */
+export const probeSfxOverrides = (): void => {
+  if (sfxProbeStarted) return
+  sfxProbeStarted = true
+  for (const name of Object.keys(SFX_FALLBACKS)) {
+    void loadAudioBuffer(prependBaseUrl(`audio/sfx/${name}.ogg`)).then((b) => {
+      if (b) availableSfxOverrides.add(name)
+    })
+  }
+}
+/** Final name when its file is confirmed; the shipping placeholder otherwise. */
+const resolveSfx = (effect: string): string => {
+  const fallback = SFX_FALLBACKS[effect]
+  return fallback === undefined || availableSfxOverrides.has(effect) ? effect : fallback
+}
+
+// Drop-in battle music: `public/audio/music/battle-theme.ogg` replaces the
+// default track when present (probed in `useMusic`; see sound-todo.md).
+const BATTLE_THEME_FILE = 'battle-theme.ogg'
+let battleThemeAvailable = false
+let battleThemeProbed = false
+
 // We keep the audio instance outside the hook so it's a true Singleton
 const bgMusic = ref<HTMLAudioElement | null>(null)
 const isLoaded = ref(false)
@@ -83,9 +152,13 @@ export const useMusic = () => {
     loadAndPlayTrack()
   })
 
-  // Resolve the active track's filename, falling back to the default.
-  const currentTrackFile = (): string =>
-    MUSIC_TRACK_FILES[userMusicTrack.value] ?? MUSIC_TRACK_FILES.trance
+  // Resolve the active track's filename, falling back to the default. A
+  // dropped-in `battle-theme.ogg` (sound-todo.md) takes over the DEFAULT
+  // track slot; an explicit non-default pick (Cozy Harmony) is respected.
+  const currentTrackFile = (): string => {
+    if (battleThemeAvailable && userMusicTrack.value === 'trance') return BATTLE_THEME_FILE
+    return MUSIC_TRACK_FILES[userMusicTrack.value] ?? MUSIC_TRACK_FILES.trance
+  }
 
   // Point the music element at the active track and fade it in — using the
   // preloaded/decoded copy when available, otherwise fetching on demand.
@@ -107,6 +180,21 @@ export const useMusic = () => {
         playWithFade()
       }, { once: true })
     }
+  }
+
+  // One-time probe for the drop-in battle theme. HEAD keeps it cheap; the
+  // content-type guard rejects the dev server's index.html SPA fallback. If
+  // the theme shows up while the default track is already playing, live-swap.
+  if (!battleThemeProbed && typeof window !== 'undefined') {
+    battleThemeProbed = true
+    void fetch(prependBaseUrl('audio/music/' + BATTLE_THEME_FILE), { method: 'HEAD' })
+      .then((res) => {
+        const type = res.headers.get('content-type') ?? ''
+        if (!res.ok || type.includes('text/html')) return
+        battleThemeAvailable = true
+        if (shouldPlay.value && bgMusic.value && userMusicTrack.value === 'trance') loadAndPlayTrack()
+      })
+      .catch(() => { /* offline / blocked — placeholder track stays */ })
   }
 
   const pauseMusic = () => {
@@ -391,7 +479,7 @@ const useSounds = () => {
     // "pause all sounds during ads" guarantee QA asked for.
     if (isAudioSuspended()) return null
 
-    const src = prependBaseUrl(`audio/sfx/${effect}.ogg`)
+    const src = prependBaseUrl(`audio/sfx/${resolveSfx(effect)}.ogg`)
 
     // Fast path: preloaded AudioBuffer + Web Audio.
     const buffer = resourceCache.audioBuffers.get(src)
@@ -438,7 +526,7 @@ const useSounds = () => {
     // on screen / tab hidden). Gameplay is paused in that window anyway, so
     // nothing should be requesting a new loop — this is belt-and-braces.
     if (isAudioSuspended()) return null
-    const src = prependBaseUrl(`audio/sfx/${effect}.ogg`)
+    const src = prependBaseUrl(`audio/sfx/${resolveSfx(effect)}.ogg`)
     const ctx = getAudioContext()
     if (!ctx) return null
     let source: AudioBufferSourceNode | null = null

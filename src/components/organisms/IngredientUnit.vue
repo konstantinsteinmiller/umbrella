@@ -9,6 +9,7 @@
  */
 import { computed } from 'vue'
 import { getIngredient } from '@/game/ingredients'
+import { artSrc, type ArtKey } from '@/use/useArtOverrides'
 
 const props = withDefaults(defineProps<{
   tier: number
@@ -20,6 +21,10 @@ const props = withDefaults(defineProps<{
 
 const ing = computed(() => getIngredient(props.tier))
 
+// Drop-in bitmap override (art-todo.md): `images/units/fighter-<tier>.webp`.
+// Null until the file exists and decodes — the SVG below is the fallback.
+const bitmap = computed(() => artSrc(`fighter-${props.tier}` as ArtKey))
+
 // Unique gradient ids per instance so multiple SVGs never collide in <defs>.
 const uid = `ing${(Math.random() * 1e9) | 0}`
 </script>
@@ -28,7 +33,14 @@ const uid = `ing${(Math.random() * 1e9) | 0}`
   div.ingredient-unit.relative.select-none(
     :class="[{ 'is-dragging': dragging, 'is-merging': merging, 'is-idle': !still && !dragging }]"
   )
-    svg(viewBox="0 0 100 100" class="w-full h-full overflow-visible" :style="{ filter: dragging ? 'drop-shadow(0 6px 8px rgba(0,0,0,0.45))' : 'drop-shadow(0 3px 3px rgba(0,0,0,0.35))' }")
+    //- Drop-in bitmap art (keeps the same squish/breathe wrapper animations)
+    template(v-if="bitmap")
+      img.w-full.h-full.object-contain(
+        :src="bitmap" alt="" draggable="false"
+        :style="{ filter: dragging ? 'drop-shadow(0 6px 8px rgba(0,0,0,0.45))' : 'drop-shadow(0 3px 3px rgba(0,0,0,0.35))' }"
+      )
+      span.tier-badge {{ tier }}
+    svg(v-else viewBox="0 0 100 100" class="w-full h-full overflow-visible" :style="{ filter: dragging ? 'drop-shadow(0 6px 8px rgba(0,0,0,0.45))' : 'drop-shadow(0 3px 3px rgba(0,0,0,0.35))' }")
       defs
         radialGradient(:id="uid + '-body'" cx="38%" cy="32%" r="80%")
           stop(offset="0%" :stop-color="ing.bodyLight")
@@ -122,6 +134,26 @@ const uid = `ing${(Math.random() * 1e9) | 0}`
   height: 100%
   transform-origin: center
   will-change: transform
+  // Container so the bitmap tier badge can scale off the unit's own size.
+  container-type: size
+
+// Tier readability badge over drop-in bitmap art (the SVG draws its own).
+.tier-badge
+  position: absolute
+  right: 2%
+  bottom: 2%
+  width: 28%
+  height: 28%
+  display: flex
+  align-items: center
+  justify-content: center
+  border-radius: 9999px
+  background: #0e1426
+  border: 2px solid #fff
+  color: #fff
+  font-weight: 900
+  font-size: 17cqmin
+  pointer-events: none
 
 .is-idle
   animation: ing-breathe 2.6s ease-in-out infinite

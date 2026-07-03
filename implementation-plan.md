@@ -43,7 +43,7 @@ and upgrades → higher waves demand higher tiers → repeat forever.
 - **Juice systems** — pooled particle engine (`usePrismParticles` +
   `ParticleCanvas`), `useScreenshake`, sounds (`useSound`), music.
 - **Platform layer** — SaveManager/strategies, ads (`useAds`), pause, i18n,
-  router, all `src/platforms/*`. The single `prism_state` blob stays the save.
+  router, all `src/platforms/*`. The single `merge-idle-war_state` blob stays the save.
 - **Automation imp** (`automation` upgrade) — now auto-merges the best pair
   and auto-deploys into the arena instead of injecting into the cauldron.
 
@@ -145,7 +145,7 @@ replaces heat/pressure/containment/automation):
 Rewarded ads kept: War Chest (free gold, scaled by wave) and a **2× wave
 bonus** offer after boss waves.
 
-### 4.7 Persistence (inside the single `prism_state` blob)
+### 4.7 Persistence (inside the single `merge-idle-war_state` blob)
 
 - Kept: `prism_grid`, `prism_max_tier`, `epic_coins`, `prism_stats`
   (reshaped: kills, waves, bossKills, merges, spawns, fieldMerges).

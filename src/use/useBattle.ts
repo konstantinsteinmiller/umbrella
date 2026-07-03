@@ -4,7 +4,7 @@
  * Owns the battlefield simulation: fighters (deployed merge units), enemy
  * waves, projectiles, status effects, the kill-combo / FEVER layer, the
  * Meteor Storm ultimate, the Lab Gate, boss logic, the four battle upgrades,
- * and battle persistence inside the `prism_state` blob.
+ * and battle persistence inside the `merge-idle-war_state` blob.
  *
  * Module-level singleton (same pattern as `usePrismGame`): one authoritative
  * battle shared by every component. The arena view calls `startBattle()` /
@@ -252,7 +252,7 @@ let slowmoRealLeft = 0
 let schedule: WaveSpawn[] = []
 let waveElapsed = 0
 let phaseTimer = 0
-let pendingMeteors: { at: number; x: number; y: number }[] = []
+let pendingMeteors: { at: number }[] = [] // impact point resolved at impact time
 
 const persistBattle = (): void => {
   setState(BATTLE_WAVE_KEY, wave.value)
@@ -506,13 +506,25 @@ export const fireUltimate = (): boolean => {
   persistBattle()
   pendingMeteors = []
   for (let i = 0; i < METEOR_COUNT; i++) {
-    pendingMeteors.push({
-      at: engineNow + 0.15 + i * 0.18,
-      x: 24 + Math.random() * 72,
-      y: 12 + Math.random() * 76
-    })
+    pendingMeteors.push({ at: engineNow + 0.15 + i * 0.18 })
   }
   return true
+}
+
+/** Where the next meteor lands: on a random living, on-screen enemy — with a
+ *  little scatter so the volley still reads as a rain, and resolved at IMPACT
+ *  time so late meteors track enemies that moved (or spawned) since the cast.
+ *  Empty field → random carpet-bomb spot, so the spectacle never no-shows. */
+const meteorPoint = (): { x: number; y: number } => {
+  const targets = enemies.value.filter((e) => e.hp > 0 && e.x <= 100)
+  if (targets.length) {
+    const t = targets[(Math.random() * targets.length) | 0]!
+    return {
+      x: Math.max(6, Math.min(98, t.x + (Math.random() - 0.5) * 9)),
+      y: Math.max(8, Math.min(94, t.y + (Math.random() - 0.5) * 9))
+    }
+  }
+  return { x: 24 + Math.random() * 72, y: 12 + Math.random() * 76 }
 }
 
 const tickMeteors = (): void => {
@@ -521,11 +533,12 @@ const tickMeteors = (): void => {
   if (!due.length) return
   pendingMeteors = pendingMeteors.filter((m) => m.at > engineNow)
   const dmg = waveHp(wave.value) * 0.55
-  for (const m of due) {
-    emit({ type: 'meteor', x: m.x, y: m.y })
+  for (let i = 0; i < due.length; i++) {
+    const p = meteorPoint()
+    emit({ type: 'meteor', x: p.x, y: p.y })
     for (const e of enemies.value) {
       if (e.hp <= 0) continue
-      if (Math.hypot(e.x - m.x, e.y - m.y) <= 18) hurtEnemy(e, dmg)
+      if (Math.hypot(e.x - p.x, e.y - p.y) <= 18) hurtEnemy(e, dmg)
     }
   }
   removeDeadEnemies()

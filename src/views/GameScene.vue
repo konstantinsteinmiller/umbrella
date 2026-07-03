@@ -25,7 +25,9 @@ import useEpicConfig from '@/use/useEpicConfig'
 import useScreenshake from '@/use/useScreenshake'
 import { zoneRect } from '@/use/useDropZones'
 import { isRewardedReady, showRewardedAd } from '@/use/useAds'
-import { isMobileLandscape, windowWidth, windowHeight } from '@/use/useUser'
+import { isMobileLandscape, isMobilePortrait, windowWidth, windowHeight } from '@/use/useUser'
+import { artSrc } from '@/use/useArtOverrides'
+import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 
 import MergeGrid from '@/components/organisms/MergeGrid.vue'
 import BattleArena from '@/components/organisms/BattleArena.vue'
@@ -33,6 +35,7 @@ import UpgradePanel from '@/components/organisms/UpgradePanel.vue'
 import ParticleCanvas from '@/components/organisms/ParticleCanvas.vue'
 import CoinBadge from '@/components/organisms/CoinBadge.vue'
 import FMuteButton from '@/components/atoms/FMuteButton.vue'
+import InstantSpawnAdButton from '@/components/atoms/InstantSpawnAdButton.vue'
 import OptionsModal from '@/components/organisms/OptionsModal.vue'
 import IconMovie from '@/components/icons/IconMovie.vue'
 
@@ -51,6 +54,19 @@ const coinBadgeEl = computed<HTMLElement | null>(() => coinBadgeRef.value?.rootE
 
 const showOptions = ref(false)
 
+// Drop-in full-scene backdrop (art-todo.md); the CSS radial gradient stays
+// as the fallback (and shows through until the bitmap is confirmed).
+const sceneBgStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = {}
+  const art = artSrc('scene-bg')
+  if (art) {
+    style.backgroundImage = `url(${art})`
+    style.backgroundSize = 'cover'
+    style.backgroundPosition = 'center'
+  }
+  return style
+})
+
 // Side-by-side (arena | controls) layout whenever the viewport is wide-and-short —
 // covers mobile landscape AND a short desktop/tablet landscape window, where a
 // stacked column would crush the merge grid to nothing.
@@ -59,9 +75,32 @@ const sideBySide = computed(() =>
 )
 
 // ─── Spawn ──────────────────────────────────────────────────────────────────
-const onSpawn = (): void => { gridRef.value?.spawn() }
-const spawnLabel = computed(() =>
-  game.spawnCharges.value > 0 ? t('prism.spawn') : t('prism.spawnCost', { n: game.spawnCostGold.value })
+const spawnFlash = ref(false)
+let spawnFlashTimer = 0
+const onSpawn = (): void => {
+  const idx = gridRef.value?.spawn() ?? -1
+  if (idx >= 0) {
+    // The meter completed — pop the button icon while the recruit lands.
+    spawnFlash.value = true
+    window.clearTimeout(spawnFlashTimer)
+    spawnFlashTimer = window.setTimeout(() => { spawnFlash.value = false }, 320)
+  }
+}
+// Radial reveal of the greyed spawn-button unit: each tap uncovers another
+// quarter (full circle = the buffed 1-tap state or a completed meter).
+const spawnReveal = computed(() => {
+  if (game.instantSpawnActive.value) return '360deg'
+  return `${(game.spawnClicks.value / game.clicksRequired.value) * 360}deg`
+})
+
+// On narrow portrait viewports the utility stack (mute + settings) shares its
+// corner with the spawn row — lift it above the row so nothing overlaps. The
+// width check catches narrow desktop windows/emulation, not just mobile UAs.
+const utilityLifted = computed(() =>
+  isMobilePortrait.value || (windowWidth.value < 640 && windowWidth.value < windowHeight.value)
+)
+const utilityBottom = computed(() =>
+  `calc(${utilityLifted.value ? '4.4rem' : '0.4rem'} + env(safe-area-inset-bottom, 0px))`
 )
 
 // ─── Deploy drops (grid → arena) ──────────────────────────────────────────────
@@ -80,7 +119,7 @@ const onDeploy = (p: { idx: number; tier: number; x: number; y: number }): void 
   }
 
   if (battle.armyFull.value) {
-    playSound('obstacle-hit', 0.015) // no room — merge into a fighter instead
+    playSound('army-full', 0.015) // no room — merge into a fighter instead
     return
   }
   const tier = game.takeFromGrid(p.idx)
@@ -149,7 +188,7 @@ onUnmounted(() => {
 </script>
 
 <template lang="pug">
-  div.prism-scene.relative.w-screen.overflow-hidden(class="h-screen h-dvh" :style="shakeStyle")
+  div.prism-scene.relative.w-screen.overflow-hidden(class="h-screen h-dvh" :style="[shakeStyle, sceneBgStyle]")
     //- ── Top bar ──────────────────────────────────────────────────────────
     div.absolute.top-0.left-0.right-0.z-30.flex.items-center.justify-between(
       class="px-2 py-1"
@@ -202,32 +241,40 @@ onUnmounted(() => {
         div.grid-square-wrap.flex-1.min-h-0.w-full.mx-auto.flex.items-center.justify-center
           div.grid-square
             MergeGrid(ref="gridRef" @deploy="onDeploy")
-        //- Spawn button
+        //- Spawn row: [rewarded Instant Spawn] [Spawn button] [tap meter]
         div.shrink-0.w-full.max-w-md.mx-auto.flex.items-center.justify-center.gap-2.mt-1
-          button.relative.cursor-pointer.transition-transform.flex-1.max-w-xs(
+          InstantSpawnAdButton
+          button.relative.cursor-pointer.transition-transform(
             class="active:scale-95 hover:scale-[101%]"
             @click="onSpawn"
           )
-            div.absolute.inset-0.translate-y-1.rounded-xl(class="bg-[#1c6b2a]")
-            div.relative.flex.items-center.justify-center.gap-2.rounded-xl.border-2.py-2(
-              class="bg-gradient-to-b from-[#4fd16a] to-[#27a03f] border-[#0f1a30]"
+            div.absolute.inset-0.translate-y-1.rounded-xl(:class="game.instantSpawnActive.value ? 'bg-[#7a5a00]' : 'bg-[#1c6b2a]'")
+            div.relative.flex.items-center.justify-center.gap-2.rounded-xl.border-2.py-2.px-5(
+              :class="game.instantSpawnActive.value\
+                ? 'bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]'\
+                : 'bg-gradient-to-b from-[#4fd16a] to-[#27a03f] border-[#0f1a30]'"
             )
-              svg(viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="currentColor")
-                path(d="M12 3 v18 M3 12 h18" stroke="#0a0d16" stroke-width="2" stroke-linecap="round")
-              span.text-white.font-black.uppercase.game-text(class="text-sm sm:text-base") {{ spawnLabel }}
-          //- Spawn charge meter
+              //- Next recruit, revealed radially tap by tap (grey → full color)
+              div.spawn-icon.relative.shrink-0(class="w-6 h-6 sm:w-7 sm:h-7" :class="{ 'spawn-pop': spawnFlash }")
+                div.absolute.inset-0.spawn-icon-grey
+                  IngredientUnit(:tier="1" :still="true")
+                div.absolute.inset-0.spawn-icon-reveal(:style="{ '--spawn-reveal': spawnReveal }")
+                  IngredientUnit(:tier="1" :still="true")
+              span.text-white.font-black.uppercase.game-text(class="text-sm sm:text-base") {{ t('prism.spawn') }}
+          //- Tap meter: fills over the taps needed for the next recruit
           div.flex.flex-col.items-center(class="gap-0.5")
             div.flex(class="gap-0.5")
               span.charge-pip(
-                v-for="i in game.spawnMax"
+                v-for="i in game.clicksRequired.value"
                 :key="i"
-                :class="i <= game.spawnCharges.value ? 'charge-on' : ''"
+                :class="{ 'charge-on': i <= game.spawnClicks.value, 'charge-gold': game.instantSpawnActive.value }"
               )
 
-    //- ── Bottom-left utility buttons ───────────────────────────────────────
+    //- ── Bottom-left utility buttons (lifted above the spawn row on
+    //-    narrow portrait phones so they never crowd the Spawn controls) ─────
     div.absolute.z-30.flex.flex-col.items-start.gap-1(
       :style="{\
-        bottom: 'calc(0.4rem + env(safe-area-inset-bottom, 0px))',\
+        bottom: utilityBottom,\
         left: 'calc(0.4rem + env(safe-area-inset-left, 0px))'\
       }"
     )
@@ -303,6 +350,32 @@ onUnmounted(() => {
   width: min(100cqw, 100cqh)
   height: min(100cqw, 100cqh)
 
+// ── Spawn-button icon: greyed next recruit, revealed by a radial wipe ──
+// The angle is a registered custom property so supporting browsers animate
+// the wipe smoothly; others just snap per tap.
+@property --spawn-reveal
+  syntax: '<angle>'
+  initial-value: 0deg
+  inherits: false
+
+.spawn-icon-grey
+  filter: grayscale(1) brightness(0.55)
+  opacity: 0.55
+.spawn-icon-reveal
+  -webkit-mask: conic-gradient(#000 var(--spawn-reveal, 0deg), transparent 0)
+  mask: conic-gradient(#000 var(--spawn-reveal, 0deg), transparent 0)
+  transition: --spawn-reveal 0.22s ease-out
+.spawn-pop
+  animation: spawn-icon-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)
+
+@keyframes spawn-icon-pop
+  0%
+    transform: scale(1)
+  40%
+    transform: scale(1.4) rotate(8deg)
+  100%
+    transform: scale(1)
+
 .charge-pip
   width: 0.5rem
   height: 0.5rem
@@ -312,6 +385,10 @@ onUnmounted(() => {
 .charge-on
   background: #4fd16a
   box-shadow: 0 0 5px rgba(79, 209, 106, 0.8)
+// Instant-spawn buff: the single pip burns gold for the whole duration.
+.charge-gold
+  background: #ffcd00
+  box-shadow: 0 0 6px rgba(255, 205, 0, 0.9)
 
 .fade-enter-active, .fade-leave-active
   transition: opacity 0.3s ease

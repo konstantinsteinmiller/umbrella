@@ -1,6 +1,6 @@
 // ─── Game-progress field catalogue ──────────────────────────────────────────
 //
-// Field names INSIDE the single `prism_state` blob (see `useEpicState.ts`).
+// Field names INSIDE the single `merge-idle-war_state` blob (see `useEpicState.ts`).
 // These are not separate localStorage keys — they're properties of the one
 // persisted object — but they're still a contract with the player base:
 // renaming any of them strands existing players' progress on the old field.
@@ -16,6 +16,8 @@ export const GRID_KEY = 'prism_grid'
 export const PRISM_STATS_KEY = 'prism_stats'
 // Highest unit tier the player has ever created.
 export const PRISM_MAX_TIER_KEY = 'prism_max_tier'
+// Instant-spawn buff (rewarded ad): epoch-ms timestamp the buff expires at.
+export const PRISM_INSTANT_SPAWN_KEY = 'prism_instant_spawn_until'
 // Battle upgrade levels: { attack, vitality, bounty, automation }.
 export const BATTLE_UPGRADES_KEY = 'battle_upgrades'
 // The wave currently being fought (resumed on reload).

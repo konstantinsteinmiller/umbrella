@@ -19,6 +19,7 @@ import { getFighterDef } from '@/game/units'
 import { getIngredient } from '@/game/ingredients'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import EnemyUnit from '@/components/organisms/EnemyUnit.vue'
+import { artSrc } from '@/use/useArtOverrides'
 import useSounds from '@/use/useSound'
 import useScreenshake from '@/use/useScreenshake'
 import { emitConfetti, emitSparkle, emitSplash } from '@/use/usePrismParticles'
@@ -129,6 +130,26 @@ const addFlash = (type: Flash['type'], x: number, y: number): void => {
   window.setTimeout(() => { flashes.value = flashes.value.filter((f) => f.id !== id) }, FLASH_MS[type])
 }
 
+// ── Drop-in art overrides (art-todo.md; null → procedural CSS fallback) ──
+const arenaBg = computed(() => artSrc('arena-bg'))
+const gateArt = computed(() => artSrc('gate'))
+// Meteor/black-hole sprites replace the flash div's gradient; the CSS
+// keyframes (fall-in, suck-spin) keep animating the bitmap.
+const flashStyle = (fl: Flash): Record<string, string> => {
+  const style: Record<string, string> = { left: fl.x + '%', top: fl.y + '%' }
+  const art = fl.type === 'meteor' ? artSrc('vfx-meteor')
+    : fl.type === 'blackhole' ? artSrc('vfx-blackhole')
+    : null
+  if (art) {
+    style.backgroundImage = `url(${art})`
+    style.backgroundSize = 'contain'
+    style.backgroundPosition = 'center'
+    style.backgroundRepeat = 'no-repeat'
+    style.boxShadow = 'none'
+  }
+  return style
+}
+
 interface ChainFlash { id: number; points: string }
 const chains = ref<ChainFlash[]>([])
 const addChain = (points: { x: number; y: number }[]): void => {
@@ -181,7 +202,7 @@ const onEvent = (e: BattleEvent): void => {
       break
     }
     case 'shot':
-      throttledSound('shot', 'dodge', 0.012, 1.3, 120)
+      throttledSound('shot', 'unit-shot', 0.012, 1.3, 120)
       break
     case 'impact':
       emitSparkle(toClientX(e.x), toClientY(e.y), e.color, 4)
@@ -193,46 +214,46 @@ const onEvent = (e: BattleEvent): void => {
       break
     case 'chain':
       addChain(e.points)
-      throttledSound('chain', 'crystal-cut', 0.025, 1.4, 150)
+      throttledSound('chain', 'chain-zap', 0.025, 1.4, 150)
       break
     case 'nova':
       addFlash('nova', e.x, e.y)
       emitSparkle(toClientX(e.x), toClientY(e.y), '#bfe6ff', 14)
-      throttledSound('nova', 'crystal-cut', 0.03, 0.8, 200)
+      throttledSound('nova', 'frost-nova', 0.03, 0.8, 200)
       break
     case 'blackhole':
       addFlash('blackhole', e.x, e.y)
-      playSound('gravity', 0.04, 0.8)
+      playSound('black-hole', 0.04, 0.8)
       triggerShake('small')
       break
     case 'death':
       emitConfetti(toClientX(e.x), toClientY(e.y), e.boss ? 40 : 8, e.boss ? 1.6 : 0.8)
-      throttledSound('death', 'shrapnel', 0.02, 1 + Math.random() * 0.3, 80)
+      throttledSound('death', 'enemy-death', 0.02, 1 + Math.random() * 0.3, 80)
       break
     case 'fighterDeath':
       emitSplash(toClientX(e.x), toClientY(e.y), getIngredient(e.tier).glow)
-      playSound('obstacle-hit', 0.03, 0.8)
+      playSound('fighter-death', 0.03, 0.8)
       break
     case 'deploy':
       addFlash('shockwave', e.x, e.y)
       emitSparkle(toClientX(e.x), toClientY(e.y), '#ffffff', 10)
-      playSound('stone-cut', 0.04, 1.1)
+      playSound('deploy-land', 0.04, 1.1)
       break
     case 'fieldMerge':
       addFlash('mergeburst', e.x, e.y)
       emitConfetti(toClientX(e.x), toClientY(e.y), 16, 1.2)
-      playSound('level-up', 0.05, 0.85 + Math.min(10, e.tier) * 0.05)
+      playSound('field-merge', 0.05, 0.85 + Math.min(10, e.tier) * 0.05)
       break
     case 'gateHit': {
       gateShake.value = true
       window.clearTimeout(gateShakeTimer)
       gateShakeTimer = window.setTimeout(() => { gateShake.value = false }, 200)
-      throttledSound('gate', 'obstacle-hit', 0.025, 0.9, 150)
+      throttledSound('gate', 'gate-hit', 0.025, 0.9, 150)
       triggerShake('small')
       break
     }
     case 'overrun':
-      playSound('lose', 0.06)
+      playSound('overrun', 0.06)
       triggerShake('big')
       break
     case 'waveStart':
@@ -240,12 +261,12 @@ const onEvent = (e: BattleEvent): void => {
         e.boss ? t('battle.bossIncoming') : t('battle.waveStart', { n: e.wave }),
         e.boss, e.boss ? 2200 : 1400
       )
-      playSound(e.boss ? 'barricade' : 'modal-open', e.boss ? 0.07 : 0.03)
+      playSound(e.boss ? 'boss-incoming' : 'wave-start', e.boss ? 0.07 : 0.03)
       if (e.boss) triggerShake('strong')
       break
     case 'waveCleared':
       showWaveBanner(t('battle.waveCleared', { n: e.bonus }), false, 1500)
-      playSound('win', 0.045)
+      playSound('wave-cleared', 0.045)
       if (props.coinTarget && rootRef.value) {
         spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: 12 })
       }
@@ -253,7 +274,7 @@ const onEvent = (e: BattleEvent): void => {
     case 'bossKill':
       emitConfetti(toClientX(e.x), toClientY(e.y), 60, 2)
       playSound('explosion-1', 0.07, 0.8)
-      playSound('celebration-3', 0.08)
+      playSound('boss-death', 0.08)
       triggerShake('big')
       if (props.coinTarget && rootRef.value) {
         spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: 30 })
@@ -261,28 +282,28 @@ const onEvent = (e: BattleEvent): void => {
       sceneEmit('bossKill', e.bounty)
       break
     case 'enrage':
-      playSound('chainsaw-break', 0.05, 0.9)
+      playSound('enrage-roar', 0.05, 0.9)
       triggerShake('strong')
       break
     case 'combo': {
       comboPop.value = { n: e.combo, id: ++flashSeq }
       window.clearTimeout(comboTimerId)
       comboTimerId = window.setTimeout(() => { comboPop.value = null }, 900)
-      throttledSound('combo', 'coin-pickup', 0.02, 1 + Math.min(20, e.combo) * 0.05, 120)
+      throttledSound('combo', 'combo-tick', 0.02, 1 + Math.min(20, e.combo) * 0.05, 120)
       break
     }
     case 'fever':
-      playSound('celebration-1', 0.07)
+      playSound('fever-start', 0.07)
       triggerShake('strong')
       break
     case 'ultReady':
-      playSound('reward-continue', 0.05)
+      playSound('ult-ready', 0.05)
       break
     case 'meteor':
       addFlash('meteor', e.x, e.y)
       emitConfetti(toClientX(e.x), toClientY(e.y), 14, 1.4)
       emitSplash(toClientX(e.x), toClientY(e.y), '#ff8a1f')
-      playSound('explosion-1', 0.045, 0.9 + Math.random() * 0.4)
+      playSound('meteor-impact', 0.045, 0.9 + Math.random() * 0.4)
       triggerShake('small')
       break
     case 'warHeal':
@@ -295,7 +316,7 @@ const onEvent = (e: BattleEvent): void => {
 const ultPct = computed(() => Math.min(100, Math.round((battle.ultCharge.value / battle.ultMax) * 100)))
 const onUlt = (): void => {
   if (battle.fireUltimate()) {
-    playSound('gravity', 0.05, 1.2)
+    playSound('ult-cast', 0.05, 1.2)
     triggerShake('strong')
   }
 }
@@ -341,13 +362,15 @@ onUnmounted(() => {
 
 <template lang="pug">
   div.battle-arena.relative.w-full.h-full.overflow-hidden.rounded-2xl(ref="rootRef" :class="{ 'fever-on': battle.feverActive.value }")
-    //- ── Ground / backdrop ──
+    //- ── Ground / backdrop (bitmap override or procedural gradient+grid) ──
+    div.absolute.inset-0.arena-bg-img(v-if="arenaBg" :style="{ backgroundImage: 'url(' + arenaBg + ')' }")
     div.absolute.inset-0.arena-ground
-    div.absolute.inset-0.arena-grid
+    div.absolute.inset-0.arena-grid(v-if="!arenaBg")
 
     //- ── The Lab Gate (left edge) ──
     div.gate.absolute.left-0.flex.flex-col.items-center(:class="{ 'gate-shake': gateShake }" class="top-[6%] bottom-[4%] w-[7%] min-w-8 z-[8]")
       div.gate-door.relative.flex-1.w-full.rounded-r-xl.overflow-hidden
+        img.absolute.inset-0.w-full.h-full.object-cover(v-if="gateArt" :src="gateArt" alt="" draggable="false")
         div.gate-glow.absolute.inset-0(:style="{ opacity: gatePct / 100 * 0.8 + 0.2 }")
         div.gate-cracks.absolute.inset-0(v-if="gatePct < 55")
       div.w-full.rounded-full.overflow-hidden.mt-1(class="h-1.5 bg-black/50")
@@ -403,7 +426,7 @@ onUnmounted(() => {
       v-for="fl in flashes"
       :key="fl.id"
       :class="'flash-' + fl.type"
-      :style="{ left: fl.x + '%', top: fl.y + '%' }"
+      :style="flashStyle(fl)"
     )
 
     //- ── Damage numbers (pooled) ──
@@ -486,6 +509,9 @@ onUnmounted(() => {
   touch-action: none
   container-type: size
 
+.arena-bg-img
+  background-size: cover
+  background-position: center bottom
 .arena-ground
   background: linear-gradient(180deg, rgba(28, 39, 66, 0.0) 0%, rgba(24, 34, 60, 0.55) 40%, rgba(16, 24, 46, 0.85) 100%)
 .arena-grid

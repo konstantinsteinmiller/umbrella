@@ -1,149 +1,227 @@
-# Merge Idle War — Retention & Game-Feel Roadmap
+# Merge Idle War — Retention & Game-Feel Roadmap (v2.0 auto-battler)
 
-Prioritised backlog of post-launch features, sorted by **expected impact** on the
-metrics the brief calls out: **Day-1 retention**, **average playtime**,
-**easy-to-pick-up / hard-to-put-down**, and **conversion of new players**. Each
-item lists *what*, *why* (which metric it moves), and an *actionable* implementation
-note grounded in the current codebase (`usePrismGame`, `prism_state`, the SaveManager,
-the `useAds` rewarded/interstitial layer, the particle system, the i18n bundle).
+Prioritised backlog of post-launch features, sorted by **expected impact** on
+**Day-1 retention**, **average playtime**, **easy-to-pick-up / hard-to-put-down**,
+and **new-player conversion**. Each item lists *what*, *why* (which metric it
+moves), and an *actionable* implementation note grounded in the current codebase
+(`useBattle.ts`, `usePrismGame.ts`, the `merge-idle-war_state` blob via
+`useEpicState`, the `useAds` rewarded layer, and the unwired epicrolla template
+components already in the repo: `DailyRewards.vue`, `BattlePass.vue`,
+`AchievementsModal.vue`, `SkinModal.vue` / `useEpicSkins`, `useAchievements`).
+
+All new user-facing strings go through i18n (`battle.*` / `prism.*` namespaces,
+propagated to every shipped locale).
 
 Effort key: **S** ≈ <½ day · **M** ≈ 1–2 days · **L** ≈ 3+ days.
 
 ---
 
-### 1. Guided first-session tutorial (FTUE) — *Day-1 retention, pick-up* · M
-**What:** A 4-step coach-mark flow on the very first session: "drag two droplets together →
-merge", "drag a unit up into the cauldron", "fill the cauldron to brew", "tap to place your
-first sticker". Hand-hold to the first discovery within ~30s.
-**Why:** The first brew is the aha-moment; players who reach it on day 1 retain far better.
-**How:** Add a `prism_tutorial_step` field to `prism_state`. Drive a lightweight overlay
-component off it; advance on the real `merge`/`injectFromGrid`/`brewOutcome` events the game
-already emits. Spotlight target slots with a pulsing ring (reuse the `.slot-hover` style).
+### 1B. Flying chest reward
+A flying chest flies in from left to right every 2 minutes and randomly either grants 150 coins or 
+drops a copy of the 2nd best unit(only if available, otherwise level 2 unit) you have on the field.
+add to art and sound todo files
 
-### 2. Idle / offline earnings with a "Welcome back" claim — *retention, conversion* · M
-**What:** While away, the Helper Imp keeps "working". On return, show a "While you were gone:
-+N gold, M brews" modal with a **2× rewarded** claim button.
-**Why:** The single strongest re-open driver in idle/merge games; also a clean rewarded-ad slot.
-**How:** Persist `prism_last_seen` (ms) in `prism_state`. On mount, compute elapsed × an
-idle-rate derived from `automationMs`/`pageGoldMult` (cap ~8h). Grant on claim via
-`useEpicConfig.addCoins`; gate the 2× on `isRewardedReady` + `showRewardedAd`.
+### 1. Guided first-session FTUE (coach-marks) — *Day-1 retention, pick-up* · M
+**What:** 4-step overlay on the very first session: "tap SPAWN 4× → recruit
+appears", "drag the two droplets together → MERGE", "drag your fighter into the
+arena → DEPLOY", "drop a grid unit onto a same-tier fighter → FIELD MERGE heals
+it". Hand-hold to the first kill within ~30 s, then get out of the way.
+Use lightboxes for the affected UI elements to avoid confusion.
+use a one tap spawn on the spawn button for the onboarding session.
+**Why:** The first deploy + first kill is the aha-moment; players who see the
+army fight on day 1 retain dramatically better. The 4-tap spawn is NOT
+self-explanatory without a nudge.
+**How:** Persist `prism_tutorial_step` in the state blob. Drive a lightweight
+spotlight component (pulsing ring + short label, pointer-events punched through)
+off the real events the game already emits: `tapSpawn` fill, `merge()`,
+`deployFighter()`, the field-merge path in `useBattle`. Skip entirely when
+`battle_best_wave > 1`.
 
-### 3. Daily login calendar + first-brew-of-day bonus — *Day-1/Day-7 retention* · S
-**What:** 7-day escalating login reward and a one-time daily "first brew pays 3×" buff.
-**Why:** Proven streak mechanic; gives a reason to open every day.
-**How:** A `DailyRewards`-style modal already exists in the template — wire it to gold.
-Track `prism_daily` (`{ day, streak }`) in `prism_state`; reset the engine's
-`buffs.goldMult` style temp buff for the first brew each new local day.
+### 2. First-10-minutes pacing pass — *Day-1 retention* · S
+**What:** Script waves 1–5 tighter: wave 1 winnable with two T1s but losable if
+idle (no "impossible to lose = 0 fun" dropouts), guaranteed first Runner leak
+scare on wave 3, and make the first boss (wave 5) an event — entrance banner,
+slow-mo kill, oversized coin fountain, and the War Chest offer surfacing right
+after.
+**Why:** D1 churn concentrates in the first minutes; a scripted early boss kill
+is the hook that converts a first session into a second.
+**How:** Add a `wave <= 5` branch in the wave composer (`units.ts`) with
+hand-tuned squads instead of formula output; trigger the existing boss-kill
+spectacle path in `useBattle` with boosted particle counts for the first boss
+only (`battle_stats.bossKills === 0`).
 
-### 4. Quest / order board ("Brew 3 potions for Lord Vex → reward") — *playtime, pick-up* · M
-**What:** 3 rotating short-goal cards ("merge to Tier 5", "brew any Storm potion", "earn 2k
-gold") with chunky gold/booster payouts.
-**Why:** Converts an open sandbox into directed sessions → longer, goal-driven play.
-**How:** New `useQuests` composable persisting `prism_quests` in `prism_state`; subscribe to
-the existing `stats`, `brewOutcome`, and `maxTier` reactivity to tick progress.
+### 3. Offline earnings + "Welcome back" claim — *re-open rate, conversion* · M
+**What:** While away, the Imp Sergeant "keeps fighting". On return after >3 min,
+show a modal: "While you were gone: +N gold" with a **2× rewarded** claim button.
+**Why:** The single strongest re-open driver in idle games, and a top-performing
+rewarded slot. Currently closing the tab earns nothing → no reason to return.
+**How:** Persist `battle_last_seen` (epoch ms) in the blob on the existing
+wave-clear checkpoint + `pagehide`. On boot, grant
+`elapsed × goldPerSecEstimate × automationLevel factor`, capped at 8 h, where
+`goldPerSecEstimate` derives from current wave bounty formula
+(`6 · 1.09^(wave−1)`) × recent kill rate. Gate the 2× behind `isRewardedReady`;
+payout flies to the wallet via the existing `useCoinExplosion`.
 
-### 5. Grid expansion + bench/storage upgrades — *playtime, depth* · M
-**What:** Spend gold to grow the grid (4×4 → 5×5) and unlock a side "bench" to park units.
-**Why:** Removes the soft "grid full" wall; gives a long-tail gold sink that deepens play.
-**How:** `GRID_COLS/GRID_ROWS` are already constants; promote them to upgrade-driven state in
-`prism_state` and make `sanitizeGrid` size-aware. The CSS grid + container-query square already
-adapt to any column count.
+### 4. Wave-milestone chests + next-unlock preview — *hard-to-put-down* · S
+**What:** Every 10th wave drops a chest (gold + a free T-high unit onto the
+grid). HUD shows a persistent "Next: 🎁 wave 20" pip under the wave counter,
+plus "New enemy at wave 7!" teasers.
+**Why:** Concrete, always-visible short-term goals are the classic "one more
+wave" mechanic — directly extends session length.
+**How:** Hook the wave-clear path in `useBattle` (`wave % 10 === 0`); reuse the
+boss-kill coin fountain + a `spawnAt(tier)` helper in `usePrismGame` that places
+a `min(maxTier−1, …)` unit in a random empty slot. The teaser strings come from
+the archetype unlock table already in `units.ts` (Runners w3, Spitters w5,
+Brutes w7, Warlocks w9).
 
-### 6. Combo / brew-streak multiplier with escalating juice — *hard-to-put-down* · S
-**What:** Consecutive successful (non-sludge) brews build a streak that ramps gold and VFX
-intensity (more confetti, screen-shake, rising pitch).
-**Why:** Creates a "one more brew" flow loop; pure dopamine pacing.
-**How:** Track a streak counter in `usePrismGame.resolveBrew`; feed it into `earnGold` and
-scale `emitConfetti` count + `useScreenshake` (already in the template). Reset on sludge.
+### 5. Daily streak rewards — *Day-1→Day-7 retention* · S
+**What:** 7-day escalating login calendar (gold scaled by best wave, day 7 = a
+free high-tier unit + instant-spawn buff).
+**Why:** Proven streak mechanic; cheap because **`DailyRewards.vue` already
+exists in the repo** — it only needs wiring to the battler economy.
+**How:** Track `daily: { lastClaimDay, streak }` in the blob; scale payouts off
+`battle_best_wave` so rewards never feel stale. Show the modal on boot only when
+claimable (never block the fast jump into gameplay — slide it in after wave 1
+starts).
 
-### 7. "Next discovery" nudge + recipe peek — *pick-up, playtime* · S
-**What:** A persistent hint showing the closest almost-completable recipe ("You're 1 unit from
-**Volcanic Brew**"), with a rewarded "reveal a recipe" option.
-**Why:** Curiosity is the core driver (GDD §1.2); always dangle the next sticker.
-**How:** Diff the player's reachable tiers against `RECIPES`; surface the nearest. Reuse the
-reveal overlay styling. Rewarded reveal via `showRewardedAd`.
+### 6. Quest / war-orders board — *playtime, session direction* · M
+**What:** 3 rotating short goals ("Kill 40 Slimes", "Merge to Tier 6", "Clear
+wave 15", "Field-merge 3 times") with chunky gold payouts and a badge on the HUD.
+**Why:** Converts open-ended idling into directed sessions; players stay to
+finish the third order.
+**How:** New `useQuests` singleton composable persisting `battle_quests` in the
+blob; progress ticks off the existing `bumpStat` calls in
+`useBattle`/`usePrismGame` (kills, merges, fieldMerges, waves are already
+counted in `prism_stats` — subscribe, don't re-instrument).
 
-### 8. Booster shop (temp Heat/Pressure/Auto surges) bought with gold or rewarded — *conversion* · M
-**What:** Consumable boosters ("10-min 2× gold", "instant cauldron auto-fill") purchasable with
-gold or a rewarded ad.
-**Why:** Adds a high-frequency rewarded surface and a meaningful gold sink → conversion + playtime.
-**How:** Extend the existing `RecipeEffect`/`buffs` system — the temp-buff plumbing
-(`goldMult`/`spawnSpeed`/`autoBoost`) already exists; expose it as purchasable items.
+### 7. Prestige — "War Medals" reforge loop — *long-term retention, playtime* · L
+**What:** From wave 25+, reset waves/army/grid for **War Medals** granting
+permanent multipliers (+X% attack/gold per medal) and a medal-shop (start wave
++5, T2 spawns, 8th army slot).
+**Why:** The exponential wave scaling will eventually wall every player;
+prestige turns the wall into the core long-game loop and multiplies lifetime
+playtime.
+**How:** `battle_medals` + `battle_prestige_count` in the blob; medal formula
+`floor((bestWave − 20) / 5)` per run. Apply multipliers where the four battle
+upgrades already inject (`useBattle` stat computation). Full-screen reforge
+ceremony with the existing confetti/screenshake stack — a prestige must feel
+like a win, not a loss.
 
-### 9. Juicier merge/brew feel pass — *hard-to-put-down* · S
-**What:** Add haptics (`navigator.vibrate` on mobile), a tiny time-freeze + flash on Tier-up,
-ingredient "anticipation" wiggle before a valid drop, and cauldron lip-overflow on a full brew.
-**Why:** Tactile satisfaction is Core Pillar #1; small touches massively lift perceived quality.
-**How:** Hook `navigator.vibrate(12)` into `MergeGrid.fireMerge` / inject. Add a one-frame white
-flash div on legendary. All cheap, GPU-light additions to existing handlers.
+### 8. "RALLY!" overrun revive (rewarded) — *conversion, frustration kill* · S
+**What:** On OVERRUN, before the wave restarts: a 5 s slow-mo offer — "RALLY!
+Watch to resurrect your fallen fighters" (rewarded ad → dead fighters return at
+full HP; decline → current behavior).
+**Why:** Highest-intent rewarded moment in the game (loss aversion beats any
+chest), and it removes the sting of the death-spiral for weaker players.
+**How:** Buffer the fighter tiers that died during the current wave in
+`useBattle`; on the overrun path pause the restart timer, show the offer gated
+on `isRewardedReady` (no button when no fill), redeploy via the existing
+`deployFighter` on success. Reuse the ad-audio suspend gate around the ad.
 
-### 10. Prestige / "Transcend the Lab" reset layer — *long-term retention* · L
-**What:** Once the index is far enough, prestige for a permanent "Essence" currency that buys
-global multipliers, resetting grid/upgrades.
-**Why:** Gives end-game players a reason to keep returning for weeks.
-**How:** New `prism_prestige` block; Essence as a second wallet. Fold an Essence multiplier into
-`goldMultTotal`. Confirm-modal + celebratory full-screen sequence (reuse legendary rays).
+### 9. 2× Boss Bounty rewarded offer — *conversion* · S
+**What:** After each boss kill, a 6 s offer chip: "Double the bounty (22×
+baseline) — watch ad". Already specified in GDD §6.1 but **not yet implemented**.
+**Why:** Boss kills are the emotional peak; doubling a fat, just-earned number
+is the easiest rewarded yes in the genre.
+**How:** Hook the boss-death event in `useBattle`'s event sink; hold the bounty
+payout visual (the coin fountain) until the offer resolves. Gate on
+`isRewardedReady`; on decline/no-fill pay 1× immediately. Copy the
+`InstantSpawnAdButton.vue` pattern for the chip.
 
-### 11. Cauldron & lab cosmetic skins (gold + rewarded unlocks) — *conversion, identity* · M
-**What:** Alternate cauldron faces, lab backdrops, potion-glass tints; some gold-bought, some
-rewarded-unlock, some milestone-gated.
-**Why:** Cosmetics drive both engagement and ad/IAP conversion without pay-to-win.
-**How:** A `SkinModal` scaffold already exists in the template. Drive the cauldron's gradients
-+ face set from a `prism_skins` selection; the cauldron SVG is already data-driven.
+### 10. Achievements — *playtime, completion pull* · S
+**What:** ~20 achievements (first T5/T10 merge, wave 10/25/50, 1 000 kills,
+first field merge, combo ×25, boss ×10 …) with toast + gold payout.
+**Why:** **`useAchievements` + `AchievementsModal.vue` already exist** — wiring
+them to `prism_stats` is nearly free and adds a whole completion axis.
+**How:** Define the battler achievement table keyed off existing stats
+(`kills`, `waves`, `bossKills`, `merges`, `fieldMerges`, `maxTier`, combo peak —
+add `bestCombo` to stats). Toasts reuse the banner system in `BattleArena.vue`.
 
-### 12. Push-style "cauldron is idle / charges full" local reminders (native) — *retention* · M
-**What:** On the Tauri/native build, schedule a local notification when spawn charges cap or an
-idle reward is ready.
-**Why:** Re-engagement without a server. Strong Day-1→Day-2 lift on mobile.
-**How:** The repo already ships a Tauri pipeline (`tauri-mobile-ci` skill); use the notification
-plugin, scheduled from `prism_last_seen` + charge-regen math.
+### 11. Grid expansion + reserve bench — *depth, gold sink* · M
+**What:** Two purchasable expansions: 4×4 → 4×5 (late gold sink) and a 2-slot
+"reserve bench" to park units without blocking spawns.
+**Why:** "Grid full" is the main mid-game friction; selling the fix is a
+satisfying progression beat and soaks late-game gold inflation.
+**How:** `GRID_COLS/GRID_ROWS` are constants in `usePrismGame` — promote to
+blob-backed state, make `sanitizeGrid` size-aware (it already pads to
+`GRID_SIZE`). The grid CSS derives slot size from the container, so extra
+columns/rows scale for free.
 
-### 13. Collection-page completion ceremonies + set bonuses — *playtime, completion drive* · S
-**What:** Make page completion a moment: full-screen banner (exists), a chest open, and a
-visible permanent badge on the Index tab. Tease the *next* page's reward.
-**Why:** "Gotta finish the page" is the sticker-album hook; reward the milestone loudly.
-**How:** `pageComplete` already fires. Add a chest-open animation (reuse `TreasureChest`) and
-render claimed-page badges in `IndexBookModal`.
+### 12. Unit codex + next-tier silhouette — *hard-to-put-down, collection* · S
+**What:** A codex of all 10 tiers (tap a grid unit → stats + ability text);
+undiscovered tiers show as dark silhouettes with "Merge 2× Tier N to discover!".
+The next-undiscovered silhouette also ghosts in the HUD.
+**Why:** Silhouette curiosity is the cheapest "one more merge" driver; ability
+text also teaches the roster (most players never learn what Bio-Sprout does).
+**How:** `maxTier` is already persisted as the discovery watermark. Codex modal
+reuses the unit SVGs (via `useArtOverrides` `artSrc()` so dropped-in art shows);
+ability copy from a `battle.codex.*` i18n table.
 
-### 14. Smarter automation tiers (priority targeting, recipe-aware imp) — *idle quality* · M
-**What:** Higher Imp levels let it pursue a *chosen target recipe* (auto-merge toward it,
-auto-brew it) instead of greedy highest-tier.
-**Why:** Makes idle progression feel intelligent and worth investing in → deeper upgrade sink.
-**How:** Extend `autoStep` with an optional `targetRecipeId` from `prism_state`; bias
-`findMergePair` and the inject pick toward the formula's tiers.
+### 13. Elite & mutator waves — *playtime variety* · M
+**What:** From wave 12+, every ~4th non-boss wave rolls a mutator, telegraphed
+in the wave banner: **Gold Rush** (2× bounty), **Frost March** (enemies slow
+your attack on hit), **Horde** (2× count, 0.5× HP), **Elite** (one glowing
+mini-boss with an aura).
+**Why:** The composer's formula waves get samey by wave 15; mutators reset
+attention and create "let me see the next mutator" pull.
+**How:** Extend the wave composer in `units.ts` with a seeded mutator roll;
+banner variant in `BattleArena.vue`; per-mutator hooks are small multipliers on
+existing paths (bounty mult, status-effect application, squad-size line).
 
-### 15. Live-ops events ("Double Gold Weekend", themed limited recipes) — *retention cadence* · M
-**What:** Time-boxed events with a banner, boosted rewards, and a few event-only stickers.
-**Why:** Recurring novelty is the backbone of long-term LiveOps retention.
-**How:** A static event config (date-gated, shippable without a backend) read at boot; flip a
-global multiplier and inject extra `RECIPES`. Localise event copy via the i18n `prism` namespace.
+### 14. Unit skins / elemental variants — *conversion, collection* · M
+**What:** Unlockable palette-swap skins per tier (gold-earned + a rewarded
+"skin chest"), e.g. Obsidian Droplet, Neon Spark.
+**Why:** **`SkinModal.vue` + `useEpicSkins` already exist** from the template;
+cosmetics give long-horizon goals and a soft rewarded placement.
+**How:** Re-point `useEpicSkins` at per-tier SVG palette maps (the units are
+inline SVGs — a skin is a color-token swap, no new art needed for v1). Persist
+`unit_skins` in the blob; equipped skin renders in grid AND arena.
 
-### 16. Full content localisation of ingredient & recipe names — *conversion (global reach)* · M
-**What:** Translate the 10 ingredient names + 50 recipe names/hints into the 21 shipped locales
-(currently English game-content with `en` runtime fallback).
-**Why:** Non-English portals (Yandex, Playgama, GamePix) convert far better when content is native.
-**How:** Move the display strings from `ingredients.ts`/`recipes.ts` into the i18n bundles under
-`prism.ingredients.*` / `prism.recipes.*`; keys already structured for it.
+### 15. Timed free War Chest — *session scheduling, re-open* · S
+**What:** Alongside the rewarded War Chest, a small **free** chest on a 4 h
+timer ("Supply Drop ready!"). Shows a countdown when not ready.
+**Why:** Gives lapsed players a concrete reason to re-open ("my chest is up") —
+the classic appointment mechanic — without cannibalizing the rewarded chest
+(free ≈ 25% of the rewarded value).
+**How:** `supply_drop_at` epoch in the blob; reuse the War Chest button/VFX in
+`GameScene.vue` with a countdown state (pattern already in
+`InstantSpawnAdButton.vue`).
 
-### 17. Onboarding "starter surge" + anti-stall economy tuning — *Day-1 retention* · S
-**What:** Seed new players with a small gold cushion and a faster first-minute spawn cadence so
-they never hit a dead wait; analytics-driven curve tuning after.
-**Why:** Early friction (full grid, 0 gold, slow charges) is the top Day-1 churn cause.
-**How:** Seed `epic_coins` on first boot (no `prism_state`), temporarily lower `SPAWN_REGEN_MS`
-for the first N spawns, and expose the constants for A/B tuning.
+### 16. Best-wave leaderboard — *retention, competition* · S
+**What:** Submit `battle_best_wave` to the platform leaderboard where the SDK
+supports it (CrazyGames, Playgama, Yandex); show "Top 12% of commanders" on
+wave-clear banners.
+**Why:** Rank framing measurably lifts session count on portals; near-free
+since best wave is already tracked and persisted.
+**How:** Platform-gated calls in the existing `src/platforms/*` descriptors on
+the wave-clear checkpoint; no-op on platforms without the API. Percentile copy
+only when the SDK returns rank.
 
-### 18. Lightweight social proof: leaderboards & shareable discovery cards — *virality, retention* · L
-**What:** A discovery-count leaderboard (per platform SDK where available) and a "share my
-legendary potion" image card.
-**Why:** Competition + sharing extend lifetime and bring organic installs.
-**How:** Use the platform SDKs already wired (CrazyGames/Yandex/Playgama leaderboard APIs);
-render the share card from the existing `PotionBottle` SVG → canvas.
+### 17. Game-feel pass v2: haptics + dynamic audio intensity — *game feel* · M
+**What:** (a) `navigator.vibrate` micro-haptics on merge/deploy/boss-kill/ult
+(mobile web, feature-detected); (b) music intensity layers — filter/low-pass
+the battle theme between waves, open it up during combat, add a pitched-up
+layer during FEVER; (c) kill-streak escalation: per-10-combo screen pulse +
+saturation bump.
+**Why:** Directly serves the "Tactile Satisfaction" pillar; fever that *sounds*
+different is what makes players chase it.
+**How:** Haptics behind a settings toggle (some portals disallow — platform-gate
+it). Music layering via a second gain node in `useSound`'s music path
+(crossfade, no extra file needed for v1 — low-pass filter swap). Combo pulse
+hooks the existing combo event in the sink.
+
+### 18. Battle Pass — "War Campaign" — *playtime, long-term* · L
+**What:** A free-track seasonal pass (kills/waves/merges earn campaign XP →
+30 reward tiers: gold, instant-spawn buffs, skins, a medal head-start).
+**Why:** **`BattlePass.vue` already exists**; a free track alone adds a
+month-horizon goal ladder. Ship LAST — it only multiplies retention that the
+items above create.
+**How:** Re-skin the template component; XP ticks off `bumpStat`; season state
+(`campaign: { season, xp, claimed[] }`) in the blob; season rollover keyed to a
+hardcoded date table (no server needed).
 
 ---
 
-## Suggested sequencing
-1. **First wave (retention foundation):** #1 FTUE, #2 Idle earnings, #3 Daily login, #17 economy tuning.
-2. **Second wave (depth & playtime):** #4 Quests, #5 Grid expansion, #6 Combo streak, #13 Page ceremonies.
-3. **Third wave (monetisation & feel):** #7 Discovery nudge, #8 Boosters, #9 Juice pass, #11 Cosmetics.
-4. **Fourth wave (longevity & reach):** #10 Prestige, #14 Smart imp, #15 Live-ops, #16 Localisation, #12 Notifications, #18 Social.
-</content>
+**Suggested order of attack:** 1 → 2 → 3 → 4 (the D1 core), then 8 + 9 (fastest
+conversion wins), then 5/10/12 (cheap wiring of existing components), then the
+depth ladder 6 → 7 → 11 → 13, and 14–18 as polish/scale allows.

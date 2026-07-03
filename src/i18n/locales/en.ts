@@ -10,7 +10,7 @@ export default {
   // dedicated follow-up (see the roadmap). ───────────────────────────────────
   'prism': {
     'spawn': 'Spawn',
-    'spawnCost': 'Spawn ({n})',
+    'instantSpawn': 'Instant Spawn',
     'freeGold': 'War Chest',
     'gridFull': 'Grid full — merge or deploy to make room!',
     'hintDrag': 'Drag matching units together to merge'

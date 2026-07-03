@@ -7,6 +7,7 @@
  */
 import { computed } from 'vue'
 import type { EnemyKind } from '@/game/units'
+import { artSrc, type ArtKey } from '@/use/useArtOverrides'
 
 const props = withDefaults(defineProps<{
   kind: EnemyKind
@@ -27,11 +28,23 @@ const pal = computed<Palette>(() => props.enraged
   : PALETTES[props.kind])
 
 const uid = `en${(Math.random() * 1e9) | 0}`
+
+// Drop-in bitmap override (art-todo.md): `images/enemies/<kind>.webp`.
+// Null until the file exists and decodes — the SVG below is the fallback.
+// Enrage keeps working on bitmaps via a CSS red-flush filter.
+const bitmap = computed(() => artSrc(`enemy-${props.kind}` as ArtKey))
 </script>
 
 <template lang="pug">
   div.enemy-unit.relative.select-none
-    svg(viewBox="0 0 100 100" class="w-full h-full overflow-visible" style="filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35))")
+    //- Drop-in bitmap art (march/enrage animations live on the arena wrapper)
+    img.w-full.h-full.object-contain(
+      v-if="bitmap"
+      :src="bitmap" alt="" draggable="false"
+      :class="{ 'is-enraged': enraged }"
+      style="filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35))"
+    )
+    svg(v-else viewBox="0 0 100 100" class="w-full h-full overflow-visible" style="filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35))")
       defs
         radialGradient(:id="uid + '-b'" cx="38%" cy="32%" r="80%")
           stop(offset="0%" :stop-color="pal.light")
@@ -107,4 +120,9 @@ const uid = `en${(Math.random() * 1e9) | 0}`
   width: 100%
   height: 100%
   transform-origin: center
+
+// Red flush for enraged bosses when the bitmap override is active — the
+// inline drop-shadow is repeated so the :class swap doesn't drop it.
+.is-enraged
+  filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35)) sepia(0.5) saturate(3) hue-rotate(-28deg) brightness(1.1) !important
 </style>

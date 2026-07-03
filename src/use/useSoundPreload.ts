@@ -18,6 +18,7 @@
 
 import { prependBaseUrl } from '@/utils/function'
 import { loadAudioBuffer } from '@/use/useAssets'
+import { probeSfxOverrides } from '@/use/useSound'
 
 // Every SFX the gameplay scene can fire. Kept as a flat list so a single
 // allSettled covers them all. Order doesn't matter — they decode in
@@ -36,7 +37,18 @@ const GAMEPLAY_SFX: ReadonlyArray<string> = [
   'level-up',
   'reward-continue',
   'happy',
-  'celebration-3'
+  'celebration-3',
+  // Battle placeholders fired by the arena's event sink.
+  'clash-1', 'clash-2', 'clash-3', 'clash-4', 'clash-5',
+  'explosion-1',
+  'crystal-cut',
+  'dodge',
+  'shrapnel',
+  'stone-cut',
+  'barricade',
+  'gravity',
+  'chainsaw-break',
+  'celebration-1'
 ]
 
 let preloadStarted = false
@@ -50,6 +62,9 @@ let preloadDone: Promise<void> | null = null
 export const preloadGameplaySounds = (): Promise<void> => {
   if (preloadDone) return preloadDone
   preloadStarted = true
+  // Also probe the drop-in override slots (sound-todo.md) — real files decode
+  // and take over their event; missing ones keep the placeholders above.
+  probeSfxOverrides()
   preloadDone = Promise.allSettled(
     GAMEPLAY_SFX.map((name) => loadAudioBuffer(prependBaseUrl(`audio/sfx/${name}.ogg`)))
   ).then(() => undefined)

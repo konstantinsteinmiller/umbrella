@@ -16,8 +16,9 @@
  * battle (new fighter vs field merge vs army-full bounce). The component also
  * watches the automation imp's actions to mirror its merges/deploys.
  */
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import usePrismGame, { GRID_COLS } from '@/use/usePrismGame'
+import { artSrc } from '@/use/useArtOverrides'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import useSounds from '@/use/useSound'
 import { emitConfetti, emitSparkle } from '@/use/usePrismParticles'
@@ -33,6 +34,19 @@ const { grid } = game
 const { playSound } = useSounds()
 
 const rootRef = ref<HTMLElement | null>(null)
+
+// Drop-in slot-frame bitmap (art-todo.md); null → procedural dashed frame.
+const slotFrameStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = {}
+  const art = artSrc('slot-frame')
+  if (art) {
+    style.backgroundImage = `url(${art})`
+    style.backgroundSize = '100% 100%'
+    style.borderColor = 'transparent'
+    style.boxShadow = 'none'
+  }
+  return style
+})
 
 // ── Drag state ──
 const dragging = ref(false)
@@ -129,7 +143,7 @@ const onPointerUp = (e: PointerEvent): void => {
       if (newTier > 0) fireMerge(target, newTier)
     } else if (grid.value[target] === 0) {
       game.moveSlot(src, target)
-      playSound('anchor-swap', 0.03)
+      playSound('unit-move', 0.03)
     }
   }
   endDrag()
@@ -148,24 +162,30 @@ const fireMerge = (idx: number, newTier: number): void => {
     emitConfetti(cx, cy, 10 + Math.min(newTier, 8), 0.9 + newTier * 0.05)
   }
   // Pitch climbs with tier for a satisfying ladder.
-  playSound('level-up', 0.04, 0.85 + Math.min(newTier, 10) * 0.05)
+  playSound('merge-pop', 0.04, 0.85 + Math.min(newTier, 10) * 0.05)
 }
 
-// ── Spawn (called by the scene's Spawn button) ──
+// ── Spawn (called by the scene's Spawn button; taps meter up to a spawn) ──
 const spawn = (): number => {
-  const idx = game.spawnIngredient()
-  if (idx < 0) {
+  const res = game.tapSpawn()
+  if (res.full) {
     shake.value = true
     setTimeout(() => { shake.value = false }, 360)
     emit('gridFull')
-    playSound('obstacle-hit', 0.015)
+    playSound('grid-full', 0.015)
     return -1
   }
+  if (res.idx < 0) {
+    // Meter tick only — pitch climbs toward the spawn for a "winding up" feel.
+    playSound('spawn-tick', 0.02, 0.9 + (res.progress / res.required) * 0.35)
+    return -1
+  }
+  const idx = res.idx
   poppingIndex.value = idx
   setTimeout(() => { if (poppingIndex.value === idx) poppingIndex.value = -1 }, 360)
   const r = slotRect(idx)
   if (r) emitSparkle(r.left + r.width / 2, r.top + r.height / 2, '#ffffff', 7)
-  playSound('coin-pickup', 0.03, 1.1)
+  playSound('unit-spawn', 0.03, 1.1)
   return idx
 }
 defineExpose({ spawn })
@@ -180,7 +200,7 @@ watch(game.autoAction, (v) => {
     // The imp already committed the deploy in game logic — just flash the slot.
     const r = slotRect(a.idx)
     if (r) emitSparkle(r.left + r.width / 2, r.top + r.height / 2, '#ffe23a', 6)
-    playSound('stone-cut', 0.03, 1.1)
+    playSound('deploy-land', 0.03, 1.1)
   }
 })
 
@@ -211,7 +231,7 @@ onUnmounted(() => {
         :data-slot="idx"
         :class="{ 'slot-hover': hoverIndex === idx, 'slot-source': dragSource === idx }"
       )
-        div.slot-frame.absolute.inset-0
+        div.slot-frame.absolute.inset-0(:style="slotFrameStyle")
         Transition(name="unit-pop")
           div.unit-holder.absolute(
             v-if="tier > 0"

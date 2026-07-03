@@ -22,16 +22,16 @@ reusable cross-cutting platform layer that we KEEP and build on:
 
 ### Pre-existing breakage (must fix first)
 The project-rename script replaced the identifier `mawState` with the **invalid**
-`merge-idle-warState` (hyphens) across 7 files, so the project does NOT compile.
-We fix this while satisfying the GDD requirement: **all state lives in one object `prism_state`.**
+`gameState` (hyphens) across 7 files, so the project does NOT compile.
+We fix this while satisfying the GDD requirement: **all state lives in one object `merge-idle-war_state`.**
 
-## 1. State — `prism_state` (Task 1)
+## 1. State — `merge-idle-war_state` (Task 1)
 - Rewrite `src/use/useEpicState.ts`:
-  - `STATE_KEY = 'prism_state'`, in-memory ref renamed `prismState` (valid identifier).
+  - `STATE_KEY = 'merge-idle-war_state'`, in-memory ref renamed `prismState` (valid identifier).
   - Keep the existing exported API names (`getState/setState/hasState/removeState/reloadEpicState/
     flushPersist/__resetEpicState`) so the platform layer keeps working unchanged.
-- Replace `merge-idle-warState` → `prismState` in the 6 importing files.
-- `keys.ts`: add merge-game field keys (all are properties INSIDE `prism_state`):
+- Replace `gameState` → `prismState` in the 6 importing files.
+- `keys.ts`: add merge-game field keys (all are properties INSIDE `merge-idle-war_state`):
   `prism_gold`, `prism_grid`, `prism_upgrades`, `prism_index`, `prism_stats`, `prism_onboarded`,
   `prism_page_rewards`.
 
@@ -55,7 +55,7 @@ We fix this while satisfying the GDD requirement: **all state lives in one objec
 - Economy: gold via `useEpicConfig`. Upgrades: `heat/pressure/containment/automation` with cost
   curves; automation = idle imp that merges + injects on a timer.
 - Index: unlocked recipe ids; page-completion multipliers.
-- Everything persisted through `setState` into `prism_state`.
+- Everything persisted through `setState` into `merge-idle-war_state`.
 
 ## 4. VFX — `usePrismParticles.ts` + `ParticleCanvas.vue` (Task 4)
 - Single pooled particle array (cap ~280), one RAF, dpr-clamped to 2.
@@ -94,7 +94,7 @@ We fix this while satisfying the GDD requirement: **all state lives in one objec
 
 ## Status log
 - [x] Plan written.
-- [x] Task 1 — state/prism_state + compile fix (all state in one `prism_state` blob; fixed 7 broken files)
+- [x] Task 1 — state/merge-idle-war_state + compile fix (all state in one `merge-idle-war_state` blob; fixed 7 broken files)
 - [x] Task 2 — data (`src/game/ingredients.ts` 10 tiers, `src/game/recipes.ts` 50 recipes + 9 pages)
 - [x] Task 3 — logic (`src/use/usePrismGame.ts`: grid/merge/cauldron/brew/economy/upgrades/index/automation)
 - [x] Task 4 — VFX (`usePrismParticles.ts` pooled engine + `ParticleCanvas.vue`)
@@ -106,7 +106,7 @@ We fix this while satisfying the GDD requirement: **all state lives in one objec
 ## Verified in-browser (Chrome DevTools)
 - Spawn → merge (Tier-1 ×2 → Tier-2 Ember Squirt) → inject ×3 → brew → `[1,1,1]` = **First Water**
   NEW-DISCOVERY reveal, +40 gold, sticker placed; Index → 1/50; gold persisted across reload.
-- `localStorage.prism_state` holds ALL game state in ONE object (GDD requirement met).
+- `localStorage.merge-idle-war_state` holds ALL game state in ONE object (GDD requirement met).
 - Portrait 390×780, short-landscape 820×400 (auto side-by-side), and min 320×658 — all clean,
   no console errors, no horizontal overflow.
 

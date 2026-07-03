@@ -24,9 +24,9 @@ const accent: Record<BattleUpgradeId, string> = {
 
 const buy = (id: BattleUpgradeId): void => {
   if (battle.buyUpgrade(id)) {
-    playSound('level-up', 0.05, 1.05)
+    playSound('upgrade-buy', 0.05, 1.05)
   } else {
-    playSound('obstacle-hit', 0.015)
+    playSound('upgrade-denied', 0.015)
   }
 }
 
