@@ -22,7 +22,7 @@ export default {
       'items250': { 'name': 'Yig\'uvchi', 'desc': 'Jami 250 ta buyum qutisini oling.' }
     }
   },
-  'gameName': 'merge-alchemy-lab',
+  'gameName': 'merge-idle-war',
   'cancel': 'Bekor qilish',
   'close': 'Yopish',
   'ok': 'Ok',

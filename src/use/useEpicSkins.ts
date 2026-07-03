@@ -12,7 +12,7 @@ import useEpicConfig from '@/use/useEpicConfig'
 // purely cosmetic: they change appearance only, never gameplay. The default
 // `stone` skin is owned for free; every other skin costs a flat coin price.
 //
-// Persistence lives in the single `merge-alchemy-lab_state` blob under `SKINS_KEY` as
+// Persistence lives in the single `merge-idle-war_state` blob under `SKINS_KEY` as
 // `{ owned: string[], selected: string }` — same pattern as upgrades — so it
 // round-trips through the platform cloud strategies like the rest of progress.
 

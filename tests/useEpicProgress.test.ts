@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Pure-logic coverage for the merge-alchemy-lab progression + upgrade economy.
+// Pure-logic coverage for the merge-idle-war progression + upgrade economy.
 // Each test imports fresh (vi.resetModules) so the module-singleton refs
 // re-seed from a clean localStorage.
 

@@ -10,7 +10,7 @@ import useEpicProgress from '@/use/useEpicProgress'
 // Lifetime milestones that turn incidental play into goals. Each grants a
 // one-time coin payout, scaled to how hard it is to reach — small for the early
 // ones, fat for the grindy "100,000 tiles" capstone. State lives in the single
-// `merge-alchemy-lab_state` blob under `ACHIEVEMENTS_KEY`:
+// `merge-idle-war_state` blob under `ACHIEVEMENTS_KEY`:
 //   { claimed: string[], stats: { tiles, coins, items, clears, bestRun } }
 // Lifetime stats accumulate on every finished run via `recordRun`; the
 // "highest stage reached" metric reads `progress.maxStage` directly.

@@ -22,7 +22,7 @@ export default {
       'items250': { 'name': 'Hamsteraar', 'desc': 'Pak in totaal 250 itemkisten.' }
     }
   },
-  'gameName': 'merge-alchemy-lab',
+  'gameName': 'merge-idle-war',
   'cancel': 'Annuleren',
   'close': 'Sluiten',
   'ok': 'Ok',

@@ -1,4 +1,4 @@
-# Game Design Document: Merge Alchemy Lab
+# Game Design Document: Merge Idle War
 **Document Version:** 1.0.0
 **Target Platform:** Mobile-First (iOS / Android), Responsive Tablet & Web Browsers  
 **Genre:** Hybrid-Casual Merge / Tycoon / Collection Game
@@ -8,7 +8,7 @@
 ## 1. Executive Summary & Core Concept
 
 ### 1.1 Project Overview
-*Merge Alchemy Lab* is a mobile-first hybrid-casual title where players merge living elemental units to drop them into a mystical cauldron. By combining different tiers of ingredients, players discover chemical properties, brew legendary potions, fill out a sticker-style index book, and upgrade their laboratory. The game prioritizes high-satisfaction visual "juice," tactile drag-and-drop feedback, and an addictive discovery loop.
+*Merge Idle War* is a mobile-first hybrid-casual title where players merge living elemental units to drop them into a mystical cauldron. By combining different tiers of ingredients, players discover chemical properties, brew legendary potions, fill out a sticker-style index book, and upgrade their laboratory. The game prioritizes high-satisfaction visual "juice," tactile drag-and-drop feedback, and an addictive discovery loop.
 
 ### 1.2 Core Pillars
 * **Tactile Satisfaction ("Juice"):** Every merge, drop, bubble, and splash must feel rewarding through explosive visual effects, bouncy animations, and crisp haptics.

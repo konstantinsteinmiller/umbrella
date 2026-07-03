@@ -3,48 +3,40 @@
 // this folder mirror the shape. Vite ships each non-English locale as its own
 // lazy chunk (see `src/i18n/index.ts`).
 export default {
-  'gameName': 'Merge Alchemy Lab',
-  // ─── Merge Alchemy Lab UI chrome (source locale; en is the runtime fallback
-  // for every other locale via vue-i18n `fallbackLocale`). Ingredient & recipe
+  'gameName': 'Merge Legion',
+  // ─── Merge Legion UI chrome (source locale; en is the runtime fallback for
+  // every other locale via vue-i18n `fallbackLocale`). Unit & boss
   // proper-nouns live in the data files — full content localisation is a
   // dedicated follow-up (see the roadmap). ───────────────────────────────────
   'prism': {
     'spawn': 'Spawn',
     'spawnCost': 'Spawn ({n})',
-    'index': {
-      'title': 'Index',
-      'collected': 'Discovered {a} / {b}',
-      'rewardGold': 'Complete this page for +{n}% gold forever',
-      'rewardTier': 'Complete this page to raise the base spawn tier by {n}',
-      'claimed': 'Complete!'
-    },
+    'freeGold': 'War Chest',
+    'gridFull': 'Grid full — merge or deploy to make room!',
+    'hintDrag': 'Drag matching units together to merge'
+  },
+  'battle': {
+    'wave': 'Wave {n}',
+    'best': 'Best {n}',
+    'waveStart': 'Wave {n}',
+    'nextWave': 'Wave {n} in…',
+    'waveCleared': 'Wave cleared! +{n}',
+    'bossIncoming': 'BOSS INCOMING!',
+    'overrun': 'OVERRUN!',
+    'overrunBody': 'The gate has fallen — regroup and hold the line!',
+    'deployHint': 'Drop to deploy!',
+    'armyFullHint': 'Army full — drop onto a same-tier fighter to merge!',
+    'fever': 'FEVER!!!',
+    'rampage': 'RAMPAGE!',
+    'ultimate': 'Meteor Storm',
+    'doubleBounty': 'Double the boss bounty!',
     'upgrades': {
-      'heat': 'Heat',
-      'pressure': 'Pressure',
-      'containment': 'Containment',
+      'attack': 'War Horns',
+      'vitality': 'Vitality',
+      'bounty': 'Bounty',
       'automation': 'Imp',
       'maxed': 'MAX'
-    },
-    'reveal': {
-      'legendary': 'Legendary Potion Brewed!',
-      'newDiscovery': 'New Discovery!',
-      'newBadge': 'NEW',
-      'doubleYield': 'Double Yield!',
-      'tapToPlace': 'Tap to place the sticker'
-    },
-    'toast': {
-      'pageComplete': '{title} complete!',
-      'sludge': 'Foul Mud Sludge'
-    },
-    'buffs': {
-      'goldMult': '{n}× Gold',
-      'spawnSpeed': 'Fast Spawn',
-      'autoBoost': 'Imp Frenzy'
-    },
-    'freeGold': 'Free Gold',
-    'gridFull': 'Grid full — merge or brew to make room!',
-    'hintDrag': 'Drag matching units together to merge',
-    'hintBrew': 'Drag a unit up into the cauldron to brew'
+    }
   },
   'cancel': 'Cancel',
   'close': 'Close',

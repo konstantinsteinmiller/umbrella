@@ -1,4 +1,4 @@
-# Merge Alchemy Lab — Retention & Game-Feel Roadmap
+# Merge Idle War — Retention & Game-Feel Roadmap
 
 Prioritised backlog of post-launch features, sorted by **expected impact** on the
 metrics the brief calls out: **Day-1 retention**, **average playtime**,

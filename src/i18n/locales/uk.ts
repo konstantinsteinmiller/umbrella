@@ -22,7 +22,7 @@ export default {
       'items250': { 'name': 'Накопичувач', 'desc': 'Зберіть загалом 250 скринь з предметами.' }
     }
   },
-  'gameName': 'merge-alchemy-lab',
+  'gameName': 'merge-idle-war',
   'cancel': 'Скасувати',
   'close': 'Закрити',
   'ok': 'Ок',

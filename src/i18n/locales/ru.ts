@@ -22,7 +22,7 @@ export default {
       'items250': { 'name': 'Накопитель', 'desc': 'Соберите всего 250 ящиков с предметами.' }
     }
   },
-  'gameName': 'merge-alchemy-lab',
+  'gameName': 'merge-idle-war',
   'cancel': 'Отмена',
   'close': 'Закрыть',
   'ok': 'Ок',

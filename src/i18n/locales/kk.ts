@@ -22,7 +22,7 @@ export default {
       'items250': { 'name': 'Жинаушы', 'desc': 'Барлығы 250 зат жәшігін алыңыз.' }
     }
   },
-  'gameName': 'merge-alchemy-lab',
+  'gameName': 'merge-idle-war',
   'cancel': 'Бас тарту',
   'close': 'Жабу',
   'ok': 'Жарайды',

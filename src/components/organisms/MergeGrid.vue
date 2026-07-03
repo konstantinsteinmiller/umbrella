@@ -6,14 +6,15 @@
  *   pointerdown on a unit → lift it (floating ghost follows the pointer)
  *   pointermove           → ghost tracks; drop zones / target slot highlight
  *   pointerup             → resolve:
- *                             • over the cauldron/lab drop zone → INJECT
+ *                             • over the battle arena drop zone → DEPLOY
  *                             • over a same-tier slot           → MERGE (tier+1)
  *                             • over an empty slot              → MOVE
  *                             • else                            → snap back
  *
  * Merge "juice" (squish + confetti + SFX) is fired here from the slot's live
- * screen rect. Injects emit upward so the scene can run the gravity slide. The
- * component also watches the automation imp's actions to mirror its merges.
+ * screen rect. Deploys emit upward — the scene resolves them against the
+ * battle (new fighter vs field merge vs army-full bounce). The component also
+ * watches the automation imp's actions to mirror its merges/deploys.
  */
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import usePrismGame, { GRID_COLS } from '@/use/usePrismGame'
@@ -23,7 +24,7 @@ import { emitConfetti, emitSparkle } from '@/use/usePrismParticles'
 import { hitZone, dragActive, dragTier, dragOverDrop } from '@/use/useDropZones'
 
 const emit = defineEmits<{
-  (e: 'inject', payload: { tier: number; fromX: number; fromY: number }): void
+  (e: 'deploy', payload: { idx: number; tier: number; x: number; y: number }): void
   (e: 'gridFull'): void
 }>()
 
@@ -112,16 +113,10 @@ const onPointerUp = (e: PointerEvent): void => {
   const src = dragSource.value
   const x = e.clientX, y = e.clientY
 
-  // 1) Drop into the cauldron / lab area → inject.
-  if (hitZone(x, y) !== null) {
-    const tier = game.injectFromGrid(src)
-    if (tier > 0) {
-      const r = slotRect(src)
-      emit('inject', { tier, fromX: r ? r.left + r.width / 2 : x, fromY: r ? r.top + r.height / 2 : y })
-      playSound('water-splash', 0.05)
-    } else {
-      playSound('obstacle-hit', 0.015) // cauldron busy / full
-    }
+  // 1) Drop into the battle arena → deploy (the scene resolves the outcome).
+  if (hitZone(x, y) === 'arena') {
+    const tier = grid.value[src] ?? 0
+    if (tier > 0) emit('deploy', { idx: src, tier, x, y })
     endDrag()
     return
   }
@@ -175,16 +170,17 @@ const spawn = (): number => {
 }
 defineExpose({ spawn })
 
-// ── Mirror the automation imp's merges with the same VFX ──
+// ── Mirror the automation imp's merges/deploys with the same VFX ──
 watch(game.autoAction, (v) => {
   if (!v || !v.action) return
   const a = v.action
   if (a.type === 'merge') {
     fireMerge(a.to, a.tier)
-  } else if (a.type === 'inject') {
+  } else if (a.type === 'deploy') {
+    // The imp already committed the deploy in game logic — just flash the slot.
     const r = slotRect(a.idx)
-    emit('inject', { tier: a.tier, fromX: r ? r.left + r.width / 2 : 0, fromY: r ? r.top + r.height / 2 : 0 })
-    playSound('water-splash', 0.04)
+    if (r) emitSparkle(r.left + r.width / 2, r.top + r.height / 2, '#ffe23a', 6)
+    playSound('stone-cut', 0.03, 1.1)
   }
 })
 

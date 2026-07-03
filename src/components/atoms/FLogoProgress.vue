@@ -16,7 +16,7 @@
         div(:style="sizeStyle")
           img(
             :src="logoSrc"
-            alt="merge-alchemy-lab"
+            alt="merge-idle-war"
             class="w-full h-full object-contain"
             draggable="false"
           )

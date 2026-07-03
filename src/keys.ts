@@ -6,26 +6,29 @@
 // renaming any of them strands existing players' progress on the old field.
 // Treat them as load-bearing constants.
 
-// ─── Merge Alchemy Lab (the live game) ──────────────────────────────────────
-// Cosmic Gold wallet (shared `useEpicConfig` wallet — kept as `epic_coins` so the
+// ─── Merge Legion (the live game: merge grid + auto-battler) ────────────────
+// Gold wallet (shared `useEpicConfig` wallet — kept as `epic_coins` so the
 // reused CoinBadge / coin-explosion VFX bind to it without a migration).
 export const GOLD_KEY = 'epic_coins'
 // The merge grid: a flat array of (tier:number | null), length rows*cols.
 export const GRID_KEY = 'prism_grid'
-// Lab upgrade levels: { heat, pressure, containment, automation }.
-export const PRISM_UPGRADES_KEY = 'prism_upgrades'
-// Discovered recipes: string[] of recipe ids placed into the Index book.
-export const PRISM_INDEX_KEY = 'prism_index'
-// Lifetime stats: { brews, merges, legendaries, sludge, maxTier, spawns }.
+// Lifetime stats: { kills, bossKills, waves, merges, spawns, fieldMerges }.
 export const PRISM_STATS_KEY = 'prism_stats'
-// First-session onboarding consumed flag (true once the first brew completes).
-export const PRISM_ONBOARDED_KEY = 'prism_onboarded'
-// Collection-page milestone multipliers already claimed: string[] of page ids.
-export const PRISM_PAGE_REWARDS_KEY = 'prism_page_rewards'
-// Highest ingredient tier the player has ever created (drives base-spawn unlocks).
+// Highest unit tier the player has ever created.
 export const PRISM_MAX_TIER_KEY = 'prism_max_tier'
-// Permanent upgrade-cost discount (percent) accumulated from recipe effects.
-export const PRISM_DISCOUNT_KEY = 'prism_discount'
+// Battle upgrade levels: { attack, vitality, bounty, automation }.
+export const BATTLE_UPGRADES_KEY = 'battle_upgrades'
+// The wave currently being fought (resumed on reload).
+export const BATTLE_WAVE_KEY = 'battle_wave'
+// Highest wave ever reached.
+export const BATTLE_BEST_WAVE_KEY = 'battle_best_wave'
+// The deployed army: number[] of fighter tiers (restored at full HP on load).
+export const BATTLE_ARMY_KEY = 'battle_army'
+// Meteor Storm ultimate charge (0..100).
+export const BATTLE_ULT_KEY = 'battle_ult'
+// (Retired alchemy fields — `prism_upgrades`, `prism_index`, `prism_onboarded`,
+// `prism_page_rewards`, `prism_discount` — may still sit orphaned inside old
+// players' blobs; they are simply ignored.)
 
 export const STAGE_KEY = 'epic_stage'
 export const COINS_KEY = 'epic_coins'

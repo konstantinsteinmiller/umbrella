@@ -15,7 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // reaches the (fake) backend right after `flushSaveNow()` WITHOUT advancing any
 // timers — i.e. it does not wait for either debounce.
 
-const STATE_KEY = 'merge-alchemy-lab_state'
+const STATE_KEY = 'merge-idle-war_state'
 
 const makeFakeData = (seed: Record<string, string> = {}) => {
   const store = new Map<string, string>(Object.entries(seed))

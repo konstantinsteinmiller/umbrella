@@ -4,7 +4,7 @@ import { saveDataVersion, flushSaveNow } from '@/use/useSaveStatus'
 import { getState, setState } from '@/use/useEpicState'
 
 /**
- * Lightweight battle pass for merge-alchemy-lab. 30 stages, 100 xp per stage.
+ * Lightweight battle pass for merge-idle-war. 30 stages, 100 xp per stage.
  *   - start an attempt → +12 xp (participation)
  *   - finish a stage   → +50 xp (additional, on win)
  * Each level grants a coin payout on a linear ramp 30 → 600 across the

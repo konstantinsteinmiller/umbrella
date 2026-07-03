@@ -1,4 +1,4 @@
-# Merge Alchemy Lab — Implementation Plan
+# Merge Idle War — Implementation Plan
 
 This file is the working blueprint for implementing the game described in `GDD.md`.
 It exists so work can resume from a known checkpoint if a session is interrupted.
@@ -22,7 +22,7 @@ reusable cross-cutting platform layer that we KEEP and build on:
 
 ### Pre-existing breakage (must fix first)
 The project-rename script replaced the identifier `mawState` with the **invalid**
-`merge-alchemy-labState` (hyphens) across 7 files, so the project does NOT compile.
+`merge-idle-warState` (hyphens) across 7 files, so the project does NOT compile.
 We fix this while satisfying the GDD requirement: **all state lives in one object `prism_state`.**
 
 ## 1. State — `prism_state` (Task 1)
@@ -30,7 +30,7 @@ We fix this while satisfying the GDD requirement: **all state lives in one objec
   - `STATE_KEY = 'prism_state'`, in-memory ref renamed `prismState` (valid identifier).
   - Keep the existing exported API names (`getState/setState/hasState/removeState/reloadEpicState/
     flushPersist/__resetEpicState`) so the platform layer keeps working unchanged.
-- Replace `merge-alchemy-labState` → `prismState` in the 6 importing files.
+- Replace `merge-idle-warState` → `prismState` in the 6 importing files.
 - `keys.ts`: add merge-game field keys (all are properties INSIDE `prism_state`):
   `prism_gold`, `prism_grid`, `prism_upgrades`, `prism_index`, `prism_stats`, `prism_onboarded`,
   `prism_page_rewards`.

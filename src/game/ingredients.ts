@@ -1,5 +1,5 @@
 /**
- * Ingredient catalogue — the 10 living elemental units of Merge Alchemy Lab
+ * Ingredient catalogue — the 10 living elemental units of Merge Idle War
  * (GDD §3.2). Each tier is a fundamental chemical state with an anthropomorphic
  * face. Colours follow the GDD's "Vibrant Stylized Vector Cartoon" direction:
  * saturated bodies with bold black linework, drawn as inline SVG in

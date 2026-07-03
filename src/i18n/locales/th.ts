@@ -22,7 +22,7 @@ export default {
       'items250': { 'name': 'นักกักตุน', 'desc': 'เก็บกล่องไอเทมรวม 250 กล่อง' }
     }
   },
-  'gameName': 'merge-alchemy-lab',
+  'gameName': 'merge-idle-war',
   'cancel': 'ยกเลิก',
   'close': 'ปิด',
   'ok': 'ตกลง',

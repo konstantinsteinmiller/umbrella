@@ -1,7 +1,7 @@
 import { ref, type Ref } from 'vue'
 
 /**
- * Single-blob localStorage layer for Merge Alchemy Lab.
+ * Single-blob localStorage layer for Merge Idle War.
  *
  * EVERY persisted gameplay value the game touches lives inside ONE in-memory
  * record — `prismState` — and only ONE localStorage key is ever written:

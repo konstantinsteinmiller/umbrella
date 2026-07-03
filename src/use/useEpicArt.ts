@@ -1,4 +1,4 @@
-// ─── Canvas renderer + VFX for merge-alchemy-lab ───────────────────────────────────
+// ─── Canvas renderer + VFX for merge-idle-war ───────────────────────────────────
 //
 // Pure drawing layer. Reads the module-singleton `game` snapshot from
 // `useEpicGame` and the active power-up from `usePowerups`; owns NO game logic.

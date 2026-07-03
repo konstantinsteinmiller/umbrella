@@ -10,7 +10,7 @@ import useBattlePass from '@/use/useBattlePass'
 // Three rotating goals, regenerated each local day, that give a reason to open
 // the app daily beyond the login chest. Progress is fed by `recordRun()` at the
 // end of every run; completing a mission lets the player claim coins + a chunk
-// of battle-pass XP. State persists in the single `merge-alchemy-lab_state` blob under
+// of battle-pass XP. State persists in the single `merge-idle-war_state` blob under
 // `MISSIONS_KEY` as `{ day, missions }`, so it round-trips through cloud save.
 
 export type MissionType = 'coins' | 'tiles' | 'items' | 'clears'
