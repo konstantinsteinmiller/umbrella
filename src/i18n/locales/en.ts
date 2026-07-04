@@ -11,9 +11,14 @@ export default {
   'prism': {
     'spawn': 'Spawn',
     'instantSpawn': 'Instant Spawn',
+    'doubleDamage': '2x Damage',
     'freeGold': 'War Chest',
     'gridFull': 'Grid full — merge or deploy to make room!',
     'hintDrag': 'Drag matching units together to merge'
+  },
+  'welcomeBack': {
+    'title': 'Welcome back, commander!',
+    'body': 'Your army kept fighting while you were away:'
   },
   'battle': {
     'wave': 'Wave {n}',
@@ -30,11 +35,48 @@ export default {
     'rampage': 'RAMPAGE!',
     'ultimate': 'Meteor Storm',
     'doubleBounty': 'Double the boss bounty!',
+    'nextChest': 'Next: 🎁 wave {n}',
+    'newEnemyAt': 'New enemy at wave {n}!',
+    'newEnemy': 'New enemy incoming!',
+    'chestWave': 'War chest! +{n}',
+    'waveSetback': 'Pushed back to wave {n}!',
+    'rally': 'RALLY!',
+    'rallyBody': 'Watch to resurrect your fallen fighters!',
+    'tutorial': {
+      'spawn': 'Tap SPAWN to recruit two droplets!',
+      'merge': 'Drag one droplet onto the other to MERGE them!',
+      'deploy': 'Drag your fighter into the arena to join the fight!',
+      'fieldMerge': 'Build another unit of the same tier and drop it onto your fighter to HEAL & RANK UP!'
+    },
+    'codex': {
+      'title': 'Unit Codex',
+      'names': { 't1': 'Living Droplet', 't2': 'Ember Squirt', 't3': 'Vapor Chunk', 't4': 'Bio-Sprout', 't5': 'Pyro-Core', 't6': 'Acid Gland', 't7': 'Spark Spark', 't8': 'Cryo-Shard', 't9': 'Aurum Paste', 't10': 'Cosmic Mass' },
+      'locked': 'Merge two Tier {n} to discover!',
+      'abilities': {
+        'none': 'Fast, fearless, and first through the gate.',
+        'burn': 'Ignites enemies — they keep burning after the hit.',
+        'knockback': 'Ranged shots that shove enemies back.',
+        'heal': 'Every hit also heals your weakest ally.',
+        'splash': 'Explosive strikes damage all nearby enemies.',
+        'poison': 'Stacks poison for heavy damage over time.',
+        'chain': 'Lightning arcs to three extra enemies.',
+        'frost': 'Chills on hit and freezes crowds with ice novas.',
+        'midas': 'High crit chance and bonus gold on every hit.',
+        'blackhole': 'Periodically drags the horde together and crushes it.'
+      }
+    },
+    'mutators': {
+      'goldRush': 'GOLD RUSH! 2× bounty',
+      'frostMarch': 'FROST MARCH! Chilling hits',
+      'horde': 'HORDE! Double the swarm',
+      'elite': 'ELITE! A champion leads the wave'
+    },
     'upgrades': {
       'attack': 'War Horns',
       'vitality': 'Vitality',
       'bounty': 'Bounty',
       'automation': 'Imp',
+      'recruit': 'Recruits',
       'maxed': 'MAX'
     }
   },
@@ -90,26 +132,32 @@ export default {
   },
   'achievements': {
     'title': 'Achievements',
-    'subtitle': 'Hit lifetime milestones to earn coins.',
+    'subtitle': 'Hit lifetime milestones to earn gold.',
     'claim': 'Claim',
     'claimed': 'Claimed',
+    'unlocked': 'Achievement complete!',
     'progress': '{c} / {t}',
     'items': {
-      'tiles1k': { 'name': 'Globetrotter', 'desc': 'Travel 1,000 tiles in total.' },
-      'tiles5k': { 'name': 'Marathoner', 'desc': 'Travel 5,000 tiles in total.' },
-      'tiles10k': { 'name': 'Long Hauler', 'desc': 'Travel 10,000 tiles in total.' },
-      'tiles100k': { 'name': 'Voyager', 'desc': 'Travel 100,000 tiles in total.' },
-      'stage5': { 'name': 'Getting Started', 'desc': 'Reach stage 5.' },
-      'stage10': { 'name': 'Seasoned', 'desc': 'Reach stage 10.' },
-      'stage20': { 'name': 'Veteran', 'desc': 'Reach stage 20.' },
-      'clears25': { 'name': 'Clearing House', 'desc': 'Clear 25 stages in total.' },
-      'clears100': { 'name': 'Centurion', 'desc': 'Clear 100 stages in total.' },
-      'bestRun100': { 'name': 'Sprinter', 'desc': 'Travel 100 tiles in a single run.' },
-      'bestRun250': { 'name': 'Distance Demon', 'desc': 'Travel 250 tiles in a single run.' },
-      'coins5k': { 'name': 'Coin Collector', 'desc': 'Collect 5,000 coins in total.' },
-      'coins50k': { 'name': 'Treasurer', 'desc': 'Collect 50,000 coins in total.' },
-      'items50': { 'name': 'Unboxer', 'desc': 'Grab 50 item boxes in total.' },
-      'items250': { 'name': 'Hoarder', 'desc': 'Grab 250 item boxes in total.' }
+      'kills100': { 'name': 'First Hundred', 'desc': 'Defeat 100 enemies.' },
+      'kills1k': { 'name': 'Slayer', 'desc': 'Defeat 1,000 enemies.' },
+      'kills10k': { 'name': 'Exterminator', 'desc': 'Defeat 10,000 enemies.' },
+      'wave10': { 'name': 'Line Holder', 'desc': 'Reach wave 10.' },
+      'wave25': { 'name': 'Front Commander', 'desc': 'Reach wave 25.' },
+      'wave50': { 'name': 'Warlord', 'desc': 'Reach wave 50.' },
+      'boss1': { 'name': 'Giant Slayer', 'desc': 'Defeat your first boss.' },
+      'boss10': { 'name': 'Boss Hunter', 'desc': 'Defeat 10 bosses.' },
+      'boss50': { 'name': 'Kingsbane', 'desc': 'Defeat 50 bosses.' },
+      'merges50': { 'name': 'Combiner', 'desc': 'Merge units 50 times.' },
+      'merges500': { 'name': 'Merge Master', 'desc': 'Merge units 500 times.' },
+      'tier5': { 'name': 'Blazing Forge', 'desc': 'Create a Tier 5 unit.' },
+      'tier8': { 'name': 'Frozen Forge', 'desc': 'Create a Tier 8 unit.' },
+      'tier10': { 'name': 'Cosmic Forge', 'desc': 'Create the Tier 10 unit.' },
+      'fieldMerge1': { 'name': 'Field Medic', 'desc': 'Perform your first field merge.' },
+      'fieldMerges25': { 'name': 'Battle Smith', 'desc': 'Perform 25 field merges.' },
+      'combo10': { 'name': 'Rampage', 'desc': 'Reach a ×10 kill combo.' },
+      'combo25': { 'name': 'Unstoppable', 'desc': 'Reach a ×25 kill combo.' },
+      'waves100': { 'name': 'Campaigner', 'desc': 'Clear 100 waves in total.' },
+      'waves500': { 'name': 'War Eternal', 'desc': 'Clear 500 waves in total.' }
     }
   },
   'missions': {
@@ -179,14 +227,18 @@ export default {
     }
   },
   'battlePass': {
-    'title': 'Battle Pass',
+    'title': 'War Campaign',
     'progress': '{current} / {total}',
     'daysLeft': '{n}d left',
-    'maxed': 'BATTLE PASS COMPLETE',
+    'maxed': 'CAMPAIGN COMPLETE',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'How to earn XP',
     'perAttempt': 'per run',
     'perStageFinish': 'per stage clear',
+    'perKill': 'per kill',
+    'perMerge': 'per merge',
+    'perWave': 'per wave',
+    'perBoss': 'per boss',
     'unlockHint': 'Reach {n} XP to unlock the next reward — unclaimed rewards stay until you tap them.'
   },
   'dailyRewards': {

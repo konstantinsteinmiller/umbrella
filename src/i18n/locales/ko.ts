@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': '업적', 'subtitle': '평생 이정표를 달성해 코인을 받으세요.', 'claim': '수령', 'claimed': '수령함', 'progress': '{c} / {t}',
+    'unlocked': '업적 달성!',
     'items': {
+      'kills100': { 'name': '첫 100킬', 'desc': '적 100명을 처치하세요.' },
+      'kills1k': { 'name': '학살자', 'desc': '적 1,000명을 처치하세요.' },
+      'kills10k': { 'name': '섬멸자', 'desc': '적 10,000명을 처치하세요.' },
+      'wave10': { 'name': '방어선 사수', 'desc': '웨이브 10에 도달하세요.' },
+      'wave25': { 'name': '전선 지휘관', 'desc': '웨이브 25에 도달하세요.' },
+      'wave50': { 'name': '전쟁 군주', 'desc': '웨이브 50에 도달하세요.' },
+      'boss1': { 'name': '거인 사냥꾼', 'desc': '첫 보스를 처치하세요.' },
+      'boss10': { 'name': '보스 헌터', 'desc': '보스 10마리를 처치하세요.' },
+      'boss50': { 'name': '왕의 재앙', 'desc': '보스 50마리를 처치하세요.' },
+      'merges50': { 'name': '합체 입문자', 'desc': '유닛을 50회 합체하세요.' },
+      'merges500': { 'name': '합체의 달인', 'desc': '유닛을 500회 합체하세요.' },
+      'tier5': { 'name': '불꽃의 대장간', 'desc': '티어 5 유닛을 만드세요.' },
+      'tier8': { 'name': '서리의 대장간', 'desc': '티어 8 유닛을 만드세요.' },
+      'tier10': { 'name': '우주의 대장간', 'desc': '티어 10 유닛을 만드세요.' },
+      'fieldMerge1': { 'name': '야전 의무병', 'desc': '첫 전장 합체를 수행하세요.' },
+      'fieldMerges25': { 'name': '전장의 대장장이', 'desc': '전장 합체를 25회 수행하세요.' },
+      'combo10': { 'name': '광란', 'desc': '처치 콤보 ×10을 달성하세요.' },
+      'combo25': { 'name': '멈출 수 없는', 'desc': '처치 콤보 ×25를 달성하세요.' },
+      'waves100': { 'name': '역전의 용사', 'desc': '총 100웨이브를 클리어하세요.' },
+      'waves500': { 'name': '영원한 전쟁', 'desc': '총 500웨이브를 클리어하세요.' },
       'tiles1k': { 'name': '세계 여행자', 'desc': '총 1,000타일을 이동하세요.' },
       'tiles5k': { 'name': '마라토너', 'desc': '총 5,000타일을 이동하세요.' },
       'tiles10k': { 'name': '장거리 주자', 'desc': '총 10,000타일을 이동하세요.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': '수집광', 'desc': '총 250개의 아이템 상자를 획득하세요.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': '취소',
   'close': '닫기',
   'ok': '확인',
@@ -98,15 +119,91 @@ export default {
       'watch': '무료'
     }
   },
+  'prism': {
+    'spawn': '소환',
+    'instantSpawn': '즉시 소환',
+    'doubleDamage': '피해 2배',
+    'freeGold': '전쟁 상자',
+    'gridFull': '그리드가 가득 참 — 합체하거나 배치해 자리를 만드세요!',
+    'hintDrag': '같은 유닛을 겹쳐서 합체하세요'
+  },
+  'welcomeBack': {
+    'title': '돌아오신 것을 환영합니다, 지휘관님!',
+    'body': '자리를 비운 동안 군대가 계속 싸웠습니다:'
+  },
+  'battle': {
+    'wave': '웨이브 {n}',
+    'best': '최고 {n}',
+    'waveStart': '웨이브 {n}',
+    'nextWave': '웨이브 {n}까지…',
+    'waveCleared': '웨이브 클리어! +{n}',
+    'bossIncoming': '보스 등장!',
+    'overrun': '돌파당했다!',
+    'overrunBody': '성문이 무너졌다 — 재정비하고 전선을 사수하라!',
+    'deployHint': '놓아서 배치!',
+    'armyFullHint': '군대가 가득 — 같은 티어 전사 위에 놓아 합체하세요!',
+    'fever': '피버!!!',
+    'rampage': '광란!',
+    'ultimate': '유성 폭풍',
+    'doubleBounty': '보스 현상금 2배!',
+    'upgrades': {
+      'attack': '전쟁의 뿔피리',
+      'vitality': '활력',
+      'bounty': '현상금',
+      'automation': '임프',
+      'recruit': '신병',
+      'maxed': '최대'
+    },
+    'nextChest': '다음: 🎁 웨이브 {n}',
+    'newEnemyAt': '웨이브 {n}에 새로운 적 등장!',
+    'newEnemy': '새로운 적 접근 중!',
+    'chestWave': '전쟁 상자! +{n}',
+    'waveSetback': '웨이브 {n}(으)로 후퇴!',
+    'rally': '집결!',
+    'rallyBody': '광고를 보고 쓰러진 전사를 부활시키세요!',
+    'tutorial': {
+      'spawn': '소환을 탭해 물방울 두 개를 모집하세요!',
+      'merge': '물방울을 서로 겹쳐 합체하세요!',
+      'deploy': '전사를 아레나로 드래그해 전투에 참여시키세요!',
+      'fieldMerge': '같은 티어 유닛을 하나 더 만들어 전사 위에 놓으면 회복 & 승급!'
+    },
+    'codex': {
+      'title': '유닛 도감',
+      'names': { 't1': '살아있는 물방울', 't2': '불씨 방울', 't3': '증기 덩어리', 't4': '바이오 새싹', 't5': '파이로 코어', 't6': '산성 샘', 't7': '스파크 스파크', 't8': '크라이오 파편', 't9': '황금 반죽', 't10': '코스믹 덩어리' },
+      'locked': '티어 {n} 두 개를 합쳐 발견하세요!',
+      'abilities': {
+        'none': '빠르고 용감하게 선두에 섭니다.',
+        'burn': '적을 불태워 지속 피해를 입힙니다.',
+        'knockback': '적을 밀어내는 원거리 공격.',
+        'heal': '공격할 때마다 가장 약한 아군을 치유합니다.',
+        'splash': '폭발 공격으로 주변 적 모두에게 피해.',
+        'poison': '독을 중첩해 강력한 지속 피해.',
+        'chain': '번개가 적 3명에게 추가로 연쇄.',
+        'frost': '적중 시 감속, 얼음 노바로 무리를 동결.',
+        'midas': '높은 치명타 확률과 타격마다 보너스 골드.',
+        'blackhole': '주기적으로 적 무리를 끌어모아 분쇄.'
+      }
+    },
+    'mutators': {
+      'goldRush': '골드 러시! 현상금 2배',
+      'frostMarch': '서리 행군! 냉기 공격',
+      'horde': '대군! 두 배의 무리',
+      'elite': '엘리트! 챔피언이 웨이브를 이끕니다'
+    }
+  },
   'battlePass': {
-    'title': '배틀 패스',
+    'title': '전쟁 캠페인',
     'progress': '{current} / {total}',
     'daysLeft': '{n}일 남음',
-    'maxed': '배틀 패스 완료',
+    'maxed': '캠페인 완료',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'XP 획득 방법',
     'perAttempt': '플레이당',
     'perStageFinish': '스테이지당',
+    'perKill': '처치당',
+    'perMerge': '합체당',
+    'perWave': '웨이브당',
+    'perBoss': '보스당',
     'unlockHint': '{n} XP에 도달하면 다음 보상 해금 — 미수령 보상은 유지됩니다.'
   },
   'dailyRewards': {

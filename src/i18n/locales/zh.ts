@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': '成就', 'subtitle': '达成长期里程碑赢取金币。', 'claim': '领取', 'claimed': '已领取', 'progress': '{c} / {t}',
+    'unlocked': '成就达成！',
     'items': {
+      'kills100': { 'name': '首个一百', 'desc': '消灭100名敌人。' },
+      'kills1k': { 'name': '屠戮者', 'desc': '消灭1,000名敌人。' },
+      'kills10k': { 'name': '歼灭者', 'desc': '消灭10,000名敌人。' },
+      'wave10': { 'name': '防线守卫', 'desc': '到达第10波。' },
+      'wave25': { 'name': '前线指挥官', 'desc': '到达第25波。' },
+      'wave50': { 'name': '战争之主', 'desc': '到达第50波。' },
+      'boss1': { 'name': '屠巨人者', 'desc': '击败你的第一个Boss。' },
+      'boss10': { 'name': 'Boss猎人', 'desc': '击败10个Boss。' },
+      'boss50': { 'name': '弑王者', 'desc': '击败50个Boss。' },
+      'merges50': { 'name': '合成学徒', 'desc': '合成单位50次。' },
+      'merges500': { 'name': '合成大师', 'desc': '合成单位500次。' },
+      'tier5': { 'name': '烈焰锻造', 'desc': '创造一个5级单位。' },
+      'tier8': { 'name': '冰霜锻造', 'desc': '创造一个8级单位。' },
+      'tier10': { 'name': '宇宙锻造', 'desc': '创造10级单位。' },
+      'fieldMerge1': { 'name': '战地医师', 'desc': '完成首次战场合成。' },
+      'fieldMerges25': { 'name': '战场铁匠', 'desc': '完成25次战场合成。' },
+      'combo10': { 'name': '狂暴', 'desc': '达成×10击杀连击。' },
+      'combo25': { 'name': '势不可挡', 'desc': '达成×25击杀连击。' },
+      'waves100': { 'name': '百战老兵', 'desc': '累计通过100波。' },
+      'waves500': { 'name': '永恒之战', 'desc': '累计通过500波。' },
       'tiles1k': { 'name': '环球旅行者', 'desc': '累计前进 1,000 格。' },
       'tiles5k': { 'name': '马拉松选手', 'desc': '累计前进 5,000 格。' },
       'tiles10k': { 'name': '长途跋涉者', 'desc': '累计前进 10,000 格。' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': '囤积者', 'desc': '累计获取 250 个道具箱。' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': '取消',
   'close': '关闭',
   'ok': '确定',
@@ -98,15 +119,91 @@ export default {
       'watch': '免费'
     }
   },
+  'prism': {
+    'spawn': '召唤',
+    'instantSpawn': '快速召唤',
+    'doubleDamage': '双倍伤害',
+    'freeGold': '战争宝箱',
+    'gridFull': '网格已满——合成或部署以腾出空间！',
+    'hintDrag': '拖动相同单位进行合成'
+  },
+  'welcomeBack': {
+    'title': '欢迎回来，指挥官！',
+    'body': '你不在时，军队仍在奋战：'
+  },
+  'battle': {
+    'wave': '第{n}波',
+    'best': '最佳{n}',
+    'waveStart': '第{n}波',
+    'nextWave': '第{n}波倒计时…',
+    'waveCleared': '波次完成！+{n}',
+    'bossIncoming': 'BOSS来袭！',
+    'overrun': '防线告破！',
+    'overrunBody': '大门已破——重整旗鼓，守住防线！',
+    'deployHint': '松开即部署！',
+    'armyFullHint': '军队已满——放到同级战士身上进行合成！',
+    'fever': '狂热!!!',
+    'rampage': '狂暴！',
+    'ultimate': '流星风暴',
+    'doubleBounty': 'Boss赏金翻倍！',
+    'upgrades': {
+      'attack': '战争号角',
+      'vitality': '活力',
+      'bounty': '赏金',
+      'automation': '小鬼',
+      'recruit': '新兵',
+      'maxed': '满级'
+    },
+    'nextChest': '下一个：🎁 第{n}波',
+    'newEnemyAt': '第{n}波出现新敌人！',
+    'newEnemy': '新敌人来袭！',
+    'chestWave': '战争宝箱！+{n}',
+    'waveSetback': '被击退至第{n}波！',
+    'rally': '集结！',
+    'rallyBody': '观看广告复活阵亡的战士！',
+    'tutorial': {
+      'spawn': '点击"召唤"招募两个小水滴！',
+      'merge': '把一个水滴拖到另一个上进行合成！',
+      'deploy': '把战士拖入竞技场参战！',
+      'fieldMerge': '再造一个同级单位，放到战士身上即可治疗并升级！'
+    },
+    'codex': {
+      'title': '单位图鉴',
+      'names': { 't1': '活水滴', 't2': '余烬喷射', 't3': '蒸汽块', 't4': '生物幼苗', 't5': '烈焰核心', 't6': '酸腺', 't7': '火花火花', 't8': '冰冻碎片', 't9': '黄金浆', 't10': '宇宙质团' },
+      'locked': '合成两个{n}级单位即可解锁！',
+      'abilities': {
+        'none': '快速无畏，永远冲在最前。',
+        'burn': '点燃敌人——命中后持续燃烧。',
+        'knockback': '远程射击，击退敌人。',
+        'heal': '每次攻击还会治疗最虚弱的队友。',
+        'splash': '爆炸攻击伤害附近所有敌人。',
+        'poison': '叠加毒素，持续造成大量伤害。',
+        'chain': '闪电跳跃至额外三名敌人。',
+        'frost': '命中减速，并用冰霜新星冻结敌群。',
+        'midas': '高暴击率，每次命中获得额外金币。',
+        'blackhole': '定期把敌群拉到一起并碾碎。'
+      }
+    },
+    'mutators': {
+      'goldRush': '淘金热！赏金翻倍',
+      'frostMarch': '冰霜行军！攻击带寒气',
+      'horde': '尸潮！数量翻倍',
+      'elite': '精英！冠军率领敌潮'
+    }
+  },
   'battlePass': {
-    'title': '战令',
+    'title': '战争战役',
     'progress': '{current} / {total}',
     'daysLeft': '剩余{n}天',
-    'maxed': '战令已完成',
+    'maxed': '战役完成',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': '如何获得经验',
     'perAttempt': '每局',
     'perStageFinish': '每关',
+    'perKill': '每击杀',
+    'perMerge': '每合成',
+    'perWave': '每波',
+    'perBoss': '每Boss',
     'unlockHint': '达到 {n} 经验解锁下一个奖励——未领取的奖励会保留。'
   },
   'dailyRewards': {

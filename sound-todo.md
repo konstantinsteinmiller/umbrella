@@ -58,6 +58,16 @@
 | `upgrade-buy.ogg` | anvil/forge confirm clink | level-up |
 | `upgrade-denied.ogg` | empty-pockets thud | obstacle-hit |
 
+## Rewards & offers (flying chest, milestone chest, RALLY!)
+
+| File | Sound | Placeholder now |
+| :--- | :--- | :--- |
+| `chest-flyby.ogg` | fluttering wings + faint loot jingle as the flying chest crosses (~1s) | modal-open |
+| `chest-open.ogg` | latch click + treasure burst chime | celebration-2 |
+| `milestone-chest.ogg` | big chest-drop fanfare, every 10th wave (~1.5s) | celebration-2 |
+| `rally-revive.ogg` | heroic revive fanfare with war drums (~1.5s) | celebration-1 |
+| `damage-buff.ogg` | raging power-up ignition (2× damage buff starts, ~1.5s) | celebration-1 |
+
 ## Music — `public/audio/music/`
 
 | File | Sound |

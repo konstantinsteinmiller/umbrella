@@ -28,6 +28,15 @@ export const BATTLE_BEST_WAVE_KEY = 'battle_best_wave'
 export const BATTLE_ARMY_KEY = 'battle_army'
 // Meteor Storm ultimate charge (0..100).
 export const BATTLE_ULT_KEY = 'battle_ult'
+// First-session FTUE progress: index into the coach-mark step order
+// (retention-roadmap #1). Values ≥ 4 ⇔ tutorial finished/skipped.
+export const PRISM_TUTORIAL_KEY = 'prism_tutorial_step'
+// 2× Damage buff (rewarded ad): epoch-ms timestamp the buff expires at.
+export const BATTLE_DMG_BUFF_KEY = 'battle_dmg_buff_until'
+// Last moment the game was alive (epoch ms) — drives the offline-earnings
+// "welcome back" grant (retention-roadmap #3). Touched on pagehide/tab-hide
+// plus a slow heartbeat while playing.
+export const BATTLE_LAST_SEEN_KEY = 'battle_last_seen'
 // (Retired alchemy fields — `prism_upgrades`, `prism_index`, `prism_onboarded`,
 // `prism_page_rewards`, `prism_discount` — may still sit orphaned inside old
 // players' blobs; they are simply ignored.)

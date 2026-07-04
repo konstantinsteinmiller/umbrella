@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': 'Pencapaian', 'subtitle': 'Raih tonggak seumur hidup untuk koin.', 'claim': 'Klaim', 'claimed': 'Diklaim', 'progress': '{c} / {t}',
+    'unlocked': 'Pencapaian selesai!',
     'items': {
+      'kills100': { 'name': 'Seratus Pertama', 'desc': 'Kalahkan 100 musuh.' },
+      'kills1k': { 'name': 'Penjagal', 'desc': 'Kalahkan 1.000 musuh.' },
+      'kills10k': { 'name': 'Pembasmi', 'desc': 'Kalahkan 10.000 musuh.' },
+      'wave10': { 'name': 'Penjaga Garis', 'desc': 'Capai gelombang 10.' },
+      'wave25': { 'name': 'Komandan Front', 'desc': 'Capai gelombang 25.' },
+      'wave50': { 'name': 'Panglima Perang', 'desc': 'Capai gelombang 50.' },
+      'boss1': { 'name': 'Pembunuh Raksasa', 'desc': 'Kalahkan bos pertamamu.' },
+      'boss10': { 'name': 'Pemburu Bos', 'desc': 'Kalahkan 10 bos.' },
+      'boss50': { 'name': 'Penakluk Raja', 'desc': 'Kalahkan 50 bos.' },
+      'merges50': { 'name': 'Penggabung', 'desc': 'Gabungkan unit 50 kali.' },
+      'merges500': { 'name': 'Ahli Penggabungan', 'desc': 'Gabungkan unit 500 kali.' },
+      'tier5': { 'name': 'Tempaan Membara', 'desc': 'Buat unit tingkat 5.' },
+      'tier8': { 'name': 'Tempaan Beku', 'desc': 'Buat unit tingkat 8.' },
+      'tier10': { 'name': 'Tempaan Kosmik', 'desc': 'Buat unit tingkat 10.' },
+      'fieldMerge1': { 'name': 'Medis Lapangan', 'desc': 'Lakukan penggabungan lapangan pertamamu.' },
+      'fieldMerges25': { 'name': 'Pandai Besi Perang', 'desc': 'Lakukan 25 penggabungan lapangan.' },
+      'combo10': { 'name': 'Mengamuk', 'desc': 'Capai kombo ×10.' },
+      'combo25': { 'name': 'Tak Terbendung', 'desc': 'Capai kombo ×25.' },
+      'waves100': { 'name': 'Veteran Kampanye', 'desc': 'Selesaikan total 100 gelombang.' },
+      'waves500': { 'name': 'Perang Abadi', 'desc': 'Selesaikan total 500 gelombang.' },
       'tiles1k': { 'name': 'Penjelajah Dunia', 'desc': 'Tempuh total 1.000 ubin.' },
       'tiles5k': { 'name': 'Pelari Maraton', 'desc': 'Tempuh total 5.000 ubin.' },
       'tiles10k': { 'name': 'Pelari Jarak Jauh', 'desc': 'Tempuh total 10.000 ubin.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': 'Penimbun', 'desc': 'Ambil total 250 kotak item.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'Batal',
   'close': 'Tutup',
   'ok': 'Ok',
@@ -52,7 +73,79 @@ export default {
     'descriptions': { 'powerupDuration': 'Semua power-up bertahan lebih lama (+0,75 dtk per level).', 'magnetRange': 'Magnet Koin menjangkau lebih jauh.', 'coinValue': 'Setiap koin yang kamu ambil bernilai lebih tinggi.', 'itemLuck': 'Kotak item muncul lebih sering.', 'dodgeApprentice': 'Hindari otomatis satu ubin mematikan, lalu isi ulang (10 dtk; −0,5 dtk per level).', 'deathMagnet': 'Saat mati, ambil setiap koin dalam jarak 4 ubin — simpan koin yang seharusnya hilang.', 'autoCollect': 'Selalu kumpulkan koin dari ubin di sekitar — magnet permanen 1 ubin.', 'rollingBoulder': 'Bergulir lurus menembus rintangan kotak tanpa cedera.' },
     'secondChance': { 'name': 'Kesempatan Kedua', 'description': 'Mulai setiap permainan dengan sayap malaikat — selamat dari satu tabrakan atau jatuh. Aktif sampai digunakan.', 'active': 'AKTIF', 'watch': 'Gratis' }
   },
-  'battlePass': { 'title': 'Battle Pass', 'progress': '{current} / {total}', 'daysLeft': 'sisa {n}h', 'maxed': 'BATTLE PASS SELESAI', 'xpProgress': '{current} / {total} XP', 'howToEarn': 'Cara mendapatkan XP', 'perAttempt': 'per permainan', 'perStageFinish': 'per tahap selesai', 'unlockHint': 'Capai {n} XP untuk membuka hadiah berikutnya — hadiah yang belum diklaim tetap ada sampai kamu mengetuknya.' },
+  'prism': {
+    'spawn': 'Panggil',
+    'instantSpawn': 'Panggilan Instan',
+    'doubleDamage': '2× Kerusakan',
+    'freeGold': 'Peti Perang',
+    'gridFull': 'Kisi penuh — gabungkan atau kerahkan unit untuk memberi ruang!',
+    'hintDrag': 'Seret unit yang sama untuk menggabungkan'
+  },
+  'welcomeBack': {
+    'title': 'Selamat datang kembali, komandan!',
+    'body': 'Pasukanmu terus bertempur selagi kamu pergi:'
+  },
+  'battle': {
+    'wave': 'Gelombang {n}',
+    'best': 'Terbaik {n}',
+    'waveStart': 'Gelombang {n}',
+    'nextWave': 'Gelombang {n} dalam…',
+    'waveCleared': 'Gelombang selesai! +{n}',
+    'bossIncoming': 'BOS DATANG!',
+    'overrun': 'DITEROBOS!',
+    'overrunBody': 'Gerbang runtuh — susun ulang dan pertahankan garis!',
+    'deployHint': 'Lepas untuk mengerahkan!',
+    'armyFullHint': 'Pasukan penuh — jatuhkan ke pejuang setingkat untuk menggabung!',
+    'fever': 'DEMAM!!!',
+    'rampage': 'MENGAMUK!',
+    'ultimate': 'Badai Meteor',
+    'doubleBounty': 'Gandakan hadiah bos!',
+    'upgrades': {
+      'attack': 'Terompet Perang',
+      'vitality': 'Vitalitas',
+      'bounty': 'Hadiah',
+      'automation': 'Jin Kecil',
+      'recruit': 'Rekrutan',
+      'maxed': 'MAKS'
+    },
+    'nextChest': 'Berikutnya: 🎁 gelombang {n}',
+    'newEnemyAt': 'Musuh baru di gelombang {n}!',
+    'newEnemy': 'Musuh baru mendekat!',
+    'chestWave': 'Peti perang! +{n}',
+    'waveSetback': 'Terpukul mundur ke gelombang {n}!',
+    'rally': 'BERKUMPUL!',
+    'rallyBody': 'Tonton iklan untuk menghidupkan kembali pejuang yang gugur!',
+    'tutorial': {
+      'spawn': 'Ketuk PANGGIL untuk merekrut dua tetesan!',
+      'merge': 'Seret satu tetesan ke tetesan lain untuk MENGGABUNGKAN!',
+      'deploy': 'Seret pejuangmu ke arena untuk ikut bertempur!',
+      'fieldMerge': 'Buat unit lain dengan tingkat sama dan jatuhkan ke pejuangmu untuk MENYEMBUHKAN & NAIK TINGKAT!'
+    },
+    'codex': {
+      'title': 'Kodeks Unit',
+      'names': { 't1': 'Tetesan Hidup', 't2': 'Semburan Bara', 't3': 'Bongkahan Uap', 't4': 'Tunas Bio', 't5': 'Inti Piro', 't6': 'Kelenjar Asam', 't7': 'Percik Percik', 't8': 'Serpihan Krio', 't9': 'Pasta Emas', 't10': 'Massa Kosmik' },
+      'locked': 'Gabungkan dua Tingkat {n} untuk menemukan!',
+      'abilities': {
+        'none': 'Cepat, tanpa takut, selalu terdepan.',
+        'burn': 'Membakar musuh — terus terbakar setelah pukulan.',
+        'knockback': 'Tembakan jarak jauh yang mendorong musuh mundur.',
+        'heal': 'Setiap pukulan juga menyembuhkan sekutu terlemahmu.',
+        'splash': 'Serangan eksplosif melukai semua musuh di dekatnya.',
+        'poison': 'Menumpuk racun untuk kerusakan besar seiring waktu.',
+        'chain': 'Petir melompat ke tiga musuh tambahan.',
+        'frost': 'Memperlambat saat memukul dan membekukan kerumunan dengan nova es.',
+        'midas': 'Peluang kritis tinggi dan emas bonus tiap pukulan.',
+        'blackhole': 'Menarik gerombolan secara berkala dan menghancurkannya.'
+      }
+    },
+    'mutators': {
+      'goldRush': 'DEMAM EMAS! Hadiah 2×',
+      'frostMarch': 'MARS BEKU! Serangan dingin',
+      'horde': 'GEROMBOLAN! Kawanan dua kali lipat',
+      'elite': 'ELIT! Seorang juara memimpin gelombang'
+    }
+  },
+  'battlePass': { 'title': 'Kampanye Perang', 'progress': '{current} / {total}', 'daysLeft': 'sisa {n}h', 'maxed': 'KAMPANYE SELESAI', 'xpProgress': '{current} / {total} XP', 'howToEarn': 'Cara mendapatkan XP', 'perAttempt': 'per permainan', 'perStageFinish': 'per tahap selesai', 'perKill': 'per bunuh', 'perMerge': 'per gabung', 'perWave': 'per gelombang', 'perBoss': 'per bos', 'unlockHint': 'Capai {n} XP untuk membuka hadiah berikutnya — hadiah yang belum diklaim tetap ada sampai kamu mengetuknya.' },
   'dailyRewards': { 'title': 'Hadiah Harian', 'subtitle': 'Masuk setiap hari untuk menjaga rentetanmu.', 'day': 'Hari {n}', 'dayShort': 'H{n}' },
   'skins': {
     'title': 'Skin Bola',

@@ -24,7 +24,8 @@ import { getState, setState, prismState } from '@/use/useEpicState'
 import useEpicConfig from '@/use/useEpicConfig'
 import { GRID_KEY, PRISM_MAX_TIER_KEY, PRISM_INSTANT_SPAWN_KEY } from '@/keys'
 import { MAX_INGREDIENT_TIER } from '@/game/ingredients'
-import { deployFighter, impCadenceMs, armyFull, bumpStat } from '@/use/useBattle'
+import { deployFighter, impCadenceMs, armyFull, bumpStat, recruitTier } from '@/use/useBattle'
+import { notifyTutorial, isTutorialOneTap } from '@/use/useTutorial'
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 export const GRID_COLS = 4
@@ -52,7 +53,8 @@ const sanitizeGrid = (g: unknown): number[] => {
 }
 
 const grid: Ref<number[]> = ref(sanitizeGrid(readJSON(GRID_KEY, [])))
-const maxTier: Ref<number> = ref(Number(readJSON(PRISM_MAX_TIER_KEY, 1)) || 1)
+/** Highest tier ever created — the discovery watermark (codex, achievements). */
+export const maxTier: Ref<number> = ref(Number(readJSON(PRISM_MAX_TIER_KEY, 1)) || 1)
 /** Epoch-ms the instant-spawn buff expires at (persisted; survives reloads). */
 const instantSpawnUntil: Ref<number> = ref(Number(readJSON(PRISM_INSTANT_SPAWN_KEY, 0)) || 0)
 
@@ -101,17 +103,36 @@ const setSlot = (idx: number, tier: number): void => {
 export const canSpawn = computed(() => !gridFull.value)
 /** True while the rewarded instant-spawn buff is running (1 tap = 1 spawn). */
 export const instantSpawnActive = computed(() => instantSpawnRemainingMs.value > 0)
-/** Taps needed per recruit right now. */
-export const clicksRequired = computed(() => instantSpawnActive.value ? 1 : CLICKS_PER_SPAWN)
+/** Taps needed per recruit right now (1 during the FTUE — the tap-meter
+ *  friction only starts once the player has internalised the loop). */
+export const clicksRequired = computed(() =>
+  instantSpawnActive.value || isTutorialOneTap.value ? 1 : CLICKS_PER_SPAWN)
 
-/** Spawn a tier-1 recruit into a random empty slot (free — the cost is the
- *  tap metering in `tapSpawn`). Returns the slot index or -1. */
+/** Spawn a recruit into a random empty slot (free — the cost is the tap
+ *  metering in `tapSpawn`). The tier comes from the Recruits battle upgrade
+ *  (T1 baseline, up to T4 maxed). Returns the slot index or -1. */
 export const spawnIngredient = (): number => {
   if (gridFull.value) return -1
   const idx = randomEmptyIndex()
   if (idx < 0) return -1
-  setSlot(idx, 1)
+  const t = recruitTier.value
+  setSlot(idx, t)
+  if (t > maxTier.value) { maxTier.value = t; setState(PRISM_MAX_TIER_KEY, maxTier.value) }
   bumpStat('spawns')
+  persistGrid()
+  notifyTutorial('spawn')
+  return idx
+}
+
+/** Drop a unit of an arbitrary tier into a random empty slot — reward path
+ *  for milestone chests / flying chest / campaign tiers (not the tap economy).
+ *  Returns the slot index or -1 when the grid is full. */
+export const spawnUnitAt = (tier: number): number => {
+  const t = Math.max(1, Math.min(MAX_INGREDIENT_TIER, Math.floor(tier)))
+  const idx = randomEmptyIndex()
+  if (idx < 0) return -1
+  setSlot(idx, t)
+  if (t > maxTier.value) { maxTier.value = t; setState(PRISM_MAX_TIER_KEY, maxTier.value) }
   persistGrid()
   return idx
 }
@@ -164,6 +185,7 @@ export const merge = (from: number, to: number): number => {
   if (a + 1 > maxTier.value) { maxTier.value = a + 1; setState(PRISM_MAX_TIER_KEY, maxTier.value) }
   bumpStat('merges')
   persistGrid()
+  notifyTutorial('merge')
   return a + 1
 }
 
@@ -275,11 +297,11 @@ export const stopEngine = (): void => {
 // ─── Public composable surface ───────────────────────────────────────────────
 const usePrismGame = () => ({
   // state
-  grid, maxTier, gold, spawnClicks,
+  grid, maxTier, gold, spawnClicks, recruitTier,
   // derived
   canSpawn, clicksRequired, instantSpawnActive, instantSpawnRemainingMs, emptySlots,
   // actions
-  tapSpawn, activateInstantSpawn, spawnIngredient, merge, moveSlot, takeFromGrid,
+  tapSpawn, activateInstantSpawn, spawnIngredient, spawnUnitAt, merge, moveSlot, takeFromGrid,
   // events
   autoAction,
   // lifecycle

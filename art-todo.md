@@ -45,6 +45,12 @@ One per merge tier, 256×256. A tier badge is overlaid automatically (bottom-rig
 | `arena/gate.webp` | ~256×512 | the Lab Gate door, tall metal/stone slab (HP glow + cracks are overlaid by CSS) | CSS gradient door |
 | `grid/slot-frame.webp` | 256×256, transparent center | empty merge-slot frame/tile (drawn edge-to-edge, replaces the dashed border) | dashed CSS frame |
 
+## Rewards — `public/images/props/`
+
+| File | Size | Content | Current fallback |
+| :--- | :--- | :--- | :--- |
+| `props/flying-chest_347x347.webp` | 347×347, transparent | ✅ **DONE** — winged golden chest, the tappable flying reward crossing the arena every 2 min | static chest icon `images/icons/chest_128x128.webp` (CSS bob + glow already applied) |
+
 ## VFX sprites — `public/images/vfx/`
 Static sprites; the existing CSS keyframes animate them (fall-in, spin-suck, scale-out).
 

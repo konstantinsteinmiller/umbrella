@@ -48,7 +48,8 @@ const GAMEPLAY_SFX: ReadonlyArray<string> = [
   'barricade',
   'gravity',
   'chainsaw-break',
-  'celebration-1'
+  'celebration-1',
+  'celebration-2'
 ]
 
 let preloadStarted = false

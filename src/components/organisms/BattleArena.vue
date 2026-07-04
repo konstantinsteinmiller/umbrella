@@ -15,16 +15,20 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBattle, { type BattleEvent, type Fighter, type Enemy } from '@/use/useBattle'
-import { getFighterDef } from '@/game/units'
+import { getFighterDef, rollMutator, nextArchetypeUnlock } from '@/game/units'
 import { getIngredient } from '@/game/ingredients'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import EnemyUnit from '@/components/organisms/EnemyUnit.vue'
+import FlyingChest from '@/components/organisms/FlyingChest.vue'
+import IconMovie from '@/components/icons/IconMovie.vue'
 import { artSrc } from '@/use/useArtOverrides'
 import useSounds from '@/use/useSound'
 import useScreenshake from '@/use/useScreenshake'
 import { emitConfetti, emitSparkle, emitSplash } from '@/use/usePrismParticles'
 import { registerDropZone, unregisterDropZone, dragActive } from '@/use/useDropZones'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
+import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import { bestWaveRank } from '@/platforms/leaderboard'
 
 const props = defineProps<{
   /** Wallet badge element — kill/boss payouts fly coins into it. */
@@ -32,8 +36,11 @@ const props = defineProps<{
 }>()
 
 const sceneEmit = defineEmits<{
-  /** A boss died — the scene may offer a 2× bounty rewarded ad. */
-  (e: 'bossKill', bounty: number): void
+  /** A boss died — the scene may offer a 2× bounty rewarded ad. `first` is
+   *  the once-ever first boss kill (scripted spectacle, roadmap #2). */
+  (e: 'bossKill', bounty: number, first: boolean): void
+  /** A 10th-wave milestone chest dropped — the scene adds the free unit. */
+  (e: 'milestone', wave: number): void
 }>()
 
 const { t } = useI18n()
@@ -79,7 +86,13 @@ const setProjEl = (id: number) => (el: unknown): void => {
 const writeEntity = (els: EntityEls | undefined, x: number, y: number, hpFrac: number): void => {
   if (!els) return
   els.root.style.transform = `translate(${(x / 100) * boxW}px, ${(y / 100) * boxH}px)`
-  els.root.style.zIndex = String(10 + Math.round(y))
+  // Painter's order by depth: higher y (closer to the camera) renders in
+  // front. ×10 granularity (band 100..1100) so melee pairs and horde clumps
+  // with near-equal y still sort by position — whole-unit buckets used to
+  // tie and fall back to DOM (spawn) order. All arena overlays sit above
+  // this band (z ≥ 1150), and `.battle-arena` isolates its own stacking
+  // context so these values never compete with the HUD outside it.
+  els.root.style.zIndex = String(100 + Math.round(y * 10))
   if (els.hp) els.hp.style.width = `${Math.max(0, Math.min(100, hpFrac * 100))}%`
 }
 
@@ -159,13 +172,19 @@ const addChain = (points: { x: number; y: number }[]): void => {
 }
 
 // ─── Banners / HUD theatre ───────────────────────────────────────────────────
-const waveBanner = ref<{ text: string; boss: boolean } | null>(null)
+type BannerVariant = 'wave' | 'boss' | 'mutator' | 'chest'
+const waveBanner = ref<{ text: string; variant: BannerVariant } | null>(null)
 let waveBannerTimer = 0
-const showWaveBanner = (text: string, boss: boolean, ms: number): void => {
-  waveBanner.value = { text, boss }
+const showWaveBanner = (text: string, variant: BannerVariant, ms: number): void => {
+  waveBanner.value = { text, variant }
   window.clearTimeout(waveBannerTimer)
   waveBannerTimer = window.setTimeout(() => { waveBanner.value = null }, ms)
 }
+const bannerClass = (variant: BannerVariant): string =>
+  variant === 'boss' ? 'banner-boss text-base sm:text-2xl'
+    : variant === 'mutator' ? 'banner-mutator text-sm sm:text-xl'
+    : variant === 'chest' ? 'banner-chest text-sm sm:text-xl'
+    : 'banner-wave text-sm sm:text-xl'
 
 const comboPop = ref<{ n: number; id: number } | null>(null)
 let comboTimerId = 0
@@ -194,10 +213,16 @@ const onEvent = (e: BattleEvent): void => {
       break
     case 'strike': {
       clashSound(e.tier)
+      // Dash-push: lunge the body a step ALONG the attack direction so every
+      // melee hit reads as a strike, whichever way the target stands.
       const inner = fighterEls.get(e.id)?.root.querySelector<HTMLElement>('.unit-body')
       inner?.animate(
-        [{ transform: 'translateX(0)' }, { transform: 'translateX(12%) scale(1.08)' }, { transform: 'translateX(0)' }],
-        { duration: 180, easing: 'ease-out' }
+        [
+          { transform: 'translate(0, 0)' },
+          { transform: `translate(${(e.dx * 26).toFixed(1)}%, ${(e.dy * 26).toFixed(1)}%) scale(1.1)`, offset: 0.4 },
+          { transform: 'translate(0, 0)' }
+        ],
+        { duration: 200, easing: 'ease-out' }
       )
       break
     }
@@ -255,31 +280,59 @@ const onEvent = (e: BattleEvent): void => {
     case 'overrun':
       playSound('overrun', 0.06)
       triggerShake('big')
+      // RALLY! rewarded revive (roadmap #8): hold the restart only when an ad
+      // can actually fill AND fighters fell this wave.
+      if (isRewardedReady.value && battle.requestRallyHold()) rallyBusy.value = false
+      break
+    case 'setback':
+      // Unrevived wipe → the front line retreats to an easier wave.
+      showWaveBanner(t('battle.waveSetback', { n: e.wave }), 'boss', 2200)
       break
     case 'waveStart':
-      showWaveBanner(
-        e.boss ? t('battle.bossIncoming') : t('battle.waveStart', { n: e.wave }),
-        e.boss, e.boss ? 2200 : 1400
-      )
-      playSound(e.boss ? 'boss-incoming' : 'wave-start', e.boss ? 0.07 : 0.03)
-      if (e.boss) triggerShake('strong')
+      if (e.mutator) {
+        showWaveBanner(t(`battle.mutators.${e.mutator}`), 'mutator', 2400)
+        playSound('boss-incoming', 0.05)
+        triggerShake('small')
+      } else {
+        showWaveBanner(
+          e.boss ? t('battle.bossIncoming') : t('battle.waveStart', { n: e.wave }),
+          e.boss ? 'boss' : 'wave', e.boss ? 2200 : 1400
+        )
+        playSound(e.boss ? 'boss-incoming' : 'wave-start', e.boss ? 0.07 : 0.03)
+        if (e.boss) triggerShake('strong')
+      }
       break
-    case 'waveCleared':
-      showWaveBanner(t('battle.waveCleared', { n: e.bonus }), false, 1500)
+    case 'waveCleared': {
+      // Rank suffix only when a platform actually reported one (roadmap #16).
+      const rank = bestWaveRank.value ? ` · #${bestWaveRank.value}` : ''
+      showWaveBanner(t('battle.waveCleared', { n: e.bonus }) + rank, 'wave', 1500)
       playSound('wave-cleared', 0.045)
       if (props.coinTarget && rootRef.value) {
         spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: 12 })
       }
       break
+    }
+    case 'milestone':
+      // Every-10th-wave chest (roadmap #4): fat fountain here; the scene
+      // drops the free high-tier unit onto the grid.
+      showWaveBanner(t('battle.chestWave', { n: e.gold }), 'chest', 2000)
+      playSound('milestone-chest', 0.06)
+      emitConfetti(toClientX(50), toClientY(40), 30, 1.5)
+      if (props.coinTarget && rootRef.value) {
+        spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: 26 })
+      }
+      sceneEmit('milestone', e.wave)
+      break
     case 'bossKill':
-      emitConfetti(toClientX(e.x), toClientY(e.y), 60, 2)
+      // The first-ever boss kill is the scripted spectacle (roadmap #2).
+      emitConfetti(toClientX(e.x), toClientY(e.y), e.first ? 130 : 60, e.first ? 2.4 : 2)
       playSound('explosion-1', 0.07, 0.8)
       playSound('boss-death', 0.08)
       triggerShake('big')
       if (props.coinTarget && rootRef.value) {
-        spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: 30 })
+        spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: e.first ? 60 : 30 })
       }
-      sceneEmit('bossKill', e.bounty)
+      sceneEmit('bossKill', e.bounty, e.first)
       break
     case 'enrage':
       playSound('enrage-roar', 0.05, 0.9)
@@ -329,6 +382,36 @@ const bossPct = computed(() => {
 
 const gatePct = computed(() => Math.max(0, Math.min(100, (battle.gateHp.value / battle.gateMax) * 100)))
 const countdownDisplay = computed(() => Math.max(1, Math.ceil(battle.countdown.value)))
+
+// ─── Countdown telegraphs (roadmap #4/#13) ───────────────────────────────────
+// The mutator roll is a pure hash of the wave number, so the countdown can
+// announce exactly what the engine will roll when the wave begins.
+const upcomingMutator = computed(() =>
+  battle.wavePhase.value === 'countdown' ? rollMutator(battle.wave.value) : null)
+const newEnemyIncoming = computed(() =>
+  battle.wavePhase.value === 'countdown' && nextArchetypeUnlock(battle.wave.value - 1) === battle.wave.value)
+
+// ─── RALLY! rewarded revive (roadmap #8) ─────────────────────────────────────
+const rallyBusy = ref(false)
+const onRally = async (): Promise<void> => {
+  if (rallyBusy.value || !battle.rallyOffer.value) return
+  rallyBusy.value = true
+  try {
+    const ok = await showRewardedAd()
+    if (ok) {
+      const revived = battle.claimRally()
+      if (revived > 0) {
+        playSound('rally-revive', 0.06)
+        emitConfetti(toClientX(16), toClientY(50), 30, 1.5)
+        triggerShake('strong')
+      }
+    } else {
+      battle.declineRally()
+    }
+  } finally {
+    rallyBusy.value = false
+  }
+}
 
 const fighterStyle = (f: Fighter): Record<string, string> => ({
   '--scale': String(getFighterDef(f.tier).scale)
@@ -399,7 +482,7 @@ onUnmounted(() => {
       div.unit-box
         div.hpbar
           div.hpfill.hp-enemy
-        div.unit-body.enemy-march
+        div.unit-body.enemy-march(:class="{ 'elite-aura': e.elite }")
           EnemyUnit(:kind="e.kind" :enraged="e.enraged")
 
     //- ── Projectiles ──
@@ -411,7 +494,7 @@ onUnmounted(() => {
       div.proj-dot(:style="{ background: p.color, boxShadow: '0 0 8px 2px ' + p.color }")
 
     //- ── Chain lightning bolts ──
-    svg.absolute.inset-0.w-full.h-full.pointer-events-none(viewBox="0 0 100 100" preserveAspectRatio="none" class="z-[40]")
+    svg.absolute.inset-0.w-full.h-full.pointer-events-none(viewBox="0 0 100 100" preserveAspectRatio="none" class="z-[1150]")
       polyline(
         v-for="c in chains"
         :key="c.id"
@@ -432,28 +515,39 @@ onUnmounted(() => {
     //- ── Damage numbers (pooled) ──
     div.dmg-num(v-for="i in NUM_POOL" :key="'n' + i" :ref="setNumEl(i - 1)")
 
+    //- ── Flying chest reward (roadmap #1B) ──
+    FlyingChest(:coin-target="props.coinTarget")
+
     //- ── Deploy highlight while dragging a unit ──
     Transition(name="fade")
-      div.absolute.inset-0.deploy-glow.pointer-events-none.flex.items-end.justify-center.pb-2(v-if="dragActive" class="z-[45]")
+      div.absolute.inset-0.deploy-glow.pointer-events-none.flex.items-end.justify-center.pb-2(v-if="dragActive" class="z-[1190]")
         span.game-text.font-black.uppercase.text-white(class="text-xs sm:text-sm drop-shadow-lg")
           | {{ battle.armyFull.value ? t('battle.armyFullHint') : t('battle.deployHint') }}
 
     //- ── Boss HP bar ──
     Transition(name="fade")
-      div.absolute.left-2.right-2.top-1.flex.flex-col.items-center.gap-0.pointer-events-none(v-if="battle.boss.value" class="z-[46]")
+      div.absolute.left-2.right-2.top-1.flex.flex-col.items-center.gap-0.pointer-events-none(v-if="battle.boss.value" class="z-[1200]")
         span.game-text.font-black.uppercase.text-red-300(class="text-[10px] sm:text-xs tracking-wider") {{ battle.boss.value.name }}
         div.w-full.rounded-full.overflow-hidden.border(class="h-2 sm:h-2.5 bg-black/60 border-red-900")
           div.h-full.boss-hp(:class="{ 'boss-enraged': battle.boss.value.enraged }" :style="{ width: bossPct + '%' }")
 
     //- ── Wave banner ──
     Transition(name="banner")
-      div.absolute.left-0.right-0.flex.justify-center.pointer-events-none(v-if="waveBanner" class="top-[30%] z-[48]")
+      div.absolute.left-0.right-0.flex.justify-center.pointer-events-none(v-if="waveBanner" class="top-[30%] z-[1220]")
         div.rounded-2xl.border-2.px-4.py-1.game-text.font-black.uppercase.text-white.shadow-2xl(
-          :class="waveBanner.boss ? 'banner-boss text-base sm:text-2xl' : 'banner-wave text-sm sm:text-xl'"
+          :class="bannerClass(waveBanner.variant)"
         ) {{ waveBanner.text }}
 
+    //- ── Active mutator chip (persists through the wave) ──
+    Transition(name="fade")
+      div.absolute.left-0.right-0.flex.justify-center.pointer-events-none(
+        v-if="battle.mutator.value && battle.wavePhase.value === 'fighting'" class="top-[6%] z-[1200]"
+      )
+        span.mutator-chip.rounded-full.border.px-2.game-text.font-black.uppercase(class="py-0.5 text-[9px] sm:text-[11px]")
+          | {{ t('battle.mutators.' + battle.mutator.value) }}
+
     //- ── Combo pop ──
-    div.absolute.left-0.right-0.flex.justify-center.pointer-events-none(class="top-[12%] z-[48]")
+    div.absolute.left-0.right-0.flex.justify-center.pointer-events-none(class="top-[12%] z-[1220]")
       div.combo-pop.game-text.font-black(
         v-if="comboPop"
         :key="comboPop.id"
@@ -463,29 +557,43 @@ onUnmounted(() => {
 
     //- ── FEVER overlay ──
     Transition(name="fade")
-      div.absolute.inset-0.fever-overlay.pointer-events-none(v-if="battle.feverActive.value" class="z-[44]")
+      div.absolute.inset-0.fever-overlay.pointer-events-none(v-if="battle.feverActive.value" class="z-[1180]")
         div.absolute.left-0.right-0.flex.justify-center(class="top-[4%]")
           span.fever-text.game-text.font-black.uppercase(class="text-lg sm:text-2xl") {{ t('battle.fever') }}
 
     //- ── Countdown ──
     Transition(name="fade")
       div.absolute.inset-0.flex.flex-col.items-center.justify-center.pointer-events-none.gap-1(
-        v-if="battle.wavePhase.value === 'countdown'" class="z-[47]"
+        v-if="battle.wavePhase.value === 'countdown'" class="z-[1210]"
       )
         span.game-text.font-black.uppercase.text-white(class="text-xs sm:text-sm opacity-80") {{ t('battle.nextWave', { n: battle.wave.value }) }}
         span.countdown-num.game-text.font-black.text-yellow-300(:key="countdownDisplay" class="text-4xl sm:text-6xl") {{ countdownDisplay }}
+        //- Telegraphs: incoming mutator / brand-new enemy archetype
+        span.game-text.font-black.uppercase.text-purple-300(v-if="upcomingMutator" class="text-[10px] sm:text-sm animate-pulse") {{ t('battle.mutators.' + upcomingMutator) }}
+        span.game-text.font-black.uppercase.text-red-300(v-if="newEnemyIncoming" class="text-[10px] sm:text-sm animate-pulse") {{ t('battle.newEnemy') }}
 
-    //- ── OVERRUN overlay ──
+    //- ── OVERRUN overlay (+ RALLY! rewarded revive, roadmap #8) ──
     Transition(name="fade")
       div.absolute.inset-0.flex.flex-col.items-center.justify-center.overrun-overlay.pointer-events-none.gap-1(
-        v-if="battle.wavePhase.value === 'overrun'" class="z-[49]"
+        v-if="battle.wavePhase.value === 'overrun'" class="z-[1230]"
       )
         span.game-text.font-black.uppercase.text-red-400(class="text-2xl sm:text-4xl animate-pulse") {{ t('battle.overrun') }}
         span.game-text.text-white(class="text-xs sm:text-sm opacity-90") {{ t('battle.overrunBody') }}
+        template(v-if="battle.rallyOffer.value && isRewardedReady")
+          button.rally-btn.pointer-events-auto.cursor-pointer.mt-2.rounded-xl.border-2.px-4.py-2.flex.items-center.gap-2(
+            class="bg-gradient-to-b from-emerald-400 to-emerald-700 border-emerald-200 active:scale-95 transition-transform disabled:opacity-50"
+            :disabled="rallyBusy"
+            @click="onRally"
+          )
+            IconMovie(class="w-6 h-6 shrink-0")
+            div.flex.flex-col.items-start
+              span.text-white.font-black.uppercase.game-text(class="text-sm sm:text-base leading-none") {{ t('battle.rally') }}
+              span.text-emerald-100.game-text(class="text-[10px] sm:text-xs") {{ t('battle.rallyBody') }}
+          button.pointer-events-auto.cursor-pointer.game-text(class="text-white/60 text-xs mt-1" @click="battle.declineRally()") {{ t('secondChance.skip') }}
 
     //- ── Ultimate button (bottom-right) ──
     button.ult-btn.absolute.cursor-pointer(
-      class="bottom-1.5 right-1.5 z-[50] active:scale-90 transition-transform"
+      class="bottom-1.5 right-1.5 z-[1240] active:scale-90 transition-transform"
       :class="{ 'ult-ready': battle.ultReady.value }"
       :disabled="!battle.ultReady.value"
       :aria-label="t('battle.ultimate')"
@@ -508,6 +616,10 @@ onUnmounted(() => {
 .battle-arena
   touch-action: none
   container-type: size
+  // Own stacking context: the depth-sorted entity z band (100..1100) and the
+  // lifted overlay layers (1150+) must never compete with HUD z-values
+  // outside the arena.
+  isolation: isolate
 
 .arena-bg-img
   background-size: cover
@@ -589,7 +701,7 @@ onUnmounted(() => {
 .proj
   will-change: transform
   pointer-events: none
-  z-index: 35
+  z-index: 1150
 .proj-dot
   width: clamp(6px, 2cqmin, 10px)
   height: clamp(6px, 2cqmin, 10px)
@@ -599,7 +711,7 @@ onUnmounted(() => {
 // ── Flashes ──
 .flash
   transform: translate(-50%, -50%)
-  z-index: 42
+  z-index: 1160
 
 .flash-nova
   width: 2px
@@ -695,7 +807,7 @@ onUnmounted(() => {
   font-size: clamp(10px, 3.4cqmin, 16px)
   pointer-events: none
   opacity: 0
-  z-index: 43
+  z-index: 1170
   text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 0 0 6px rgba(0, 0, 0, 0.6)
 .num-live
   animation: num-rise 0.75s ease-out forwards
@@ -732,6 +844,37 @@ onUnmounted(() => {
 .banner-wave
   background: linear-gradient(180deg, #50aaff, #2266ff)
   border-color: #0f1a30
+.banner-mutator
+  background: linear-gradient(180deg, #b05cff, #6b21a8)
+  border-color: #0f1a30
+  animation: boss-banner 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+.banner-chest
+  background: linear-gradient(180deg, #ffcd00, #f7a000)
+  border-color: #0f1a30
+  animation: boss-banner 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+
+.mutator-chip
+  background: rgba(80, 20, 140, 0.75)
+  border-color: rgba(200, 140, 255, 0.7)
+  color: #e6c8ff
+
+// Elite-mutator champion: pulsing golden aura around the whole sprite.
+.elite-aura
+  filter: drop-shadow(0 0 6px rgba(255, 205, 0, 0.9)) drop-shadow(0 0 14px rgba(255, 140, 0, 0.6))
+  animation: march 0.55s ease-in-out infinite, elite-throb 0.8s ease-in-out infinite alternate
+@keyframes elite-throb
+  from
+    filter: drop-shadow(0 0 4px rgba(255, 205, 0, 0.75)) drop-shadow(0 0 10px rgba(255, 140, 0, 0.45))
+  to
+    filter: drop-shadow(0 0 9px rgba(255, 205, 0, 1)) drop-shadow(0 0 20px rgba(255, 140, 0, 0.8))
+
+.rally-btn
+  animation: rally-pulse 0.9s ease-in-out infinite
+@keyframes rally-pulse
+  0%, 100%
+    transform: scale(1)
+  50%
+    transform: scale(1.06)
 .banner-boss
   background: linear-gradient(180deg, #ff5a3c, #b81c1c)
   border-color: #0f1a30

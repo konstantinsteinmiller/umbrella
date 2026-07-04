@@ -16,12 +16,12 @@ Effort key: **S** ≈ <½ day · **M** ≈ 1–2 days · **L** ≈ 3+ days.
 
 ---
 
-### 1B. Flying chest reward
+### ✅ 1B. Flying chest reward
 A flying chest flies in from left to right every 2 minutes and randomly either grants 150 coins or 
 drops a copy of the 2nd best unit(only if available, otherwise level 2 unit) you have on the field.
 add to art and sound todo files
 
-### 1. Guided first-session FTUE (coach-marks) — *Day-1 retention, pick-up* · M
+### ✅ 1. Guided first-session FTUE (coach-marks) — *Day-1 retention, pick-up* · M
 **What:** 4-step overlay on the very first session: "tap SPAWN 4× → recruit
 appears", "drag the two droplets together → MERGE", "drag your fighter into the
 arena → DEPLOY", "drop a grid unit onto a same-tier fighter → FIELD MERGE heals
@@ -37,7 +37,7 @@ off the real events the game already emits: `tapSpawn` fill, `merge()`,
 `deployFighter()`, the field-merge path in `useBattle`. Skip entirely when
 `battle_best_wave > 1`.
 
-### 2. First-10-minutes pacing pass — *Day-1 retention* · S
+### ✅ 2. First-10-minutes pacing pass — *Day-1 retention* · S
 **What:** Script waves 1–5 tighter: wave 1 winnable with two T1s but losable if
 idle (no "impossible to lose = 0 fun" dropouts), guaranteed first Runner leak
 scare on wave 3, and make the first boss (wave 5) an event — entrance banner,
@@ -50,7 +50,7 @@ hand-tuned squads instead of formula output; trigger the existing boss-kill
 spectacle path in `useBattle` with boosted particle counts for the first boss
 only (`battle_stats.bossKills === 0`).
 
-### 3. Offline earnings + "Welcome back" claim — *re-open rate, conversion* · M
+### ✅ 3. Offline earnings + "Welcome back" claim — *re-open rate, conversion* · M
 **What:** While away, the Imp Sergeant "keeps fighting". On return after >3 min,
 show a modal: "While you were gone: +N gold" with a **2× rewarded** claim button.
 **Why:** The single strongest re-open driver in idle games, and a top-performing
@@ -62,7 +62,7 @@ wave-clear checkpoint + `pagehide`. On boot, grant
 (`6 · 1.09^(wave−1)`) × recent kill rate. Gate the 2× behind `isRewardedReady`;
 payout flies to the wallet via the existing `useCoinExplosion`.
 
-### 4. Wave-milestone chests + next-unlock preview — *hard-to-put-down* · S
+### ✅ 4. Wave-milestone chests + next-unlock preview — *hard-to-put-down* · S
 **What:** Every 10th wave drops a chest (gold + a free T-high unit onto the
 grid). HUD shows a persistent "Next: 🎁 wave 20" pip under the wave counter,
 plus "New enemy at wave 7!" teasers.
@@ -107,7 +107,7 @@ upgrades already inject (`useBattle` stat computation). Full-screen reforge
 ceremony with the existing confetti/screenshake stack — a prestige must feel
 like a win, not a loss.
 
-### 8. "RALLY!" overrun revive (rewarded) — *conversion, frustration kill* · S
+### ✅ 8. "RALLY!" overrun revive (rewarded) — *conversion, frustration kill* · S
 **What:** On OVERRUN, before the wave restarts: a 5 s slow-mo offer — "RALLY!
 Watch to resurrect your fallen fighters" (rewarded ad → dead fighters return at
 full HP; decline → current behavior).
@@ -118,7 +118,7 @@ chest), and it removes the sting of the death-spiral for weaker players.
 on `isRewardedReady` (no button when no fill), redeploy via the existing
 `deployFighter` on success. Reuse the ad-audio suspend gate around the ad.
 
-### 9. 2× Boss Bounty rewarded offer — *conversion* · S
+### ✅ 9. 2× Boss Bounty rewarded offer — *conversion* · S
 **What:** After each boss kill, a 6 s offer chip: "Double the bounty (22×
 baseline) — watch ad". Already specified in GDD §6.1 but **not yet implemented**.
 **Why:** Boss kills are the emotional peak; doubling a fat, just-earned number
@@ -128,7 +128,7 @@ payout visual (the coin fountain) until the offer resolves. Gate on
 `isRewardedReady`; on decline/no-fill pay 1× immediately. Copy the
 `InstantSpawnAdButton.vue` pattern for the chip.
 
-### 10. Achievements — *playtime, completion pull* · S
+### ✅ 10. Achievements — *playtime, completion pull* · S
 **What:** ~20 achievements (first T5/T10 merge, wave 10/25/50, 1 000 kills,
 first field merge, combo ×25, boss ×10 …) with toast + gold payout.
 **Why:** **`useAchievements` + `AchievementsModal.vue` already exist** — wiring
@@ -147,7 +147,7 @@ blob-backed state, make `sanitizeGrid` size-aware (it already pads to
 `GRID_SIZE`). The grid CSS derives slot size from the container, so extra
 columns/rows scale for free.
 
-### 12. Unit codex + next-tier silhouette — *hard-to-put-down, collection* · S
+### ✅ 12. Unit codex + next-tier silhouette — *hard-to-put-down, collection* · S
 **What:** A codex of all 10 tiers (tap a grid unit → stats + ability text);
 undiscovered tiers show as dark silhouettes with "Merge 2× Tier N to discover!".
 The next-undiscovered silhouette also ghosts in the HUD.
@@ -157,7 +157,7 @@ text also teaches the roster (most players never learn what Bio-Sprout does).
 reuses the unit SVGs (via `useArtOverrides` `artSrc()` so dropped-in art shows);
 ability copy from a `battle.codex.*` i18n table.
 
-### 13. Elite & mutator waves — *playtime variety* · M
+### ✅ 13. Elite & mutator waves — *playtime variety* · M
 **What:** From wave 12+, every ~4th non-boss wave rolls a mutator, telegraphed
 in the wave banner: **Gold Rush** (2× bounty), **Frost March** (enemies slow
 your attack on hit), **Horde** (2× count, 0.5× HP), **Elite** (one glowing
@@ -187,7 +187,7 @@ the classic appointment mechanic — without cannibalizing the rewarded chest
 `GameScene.vue` with a countdown state (pattern already in
 `InstantSpawnAdButton.vue`).
 
-### 16. Best-wave leaderboard — *retention, competition* · S
+### ✅ 16. Best-wave leaderboard — *retention, competition* · S
 **What:** Submit `battle_best_wave` to the platform leaderboard where the SDK
 supports it (CrazyGames, Playgama, Yandex); show "Top 12% of commanders" on
 wave-clear banners.
@@ -210,7 +210,7 @@ it). Music layering via a second gain node in `useSound`'s music path
 (crossfade, no extra file needed for v1 — low-pass filter swap). Combo pulse
 hooks the existing combo event in the sink.
 
-### 18. Battle Pass — "War Campaign" — *playtime, long-term* · L
+### ✅ 18. Battle Pass — "War Campaign" — *playtime, long-term* · L
 **What:** A free-track seasonal pass (kills/waves/merges earn campaign XP →
 30 reward tiers: gold, instant-spawn buffs, skins, a medal head-start).
 **Why:** **`BattlePass.vue` already exists**; a free track alone adds a

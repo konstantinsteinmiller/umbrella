@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': '実績', 'subtitle': '生涯マイルストーンを達成してコイン獲得。', 'claim': '受取', 'claimed': '受取済', 'progress': '{c} / {t}',
+    'unlocked': '実績達成!',
     'items': {
+      'kills100': { 'name': '最初の百', 'desc': '敵を100体倒す。' },
+      'kills1k': { 'name': '討伐者', 'desc': '敵を1,000体倒す。' },
+      'kills10k': { 'name': '殲滅者', 'desc': '敵を10,000体倒す。' },
+      'wave10': { 'name': '防衛線の守り手', 'desc': 'ウェーブ10に到達。' },
+      'wave25': { 'name': '前線指揮官', 'desc': 'ウェーブ25に到達。' },
+      'wave50': { 'name': '戦争の覇者', 'desc': 'ウェーブ50に到達。' },
+      'boss1': { 'name': '巨人殺し', 'desc': '最初のボスを倒す。' },
+      'boss10': { 'name': 'ボスハンター', 'desc': 'ボスを10体倒す。' },
+      'boss50': { 'name': '王殺し', 'desc': 'ボスを50体倒す。' },
+      'merges50': { 'name': '合成家', 'desc': 'ユニットを50回マージ。' },
+      'merges500': { 'name': 'マージの達人', 'desc': 'ユニットを500回マージ。' },
+      'tier5': { 'name': '烈火の鍛冶', 'desc': 'ティア5ユニットを作る。' },
+      'tier8': { 'name': '氷結の鍛冶', 'desc': 'ティア8ユニットを作る。' },
+      'tier10': { 'name': '宇宙の鍛冶', 'desc': 'ティア10ユニットを作る。' },
+      'fieldMerge1': { 'name': '野戦衛生兵', 'desc': '初のフィールドマージを行う。' },
+      'fieldMerges25': { 'name': '戦場の鍛冶屋', 'desc': 'フィールドマージを25回行う。' },
+      'combo10': { 'name': '大暴れ', 'desc': 'キルコンボ×10を達成。' },
+      'combo25': { 'name': '止められない', 'desc': 'キルコンボ×25を達成。' },
+      'waves100': { 'name': '歴戦の兵', 'desc': '累計100ウェーブをクリア。' },
+      'waves500': { 'name': '終わらぬ戦い', 'desc': '累計500ウェーブをクリア。' },
       'tiles1k': { 'name': '世界の旅人', 'desc': '合計1,000マス進む。' },
       'tiles5k': { 'name': 'マラソンランナー', 'desc': '合計5,000マス進む。' },
       'tiles10k': { 'name': '長距離ランナー', 'desc': '合計10,000マス進む。' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': '収集家', 'desc': '合計250個のアイテムボックスを取る。' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'キャンセル',
   'close': '閉じる',
   'ok': 'OK',
@@ -98,15 +119,91 @@ export default {
       'watch': '無料'
     }
   },
+  'prism': {
+    'spawn': '召喚',
+    'instantSpawn': 'クイック召喚',
+    'doubleDamage': 'ダメージ2倍',
+    'freeGold': '戦争の宝箱',
+    'gridFull': 'グリッドが満杯! マージか出撃で空きを作ろう!',
+    'hintDrag': '同じユニットを重ねてマージ'
+  },
+  'welcomeBack': {
+    'title': 'おかえりなさい、指揮官!',
+    'body': '留守の間も軍団は戦い続けました:'
+  },
+  'battle': {
+    'wave': 'ウェーブ{n}',
+    'best': '最高{n}',
+    'waveStart': 'ウェーブ{n}',
+    'nextWave': 'ウェーブ{n}まで…',
+    'waveCleared': 'ウェーブクリア! +{n}',
+    'bossIncoming': 'ボス出現!',
+    'overrun': '突破された!',
+    'overrunBody': '門が破られた — 立て直して防衛線を守れ!',
+    'deployHint': '離して出撃!',
+    'armyFullHint': '軍が満員 — 同じティアの戦士に重ねてマージ!',
+    'fever': 'フィーバー!!!',
+    'rampage': '大暴れ!',
+    'ultimate': 'メテオストーム',
+    'doubleBounty': 'ボス報酬を2倍に!',
+    'upgrades': {
+      'attack': '戦の角笛',
+      'vitality': '生命力',
+      'bounty': '報酬',
+      'automation': 'インプ',
+      'recruit': '新兵',
+      'maxed': '最大'
+    },
+    'nextChest': '次: 🎁 ウェーブ{n}',
+    'newEnemyAt': 'ウェーブ{n}で新しい敵が出現!',
+    'newEnemy': '新しい敵が接近中!',
+    'chestWave': '戦利品チェスト! +{n}',
+    'waveSetback': 'ウェーブ{n}まで後退!',
+    'rally': 'ラリー!',
+    'rallyBody': '広告を見て倒れた戦士を復活させよう!',
+    'tutorial': {
+      'spawn': '召喚をタップして水滴を2体呼び出そう!',
+      'merge': '水滴同士をドラッグしてマージ!',
+      'deploy': '戦士をアリーナへドラッグして出撃!',
+      'fieldMerge': '同じティアのユニットをもう1体作り、戦士に重ねて回復&ランクアップ!'
+    },
+    'codex': {
+      'title': 'ユニット図鑑',
+      'names': { 't1': '生きた水滴', 't2': '燃えるしずく', 't3': '蒸気のかたまり', 't4': 'バイオスプラウト', 't5': 'パイロコア', 't6': '酸の腺', 't7': 'スパークスパーク', 't8': 'クライオシャード', 't9': '黄金ペースト', 't10': 'コズミックマス' },
+      'locked': 'ティア{n}を2体マージで解放!',
+      'abilities': {
+        'none': '素早く恐れ知らず、常に先陣を切る。',
+        'burn': '敵に着火し、ヒット後も燃え続ける。',
+        'knockback': '敵を押し戻す遠距離攻撃。',
+        'heal': '攻撃のたびに最も弱った味方を回復。',
+        'splash': '爆発攻撃で周囲の敵にもダメージ。',
+        'poison': '毒を重ねて強力な継続ダメージ。',
+        'chain': '稲妻がさらに3体の敵へ連鎖。',
+        'frost': 'ヒットで減速、アイスノヴァで集団を凍結。',
+        'midas': '高いクリティカル率とヒットごとのボーナスゴールド。',
+        'blackhole': '定期的に敵の群れを引き寄せて粉砕。'
+      }
+    },
+    'mutators': {
+      'goldRush': 'ゴールドラッシュ! 報酬2倍',
+      'frostMarch': 'フロストマーチ! 凍える攻撃',
+      'horde': '大群! 敵の数2倍',
+      'elite': 'エリート! チャンピオンがウェーブを率いる'
+    }
+  },
   'battlePass': {
-    'title': 'バトルパス',
+    'title': '戦争キャンペーン',
     'progress': '{current} / {total}',
     'daysLeft': '残り{n}日',
-    'maxed': 'バトルパス完了',
+    'maxed': 'キャンペーン完了',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'XPの獲得方法',
     'perAttempt': '1プレイごと',
     'perStageFinish': '1ステージごと',
+    'perKill': 'キルごと',
+    'perMerge': 'マージごと',
+    'perWave': 'ウェーブごと',
+    'perBoss': 'ボスごと',
     'unlockHint': '{n} XPで次の報酬を解放 — 未受取の報酬は残ります。'
   },
   'dailyRewards': {

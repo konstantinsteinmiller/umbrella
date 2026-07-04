@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+/**
+ * "War Campaign" — the free-track battle pass (retention-roadmap #18).
+ * Re-skinned from the epicrolla template: XP now ticks off the battler's
+ * `bumpStat` events (kills / merges / waves / bosses — see
+ * `CAMPAIGN_XP_SOURCES`), and tier rewards go beyond gold: an Instant Spawn
+ * buff every 5th tier, a free high-tier unit every 10th. The extras are
+ * executed here on claim (the composable stays economy-pure).
+ */
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FModal from '@/components/molecules/FModal.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
+import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import useBattlePass, {
   BP_TOTAL_STAGES,
   BP_XP_PER_STAGE,
-  BP_XP_ATTEMPT,
-  BP_XP_CAMPAIGN_WIN
+  CAMPAIGN_XP_SOURCES,
+  bpReward
 } from '@/use/useBattlePass'
-import { spawnCoinExplosion } from '@/use/useCoinExplosion'
+import usePrismGame from '@/use/usePrismGame'
+import useBattle from '@/use/useBattle'
 import useSounds from '@/use/useSound.ts'
 
 const {
@@ -19,7 +29,6 @@ const {
   pendingClaimCount,
   isStageClaimed,
   isStageUnlocked,
-  bpCoinReward,
   claimStage,
   isMaxed,
   daysUntilReset
@@ -31,6 +40,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { playSound } = useSounds()
+const game = usePrismGame()
+const battle = useBattle()
 
 const isModalOpen = ref(false)
 const bpBtnRef = ref<HTMLElement | null>(null)
@@ -48,7 +59,7 @@ const stageCards = computed(() =>
     const stage = i + 1
     return {
       stage,
-      coins: bpCoinReward(stage),
+      reward: bpReward(stage),
       unlocked: isStageUnlocked(stage),
       claimed: isStageClaimed(stage),
       inProgress: stage === inProgressStage.value
@@ -56,30 +67,52 @@ const stageCards = computed(() =>
   })
 )
 
+const xpSources = computed(() => [
+  { xp: CAMPAIGN_XP_SOURCES.kill, label: t('battlePass.perKill') },
+  { xp: CAMPAIGN_XP_SOURCES.merge, label: t('battlePass.perMerge') },
+  { xp: CAMPAIGN_XP_SOURCES.wave, label: t('battlePass.perWave') },
+  { xp: CAMPAIGN_XP_SOURCES.boss, label: t('battlePass.perBoss') }
+])
+
 const onClaim = (stage: number, sourceEl: HTMLElement) => {
+  // A unit reward needs somewhere to LAND — with the grid AND the army both
+  // full it would silently evaporate. Refuse the claim (denied thunk) and
+  // keep the tier claimable until the player makes room.
+  const preview = bpReward(stage)
+  if (preview.unitTier && game.emptySlots.value === 0 && battle.armyFull.value) {
+    playSound('upgrade-denied', 0.03)
+    return
+  }
   const res = claimStage(stage)
   if (!res) return
   emit('coins-awarded', sourceEl)
   playSound('reward-continue', 0.06)
+  // Reward extras: the buff applies instantly; the free unit lands on the
+  // grid (or marches straight to the front when the grid is packed).
+  if (res.instantSpawn) game.activateInstantSpawn()
+  if (res.unitTier && game.spawnUnitAt(res.unitTier) < 0 && !battle.armyFull.value) {
+    battle.deployFighter(res.unitTier)
+  }
 }
 </script>
 
 <template lang="pug">
   button.battle-pass-btn(
     ref="bpBtnRef"
-    class="cursor-pointer pointer-events-auto active:scale-95 transition-transform scale-80 sm:scale-100"
+    class="cursor-pointer pointer-events-auto active:scale-95 transition-transform"
     :class="{ 'pulse-claim': hasUnclaimedReward }"
+    :aria-label="t('battlePass.title')"
     @click="isModalOpen = true"
   )
     div.relative
       div.absolute.inset-0.translate-y-1.rounded-lg(class="bg-[#5a1212]")
-      div.relative.rounded-lg.border-2.flex.items-center.justify-center.p-2(
-        class="bg-gradient-to-b from-[#a855f7] to-[#6b21a8] border-[#0f1a30]"
+      div.relative.rounded-lg.border-2.flex.items-center.justify-center(
+        class="p-1.5 sm:p-2 bg-gradient-to-b from-[#a855f7] to-[#6b21a8] border-[#0f1a30]"
       )
         //- Rank-tier chevrons — three stacked "V"s reading bottom-to-top
         //- as ascending ranks. Distinct from the AchievementsModal trophy
         //- so the two HUD slots are visually unambiguous.
-        svg(viewBox="0 0 24 24" class="w-7 h-7" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round" stroke-linecap="round")
+        svg(viewBox="0 0 24 24" class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round" stroke-linecap="round")
           path(d="M5 9 L12 4 L19 9")
           path(d="M5 14 L12 9 L19 14")
           path(d="M5 19 L12 14 L19 19" fill="rgba(255,255,255,0.35)")
@@ -109,22 +142,19 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
         div.flex.justify-center.text-white.game-text.opacity-70(class="text-[10px] sm:text-xs")
           span {{ t('battlePass.xpProgress', { current: currentXp, total: BP_XP_PER_STAGE }) }}
 
-      //- "How to earn XP" explainer. Persistent so the player can always
-      //- see why their bar is moving (or not).
+      //- "How to earn XP" explainer — mirrors CAMPAIGN_XP_SOURCES so the
+      //- player always sees why the bar is moving (or not).
       div.flex.flex-col.gap-1.rounded-lg.border.p-2(class="bg-black/30 border-white/15")
         div.text-center.font-black.uppercase.tracking-wider.text-yellow-200.game-text(class="text-[10px] sm:text-xs")
           | {{ t('battlePass.howToEarn') }}
-        div.flex.justify-around.gap-2.text-white.game-text(class="text-[10px] sm:text-xs")
-          div.flex.flex-col.items-center
-            span.font-black.text-cyan-200 +{{ BP_XP_ATTEMPT }} XP
-            span.opacity-80 {{ t('battlePass.perAttempt') }}
-          div.flex.flex-col.items-center
-            span.font-black.text-emerald-300 +{{ BP_XP_CAMPAIGN_WIN }} XP
-            span.opacity-80 {{ t('battlePass.perStageFinish') }}
+        div.flex.justify-around.gap-1.text-white.game-text(class="text-[10px] sm:text-xs")
+          div.flex.flex-col.items-center(v-for="s in xpSources" :key="s.label")
+            span.font-black.text-cyan-200 +{{ s.xp }} XP
+            span.opacity-80 {{ s.label }}
         div.text-center.text-white.game-text.opacity-70(class="text-[9px] sm:text-[10px]")
           | {{ t('battlePass.unlockHint', { n: BP_XP_PER_STAGE }) }}
 
-      //- Stage cards
+      //- Tier cards
       div.grid.gap-1.bp-stage-grid
         div(
           v-for="card in stageCards"
@@ -134,8 +164,13 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
           @click="card.unlocked && !card.claimed ? onClaim(card.stage, $event.currentTarget) : null"
         )
           span.font-black.game-text.text-white(class="text-[9px] sm:text-[10px]") {{ card.stage }}
-          IconCoin(class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 my-0.5")
-          span.font-black.game-text.text-yellow-100(class="text-[9px] sm:text-[10px]") +{{ card.coins }}
+          //- Reward glyph: free unit > instant-spawn buff > gold
+          div(v-if="card.reward.unitTier" class="w-5 h-5 sm:w-6 sm:h-6 my-0.5")
+            IngredientUnit(:tier="card.reward.unitTier" :still="true")
+          svg(v-else-if="card.reward.instantSpawn" viewBox="0 0 24 24" class="w-4 h-4 sm:w-5 sm:h-5 my-0.5" fill="#ffe23a" stroke="#7a3000" stroke-width="1.4" stroke-linejoin="round")
+            path(d="M13 2 L5 13 h5 l-1 9 l8 -11 h-5 Z")
+          IconCoin(v-else class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 my-0.5")
+          span.font-black.game-text.text-yellow-100(class="text-[9px] sm:text-[10px]") +{{ card.reward.coins }}
 </template>
 
 <style scoped lang="sass">

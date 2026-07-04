@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': 'Yutuqlar', 'subtitle': 'Tanga olish uchun bosqichlarga erishing.', 'claim': 'Olish', 'claimed': 'Olingan', 'progress': '{c} / {t}',
+    'unlocked': 'Yutuq bajarildi!',
     'items': {
+      'kills100': { 'name': 'Birinchi yuzlik', 'desc': '100 dushmanni yengib chiqing.' },
+      'kills1k': { 'name': 'Qirgʻinchi', 'desc': '1 000 dushmanni yengib chiqing.' },
+      'kills10k': { 'name': 'Yoʻq qiluvchi', 'desc': '10 000 dushmanni yengib chiqing.' },
+      'wave10': { 'name': 'Saf qoʻriqchisi', 'desc': '10-toʻlqinga yeting.' },
+      'wave25': { 'name': 'Front qoʻmondoni', 'desc': '25-toʻlqinga yeting.' },
+      'wave50': { 'name': 'Urush hukmdori', 'desc': '50-toʻlqinga yeting.' },
+      'boss1': { 'name': 'Dev yenguvchi', 'desc': 'Birinchi bossni yengib chiqing.' },
+      'boss10': { 'name': 'Boss ovchisi', 'desc': '10 ta bossni yengib chiqing.' },
+      'boss50': { 'name': 'Shohlar ofati', 'desc': '50 ta bossni yengib chiqing.' },
+      'merges50': { 'name': 'Birlashtiruvchi', 'desc': 'Birliklarni 50 marta birlashtiring.' },
+      'merges500': { 'name': 'Birlashtirish ustasi', 'desc': 'Birliklarni 500 marta birlashtiring.' },
+      'tier5': { 'name': 'Olovli ustaxona', 'desc': '5-daraja birlik yarating.' },
+      'tier8': { 'name': 'Muzli ustaxona', 'desc': '8-daraja birlik yarating.' },
+      'tier10': { 'name': 'Kosmik ustaxona', 'desc': '10-daraja birlik yarating.' },
+      'fieldMerge1': { 'name': 'Dala shifokori', 'desc': 'Birinchi dala birlashtirishini bajaring.' },
+      'fieldMerges25': { 'name': 'Jang temirchisi', 'desc': '25 ta dala birlashtirishini bajaring.' },
+      'combo10': { 'name': 'Gʻazab', 'desc': '×10 komboga erishing.' },
+      'combo25': { 'name': 'Toʻxtatib boʻlmas', 'desc': '×25 komboga erishing.' },
+      'waves100': { 'name': 'Yurish faxriysi', 'desc': 'Jami 100 toʻlqinni tozalang.' },
+      'waves500': { 'name': 'Abadiy urush', 'desc': 'Jami 500 toʻlqinni tozalang.' },
       'tiles1k': { 'name': 'Sayyoh', 'desc': 'Jami 1 000 plitadan o\'ting.' },
       'tiles5k': { 'name': 'Marafonchi', 'desc': 'Jami 5 000 plitadan o\'ting.' },
       'tiles10k': { 'name': 'Uzoq masofa yuguruvchisi', 'desc': 'Jami 10 000 plitadan o\'ting.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': 'Yig\'uvchi', 'desc': 'Jami 250 ta buyum qutisini oling.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'Bekor qilish',
   'close': 'Yopish',
   'ok': 'Ok',
@@ -98,15 +119,91 @@ export default {
       'watch': 'Bepul'
     }
   },
+  'prism': {
+    'spawn': 'Chaqirish',
+    'instantSpawn': 'Tezkor chaqiruv',
+    'doubleDamage': '2× Zarar',
+    'freeGold': 'Urush sandigʻi',
+    'gridFull': 'Maydon toʻla — joy ochish uchun birlashtiring yoki jangga yuboring!',
+    'hintDrag': 'Bir xil birliklarni birlashtirish uchun ustma-ust torting'
+  },
+  'welcomeBack': {
+    'title': 'Xush kelibsiz, qoʻmondon!',
+    'body': 'Siz yoʻqligingizda qoʻshiningiz jang qilishda davom etdi:'
+  },
+  'battle': {
+    'wave': '{n}-toʻlqin',
+    'best': 'Rekord {n}',
+    'waveStart': '{n}-toʻlqin',
+    'nextWave': '{n}-toʻlqingacha…',
+    'waveCleared': 'Toʻlqin yakunlandi! +{n}',
+    'bossIncoming': 'BOSS KELMOQDA!',
+    'overrun': 'BOSIB OʻTILDI!',
+    'overrunBody': 'Darvoza quladi — qayta saflanib chiziqni ushlab turing!',
+    'deployHint': 'Joylashtirish uchun qoʻyib yuboring!',
+    'armyFullHint': 'Qoʻshin toʻla — birlashtirish uchun xuddi shu darajadagi jangchiga tashlang!',
+    'fever': 'JOʻSHQINLIK!!!',
+    'rampage': 'QIRGʻIN!',
+    'ultimate': 'Meteor boʻroni',
+    'doubleBounty': 'Boss oʻljasini ikki baravar oshiring!',
+    'upgrades': {
+      'attack': 'Urush shoxlari',
+      'vitality': 'Hayotiylik',
+      'bounty': 'Oʻlja',
+      'automation': 'Jin',
+      'recruit': 'Yollanmalar',
+      'maxed': 'MAKS'
+    },
+    'nextChest': 'Keyingi: 🎁 {n}-toʻlqin',
+    'newEnemyAt': '{n}-toʻlqinda yangi dushman!',
+    'newEnemy': 'Yangi dushman yaqinlashmoqda!',
+    'chestWave': 'Urush sandigʻi! +{n}',
+    'waveSetback': '{n}-toʻlqinga chekindingiz!',
+    'rally': 'YIGʻILING!',
+    'rallyBody': 'Halok boʻlgan jangchilarni tiriltirish uchun reklama koʻring!',
+    'tutorial': {
+      'spawn': 'Ikkita tomchini yollash uchun CHAQIRISH tugmasini bosing!',
+      'merge': 'Bir tomchini ikkinchisiga sudrab BIRLASHTIRING!',
+      'deploy': 'Jangchingizni arenaga sudrab jangga qoʻshing!',
+      'fieldMerge': 'Xuddi shu darajadagi yana bitta birlik yasang va uni jangchingiz ustiga tashlang — DAVOLAYDI va DARAJASINI OSHIRADI!'
+    },
+    'codex': {
+      'title': 'Birliklar kodeksi',
+      'names': { 't1': 'Tirik tomchi', 't2': 'Choʻgʻ sachrashi', 't3': 'Bugʻ boʻlagi', 't4': 'Bio-nihol', 't5': 'Piro-yadro', 't6': 'Kislota bezi', 't7': 'Uchqun Uchqun', 't8': 'Krio-parcha', 't9': 'Oltin pasta', 't10': 'Kosmik massa' },
+      'locked': 'Kashf qilish uchun ikkita {n}-daraja birlashtiring!',
+      'abilities': {
+        'none': 'Tez, qoʻrqmas va doim oldinda.',
+        'burn': 'Dushmanlarni yondiradi — zarbadan keyin ham yonishda davom etadilar.',
+        'knockback': 'Dushmanlarni orqaga itaruvchi uzoqdan otishlar.',
+        'heal': 'Har bir zarba eng zaif ittifoqchini ham davolaydi.',
+        'splash': 'Portlovchi zarbalar yaqin atrofdagi barcha dushmanlarga zarar yetkazadi.',
+        'poison': 'Vaqt oʻtishi bilan katta zarar uchun zahar toʻplaydi.',
+        'chain': 'Chaqmoq yana uchta dushmanga sakraydi.',
+        'frost': 'Zarbada sekinlashtiradi va muz novalari bilan guruhlarni muzlatadi.',
+        'midas': 'Yuqori kritik imkoniyati va har zarbada bonus oltin.',
+        'blackhole': 'Vaqti-vaqti bilan toʻdani tortib olib, ezib tashlaydi.'
+      }
+    },
+    'mutators': {
+      'goldRush': 'OLTIN VASVASASI! 2× oʻlja',
+      'frostMarch': 'MUZ YURISHI! Sovuq zarbalar',
+      'horde': 'TOʻDA! Ikki baravar koʻp dushman',
+      'elite': 'ELITA! Toʻlqinni chempion boshqaradi'
+    }
+  },
   'battlePass': {
-    'title': "Jangovar yoʻl",
+    'title': 'Urush yurishi',
     'progress': '{current} / {total}',
     'daysLeft': '{n} kun qoldi',
-    'maxed': "JANGOVAR YOʻL TUGALLANDI",
+    'maxed': 'YURISH YAKUNLANDI',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'XP qanday topiladi',
     'perAttempt': 'har bir yugurish uchun',
     'perStageFinish': 'har bir bosqich tozalash uchun',
+    'perKill': 'har oʻldirish uchun',
+    'perMerge': 'har birlashtirish uchun',
+    'perWave': 'har toʻlqin uchun',
+    'perBoss': 'har boss uchun',
     'unlockHint': "Keyingi mukofotni ochish uchun {n} XP ga yeting — talab qilinmagan mukofotlar bosgangizgacha saqlanadi."
   },
   'dailyRewards': {

@@ -20,19 +20,23 @@
  *     sink for damage numbers / particles / SFX.
  */
 
-import { ref, shallowRef, computed, triggerRef } from 'vue'
+import { ref, shallowRef, computed, triggerRef, watch } from 'vue'
 import { getState, setState, flushPersist } from '@/use/useEpicState'
+import { saveDataVersion } from '@/use/useSaveStatus'
 import useEpicConfig from '@/use/useEpicConfig'
 import { isGamePaused } from '@/use/useGamePause'
 import {
   BATTLE_UPGRADES_KEY, BATTLE_WAVE_KEY, BATTLE_BEST_WAVE_KEY, BATTLE_ARMY_KEY,
-  BATTLE_ULT_KEY, PRISM_STATS_KEY
+  BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY
 } from '@/keys'
 import {
-  getFighterDef, ENEMY_DEFS, composeWave, isBossWave, bossName,
+  getFighterDef, ENEMY_DEFS, composeWave, isBossWave, bossName, rollMutator,
   waveHp, waveAtk, waveBounty, waveClearBonus,
-  type EnemyKind, type WaveSpawn, type FighterAbility
+  type EnemyKind, type WaveSpawn, type FighterAbility, type WaveMutator
 } from '@/game/units'
+import { notifyTutorial } from '@/use/useTutorial'
+import useBattlePass, { CAMPAIGN_XP_SOURCES } from '@/use/useBattlePass'
+import { submitBestWave } from '@/platforms/leaderboard'
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 export const ARMY_CAP = 7
@@ -52,6 +56,14 @@ const ULT_PER_BOSS = 30
 const METEOR_COUNT = 7
 const COUNTDOWN_SECS = 3.5
 const OVERRUN_SECS = 2.5
+/** Extended overrun pause while the RALLY! rewarded offer is on screen. */
+const RALLY_OFFER_SECS = 5
+/** Waves lost when the gate falls and the army is NOT revived — the recovery
+ *  valve: a wiped player retreats to easier waves instead of being walled on
+ *  the one that killed them (best wave is untouched). */
+const OVERRUN_WAVE_SETBACK = 3
+/** Milestone chest cadence (retention-roadmap #4): every 10th wave. */
+export const CHEST_EVERY_WAVES = 10
 export const UPGRADE_MAX_LEVEL = 25
 
 // ─── Entities ────────────────────────────────────────────────────────────────
@@ -68,6 +80,9 @@ export interface Fighter {
   abilityCd: number
   /** Set for one render frame when the unit lunges (melee anim). */
   striking: boolean
+  /** Enemy this fighter is currently locked onto (transient; 0 = none).
+   *  Sticky so the 1v1 assignment doesn't flip-flop between equal picks. */
+  targetId: number
 }
 
 export interface Enemy {
@@ -93,6 +108,8 @@ export interface Enemy {
   poisonStacks: number
   poisonUntil: number
   boss: boolean
+  /** Elite-mutator mini-boss (glowing aura, boosted stats). */
+  elite: boolean
   enraged: boolean
   striking: boolean
 }
@@ -114,7 +131,7 @@ export interface Projectile {
 // ─── Events (view drains these for numbers / particles / SFX) ────────────────
 export type BattleEvent =
   | { type: 'number'; x: number; y: number; amount: number; variant: 'dmg' | 'crit' | 'heal' | 'burn' | 'poison' | 'gold' }
-  | { type: 'strike'; id: number; x: number; y: number; tier: number }
+  | { type: 'strike'; id: number; x: number; y: number; tier: number; dx: number; dy: number }
   | { type: 'shot'; x: number; y: number; color: string }
   | { type: 'impact'; x: number; y: number; color: string }
   | { type: 'splash'; x: number; y: number; color: string }
@@ -127,9 +144,11 @@ export type BattleEvent =
   | { type: 'fieldMerge'; x: number; y: number; tier: number }
   | { type: 'gateHit'; amount: number }
   | { type: 'overrun' }
-  | { type: 'waveStart'; wave: number; boss: boolean }
+  | { type: 'setback'; wave: number }
+  | { type: 'waveStart'; wave: number; boss: boolean; mutator: WaveMutator | null }
   | { type: 'waveCleared'; wave: number; bonus: number }
-  | { type: 'bossKill'; x: number; y: number; bounty: number }
+  | { type: 'milestone'; wave: number; gold: number }
+  | { type: 'bossKill'; x: number; y: number; bounty: number; first: boolean }
   | { type: 'enrage' }
   | { type: 'combo'; combo: number }
   | { type: 'fever' }
@@ -146,30 +165,65 @@ export const setRenderSink = (fn: RenderSink | null): void => { renderSink = fn 
 const emit = (e: BattleEvent): void => { if (eventSink) eventSink(e) }
 
 // ─── Upgrades (battle-owned; bought from the UpgradePanel) ───────────────────
-export type BattleUpgradeId = 'attack' | 'vitality' | 'bounty' | 'automation'
+export type BattleUpgradeId = 'attack' | 'vitality' | 'bounty' | 'automation' | 'recruit'
 export type BattleUpgrades = Record<BattleUpgradeId, number>
 
-export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth: number }> = {
-  attack: { base: 60, growth: 1.55 },
-  vitality: { base: 55, growth: 1.52 },
-  bounty: { base: 80, growth: 1.6 },
-  automation: { base: 130, growth: 1.72 }
+export const RECRUIT_MAX_LEVEL = 5
+
+export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth: number; max: number }> = {
+  attack: { base: 60, growth: 1.55, max: UPGRADE_MAX_LEVEL },
+  vitality: { base: 55, growth: 1.52, max: UPGRADE_MAX_LEVEL },
+  bounty: { base: 80, growth: 1.6, max: UPGRADE_MAX_LEVEL },
+  automation: { base: 130, growth: 1.72, max: UPGRADE_MAX_LEVEL },
+  // Recruits: each level raises the Spawn button's base tier by 1 (T1 → T6).
+  // One level ≈ doubles the whole grid's merge throughput (a T2 spawn = two
+  // T1 spawns pre-merged) ≈ 4–5 waves of enemy scaling — priced as milestone
+  // purchases on the hand-tuned RECRUIT_COSTS ladder below (base/growth here
+  // are unused for this id; `upgradeCost` special-cases it).
+  recruit: { base: 5000, growth: 1, max: RECRUIT_MAX_LEVEL }
 }
+
+/** Hand-tuned Recruits prices for levels 1–5. */
+const RECRUIT_COSTS = [5_000, 20_000, 50_000, 175_000, 500_000]
 
 const sanitizeUpgrades = (u: unknown): BattleUpgrades => {
   const o = (u && typeof u === 'object') ? u as Record<string, unknown> : {}
-  const clamp = (n: unknown): number => {
+  const clamp = (n: unknown, max: number): number => {
     const v = Math.floor(Number(n))
-    return Number.isFinite(v) ? Math.max(0, Math.min(UPGRADE_MAX_LEVEL, v)) : 0
+    return Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : 0
   }
-  return { attack: clamp(o.attack), vitality: clamp(o.vitality), bounty: clamp(o.bounty), automation: clamp(o.automation) }
+  return {
+    attack: clamp(o.attack, UPGRADE_MAX_LEVEL),
+    vitality: clamp(o.vitality, UPGRADE_MAX_LEVEL),
+    bounty: clamp(o.bounty, UPGRADE_MAX_LEVEL),
+    automation: clamp(o.automation, UPGRADE_MAX_LEVEL),
+    recruit: clamp(o.recruit, RECRUIT_MAX_LEVEL)
+  }
 }
 
 export const battleUpgrades = ref<BattleUpgrades>(sanitizeUpgrades(getState(BATTLE_UPGRADES_KEY, {})))
 
-const atkMult = (): number => 1 + battleUpgrades.value.attack * 0.06
+// ─── 2× Damage rewarded buff ─────────────────────────────────────────────────
+// Watching a rewarded ad doubles all fighter damage for 2 minutes. Persisted
+// as an epoch expiry so a reload mid-buff keeps the remaining time (same
+// pattern as the Instant Spawn buff in `usePrismGame`).
+export const DMG_BUFF_MS = 120_000
+const dmgBuffUntil = ref(Number(getState(BATTLE_DMG_BUFF_KEY, 0)) || 0)
+/** Buff countdown for the UI, ms. Ticked by the engine; >0 ⇔ buff active. */
+export const dmgBuffRemainingMs = ref(Math.max(0, dmgBuffUntil.value - Date.now()))
+
+export const activateDamageBuff = (): void => {
+  dmgBuffUntil.value = Date.now() + DMG_BUFF_MS
+  dmgBuffRemainingMs.value = DMG_BUFF_MS
+  setState(BATTLE_DMG_BUFF_KEY, dmgBuffUntil.value)
+}
+
+const atkMult = (): number =>
+  (1 + battleUpgrades.value.attack * 0.06) * (dmgBuffUntil.value > Date.now() ? 2 : 1)
 const hpMult = (): number => 1 + battleUpgrades.value.vitality * 0.07
 const bountyMult = (): number => 1 + battleUpgrades.value.bounty * 0.08
+/** Base tier the Spawn button produces (1 + Recruits upgrade level). */
+export const recruitTier = computed(() => 1 + battleUpgrades.value.recruit)
 /** Imp cadence in ms for `usePrismGame`'s automation loop (0 ⇒ disabled). */
 export const impCadenceMs = computed(() => {
   const lvl = battleUpgrades.value.automation
@@ -179,8 +233,12 @@ export const impCadenceMs = computed(() => {
 const { coins: gold, addCoins, spendCoins } = useEpicConfig()
 
 export const upgradeLevel = (id: BattleUpgradeId): number => battleUpgrades.value[id]
-export const isUpgradeMaxed = (id: BattleUpgradeId): boolean => battleUpgrades.value[id] >= UPGRADE_MAX_LEVEL
+export const isUpgradeMaxed = (id: BattleUpgradeId): boolean =>
+  battleUpgrades.value[id] >= BATTLE_UPGRADE_DEFS[id].max
 export const upgradeCost = (id: BattleUpgradeId): number => {
+  if (id === 'recruit') {
+    return RECRUIT_COSTS[Math.min(battleUpgrades.value.recruit, RECRUIT_COSTS.length - 1)]!
+  }
   const def = BATTLE_UPGRADE_DEFS[id]
   return Math.max(1, Math.round(def.base * Math.pow(def.growth, battleUpgrades.value[id])))
 }
@@ -209,13 +267,31 @@ export const buyUpgrade = (id: BattleUpgradeId): boolean => {
 export interface BattleStats {
   kills: number; bossKills: number; waves: number
   merges: number; spawns: number; fieldMerges: number
+  /** Highest kill combo ever reached (watermark, not a counter). */
+  bestCombo: number
 }
-const defaultStats = (): BattleStats => ({ kills: 0, bossKills: 0, waves: 0, merges: 0, spawns: 0, fieldMerges: 0 })
+const defaultStats = (): BattleStats => ({ kills: 0, bossKills: 0, waves: 0, merges: 0, spawns: 0, fieldMerges: 0, bestCombo: 0 })
 export const stats = ref<BattleStats>({ ...defaultStats(), ...(getState<Partial<BattleStats>>(PRISM_STATS_KEY, {}) ?? {}) })
 const persistStats = (): void => setState(PRISM_STATS_KEY, stats.value)
+
+// War Campaign XP (retention-roadmap #18): stat bumps ARE the XP ticks, so
+// every subsystem that already calls bumpStat feeds the pass for free. The
+// per-event values live in CAMPAIGN_XP_SOURCES (useBattlePass) — one source
+// of truth shared with the modal's "how to earn" explainer.
+const { awardXp: awardCampaignXp } = useBattlePass()
+const CAMPAIGN_XP: Partial<Record<keyof BattleStats, number>> = {
+  kills: CAMPAIGN_XP_SOURCES.kill,
+  merges: CAMPAIGN_XP_SOURCES.merge,
+  fieldMerges: CAMPAIGN_XP_SOURCES.fieldMerge,
+  waves: CAMPAIGN_XP_SOURCES.wave,
+  bossKills: CAMPAIGN_XP_SOURCES.boss
+}
+
 export const bumpStat = (key: keyof BattleStats, n = 1): void => {
   stats.value = { ...stats.value, [key]: stats.value[key] + n }
   persistStats()
+  const xp = CAMPAIGN_XP[key]
+  if (xp) awardCampaignXp(xp * n)
 }
 
 // ─── Reactive battle state (HUD-facing) ──────────────────────────────────────
@@ -237,6 +313,10 @@ export const ultCharge = ref(Math.max(0, Math.min(ULT_MAX, Number(getState(BATTL
 export const ultMax = ULT_MAX
 export const boss = ref<{ name: string; hp: number; maxHp: number; enraged: boolean } | null>(null)
 export const timescale = ref(1)
+/** Active wave mutator (retention-roadmap #13); null on plain/boss waves. */
+export const mutator = ref<WaveMutator | null>(null)
+/** RALLY! rewarded revive offer is on screen (retention-roadmap #8). */
+export const rallyOffer = ref(false)
 
 export const fighters = shallowRef<Fighter[]>([])
 export const enemies = shallowRef<Enemy[]>([])
@@ -252,6 +332,10 @@ let slowmoRealLeft = 0
 let schedule: WaveSpawn[] = []
 let waveElapsed = 0
 let phaseTimer = 0
+/** Tiers of fighters that fell during the current wave (RALLY! buffer). */
+let deadThisWave: number[] = []
+/** True once the current overrun's RALLY! offer was redeemed (no setback). */
+let rallyClaimed = false
 let pendingMeteors: { at: number }[] = [] // impact point resolved at impact time
 
 const persistBattle = (): void => {
@@ -270,7 +354,8 @@ const makeFighter = (tier: number, x: number, y: number): Fighter => {
   return {
     id: ++idSeq, tier,
     x: Math.max(4, Math.min(60, x)), y: Math.max(8, Math.min(92, y)),
-    hp: maxHp, maxHp, cooldown: Math.random() * 0.4, abilityCd: 3, striking: false
+    hp: maxHp, maxHp, cooldown: Math.random() * 0.4, abilityCd: 3, striking: false,
+    targetId: 0
   }
 }
 
@@ -283,6 +368,7 @@ export const deployFighter = (tier: number, xNorm?: number, yNorm?: number): boo
   triggerRef(fighters)
   persistArmy()
   emit({ type: 'deploy', x: f.x, y: f.y, tier })
+  notifyTutorial('deploy')
   return true
 }
 
@@ -299,6 +385,7 @@ export const fieldMerge = (fighterId: number, tier: number): boolean => {
   persistArmy()
   bumpStat('fieldMerges')
   emit({ type: 'fieldMerge', x: f.x, y: f.y, tier: f.tier })
+  notifyTutorial('fieldMerge')
   return true
 }
 
@@ -316,25 +403,35 @@ export const fighterAt = (xNorm: number, yNorm: number, radius = 13): Fighter | 
   return best
 }
 
-const spawnEnemy = (kind: EnemyKind): void => {
-  if (enemies.value.length >= ENEMY_CAP) { schedule.unshift({ kind, at: waveElapsed + 0.8 }); return }
+const spawnEnemy = (kind: EnemyKind, elite = false): void => {
+  if (enemies.value.length >= ENEMY_CAP) { schedule.unshift({ kind, at: waveElapsed + 0.8, elite }); return }
   const def = ENEMY_DEFS[kind]
   const w = wave.value
-  const maxHp = Math.round(waveHp(w) * def.hpMult)
+  // Mutators: Horde halves per-enemy HP (2× count comes from the composer);
+  // the Elite champion is a hugely buffed single spawn with a fat bounty.
+  const hordeHp = mutator.value === 'horde' ? 0.5 : 1
+  // Challenge rubber-band: overpowered armies face beefier spawns. HP takes
+  // the full multiplier, ATK a gentler share (a burstier gate assault would
+  // punish the base, not the army), and the bounty pays out PART of the extra
+  // toughness so the adjustment reads as reward, not punishment.
+  const c = challengeMult.value
+  const cAtk = 1 + (c - 1) * 0.6
+  const cBounty = 1 + (c - 1) * 0.5
+  const maxHp = Math.round(waveHp(w) * def.hpMult * hordeHp * (elite ? 7 : 1) * c)
   const e: Enemy = {
     id: ++idSeq, kind,
     x: 103 + Math.random() * 4,
     y: kind === 'boss' ? 50 : 12 + Math.random() * 76,
     hp: maxHp, maxHp,
-    atk: Math.round(waveAtk(w) * def.atkMult),
-    speed: def.speed * (1 + Math.min(0.5, w / 60)),
+    atk: Math.round(waveAtk(w) * def.atkMult * (elite ? 1.6 : 1) * cAtk),
+    speed: def.speed * (1 + Math.min(0.5, w / 60)) * (elite ? 0.85 : 1),
     range: def.range, attackInterval: def.attackInterval,
-    bounty: Math.round(waveBounty(w) * def.bountyMult),
-    scale: def.scale,
+    bounty: Math.round(waveBounty(w) * def.bountyMult * (elite ? 9 : 1) * cBounty),
+    scale: def.scale * (elite ? 1.5 : 1),
     cooldown: 0, abilityCd: 3,
     slowUntil: 0, stunUntil: 0,
     burnDps: 0, burnUntil: 0, poisonStacks: 0, poisonUntil: 0,
-    boss: kind === 'boss', enraged: false, striking: false
+    boss: kind === 'boss', elite, enraged: false, striking: false
   }
   enemies.value = [...enemies.value, e]
   triggerRef(enemies)
@@ -348,10 +445,17 @@ const glowOf = (tier: number): string => FIGHTER_GLOWS[Math.max(0, Math.min(9, t
 const comboGoldMult = (): number => (1 + 0.1 * combo.value) * (feverActive.value ? 2 : 1)
 
 const registerKill = (e: Enemy): void => {
-  const payout = Math.max(1, Math.round(e.bounty * bountyMult() * comboGoldMult()))
+  const goldRush = mutator.value === 'goldRush' ? 2 : 1
+  const payout = Math.max(1, Math.round(e.bounty * bountyMult() * comboGoldMult() * goldRush))
   addCoins(payout)
   combo.value = Math.min(99, combo.value + 1)
   comboTimer = COMBO_WINDOW
+  // Combo watermark (achievements roadmap #10) — a max, not a counter, so it
+  // bypasses bumpStat (no campaign XP for merely holding a streak).
+  if (combo.value > (stats.value.bestCombo ?? 0)) {
+    stats.value = { ...stats.value, bestCombo: combo.value }
+    persistStats()
+  }
   if (combo.value > 1) emit({ type: 'combo', combo: combo.value })
   if (!feverActive.value && combo.value >= FEVER_AT) {
     feverActive.value = true
@@ -365,11 +469,14 @@ const registerKill = (e: Enemy): void => {
   emit({ type: 'death', x: e.x, y: e.y, kind: e.kind, bounty: payout, boss: e.boss })
   emit({ type: 'number', x: e.x, y: e.y - 6, amount: payout, variant: 'gold' })
   if (e.boss) {
+    // The FIRST boss kill ever is a scripted spectacle (retention-roadmap #2):
+    // deeper slow-mo held longer; the arena boosts the particle/coin theatre.
+    const first = stats.value.bossKills === 0
     boss.value = null
     bumpStat('bossKills')
-    timescale.value = 0.35
-    slowmoRealLeft = 0.9
-    emit({ type: 'bossKill', x: e.x, y: e.y, bounty: payout })
+    timescale.value = first ? 0.22 : 0.35
+    slowmoRealLeft = first ? 2.0 : 0.9
+    emit({ type: 'bossKill', x: e.x, y: e.y, bounty: payout, first })
   }
 }
 
@@ -398,13 +505,26 @@ const hurtEnemy = (e: Enemy, amount: number, variant: 'dmg' | 'crit' | 'burn' | 
   if (e.hp <= 0) registerKill(e)
 }
 
-const nearestEnemy = (x: number, y: number): Enemy | null => {
+// ─── Fighter target assignment (1v1 spread) ──────────────────────────────────
+// Fighters distribute across the field instead of all dog-piling the single
+// nearest enemy: every fighter already locked onto an enemy makes that enemy
+// less attractive to the next one (CROWD_PENALTY per claim), so with enough
+// targets the army fans out into duels — and naturally doubles up again when
+// enemies are scarce. Bosses discount the penalty (a boss is a group target),
+// and a fighter's current target gets a stickiness bonus so equal-distance
+// picks don't flip-flop frame to frame.
+const CROWD_PENALTY = 26
+const STICKINESS = 6
+
+const pickTarget = (f: Fighter, claims: Map<number, number>): Enemy | null => {
   let best: Enemy | null = null
-  let bestD = Infinity
+  let bestScore = Infinity
   for (const e of enemies.value) {
     if (e.hp <= 0 || e.x > 101) continue
-    const d = Math.hypot(e.x - x, (e.y - y) * 0.8)
-    if (d < bestD) { bestD = d; best = e }
+    const d = Math.hypot(e.x - f.x, (e.y - f.y) * 0.8)
+    const crowd = (claims.get(e.id) ?? 0) * CROWD_PENALTY * (e.boss ? 0.25 : 1)
+    const score = d + crowd - (e.id === f.targetId ? STICKINESS : 0)
+    if (score < bestScore) { bestScore = score; best = e }
   }
   return best
 }
@@ -497,6 +617,64 @@ const landFighterHit = (f: { tier: number; x: number; y: number }, e: Enemy, dmg
   removeDeadEnemies()
 }
 
+// ─── Dynamic challenge scaling (anti-steamroll rubber-band) ──────────────────
+// With a stacked army + the 2× damage buff the formula waves stop being able
+// to threaten the player at all. A strength valuation compares the DEPLOYED
+// army against the incoming wave; once the player outguns the wave by more
+// than CHALLENGE_AT the enemies spawned from that moment on are scaled up to
+// close (part of) the gap.
+//
+// The multiplier is deliberately asymmetric: it ramps IN slowly (~10 s to
+// fully engage, so a good merge never feels instantly punished) but collapses
+// almost instantly when the player's power drops (army dying, buff expiring)
+// — a recovering player immediately fights unbuffed enemies again. Because it
+// is applied per SPAWN, the adjustment is live even mid-wave. Never persisted.
+const CHALLENGE_AT = 1.5 // the player may outgun the wave by this factor for free
+const CHALLENGE_MAX = 2.5
+const CHALLENGE_UP_PER_SEC = 0.12
+const CHALLENGE_DOWN_PER_SEC = 2.0
+
+/** Current enemy-strength multiplier (1 ⇔ no adjustment). Exposed for HUD/debug. */
+export const challengeMult = ref(1)
+
+/** Fielded-army strength: √(total DPS × total current HP). Damage buff and
+ *  upgrades flow in via `atkMult`; wounded armies rate lower (current hp). */
+const playerPower = (): number => {
+  let dps = 0
+  let hp = 0
+  for (const f of fighters.value) {
+    if (f.hp <= 0) continue
+    const def = getFighterDef(f.tier)
+    dps += (def.atk * atkMult()) / def.attackInterval
+    hp += f.hp
+  }
+  return Math.sqrt(dps * hp)
+}
+
+/** Expected strength of wave `w`, from the same formulas the composer uses
+ *  (coarse archetype averages — the ratio only gates a soft threshold). */
+const wavePower = (w: number): number => {
+  if (isBossWave(w)) {
+    const escorts = Math.min(6, 2 + Math.floor(w / 8))
+    const dps = (waveAtk(w) * 4.5) / 1.8 + (waveAtk(w) * 0.9 * escorts) / 1.0
+    const hp = waveHp(w) * 20 + waveHp(w) * 0.8 * escorts
+    return Math.sqrt(dps * hp)
+  }
+  const count = Math.min(22, 4 + Math.floor(w * 1.25))
+  const dps = (waveAtk(w) * 1.15 * count) / 1.2
+  const hp = waveHp(w) * 1.15 * count
+  return Math.sqrt(dps * hp)
+}
+
+const tickChallenge = (dt: number): void => {
+  const pw = playerPower()
+  const ratio = pw > 0 ? pw / Math.max(1, wavePower(wave.value)) : 0
+  const target = ratio > CHALLENGE_AT ? Math.min(CHALLENGE_MAX, ratio / CHALLENGE_AT) : 1
+  const rate = target >= challengeMult.value ? CHALLENGE_UP_PER_SEC : CHALLENGE_DOWN_PER_SEC
+  const diff = target - challengeMult.value
+  challengeMult.value += Math.sign(diff) * Math.min(Math.abs(diff), rate * dt)
+}
+
 // ─── Ultimate ────────────────────────────────────────────────────────────────
 export const ultReady = computed(() => ultCharge.value >= ULT_MAX)
 
@@ -553,17 +731,31 @@ const startCountdown = (secs = COUNTDOWN_SECS): void => {
 const beginWave = (): void => {
   schedule = composeWave(wave.value)
   waveElapsed = 0
+  deadThisWave = []
+  rallyOffer.value = false
+  mutator.value = rollMutator(wave.value)
   wavePhase.value = 'fighting'
-  emit({ type: 'waveStart', wave: wave.value, boss: isBossWave(wave.value) })
+  emit({ type: 'waveStart', wave: wave.value, boss: isBossWave(wave.value), mutator: mutator.value })
 }
 
 const clearWave = (): void => {
-  const bonus = Math.round(waveClearBonus(wave.value) * bountyMult() * (feverActive.value ? 2 : 1))
+  const clearedWave = wave.value
+  const bonus = Math.round(waveClearBonus(clearedWave) * bountyMult() * (feverActive.value ? 2 : 1))
   addCoins(bonus)
-  emit({ type: 'waveCleared', wave: wave.value, bonus })
+  emit({ type: 'waveCleared', wave: clearedWave, bonus })
+  // Milestone chest every 10th wave (retention-roadmap #4): fat gold drop here;
+  // the scene adds the free high-tier unit onto the grid via the event.
+  if (clearedWave % CHEST_EVERY_WAVES === 0) {
+    const chestGold = Math.round(waveClearBonus(clearedWave) * 3 * bountyMult())
+    addCoins(chestGold)
+    emit({ type: 'milestone', wave: clearedWave, gold: chestGold })
+  }
   bumpStat('waves')
   wave.value += 1
-  if (wave.value > bestWave.value) bestWave.value = wave.value
+  if (wave.value > bestWave.value) {
+    bestWave.value = wave.value
+    submitBestWave(bestWave.value) // platform leaderboards (roadmap #16)
+  }
   gateHp.value = Math.min(GATE_MAX, gateHp.value + GATE_MAX * 0.25)
   persistBattle()
   flushPersist() // a cleared wave is real progress — checkpoint now
@@ -573,6 +765,7 @@ const clearWave = (): void => {
 
 const triggerOverrun = (): void => {
   wavePhase.value = 'overrun'
+  rallyClaimed = false
   phaseTimer = OVERRUN_SECS
   timescale.value = 0.45
   slowmoRealLeft = 1.0
@@ -588,12 +781,62 @@ const resetAfterOverrun = (): void => {
   gateHp.value = GATE_MAX
   combo.value = 0
   feverActive.value = false
+  rallyOffer.value = false
+  deadThisWave = []
+  // Recovery valve: an unrevived wipe retreats a few waves so the player can
+  // rebuild an army on beatable waves instead of re-losing wave N forever.
+  // A RALLY! revive keeps the wave — the resurrected army earned the retry.
+  if (!rallyClaimed) {
+    const fallback = Math.max(1, wave.value - OVERRUN_WAVE_SETBACK)
+    if (fallback !== wave.value) {
+      wave.value = fallback
+      persistBattle()
+      emit({ type: 'setback', wave: fallback })
+    }
+  }
   startCountdown()
+}
+
+// ─── RALLY! rewarded revive (retention-roadmap #8) ───────────────────────────
+/** Hold the overrun restart while the RALLY! offer shows. Called by the arena
+ *  UI (which owns the `isRewardedReady` gate — the engine stays ad-agnostic).
+ *  Returns false when nobody died this wave (nothing to resurrect). */
+export const requestRallyHold = (): boolean => {
+  if (wavePhase.value !== 'overrun' || deadThisWave.length === 0) return false
+  phaseTimer = Math.max(phaseTimer, RALLY_OFFER_SECS)
+  rallyOffer.value = true
+  return true
+}
+
+/** Rewarded ad granted → the fallen return at full HP (army-cap permitting).
+ *  Returns how many fighters came back. */
+export const claimRally = (): number => {
+  if (!rallyOffer.value) return 0
+  rallyOffer.value = false
+  rallyClaimed = true
+  let revived = 0
+  for (const tier of deadThisWave) {
+    if (!deployFighter(tier)) break
+    revived++
+  }
+  deadThisWave = []
+  phaseTimer = Math.min(phaseTimer, 1.0) // ceremony done — restart promptly
+  return revived
+}
+
+/** Offer declined / expired — release the hold so the restart resumes. */
+export const declineRally = (): void => {
+  if (!rallyOffer.value) return
+  rallyOffer.value = false
+  phaseTimer = Math.min(phaseTimer, 0.8)
 }
 
 // ─── Logic step ──────────────────────────────────────────────────────────────
 const stepFighters = (dt: number): void => {
   let removed = false
+  // Fresh claim tally per step — earlier fighters in the array claim first,
+  // later ones route around crowded targets (see pickTarget).
+  const claims = new Map<number, number>()
   for (const f of fighters.value) {
     f.striking = false
     const def = getFighterDef(f.tier)
@@ -631,14 +874,17 @@ const stepFighters = (dt: number): void => {
       removeDeadEnemies()
     }
 
-    const target = nearestEnemy(f.x, f.y)
+    const target = pickTarget(f, claims)
     if (!target) {
+      f.targetId = 0
       // No enemies → drift back to the guard line.
       const gx = GUARD_X
       const dx = gx - f.x
       if (Math.abs(dx) > 1) f.x += Math.sign(dx) * def.speed * dt
       continue
     }
+    f.targetId = target.id
+    claims.set(target.id, (claims.get(target.id) ?? 0) + 1)
     const dist = Math.hypot(target.x - f.x, (target.y - f.y) * 0.8)
     if (dist > def.range) {
       const nx = (target.x - f.x) / (dist || 1)
@@ -655,16 +901,43 @@ const stepFighters = (dt: number): void => {
           dmg, ability: def.ability, sourceTier: f.tier, color: glowOf(f.tier)
         })
       } else {
+        // Melee: the arena lunges the body ALONG this direction (dash-push).
+        const nx = (target.x - f.x) / (dist || 1)
+        const ny = (target.y - f.y) / (dist || 1)
         f.striking = true
-        emit({ type: 'strike', id: f.id, x: f.x, y: f.y, tier: f.tier })
+        emit({ type: 'strike', id: f.id, x: f.x, y: f.y, tier: f.tier, dx: nx, dy: ny })
         landFighterHit(f, target, dmg)
       }
     }
   }
-  // Bury the fallen.
+  // Soft separation: stacked fighters ease apart so every unit (and its tier
+  // badge) stays readable. Gentle rate — never fights the chase movement hard
+  // enough to hold a melee unit out of range.
+  const SEP_DIST = 7.5
+  const list = fighters.value
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i]!
+      const b = list[j]!
+      let dx = b.x - a.x
+      let dy = b.y - a.y
+      let d = Math.hypot(dx, dy)
+      if (d >= SEP_DIST) continue
+      if (d < 0.01) { dx = Math.random() - 0.5; dy = (Math.random() - 0.5) || 0.5; d = Math.hypot(dx, dy) }
+      const push = (SEP_DIST - d) * 3 * dt // resolves a full overlap in ~⅓ s
+      const px = (dx / d) * push
+      const py = (dy / d) * push
+      a.x = Math.max(3, Math.min(96, a.x - px))
+      a.y = Math.max(6, Math.min(94, a.y - py))
+      b.x = Math.max(3, Math.min(96, b.x + px))
+      b.y = Math.max(6, Math.min(94, b.y + py))
+    }
+  }
+  // Bury the fallen (buffered per wave for the RALLY! revive offer).
   const alive = fighters.value.filter((f) => {
     if (f.hp > 0) return true
     emit({ type: 'fighterDeath', x: f.x, y: f.y, tier: f.tier })
+    deadThisWave.push(f.tier)
     removed = true
     return false
   })
@@ -730,6 +1003,8 @@ const stepEnemies = (dt: number): void => {
         } else {
           target.hp -= e.atk
           emit({ type: 'number', x: target.x, y: target.y - 5, amount: e.atk, variant: 'dmg' })
+          // Frost March mutator: every landed hit chills the fighter's attack.
+          if (mutator.value === 'frostMarch') target.cooldown = Math.min(3, Math.max(target.cooldown, 0) + 0.5)
         }
       }
     } else if (target && targetDist < gateDist + 16) {
@@ -775,6 +1050,7 @@ const stepProjectiles = (dt: number): void => {
         f.hp -= p.dmg
         emit({ type: 'impact', x: f.x, y: f.y, color: p.color })
         emit({ type: 'number', x: f.x, y: f.y - 5, amount: p.dmg, variant: 'dmg' })
+        if (mutator.value === 'frostMarch') f.cooldown = Math.min(3, Math.max(f.cooldown, 0) + 0.5)
       }
       continue
     }
@@ -790,6 +1066,8 @@ const stepProjectiles = (dt: number): void => {
 
 const step = (dt: number): void => {
   engineNow += dt
+
+  tickChallenge(dt)
 
   // Combo decay + fever expiry.
   if (combo.value > 0 && !feverActive.value) {
@@ -812,7 +1090,7 @@ const step = (dt: number): void => {
       waveElapsed += dt
       while (schedule.length && schedule[0]!.at <= waveElapsed) {
         const s = schedule.shift()!
-        spawnEnemy(s.kind)
+        spawnEnemy(s.kind, s.elite ?? false)
       }
       stepFighters(dt)
       if (wavePhase.value !== 'fighting') break // overrun mid-step
@@ -845,6 +1123,10 @@ const frame = (t: number): void => {
   const realDt = lastT ? Math.min((t - lastT) / 1000, 0.1) : LOGIC_STEP
   lastT = t
   if (isGamePaused.value) return
+
+  // 2× Damage buff countdown (UI chip reads the ref; 0 ⇔ expired).
+  const dmgRemaining = Math.max(0, dmgBuffUntil.value - Date.now())
+  if (dmgRemaining !== dmgBuffRemainingMs.value) dmgBuffRemainingMs.value = dmgRemaining
 
   // Slow-mo runs on real time so it always recovers.
   if (slowmoRealLeft > 0) {
@@ -894,6 +1176,47 @@ const restoreArmy = (): void => {
 }
 restoreArmy()
 
+// ─── Save hydration ──────────────────────────────────────────────────────────
+// All of the engine's persisted refs initialise at MODULE IMPORT — but the
+// SaveManager may patch/hydrate localStorage after module init (import order
+// is bundle-dependent), leaving these refs on defaults. Without a re-read the
+// engine would then PERSIST those defaults over the real save at the next
+// checkpoint — losing wave, best wave, stats and upgrades on a refresh.
+// Adoption is forward-only: hydrated values are taken when they're AHEAD of
+// the live session, so a mid-session hydrate can never regress active play.
+const refreshFromBlob = (): void => {
+  const savedBest = readWave(BATTLE_BEST_WAVE_KEY, 1)
+  if (savedBest > bestWave.value) bestWave.value = savedBest
+  // Current wave only jumps while idling between waves — never mid-fight.
+  const savedWave = readWave(BATTLE_WAVE_KEY, 1)
+  if (savedWave > wave.value && wavePhase.value === 'countdown') wave.value = savedWave
+
+  const savedStats = { ...defaultStats(), ...(getState<Partial<BattleStats>>(PRISM_STATS_KEY, {}) ?? {}) }
+  const mergedStats = { ...stats.value }
+  let statsChanged = false
+  for (const k of Object.keys(mergedStats) as (keyof BattleStats)[]) {
+    if ((savedStats[k] ?? 0) > mergedStats[k]) { mergedStats[k] = savedStats[k]; statsChanged = true }
+  }
+  if (statsChanged) stats.value = mergedStats
+
+  const savedUps = sanitizeUpgrades(getState(BATTLE_UPGRADES_KEY, {}))
+  const mergedUps = { ...battleUpgrades.value }
+  let upsChanged = false
+  for (const k of Object.keys(mergedUps) as BattleUpgradeId[]) {
+    if (savedUps[k] > mergedUps[k]) { mergedUps[k] = savedUps[k]; upsChanged = true }
+  }
+  if (upsChanged) battleUpgrades.value = mergedUps
+
+  const savedUlt = Math.max(0, Math.min(ULT_MAX, Number(getState(BATTLE_ULT_KEY, 0)) || 0))
+  if (savedUlt > ultCharge.value) ultCharge.value = savedUlt
+  const savedDmgBuff = Number(getState(BATTLE_DMG_BUFF_KEY, 0)) || 0
+  if (savedDmgBuff > dmgBuffUntil.value) dmgBuffUntil.value = savedDmgBuff
+
+  // Army: only when nothing is fielded (the boot-hydration case).
+  if (fighters.value.length === 0) restoreArmy()
+}
+watch(saveDataVersion, refreshFromBlob)
+
 // ─── Public composable surface ───────────────────────────────────────────────
 const useBattle = () => ({
   // entities
@@ -901,11 +1224,13 @@ const useBattle = () => ({
   // HUD state
   wave, bestWave, wavePhase, countdown, gateHp, gateMax, combo, feverActive,
   ultCharge, ultMax, ultReady, boss, timescale, armyCount, armyFull, stats,
+  mutator, rallyOffer, dmgBuffRemainingMs, challengeMult,
   // upgrades
   battleUpgrades, upgradeLevel, upgradeCost, canBuyUpgrade, buyUpgrade,
   isUpgradeMaxed, impCadenceMs,
   // actions
   deployFighter, fieldMerge, fighterAt, fireUltimate, bumpStat,
+  requestRallyHold, claimRally, declineRally, activateDamageBuff,
   // lifecycle
   startBattle, stopBattle, setEventSink, setRenderSink
 })

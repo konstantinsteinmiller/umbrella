@@ -41,7 +41,10 @@ const ART_PATHS = {
   'slot-frame': 'images/grid/slot-frame',
   // VFX sprites (static; the CSS keyframes keep animating them).
   'vfx-meteor': 'images/vfx/meteor',
-  'vfx-blackhole': 'images/vfx/blackhole'
+  'vfx-blackhole': 'images/vfx/blackhole',
+  // Flying chest reward (retention-roadmap #1B); falls back to the shipped
+  // static chest icon inside FlyingChest.vue when this override is absent.
+  'flying-chest': 'images/props/flying-chest_347x347'
 } as const
 
 export type ArtKey = keyof typeof ART_PATHS

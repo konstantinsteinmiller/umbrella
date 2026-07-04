@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': 'Erfolge', 'subtitle': 'Erreiche Langzeit-Meilensteine für Münzen.', 'claim': 'Abholen', 'claimed': 'Abgeholt', 'progress': '{c} / {t}',
+    'unlocked': 'Erfolg abgeschlossen!',
     'items': {
+      'kills100': { 'name': 'Erstes Hundert', 'desc': 'Besiege 100 Gegner.' },
+      'kills1k': { 'name': 'Schlächter', 'desc': 'Besiege 1.000 Gegner.' },
+      'kills10k': { 'name': 'Vernichter', 'desc': 'Besiege 10.000 Gegner.' },
+      'wave10': { 'name': 'Linienhalter', 'desc': 'Erreiche Welle 10.' },
+      'wave25': { 'name': 'Frontkommandant', 'desc': 'Erreiche Welle 25.' },
+      'wave50': { 'name': 'Kriegsherr', 'desc': 'Erreiche Welle 50.' },
+      'boss1': { 'name': 'Riesentöter', 'desc': 'Besiege deinen ersten Boss.' },
+      'boss10': { 'name': 'Bossjäger', 'desc': 'Besiege 10 Bosse.' },
+      'boss50': { 'name': 'Königsfluch', 'desc': 'Besiege 50 Bosse.' },
+      'merges50': { 'name': 'Kombinierer', 'desc': 'Verschmilz 50-mal Einheiten.' },
+      'merges500': { 'name': 'Fusionsmeister', 'desc': 'Verschmilz 500-mal Einheiten.' },
+      'tier5': { 'name': 'Lodernde Schmiede', 'desc': 'Erschaffe eine Stufe-5-Einheit.' },
+      'tier8': { 'name': 'Frostschmiede', 'desc': 'Erschaffe eine Stufe-8-Einheit.' },
+      'tier10': { 'name': 'Kosmische Schmiede', 'desc': 'Erschaffe die Stufe-10-Einheit.' },
+      'fieldMerge1': { 'name': 'Feldsanitäter', 'desc': 'Führe deine erste Feldfusion aus.' },
+      'fieldMerges25': { 'name': 'Schlachtschmied', 'desc': 'Führe 25 Feldfusionen aus.' },
+      'combo10': { 'name': 'Amoklauf', 'desc': 'Erreiche eine ×10-Killserie.' },
+      'combo25': { 'name': 'Unaufhaltsam', 'desc': 'Erreiche eine ×25-Killserie.' },
+      'waves100': { 'name': 'Feldzugveteran', 'desc': 'Schließe insgesamt 100 Wellen ab.' },
+      'waves500': { 'name': 'Ewiger Krieg', 'desc': 'Schließe insgesamt 500 Wellen ab.' },
       'tiles1k': { 'name': 'Weltenbummler', 'desc': 'Lege insgesamt 1.000 Felder zurück.' },
       'tiles5k': { 'name': 'Marathonläufer', 'desc': 'Lege insgesamt 5.000 Felder zurück.' },
       'tiles10k': { 'name': 'Langstreckenläufer', 'desc': 'Lege insgesamt 10.000 Felder zurück.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': 'Hamsterer', 'desc': 'Schnapp dir insgesamt 250 Item-Boxen.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'Abbrechen',
   'close': 'Schließen',
   'ok': 'Ok',
@@ -98,15 +119,91 @@ export default {
       'watch': 'Gratis'
     }
   },
+  'prism': {
+    'spawn': 'Rufen',
+    'instantSpawn': 'Sofort-Ruf',
+    'doubleDamage': '2× Schaden',
+    'freeGold': 'Kriegstruhe',
+    'gridFull': 'Raster voll — verschmelze oder setze Einheiten ein!',
+    'hintDrag': 'Ziehe gleiche Einheiten aufeinander zum Verschmelzen'
+  },
+  'welcomeBack': {
+    'title': 'Willkommen zurück, Kommandant!',
+    'body': 'Deine Armee hat in deiner Abwesenheit weitergekämpft:'
+  },
+  'battle': {
+    'wave': 'Welle {n}',
+    'best': 'Rekord {n}',
+    'waveStart': 'Welle {n}',
+    'nextWave': 'Welle {n} in…',
+    'waveCleared': 'Welle geschafft! +{n}',
+    'bossIncoming': 'BOSS IM ANMARSCH!',
+    'overrun': 'ÜBERRANNT!',
+    'overrunBody': 'Das Tor ist gefallen — sammle dich und halte die Stellung!',
+    'deployHint': 'Loslassen zum Einsetzen!',
+    'armyFullHint': 'Armee voll — auf einen Kämpfer gleicher Stufe ziehen zum Verschmelzen!',
+    'fever': 'FIEBER!!!',
+    'rampage': 'RASEREI!',
+    'ultimate': 'Meteorsturm',
+    'doubleBounty': 'Boss-Beute verdoppeln!',
+    'upgrades': {
+      'attack': 'Kriegshörner',
+      'vitality': 'Vitalität',
+      'bounty': 'Beute',
+      'automation': 'Kobold',
+      'recruit': 'Rekruten',
+      'maxed': 'MAX'
+    },
+    'nextChest': 'Nächste: 🎁 Welle {n}',
+    'newEnemyAt': 'Neuer Gegner ab Welle {n}!',
+    'newEnemy': 'Neuer Gegner im Anmarsch!',
+    'chestWave': 'Kriegstruhe! +{n}',
+    'waveSetback': 'Zurückgeworfen auf Welle {n}!',
+    'rally': 'SAMMELN!',
+    'rallyBody': 'Werbung ansehen und gefallene Kämpfer wiederbeleben!',
+    'tutorial': {
+      'spawn': 'Tippe auf RUFEN, um zwei Tropfen zu rekrutieren!',
+      'merge': 'Ziehe einen Tropfen auf den anderen, um sie zu VERSCHMELZEN!',
+      'deploy': 'Ziehe deinen Kämpfer in die Arena, um mitzukämpfen!',
+      'fieldMerge': 'Baue eine weitere Einheit derselben Stufe und ziehe sie auf deinen Kämpfer — HEILT & STUFT AUF!'
+    },
+    'codex': {
+      'title': 'Einheiten-Kodex',
+      'names': { 't1': 'Lebender Tropfen', 't2': 'Glutspritzer', 't3': 'Dampfbrocken', 't4': 'Bio-Spross', 't5': 'Pyro-Kern', 't6': 'Säuredrüse', 't7': 'Funke Funke', 't8': 'Kryo-Scherbe', 't9': 'Aurum-Paste', 't10': 'Kosmische Masse' },
+      'locked': 'Verschmilz zwei Stufe-{n}-Einheiten zum Entdecken!',
+      'abilities': {
+        'none': 'Schnell, furchtlos und immer vorneweg.',
+        'burn': 'Entzündet Gegner — sie brennen nach dem Treffer weiter.',
+        'knockback': 'Fernkampfschüsse, die Gegner zurückstoßen.',
+        'heal': 'Jeder Treffer heilt zusätzlich deinen schwächsten Verbündeten.',
+        'splash': 'Explosive Schläge treffen alle Gegner in der Nähe.',
+        'poison': 'Stapelt Gift für hohen Schaden über Zeit.',
+        'chain': 'Blitze springen auf drei weitere Gegner über.',
+        'frost': 'Kühlt bei Treffern und friert Gruppen mit Eis-Novas ein.',
+        'midas': 'Hohe Kritchance und Bonusgold bei jedem Treffer.',
+        'blackhole': 'Zieht die Horde regelmäßig zusammen und zermalmt sie.'
+      }
+    },
+    'mutators': {
+      'goldRush': 'GOLDRAUSCH! 2× Beute',
+      'frostMarch': 'FROSTMARSCH! Eisige Treffer',
+      'horde': 'HORDE! Doppelter Schwarm',
+      'elite': 'ELITE! Ein Champion führt die Welle an'
+    }
+  },
   'battlePass': {
-    'title': 'Battle Pass',
+    'title': 'Feldzug',
     'progress': '{current} / {total}',
     'daysLeft': 'noch {n}T',
-    'maxed': 'BATTLE PASS ABGESCHLOSSEN',
+    'maxed': 'FELDZUG ABGESCHLOSSEN',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'So verdienst du XP',
     'perAttempt': 'pro Lauf',
     'perStageFinish': 'pro Etappe',
+    'perKill': 'pro Abschuss',
+    'perMerge': 'pro Fusion',
+    'perWave': 'pro Welle',
+    'perBoss': 'pro Boss',
     'unlockHint': 'Erreiche {n} XP, um die nächste Belohnung freizuschalten — nicht abgeholte Belohnungen bleiben erhalten.'
   },
   'dailyRewards': {

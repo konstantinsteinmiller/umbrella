@@ -104,6 +104,33 @@ export const waveClearBonus = (wave: number): number =>
 
 export const isBossWave = (wave: number): boolean => wave % 5 === 0
 
+/** Waves that introduce a new enemy archetype — drives the "New enemy at
+ *  wave N!" HUD teasers (retention-roadmap #4). */
+export const ARCHETYPE_UNLOCK_WAVES: Partial<Record<EnemyKind, number>> = {
+  runner: 3, spitter: 5, brute: 7, warlock: 9
+}
+
+/** Next wave (> `wave`) that introduces a new archetype, or null. */
+export const nextArchetypeUnlock = (wave: number): number | null => {
+  const upcoming = Object.values(ARCHETYPE_UNLOCK_WAVES)
+    .filter((w): w is number => typeof w === 'number' && w > wave)
+  return upcoming.length ? Math.min(...upcoming) : null
+}
+
+// ─── Wave mutators (retention-roadmap #13) ───────────────────────────────────
+// From wave 12+, roughly every 4th non-boss wave rolls a mutator. The roll is
+// a pure hash of the wave number, so the countdown overlay can telegraph the
+// UPCOMING wave's mutator and the engine will roll the identical result.
+export type WaveMutator = 'goldRush' | 'frostMarch' | 'horde' | 'elite'
+const MUTATOR_POOL: WaveMutator[] = ['goldRush', 'frostMarch', 'horde', 'elite']
+
+export const rollMutator = (wave: number): WaveMutator | null => {
+  if (wave < 12 || isBossWave(wave)) return null
+  const h = (wave * 2654435761) >>> 0 // Knuth multiplicative hash
+  if (h % 4 !== 0) return null
+  return MUTATOR_POOL[(h >>> 8) % MUTATOR_POOL.length]!
+}
+
 /** Boss display names cycle with a "+N" suffix once the list wraps. */
 const BOSS_NAMES = ['GLORP THE DEVOURER', 'KING SLUDGEFIST', 'MAWZILLA', 'THE GATE-EATER', 'GRUMBLOR PRIME']
 export const bossName = (wave: number): string => {
@@ -117,13 +144,15 @@ export interface WaveSpawn {
   kind: EnemyKind
   /** Seconds after wave start. */
   at: number
+  /** Elite mutator: one glowing mini-boss with boosted stats. */
+  elite?: boolean
 }
 
 /** Compose a wave's spawn schedule. Deterministic-ish in shape, random jitter
  *  in timing so waves don't feel copy-pasted. */
 export const composeWave = (wave: number): WaveSpawn[] => {
   const out: WaveSpawn[] = []
-  const push = (kind: EnemyKind, at: number): void => { out.push({ kind, at }) }
+  const push = (kind: EnemyKind, at: number, elite = false): void => { out.push({ kind, at, elite }) }
   const jitter = (): number => Math.random() * 0.7
 
   if (isBossWave(wave)) {
@@ -134,7 +163,34 @@ export const composeWave = (wave: number): WaveSpawn[] => {
     return out
   }
 
-  const count = Math.min(22, 4 + Math.floor(wave * 1.25))
+  // Hand-tuned opener waves (retention-roadmap #2): wave 1 is winnable with
+  // two T1 fighters but losable when idle; wave 3 delivers the guaranteed
+  // first Runner leak scare; wave 5 (boss branch above) is the first event.
+  if (wave === 1) {
+    push('slime', 1.2); push('slime', 4.4); push('slime', 8.2)
+    return out
+  }
+  if (wave === 2) {
+    push('slime', 1.0); push('slime', 2.6); push('slime', 4.2)
+    push('slime', 7.4); push('slime', 8.8)
+    return out
+  }
+  if (wave === 3) {
+    // Slimes lull, then a paired Runner burst races the guard line.
+    push('slime', 1.0); push('slime', 3.2)
+    push('runner', 5.0); push('runner', 5.5)
+    push('slime', 7.6); push('slime', 9.4); push('runner', 11.5)
+    return out
+  }
+  if (wave === 4) {
+    push('slime', 0.8); push('slime', 2.0); push('runner', 3.4)
+    push('slime', 5.2); push('slime', 6.4); push('runner', 8.2)
+    push('slime', 9.6); push('slime', 10.8)
+    return out
+  }
+
+  const mutator = rollMutator(wave)
+  const count = Math.min(mutator === 'horde' ? 44 : 22, (4 + Math.floor(wave * 1.25)) * (mutator === 'horde' ? 2 : 1))
   let t = 0.8
   for (let i = 0; i < count; i++) {
     let kind: EnemyKind = 'slime'
@@ -144,9 +200,14 @@ export const composeWave = (wave: number): WaveSpawn[] => {
     if (wave >= 7 && r >= 0.36 && r < 0.46) kind = 'brute'
     if (wave >= 9 && r >= 0.46 && r < 0.54) kind = 'warlock'
     push(kind, t)
-    t += (kind === 'brute' ? 2.2 : 1.15) + jitter()
+    t += ((kind === 'brute' ? 2.2 : 1.15) + jitter()) * (mutator === 'horde' ? 0.55 : 1)
     // Mid-wave breather every ~7 spawns to create attack "pulses".
     if (i > 0 && i % 7 === 0) t += 2.5
+  }
+  // Elite mutator: a single glowing mini-boss anchors the middle of the wave.
+  if (mutator === 'elite') {
+    const mid = out[Math.floor(out.length * 0.6)]
+    push('brute', (mid?.at ?? t) + 0.6, true)
   }
   return out
 }

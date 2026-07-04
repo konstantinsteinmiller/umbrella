@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': 'Succès', 'subtitle': 'Atteignez des jalons pour gagner des pièces.', 'claim': 'Réclamer', 'claimed': 'Réclamé', 'progress': '{c} / {t}',
+    'unlocked': 'Succès accompli !',
     'items': {
+      'kills100': { 'name': 'Premier Cent', 'desc': 'Vaincre 100 ennemis.' },
+      'kills1k': { 'name': 'Pourfendeur', 'desc': 'Vaincre 1 000 ennemis.' },
+      'kills10k': { 'name': 'Exterminateur', 'desc': 'Vaincre 10 000 ennemis.' },
+      'wave10': { 'name': 'Gardien de la Ligne', 'desc': 'Atteindre la vague 10.' },
+      'wave25': { 'name': 'Commandant du Front', 'desc': 'Atteindre la vague 25.' },
+      'wave50': { 'name': 'Seigneur de Guerre', 'desc': 'Atteindre la vague 50.' },
+      'boss1': { 'name': 'Tueur de Géants', 'desc': 'Vaincre votre premier boss.' },
+      'boss10': { 'name': 'Chasseur de Boss', 'desc': 'Vaincre 10 boss.' },
+      'boss50': { 'name': 'Fléau des Rois', 'desc': 'Vaincre 50 boss.' },
+      'merges50': { 'name': 'Assembleur', 'desc': 'Fusionner des unités 50 fois.' },
+      'merges500': { 'name': 'Maître de la Fusion', 'desc': 'Fusionner des unités 500 fois.' },
+      'tier5': { 'name': 'Forge Ardente', 'desc': 'Créer une unité de niveau 5.' },
+      'tier8': { 'name': 'Forge Glacée', 'desc': 'Créer une unité de niveau 8.' },
+      'tier10': { 'name': 'Forge Cosmique', 'desc': "Créer l'unité de niveau 10." },
+      'fieldMerge1': { 'name': 'Médecin de Campagne', 'desc': 'Réussir votre première fusion de terrain.' },
+      'fieldMerges25': { 'name': 'Forgeron de Bataille', 'desc': 'Réussir 25 fusions de terrain.' },
+      'combo10': { 'name': 'Carnage', 'desc': 'Atteindre un combo de ×10.' },
+      'combo25': { 'name': 'Inarrêtable', 'desc': 'Atteindre un combo de ×25.' },
+      'waves100': { 'name': 'Vétéran de Campagne', 'desc': 'Terminer 100 vagues au total.' },
+      'waves500': { 'name': 'Guerre Éternelle', 'desc': 'Terminer 500 vagues au total.' },
       'tiles1k': { 'name': 'Globe-trotteur', 'desc': 'Parcourez 1 000 cases au total.' },
       'tiles5k': { 'name': 'Marathonien', 'desc': 'Parcourez 5 000 cases au total.' },
       'tiles10k': { 'name': 'Coureur de fond', 'desc': 'Parcourez 10 000 cases au total.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': 'Accumulateur', 'desc': 'Attrapez 250 boîtes d\'objets au total.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'Annuler',
   'close': 'Fermer',
   'ok': 'Ok',
@@ -98,15 +119,91 @@ export default {
       'watch': 'Gratuit'
     }
   },
+  'prism': {
+    'spawn': 'Invoquer',
+    'instantSpawn': 'Invocation Éclair',
+    'doubleDamage': '2× Dégâts',
+    'freeGold': 'Coffre de Guerre',
+    'gridFull': 'Grille pleine — fusionnez ou déployez pour faire de la place !',
+    'hintDrag': 'Glissez deux unités identiques pour fusionner'
+  },
+  'welcomeBack': {
+    'title': 'Bon retour, commandant !',
+    'body': 'Votre armée a continué le combat pendant votre absence :'
+  },
+  'battle': {
+    'wave': 'Vague {n}',
+    'best': 'Record {n}',
+    'waveStart': 'Vague {n}',
+    'nextWave': 'Vague {n} dans…',
+    'waveCleared': 'Vague terminée ! +{n}',
+    'bossIncoming': 'BOSS EN APPROCHE !',
+    'overrun': 'SUBMERGÉ !',
+    'overrunBody': 'La porte est tombée — regroupez-vous et tenez la ligne !',
+    'deployHint': 'Lâchez pour déployer !',
+    'armyFullHint': 'Armée au complet — déposez sur un combattant de même niveau pour fusionner !',
+    'fever': 'FIÈVRE !!!',
+    'rampage': 'CARNAGE !',
+    'ultimate': 'Pluie de Météores',
+    'doubleBounty': 'Doublez le butin du boss !',
+    'upgrades': {
+      'attack': 'Cors de Guerre',
+      'vitality': 'Vitalité',
+      'bounty': 'Butin',
+      'automation': 'Diablotin',
+      'recruit': 'Recrues',
+      'maxed': 'MAX'
+    },
+    'nextChest': 'Prochain : 🎁 vague {n}',
+    'newEnemyAt': 'Nouvel ennemi à la vague {n} !',
+    'newEnemy': 'Nouvel ennemi en approche !',
+    'chestWave': 'Coffre de guerre ! +{n}',
+    'waveSetback': 'Repoussé à la vague {n} !',
+    'rally': 'RALLIEMENT !',
+    'rallyBody': 'Regardez une pub pour ressusciter vos combattants tombés !',
+    'tutorial': {
+      'spawn': 'Touchez INVOQUER pour recruter deux gouttelettes !',
+      'merge': "Faites glisser une gouttelette sur l'autre pour FUSIONNER !",
+      'deploy': "Faites glisser votre combattant dans l'arène pour rejoindre le combat !",
+      'fieldMerge': 'Créez une autre unité du même niveau et déposez-la sur votre combattant pour le SOIGNER et MONTER EN GRADE !'
+    },
+    'codex': {
+      'title': 'Codex des unités',
+      'names': { 't1': 'Gouttelette Vivante', 't2': 'Jet de Braise', 't3': 'Bloc de Vapeur', 't4': 'Bio-Pousse', 't5': 'Cœur Pyro', 't6': 'Glande Acide', 't7': 'Étincelle Étincelle', 't8': 'Éclat Cryo', 't9': "Pâte d'Or", 't10': 'Masse Cosmique' },
+      'locked': 'Fusionnez deux unités de niveau {n} pour la découvrir !',
+      'abilities': {
+        'none': 'Rapide, intrépide, toujours en première ligne.',
+        'burn': 'Enflamme les ennemis — ils continuent de brûler après le coup.',
+        'knockback': 'Tirs à distance qui repoussent les ennemis.',
+        'heal': 'Chaque coup soigne aussi votre allié le plus faible.',
+        'splash': 'Frappes explosives qui blessent tous les ennemis proches.',
+        'poison': 'Cumule du poison pour de lourds dégâts sur la durée.',
+        'chain': 'La foudre rebondit sur trois ennemis supplémentaires.',
+        'frost': 'Refroidit à chaque coup et gèle les groupes avec des novas de glace.',
+        'midas': 'Critiques fréquents et or bonus à chaque coup.',
+        'blackhole': 'Attire régulièrement la horde et la broie.'
+      }
+    },
+    'mutators': {
+      'goldRush': "RUÉE VERS L'OR ! Butin ×2",
+      'frostMarch': 'MARCHE GLACIALE ! Coups givrants',
+      'horde': 'HORDE ! Essaim doublé',
+      'elite': 'ÉLITE ! Un champion mène la vague'
+    }
+  },
   'battlePass': {
-    'title': 'Battle Pass',
+    'title': 'Campagne de guerre',
     'progress': '{current} / {total}',
     'daysLeft': '{n}j restants',
-    'maxed': 'BATTLE PASS TERMINÉ',
+    'maxed': 'CAMPAGNE TERMINÉE',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': "Comment gagner de l'XP",
     'perAttempt': 'par partie',
     'perStageFinish': 'par niveau',
+    'perKill': 'par élimination',
+    'perMerge': 'par fusion',
+    'perWave': 'par vague',
+    'perBoss': 'par boss',
     'unlockHint': 'Atteignez {n} XP pour débloquer la récompense suivante — les récompenses non réclamées restent disponibles.'
   },
   'dailyRewards': {

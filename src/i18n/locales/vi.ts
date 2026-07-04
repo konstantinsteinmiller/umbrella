@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': 'Thành tựu', 'subtitle': 'Đạt cột mốc trọn đời để kiếm xu.', 'claim': 'Nhận', 'claimed': 'Đã nhận', 'progress': '{c} / {t}',
+    'unlocked': 'Hoàn thành thành tựu!',
     'items': {
+      'kills100': { 'name': 'Trăm Đầu Tiên', 'desc': 'Hạ 100 kẻ địch.' },
+      'kills1k': { 'name': 'Sát Thủ', 'desc': 'Hạ 1.000 kẻ địch.' },
+      'kills10k': { 'name': 'Kẻ Hủy Diệt', 'desc': 'Hạ 10.000 kẻ địch.' },
+      'wave10': { 'name': 'Người Giữ Phòng Tuyến', 'desc': 'Đạt đợt 10.' },
+      'wave25': { 'name': 'Chỉ Huy Tiền Tuyến', 'desc': 'Đạt đợt 25.' },
+      'wave50': { 'name': 'Chúa Tể Chiến Tranh', 'desc': 'Đạt đợt 50.' },
+      'boss1': { 'name': 'Kẻ Diệt Khổng Lồ', 'desc': 'Hạ trùm đầu tiên.' },
+      'boss10': { 'name': 'Thợ Săn Trùm', 'desc': 'Hạ 10 trùm.' },
+      'boss50': { 'name': 'Tai Họa Của Vua', 'desc': 'Hạ 50 trùm.' },
+      'merges50': { 'name': 'Người Ghép', 'desc': 'Hợp nhất đơn vị 50 lần.' },
+      'merges500': { 'name': 'Bậc Thầy Hợp Nhất', 'desc': 'Hợp nhất đơn vị 500 lần.' },
+      'tier5': { 'name': 'Lò Rèn Rực Lửa', 'desc': 'Tạo đơn vị bậc 5.' },
+      'tier8': { 'name': 'Lò Rèn Băng Giá', 'desc': 'Tạo đơn vị bậc 8.' },
+      'tier10': { 'name': 'Lò Rèn Vũ Trụ', 'desc': 'Tạo đơn vị bậc 10.' },
+      'fieldMerge1': { 'name': 'Quân Y', 'desc': 'Thực hiện hợp nhất trên trận đầu tiên.' },
+      'fieldMerges25': { 'name': 'Thợ Rèn Chiến Trận', 'desc': 'Thực hiện 25 lần hợp nhất trên trận.' },
+      'combo10': { 'name': 'Cuồng Nộ', 'desc': 'Đạt chuỗi hạ địch ×10.' },
+      'combo25': { 'name': 'Không Thể Cản', 'desc': 'Đạt chuỗi hạ địch ×25.' },
+      'waves100': { 'name': 'Cựu Binh Chiến Dịch', 'desc': 'Vượt tổng cộng 100 đợt.' },
+      'waves500': { 'name': 'Chiến Tranh Vĩnh Cửu', 'desc': 'Vượt tổng cộng 500 đợt.' },
       'tiles1k': { 'name': 'Người du hành thế giới', 'desc': 'Đi tổng cộng 1.000 ô.' },
       'tiles5k': { 'name': 'Vận động viên marathon', 'desc': 'Đi tổng cộng 5.000 ô.' },
       'tiles10k': { 'name': 'Người chạy đường dài', 'desc': 'Đi tổng cộng 10.000 ô.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': 'Kẻ tích trữ', 'desc': 'Lấy tổng cộng 250 hộp vật phẩm.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'Hủy',
   'close': 'Đóng',
   'ok': 'Đồng ý',
@@ -98,15 +119,91 @@ export default {
       'watch': 'Miễn phí'
     }
   },
+  'prism': {
+    'spawn': 'Triệu hồi',
+    'instantSpawn': 'Triệu hồi nhanh',
+    'doubleDamage': 'Sát thương x2',
+    'freeGold': 'Rương chiến tranh',
+    'gridFull': 'Lưới đã đầy — hợp nhất hoặc triển khai để có chỗ!',
+    'hintDrag': 'Kéo các đơn vị giống nhau vào nhau để hợp nhất'
+  },
+  'welcomeBack': {
+    'title': 'Chào mừng trở lại, chỉ huy!',
+    'body': 'Đội quân của bạn vẫn chiến đấu khi bạn vắng mặt:'
+  },
+  'battle': {
+    'wave': 'Đợt {n}',
+    'best': 'Kỷ lục {n}',
+    'waveStart': 'Đợt {n}',
+    'nextWave': 'Đợt {n} sau…',
+    'waveCleared': 'Hoàn thành đợt! +{n}',
+    'bossIncoming': 'TRÙM ĐANG ĐẾN!',
+    'overrun': 'BỊ TRÀN NGẬP!',
+    'overrunBody': 'Cổng đã thất thủ — tập hợp lại và giữ vững phòng tuyến!',
+    'deployHint': 'Thả để triển khai!',
+    'armyFullHint': 'Quân đã đầy — thả lên chiến binh cùng bậc để hợp nhất!',
+    'fever': 'HƯNG PHẤN!!!',
+    'rampage': 'CUỒNG SÁT!',
+    'ultimate': 'Bão Thiên Thạch',
+    'doubleBounty': 'Nhân đôi tiền thưởng trùm!',
+    'upgrades': {
+      'attack': 'Tù Và Chiến Trận',
+      'vitality': 'Sinh Lực',
+      'bounty': 'Tiền Thưởng',
+      'automation': 'Tiểu Quỷ',
+      'recruit': 'Tân Binh',
+      'maxed': 'TỐI ĐA'
+    },
+    'nextChest': 'Tiếp: 🎁 đợt {n}',
+    'newEnemyAt': 'Kẻ địch mới ở đợt {n}!',
+    'newEnemy': 'Kẻ địch mới đang đến!',
+    'chestWave': 'Rương chiến lợi phẩm! +{n}',
+    'waveSetback': 'Bị đẩy lùi về đợt {n}!',
+    'rally': 'TẬP HỢP!',
+    'rallyBody': 'Xem quảng cáo để hồi sinh các chiến binh đã ngã xuống!',
+    'tutorial': {
+      'spawn': 'Chạm TRIỆU HỒI để chiêu mộ hai giọt nước!',
+      'merge': 'Kéo giọt này lên giọt kia để HỢP NHẤT!',
+      'deploy': 'Kéo chiến binh vào đấu trường để tham chiến!',
+      'fieldMerge': 'Tạo thêm một đơn vị cùng bậc và thả lên chiến binh để HỒI MÁU & THĂNG CẤP!'
+    },
+    'codex': {
+      'title': 'Sổ tay đơn vị',
+      'names': { 't1': 'Giọt Nước Sống', 't2': 'Tia Than Hồng', 't3': 'Khối Hơi Nước', 't4': 'Mầm Sinh Học', 't5': 'Lõi Hỏa', 't6': 'Tuyến Axit', 't7': 'Tia Lửa Tia Lửa', 't8': 'Mảnh Băng', 't9': 'Bột Vàng', 't10': 'Khối Vũ Trụ' },
+      'locked': 'Hợp nhất hai đơn vị bậc {n} để khám phá!',
+      'abilities': {
+        'none': 'Nhanh nhẹn, gan dạ, luôn đi đầu.',
+        'burn': 'Thiêu đốt kẻ địch — chúng tiếp tục cháy sau đòn đánh.',
+        'knockback': 'Bắn tầm xa đẩy lùi kẻ địch.',
+        'heal': 'Mỗi đòn đánh cũng hồi máu cho đồng minh yếu nhất.',
+        'splash': 'Đòn nổ gây sát thương mọi kẻ địch gần đó.',
+        'poison': 'Cộng dồn độc gây sát thương lớn theo thời gian.',
+        'chain': 'Sét lan sang ba kẻ địch khác.',
+        'frost': 'Làm chậm khi đánh trúng và đóng băng đám đông bằng nova băng.',
+        'midas': 'Tỉ lệ chí mạng cao và vàng thưởng mỗi đòn.',
+        'blackhole': 'Định kỳ hút cả bầy lại và nghiền nát.'
+      }
+    },
+    'mutators': {
+      'goldRush': 'CƠN SỐT VÀNG! Tiền thưởng 2×',
+      'frostMarch': 'HÀNH QUÂN BĂNG GIÁ! Đòn đánh lạnh buốt',
+      'horde': 'BẦY ĐÀN! Số lượng gấp đôi',
+      'elite': 'TINH NHUỆ! Một nhà vô địch dẫn đầu đợt tấn công'
+    }
+  },
   'battlePass': {
-    'title': 'Battle Pass',
+    'title': 'Chiến dịch',
     'progress': '{current} / {total}',
     'daysLeft': 'Còn {n} ngày',
-    'maxed': 'ĐÃ HOÀN THÀNH BATTLE PASS',
+    'maxed': 'HOÀN THÀNH CHIẾN DỊCH',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'Cách kiếm XP',
     'perAttempt': 'mỗi lượt chơi',
     'perStageFinish': 'mỗi màn hoàn thành',
+    'perKill': 'mỗi lần hạ địch',
+    'perMerge': 'mỗi lần hợp nhất',
+    'perWave': 'mỗi đợt',
+    'perBoss': 'mỗi trùm',
     'unlockHint': 'Đạt {n} XP để mở khóa phần thưởng tiếp theo — phần thưởng chưa nhận sẽ được giữ lại cho đến khi bạn chạm vào.'
   },
   'dailyRewards': {

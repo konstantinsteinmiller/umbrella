@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': 'Conquistas', 'subtitle': 'Alcance marcos para ganhar moedas.', 'claim': 'Resgatar', 'claimed': 'Resgatado', 'progress': '{c} / {t}',
+    'unlocked': 'Conquista concluída!',
     'items': {
+      'kills100': { 'name': 'Primeira Centena', 'desc': 'Derrote 100 inimigos.' },
+      'kills1k': { 'name': 'Matador', 'desc': 'Derrote 1.000 inimigos.' },
+      'kills10k': { 'name': 'Exterminador', 'desc': 'Derrote 10.000 inimigos.' },
+      'wave10': { 'name': 'Guardião da Linha', 'desc': 'Alcance a onda 10.' },
+      'wave25': { 'name': 'Comandante da Frente', 'desc': 'Alcance a onda 25.' },
+      'wave50': { 'name': 'Senhor da Guerra', 'desc': 'Alcance a onda 50.' },
+      'boss1': { 'name': 'Mata-Gigantes', 'desc': 'Derrote seu primeiro chefe.' },
+      'boss10': { 'name': 'Caçador de Chefes', 'desc': 'Derrote 10 chefes.' },
+      'boss50': { 'name': 'Ruína dos Reis', 'desc': 'Derrote 50 chefes.' },
+      'merges50': { 'name': 'Combinador', 'desc': 'Funda unidades 50 vezes.' },
+      'merges500': { 'name': 'Mestre da Fusão', 'desc': 'Funda unidades 500 vezes.' },
+      'tier5': { 'name': 'Forja Ardente', 'desc': 'Crie uma unidade de nível 5.' },
+      'tier8': { 'name': 'Forja Gelada', 'desc': 'Crie uma unidade de nível 8.' },
+      'tier10': { 'name': 'Forja Cósmica', 'desc': 'Crie a unidade de nível 10.' },
+      'fieldMerge1': { 'name': 'Médico de Campo', 'desc': 'Faça sua primeira fusão em campo.' },
+      'fieldMerges25': { 'name': 'Ferreiro de Batalha', 'desc': 'Faça 25 fusões em campo.' },
+      'combo10': { 'name': 'Fúria', 'desc': 'Alcance um combo de ×10.' },
+      'combo25': { 'name': 'Imparável', 'desc': 'Alcance um combo de ×25.' },
+      'waves100': { 'name': 'Veterano de Campanha', 'desc': 'Complete 100 ondas no total.' },
+      'waves500': { 'name': 'Guerra Eterna', 'desc': 'Complete 500 ondas no total.' },
       'tiles1k': { 'name': 'Viajante do Mundo', 'desc': 'Percorra 1.000 casas no total.' },
       'tiles5k': { 'name': 'Maratonista', 'desc': 'Percorra 5.000 casas no total.' },
       'tiles10k': { 'name': 'Corredor de Longa Distância', 'desc': 'Percorra 10.000 casas no total.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': 'Acumulador', 'desc': 'Pegue 250 caixas de itens no total.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'Cancelar',
   'close': 'Fechar',
   'ok': 'Ok',
@@ -98,15 +119,91 @@ export default {
       'watch': 'Grátis'
     }
   },
+  'prism': {
+    'spawn': 'Invocar',
+    'instantSpawn': 'Invocação Rápida',
+    'doubleDamage': '2× Dano',
+    'freeGold': 'Baú de Guerra',
+    'gridFull': 'Grade cheia — funda ou posicione unidades para abrir espaço!',
+    'hintDrag': 'Arraste unidades iguais para fundi-las'
+  },
+  'welcomeBack': {
+    'title': 'Bem-vindo de volta, comandante!',
+    'body': 'Seu exército continuou lutando enquanto você esteve fora:'
+  },
+  'battle': {
+    'wave': 'Onda {n}',
+    'best': 'Recorde {n}',
+    'waveStart': 'Onda {n}',
+    'nextWave': 'Onda {n} em…',
+    'waveCleared': 'Onda concluída! +{n}',
+    'bossIncoming': 'CHEFE CHEGANDO!',
+    'overrun': 'INVADIDO!',
+    'overrunBody': 'O portão caiu — reagrupe e segure a linha!',
+    'deployHint': 'Solte para posicionar!',
+    'armyFullHint': 'Exército cheio — solte sobre um lutador do mesmo nível para fundir!',
+    'fever': 'FEBRE!!!',
+    'rampage': 'FÚRIA!',
+    'ultimate': 'Tempestade de Meteoros',
+    'doubleBounty': 'Dobre o prêmio do chefe!',
+    'upgrades': {
+      'attack': 'Cornetas de Guerra',
+      'vitality': 'Vitalidade',
+      'bounty': 'Prêmio',
+      'automation': 'Diabrete',
+      'recruit': 'Recrutas',
+      'maxed': 'MÁX'
+    },
+    'nextChest': 'Próximo: 🎁 onda {n}',
+    'newEnemyAt': 'Novo inimigo na onda {n}!',
+    'newEnemy': 'Novo inimigo se aproximando!',
+    'chestWave': 'Baú de guerra! +{n}',
+    'waveSetback': 'Recuou para a onda {n}!',
+    'rally': 'REAGRUPAR!',
+    'rallyBody': 'Assista a um anúncio para ressuscitar seus lutadores caídos!',
+    'tutorial': {
+      'spawn': 'Toque em INVOCAR para recrutar duas gotinhas!',
+      'merge': 'Arraste uma gotinha sobre a outra para FUNDIR!',
+      'deploy': 'Arraste seu lutador para a arena para entrar na luta!',
+      'fieldMerge': 'Crie outra unidade do mesmo nível e solte-a sobre seu lutador para CURAR e PROMOVER!'
+    },
+    'codex': {
+      'title': 'Códice de unidades',
+      'names': { 't1': 'Gotinha Viva', 't2': 'Jato de Brasa', 't3': 'Bloco de Vapor', 't4': 'Bio-Broto', 't5': 'Núcleo Piro', 't6': 'Glândula Ácida', 't7': 'Faísca Faísca', 't8': 'Fragmento Crio', 't9': 'Pasta Áurea', 't10': 'Massa Cósmica' },
+      'locked': 'Funda duas de nível {n} para descobrir!',
+      'abilities': {
+        'none': 'Rápido, destemido e sempre na frente.',
+        'burn': 'Incendeia inimigos — continuam queimando após o golpe.',
+        'knockback': 'Tiros à distância que empurram os inimigos.',
+        'heal': 'Cada golpe também cura seu aliado mais fraco.',
+        'splash': 'Golpes explosivos ferem todos os inimigos próximos.',
+        'poison': 'Acumula veneno com forte dano contínuo.',
+        'chain': 'Raios saltam para três inimigos extras.',
+        'frost': 'Esfria ao acertar e congela grupos com novas de gelo.',
+        'midas': 'Alta chance de crítico e ouro bônus por golpe.',
+        'blackhole': 'Puxa a horda periodicamente e a esmaga.'
+      }
+    },
+    'mutators': {
+      'goldRush': 'CORRIDA DO OURO! Recompensa 2×',
+      'frostMarch': 'MARCHA GELADA! Golpes congelantes',
+      'horde': 'HORDA! Enxame em dobro',
+      'elite': 'ELITE! Um campeão lidera a onda'
+    }
+  },
   'battlePass': {
-    'title': 'Passe de Batalha',
+    'title': 'Campanha de Guerra',
     'progress': '{current} / {total}',
     'daysLeft': '{n}d restantes',
-    'maxed': 'PASSE DE BATALHA COMPLETO',
+    'maxed': 'CAMPANHA COMPLETA',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'Como ganhar XP',
     'perAttempt': 'por corrida',
     'perStageFinish': 'por fase concluída',
+    'perKill': 'por abate',
+    'perMerge': 'por fusão',
+    'perWave': 'por onda',
+    'perBoss': 'por chefe',
     'unlockHint': 'Alcance {n} XP para desbloquear a próxima recompensa — recompensas não resgatadas ficam até você tocá-las.'
   },
   'dailyRewards': {

@@ -3,6 +3,7 @@ import useUser, { MUSIC_TRACK_FILES } from '@/use/useUser'
 import { getAudioContext, loadAudioBuffer, resourceCache, registerHtmlAudio, unregisterHtmlAudio, isAudioSuspended, registerOneShotSource } from '@/use/useAssets'
 import { isGamePaused } from '@/use/useGamePause'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
+import { tutorialActive } from '@/use/useTutorial'
 
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 
@@ -46,7 +47,13 @@ export const SFX_FALLBACKS: Record<string, string> = {
   'meteor-impact': 'explosion-1',
   // Upgrades
   'upgrade-buy': 'level-up',
-  'upgrade-denied': 'obstacle-hit'
+  'upgrade-denied': 'obstacle-hit',
+  // Rewards & offers (flying chest, milestone chest, RALLY! revive, 2× dmg)
+  'chest-flyby': 'modal-open',
+  'chest-open': 'celebration-2',
+  'milestone-chest': 'celebration-2',
+  'rally-revive': 'celebration-1',
+  'damage-buff': 'celebration-1'
 }
 
 const availableSfxOverrides = new Set<string>()
@@ -478,6 +485,10 @@ const useSounds = () => {
     // under the ad — refuse to start any one-shot at all. This is the
     // "pause all sounds during ads" guarantee QA asked for.
     if (isAudioSuspended()) return null
+    // Quiet first session: no one-shot SFX while the FTUE coach-marks run —
+    // the placeholder sounds spamming under the tutorial reads as noise, not
+    // juice. Music is untouched; SFX come alive on the tutorial's last step.
+    if (tutorialActive.value) return null
 
     const src = prependBaseUrl(`audio/sfx/${resolveSfx(effect)}.ogg`)
 

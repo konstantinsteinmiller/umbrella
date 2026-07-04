@@ -13,17 +13,17 @@ const isModalOpen = ref(false)
 
 <template lang="pug">
   button.achievements-btn(
-    class="cursor-pointer pointer-events-auto active:scale-95 transition-transform scale-80 sm:scale-100"
+    class="cursor-pointer pointer-events-auto active:scale-95 transition-transform"
     :class="{ 'pulse-claim': hasUnclaimed }"
     @click="isModalOpen = true"
   )
     div.relative
       div.absolute.inset-0.translate-y-1.rounded-lg(class="bg-[#7a5a12]")
-      div.relative.rounded-lg.border-2.flex.items-center.justify-center.p-2(
-        class="bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
+      div.relative.rounded-lg.border-2.flex.items-center.justify-center(
+        class="p-1.5 sm:p-2 bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
       )
         //- Trophy glyph — distinct from the BattlePass chevrons.
-        svg(viewBox="0 0 24 24" class="w-7 h-7" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+        svg(viewBox="0 0 24 24" class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
           path(d="M7 4 h10 v3 a5 5 0 0 1 -10 0 Z")
           path(d="M7 5 H4 v1 a3 3 0 0 0 3 3")
           path(d="M17 5 h3 v1 a3 3 0 0 1 -3 3")

@@ -11,6 +11,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBattle, { type BattleUpgradeId, BATTLE_UPGRADE_DEFS } from '@/use/useBattle'
 import useSounds from '@/use/useSound'
+import IconCoin from '@/components/icons/IconCoin.vue'
 
 const { t } = useI18n()
 const battle = useBattle()
@@ -19,7 +20,7 @@ const { playSound } = useSounds()
 const ids = Object.keys(BATTLE_UPGRADE_DEFS) as BattleUpgradeId[]
 
 const accent: Record<BattleUpgradeId, string> = {
-  attack: '#ff6a2a', vitality: '#36d399', bounty: '#ffd23c', automation: '#5fb0ff'
+  attack: '#ff6a2a', vitality: '#36d399', bounty: '#ffd23c', automation: '#5fb0ff', recruit: '#c05cff'
 }
 
 const buy = (id: BattleUpgradeId): void => {
@@ -36,11 +37,13 @@ const fmt = (n: number): string => {
   return String(n)
 }
 
-// Pip bar: show level out of a soft "page" of 5 so the bar stays readable.
-const pips = (lvl: number): boolean[] => {
-  const within = lvl % 5
-  const shown = lvl > 0 && within === 0 ? 5 : within
-  return Array.from({ length: 5 }, (_, i) => i < shown)
+// Pip bar: show level out of a soft "page" of 5 (or the upgrade's own max
+// when it caps below 5, e.g. Recruits' 3) so the bar stays readable.
+const pips = (lvl: number, max: number): boolean[] => {
+  const page = Math.min(5, max)
+  const within = lvl % page
+  const shown = lvl > 0 && within === 0 ? page : within
+  return Array.from({ length: page }, (_, i) => i < shown)
 }
 const tier = (lvl: number): number => Math.floor(lvl / 5)
 
@@ -50,6 +53,7 @@ const chips = computed(() => ids.map((id) => ({
   cost: battle.upgradeCost(id),
   maxed: battle.isUpgradeMaxed(id),
   can: battle.canBuyUpgrade(id),
+  max: BATTLE_UPGRADE_DEFS[id].max,
   accent: accent[id]
 })))
 </script>
@@ -79,6 +83,11 @@ const chips = computed(() => ids.map((id) => ({
             //- Coin stack
             circle(cx="12" cy="9" r="6.5" fill="none" stroke="currentColor" stroke-width="2")
             path(d="M6 15 a6.5 4 0 0 0 12 0 M6 18 a6.5 4 0 0 0 12 0" fill="none" stroke="currentColor" stroke-width="2")
+          template(v-else-if="c.id === 'recruit'")
+            //- Recruit rank-up: unit square with an ascending arrow
+            rect(x="5" y="12" width="9" height="9" rx="2.5" fill="none" stroke="currentColor" stroke-width="2")
+            g(stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round")
+              path(d="M16 12 L16 4 M12.5 7.5 L16 4 L19.5 7.5")
           template(v-else)
             //- Imp gear
             circle(cx="12" cy="12" r="3.4" fill="none" stroke="currentColor" stroke-width="2")
@@ -90,13 +99,12 @@ const chips = computed(() => ids.map((id) => ({
         span.chip-name.font-black.uppercase.leading-none.truncate(class="text-[8px] sm:text-[10px]") {{ t('battle.upgrades.' + c.id) }}
       //- Level pips
       div.flex.items-center(class="gap-0.5 my-0.5")
-        span.pip(v-for="(on, i) in pips(c.level)" :key="i" :class="on ? 'pip-on' : ''" :style="{ background: on ? c.accent : 'rgba(255,255,255,0.15)' }")
+        span.pip(v-for="(on, i) in pips(c.level, c.max)" :key="i" :class="on ? 'pip-on' : ''" :style="{ background: on ? c.accent : 'rgba(255,255,255,0.15)' }")
       div.flex.items-center(class="gap-0.5")
         template(v-if="c.maxed")
           span.font-black.text-yellow-300(class="text-[8px] sm:text-[10px]") {{ t('battle.upgrades.maxed') }}
         template(v-else)
-          svg(viewBox="0 0 24 24" class="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-300 shrink-0" fill="currentColor")
-            circle(cx="12" cy="12" r="9" stroke="#7a5a00" stroke-width="2")
+          IconCoin(class="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0")
           span.font-black.leading-none(class="text-[9px] sm:text-[11px]" :class="c.can ? 'text-yellow-200' : 'text-red-300'") {{ fmt(c.cost) }}
       //- Tier ribbon (every 5 levels)
       span.tier-ribbon(v-if="tier(c.level) > 0" :style="{ background: c.accent }") {{ tier(c.level) }}

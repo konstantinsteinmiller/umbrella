@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': 'Osiągnięcia', 'subtitle': 'Zdobywaj kamienie milowe, by zarobić monety.', 'claim': 'Odbierz', 'claimed': 'Odebrano', 'progress': '{c} / {t}',
+    'unlocked': 'Osiągnięcie zdobyte!',
     'items': {
+      'kills100': { 'name': 'Pierwsza Setka', 'desc': 'Pokonaj 100 wrogów.' },
+      'kills1k': { 'name': 'Pogromca', 'desc': 'Pokonaj 1000 wrogów.' },
+      'kills10k': { 'name': 'Eksterminator', 'desc': 'Pokonaj 10 000 wrogów.' },
+      'wave10': { 'name': 'Obrońca Linii', 'desc': 'Osiągnij falę 10.' },
+      'wave25': { 'name': 'Dowódca Frontu', 'desc': 'Osiągnij falę 25.' },
+      'wave50': { 'name': 'Władca Wojny', 'desc': 'Osiągnij falę 50.' },
+      'boss1': { 'name': 'Pogromca Olbrzymów', 'desc': 'Pokonaj pierwszego bossa.' },
+      'boss10': { 'name': 'Łowca Bossów', 'desc': 'Pokonaj 10 bossów.' },
+      'boss50': { 'name': 'Zguba Królów', 'desc': 'Pokonaj 50 bossów.' },
+      'merges50': { 'name': 'Łączący', 'desc': 'Połącz jednostki 50 razy.' },
+      'merges500': { 'name': 'Mistrz Fuzji', 'desc': 'Połącz jednostki 500 razy.' },
+      'tier5': { 'name': 'Płonąca Kuźnia', 'desc': 'Stwórz jednostkę poziomu 5.' },
+      'tier8': { 'name': 'Mroźna Kuźnia', 'desc': 'Stwórz jednostkę poziomu 8.' },
+      'tier10': { 'name': 'Kosmiczna Kuźnia', 'desc': 'Stwórz jednostkę poziomu 10.' },
+      'fieldMerge1': { 'name': 'Medyk Polowy', 'desc': 'Wykonaj pierwszą fuzję w polu.' },
+      'fieldMerges25': { 'name': 'Kowal Bitewny', 'desc': 'Wykonaj 25 fuzji w polu.' },
+      'combo10': { 'name': 'Szał', 'desc': 'Osiągnij combo ×10.' },
+      'combo25': { 'name': 'Niepowstrzymany', 'desc': 'Osiągnij combo ×25.' },
+      'waves100': { 'name': 'Weteran Kampanii', 'desc': 'Ukończ łącznie 100 fal.' },
+      'waves500': { 'name': 'Wieczna Wojna', 'desc': 'Ukończ łącznie 500 fal.' },
       'tiles1k': { 'name': 'Globtroter', 'desc': 'Pokonaj łącznie 1 000 pól.' },
       'tiles5k': { 'name': 'Maratończyk', 'desc': 'Pokonaj łącznie 5 000 pól.' },
       'tiles10k': { 'name': 'Długodystansowiec', 'desc': 'Pokonaj łącznie 10 000 pól.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': 'Zbieracz', 'desc': 'Złap łącznie 250 skrzyń z przedmiotami.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'Anuluj',
   'close': 'Zamknij',
   'ok': 'Ok',
@@ -98,15 +119,91 @@ export default {
       'watch': 'Za darmo'
     }
   },
+  'prism': {
+    'spawn': 'Przyzwij',
+    'instantSpawn': 'Szybki Przyzew',
+    'doubleDamage': '2× Obrażenia',
+    'freeGold': 'Skrzynia Wojenna',
+    'gridFull': 'Siatka pełna — połącz lub wystaw jednostki, by zrobić miejsce!',
+    'hintDrag': 'Przeciągnij jednakowe jednostki, aby je połączyć'
+  },
+  'welcomeBack': {
+    'title': 'Witaj z powrotem, dowódco!',
+    'body': 'Twoja armia walczyła dalej pod twoją nieobecność:'
+  },
+  'battle': {
+    'wave': 'Fala {n}',
+    'best': 'Rekord {n}',
+    'waveStart': 'Fala {n}',
+    'nextWave': 'Fala {n} za…',
+    'waveCleared': 'Fala ukończona! +{n}',
+    'bossIncoming': 'NADCIĄGA BOSS!',
+    'overrun': 'PRZEŁAMANIE!',
+    'overrunBody': 'Brama padła — przegrupuj się i utrzymaj linię!',
+    'deployHint': 'Upuść, aby wystawić!',
+    'armyFullHint': 'Armia pełna — upuść na wojownika tego samego poziomu, aby połączyć!',
+    'fever': 'GORĄCZKA!!!',
+    'rampage': 'SZAŁ!',
+    'ultimate': 'Deszcz Meteorów',
+    'doubleBounty': 'Podwój łup z bossa!',
+    'upgrades': {
+      'attack': 'Rogi Wojenne',
+      'vitality': 'Witalność',
+      'bounty': 'Łup',
+      'automation': 'Chochlik',
+      'recruit': 'Rekruci',
+      'maxed': 'MAKS'
+    },
+    'nextChest': 'Następna: 🎁 fala {n}',
+    'newEnemyAt': 'Nowy wróg od fali {n}!',
+    'newEnemy': 'Nadciąga nowy wróg!',
+    'chestWave': 'Skrzynia wojenna! +{n}',
+    'waveSetback': 'Cofnięto do fali {n}!',
+    'rally': 'ZBIÓRKA!',
+    'rallyBody': 'Obejrzyj reklamę, aby wskrzesić poległych wojowników!',
+    'tutorial': {
+      'spawn': 'Stuknij PRZYZWIJ, aby zrekrutować dwie kropelki!',
+      'merge': 'Przeciągnij jedną kropelkę na drugą, aby je POŁĄCZYĆ!',
+      'deploy': 'Przeciągnij wojownika na arenę, aby dołączył do walki!',
+      'fieldMerge': 'Stwórz kolejną jednostkę tego samego poziomu i upuść ją na wojownika — ULECZY i AWANSUJE!'
+    },
+    'codex': {
+      'title': 'Kodeks jednostek',
+      'names': { 't1': 'Żywa Kropelka', 't2': 'Żarowy Bryzg', 't3': 'Bryła Pary', 't4': 'Bio-Kiełek', 't5': 'Piro-Rdzeń', 't6': 'Gruczoł Kwasowy', 't7': 'Iskra Iskra', 't8': 'Krio-Odłamek', 't9': 'Złota Pasta', 't10': 'Kosmiczna Masa' },
+      'locked': 'Połącz dwie jednostki poziomu {n}, aby odkryć!',
+      'abilities': {
+        'none': 'Szybki, nieustraszony, zawsze na czele.',
+        'burn': 'Podpala wrogów — płoną po trafieniu.',
+        'knockback': 'Strzały dystansowe odpychające wrogów.',
+        'heal': 'Każde trafienie leczy też najsłabszego sojusznika.',
+        'splash': 'Wybuchowe ciosy raniące wszystkich wrogów w pobliżu.',
+        'poison': 'Kumuluje truciznę zadającą duże obrażenia w czasie.',
+        'chain': 'Błyskawica przeskakuje na trzech dodatkowych wrogów.',
+        'frost': 'Spowalnia przy trafieniu i zamraża grupy lodowymi nowami.',
+        'midas': 'Wysoka szansa na kryt i dodatkowe złoto za trafienie.',
+        'blackhole': 'Okresowo ściąga hordę i ją miażdży.'
+      }
+    },
+    'mutators': {
+      'goldRush': 'GORĄCZKA ZŁOTA! Łup 2×',
+      'frostMarch': 'LODOWY MARSZ! Mroźne ciosy',
+      'horde': 'HORDA! Podwójny rój',
+      'elite': 'ELITA! Falę prowadzi czempion'
+    }
+  },
   'battlePass': {
-    'title': 'Karnet Bojowy',
+    'title': 'Kampania wojenna',
     'progress': '{current} / {total}',
     'daysLeft': 'pozostało {n}d',
-    'maxed': 'KARNET BOJOWY UKOŃCZONY',
+    'maxed': 'KAMPANIA UKOŃCZONA',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'Jak zdobywać XP',
     'perAttempt': 'za bieg',
     'perStageFinish': 'za ukończony etap',
+    'perKill': 'za zabójstwo',
+    'perMerge': 'za fuzję',
+    'perWave': 'za falę',
+    'perBoss': 'za bossa',
     'unlockHint': 'Zdobądź {n} XP, aby odblokować następną nagrodę — nieodebrane nagrody czekają, aż je dotkniesz.'
   },
   'dailyRewards': {

@@ -4,7 +4,28 @@ export default {
   },
   'achievements': {
     'title': 'Obiettivi', 'subtitle': 'Raggiungi traguardi per ottenere monete.', 'claim': 'Riscuoti', 'claimed': 'Riscosso', 'progress': '{c} / {t}',
+    'unlocked': 'Obiettivo completato!',
     'items': {
+      'kills100': { 'name': 'Primo Centinaio', 'desc': 'Sconfiggi 100 nemici.' },
+      'kills1k': { 'name': 'Massacratore', 'desc': 'Sconfiggi 1.000 nemici.' },
+      'kills10k': { 'name': 'Sterminatore', 'desc': 'Sconfiggi 10.000 nemici.' },
+      'wave10': { 'name': 'Difensore della Linea', 'desc': "Raggiungi l'ondata 10." },
+      'wave25': { 'name': 'Comandante del Fronte', 'desc': "Raggiungi l'ondata 25." },
+      'wave50': { 'name': 'Signore della Guerra', 'desc': "Raggiungi l'ondata 50." },
+      'boss1': { 'name': 'Ammazzagiganti', 'desc': 'Sconfiggi il tuo primo boss.' },
+      'boss10': { 'name': 'Cacciatore di Boss', 'desc': 'Sconfiggi 10 boss.' },
+      'boss50': { 'name': 'Flagello dei Re', 'desc': 'Sconfiggi 50 boss.' },
+      'merges50': { 'name': 'Combinatore', 'desc': 'Fondi unità 50 volte.' },
+      'merges500': { 'name': 'Maestro della Fusione', 'desc': 'Fondi unità 500 volte.' },
+      'tier5': { 'name': 'Fucina Ardente', 'desc': "Crea un'unità di livello 5." },
+      'tier8': { 'name': 'Fucina Gelida', 'desc': "Crea un'unità di livello 8." },
+      'tier10': { 'name': 'Fucina Cosmica', 'desc': "Crea l'unità di livello 10." },
+      'fieldMerge1': { 'name': 'Medico da Campo', 'desc': 'Esegui la tua prima fusione sul campo.' },
+      'fieldMerges25': { 'name': 'Fabbro di Battaglia', 'desc': 'Esegui 25 fusioni sul campo.' },
+      'combo10': { 'name': 'Furia', 'desc': 'Raggiungi una combo di ×10.' },
+      'combo25': { 'name': 'Inarrestabile', 'desc': 'Raggiungi una combo di ×25.' },
+      'waves100': { 'name': 'Veterano di Campagna', 'desc': 'Supera 100 ondate in totale.' },
+      'waves500': { 'name': 'Guerra Eterna', 'desc': 'Supera 500 ondate in totale.' },
       'tiles1k': { 'name': 'Giramondo', 'desc': 'Percorri 1.000 caselle in totale.' },
       'tiles5k': { 'name': 'Maratoneta', 'desc': 'Percorri 5.000 caselle in totale.' },
       'tiles10k': { 'name': 'Fondista', 'desc': 'Percorri 10.000 caselle in totale.' },
@@ -22,7 +43,7 @@ export default {
       'items250': { 'name': 'Accumulatore', 'desc': 'Afferra 250 casse oggetto in totale.' }
     }
   },
-  'gameName': 'merge-idle-war',
+  'gameName': 'Merge Legion',
   'cancel': 'Annulla',
   'close': 'Chiudi',
   'ok': 'Ok',
@@ -98,15 +119,91 @@ export default {
       'watch': 'Gratis'
     }
   },
+  'prism': {
+    'spawn': 'Evoca',
+    'instantSpawn': 'Evocazione Rapida',
+    'doubleDamage': '2× Danni',
+    'freeGold': 'Forziere di Guerra',
+    'gridFull': 'Griglia piena — fondi o schiera per fare spazio!',
+    'hintDrag': 'Trascina unità uguali per fonderle'
+  },
+  'welcomeBack': {
+    'title': 'Bentornato, comandante!',
+    'body': 'Il tuo esercito ha continuato a combattere in tua assenza:'
+  },
+  'battle': {
+    'wave': 'Ondata {n}',
+    'best': 'Record {n}',
+    'waveStart': 'Ondata {n}',
+    'nextWave': 'Ondata {n} tra…',
+    'waveCleared': 'Ondata superata! +{n}',
+    'bossIncoming': 'BOSS IN ARRIVO!',
+    'overrun': 'TRAVOLTI!',
+    'overrunBody': 'Il cancello è caduto — riorganizzati e tieni la linea!',
+    'deployHint': 'Rilascia per schierare!',
+    'armyFullHint': 'Esercito al completo — rilascia su un combattente dello stesso livello per fondere!',
+    'fever': 'FEBBRE!!!',
+    'rampage': 'FURIA!',
+    'ultimate': 'Tempesta di Meteore',
+    'doubleBounty': 'Raddoppia il bottino del boss!',
+    'upgrades': {
+      'attack': 'Corni di Guerra',
+      'vitality': 'Vitalità',
+      'bounty': 'Bottino',
+      'automation': 'Diavoletto',
+      'recruit': 'Reclute',
+      'maxed': 'MAX'
+    },
+    'nextChest': 'Prossimo: 🎁 ondata {n}',
+    'newEnemyAt': "Nuovo nemico all'ondata {n}!",
+    'newEnemy': 'Nuovo nemico in arrivo!',
+    'chestWave': 'Forziere di guerra! +{n}',
+    'waveSetback': "Respinto all'ondata {n}!",
+    'rally': 'ADUNATA!',
+    'rallyBody': 'Guarda un annuncio per resuscitare i combattenti caduti!',
+    'tutorial': {
+      'spawn': 'Tocca EVOCA per reclutare due goccioline!',
+      'merge': "Trascina una gocciolina sull'altra per FONDERLE!",
+      'deploy': "Trascina il tuo combattente nell'arena per unirsi alla battaglia!",
+      'fieldMerge': "Crea un'altra unità dello stesso livello e lasciala sul tuo combattente per CURARLO e PROMUOVERLO!"
+    },
+    'codex': {
+      'title': 'Codex delle unità',
+      'names': { 't1': 'Gocciolina Vivente', 't2': 'Schizzo di Brace', 't3': 'Blocco di Vapore', 't4': 'Bio-Germoglio', 't5': 'Nucleo Piro', 't6': 'Ghiandola Acida', 't7': 'Scintilla Scintilla', 't8': 'Scheggia Crio', 't9': 'Pasta Aurea', 't10': 'Massa Cosmica' },
+      'locked': 'Fondi due unità di livello {n} per scoprirla!',
+      'abilities': {
+        'none': 'Veloce, impavido e sempre in prima linea.',
+        'burn': 'Incendia i nemici: continuano a bruciare dopo il colpo.',
+        'knockback': 'Colpi a distanza che respingono i nemici.',
+        'heal': 'Ogni colpo cura anche il tuo alleato più debole.',
+        'splash': 'Colpi esplosivi che danneggiano tutti i nemici vicini.',
+        'poison': 'Accumula veleno per gravi danni nel tempo.',
+        'chain': 'I fulmini rimbalzano su tre nemici extra.',
+        'frost': 'Raffredda al colpo e congela i gruppi con nove di ghiaccio.',
+        'midas': 'Alta probabilità di critico e oro bonus a ogni colpo.',
+        'blackhole': "Attira periodicamente l'orda e la frantuma."
+      }
+    },
+    'mutators': {
+      'goldRush': "CORSA ALL'ORO! Bottino 2×",
+      'frostMarch': 'MARCIA GELIDA! Colpi glaciali',
+      'horde': 'ORDA! Sciame raddoppiato',
+      'elite': "ÉLITE! Un campione guida l'ondata"
+    }
+  },
   'battlePass': {
-    'title': 'Battle Pass',
+    'title': 'Campagna di Guerra',
     'progress': '{current} / {total}',
     'daysLeft': '{n}g rimasti',
-    'maxed': 'BATTLE PASS COMPLETATO',
+    'maxed': 'CAMPAGNA COMPLETATA',
     'xpProgress': '{current} / {total} XP',
     'howToEarn': 'Come guadagnare XP',
     'perAttempt': 'per corsa',
     'perStageFinish': 'per livello completato',
+    'perKill': 'per uccisione',
+    'perMerge': 'per fusione',
+    'perWave': 'per ondata',
+    'perBoss': 'per boss',
     'unlockHint': 'Raggiungi {n} XP per sbloccare la prossima ricompensa — le ricompense non riscosse restano finché non le tocchi.'
   },
   'dailyRewards': {

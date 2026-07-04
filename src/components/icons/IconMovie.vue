@@ -1,15 +1,16 @@
+<script setup lang="ts">
+/**
+ * "Watch ad" movie icon — the single glyph every rewarded-ad affordance
+ * shares (Instant Spawn, War Chest, 2× boss bounty, RALLY!). Renders the
+ * shipped bitmap `public/images/icons/movie_128x96.webp` (4:3, so
+ * `object-contain` letterboxes it inside the caller's square `w-N h-N`
+ * utility box — same sizing convention as the other icon components).
+ */
+import { prependBaseUrl } from '@/utils/function'
+
+const src = prependBaseUrl('images/icons/movie_128x96.webp')
+</script>
+
 <template lang="pug">
-  //- "Watch ad" movie/film icon. Two-tone (white body + dark navy outline) so
-  //- it reads on the yellow / green / emerald ad buttons. Sized by the caller
-  //- via a `class="w-N h-N"` utility, same convention as the other icon
-  //- components. Extracted from the inline SVG that used to live in
-  //- AdRewardButton.vue so every "watch ad" affordance shares one glyph.
-  svg(
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-  )
-    rect(x="3" y="6" width="14" height="12" rx="1.5" fill="#fff" stroke="#1a2b4b" stroke-width="1.5")
-    path(d="M17 10 L21 7 L21 17 L17 14 Z" fill="#fff" stroke="#1a2b4b" stroke-width="1.5" stroke-linejoin="round")
-    path(d="M9 10 L13 12 L9 14 Z" fill="#1a2b4b")
+  img.object-contain.select-none(:src="src" alt="" draggable="false")
 </template>
