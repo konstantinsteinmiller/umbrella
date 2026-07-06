@@ -14,6 +14,7 @@ import SaveStatusBanner from '@/components/atoms/SaveStatusBanner.vue'
 import AdsBlockedModal from '@/components/atoms/AdsBlockedModal.vue'
 import VConsoleHideButton from '@/components/atoms/VConsoleHideButton.vue'
 import { useCrazyMuteSync } from '@/use/useCrazyMuteSync'
+import { installModalGameplayGate } from '@/use/useModalGameplayGate'
 import useCheats, { installDebugUnlock } from '@/use/useCheats'
 import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isNative, orientation } from '@/use/useUser'
 import { glitchLicenseStatus } from '@/use/useGlitchLicense'
@@ -25,6 +26,9 @@ const { initMusic, pauseMusic, continueMusic } = useMusic()
 useExtensionGuard()
 const { resourceCache } = useAssets()
 useCrazyMuteSync()
+// CG full release: stop CG gameplay + freeze sim/audio while any menu is open,
+// resume on close. No-op on the basic launch and every other platform.
+installModalGameplayGate()
 // Attach the "cmarc" debug-unlock key listener at app boot (App.vue is eager),
 // so typing it anywhere flips debug mode — the lazy game scene used to be the
 // only importer, which tree-shook the listener out of production builds.

@@ -25,6 +25,7 @@ import { getState, setState, flushPersist } from '@/use/useEpicState'
 import { saveDataVersion } from '@/use/useSaveStatus'
 import useEpicConfig from '@/use/useEpicConfig'
 import { isGamePaused } from '@/use/useGamePause'
+import { tickMidgameAd } from '@/use/useMidgameAdTimer'
 import {
   BATTLE_UPGRADES_KEY, BATTLE_WAVE_KEY, BATTLE_BEST_WAVE_KEY, BATTLE_ARMY_KEY,
   BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY
@@ -1254,6 +1255,10 @@ const frame = (t: number): void => {
   const realDt = lastT ? Math.min((t - lastT) / 1000, 0.1) : LOGIC_STEP
   lastT = t
   if (isGamePaused.value) return
+
+  // Past the pause gate ⇒ this is real, active gameplay time: advance the
+  // periodic midgame-ad clock (fires an interstitial every 121s of play).
+  tickMidgameAd(realDt)
 
   // 2× Damage buff countdown (UI chip reads the ref; 0 ⇔ expired).
   const dmgRemaining = Math.max(0, dmgBuffUntil.value - Date.now())

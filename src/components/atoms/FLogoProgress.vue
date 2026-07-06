@@ -34,7 +34,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useAssets from '@/use/useAssets'
 import { prependBaseUrl } from '@/utils/function'
-import { stopLoading } from '@/use/useCrazyGames'
+import { stopLoading, startGameplay } from '@/use/useCrazyGames'
 import { armFirstLoadInterstitial, notifySplashGone } from '@/use/useFirstLoadInterstitial'
 
 const { t } = useI18n()
@@ -117,7 +117,14 @@ let cgLoadSignaled = false
 const signalGameReadyToCG = () => {
   if (cgLoadSignaled) return
   cgLoadSignaled = true
-  try { stopLoading() } catch (e) { console.warn('[FLogoProgress] CG ready-to-play failed', e) }
+  try {
+    // Hot-loading is done and we boot straight into the arena → close the CG
+    // loading phase AND flag gameplay as started. We deliberately do NOT pair a
+    // gameplayStop() with the basic launch; only the CG full release stops it
+    // on menus (see useModalGameplayGate). Both wrappers no-op off CrazyGames.
+    stopLoading()
+    startGameplay()
+  } catch (e) { console.warn('[FLogoProgress] CG ready-to-play failed', e) }
 }
 
 // Playgama's `game_ready` is certification-mandatory — fire it on the same

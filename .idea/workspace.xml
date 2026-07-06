@@ -4,122 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="added player unit images">
-      <change afterPath="$PROJECT_DIR$/public/enemies/bosses/fire-dragon_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/bosses/orc_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/bosses/silver-dragon_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/bosses/slime-tower_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/bosses/troll_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/bosses/worm_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/caterpillar_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/centaur_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/dryad_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/goblin_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/ogre_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/enemies/slime2_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/arena/arena-bg.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/arena/gate.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/arena/portal.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/arena/scene-bg.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/cosmic-projectile-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/cosmic-splitter-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/fire-projectile-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/fire-splitter-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/ice-splitter-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/shadow-splitter-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/stone-splitter-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/wind-impact-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/animations/wind-projectile-vfx-9-frames_384x384.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/fire-projectile_128x128.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/ice-projectile_128x128.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/meteor_256x256.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/shadow-projectile_128x128.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/attacks/stone-projectile_128x128.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/grid/slot-frame.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-12.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-13.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-14.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-15.webp" afterDir="false" />
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="added enemy units, added bosses, bg images, remaining art.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/art-todo.md" beforeDir="false" afterPath="$PROJECT_DIR$/art-todo.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/description.md" beforeDir="false" afterPath="$PROJECT_DIR$/description.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/App-IQJFqRfM.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/CrazyGamesStrategy-BfeOlDQF.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/GameScene-CIkO5YWH.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/GameScene-dQJZA53F.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/ar-BH49c45l.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/de-DUPZDVnR.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/en-Cu54Mvx4.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/es-AVRsdq34.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/fr-DHNpFOYN.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/hi-C1rWFDK9.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/id-CmrzkdGX.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/index-A-PT6k3v.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/index-CrsA8yxs.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/it-CHYr4zI9.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/ja-RwCQ42yZ.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/kk-BSDvgJLq.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/ko-C0hCsE2d.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/nl-DnL0JPM1.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/pl-D2SRNLEL.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/pt-C40iEVlX.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/ru-c8ivljrA.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/th-CZq5OM4j.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/tr-BVTxr3vu.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/uk-B9rwdE9j.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/useArtOverrides-BO_Ovha-.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/useCrazyMuteSync-BCQPQIVR.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/useEpicArt-DQ7a3cM8.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/useEpicConfig-BntrpebP.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/useEpicProgress-vvUV3Egv.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/useEpicSkins-Dx0qcIZT.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/useScreenshake-Efkqa6db.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/useSoundPreload-Dp_OrVxf.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/uz--tcE9Fpp.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/vi-2iTmNSZz.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/assets/zh-Bf1bLGYU.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/images/models/ball-amber-texture.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/images/models/ball-eye-texture.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/images/models/ball-gear-texture.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/images/models/ball-lava-texture.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/images/models/ball-luck-texture.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/images/models/ball-obsidian-texture.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/images/models/ball-pot-texture.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/images/models/ball-stone-texture.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/assets/App-By4OWZZo.css" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sound-todo.md" beforeDir="false" afterPath="$PROJECT_DIR$/sound-todo.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/App.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/EnemyUnit.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/EnemyUnit.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/ingredients.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/ingredients.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/units.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/units.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useArtOverrides.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useArtOverrides.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/use/useBattle.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBattle.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useCheats.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCheats.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/usePrismGame.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePrismGame.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useTutorial.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useTutorial.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -222,7 +114,7 @@
       <workItem from="1783084479166" duration="138000" />
       <workItem from="1783084667113" duration="5029000" />
       <workItem from="1783090146748" duration="14108000" />
-      <workItem from="1783174841876" duration="35702000" />
+      <workItem from="1783174841876" duration="37662000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -288,7 +180,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783197827101</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="added enemy units, added bosses, bg images, remaining art.">
+      <option name="closed" value="true" />
+      <created>1783357425485</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1783357425485</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -311,6 +211,7 @@
     <MESSAGE value="idle battler base" />
     <MESSAGE value="added ads" />
     <MESSAGE value="added player unit images" />
-    <option name="LAST_COMMIT_MESSAGE" value="added player unit images" />
+    <MESSAGE value="added enemy units, added bosses, bg images, remaining art." />
+    <option name="LAST_COMMIT_MESSAGE" value="added enemy units, added bosses, bg images, remaining art." />
   </component>
 </project>

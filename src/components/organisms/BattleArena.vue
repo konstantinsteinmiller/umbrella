@@ -190,17 +190,17 @@ const portalStyle = computed<Record<string, string>>(() => {
   if (p) { style.left = `${p.x}%`; style.top = `${p.y}%` }
   return style
 })
-// Clip the crack/damage overlay to the gate bitmap's silhouette (its alpha),
-// so it hugs the ice tower instead of covering the transparent rectangle. Mask
-// geometry mirrors the img's `object-contain object-bottom`.
+// Clip the crack/damage overlay to the gate bitmap's silhouette (its alpha), so
+// it hugs the ice tower instead of covering the transparent rectangle. The box
+// now wraps the image exactly (img is `w-full h-auto`), so the mask fills it 1:1.
 const gateMaskStyle = computed<Record<string, string>>(() => {
   const style: Record<string, string> = {}
   const art = gateArt.value
   if (art) {
     const url = `url(${art})`
     style.maskImage = url; style.WebkitMaskImage = url
-    style.maskSize = 'contain'; style.WebkitMaskSize = 'contain'
-    style.maskPosition = 'center bottom'; style.WebkitMaskPosition = 'center bottom'
+    style.maskSize = '100% 100%'; style.WebkitMaskSize = '100% 100%'
+    style.maskPosition = 'center'; style.WebkitMaskPosition = 'center'
     style.maskRepeat = 'no-repeat'; style.WebkitMaskRepeat = 'no-repeat'
   }
   return style
@@ -581,16 +581,19 @@ onUnmounted(() => {
 
     //- ── The Lab Gate (left edge) ──
     div.gate.absolute.left-0.flex.flex-col.items-center.pointer-events-none(class="top-1/2 -translate-y-1/2 min-w-8 z-[8]")
-      //- Door carries the tower's 1:2 aspect so the image fills it (the whole
-      //- damageable box IS the tower, not a tall empty strip), and the shake.
-      div.gate-door.relative.w-full.rounded-r-xl.overflow-hidden(class="aspect-[1/2]" :class="{ 'gate-bare': gateArt, 'gate-shake': gateShake }")
-        img.absolute.inset-0.w-full.h-full.object-contain.object-bottom(
+      //- The bitmap gate sizes the box itself (`w-full h-auto`) so the box hugs
+      //- the tower at ITS aspect — no empty strip, no bottom-anchor offset, so it
+      //- sits dead-centre. The procedural fallback keeps a fixed 1:2 door.
+      div.gate-door.relative.w-full.rounded-r-xl.overflow-hidden(:class="{ 'gate-bare': gateArt, 'gate-shake': gateShake, 'aspect-[1/2]': !gateArt }")
+        img.block.w-full.h-auto(
           v-if="gateArt" :src="gateArt" alt="" draggable="false"
         )
         //- Blue HP glow is only for the procedural fallback door; the bitmap gate stands bare.
         div.gate-glow.absolute.inset-0(v-if="!gateArt" :style="{ opacity: gatePct / 100 * 0.8 + 0.2 }")
         div.gate-cracks.absolute.inset-0(v-if="gatePct < 55" :style="gateMaskStyle")
-      div.w-full.rounded-full.overflow-hidden.mt-1(class="h-1.5 bg-black/50")
+      //- HP bar is absolute (below the tower) so it doesn't add flow height that
+      //- would shove the centred tower off the arena's vertical midline.
+      div.rounded-full.overflow-hidden(class="absolute top-full left-0 w-full mt-1 h-1.5 bg-black/50")
         div.h-full.gate-hp(:style="{ width: gatePct + '%' }")
 
     //- ── Enemy portal — opens at one of 3 positions per subwave, then closes ──
