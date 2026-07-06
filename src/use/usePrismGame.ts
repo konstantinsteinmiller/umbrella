@@ -46,7 +46,8 @@ const readJSON = <T>(key: string, fallback: T): T => {
 const sanitizeGrid = (g: unknown): number[] => {
   const arr = Array.isArray(g) ? g.slice(0, GRID_SIZE).map((n) => {
     const t = Math.floor(Number(n))
-    return Number.isFinite(t) && t >= 1 && t <= MAX_INGREDIENT_TIER ? t : 0
+    // Allow tiers past the authored art (merging is uncapped); just reject junk.
+    return Number.isFinite(t) && t >= 1 && t <= 999 ? t : 0
   }) : []
   while (arr.length < GRID_SIZE) arr.push(0)
   return arr
@@ -177,7 +178,8 @@ export const merge = (from: number, to: number): number => {
   const a = grid.value[from]
   const b = grid.value[to]
   if (!a || !b || a !== b) return 0
-  if (a >= MAX_INGREDIENT_TIER) return 0
+  // No tier cap — merging always climbs a level (art/stats clamp/extrapolate
+  // past the authored tiers until more are added).
   const next = grid.value.slice()
   next[to] = a + 1
   next[from] = 0
@@ -218,7 +220,7 @@ const findMergePair = (): [number, number] | null => {
   let bestTier = -1
   for (let i = 0; i < grid.value.length; i++) {
     const t = grid.value[i]
-    if (t === undefined || t === 0 || t >= MAX_INGREDIENT_TIER) continue
+    if (t === undefined || t === 0) continue
     if (byTier.has(t)) {
       if (t > bestTier) { best = [byTier.get(t)!, i]; bestTier = t }
     } else {

@@ -34,6 +34,7 @@ import {
   waveHp, waveAtk, waveBounty, waveClearBonus,
   type EnemyKind, type WaveSpawn, type FighterAbility, type WaveMutator
 } from '@/game/units'
+import { getIngredient, type ElementKind } from '@/game/ingredients'
 import { notifyTutorial } from '@/use/useTutorial'
 import useBattlePass, { CAMPAIGN_XP_SOURCES } from '@/use/useBattlePass'
 import { submitBestWave } from '@/platforms/leaderboard'
@@ -44,9 +45,40 @@ const ENEMY_CAP = 24
 const PROJECTILE_CAP = 24
 const LOGIC_STEP = 1 / 30
 const GATE_MAX = 100
-const GATE_X = 3
+// Enemies stop and bash here. Kept clear of the (now ~11%-wide, centred) gate
+// image plus a centre-anchored body's half-width, so attackers line up IN FRONT
+// of the gate instead of overlapping / flying over it.
+const GATE_X = 13
+// The gate is vertically centred, so marching enemies funnel into this band
+// (GATE_Y ± GATE_BAND) as they approach instead of assaulting the full height.
+const GATE_Y = 50
+const GATE_BAND = 18
 const GUARD_X = 16
 const COMBO_WINDOW = 2.5
+
+// Right-edge bound for unit CENTRES (centre-anchored, so a little inside 100):
+// knockback never shoves an enemy off-screen past this.
+const UNIT_MAX_X = 96
+
+// Gate image right edge in arena-x %, published by the view (it varies with the
+// arena aspect — see the `.gate` CSS `min(25cqw, 20cqh)`). Fighters must never
+// step ONTO the gate, so they guard at/right of the edge + a body's half-width;
+// enemies bash just at the gate face.
+let gateEdgeX = 0
+export const setGateEdge = (x: number): void => { gateEdgeX = Math.max(0, Math.min(30, x)) }
+const FIGHTER_CLEAR = 5
+const ENEMY_CLEAR = 4
+const fighterGuardX = (): number => Math.max(GUARD_X, gateEdgeX + FIGHTER_CLEAR)
+const enemyGateX = (): number => Math.max(GATE_X, gateEdgeX + ENEMY_CLEAR)
+
+// Enemy spawn portals near the right edge: top, centre, bottom. A portal opens
+// per SUBWAVE (a burst of spawns ≤ PORTAL_MAX_OPEN apart), pours out its
+// monsters, then closes. Bosses always use the centre portal.
+const PORTAL_POSITIONS = [{ x: 92, y: 16 }, { x: 92, y: 50 }, { x: 92, y: 84 }] as const
+const PORTAL_LEAD = 0.35   // s the portal is open before the first monster emerges
+const PORTAL_TAIL = 0.4    // s it lingers open after the last one
+const PORTAL_MAX_OPEN = 3  // s a single portal spends spawning its subwave
+const SUBWAVE_GAP = 1.2    // s gap between spawns that starts a fresh portal
 const FEVER_AT = 10
 const FEVER_SECS = 8
 const FEVER_ATK_SPEED = 1.6
@@ -107,6 +139,9 @@ export interface Enemy {
   burnUntil: number
   poisonStacks: number
   poisonUntil: number
+  /** Knockback compounding: consecutive shoves inside KNOCK_WINDOW stack up. */
+  knockStacks: number
+  knockUntil: number
   boss: boolean
   /** Elite-mutator mini-boss (glowing aura, boosted stats). */
   elite: boolean
@@ -126,6 +161,11 @@ export interface Projectile {
   ability: FighterAbility | 'spit'
   sourceTier: number
   color: string
+  /** Aim offset from the target's body centre so shots scatter across it. */
+  jitterX: number
+  jitterY: number
+  /** Visual element → picks the projectile sprite + impact splitter VFX. */
+  element: ElementKind
 }
 
 // ─── Events (view drains these for numbers / particles / SFX) ────────────────
@@ -133,13 +173,12 @@ export type BattleEvent =
   | { type: 'number'; x: number; y: number; amount: number; variant: 'dmg' | 'crit' | 'heal' | 'burn' | 'poison' | 'gold' }
   | { type: 'strike'; id: number; x: number; y: number; tier: number; dx: number; dy: number }
   | { type: 'shot'; x: number; y: number; color: string }
-  | { type: 'impact'; x: number; y: number; color: string }
+  | { type: 'impact'; x: number; y: number; color: string; element?: ElementKind }
   | { type: 'splash'; x: number; y: number; color: string }
   | { type: 'chain'; points: { x: number; y: number }[] }
   | { type: 'nova'; x: number; y: number }
-  | { type: 'blackhole'; x: number; y: number }
-  | { type: 'death'; x: number; y: number; kind: EnemyKind; bounty: number; boss: boolean }
-  | { type: 'fighterDeath'; x: number; y: number; tier: number }
+  | { type: 'death'; x: number; y: number; kind: EnemyKind; bounty: number; boss: boolean; id: number }
+  | { type: 'fighterDeath'; x: number; y: number; tier: number; id: number }
   | { type: 'deploy'; x: number; y: number; tier: number }
   | { type: 'fieldMerge'; x: number; y: number; tier: number }
   | { type: 'gateHit'; amount: number }
@@ -304,6 +343,8 @@ export const wave = ref(readWave(BATTLE_WAVE_KEY, 1))
 export const bestWave = ref(readWave(BATTLE_BEST_WAVE_KEY, 1))
 export type WavePhase = 'countdown' | 'fighting' | 'cleared' | 'overrun'
 export const wavePhase = ref<WavePhase>('countdown')
+/** The currently-open enemy spawn portal (null = closed). Drives the arena. */
+export const activePortal = ref<{ pos: number; x: number; y: number } | null>(null)
 export const countdown = ref(COUNTDOWN_SECS)
 export const gateHp = ref(GATE_MAX)
 export const gateMax = GATE_MAX
@@ -330,6 +371,8 @@ let comboTimer = 0
 let feverUntil = 0
 let slowmoRealLeft = 0
 let schedule: WaveSpawn[] = []
+let portalWindows: { portal: number; openAt: number; closeAt: number }[] = []
+let portalIdx = 0
 let waveElapsed = 0
 let phaseTimer = 0
 /** Tiers of fighters that fell during the current wave (RALLY! buffer). */
@@ -376,7 +419,9 @@ export const deployFighter = (tier: number, xNorm?: number, yNorm?: number): boo
  *  tier+1, full heal. Returns false if tiers mismatch or already max tier. */
 export const fieldMerge = (fighterId: number, tier: number): boolean => {
   const f = fighters.value.find((x) => x.id === fighterId)
-  if (!f || f.tier !== tier || tier >= 10) return false
+  // No tier cap — two same-tier fighters always rank up (art/stats extrapolate
+  // past the authored tiers via getFighterDef / getIngredient).
+  if (!f || f.tier !== tier) return false
   const def = getFighterDef(tier + 1)
   f.tier = tier + 1
   f.maxHp = Math.round(def.hp * hpMult())
@@ -403,8 +448,33 @@ export const fighterAt = (xNorm: number, yNorm: number, radius = 13): Fighter | 
   return best
 }
 
-const spawnEnemy = (kind: EnemyKind, elite = false): void => {
-  if (enemies.value.length >= ENEMY_CAP) { schedule.unshift({ kind, at: waveElapsed + 0.8, elite }); return }
+/** Group a wave's flat spawn list into portal subwaves: consecutive spawns
+ *  closer than SUBWAVE_GAP (and within PORTAL_MAX_OPEN of the group start) share
+ *  one portal; each new group hops to a different portal (bosses → centre). Tags
+ *  every spawn with its portal index and records the open/close windows. */
+const buildPortals = (spawns: WaveSpawn[]): void => {
+  portalWindows = []
+  portalIdx = 0
+  let prevAt = -Infinity
+  let groupStart = 0
+  let lastPortal = -1
+  for (const s of spawns) {
+    const startNew = portalWindows.length === 0 || s.at - prevAt > SUBWAVE_GAP || s.at - groupStart > PORTAL_MAX_OPEN
+    if (startNew) {
+      const portal = s.kind === 'boss' ? 1 : (lastPortal + 1 + ((Math.random() * 2) | 0)) % 3
+      lastPortal = portal
+      groupStart = s.at
+      portalWindows.push({ portal, openAt: Math.max(0, s.at - PORTAL_LEAD), closeAt: s.at + PORTAL_TAIL })
+    }
+    const w = portalWindows[portalWindows.length - 1]!
+    s.portal = w.portal
+    w.closeAt = s.at + PORTAL_TAIL
+    prevAt = s.at
+  }
+}
+
+const spawnEnemy = (kind: EnemyKind, elite = false, portal = 1): void => {
+  if (enemies.value.length >= ENEMY_CAP) { schedule.unshift({ kind, at: waveElapsed + 0.8, elite, portal }); return }
   const def = ENEMY_DEFS[kind]
   const w = wave.value
   // Mutators: Horde halves per-enemy HP (2× count comes from the composer);
@@ -420,8 +490,11 @@ const spawnEnemy = (kind: EnemyKind, elite = false): void => {
   const maxHp = Math.round(waveHp(w) * def.hpMult * hordeHp * (elite ? 7 : 1) * c)
   const e: Enemy = {
     id: ++idSeq, kind,
-    x: 103 + Math.random() * 4,
-    y: kind === 'boss' ? 50 : 12 + Math.random() * 76,
+    // Emerge from the assigned portal near the right edge (on-screen).
+    x: (PORTAL_POSITIONS[portal] ?? PORTAL_POSITIONS[1]).x - Math.random() * 2,
+    y: kind === 'boss'
+      ? (PORTAL_POSITIONS[portal] ?? PORTAL_POSITIONS[1]).y
+      : Math.max(8, Math.min(90, (PORTAL_POSITIONS[portal] ?? PORTAL_POSITIONS[1]).y + (Math.random() - 0.5) * 12)),
     hp: maxHp, maxHp,
     atk: Math.round(waveAtk(w) * def.atkMult * (elite ? 1.6 : 1) * cAtk),
     speed: def.speed * (1 + Math.min(0.5, w / 60)) * (elite ? 0.85 : 1),
@@ -431,6 +504,7 @@ const spawnEnemy = (kind: EnemyKind, elite = false): void => {
     cooldown: 0, abilityCd: 3,
     slowUntil: 0, stunUntil: 0,
     burnDps: 0, burnUntil: 0, poisonStacks: 0, poisonUntil: 0,
+    knockStacks: 0, knockUntil: 0,
     boss: kind === 'boss', elite, enraged: false, striking: false
   }
   enemies.value = [...enemies.value, e]
@@ -439,8 +513,31 @@ const spawnEnemy = (kind: EnemyKind, elite = false): void => {
 }
 
 // ─── Combat helpers ──────────────────────────────────────────────────────────
-const FIGHTER_GLOWS = ['#ff6b5e', '#ff9a3c', '#bfe6ff', '#5fe06f', '#ff8a1f', '#aaff3c', '#5cf0ff', '#bfe6ff', '#ffe27a', '#a05cff']
-const glowOf = (tier: number): string => FIGHTER_GLOWS[Math.max(0, Math.min(9, tier - 1))]!
+const FIGHTER_GLOWS = ['#ff7a3c', '#bfe6ff', '#c8a97e', '#9fd8ff', '#7fd6ff', '#ff9a3c', '#8a6cff', '#b45cff', '#ffe27a', '#ff8a3c', '#ff7a2e']
+const glowOf = (tier: number): string => FIGHTER_GLOWS[Math.max(0, Math.min(FIGHTER_GLOWS.length - 1, tier - 1))]!
+
+// Units are drawn anchored at their FEET (see `.unit-box` translate(-50%,-88%)
+// in BattleArena). Ranged shots + their impact VFX should target the BODY
+// CENTRE — ~5 arena-y units above the anchor for a standard unit, scaled up for
+// bigger sprites (brutes, bosses) so the hit lands mid-body, not at the ground.
+const BODY_RISE = 5
+const bodyY = (feetY: number, scale = 1): number => feetY - BODY_RISE * scale
+
+// Scatter hits across the target's body instead of all landing dead-centre — the
+// spread grows with the sprite size, so a boss takes hits all over (not one
+// pile of overlapping VFX). Returns a random x/y offset in arena units.
+const HIT_SCATTER = 2.6
+const hitScatterX = (scale = 1): number => (Math.random() - 0.5) * 2 * HIT_SCATTER * scale
+const hitScatterY = (scale = 1): number => (Math.random() - 0.5) * 2.4 * HIT_SCATTER * scale
+
+// Knockback (Tier-3) — deliberately weak on a single hit so a lone Boulder
+// Brute can't perma-shove a boss. Each shove landing within KNOCK_WINDOW of the
+// previous one stacks (compounds): the window is shorter than a single unit's
+// attack interval, so the ramp only builds when SEVERAL Tier-3 units focus-fire
+// in quick succession — that squad still shoves bosses; one or two don't.
+const KNOCK_BASE = 2         // arena-x shove per stack
+const KNOCK_MAX_STACKS = 5   // push caps at KNOCK_BASE * this
+const KNOCK_WINDOW = 0.5     // seconds; consecutive shoves inside this compound
 
 const comboGoldMult = (): number => (1 + 0.1 * combo.value) * (feverActive.value ? 2 : 1)
 
@@ -466,7 +563,7 @@ const registerKill = (e: Enemy): void => {
   ultCharge.value = Math.min(ULT_MAX, ultCharge.value + (e.boss ? ULT_PER_BOSS : ULT_PER_KILL))
   if (before < ULT_MAX && ultCharge.value >= ULT_MAX) emit({ type: 'ultReady' })
   bumpStat('kills')
-  emit({ type: 'death', x: e.x, y: e.y, kind: e.kind, bounty: payout, boss: e.boss })
+  emit({ type: 'death', x: e.x, y: e.y, kind: e.kind, bounty: payout, boss: e.boss, id: e.id })
   emit({ type: 'number', x: e.x, y: e.y - 6, amount: payout, variant: 'gold' })
   if (e.boss) {
     // The FIRST boss kill ever is a scripted spectacle (retention-roadmap #2):
@@ -547,14 +644,19 @@ const spawnProjectile = (p: Omit<Projectile, 'id'>): void => {
   emit({ type: 'shot', x: p.x, y: p.y, color: p.color })
 }
 
-/** Resolve one fighter hit landing on an enemy (melee or projectile). */
-const landFighterHit = (f: { tier: number; x: number; y: number }, e: Enemy, dmg: number): void => {
+/** Resolve one fighter hit landing on an enemy (melee or projectile). When the
+ *  hit arrives by projectile, `impactElement` picks the element's splitter VFX
+ *  at the landing point (melee hits leave it undefined → light sparkle only). */
+const landFighterHit = (f: { tier: number; x: number; y: number }, e: Enemy, dmg: number, impactElement?: ElementKind, hitX?: number, hitY?: number): void => {
   const def = getFighterDef(f.tier)
   const critChance = def.ability === 'midas' ? 0.25 : 0.08
   const crit = Math.random() < critChance
   const critMult = def.ability === 'midas' ? 3 : 2
   const final = dmg * (crit ? critMult : 1)
-  emit({ type: 'impact', x: e.x, y: e.y, color: glowOf(f.tier) })
+  // Scatter the impact across the body (default centre when no explicit point).
+  const ix = hitX ?? (e.x + hitScatterX(e.scale))
+  const iy = hitY ?? (bodyY(e.y, e.scale) + hitScatterY(e.scale))
+  emit({ type: 'impact', x: ix, y: iy, color: glowOf(f.tier), element: impactElement })
   hurtEnemy(e, final, crit ? 'crit' : 'dmg')
 
   switch (def.ability) {
@@ -562,16 +664,21 @@ const landFighterHit = (f: { tier: number; x: number; y: number }, e: Enemy, dmg
       e.burnDps = dmg * 0.35
       e.burnUntil = engineNow + 3
       break
-    case 'knockback':
-      e.x = Math.min(104, e.x + 6)
-      e.stunUntil = Math.max(e.stunUntil, engineNow + 0.15)
+    case 'knockback': {
+      // Compound the shove only when hits arrive faster than a lone unit fires.
+      e.knockStacks = engineNow < e.knockUntil ? Math.min(KNOCK_MAX_STACKS, e.knockStacks + 1) : 1
+      e.knockUntil = engineNow + KNOCK_WINDOW
+      e.x = Math.min(UNIT_MAX_X, e.x + KNOCK_BASE * e.knockStacks)
+      // Only a real focus-fire stack briefly stuns — a single shove no longer does.
+      if (e.knockStacks >= 3) e.stunUntil = Math.max(e.stunUntil, engineNow + 0.12)
       break
+    }
     case 'poison':
       e.poisonStacks = Math.min(5, e.poisonStacks + 1)
       e.poisonUntil = engineNow + 4
       break
     case 'splash': {
-      emit({ type: 'splash', x: e.x, y: e.y, color: '#ff8a1f' })
+      emit({ type: 'splash', x: e.x, y: e.y, color: glowOf(f.tier) })
       for (const other of enemies.value) {
         if (other === e || other.hp <= 0) continue
         if (Math.hypot(other.x - e.x, other.y - e.y) <= 14) hurtEnemy(other, final * 0.6)
@@ -605,6 +712,20 @@ const landFighterHit = (f: { tier: number; x: number; y: number }, e: Enemy, dmg
     case 'frost':
       e.slowUntil = engineNow + 2
       break
+    case 'eruption': {
+      emit({ type: 'splash', x: e.x, y: e.y, color: glowOf(f.tier) })
+      e.burnDps = dmg * 0.4
+      e.burnUntil = engineNow + 3
+      for (const other of enemies.value) {
+        if (other === e || other.hp <= 0) continue
+        if (Math.hypot(other.x - e.x, other.y - e.y) <= 16) {
+          hurtEnemy(other, final * 0.7)
+          other.burnDps = dmg * 0.3
+          other.burnUntil = engineNow + 3
+        }
+      }
+      break
+    }
     case 'midas': {
       const bonus = Math.max(2, Math.round(2 + wave.value * 0.6))
       addCoins(bonus)
@@ -726,10 +847,13 @@ const tickMeteors = (): void => {
 const startCountdown = (secs = COUNTDOWN_SECS): void => {
   wavePhase.value = 'countdown'
   countdown.value = secs
+  activePortal.value = null // portals are closed between waves
 }
 
 const beginWave = (): void => {
   schedule = composeWave(wave.value)
+  buildPortals(schedule)
+  activePortal.value = null
   waveElapsed = 0
   deadThisWave = []
   rallyOffer.value = false
@@ -853,32 +977,13 @@ const stepFighters = (dt: number): void => {
           e.slowUntil = engineNow + 3
         }
       }
-    } else if (def.ability === 'blackhole' && f.abilityCd <= 0 && enemies.value.length) {
-      f.abilityCd = 6
-      const cx = Math.min(80, f.x + 24)
-      const cy = f.y
-      emit({ type: 'blackhole', x: cx, y: cy })
-      const dmg = Math.round(def.atk * atkMult() * 1.5)
-      for (const e of enemies.value) {
-        if (e.hp <= 0 || e.boss) {
-          if (e.boss && Math.hypot(e.x - cx, e.y - cy) <= 30) hurtEnemy(e, dmg)
-          continue
-        }
-        if (Math.hypot(e.x - cx, e.y - cy) <= 30) {
-          e.x += (cx - e.x) * 0.8
-          e.y += (cy - e.y) * 0.8
-          e.stunUntil = engineNow + 0.5
-          hurtEnemy(e, dmg)
-        }
-      }
-      removeDeadEnemies()
     }
 
     const target = pickTarget(f, claims)
     if (!target) {
       f.targetId = 0
-      // No enemies → drift back to the guard line.
-      const gx = GUARD_X
+      // No enemies → drift back to the guard line (kept clear of the gate).
+      const gx = fighterGuardX()
       const dx = gx - f.x
       if (Math.abs(dx) > 1) f.x += Math.sign(dx) * def.speed * dt
       continue
@@ -889,7 +994,7 @@ const stepFighters = (dt: number): void => {
     if (dist > def.range) {
       const nx = (target.x - f.x) / (dist || 1)
       const ny = (target.y - f.y) / (dist || 1)
-      f.x = Math.max(3, Math.min(96, f.x + nx * def.speed * dt))
+      f.x = Math.max(fighterGuardX(), Math.min(96, f.x + nx * def.speed * dt))
       f.y = Math.max(6, Math.min(94, f.y + ny * def.speed * dt))
     } else if (f.cooldown <= 0) {
       const interval = def.attackInterval / (feverActive.value ? FEVER_ATK_SPEED : 1)
@@ -897,8 +1002,10 @@ const stepFighters = (dt: number): void => {
       const dmg = def.atk * atkMult()
       if (def.range > 14) {
         spawnProjectile({
-          x: f.x, y: f.y - 3, speed: 90, targetId: target.id, fromFighter: true,
-          dmg, ability: def.ability, sourceTier: f.tier, color: glowOf(f.tier)
+          x: f.x, y: bodyY(f.y, def.scale), speed: 90, targetId: target.id, fromFighter: true,
+          dmg, ability: def.ability, sourceTier: f.tier, color: glowOf(f.tier),
+          jitterX: hitScatterX(target.scale), jitterY: hitScatterY(target.scale),
+          element: getIngredient(f.tier).element
         })
       } else {
         // Melee: the arena lunges the body ALONG this direction (dash-push).
@@ -927,16 +1034,16 @@ const stepFighters = (dt: number): void => {
       const push = (SEP_DIST - d) * 3 * dt // resolves a full overlap in ~⅓ s
       const px = (dx / d) * push
       const py = (dy / d) * push
-      a.x = Math.max(3, Math.min(96, a.x - px))
+      a.x = Math.max(fighterGuardX(), Math.min(96, a.x - px))
       a.y = Math.max(6, Math.min(94, a.y - py))
-      b.x = Math.max(3, Math.min(96, b.x + px))
+      b.x = Math.max(fighterGuardX(), Math.min(96, b.x + px))
       b.y = Math.max(6, Math.min(94, b.y + py))
     }
   }
   // Bury the fallen (buffered per wave for the RALLY! revive offer).
   const alive = fighters.value.filter((f) => {
     if (f.hp > 0) return true
-    emit({ type: 'fighterDeath', x: f.x, y: f.y, tier: f.tier })
+    emit({ type: 'fighterDeath', x: f.x, y: f.y, tier: f.tier, id: f.id })
     deadThisWave.push(f.tier)
     removed = true
     return false
@@ -987,7 +1094,7 @@ const stepEnemies = (dt: number): void => {
     }
 
     const target = nearestFighter(e.x, e.y)
-    const gateDist = e.x - GATE_X
+    const gateDist = e.x - enemyGateX()
     const targetDist = target ? Math.hypot(target.x - e.x, (target.y - e.y) * 0.8) : Infinity
 
     // Attack a fighter in range, else march on the gate.
@@ -997,8 +1104,11 @@ const stepEnemies = (dt: number): void => {
         e.striking = true
         if (e.range > 14) {
           spawnProjectile({
-            x: e.x, y: e.y - 3, speed: 60, targetId: target.id, fromFighter: false,
-            dmg: e.atk, ability: 'spit', sourceTier: 0, color: '#9cff2e'
+            x: e.x, y: bodyY(e.y, e.scale), speed: 60, targetId: target.id, fromFighter: false,
+            dmg: e.atk, ability: 'spit', sourceTier: 0, color: '#c8a97e',
+            jitterX: hitScatterX(), jitterY: hitScatterY(),
+            // Spitter (centaur) hurls rocks: reuse the Tier-3 stone projectile + splitter.
+            element: 'stone'
           })
         } else {
           target.hp -= e.atk
@@ -1015,6 +1125,14 @@ const stepEnemies = (dt: number): void => {
       e.y = Math.max(6, Math.min(94, e.y + ny * e.speed * slowMult * dt))
     } else if (gateDist > 0) {
       e.x -= e.speed * slowMult * dt
+      // Steer toward the gate's vertical band — top/bottom spawns angle inward
+      // as they march, so they converge on the centred gate rather than the
+      // whole height (still spread WITHIN the band, so it doesn't single-file).
+      const bandY = Math.max(GATE_Y - GATE_BAND, Math.min(GATE_Y + GATE_BAND, e.y))
+      if (bandY !== e.y) {
+        const step = e.speed * 0.7 * slowMult * dt
+        e.y += Math.sign(bandY - e.y) * Math.min(Math.abs(bandY - e.y), step)
+      }
       e.y += Math.sin(engineNow * 2 + e.id) * 1.2 * dt // lively wiggle
     } else if (e.cooldown <= 0) {
       // Bash the gate.
@@ -1037,18 +1155,20 @@ const stepProjectiles = (dt: number): void => {
       ? enemies.value.find((e) => e.id === p.targetId && e.hp > 0)
       : fighters.value.find((f) => f.id === p.targetId && f.hp > 0)
     if (!target) { changed = true; continue } // fizzle
-    const dx = target.x - p.x
-    const dy = target.y - 3 - p.y
+    const tScale = p.fromFighter ? (target as Enemy).scale : getFighterDef((target as Fighter).tier).scale
+    // Aim at the scattered point on the body, not dead-centre.
+    const dx = (target.x + p.jitterX) - p.x
+    const dy = (bodyY(target.y, tScale) + p.jitterY) - p.y
     const dist = Math.hypot(dx, dy)
     const step = p.speed * dt
     if (dist <= step + 2) {
       changed = true
       if (p.fromFighter) {
-        landFighterHit({ tier: p.sourceTier, x: p.x, y: p.y }, target as Enemy, p.dmg)
+        landFighterHit({ tier: p.sourceTier, x: p.x, y: p.y }, target as Enemy, p.dmg, p.element, p.x, p.y)
       } else {
         const f = target as Fighter
         f.hp -= p.dmg
-        emit({ type: 'impact', x: f.x, y: f.y, color: p.color })
+        emit({ type: 'impact', x: f.x, y: bodyY(f.y, getFighterDef(f.tier).scale), color: p.color, element: p.element })
         emit({ type: 'number', x: f.x, y: f.y - 5, amount: p.dmg, variant: 'dmg' })
         if (mutator.value === 'frostMarch') f.cooldown = Math.min(3, Math.max(f.cooldown, 0) + 0.5)
       }
@@ -1088,9 +1208,20 @@ const step = (dt: number): void => {
       break
     case 'fighting': {
       waveElapsed += dt
+      // Open / close the current subwave's portal around its spawn window.
+      const pw = portalWindows[portalIdx]
+      if (pw) {
+        if (waveElapsed >= pw.closeAt) {
+          if (activePortal.value?.pos === pw.portal) activePortal.value = null
+          portalIdx++
+        } else if (waveElapsed >= pw.openAt && activePortal.value?.pos !== pw.portal) {
+          const pos = PORTAL_POSITIONS[pw.portal]!
+          activePortal.value = { pos: pw.portal, x: pos.x, y: pos.y }
+        }
+      }
       while (schedule.length && schedule[0]!.at <= waveElapsed) {
         const s = schedule.shift()!
-        spawnEnemy(s.kind, s.elite ?? false)
+        spawnEnemy(s.kind, s.elite ?? false, s.portal ?? 1)
       }
       stepFighters(dt)
       if (wavePhase.value !== 'fighting') break // overrun mid-step
@@ -1158,6 +1289,7 @@ export const stopBattle = (): void => {
   engineRefs = Math.max(0, engineRefs - 1)
   if (engineRefs === 0) {
     cancelAnimationFrame(raf)
+    activePortal.value = null
     persistBattle()
     persistArmy()
   }
@@ -1169,7 +1301,8 @@ const restoreArmy = (): void => {
   if (!Array.isArray(saved)) return
   const tiers = saved
     .map((t) => Math.floor(Number(t)))
-    .filter((t) => Number.isFinite(t) && t >= 1 && t <= 10)
+    // Allow tiers past the authored art (merging is uncapped); reject only junk.
+    .filter((t) => Number.isFinite(t) && t >= 1 && t <= 999)
     .slice(0, ARMY_CAP)
   fighters.value = tiers.map((tier, i) => makeFighter(tier, GUARD_X, guardY(i)))
   triggerRef(fighters)
@@ -1220,7 +1353,7 @@ watch(saveDataVersion, refreshFromBlob)
 // ─── Public composable surface ───────────────────────────────────────────────
 const useBattle = () => ({
   // entities
-  fighters, enemies, projectiles,
+  fighters, enemies, projectiles, activePortal,
   // HUD state
   wave, bestWave, wavePhase, countdown, gateHp, gateMax, combo, feverActive,
   ultCharge, ultMax, ultReady, boss, timescale, armyCount, armyFull, stats,
@@ -1232,7 +1365,7 @@ const useBattle = () => ({
   deployFighter, fieldMerge, fighterAt, fireUltimate, bumpStat,
   requestRallyHold, claimRally, declineRally, activateDamageBuff,
   // lifecycle
-  startBattle, stopBattle, setEventSink, setRenderSink
+  startBattle, stopBattle, setEventSink, setRenderSink, setGateEdge
 })
 
 export default useBattle

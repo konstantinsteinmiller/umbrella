@@ -12,7 +12,7 @@
  * Also owns the 'arena' drop zone the merge grid targets, the boss HP bar,
  * the gate, the combo/fever theatre, and the Meteor Storm button.
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBattle, { type BattleEvent, type Fighter, type Enemy } from '@/use/useBattle'
 import { getFighterDef, rollMutator, nextArchetypeUnlock } from '@/game/units'
@@ -21,7 +21,7 @@ import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import EnemyUnit from '@/components/organisms/EnemyUnit.vue'
 import FlyingChest from '@/components/organisms/FlyingChest.vue'
 import IconMovie from '@/components/icons/IconMovie.vue'
-import { artSrc } from '@/use/useArtOverrides'
+import { artSrc, type ArtKey } from '@/use/useArtOverrides'
 import useSounds from '@/use/useSound'
 import useScreenshake from '@/use/useScreenshake'
 import { emitConfetti, emitSparkle, emitSplash } from '@/use/usePrismParticles'
@@ -60,6 +60,9 @@ const cacheRect = (): void => {
   const r = rootRef.value?.getBoundingClientRect()
   if (!r) return
   boxW = r.width; boxH = r.height; boxLeft = r.left; boxTop = r.top
+  // Gate image right edge in arena-x % (mirrors the `.gate` CSS min(25cqw, 20cqh))
+  // so the engine can keep fighters from stepping onto it.
+  if (boxW) battle.setGateEdge(Math.min(25, 20 * boxH / boxW))
 }
 const toClientX = (x: number): number => boxLeft + (x / 100) * boxW
 const toClientY = (y: number): number => boxTop + (y / 100) * boxH
@@ -69,6 +72,9 @@ interface EntityEls { root: HTMLElement; hp: HTMLElement | null }
 const fighterEls = new Map<number, EntityEls>()
 const enemyEls = new Map<number, EntityEls>()
 const projEls = new Map<number, HTMLElement>()
+// Last position per projectile → derive a facing angle so directional sprites
+// (fireball, ice shard) point along their flight path.
+const projLast = new Map<number, { x: number; y: number }>()
 
 const setFighterEl = (id: number) => (el: unknown): void => {
   if (el instanceof HTMLElement) fighterEls.set(id, { root: el, hp: el.querySelector('.hpfill') })
@@ -80,7 +86,7 @@ const setEnemyEl = (id: number) => (el: unknown): void => {
 }
 const setProjEl = (id: number) => (el: unknown): void => {
   if (el instanceof HTMLElement) projEls.set(id, el)
-  else projEls.delete(id)
+  else { projEls.delete(id); projLast.delete(id) }
 }
 
 const writeEntity = (els: EntityEls | undefined, x: number, y: number, hpFrac: number): void => {
@@ -102,9 +108,25 @@ const render = (): void => {
   for (const e of battle.enemies.value) writeEntity(enemyEls.get(e.id), e.x, e.y, e.hp / e.maxHp)
   for (const p of battle.projectiles.value) {
     const el = projEls.get(p.id)
-    if (el) el.style.transform = `translate(${(p.x / 100) * boxW}px, ${(p.y / 100) * boxH}px)`
+    if (!el) continue
+    const last = projLast.get(p.id)
+    let a = last ? Number(el.dataset.rot ?? 0) : 0
+    // Facing must be measured in PIXEL space, not the 0..100 arena grid: the
+    // arena is a wide (non-square) strip, so the same normalized delta maps to
+    // a different on-screen slope. Scale the delta by boxW/boxH before atan2 so
+    // the sprite points exactly along its visible trajectory.
+    if (last && (p.x !== last.x || p.y !== last.y)) { a = Math.atan2((p.y - last.y) * boxH, (p.x - last.x) * boxW); el.dataset.rot = String(a) }
+    projLast.set(p.id, { x: p.x, y: p.y })
+    // Projectile sprites are authored pointing UP (north); +90° turns that to
+    // face the flight path (a=0 travels right → sprite points right).
+    el.style.transform = `translate(${(p.x / 100) * boxW}px, ${(p.y / 100) * boxH}px) rotate(${a + Math.PI / 2}rad)`
   }
 }
+
+/** Static projectile sprite for its element (fighters + the spitter's rocks). */
+const projArt = (p: { element: string }): string | null => artSrc(`proj-${p.element}` as ArtKey)
+/** Animated in-flight sheet for the element; wins over the static sprite. */
+const projAnim = (p: { element: string }): string | null => artSrc(`proj-anim-${p.element}` as ArtKey)
 
 // ─── Damage-number pool ──────────────────────────────────────────────────────
 const NUM_POOL = 36
@@ -131,11 +153,11 @@ const popNumber = (x: number, y: number, amount: number, variant: string): void 
 }
 
 // ─── Transient overlay effects (low frequency → fine as reactive lists) ──────
-interface Flash { id: number; type: 'nova' | 'blackhole' | 'meteor' | 'warheal' | 'shockwave' | 'mergeburst'; x: number; y: number }
+interface Flash { id: number; type: 'nova' | 'meteor' | 'warheal' | 'shockwave' | 'mergeburst' | 'impactsheet'; x: number; y: number; art?: string }
 const flashes = ref<Flash[]>([])
 let flashSeq = 0
 const FLASH_MS: Record<Flash['type'], number> = {
-  nova: 600, blackhole: 900, meteor: 700, warheal: 600, shockwave: 500, mergeburst: 500
+  nova: 600, meteor: 700, warheal: 600, shockwave: 500, mergeburst: 500, impactsheet: 480
 }
 const addFlash = (type: Flash['type'], x: number, y: number): void => {
   const id = ++flashSeq
@@ -143,16 +165,58 @@ const addFlash = (type: Flash['type'], x: number, y: number): void => {
   window.setTimeout(() => { flashes.value = flashes.value.filter((f) => f.id !== id) }, FLASH_MS[type])
 }
 
+/** Play the element's 9-frame splitter burst at (x, y). Returns false when no
+ *  bitmap has been dropped in, so the caller can fall back to the sparkle. */
+const addImpactSheet = (element: string, x: number, y: number): boolean => {
+  const art = artSrc(`impact-${element}` as ArtKey)
+  if (!art) return false
+  const id = ++flashSeq
+  flashes.value = [...flashes.value, { id, type: 'impactsheet', x, y, art }]
+  window.setTimeout(() => { flashes.value = flashes.value.filter((f) => f.id !== id) }, FLASH_MS.impactsheet)
+  return true
+}
+
 // ── Drop-in art overrides (art-todo.md; null → procedural CSS fallback) ──
 const arenaBg = computed(() => artSrc('arena-bg'))
 const gateArt = computed(() => artSrc('gate'))
-// Meteor/black-hole sprites replace the flash div's gradient; the CSS
-// keyframes (fall-in, suck-spin) keep animating the bitmap.
+const portalArt = computed(() => artSrc('arena-portal'))
+// Persist the last portal position so it stays put through the CLOSE animation
+// (when `activePortal` has already gone null but the element is still leaving).
+const portalPos = ref<{ x: number; y: number } | null>(null)
+watch(() => battle.activePortal.value, (p) => { if (p) portalPos.value = { x: p.x, y: p.y } })
+const portalStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = {}
+  const p = portalPos.value
+  if (p) { style.left = `${p.x}%`; style.top = `${p.y}%` }
+  return style
+})
+// Clip the crack/damage overlay to the gate bitmap's silhouette (its alpha),
+// so it hugs the ice tower instead of covering the transparent rectangle. Mask
+// geometry mirrors the img's `object-contain object-bottom`.
+const gateMaskStyle = computed<Record<string, string>>(() => {
+  const style: Record<string, string> = {}
+  const art = gateArt.value
+  if (art) {
+    const url = `url(${art})`
+    style.maskImage = url; style.WebkitMaskImage = url
+    style.maskSize = 'contain'; style.WebkitMaskSize = 'contain'
+    style.maskPosition = 'center bottom'; style.WebkitMaskPosition = 'center bottom'
+    style.maskRepeat = 'no-repeat'; style.WebkitMaskRepeat = 'no-repeat'
+  }
+  return style
+})
+// The meteor sprite replaces the flash div's gradient; the CSS keyframe
+// (fall-in) keeps animating the bitmap.
 const flashStyle = (fl: Flash): Record<string, string> => {
   const style: Record<string, string> = { left: fl.x + '%', top: fl.y + '%' }
-  const art = fl.type === 'meteor' ? artSrc('vfx-meteor')
-    : fl.type === 'blackhole' ? artSrc('vfx-blackhole')
-    : null
+  // Sprite-sheet flash (impact splitter): a 3×3 grid stepped through.
+  if (fl.type === 'impactsheet' && fl.art) {
+    style.backgroundImage = `url(${fl.art})`
+    style.backgroundSize = '300% 300%'
+    style.backgroundRepeat = 'no-repeat'
+    return style
+  }
+  const art = fl.type === 'meteor' ? artSrc('vfx-meteor') : null
   if (art) {
     style.backgroundImage = `url(${art})`
     style.backgroundSize = 'contain'
@@ -205,6 +269,64 @@ const clashSound = (tier: number): void => {
   throttledSound('clash', `clash-${n}`, 0.02, 0.9 + Math.min(10, tier) * 0.03, 90)
 }
 
+// ─── Shatter death effect ────────────────────────────────────────────────────
+// Instead of a confetti puff, tear the unit's rendered sprite into 16 jittered
+// shards and blast them outward. We clone the live `.unit-body` (bitmap OR the
+// vector fallback — whatever is on screen) and clip each clone to one polygon
+// of a jittered 4×4 grid, so the pieces tile the sprite seamlessly, then fling
+// each apart with a spin + upward pop. Returns false (→ caller falls back to the
+// old burst) when the element is already gone or too many shards are in flight.
+let liveShards = 0
+const SHARD_CAP = 128
+const shatterUnit = (root: HTMLElement | undefined, big: boolean): boolean => {
+  if (!root || !rootRef.value || liveShards + 16 > SHARD_CAP) return false
+  const unitBody = root.querySelector<HTMLElement>('.unit-body')
+  if (!unitBody) return false
+  const r = unitBody.getBoundingClientRect()
+  if (r.width < 1 || r.height < 1) return false
+  const arena = rootRef.value.getBoundingClientRect()
+  const box = document.createElement('div')
+  box.style.cssText = `position:absolute;left:${r.left - arena.left}px;top:${r.top - arena.top}px;width:${r.width}px;height:${r.height}px;pointer-events:none;z-index:1180`
+
+  const G = 4
+  // Shared jittered lattice so neighbouring shards keep matching edges.
+  const grid: [number, number][][] = []
+  for (let rr = 0; rr <= G; rr++) {
+    grid[rr] = []
+    for (let cc = 0; cc <= G; cc++) {
+      const edge = rr === 0 || rr === G || cc === 0 || cc === G
+      const jx = edge ? 0 : (Math.random() - 0.5) * 0.16
+      const jy = edge ? 0 : (Math.random() - 0.5) * 0.16
+      grid[rr]![cc] = [(cc / G + jx) * 100, (rr / G + jy) * 100]
+    }
+  }
+  for (let rr = 0; rr < G; rr++) for (let cc = 0; cc < G; cc++) {
+    const a = grid[rr]![cc]!, b = grid[rr]![cc + 1]!, c = grid[rr + 1]![cc + 1]!, d = grid[rr + 1]![cc]!
+    const poly = `polygon(${a[0]}% ${a[1]}%, ${b[0]}% ${b[1]}%, ${c[0]}% ${c[1]}%, ${d[0]}% ${d[1]}%)`
+    const shard = document.createElement('div')
+    shard.style.cssText = `position:absolute;inset:0;clip-path:${poly};-webkit-clip-path:${poly};will-change:transform,opacity`
+    const vis = unitBody.cloneNode(true) as HTMLElement
+    vis.style.width = '100%'; vis.style.height = '100%'; vis.style.animation = 'none'; vis.style.transform = 'none'
+    shard.appendChild(vis)
+    box.appendChild(shard)
+    // Fling from the sprite centre, with spin and a little upward pop → gravity.
+    const ox = (cc + 0.5) / G - 0.5, oy = (rr + 0.5) / G - 0.5
+    const ang = Math.atan2(oy, ox) + (Math.random() - 0.5) * 0.7
+    const dist = (big ? 1.9 : 1) * (24 + Math.random() * 30)
+    const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist
+    const spin = (Math.random() - 0.5) * 260
+    shard.animate([
+      { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+      { transform: `translate(${dx * 0.55}px,${dy * 0.55 - 10}px) rotate(${spin * 0.5}deg)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${dx}px,${dy + 22}px) rotate(${spin}deg)`, opacity: 0 }
+    ], { duration: 460 + Math.random() * 260, easing: 'cubic-bezier(0.2,0.7,0.3,1)', fill: 'forwards' })
+  }
+  rootRef.value.appendChild(box)
+  liveShards += 16
+  window.setTimeout(() => { box.remove(); liveShards -= 16 }, 820)
+  return true
+}
+
 // ─── The event sink: every engine happening → juice ──────────────────────────
 const onEvent = (e: BattleEvent): void => {
   switch (e.type) {
@@ -230,10 +352,11 @@ const onEvent = (e: BattleEvent): void => {
       throttledSound('shot', 'unit-shot', 0.012, 1.3, 120)
       break
     case 'impact':
-      emitSparkle(toClientX(e.x), toClientY(e.y), e.color, 4)
+      if (!e.element || !addImpactSheet(e.element, e.x, e.y)) emitSparkle(toClientX(e.x), toClientY(e.y), e.color, 4)
       break
     case 'splash':
-      emitConfetti(toClientX(e.x), toClientY(e.y), 10, 1)
+      // Element-coloured spark burst for the AoE hit — no celebratory confetti.
+      emitSparkle(toClientX(e.x), toClientY(e.y), e.color, 12)
       throttledSound('boom', 'explosion-1', 0.03, 1.1, 150)
       triggerShake('small')
       break
@@ -246,17 +369,18 @@ const onEvent = (e: BattleEvent): void => {
       emitSparkle(toClientX(e.x), toClientY(e.y), '#bfe6ff', 14)
       throttledSound('nova', 'frost-nova', 0.03, 0.8, 200)
       break
-    case 'blackhole':
-      addFlash('blackhole', e.x, e.y)
-      playSound('black-hole', 0.04, 0.8)
-      triggerShake('small')
-      break
     case 'death':
-      emitConfetti(toClientX(e.x), toClientY(e.y), e.boss ? 40 : 8, e.boss ? 1.6 : 0.8)
+      // The tear/shatter is the death effect — NO confetti, even when the shard
+      // cap skips the shatter (then it's just the small spark burst).
+      shatterUnit(enemyEls.get(e.id)?.root, e.boss)
+      emitSparkle(toClientX(e.x), toClientY(e.y), '#ffcf9a', e.boss ? 20 : 9)
       throttledSound('death', 'enemy-death', 0.02, 1 + Math.random() * 0.3, 80)
       break
     case 'fighterDeath':
-      emitSplash(toClientX(e.x), toClientY(e.y), getIngredient(e.tier).glow)
+      if (!shatterUnit(fighterEls.get(e.id)?.root, false)) {
+        emitSplash(toClientX(e.x), toClientY(e.y), getIngredient(e.tier).glow)
+      }
+      emitSparkle(toClientX(e.x), toClientY(e.y), getIngredient(e.tier).glow, 9)
       playSound('fighter-death', 0.03, 0.8)
       break
     case 'deploy':
@@ -353,8 +477,11 @@ const onEvent = (e: BattleEvent): void => {
       playSound('ult-ready', 0.05)
       break
     case 'meteor':
+      // Fireball bitmap drops from the sky (CSS), then bursts into the fire
+      // splitter on landing — whether it hit an enemy or just the ground. The
+      // delay matches the ~0.25s fall so the burst lands with the meteor.
       addFlash('meteor', e.x, e.y)
-      emitConfetti(toClientX(e.x), toClientY(e.y), 14, 1.4)
+      window.setTimeout(() => addImpactSheet('fire', e.x, e.y), 245)
       emitSplash(toClientX(e.x), toClientY(e.y), '#ff8a1f')
       playSound('meteor-impact', 0.045, 0.9 + Math.random() * 0.4)
       triggerShake('small')
@@ -367,6 +494,8 @@ const onEvent = (e: BattleEvent): void => {
 
 // ─── Ultimate button ─────────────────────────────────────────────────────────
 const ultPct = computed(() => Math.min(100, Math.round((battle.ultCharge.value / battle.ultMax) * 100)))
+// Drop-in art: the fireball icon on the ult button.
+const meteorBtnArt = computed(() => artSrc('meteor-button'))
 const onUlt = (): void => {
   if (battle.fireUltimate()) {
     playSound('ult-cast', 0.05, 1.2)
@@ -451,13 +580,29 @@ onUnmounted(() => {
     div.absolute.inset-0.arena-grid(v-if="!arenaBg")
 
     //- ── The Lab Gate (left edge) ──
-    div.gate.absolute.left-0.flex.flex-col.items-center(:class="{ 'gate-shake': gateShake }" class="top-[6%] bottom-[4%] w-[7%] min-w-8 z-[8]")
-      div.gate-door.relative.flex-1.w-full.rounded-r-xl.overflow-hidden
-        img.absolute.inset-0.w-full.h-full.object-cover(v-if="gateArt" :src="gateArt" alt="" draggable="false")
-        div.gate-glow.absolute.inset-0(:style="{ opacity: gatePct / 100 * 0.8 + 0.2 }")
-        div.gate-cracks.absolute.inset-0(v-if="gatePct < 55")
+    div.gate.absolute.left-0.flex.flex-col.items-center.pointer-events-none(class="top-1/2 -translate-y-1/2 min-w-8 z-[8]")
+      //- Door carries the tower's 1:2 aspect so the image fills it (the whole
+      //- damageable box IS the tower, not a tall empty strip), and the shake.
+      div.gate-door.relative.w-full.rounded-r-xl.overflow-hidden(class="aspect-[1/2]" :class="{ 'gate-bare': gateArt, 'gate-shake': gateShake }")
+        img.absolute.inset-0.w-full.h-full.object-contain.object-bottom(
+          v-if="gateArt" :src="gateArt" alt="" draggable="false"
+        )
+        //- Blue HP glow is only for the procedural fallback door; the bitmap gate stands bare.
+        div.gate-glow.absolute.inset-0(v-if="!gateArt" :style="{ opacity: gatePct / 100 * 0.8 + 0.2 }")
+        div.gate-cracks.absolute.inset-0(v-if="gatePct < 55" :style="gateMaskStyle")
       div.w-full.rounded-full.overflow-hidden.mt-1(class="h-1.5 bg-black/50")
         div.h-full.gate-hp(:style="{ width: gatePct + '%' }")
+
+    //- ── Enemy portal — opens at one of 3 positions per subwave, then closes ──
+    transition(name="portal")
+      div.enemy-portal.absolute.pointer-events-none(
+        v-if="battle.activePortal.value"
+        :style="portalStyle"
+      )
+        img.portal-img.w-full.h-full.object-contain(v-if="portalArt" :src="portalArt" alt="" draggable="false")
+        template(v-else)
+          div.portal-core.absolute.inset-0
+          div.portal-swirl.absolute.inset-0
 
     //- ── Fighters ──
     div.entity.absolute.top-0.left-0(
@@ -469,7 +614,7 @@ onUnmounted(() => {
       div.unit-box
         div.hpbar
           div.hpfill.hp-ally
-        div.unit-body
+        div.unit-body.fighter-march
           IngredientUnit(:tier="f.tier" :still="true")
 
     //- ── Enemies ──
@@ -483,7 +628,7 @@ onUnmounted(() => {
         div.hpbar
           div.hpfill.hp-enemy
         div.unit-body.enemy-march(:class="{ 'elite-aura': e.elite }")
-          EnemyUnit(:kind="e.kind" :enraged="e.enraged")
+          EnemyUnit(:kind="e.kind" :enraged="e.enraged" :boss-wave="battle.wave.value")
 
     //- ── Projectiles ──
     div.proj.absolute.top-0.left-0(
@@ -491,7 +636,9 @@ onUnmounted(() => {
       :key="p.id"
       :ref="setProjEl(p.id)"
     )
-      div.proj-dot(:style="{ background: p.color, boxShadow: '0 0 8px 2px ' + p.color }")
+      div.proj-anim(v-if="projAnim(p)" :style="{ backgroundImage: 'url(' + projAnim(p) + ')' }")
+      img.proj-sprite(v-else-if="projArt(p)" :src="projArt(p)" alt="" draggable="false")
+      div.proj-dot(v-else :style="{ background: p.color, boxShadow: '0 0 8px 2px ' + p.color }")
 
     //- ── Chain lightning bolts ──
     svg.absolute.inset-0.w-full.h-full.pointer-events-none(viewBox="0 0 100 100" preserveAspectRatio="none" class="z-[1150]")
@@ -504,7 +651,7 @@ onUnmounted(() => {
         class="chain-bolt"
       )
 
-    //- ── Transient flashes (nova / blackhole / meteor / heals / shockwaves) ──
+    //- ── Transient flashes (nova / meteor / heals / shockwaves) ──
     div.flash.absolute.pointer-events-none(
       v-for="fl in flashes"
       :key="fl.id"
@@ -606,8 +753,9 @@ onUnmounted(() => {
           :stroke-dasharray="125.6" :stroke-dashoffset="125.6 * (1 - ultPct / 100)"
           transform="rotate(-90 24 24)"
         )
-        //- Meteor glyph
-        g(transform="translate(24 25)")
+        //- Meteor icon: dropped-in bitmap, else the drawn glyph fallback
+        image(v-if="meteorBtnArt" :href="meteorBtnArt" x="9" y="9" width="30" height="30")
+        g(v-else transform="translate(24 25)")
           path(d="M-9 -7 L5 7 M-4 -10 L8 2 M-11 0 L1 12" stroke="#ffcd5a" stroke-width="2" stroke-linecap="round" opacity="0.85")
           circle(cx="6" cy="8" r="6" fill="#ff8a1f" stroke="#7a3000" stroke-width="1.5")
 </template>
@@ -631,10 +779,18 @@ onUnmounted(() => {
   opacity: 0.7
 
 // ── Gate ──
+// Sized against the arena (a size container): height-led so it stays a decent
+// presence on wide arenas, but never wider than 25% of the arena viewport.
+.gate
+  width: min(25cqw, 20cqh)
 .gate-door
   background: linear-gradient(90deg, #2a3558 0%, #1a2440 100%)
   border: 2.5px solid #0f1a30
   border-left: none
+// Bitmap gate: drop the blue box + border so the transparent PNG stands free.
+.gate-bare
+  background: none
+  border: none
 .gate-glow
   background: linear-gradient(90deg, rgba(80, 170, 255, 0.55), rgba(80, 170, 255, 0.08))
   transition: opacity 0.3s ease
@@ -646,13 +802,59 @@ onUnmounted(() => {
 .gate-shake
   animation: gate-bash 0.2s ease
 
+// ── Enemy portal — boss-sized, opens at its arena position (procedural
+// vortex fallback if no bitmap is dropped in) ──
+.enemy-portal
+  width: clamp(84px, 30cqmin, 150px)
+  height: clamp(84px, 30cqmin, 150px)
+  transform: translate(-50%, -50%)
+  z-index: 6
+// The vortex bitmap is round → spin it for a live portal.
+.portal-img
+  animation: portal-spin 6s linear infinite
+.portal-core
+  border-radius: 50%
+  background: radial-gradient(circle at 52% 50%, rgba(160,95,255,0.6), rgba(96,42,196,0.4) 42%, rgba(46,14,104,0.18) 66%, transparent 80%)
+  box-shadow: inset 0 0 26px 5px rgba(184,126,255,0.4), 0 0 30px 8px rgba(128,64,236,0.28)
+  animation: portal-pulse 2.6s ease-in-out infinite
+.portal-swirl
+  border-radius: 50%
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(196,132,255,0.55) 55deg, transparent 130deg, rgba(120,214,255,0.42) 210deg, transparent 285deg)
+  filter: blur(2px)
+  mix-blend-mode: screen
+  mask-image: radial-gradient(circle at 52% 50%, #000 52%, transparent 72%)
+  -webkit-mask-image: radial-gradient(circle at 52% 50%, #000 52%, transparent 72%)
+  animation: portal-spin 3.4s linear infinite
+@keyframes portal-pulse
+  0%, 100%
+    opacity: 0.82
+    transform: scale(1)
+  50%
+    opacity: 1
+    transform: scale(1.04)
+@keyframes portal-spin
+  to
+    transform: rotate(360deg)
+// Open when a subwave starts, collapse shut when it finishes.
+.portal-enter-active
+  animation: portal-open 0.34s cubic-bezier(0.2, 1.4, 0.4, 1)
+.portal-leave-active
+  animation: portal-open 0.26s ease-in reverse
+@keyframes portal-open
+  0%
+    transform: translate(-50%, -50%) scale(0.05) rotate(-60deg)
+    opacity: 0
+  100%
+    transform: translate(-50%, -50%) scale(1) rotate(0deg)
+    opacity: 1
+
 @keyframes gate-bash
   0%, 100%
     transform: translateX(0)
   40%
-    transform: translateX(-4px)
+    transform: translateX(-2px)
   70%
-    transform: translateX(3px)
+    transform: translateX(2px)
 
 // ── Entities ──
 .entity
@@ -669,7 +871,7 @@ onUnmounted(() => {
   width: 100%
   height: 100%
 
-.enemy-march
+.enemy-march, .fighter-march
   animation: march 0.55s ease-in-out infinite
 
 @keyframes march
@@ -707,6 +909,20 @@ onUnmounted(() => {
   height: clamp(6px, 2cqmin, 10px)
   border-radius: 9999px
   transform: translate(-50%, -50%)
+.proj-sprite
+  width: clamp(18px, 6cqmin, 30px)
+  height: clamp(18px, 6cqmin, 30px)
+  object-fit: contain
+  transform: translate(-50%, -50%)
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.35))
+.proj-anim
+  width: clamp(20px, 7cqmin, 34px)
+  height: clamp(20px, 7cqmin, 34px)
+  transform: translate(-50%, -50%)
+  background-size: 300% 300%
+  background-repeat: no-repeat
+  animation: impact-sheet-9 0.5s step-end infinite
+  filter: drop-shadow(0 0 5px rgba(255, 140, 40, 0.55))
 
 // ── Flashes ──
 .flash
@@ -723,42 +939,22 @@ onUnmounted(() => {
   to
     box-shadow: 0 0 24px 46px rgba(191, 230, 255, 0)
 
-.flash-blackhole
-  width: 26cqmin
-  height: 26cqmin
-  border-radius: 9999px
-  background: radial-gradient(circle, #150a2a 0%, #4b0fb0 45%, rgba(75, 15, 176, 0) 70%)
-  animation: blackhole-suck 0.9s ease-in forwards
-@keyframes blackhole-suck
-  0%
-    transform: translate(-50%, -50%) scale(0.2) rotate(0deg)
-    opacity: 0.4
-  60%
-    transform: translate(-50%, -50%) scale(1.1) rotate(200deg)
-    opacity: 1
-  100%
-    transform: translate(-50%, -50%) scale(0.05) rotate(420deg)
-    opacity: 0
-
 .flash-meteor
-  width: 8cqmin
-  height: 8cqmin
+  width: clamp(32px, 11cqmin, 76px)
+  height: clamp(32px, 11cqmin, 76px)
   border-radius: 9999px
   background: radial-gradient(circle at 40% 35%, #fff07a, #ff8a1f 55%, #d43a00)
   box-shadow: 0 0 18px 6px rgba(255, 138, 31, 0.8)
   animation: meteor-land 0.7s ease-out forwards
 @keyframes meteor-land
   0%
-    transform: translate(120%, -320%) scale(0.6)
+    transform: translate(-220%, -320%) scale(-0.6, 0.6)
     opacity: 0.9
   35%
-    transform: translate(-50%, -50%) scale(1)
+    transform: translate(-50%, -50%) scale(-1, 1)
     opacity: 1
-  60%
-    transform: translate(-50%, -50%) scale(1.7)
-    opacity: 0.85
   100%
-    transform: translate(-50%, -50%) scale(2.4)
+    transform: translate(-50%, -50%) scale(-1.4, 1.4)
     opacity: 0
 
 .flash-warheal
@@ -790,6 +986,32 @@ onUnmounted(() => {
   100%
     transform: translate(-50%, -50%) scale(2)
     opacity: 0
+
+// Projectile impact "splitter": a 3×3 sprite sheet stepped one cell at a time.
+.flash-impactsheet
+  width: clamp(26px, 10.4cqmin, 57px)
+  height: clamp(26px, 10.4cqmin, 57px)
+  background-repeat: no-repeat
+  animation: impact-sheet-9 0.48s step-end forwards
+@keyframes impact-sheet-9
+  0%
+    background-position: 0% 0%
+  11.111%
+    background-position: 50% 0%
+  22.222%
+    background-position: 100% 0%
+  33.333%
+    background-position: 0% 50%
+  44.444%
+    background-position: 50% 50%
+  55.555%
+    background-position: 100% 50%
+  66.666%
+    background-position: 0% 100%
+  77.777%
+    background-position: 50% 100%
+  88.888%
+    background-position: 100% 100%
 
 .chain-bolt
   animation: chain-fade 0.26s ease-out forwards

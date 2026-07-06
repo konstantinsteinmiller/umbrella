@@ -162,26 +162,27 @@ export default {
     'rally': 'TOPLAN!',
     'rallyBody': 'Düşen savaşçılarını diriltmek için reklam izle!',
     'tutorial': {
-      'spawn': "İki damlacık toplamak için ÇAĞIR'a dokun!",
-      'merge': 'Bir damlacığı diğerinin üzerine sürükleyerek BİRLEŞTİR!',
+      'spawn': "İki kıvılcım toplamak için ÇAĞIR'a dokun!",
+      'merge': 'Bir kıvılcımı diğerinin üzerine sürükleyerek BİRLEŞTİR!',
       'deploy': 'Savaşçını arenaya sürükleyerek savaşa kat!',
       'fieldMerge': 'Aynı seviyeden bir birim daha yap ve savaşçının üzerine bırak — İYİLEŞTİR ve YÜKSELT!'
     },
     'codex': {
       'title': 'Birim Kodeksi',
-      'names': { 't1': 'Canlı Damla', 't2': 'Kor Fışkırtması', 't3': 'Buhar Parçası', 't4': 'Biyo-Filiz', 't5': 'Piro-Çekirdek', 't6': 'Asit Bezesi', 't7': 'Kıvılcım Kıvılcım', 't8': 'Kriyo-Parça', 't9': 'Altın Macun', 't10': 'Kozmik Kütle' },
+      'names': { 't1': 'Magma Kıvılcımı', 't2': 'Buz Kasırgası', 't3': 'Kaya Kabadayısı', 't4': 'Buzul Muhafızı', 't5': 'Gelgit Damlası', 't6': 'Taş Devi', 't7': 'Bulutsu Gözü', 't8': 'Boşluk Hayaleti', 't9': 'Altın Pençe', 't10': 'Anka Hükümdarı', 't11': 'Obsidyen Savaş Lordu' },
       'locked': 'Keşfetmek için iki Seviye {n} birleştir!',
       'abilities': {
-        'none': 'Hızlı, korkusuz ve hep en önde.',
-        'burn': 'Düşmanları tutuşturur — vuruştan sonra yanmaya devam ederler.',
-        'knockback': 'Düşmanları geri iten menzilli atışlar.',
-        'heal': 'Her vuruş en zayıf müttefiğini de iyileştirir.',
-        'splash': 'Patlayıcı vuruşlar yakındaki tüm düşmanlara hasar verir.',
-        'poison': 'Zamanla ağır hasar için zehir yığar.',
-        'chain': 'Şimşek üç ek düşmana sıçrar.',
-        'frost': 'Vuruşta yavaşlatır, buz novalarıyla kalabalıkları dondurur.',
+        'none': 'Erimiş bir kıvılcım — hızlı, korkusuz ve hep en önde.',
+        'burn': 'Keskin ayaz sürüp gider — düşmanlar vuruştan sonra da hasar almaya devam eder.',
+        'knockback': 'Düşmanları geriye iten kayalar fırlatır.',
+        'heal': 'İyileştirici ayaz yayar — her vuruş en zayıf müttefikini iyileştirir.',
+        'splash': 'Kırılan dalgalar yakındaki tüm düşmanları vurur.',
+        'poison': 'Boğucu toz üst üste binerek zamanla ağır hasar verir.',
+        'chain': 'Yıldız ateşi üç ek düşmana sıçrar.',
+        'frost': 'Sürünen bir dehşet düşmanları yavaşlatır ve kalabalıkları yerine çakar.',
         'midas': 'Yüksek kritik şansı ve her vuruşta bonus altın.',
-        'blackhole': 'Sürüyü düzenli olarak içine çeker ve ezer.'
+        'blackhole': 'Sürüyü içine çekip küle çeviren kavurucu bir girdap çağırır.',
+        'eruption': 'Çarpışmada patlar — erimiş bir sıçrama yakındaki tüm düşmanları yakar.'
       }
     },
     'mutators': {

@@ -162,26 +162,27 @@ export default {
     'rally': '¡REAGRUPARSE!',
     'rallyBody': '¡Mira un anuncio para resucitar a tus luchadores caídos!',
     'tutorial': {
-      'spawn': '¡Toca INVOCAR para reclutar dos gotitas!',
-      'merge': '¡Arrastra una gotita sobre la otra para FUSIONARLAS!',
+      'spawn': '¡Toca INVOCAR para reclutar dos chispas!',
+      'merge': '¡Arrastra una chispa sobre la otra para FUSIONARLAS!',
       'deploy': '¡Arrastra a tu luchador a la arena para unirse a la batalla!',
       'fieldMerge': '¡Crea otra unidad del mismo nivel y suéltala sobre tu luchador para CURARLO y ASCENDERLO!'
     },
     'codex': {
       'title': 'Códice de unidades',
-      'names': { 't1': 'Gotita Viviente', 't2': 'Chorrito de Brasa', 't3': 'Trozo de Vapor', 't4': 'Biobrote', 't5': 'Núcleo Piro', 't6': 'Glándula Ácida', 't7': 'Chispa Chispa', 't8': 'Fragmento Crio', 't9': 'Pasta Áurea', 't10': 'Masa Cósmica' },
+      'names': { 't1': 'Chispa de Magma', 't2': 'Torbellino Glacial', 't3': 'Bruto de Roca', 't4': 'Guardián Glaciar', 't5': 'Gota de Marea', 't6': 'Coloso Pétreo', 't7': 'Ojo de Nebulosa', 't8': 'Espectro del Vacío', 't9': 'Garra Dorada', 't10': 'Soberano Fénix', 't11': 'Señor de la Guerra de Obsidiana' },
       'locked': '¡Fusiona dos de nivel {n} para descubrirla!',
       'abilities': {
-        'none': 'Rápido, intrépido y siempre el primero.',
-        'burn': 'Incendia a los enemigos: siguen ardiendo tras el golpe.',
-        'knockback': 'Disparos a distancia que empujan a los enemigos.',
-        'heal': 'Cada golpe también cura a tu aliado más débil.',
-        'splash': 'Golpes explosivos que dañan a todos los enemigos cercanos.',
-        'poison': 'Acumula veneno con gran daño continuo.',
-        'chain': 'Los rayos saltan a tres enemigos más.',
-        'frost': 'Enfría al golpear y congela grupos con novas de hielo.',
-        'midas': 'Alta probabilidad de crítico y oro extra por golpe.',
-        'blackhole': 'Atrae a la horda periódicamente y la aplasta.'
+        'none': 'Una chispa fundida: rápido, intrépido y siempre el primero.',
+        'burn': 'La escarcha mordaz persiste: los enemigos siguen recibiendo daño tras el golpe.',
+        'knockback': 'Lanza rocas que empujan a los enemigos hacia atrás.',
+        'heal': 'Irradia escarcha sanadora: cada golpe cura a tu aliado más débil.',
+        'splash': 'Olas rompientes golpean a todos los enemigos cercanos.',
+        'poison': 'La arenilla asfixiante se acumula para causar gran daño con el tiempo.',
+        'chain': 'El fuego estelar salta a tres enemigos más.',
+        'frost': 'Un pavor creciente ralentiza a los enemigos y paraliza a las multitudes.',
+        'midas': 'Alta probabilidad de crítico y oro extra en cada golpe.',
+        'blackhole': 'Invoca un vórtice abrasador que atrae a la horda y la reduce a cenizas.',
+        'eruption': 'Entra en erupción al impactar: una salpicadura fundida quema a todos los enemigos cercanos.'
       }
     },
     'mutators': {

@@ -6,13 +6,15 @@
  * arena owns position/HP; this reacts to `enraged` with a red flush.
  */
 import { computed } from 'vue'
-import type { EnemyKind } from '@/game/units'
+import { bossArtKey, bossIsReused, type EnemyKind } from '@/game/units'
 import { artSrc, type ArtKey } from '@/use/useArtOverrides'
 
 const props = withDefaults(defineProps<{
   kind: EnemyKind
   enraged?: boolean
-}>(), { enraged: false })
+  /** The boss's wave — selects its sprite (bosses only). */
+  bossWave?: number
+}>(), { enraged: false, bossWave: 0 })
 
 interface Palette { body: string; light: string; accent: string }
 const PALETTES: Record<EnemyKind, Palette> = {
@@ -28,21 +30,45 @@ const pal = computed<Palette>(() => props.enraged
   : PALETTES[props.kind])
 
 const uid = `en${(Math.random() * 1e9) | 0}`
+// Half the slimes use the alternate look (chosen once per instance) for variety.
+const slimeKey = Math.random() < 0.5 ? 'enemy-slime-alt' : 'enemy-slime'
 
-// Drop-in bitmap override (art-todo.md): `images/enemies/<kind>.webp`.
-// Null until the file exists and decodes — the SVG below is the fallback.
-// Enrage keeps working on bitmaps via a CSS red-flush filter.
-const bitmap = computed(() => artSrc(`enemy-${props.kind}` as ArtKey))
+// Drop-in bitmap over the SVG fallback (art-todo.md). Bosses rotate their sprite
+// by wave; slimes pick a random variant; the rest key off `enemy-<kind>`.
+const bitmap = computed(() => {
+  if (props.kind === 'boss') return artSrc(bossArtKey(props.bossWave) as ArtKey)
+  if (props.kind === 'slime') return artSrc(slimeKey as ArtKey)
+  return artSrc(`enemy-${props.kind}` as ArtKey)
+})
+
+// Reused bosses (past the authored set) render shadier; dragon+ bosses smoke.
+const bossReused = computed(() => props.kind === 'boss' && bossIsReused(props.bossWave))
+const bossSmoke = computed(() => props.kind === 'boss' && props.bossWave >= 15)
+const imgFilter = computed(() => {
+  const shadow = 'drop-shadow(0 3px 3px rgba(0,0,0,0.35))'
+  if (props.enraged) return `${shadow} sepia(0.5) saturate(3) hue-rotate(-28deg) brightness(1.1)`
+  if (bossReused.value) return `${shadow} brightness(0.6) saturate(0.85) contrast(1.05)`
+  return shadow
+})
+// The centaur (spitter) art faces right; mirror it so it marches left like the rest.
+const imgStyle = computed<Record<string, string>>(() => ({
+  filter: imgFilter.value,
+  transform: props.kind === 'spitter' ? 'scaleX(-1)' : 'none'
+}))
 </script>
 
 <template lang="pug">
   div.enemy-unit.relative.select-none
+    //- Drifting smoke behind stronger-wave bosses
+    div.boss-smoke.absolute.inset-0.pointer-events-none(v-if="bossSmoke")
+      span.smoke-puff
+      span.smoke-puff
+      span.smoke-puff
     //- Drop-in bitmap art (march/enrage animations live on the arena wrapper)
-    img.w-full.h-full.object-contain(
+    img.enemy-img.w-full.h-full.object-contain(
       v-if="bitmap"
       :src="bitmap" alt="" draggable="false"
-      :class="{ 'is-enraged': enraged }"
-      style="filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35))"
+      :style="imgStyle"
     )
     svg(v-else viewBox="0 0 100 100" class="w-full h-full overflow-visible" style="filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35))")
       defs
@@ -121,8 +147,36 @@ const bitmap = computed(() => artSrc(`enemy-${props.kind}` as ArtKey))
   height: 100%
   transform-origin: center
 
-// Red flush for enraged bosses when the bitmap override is active — the
-// inline drop-shadow is repeated so the :class swap doesn't drop it.
-.is-enraged
-  filter: drop-shadow(0 3px 3px rgba(0,0,0,0.35)) sepia(0.5) saturate(3) hue-rotate(-28deg) brightness(1.1) !important
+.enemy-img
+  position: relative
+  z-index: 1
+// Drifting smoke behind stronger bosses (rises from the feet + fades).
+.boss-smoke
+  z-index: 0
+.smoke-puff
+  position: absolute
+  bottom: 0
+  width: 42%
+  height: 42%
+  border-radius: 50%
+  background: radial-gradient(circle, rgba(26, 16, 36, 0.5) 0%, rgba(16, 8, 26, 0) 68%)
+  filter: blur(3px)
+  animation: boss-smoke 3.2s ease-out infinite
+.smoke-puff:nth-child(1)
+  left: 4%
+.smoke-puff:nth-child(2)
+  left: 30%
+  animation-delay: 1.1s
+.smoke-puff:nth-child(3)
+  left: 56%
+  animation-delay: 2.1s
+@keyframes boss-smoke
+  0%
+    transform: translateY(10%) scale(0.5)
+    opacity: 0
+  25%
+    opacity: 0.75
+  100%
+    transform: translateY(-75%) scale(1.5)
+    opacity: 0
 </style>

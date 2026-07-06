@@ -162,26 +162,27 @@ export default {
     'rally': 'SAMMELN!',
     'rallyBody': 'Werbung ansehen und gefallene Kämpfer wiederbeleben!',
     'tutorial': {
-      'spawn': 'Tippe auf RUFEN, um zwei Tropfen zu rekrutieren!',
-      'merge': 'Ziehe einen Tropfen auf den anderen, um sie zu VERSCHMELZEN!',
+      'spawn': 'Tippe auf RUFEN, um zwei Funken zu rekrutieren!',
+      'merge': 'Ziehe einen Funken auf den anderen, um sie zu VERSCHMELZEN!',
       'deploy': 'Ziehe deinen Kämpfer in die Arena, um mitzukämpfen!',
       'fieldMerge': 'Baue eine weitere Einheit derselben Stufe und ziehe sie auf deinen Kämpfer — HEILT & STUFT AUF!'
     },
     'codex': {
       'title': 'Einheiten-Kodex',
-      'names': { 't1': 'Lebender Tropfen', 't2': 'Glutspritzer', 't3': 'Dampfbrocken', 't4': 'Bio-Spross', 't5': 'Pyro-Kern', 't6': 'Säuredrüse', 't7': 'Funke Funke', 't8': 'Kryo-Scherbe', 't9': 'Aurum-Paste', 't10': 'Kosmische Masse' },
+      'names': { 't1': 'Magmafunke', 't2': 'Frostwirbel', 't3': 'Felsbrocken', 't4': 'Gletscherwächter', 't5': 'Flutentropfen', 't6': 'Felskoloss', 't7': 'Sternennebel', 't8': 'Leerenschemen', 't9': 'Goldkralle', 't10': 'Phönixherrscher', 't11': 'Obsidian-Kriegsfürst' },
       'locked': 'Verschmilz zwei Stufe-{n}-Einheiten zum Entdecken!',
       'abilities': {
-        'none': 'Schnell, furchtlos und immer vorneweg.',
-        'burn': 'Entzündet Gegner — sie brennen nach dem Treffer weiter.',
-        'knockback': 'Fernkampfschüsse, die Gegner zurückstoßen.',
-        'heal': 'Jeder Treffer heilt zusätzlich deinen schwächsten Verbündeten.',
-        'splash': 'Explosive Schläge treffen alle Gegner in der Nähe.',
-        'poison': 'Stapelt Gift für hohen Schaden über Zeit.',
-        'chain': 'Blitze springen auf drei weitere Gegner über.',
-        'frost': 'Kühlt bei Treffern und friert Gruppen mit Eis-Novas ein.',
+        'none': 'Ein glühender Funke — schnell, furchtlos und immer vorneweg.',
+        'burn': 'Beißender Frost bleibt — Gegner nehmen nach dem Treffer weiter Schaden.',
+        'knockback': 'Schleudert Felsen, die Gegner zurückstoßen.',
+        'heal': 'Strahlt heilenden Frost aus — jeder Treffer heilt deinen schwächsten Verbündeten.',
+        'splash': 'Brechende Wellen treffen alle Gegner in der Nähe.',
+        'poison': 'Erstickender Staub stapelt sich für hohen Schaden über Zeit.',
+        'chain': 'Sternenfeuer springt auf drei weitere Gegner über.',
+        'frost': 'Kriechendes Grauen verlangsamt Gegner und hält Gruppen fest.',
         'midas': 'Hohe Kritchance und Bonusgold bei jedem Treffer.',
-        'blackhole': 'Zieht die Horde regelmäßig zusammen und zermalmt sie.'
+        'blackhole': 'Beschwört einen sengenden Wirbel, der die Horde einsaugt und zu Asche verbrennt.',
+        'eruption': 'Bricht bei Einschlag aus — eine glühende Druckwelle verbrennt alle Gegner in der Nähe.'
       }
     },
     'mutators': {

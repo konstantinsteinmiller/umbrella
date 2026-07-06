@@ -16,7 +16,7 @@ import { prependBaseUrl } from '@/utils/function'
 import { resourceCache } from '@/use/useAssets'
 
 const ART_PATHS = {
-  // The 10 merge-tier fighters (also shown on the grid + drag ghost).
+  // The 11 merge-tier fighters (also shown on the grid + drag ghost).
   'fighter-1': 'images/units/fighter-1',
   'fighter-2': 'images/units/fighter-2',
   'fighter-3': 'images/units/fighter-3',
@@ -27,21 +27,59 @@ const ART_PATHS = {
   'fighter-8': 'images/units/fighter-8',
   'fighter-9': 'images/units/fighter-9',
   'fighter-10': 'images/units/fighter-10',
-  // Enemy walkers + boss.
-  'enemy-slime': 'images/enemies/slime',
-  'enemy-runner': 'images/enemies/runner',
-  'enemy-brute': 'images/enemies/brute',
-  'enemy-spitter': 'images/enemies/spitter',
-  'enemy-warlock': 'images/enemies/warlock',
-  'enemy-boss': 'images/enemies/boss',
+  'fighter-11': 'images/units/fighter-11',
+  'fighter-12': 'images/units/fighter-12',
+  'fighter-13': 'images/units/fighter-13',
+  'fighter-14': 'images/units/fighter-14',
+  'fighter-15': 'images/units/fighter-15',
+  // Enemy walkers (public/enemies/) — bitmap over the SVG fallback. `slime-alt`
+  // is a second slime look picked at random for variety.
+  'enemy-slime': 'enemies/slime2_256x256',
+  'enemy-slime-alt': 'enemies/caterpillar_256x256',
+  'enemy-runner': 'enemies/goblin_256x256',
+  'enemy-brute': 'enemies/ogre_256x256',
+  'enemy-spitter': 'enemies/centaur_256x256',
+  'enemy-warlock': 'enemies/dryad_256x256',
+  // Bosses (public/enemies/bosses/) — rotate by boss wave (5,10,15,20,25,30…);
+  // waves past 30 reuse these with a darkness tint (see EnemyUnit).
+  'boss-slime-tower': 'enemies/bosses/slime-tower_256x256',
+  'boss-orc': 'enemies/bosses/orc_256x256',
+  'boss-fire-dragon': 'enemies/bosses/fire-dragon_256x256',
+  'boss-troll': 'enemies/bosses/troll_256x256',
+  'boss-worm': 'enemies/bosses/worm_256x256',
+  'boss-silver-dragon': 'enemies/bosses/silver-dragon_256x256',
   // Environment.
   'arena-bg': 'images/arena/arena-bg',
   'scene-bg': 'images/arena/scene-bg',
   'gate': 'images/arena/gate',
+  'arena-portal': 'images/arena/portal',
   'slot-frame': 'images/grid/slot-frame',
   // VFX sprites (static; the CSS keyframes keep animating them).
-  'vfx-meteor': 'images/vfx/meteor',
-  'vfx-blackhole': 'images/vfx/blackhole',
+  // Meteor Storm ultimate: the falling meteor and the ult button icon share the
+  // one fireball bitmap; the fall + impact is animated procedurally in CSS.
+  'vfx-meteor': 'images/attacks/meteor_256x256',
+  'meteor-button': 'images/attacks/meteor_256x256',
+  // Ranged-attack projectiles, keyed by element (shared across tiers). A
+  // ranged unit with no matching bitmap falls back to a glowing colour dot.
+  'proj-fire': 'images/attacks/fire-projectile_128x128',
+  'proj-ice': 'images/attacks/ice-projectile_128x128',
+  // Optional ANIMATED in-flight projectiles (3×3 sprite sheet, looped). When
+  // present these win over the static `proj-*` image for that element.
+  'proj-anim-fire': 'images/attacks/animations/fire-projectile-vfx-9-frames_384x384',
+  'proj-anim-wind': 'images/attacks/animations/wind-projectile-vfx-9-frames_384x384',
+  'proj-anim-cosmic': 'images/attacks/animations/cosmic-projectile-vfx-9-frames_384x384',
+  'proj-wind': 'images/attacks/wind-projectile_128x128',
+  'proj-stone': 'images/attacks/stone-projectile_128x128',
+  'proj-cosmic': 'images/attacks/cosmic-projectile_128x128',
+  'proj-shadow': 'images/attacks/shadow-projectile_128x128',
+  // Impact "splitter" bursts — a 3×3 sprite sheet (9 frames) played on land.
+  // Absent → fall back to the coloured sparkle burst.
+  'impact-fire': 'images/attacks/animations/fire-splitter-vfx-9-frames_384x384',
+  'impact-ice': 'images/attacks/animations/ice-splitter-vfx-9-frames_384x384',
+  'impact-wind': 'images/attacks/animations/wind-impact-vfx-9-frames_384x384',
+  'impact-stone': 'images/attacks/animations/stone-splitter-vfx-9-frames_384x384',
+  'impact-cosmic': 'images/attacks/animations/cosmic-splitter-vfx-9-frames_384x384',
+  'impact-shadow': 'images/attacks/animations/shadow-splitter-vfx-9-frames_384x384',
   // Flying chest reward (retention-roadmap #1B); falls back to the shipped
   // static chest icon inside FlyingChest.vue when this override is absent.
   'flying-chest': 'images/props/flying-chest_347x347'

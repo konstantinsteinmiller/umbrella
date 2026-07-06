@@ -2,7 +2,7 @@
  * useTutorial — the guided first-session FTUE (retention-roadmap #1).
  *
  * Four coach-mark steps driven by the REAL game events (no scripted fake
- * state): spawn two droplets → merge them → deploy the fighter → field-merge
+ * state): spawn two sparks → merge them → deploy the fighter → field-merge
  * a same-tier unit onto it. `usePrismGame` / `useBattle` call
  * `notifyTutorial()` at the authoritative mutation points; the spotlight
  * overlay (`TutorialOverlay.vue`) just renders `tutorialStep`.
@@ -27,7 +27,7 @@ export type TutorialStep = 'spawn' | 'merge' | 'deploy' | 'fieldMerge' | 'done'
 const STEP_ORDER: TutorialStep[] = ['spawn', 'merge', 'deploy', 'fieldMerge', 'done']
 export const TUTORIAL_STEP_COUNT = STEP_ORDER.length - 1
 
-/** Droplets the player must spawn before the merge step makes sense. */
+/** Sparks the player must spawn before the merge step makes sense. */
 const SPAWNS_NEEDED = 2
 
 const readStep = (): TutorialStep => {

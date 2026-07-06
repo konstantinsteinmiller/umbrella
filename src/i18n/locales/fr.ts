@@ -162,26 +162,27 @@ export default {
     'rally': 'RALLIEMENT !',
     'rallyBody': 'Regardez une pub pour ressusciter vos combattants tombés !',
     'tutorial': {
-      'spawn': 'Touchez INVOQUER pour recruter deux gouttelettes !',
-      'merge': "Faites glisser une gouttelette sur l'autre pour FUSIONNER !",
+      'spawn': 'Touchez INVOQUER pour recruter deux étincelles !',
+      'merge': "Faites glisser une étincelle sur l'autre pour FUSIONNER !",
       'deploy': "Faites glisser votre combattant dans l'arène pour rejoindre le combat !",
       'fieldMerge': 'Créez une autre unité du même niveau et déposez-la sur votre combattant pour le SOIGNER et MONTER EN GRADE !'
     },
     'codex': {
       'title': 'Codex des unités',
-      'names': { 't1': 'Gouttelette Vivante', 't2': 'Jet de Braise', 't3': 'Bloc de Vapeur', 't4': 'Bio-Pousse', 't5': 'Cœur Pyro', 't6': 'Glande Acide', 't7': 'Étincelle Étincelle', 't8': 'Éclat Cryo', 't9': "Pâte d'Or", 't10': 'Masse Cosmique' },
+      'names': { 't1': 'Étincelle de Magma', 't2': 'Tourbillon de Givre', 't3': 'Brute de Roche', 't4': 'Gardien Glaciaire', 't5': 'Goutte de Marée', 't6': 'Colosse de Pierre', 't7': 'Œil de Nébuleuse', 't8': 'Spectre du Vide', 't9': 'Serre Dorée', 't10': 'Souverain Phénix', 't11': "Seigneur de Guerre d'Obsidienne" },
       'locked': 'Fusionnez deux unités de niveau {n} pour la découvrir !',
       'abilities': {
-        'none': 'Rapide, intrépide, toujours en première ligne.',
-        'burn': 'Enflamme les ennemis — ils continuent de brûler après le coup.',
-        'knockback': 'Tirs à distance qui repoussent les ennemis.',
-        'heal': 'Chaque coup soigne aussi votre allié le plus faible.',
-        'splash': 'Frappes explosives qui blessent tous les ennemis proches.',
-        'poison': 'Cumule du poison pour de lourds dégâts sur la durée.',
-        'chain': 'La foudre rebondit sur trois ennemis supplémentaires.',
-        'frost': 'Refroidit à chaque coup et gèle les groupes avec des novas de glace.',
+        'none': 'Une étincelle en fusion : rapide, intrépide, toujours en tête.',
+        'burn': 'Le givre mordant persiste : les ennemis continuent de subir des dégâts après le coup.',
+        'knockback': 'Projette des rochers qui repoussent les ennemis.',
+        'heal': 'Diffuse un givre régénérant : chaque coup soigne votre allié le plus faible.',
+        'splash': 'Des vagues déferlantes frappent tous les ennemis proches.',
+        'poison': "La poussière suffocante s'accumule pour infliger de lourds dégâts au fil du temps.",
+        'chain': 'Le feu stellaire jaillit vers trois ennemis supplémentaires.',
+        'frost': 'Une terreur rampante ralentit les ennemis et fige les foules.',
         'midas': 'Critiques fréquents et or bonus à chaque coup.',
-        'blackhole': 'Attire régulièrement la horde et la broie.'
+        'blackhole': 'Invoque un vortex brûlant qui aspire la horde et la réduit en cendres.',
+        'eruption': "Entre en éruption à l'impact — une éclaboussure de lave brûle tous les ennemis proches."
       }
     },
     'mutators': {

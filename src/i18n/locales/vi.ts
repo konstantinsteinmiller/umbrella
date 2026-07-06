@@ -162,26 +162,27 @@ export default {
     'rally': 'TẬP HỢP!',
     'rallyBody': 'Xem quảng cáo để hồi sinh các chiến binh đã ngã xuống!',
     'tutorial': {
-      'spawn': 'Chạm TRIỆU HỒI để chiêu mộ hai giọt nước!',
-      'merge': 'Kéo giọt này lên giọt kia để HỢP NHẤT!',
+      'spawn': 'Chạm TRIỆU HỒI để chiêu mộ hai tia lửa!',
+      'merge': 'Kéo tia lửa này lên tia lửa kia để HỢP NHẤT!',
       'deploy': 'Kéo chiến binh vào đấu trường để tham chiến!',
       'fieldMerge': 'Tạo thêm một đơn vị cùng bậc và thả lên chiến binh để HỒI MÁU & THĂNG CẤP!'
     },
     'codex': {
       'title': 'Sổ tay đơn vị',
-      'names': { 't1': 'Giọt Nước Sống', 't2': 'Tia Than Hồng', 't3': 'Khối Hơi Nước', 't4': 'Mầm Sinh Học', 't5': 'Lõi Hỏa', 't6': 'Tuyến Axit', 't7': 'Tia Lửa Tia Lửa', 't8': 'Mảnh Băng', 't9': 'Bột Vàng', 't10': 'Khối Vũ Trụ' },
+      'names': { 't1': 'Tia Dung Nham', 't2': 'Lốc Băng Giá', 't3': 'Gã Đá Hung Bạo', 't4': 'Vệ Binh Băng Hà', 't5': 'Giọt Thủy Triều', 't6': 'Khổng Lồ Đá', 't7': 'Mắt Tinh Vân', 't8': 'Bóng Ma Hư Không', 't9': 'Móng Vuốt Vàng', 't10': 'Phượng Hoàng Chúa Tể', 't11': 'Lãnh Chúa Hắc Diện Thạch' },
       'locked': 'Hợp nhất hai đơn vị bậc {n} để khám phá!',
       'abilities': {
-        'none': 'Nhanh nhẹn, gan dạ, luôn đi đầu.',
-        'burn': 'Thiêu đốt kẻ địch — chúng tiếp tục cháy sau đòn đánh.',
-        'knockback': 'Bắn tầm xa đẩy lùi kẻ địch.',
-        'heal': 'Mỗi đòn đánh cũng hồi máu cho đồng minh yếu nhất.',
-        'splash': 'Đòn nổ gây sát thương mọi kẻ địch gần đó.',
-        'poison': 'Cộng dồn độc gây sát thương lớn theo thời gian.',
-        'chain': 'Sét lan sang ba kẻ địch khác.',
-        'frost': 'Làm chậm khi đánh trúng và đóng băng đám đông bằng nova băng.',
+        'none': 'Tia lửa nóng chảy — nhanh nhẹn, gan dạ, luôn đi đầu.',
+        'burn': 'Giá buốt còn vương — kẻ địch tiếp tục nhận sát thương sau đòn đánh.',
+        'knockback': 'Ném đá đẩy lùi kẻ địch.',
+        'heal': 'Tỏa băng giá chữa lành — mỗi đòn đánh hồi máu cho đồng minh yếu nhất.',
+        'splash': 'Sóng vỗ dữ dội đánh trúng mọi kẻ địch gần bên.',
+        'poison': 'Bụi ngột ngạt tích tụ gây sát thương nặng theo thời gian.',
+        'chain': 'Lửa sao nảy sang ba kẻ địch khác.',
+        'frost': 'Nỗi kinh hoàng lan dần làm chậm kẻ địch và ghim chặt đám đông.',
         'midas': 'Tỉ lệ chí mạng cao và vàng thưởng mỗi đòn.',
-        'blackhole': 'Định kỳ hút cả bầy lại và nghiền nát.'
+        'blackhole': 'Triệu hồi xoáy lốc thiêu đốt hút cả bầy vào và đốt thành tro.',
+        'eruption': 'Phun trào khi va chạm — dung nham bắn tóe thiêu đốt mọi kẻ địch gần bên.'
       }
     },
     'mutators': {

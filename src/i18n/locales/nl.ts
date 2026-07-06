@@ -162,26 +162,27 @@ export default {
     'rally': 'VERZAMELEN!',
     'rallyBody': 'Bekijk een advertentie om je gevallen vechters te doen herrijzen!',
     'tutorial': {
-      'spawn': 'Tik op OPROEPEN om twee druppels te rekruteren!',
-      'merge': 'Sleep de ene druppel op de andere om te FUSEREN!',
+      'spawn': 'Tik op OPROEPEN om twee vonken te rekruteren!',
+      'merge': 'Sleep de ene vonk op de andere om te FUSEREN!',
       'deploy': 'Sleep je vechter de arena in om mee te vechten!',
       'fieldMerge': 'Maak nog een eenheid van dezelfde tier en laat die op je vechter vallen om te GENEZEN & PROMOVEREN!'
     },
     'codex': {
       'title': 'Eenhedencodex',
-      'names': { 't1': 'Levende Druppel', 't2': 'Sintelspetter', 't3': 'Dampklomp', 't4': 'Bio-Spruit', 't5': 'Pyro-Kern', 't6': 'Zuurklier', 't7': 'Vonk Vonk', 't8': 'Cryo-Scherf', 't9': 'Aurum-Pasta', 't10': 'Kosmische Massa' },
+      'names': { 't1': 'Magmavonk', 't2': 'Vorstwerveling', 't3': 'Rotsbruut', 't4': 'Gletsjerwachter', 't5': 'Vloeddruppel', 't6': 'Rotskolos', 't7': 'Neveloog', 't8': 'Leegteschim', 't9': 'Gouden Klauw', 't10': 'Feniksvorst', 't11': 'Obsidiaan-Krijgsheer' },
       'locked': 'Fuseer twee tier {n} om te ontdekken!',
       'abilities': {
-        'none': 'Snel, onbevreesd en altijd voorop.',
-        'burn': 'Steekt vijanden in brand — ze blijven branden na de klap.',
-        'knockback': 'Afstandsschoten die vijanden terugduwen.',
-        'heal': 'Elke klap geneest ook je zwakste bondgenoot.',
-        'splash': 'Explosieve klappen raken alle vijanden in de buurt.',
-        'poison': 'Stapelt gif voor zware schade over tijd.',
-        'chain': 'Bliksem springt over naar drie extra vijanden.',
-        'frost': "Vertraagt bij een klap en bevriest groepen met ijsnova's.",
+        'none': 'Een gesmolten vonk — snel, onbevreesd en altijd voorop.',
+        'burn': 'Bijtende vorst blijft hangen — vijanden nemen na de klap schade.',
+        'knockback': 'Slingert rotsen die vijanden terugstoten.',
+        'heal': 'Straalt helende vorst uit — elke klap geneest je zwakste bondgenoot.',
+        'splash': 'Brekende golven raken alle vijanden in de buurt.',
+        'poison': 'Verstikkend gruis stapelt op voor zware schade na verloop van tijd.',
+        'chain': 'Sterrenvuur springt over naar drie extra vijanden.',
+        'frost': 'Kruipende angst vertraagt vijanden en zet groepen vast.',
         'midas': 'Hoge kritieke kans en bonusgoud bij elke klap.',
-        'blackhole': 'Trekt de horde periodiek samen en vermorzelt hem.'
+        'blackhole': 'Roept een verzengende draaikolk op die de horde opzuigt en tot as verbrandt.',
+        'eruption': 'Barst uit bij inslag — een gloeiende spat verbrandt alle vijanden in de buurt.'
       }
     },
     'mutators': {

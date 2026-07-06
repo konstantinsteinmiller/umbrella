@@ -1,7 +1,6 @@
-# merge-idle-war
+# Merge Idle War
 
-merge-idle-war is an obstacle course runner game built in TypeScript.
-You control a ball and dodge obstacles while collecting coins and buy upgrades.
+Merge elemental units into a 15-tier army and crush endless enemy waves. Combos, fever gold rushes, meteor storms — the war never stops!
 
 
 It features a github pages deployed CI cd pipeline and a windows build + demo build.

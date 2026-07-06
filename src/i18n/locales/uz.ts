@@ -162,26 +162,27 @@ export default {
     'rally': 'YIGʻILING!',
     'rallyBody': 'Halok boʻlgan jangchilarni tiriltirish uchun reklama koʻring!',
     'tutorial': {
-      'spawn': 'Ikkita tomchini yollash uchun CHAQIRISH tugmasini bosing!',
-      'merge': 'Bir tomchini ikkinchisiga sudrab BIRLASHTIRING!',
+      'spawn': 'Ikkita uchqunni yollash uchun CHAQIRISH tugmasini bosing!',
+      'merge': 'Bir uchqunni ikkinchisiga sudrab BIRLASHTIRING!',
       'deploy': 'Jangchingizni arenaga sudrab jangga qoʻshing!',
       'fieldMerge': 'Xuddi shu darajadagi yana bitta birlik yasang va uni jangchingiz ustiga tashlang — DAVOLAYDI va DARAJASINI OSHIRADI!'
     },
     'codex': {
       'title': 'Birliklar kodeksi',
-      'names': { 't1': 'Tirik tomchi', 't2': 'Choʻgʻ sachrashi', 't3': 'Bugʻ boʻlagi', 't4': 'Bio-nihol', 't5': 'Piro-yadro', 't6': 'Kislota bezi', 't7': 'Uchqun Uchqun', 't8': 'Krio-parcha', 't9': 'Oltin pasta', 't10': 'Kosmik massa' },
+      'names': { 't1': 'Magma uchquni', 't2': 'Muzli quyun', 't3': 'Tosh gʻaddori', 't4': 'Muzlik posboni', 't5': 'Toshqin tomchisi', 't6': 'Qoyatosh koloss', 't7': 'Tumanlik koʻzi', 't8': 'Boʻshliq arvohi', 't9': 'Oltin panja', 't10': 'Feniks hukmdori', 't11': 'Obsidian sarkardasi' },
       'locked': 'Kashf qilish uchun ikkita {n}-daraja birlashtiring!',
       'abilities': {
-        'none': 'Tez, qoʻrqmas va doim oldinda.',
-        'burn': 'Dushmanlarni yondiradi — zarbadan keyin ham yonishda davom etadilar.',
-        'knockback': 'Dushmanlarni orqaga itaruvchi uzoqdan otishlar.',
-        'heal': 'Har bir zarba eng zaif ittifoqchini ham davolaydi.',
-        'splash': 'Portlovchi zarbalar yaqin atrofdagi barcha dushmanlarga zarar yetkazadi.',
-        'poison': 'Vaqt oʻtishi bilan katta zarar uchun zahar toʻplaydi.',
-        'chain': 'Chaqmoq yana uchta dushmanga sakraydi.',
-        'frost': 'Zarbada sekinlashtiradi va muz novalari bilan guruhlarni muzlatadi.',
+        'none': 'Erigan uchqun — tez, qoʻrqmas va doim oldinda.',
+        'burn': 'Achchiq sovuq qoladi — dushmanlar zarbadan keyin ham zarar oladi.',
+        'knockback': 'Dushmanlarni orqaga itaruvchi toshlar otadi.',
+        'heal': 'Davolovchi sovuq taratadi — har zarba eng kuchsiz ittifoqchini davolaydi.',
+        'splash': 'Toʻlqinlar yaqindagi barcha dushmanlarni uradi.',
+        'poison': 'Boʻgʻuvchi chang toʻplanib, vaqt oʻtishi bilan ogʻir zarar yetkazadi.',
+        'chain': 'Yulduz olovi yana uchta dushmanga sakraydi.',
+        'frost': 'Sudralib kelayotgan vahima dushmanlarni sekinlashtiradi va olomonni qotiradi.',
         'midas': 'Yuqori kritik imkoniyati va har zarbada bonus oltin.',
-        'blackhole': 'Vaqti-vaqti bilan toʻdani tortib olib, ezib tashlaydi.'
+        'blackhole': 'Toʻdani ichiga tortib, kulga aylantiruvchi kuydiruvchi girdob chaqiradi.',
+        'eruption': 'Zarbada otiladi — erigan sachrash yaqindagi barcha dushmanlarni kuydiradi.'
       }
     },
     'mutators': {

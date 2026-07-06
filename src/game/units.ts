@@ -1,7 +1,7 @@
 /**
  * Battle catalogue — stat formulas and archetype tables for the auto-battler.
  *
- * FIGHTERS are the 10 merge-grid tiers (see `ingredients.ts` for their look).
+ * FIGHTERS are the 11 merge-grid tiers (see `ingredients.ts` for their look).
  * Stats roughly double per tier so every merge is a felt power spike; each
  * tier carries the signature ability listed in implementation-plan.md §4.2.
  *
@@ -13,8 +13,8 @@
  */
 
 export type FighterAbility =
-  | 'none'      // t1  — just fast
-  | 'burn'      // t2  — DoT on hit
+  | 'none'      // t1  — fast ranged fire-spitter, no rider effect
+  | 'burn'      // t2  — ranged; lingering DoT on hit (frostbite flavour)
   | 'knockback' // t3  — ranged, shoves the target back
   | 'heal'      // t4  — hits heal the weakest ally
   | 'splash'    // t5  — AoE explosion on hit
@@ -22,7 +22,7 @@ export type FighterAbility =
   | 'chain'     // t7  — chain lightning
   | 'frost'     // t8  — slow on hit + periodic freeze nova
   | 'midas'     // t9  — bonus gold on hit, high crit
-  | 'blackhole' // t10 — periodic mass pull + crunch
+  | 'eruption'  // t11 — molten AoE splash + burn on impact
 
 export interface FighterDef {
   tier: number
@@ -48,20 +48,36 @@ const fighterBase: Omit<FighterDef, 'tier' | 'atk' | 'hp'> = {
 }
 
 export const FIGHTER_DEFS: FighterDef[] = [
-  { ...fighterBase, tier: 1, atk: F_ATK(1), hp: F_HP(1), attackInterval: 0.55, speed: 20, ability: 'none' },
-  { ...fighterBase, tier: 2, atk: F_ATK(2), hp: F_HP(2), ability: 'burn' },
+  { ...fighterBase, tier: 1, atk: F_ATK(1), hp: F_HP(1), attackInterval: 0.55, range: 24, speed: 20, ability: 'none' },
+  { ...fighterBase, tier: 2, atk: F_ATK(2), hp: F_HP(2), range: 30, speed: 14, ability: 'burn' },
   { ...fighterBase, tier: 3, atk: F_ATK(3), hp: F_HP(3), range: 34, attackInterval: 1.35, speed: 13, ability: 'knockback' },
-  { ...fighterBase, tier: 4, atk: F_ATK(4), hp: Math.round(F_HP(4) * 1.15), ability: 'heal' },
+  { ...fighterBase, tier: 4, atk: F_ATK(4), hp: Math.round(F_HP(4) * 1.15), range: 28, ability: 'heal' },
   { ...fighterBase, tier: 5, atk: F_ATK(5), hp: F_HP(5), attackInterval: 1.25, ability: 'splash' },
   { ...fighterBase, tier: 6, atk: Math.round(F_ATK(6) * 0.85), hp: F_HP(6), attackInterval: 0.9, ability: 'poison' },
   { ...fighterBase, tier: 7, atk: F_ATK(7), hp: Math.round(F_HP(7) * 0.9), range: 38, attackInterval: 1.4, speed: 12, ability: 'chain' },
   { ...fighterBase, tier: 8, atk: F_ATK(8), hp: F_HP(8), range: 32, attackInterval: 1.3, speed: 12, ability: 'frost' },
   { ...fighterBase, tier: 9, atk: F_ATK(9), hp: F_HP(9), attackInterval: 1.0, ability: 'midas' },
-  { ...fighterBase, tier: 10, atk: F_ATK(10), hp: Math.round(F_HP(10) * 1.3), attackInterval: 1.5, speed: 10, ability: 'blackhole', scale: 1.35 }
+  { ...fighterBase, tier: 10, atk: F_ATK(10), hp: Math.round(F_HP(10) * 1.3), range: 30, attackInterval: 1.5, speed: 10, ability: 'none', scale: 1.35 },
+  { ...fighterBase, tier: 11, atk: F_ATK(11), hp: Math.round(F_HP(11) * 1.4), attackInterval: 1.3, range: 10, speed: 11, ability: 'eruption', scale: 1.4 }
 ]
 
-export const getFighterDef = (tier: number): FighterDef =>
-  FIGHTER_DEFS[Math.max(0, Math.min(FIGHTER_DEFS.length - 1, tier - 1))]!
+// Tiers 12-15 have authored art (fighter-12..15) but live off the extrapolation
+// below (kept out of FIGHTER_DEFS so the codex stays on the localized set).
+// Melee by default; 13 & 15 are ranged, reusing tier-8 shadow / tier-7 cosmic
+// projectile+impact VFX (their element comes from getIngredient).
+const HIGH_TIER_DEFS: Record<number, Partial<FighterDef>> = {
+  13: { range: 32, attackInterval: 1.3, ability: 'frost' },
+  15: { range: 38, attackInterval: 1.4, ability: 'chain' }
+}
+
+export const getFighterDef = (tier: number): FighterDef => {
+  if (tier <= FIGHTER_DEFS.length) return FIGHTER_DEFS[Math.max(0, tier - 1)]!
+  // Beyond the authored tiers (merging is uncapped): keep the top tier's shape
+  // but climb ATK/HP off the formula, so higher merges are actually stronger.
+  const top = FIGHTER_DEFS[FIGHTER_DEFS.length - 1]!
+  const base: FighterDef = { ...top, tier, atk: F_ATK(tier), hp: Math.round(F_HP(tier) * 1.4) }
+  return { ...base, ...HIGH_TIER_DEFS[tier] }
+}
 
 // ─── Enemies ─────────────────────────────────────────────────────────────────
 
@@ -83,7 +99,7 @@ export interface EnemyDef {
 }
 
 export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
-  slime: { kind: 'slime', hpMult: 1, atkMult: 1, speed: 8.5, range: 7, attackInterval: 1.1, bountyMult: 1, scale: 1 },
+  slime: { kind: 'slime', hpMult: 1, atkMult: 1, speed: 8.5, range: 7, attackInterval: 1.1, bountyMult: 1, scale: 0.8 },
   runner: { kind: 'runner', hpMult: 0.55, atkMult: 0.8, speed: 17, range: 6, attackInterval: 0.8, bountyMult: 0.8, scale: 0.85 },
   brute: { kind: 'brute', hpMult: 3.1, atkMult: 2.2, speed: 5.5, range: 8, attackInterval: 1.6, bountyMult: 2.6, scale: 1.35 },
   spitter: { kind: 'spitter', hpMult: 0.85, atkMult: 1.15, speed: 8, range: 30, attackInterval: 1.7, bountyMult: 1.5, scale: 0.95 },
@@ -140,12 +156,24 @@ export const bossName = (wave: number): string => {
   return cycle > 0 ? `${name} +${cycle}` : name
 }
 
+// Boss sprite per boss wave (5,10,15,20,25,30…). One authored sprite each up to
+// wave 30; beyond that the list cycles (reused with a darkness tint in the view).
+const BOSS_ART_KEYS = ['boss-slime-tower', 'boss-orc', 'boss-fire-dragon', 'boss-troll', 'boss-worm', 'boss-silver-dragon']
+const bossIndex = (wave: number): number => Math.max(0, Math.floor(wave / 5) - 1)
+/** Art-override key for the boss on this wave. */
+export const bossArtKey = (wave: number): string => BOSS_ART_KEYS[bossIndex(wave) % BOSS_ART_KEYS.length]!
+/** True once we've run out of authored bosses and are reusing an earlier one. */
+export const bossIsReused = (wave: number): boolean => bossIndex(wave) >= BOSS_ART_KEYS.length
+
 export interface WaveSpawn {
   kind: EnemyKind
   /** Seconds after wave start. */
   at: number
   /** Elite mutator: one glowing mini-boss with boosted stats. */
   elite?: boolean
+  /** Spawn portal index (0 top-right, 1 centre-right, 2 bottom-right); assigned
+   *  by the engine when it groups spawns into portal subwaves. */
+  portal?: number
 }
 
 /** Compose a wave's spawn schedule. Deterministic-ish in shape, random jitter

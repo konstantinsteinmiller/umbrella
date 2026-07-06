@@ -162,26 +162,27 @@ export default {
     'rally': 'ADUNATA!',
     'rallyBody': 'Guarda un annuncio per resuscitare i combattenti caduti!',
     'tutorial': {
-      'spawn': 'Tocca EVOCA per reclutare due goccioline!',
-      'merge': "Trascina una gocciolina sull'altra per FONDERLE!",
+      'spawn': 'Tocca EVOCA per reclutare due faville!',
+      'merge': "Trascina una favilla sull'altra per FONDERLE!",
       'deploy': "Trascina il tuo combattente nell'arena per unirsi alla battaglia!",
       'fieldMerge': "Crea un'altra unità dello stesso livello e lasciala sul tuo combattente per CURARLO e PROMUOVERLO!"
     },
     'codex': {
       'title': 'Codex delle unità',
-      'names': { 't1': 'Gocciolina Vivente', 't2': 'Schizzo di Brace', 't3': 'Blocco di Vapore', 't4': 'Bio-Germoglio', 't5': 'Nucleo Piro', 't6': 'Ghiandola Acida', 't7': 'Scintilla Scintilla', 't8': 'Scheggia Crio', 't9': 'Pasta Aurea', 't10': 'Massa Cosmica' },
+      'names': { 't1': 'Favilla di Magma', 't2': 'Vortice di Gelo', 't3': 'Bruto di Roccia', 't4': 'Guardiano Glaciale', 't5': 'Goccia di Marea', 't6': 'Colosso di Pietra', 't7': 'Occhio di Nebulosa', 't8': 'Spettro del Vuoto', 't9': 'Artiglio Dorato', 't10': 'Sovrano Fenice', 't11': "Signore della Guerra d'Ossidiana" },
       'locked': 'Fondi due unità di livello {n} per scoprirla!',
       'abilities': {
-        'none': 'Veloce, impavido e sempre in prima linea.',
-        'burn': 'Incendia i nemici: continuano a bruciare dopo il colpo.',
-        'knockback': 'Colpi a distanza che respingono i nemici.',
-        'heal': 'Ogni colpo cura anche il tuo alleato più debole.',
-        'splash': 'Colpi esplosivi che danneggiano tutti i nemici vicini.',
-        'poison': 'Accumula veleno per gravi danni nel tempo.',
-        'chain': 'I fulmini rimbalzano su tre nemici extra.',
-        'frost': 'Raffredda al colpo e congela i gruppi con nove di ghiaccio.',
+        'none': 'Una favilla fusa: veloce, impavido e sempre in prima linea.',
+        'burn': 'Il gelo pungente persiste: i nemici continuano a subire danni dopo il colpo.',
+        'knockback': 'Scaglia massi che respingono i nemici.',
+        'heal': 'Irradia gelo rigenerante: ogni colpo cura il tuo alleato più debole.',
+        'splash': 'Onde fragorose colpiscono tutti i nemici vicini.',
+        'poison': 'La polvere soffocante si accumula per infliggere gravi danni nel tempo.',
+        'chain': 'Il fuoco stellare rimbalza su tre nemici in più.',
+        'frost': 'Un terrore strisciante rallenta i nemici e blocca le folle.',
         'midas': 'Alta probabilità di critico e oro bonus a ogni colpo.',
-        'blackhole': "Attira periodicamente l'orda e la frantuma."
+        'blackhole': "Evoca un vortice rovente che risucchia l'orda e la incenerisce.",
+        'eruption': "Erutta all'impatto — uno schizzo incandescente brucia ogni nemico vicino."
       }
     },
     'mutators': {

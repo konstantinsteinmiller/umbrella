@@ -162,26 +162,27 @@ export default {
     'rally': 'ZBIÓRKA!',
     'rallyBody': 'Obejrzyj reklamę, aby wskrzesić poległych wojowników!',
     'tutorial': {
-      'spawn': 'Stuknij PRZYZWIJ, aby zrekrutować dwie kropelki!',
-      'merge': 'Przeciągnij jedną kropelkę na drugą, aby je POŁĄCZYĆ!',
+      'spawn': 'Stuknij PRZYZWIJ, aby zrekrutować dwie iskry!',
+      'merge': 'Przeciągnij jedną iskrę na drugą, aby je POŁĄCZYĆ!',
       'deploy': 'Przeciągnij wojownika na arenę, aby dołączył do walki!',
       'fieldMerge': 'Stwórz kolejną jednostkę tego samego poziomu i upuść ją na wojownika — ULECZY i AWANSUJE!'
     },
     'codex': {
       'title': 'Kodeks jednostek',
-      'names': { 't1': 'Żywa Kropelka', 't2': 'Żarowy Bryzg', 't3': 'Bryła Pary', 't4': 'Bio-Kiełek', 't5': 'Piro-Rdzeń', 't6': 'Gruczoł Kwasowy', 't7': 'Iskra Iskra', 't8': 'Krio-Odłamek', 't9': 'Złota Pasta', 't10': 'Kosmiczna Masa' },
+      'names': { 't1': 'Iskra Magmy', 't2': 'Lodowy Wir', 't3': 'Skalny Brutal', 't4': 'Lodowcowy Strażnik', 't5': 'Kropla Przypływu', 't6': 'Kamienny Kolos', 't7': 'Oko Mgławicy', 't8': 'Widmo Pustki', 't9': 'Złoty Szpon', 't10': 'Władca Feniks', 't11': 'Obsydianowy Wódz' },
       'locked': 'Połącz dwie jednostki poziomu {n}, aby odkryć!',
       'abilities': {
-        'none': 'Szybki, nieustraszony, zawsze na czele.',
-        'burn': 'Podpala wrogów — płoną po trafieniu.',
-        'knockback': 'Strzały dystansowe odpychające wrogów.',
-        'heal': 'Każde trafienie leczy też najsłabszego sojusznika.',
-        'splash': 'Wybuchowe ciosy raniące wszystkich wrogów w pobliżu.',
-        'poison': 'Kumuluje truciznę zadającą duże obrażenia w czasie.',
-        'chain': 'Błyskawica przeskakuje na trzech dodatkowych wrogów.',
-        'frost': 'Spowalnia przy trafieniu i zamraża grupy lodowymi nowami.',
-        'midas': 'Wysoka szansa na kryt i dodatkowe złoto za trafienie.',
-        'blackhole': 'Okresowo ściąga hordę i ją miażdży.'
+        'none': 'Roztopiona iskra — szybki, nieustraszony, zawsze na czele.',
+        'burn': 'Gryzący mróz pozostaje — wrogowie wciąż otrzymują obrażenia po trafieniu.',
+        'knockback': 'Ciska głazami, które odrzucają wrogów.',
+        'heal': 'Emanuje leczącym mrozem — każde trafienie leczy najsłabszego sojusznika.',
+        'splash': 'Rozbijające się fale rażą wszystkich pobliskich wrogów.',
+        'poison': 'Duszący pył kumuluje się, zadając ciężkie obrażenia w czasie.',
+        'chain': 'Gwiezdny ogień przeskakuje na trzech dodatkowych wrogów.',
+        'frost': 'Pełzająca groza spowalnia wrogów i unieruchamia tłum.',
+        'midas': 'Wysoka szansa na trafienie krytyczne i dodatkowe złoto przy każdym ciosie.',
+        'blackhole': 'Przyzywa piekący wir, który wciąga hordę i obraca ją w popiół.',
+        'eruption': 'Wybucha przy uderzeniu — roztopiony rozprysk pali wszystkich pobliskich wrogów.'
       }
     },
     'mutators': {

@@ -162,26 +162,27 @@ export default {
     'rally': 'REAGRUPAR!',
     'rallyBody': 'Assista a um anúncio para ressuscitar seus lutadores caídos!',
     'tutorial': {
-      'spawn': 'Toque em INVOCAR para recrutar duas gotinhas!',
-      'merge': 'Arraste uma gotinha sobre a outra para FUNDIR!',
+      'spawn': 'Toque em INVOCAR para recrutar duas faíscas!',
+      'merge': 'Arraste uma faísca sobre a outra para FUNDIR!',
       'deploy': 'Arraste seu lutador para a arena para entrar na luta!',
       'fieldMerge': 'Crie outra unidade do mesmo nível e solte-a sobre seu lutador para CURAR e PROMOVER!'
     },
     'codex': {
       'title': 'Códice de unidades',
-      'names': { 't1': 'Gotinha Viva', 't2': 'Jato de Brasa', 't3': 'Bloco de Vapor', 't4': 'Bio-Broto', 't5': 'Núcleo Piro', 't6': 'Glândula Ácida', 't7': 'Faísca Faísca', 't8': 'Fragmento Crio', 't9': 'Pasta Áurea', 't10': 'Massa Cósmica' },
+      'names': { 't1': 'Faísca de Magma', 't2': 'Redemoinho Gélido', 't3': 'Bruto de Rocha', 't4': 'Guardião Glacial', 't5': 'Gota da Maré', 't6': 'Colosso de Pedra', 't7': 'Olho de Nebulosa', 't8': 'Espectro do Vazio', 't9': 'Garra Dourada', 't10': 'Soberano Fênix', 't11': 'Senhor da Guerra de Obsidiana' },
       'locked': 'Funda duas de nível {n} para descobrir!',
       'abilities': {
-        'none': 'Rápido, destemido e sempre na frente.',
-        'burn': 'Incendeia inimigos — continuam queimando após o golpe.',
-        'knockback': 'Tiros à distância que empurram os inimigos.',
-        'heal': 'Cada golpe também cura seu aliado mais fraco.',
-        'splash': 'Golpes explosivos ferem todos os inimigos próximos.',
-        'poison': 'Acumula veneno com forte dano contínuo.',
-        'chain': 'Raios saltam para três inimigos extras.',
-        'frost': 'Esfria ao acertar e congela grupos com novas de gelo.',
-        'midas': 'Alta chance de crítico e ouro bônus por golpe.',
-        'blackhole': 'Puxa a horda periodicamente e a esmaga.'
+        'none': 'Uma faísca incandescente: rápido, destemido e sempre na frente.',
+        'burn': 'O gelo cortante permanece: os inimigos continuam sofrendo dano após o golpe.',
+        'knockback': 'Arremessa rochas que empurram os inimigos para trás.',
+        'heal': 'Irradia gelo restaurador: cada golpe cura seu aliado mais fraco.',
+        'splash': 'Ondas quebrando atingem todos os inimigos próximos.',
+        'poison': 'A poeira sufocante se acumula para causar grande dano ao longo do tempo.',
+        'chain': 'O fogo estelar salta para três inimigos adicionais.',
+        'frost': 'Um pavor rastejante retarda os inimigos e prende multidões.',
+        'midas': 'Alta chance de crítico e ouro bônus a cada golpe.',
+        'blackhole': 'Invoca um vórtice escaldante que suga a horda e a reduz a cinzas.',
+        'eruption': 'Entra em erupção no impacto — um respingo incandescente queima todos os inimigos próximos.'
       }
     },
     'mutators': {

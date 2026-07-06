@@ -116,26 +116,27 @@ export default {
     'rally': 'BERKUMPUL!',
     'rallyBody': 'Tonton iklan untuk menghidupkan kembali pejuang yang gugur!',
     'tutorial': {
-      'spawn': 'Ketuk PANGGIL untuk merekrut dua tetesan!',
-      'merge': 'Seret satu tetesan ke tetesan lain untuk MENGGABUNGKAN!',
+      'spawn': 'Ketuk PANGGIL untuk merekrut dua percikan!',
+      'merge': 'Seret satu percikan ke percikan lain untuk MENGGABUNGKAN!',
       'deploy': 'Seret pejuangmu ke arena untuk ikut bertempur!',
       'fieldMerge': 'Buat unit lain dengan tingkat sama dan jatuhkan ke pejuangmu untuk MENYEMBUHKAN & NAIK TINGKAT!'
     },
     'codex': {
       'title': 'Kodeks Unit',
-      'names': { 't1': 'Tetesan Hidup', 't2': 'Semburan Bara', 't3': 'Bongkahan Uap', 't4': 'Tunas Bio', 't5': 'Inti Piro', 't6': 'Kelenjar Asam', 't7': 'Percik Percik', 't8': 'Serpihan Krio', 't9': 'Pasta Emas', 't10': 'Massa Kosmik' },
+      'names': { 't1': 'Percik Magma', 't2': 'Pusaran Beku', 't3': 'Bruto Batu', 't4': 'Penjaga Gletser', 't5': 'Tetes Pasang', 't6': 'Kolosus Batu', 't7': 'Mata Nebula', 't8': 'Arwah Kehampaan', 't9': 'Cakar Emas', 't10': 'Penguasa Feniks', 't11': 'Panglima Obsidian' },
       'locked': 'Gabungkan dua Tingkat {n} untuk menemukan!',
       'abilities': {
-        'none': 'Cepat, tanpa takut, selalu terdepan.',
-        'burn': 'Membakar musuh — terus terbakar setelah pukulan.',
-        'knockback': 'Tembakan jarak jauh yang mendorong musuh mundur.',
-        'heal': 'Setiap pukulan juga menyembuhkan sekutu terlemahmu.',
-        'splash': 'Serangan eksplosif melukai semua musuh di dekatnya.',
-        'poison': 'Menumpuk racun untuk kerusakan besar seiring waktu.',
-        'chain': 'Petir melompat ke tiga musuh tambahan.',
-        'frost': 'Memperlambat saat memukul dan membekukan kerumunan dengan nova es.',
-        'midas': 'Peluang kritis tinggi dan emas bonus tiap pukulan.',
-        'blackhole': 'Menarik gerombolan secara berkala dan menghancurkannya.'
+        'none': 'Percikan lelehan — cepat, tanpa takut, selalu terdepan.',
+        'burn': 'Beku menggigit bertahan — musuh terus menerima kerusakan setelah pukulan.',
+        'knockback': 'Melempar batu yang mendorong musuh mundur.',
+        'heal': 'Memancarkan beku penyembuh — tiap pukulan menyembuhkan sekutu terlemahmu.',
+        'splash': 'Ombak pecah menghantam semua musuh di dekatnya.',
+        'poison': 'Debu menyesakkan menumpuk untuk kerusakan berat seiring waktu.',
+        'chain': 'Api bintang melompat ke tiga musuh tambahan.',
+        'frost': 'Teror merayap memperlambat musuh dan mengunci gerombolan.',
+        'midas': 'Peluang kritis tinggi dan emas bonus di tiap pukulan.',
+        'blackhole': 'Memanggil pusaran membara yang menyedot gerombolan dan membakarnya jadi abu.',
+        'eruption': 'Meletus saat menghantam — percikan lelehan membakar semua musuh di dekatnya.'
       }
     },
     'mutators': {

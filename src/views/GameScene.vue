@@ -48,6 +48,7 @@ import { offlineGold } from '@/use/useOfflineEarnings'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import { CHEST_EVERY_WAVES } from '@/use/useBattle'
 import { nextArchetypeUnlock } from '@/game/units'
+import { MAX_INGREDIENT_TIER } from '@/game/ingredients'
 
 const { t } = useI18n()
 const game = usePrismGame()
@@ -73,7 +74,7 @@ const nextChestWave = computed(() => {
 const nextEnemyWave = computed(() => nextArchetypeUnlock(battle.wave.value))
 
 // Next undiscovered tier — ghosts as a silhouette on the codex button (#12).
-const nextUndiscovered = computed(() => game.maxTier.value < 10 ? game.maxTier.value + 1 : 0)
+const nextUndiscovered = computed(() => game.maxTier.value < MAX_INGREDIENT_TIER ? game.maxTier.value + 1 : 0)
 
 // Drop-in full-scene backdrop (art-todo.md); the CSS radial gradient stays
 // as the fallback (and shows through until the bitmap is confirmed).
@@ -92,7 +93,10 @@ const sceneBgStyle = computed<Record<string, string>>(() => {
 // covers mobile landscape AND a short desktop/tablet landscape window, where a
 // stacked column would crush the merge grid to nothing.
 const sideBySide = computed(() =>
-  isMobileLandscape.value || (windowWidth.value > windowHeight.value && windowHeight.value < 620)
+  isMobileLandscape.value
+  || (windowWidth.value > windowHeight.value && windowHeight.value < 620)
+  // Wide desktop landscape (width > 1.5× height): grid-on-the-right, like mobile.
+  || windowWidth.value > windowHeight.value * 1.5
 )
 
 // ─── Spawn ──────────────────────────────────────────────────────────────────
@@ -146,9 +150,9 @@ const onDeploy = (p: { idx: number; tier: number; x: number; y: number }): void 
   const nx = ((p.x - r.left) / r.width) * 100
   const ny = ((p.y - r.top) / r.height) * 100
 
-  // Dropped onto a same-tier fighter → field merge (tier+1, full heal).
+  // Dropped onto a same-tier fighter → field merge (tier+1, full heal). Any tier.
   const under = battle.fighterAt(nx, ny)
-  if (under && under.tier === p.tier && p.tier < 10) {
+  if (under && under.tier === p.tier) {
     const tier = game.takeFromGrid(p.idx)
     if (tier > 0) battle.fieldMerge(under.id, tier)
     return
@@ -313,12 +317,12 @@ onUnmounted(() => {
         :style="sideBySide ? {} : { flex: '1 1 0%' }"
       )
         //- Upgrade controls
-        div.shrink-0.w-full.max-w-md.mx-auto(class="h-[15%] min-h-14 mb-1 mt-1")
+        div.shrink-0.w-full.max-w-md.mx-auto(class="h-[15%] min-h-14 max-h-[92px] mb-1 mt-1")
           UpgradePanel
         //- Merge grid — square that always fits the available box (height-led
         //- so it never overflows under the Spawn button on short viewports).
         div.grid-square-wrap.flex-1.min-h-0.w-full.mx-auto.flex.items-center.justify-center
-          div.grid-square(data-tut="grid")
+          div.grid-square(data-tut="grid" :class="{ 'grid-square--sbs': sideBySide }")
             MergeGrid(ref="gridRef" @deploy="onDeploy")
         //- Spawn row: [rewarded Instant Spawn] [Spawn button] [rewarded 2× Damage]
         div.shrink-0.w-full.max-w-md.mx-auto.flex.items-center.justify-center.gap-2.mt-1
@@ -455,6 +459,12 @@ onUnmounted(() => {
 .grid-square
   width: min(100cqw, 100cqh)
   height: min(100cqw, 100cqh)
+// Side-by-side (desktop/mobile landscape): keep the grid compact and always
+// leave ~3.5rem of side margin for the corner utility buttons, and hard-cap it
+// so wide desktop columns don't blow the cells up.
+.grid-square--sbs
+  width: min(100cqh, calc(100cqw - 7rem), 420px)
+  height: min(100cqh, calc(100cqw - 7rem), 420px)
 
 // ── Spawn-button icon: greyed next recruit, revealed by a radial wipe ──
 // The angle is a registered custom property so supporting browsers animate

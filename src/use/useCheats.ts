@@ -12,6 +12,16 @@ import { STAGE_KEY } from '@/keys'
 const storedCheat = localStorage.getItem('cheat') || 'false'
 const isCheat = ref<boolean>(JSON.parse(storedCheat))
 
+const setCheat = (on: boolean): void => {
+  isCheat.value = on
+  try { localStorage.setItem('cheat', JSON.stringify(on)) } catch { /* storage blocked */ }
+  console.warn(`[CHEAT] cheats ${on ? 'ENABLED' : 'disabled'}.`)
+}
+/** Flip the cheat-shortcut module on/off (persisted). Bound to the `cmarc`
+ *  sequence below so a tester can enable the +coins / stage-jump keys live,
+ *  no reload needed (the keydown handler gates on `isCheat` at press time). */
+export const toggleCheat = (): void => setCheat(!isCheat.value)
+
 // ─── Always-on key-sequence cheat: type "cmarc" to flip debug mode. ──────
 //
 // Sits OUTSIDE the `useCheats` factory so it works even when the regular
@@ -49,6 +59,7 @@ export const installDebugUnlock = (): void => {
     if (buf === target) {
       buf = ''
       toggleDebug()
+      toggleCheat()
     }
   })
 }
@@ -58,8 +69,9 @@ export const installDebugUnlock = (): void => {
 installDebugUnlock()
 
 const useCheats = () => {
-  if (!isCheat.value) return {}
-
+  // NOTE: no early return on `isCheat` — the listeners install for the app
+  // lifetime and gate live inside `handleKeyDown`, so typing `cmarc` enables the
+  // shortcuts immediately (previously they only armed on the next reload).
   const { addCoins } = useEpicConfig()
   const { spawnTestItemBoxes, spawnTestCratePile, resetForStage } = useEpicGame()
 
@@ -96,7 +108,7 @@ const useCheats = () => {
     'ctrl+shift+alt+2': () => setStage(12),
     'ctrl+shift+alt+3': () => setStage(13),
     'ctrl+shift+alt+4': () => setStage(14),
-    'ctrl+shift+alt+k': () => addCoins(3000),
+    'ctrl+shift+alt+k': () => { addCoins(20_000); console.warn('[CHEAT] +20,000 coins.') },
     // Jump to the stage-10 difficulty test level (the old, dense "stage 1").
     'ctrl+shift+alt+t': () => setStage(10),
     // Spawn a normal item box 1 tile ahead + a GOLDEN box 4 tiles ahead on the
@@ -135,6 +147,7 @@ const useCheats = () => {
   const handleKeyDown = (e: KeyboardEvent) => {
     const key = normalizeKey(e)
     if (key) heldKeys.add(key)
+    if (!isCheat.value) return
     const shortcut = buildShortcut(e)
     if (cheatsMap[shortcut]) {
       e.preventDefault()

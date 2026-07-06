@@ -43,26 +43,27 @@ export default {
     'rally': 'RALLY!',
     'rallyBody': 'Watch to resurrect your fallen fighters!',
     'tutorial': {
-      'spawn': 'Tap SPAWN to recruit two droplets!',
-      'merge': 'Drag one droplet onto the other to MERGE them!',
+      'spawn': 'Tap SPAWN to recruit two sparks!',
+      'merge': 'Drag one spark onto the other to MERGE them!',
       'deploy': 'Drag your fighter into the arena to join the fight!',
       'fieldMerge': 'Build another unit of the same tier and drop it onto your fighter to HEAL & RANK UP!'
     },
     'codex': {
       'title': 'Unit Codex',
-      'names': { 't1': 'Living Droplet', 't2': 'Ember Squirt', 't3': 'Vapor Chunk', 't4': 'Bio-Sprout', 't5': 'Pyro-Core', 't6': 'Acid Gland', 't7': 'Spark Spark', 't8': 'Cryo-Shard', 't9': 'Aurum Paste', 't10': 'Cosmic Mass' },
+      'names': { 't1': 'Magma Mote', 't2': 'Frost Whirl', 't3': 'Boulder Brute', 't4': 'Glacier Guard', 't5': 'Tide Drop', 't6': 'Crag Colossus', 't7': 'Nebula Eye', 't8': 'Void Wraith', 't9': 'Golden Talon', 't10': 'Phoenix Sovereign', 't11': 'Obsidian Warlord' },
       'locked': 'Merge two Tier {n} to discover!',
       'abilities': {
-        'none': 'Fast, fearless, and first through the gate.',
-        'burn': 'Ignites enemies — they keep burning after the hit.',
-        'knockback': 'Ranged shots that shove enemies back.',
-        'heal': 'Every hit also heals your weakest ally.',
-        'splash': 'Explosive strikes damage all nearby enemies.',
-        'poison': 'Stacks poison for heavy damage over time.',
-        'chain': 'Lightning arcs to three extra enemies.',
-        'frost': 'Chills on hit and freezes crowds with ice novas.',
+        'none': 'A molten spark — fast, fearless, and first through the gate.',
+        'burn': 'Biting frost lingers — enemies keep taking damage after the hit.',
+        'knockback': 'Hurls boulders that smash enemies backward.',
+        'heal': 'Radiates renewing frost — every hit heals your weakest ally.',
+        'splash': 'Crashing waves strike every nearby enemy.',
+        'poison': 'Choking grit stacks up for heavy damage over time.',
+        'chain': 'Starfire arcs to three extra enemies.',
+        'frost': 'A creeping dread slows foes and locks crowds in place.',
         'midas': 'High crit chance and bonus gold on every hit.',
-        'blackhole': 'Periodically drags the horde together and crushes it.'
+        'blackhole': 'Conjures a searing vortex that pulls the horde in and burns it to ash.',
+        'eruption': 'Erupts on impact — a molten splash burns every nearby enemy.'
       }
     },
     'mutators': {

@@ -56,7 +56,6 @@
 | File | Sound | Placeholder now |
 | :--- | :--- | :--- |
 | `upgrade-buy.ogg` | anvil/forge confirm clink | level-up |
-| `upgrade-denied.ogg` | empty-pockets thud | obstacle-hit |
 
 ## Rewards & offers (flying chest, milestone chest, RALLY!)
 
