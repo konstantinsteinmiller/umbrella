@@ -261,7 +261,7 @@ export default {
     'musicTrack': 'Musiqa treki',
     'musicTracks': {
       'cozy': 'Qulay ohang',
-      'trance': 'Trans tuneli'
+      'battle': 'Jang ohangi'
     },
     'close': 'Saqlash va yopish',
     'difficulties': { 'easy': 'Oson', 'medium': "Oʻrtacha", 'hard': 'Qiyin' },

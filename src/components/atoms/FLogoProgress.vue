@@ -1,6 +1,6 @@
 <template lang="pug">
   Transition(name="splash-fade")
-    div.splash-backdrop.no-os-ui(v-if="!backdropHidden")
+    div.splash-backdrop.no-os-ui(v-if="!backdropHidden" :style="backdropStyle")
 
   //- Logo only renders during the loading sequence. Once `done` flips
   //- true (progress = 100% OR the 4s fallback fires), the logo fades out
@@ -40,6 +40,14 @@ import { armFirstLoadInterstitial, notifySplashGone } from '@/use/useFirstLoadIn
 const { t } = useI18n()
 
 const logoSrc = prependBaseUrl('images/logo/logo_256x256.webp')
+
+// Full-screen arena backdrop behind the loading logo. Bound inline (not a CSS
+// url) so it goes through `prependBaseUrl` and resolves on base-path builds
+// (e.g. GitHub Pages `/merge-idle-war/`). The `.splash-backdrop` colour stays
+// as the fallback and shows through until the bitmap decodes.
+const backdropStyle = {
+  backgroundImage: `url(${prependBaseUrl('images/arena/scene-bg.webp')})`
+}
 
 const { loadingProgress, preloadAssets } = useAssets()
 const progress = computed(() => loadingProgress.value)
@@ -225,9 +233,9 @@ watch(done, (isDone) => {
   inset: 0
   z-index: 150
   background-color: #0d2a18
-  background-image: url('/images/bg/bg-tile_400x400.webp')
-  background-repeat: repeat
-  background-size: 400px 400px
+  background-repeat: no-repeat
+  background-position: center
+  background-size: cover
 
 .splash-fade-leave-active
   transition: opacity 0.4s ease-out

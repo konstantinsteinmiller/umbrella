@@ -272,7 +272,7 @@ export default {
     'musicTrack': 'Music Track',
     'musicTracks': {
       'cozy': 'Cozy Harmony',
-      'trance': 'Trance Tunnel'
+      'battle': 'Battle Theme'
     },
     'close': 'Save & Close',
     'difficulties': {

@@ -186,7 +186,7 @@ export default {
     }
   },
   'options': {
-    'title': 'الخيارات', 'general': 'عام', 'audio': 'الصوت', 'language': 'اللغة', 'difficulty': 'الصعوبة', 'soundEffects': 'المؤثرات الصوتية', 'music': 'الموسيقى', 'musicTrack': 'المقطوعة الموسيقية', 'musicTracks': { 'cozy': 'لحن دافئ', 'trance': 'نفق الترانس' }, 'close': 'حفظ وإغلاق',
+    'title': 'الخيارات', 'general': 'عام', 'audio': 'الصوت', 'language': 'اللغة', 'difficulty': 'الصعوبة', 'soundEffects': 'المؤثرات الصوتية', 'music': 'الموسيقى', 'musicTrack': 'المقطوعة الموسيقية', 'musicTracks': { 'cozy': 'لحن دافئ', 'battle': 'لحن المعركة' }, 'close': 'حفظ وإغلاق',
     'difficulties': { 'easy': 'سهل', 'medium': 'متوسط', 'hard': 'صعب' },
     'difficultyHints': { 'easy': 'سرعة حركة أبطأ — وقت أطول للتفاعل.', 'medium': 'الإيقاع القياسي المتوازن.', 'hard': 'سرعة حركة أسرع — توقيت أدق وأكثر إحكامًا.' }
   },

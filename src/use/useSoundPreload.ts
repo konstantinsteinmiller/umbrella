@@ -40,6 +40,8 @@ const GAMEPLAY_SFX: ReadonlyArray<string> = [
   'celebration-3',
   // Battle placeholders fired by the arena's event sink.
   'clash-1', 'clash-2', 'clash-3', 'clash-4', 'clash-5',
+  'unit-shot-1', 'unit-shot-2', 'unit-shot-3',
+  'flesh-hit-1', 'flesh-hit-2',
   'explosion-1',
   'crystal-cut',
   'dodge',

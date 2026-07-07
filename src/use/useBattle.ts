@@ -174,7 +174,7 @@ export type BattleEvent =
   | { type: 'number'; x: number; y: number; amount: number; variant: 'dmg' | 'crit' | 'heal' | 'burn' | 'poison' | 'gold' }
   | { type: 'strike'; id: number; x: number; y: number; tier: number; dx: number; dy: number }
   | { type: 'shot'; x: number; y: number; color: string }
-  | { type: 'impact'; x: number; y: number; color: string; element?: ElementKind }
+  | { type: 'impact'; x: number; y: number; color: string; element?: ElementKind; target: 'enemy' | 'fighter' }
   | { type: 'splash'; x: number; y: number; color: string }
   | { type: 'chain'; points: { x: number; y: number }[] }
   | { type: 'nova'; x: number; y: number }
@@ -657,7 +657,7 @@ const landFighterHit = (f: { tier: number; x: number; y: number }, e: Enemy, dmg
   // Scatter the impact across the body (default centre when no explicit point).
   const ix = hitX ?? (e.x + hitScatterX(e.scale))
   const iy = hitY ?? (bodyY(e.y, e.scale) + hitScatterY(e.scale))
-  emit({ type: 'impact', x: ix, y: iy, color: glowOf(f.tier), element: impactElement })
+  emit({ type: 'impact', x: ix, y: iy, color: glowOf(f.tier), element: impactElement, target: 'enemy' })
   hurtEnemy(e, final, crit ? 'crit' : 'dmg')
 
   switch (def.ability) {
@@ -1169,7 +1169,7 @@ const stepProjectiles = (dt: number): void => {
       } else {
         const f = target as Fighter
         f.hp -= p.dmg
-        emit({ type: 'impact', x: f.x, y: bodyY(f.y, getFighterDef(f.tier).scale), color: p.color, element: p.element })
+        emit({ type: 'impact', x: f.x, y: bodyY(f.y, getFighterDef(f.tier).scale), color: p.color, element: p.element, target: 'fighter' })
         emit({ type: 'number', x: f.x, y: f.y - 5, amount: p.dmg, variant: 'dmg' })
         if (mutator.value === 'frostMarch') f.cooldown = Math.min(3, Math.max(f.cooldown, 0) + 0.5)
       }
@@ -1374,3 +1374,60 @@ const useBattle = () => ({
 })
 
 export default useBattle
+
+// ⚠️ DEV-ONLY TRAILER HARNESS — dead-code-eliminated from every platform build
+// (`import.meta.env.DEV` is statically false there). Sets up a NATURAL wave-25
+// boss fight and steps it DETERMINISTICALLY for real-gameplay video capture.
+// From the DevTools console:
+//   window.__trailer()      // start the wave-25 fight (boss + a handful of adds)
+//   window.__advance(0.05)  // step the whole scene by dt game-seconds + render.
+//                           //   The RAF's own clock is frozen so ONLY these calls
+//                           //   move time → evenly spaced frames that play back
+//                           //   smooth + real-time (no slow-mo, no interp mush).
+//   window.__ult()          // fire the Meteor Storm ultimate
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  const w = window as unknown as Record<string, unknown>
+  // A moderate, VFX-rich party (fire/cosmic/shadow ranged + melee) — enough to
+  // fight the wave dynamically without instantly wiping it.
+  const PARTY: Array<[number, number, number]> = [
+    [10, 30, 32], [8, 24, 52], [7, 34, 44], [9, 20, 68], [6, 30, 72]
+  ]
+  const ADDS: EnemyKind[] = ['runner', 'brute', 'spitter', 'warlock', 'slime', 'runner']
+  w.__trailer = (): void => {
+    fighters.value = []
+    enemies.value = []
+    projectiles.value = []
+    boss.value = null
+    wave.value = 25
+    wavePhase.value = 'fighting'
+    for (const [tier, x, y] of PARTY) deployFighter(tier, x, y)
+    // Survive the ~15s clip (not one-shot by the boss).
+    fighters.value.forEach((f) => { f.maxHp *= 8; f.hp = f.maxHp })
+    // Wave-25 boss + a NATURAL handful of monsters (no masses). Boss HP padded so
+    // it survives the clip and its bar visibly drains as the party chips it.
+    spawnEnemy('boss', false, 1)
+    ADDS.forEach((k, i) => spawnEnemy(k, false, i % 3))
+    enemies.value.forEach((e) => { if (e.boss) { e.maxHp *= 10; e.hp = e.maxHp } })
+    ultCharge.value = ULT_MAX
+    timescale.value = 1
+    triggerRef(fighters); triggerRef(enemies)
+  }
+  // Deterministic scene stepper: advance battle + a gentle merge churn + a light
+  // monster trickle (keeps ~5-6 adds, never masses) by `dt` game-seconds, render.
+  let _mAcc = 0, _sAcc = 0
+  w.__advance = (dt = 0.05): void => {
+    timescale.value = 0 // freeze the RAF's own stepping — this call owns the clock
+    step(dt)
+    if (renderSink) renderSink()
+    _mAcc += dt
+    if (_mAcc >= 0.55) { _mAcc = 0; (window as unknown as Record<string, (() => void) | undefined>).__mergePulse?.() }
+    _sAcc += dt
+    if (_sAcc >= 2.8) {
+      _sAcc = 0
+      if (enemies.value.filter((e) => !e.boss).length < 6) {
+        spawnEnemy(ADDS[(Math.random() * ADDS.length) | 0]!, false, (Math.random() * 3) | 0)
+      }
+    }
+  }
+  w.__ult = (): void => { fireUltimate() }
+}

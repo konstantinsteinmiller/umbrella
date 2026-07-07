@@ -261,7 +261,7 @@ export default {
     'musicTrack': '背景音乐',
     'musicTracks': {
       'cozy': '温馨旋律',
-      'trance': '迷幻隧道'
+      'battle': '战斗主题'
     },
     'close': '保存并关闭',
     'difficulties': { 'easy': '简单', 'medium': '中等', 'hard': '困难' },

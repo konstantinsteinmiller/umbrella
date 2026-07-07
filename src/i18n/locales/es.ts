@@ -261,7 +261,7 @@ export default {
     'musicTrack': 'Pista de música',
     'musicTracks': {
       'cozy': 'Armonía Acogedora',
-      'trance': 'Túnel Trance'
+      'battle': 'Tema de Batalla'
     },
     'close': 'Guardar y Cerrar',
     'difficulties': { 'easy': 'Fácil', 'medium': 'Media', 'hard': 'Difícil' },

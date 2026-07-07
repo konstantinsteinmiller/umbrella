@@ -330,17 +330,26 @@ const bootstrap = async () => {
   const portalLocaleHint = cgLocale ?? yaLocale
   const portalLocale = portalLocaleHint && LANGUAGES.includes(portalLocaleHint) ? portalLocaleHint : null
 
-  const { default: App } = await import('@/App.vue')
-
   // Resolve and LOAD just the initial locale bundle before creating the
   // i18n instance. The English fallback is loaded in parallel so missing
   // keys are never undefined while the active locale's chunk is still
   // in flight. If the initial locale IS English we only fetch once.
+  //
+  // The App.vue chunk and the locale bundles are independent and both only
+  // depend on the already-completed hydrate (App eval reads localStorage;
+  // resolveInitialLocale reads the hydrated language) — so kick BOTH network
+  // fetches off together and await them as one, overlapping the two chunk
+  // round-trips instead of serializing App→locales on the boot critical path.
   const initial = resolveInitialLocale(portalLocale)
   const needsFallback = initial !== 'en'
-  const [initialMsgs, fallbackMsgs] = await Promise.all([
+  const appPromise = import('@/App.vue')
+  const localesPromise = Promise.all([
     loadLocaleMessages(initial).catch(() => ({})),
     needsFallback ? loadLocaleMessages('en').catch(() => ({})) : Promise.resolve(null)
+  ])
+  const [{ default: App }, [initialMsgs, fallbackMsgs]] = await Promise.all([
+    appPromise,
+    localesPromise
   ])
 
   const i18n: any = createI18n({

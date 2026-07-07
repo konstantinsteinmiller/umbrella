@@ -261,7 +261,7 @@ export default {
     'musicTrack': 'Музыкальная тема',
     'musicTracks': {
       'cozy': 'Уютная гармония',
-      'trance': 'Транс-тоннель'
+      'battle': 'Боевая тема'
     },
     'close': 'Сохранить и Закрыть',
     'difficulties': { 'easy': 'Лёгкая', 'medium': 'Средняя', 'hard': 'Сложная' },

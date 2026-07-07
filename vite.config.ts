@@ -54,6 +54,67 @@ const readBody = (req: import('node:http').IncomingMessage): Promise<string> =>
     req.on('error', rej)
   })
 
+// ─── Warm gameplay chunks behind the boot await-chain ──────────────────
+// The 390KB entry chunk runs a serial awaited chain — platform-SDK init +
+// save hydrate — BEFORE it dynamic-imports App.vue, and App only pulls the
+// gameplay route (GameScene → useEpicArt) once it mounts. Those chunk
+// downloads therefore START only after that gate clears, serializing extra
+// round-trips on the path to the first playable frame while the same-origin
+// download pipe sits idle during SDK-init/hydrate. Warm them from index.html:
+//   • App.vue  → modulepreload (22KB, needed the instant hydrate resolves;
+//     high priority is fine at that size and it compiles ahead of import()).
+//   • GameScene + useEpicArt → prefetch (170KB/51KB, LOW priority so they
+//     fill the idle pipe during boot WITHOUT contending with the entry chunk
+//     or the splash's first paint; the real import() then hits a warm cache).
+// modulepreload/prefetch only FETCH (+compile) — they never EXECUTE the
+// module, so the localStorage-at-eval boot ordering main.ts relies on is
+// untouched: eval still happens at the real post-hydrate import().
+// Build-only; skipped on the GamePix single-file build (no separate chunks).
+const warmGameplayChunks = (): Plugin => {
+  let base = '/'
+  return {
+    name: 'warm-gameplay-chunks',
+    apply: 'build',
+    enforce: 'post',
+    configResolved(cfg) { base = cfg.base || '/' },
+    transformIndexHtml(html, ctx) {
+      const bundle = ctx.bundle
+      if (!bundle) return
+      const chunks = Object.values(bundle).filter(
+        (c): c is import('vite').Rollup.OutputChunk => c.type === 'chunk'
+      )
+      const chunkByName = (name: string) => chunks.find((c) => c.name === name)
+      const entryFile = chunks.find((c) => c.isEntry)?.fileName
+      const href = (f: string) => (base.endsWith('/') ? base : base + '/') + f
+      const tags: import('vite').HtmlTagDescriptor[] = []
+
+      // App itself → modulepreload: tiny (~22KB) and needed the instant hydrate
+      // resolves, so high priority + ahead-of-time compile is the right call.
+      const app = chunkByName('App')
+      if (app) tags.push({ tag: 'link', injectTo: 'head', attrs: { rel: 'modulepreload', href: href(app.fileName) } })
+
+      // Everything else the path to first-frame pulls in — App's dependency
+      // subtree (useEpicArt / useEpicConfig / … shared chunks) plus the lazy
+      // GameScene route — goes in at LOW priority via prefetch so the big
+      // downloads fill the idle pipe during SDK-init/hydrate WITHOUT competing
+      // with the entry chunk or the splash first paint. The entry chunk is
+      // excluded (already loading via <script type="module">). Deduped so a
+      // chunk shared by App and GameScene is hinted once.
+      const gameScene = chunkByName('GameScene')
+      const prefetch = new Set<string>([
+        ...(app ? app.imports : []),
+        ...(gameScene ? [gameScene.fileName] : [])
+      ])
+      prefetch.delete(app?.fileName ?? '')
+      if (entryFile) prefetch.delete(entryFile)
+      for (const f of prefetch) {
+        tags.push({ tag: 'link', injectTo: 'head', attrs: { rel: 'prefetch', as: 'script', href: href(f) } })
+      }
+      return { html, tags }
+    }
+  }
+}
+
 const mawCampaignOverridesPlugin = (): Plugin => ({
   name: 'maw-campaign-overrides',
   resolveId(id) {
@@ -394,6 +455,11 @@ export default defineConfig(({ mode, command }) => {
     // Cast to `any` — the plugin ships its own (mismatched) Vite Plugin types,
     // same reason the obfuscator plugin above is cast.
     plugins.push(viteSingleFile() as any)
+  } else {
+    // Every non-single-file build: warm App / GameScene / useEpicArt from
+    // index.html so the gameplay chunks download during the boot await-chain
+    // instead of serially after it. See `warmGameplayChunks` above.
+    plugins.push(warmGameplayChunks())
   }
 
   // Emit `playgama-bridge-config.json` ONLY for the Playgama build. NOT

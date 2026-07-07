@@ -261,7 +261,7 @@ export default {
     'musicTrack': 'Traccia musicale',
     'musicTracks': {
       'cozy': 'Armonia Accogliente',
-      'trance': 'Tunnel Trance'
+      'battle': 'Tema di Battaglia'
     },
     'close': 'Salva e Chiudi',
     'difficulties': { 'easy': 'Facile', 'medium': 'Media', 'hard': 'Difficile' },

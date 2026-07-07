@@ -261,7 +261,7 @@ export default {
     'musicTrack': '音楽トラック',
     'musicTracks': {
       'cozy': 'コージーハーモニー',
-      'trance': 'トランストンネル'
+      'battle': 'バトルテーマ'
     },
     'close': '保存して閉じる',
     'difficulties': { 'easy': 'やさしい', 'medium': 'ふつう', 'hard': 'むずかしい' },

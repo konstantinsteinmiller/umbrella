@@ -61,16 +61,21 @@ export const SOUND_KEY = 'spinner_user_sound_volume'
 export const MUSIC_KEY = 'spinner_user_music_volume'
 export const LANGUAGE_KEY = 'spinner_user_language'
 export const DIFFICULTY_KEY = 'spinner_user_difficulty'
-// Which background-music track plays during a run. 'trance' (Trance Tunnel)
-// is the default; 'cozy' maps to the original bg-cozy.ogg (Cozy Harmony).
+// Which background-music track plays during a run. 'battle' (Battle Theme,
+// battle-theme.ogg) is the default; 'cozy' maps to bg-cozy.ogg (Cozy Harmony).
 export const MUSIC_TRACK_KEY = 'spinner_user_music_track'
 
 // Background-music track id → audio filename (under public/audio/music/).
-export type MusicTrack = 'trance' | 'cozy'
+export type MusicTrack = 'battle' | 'cozy'
 export const MUSIC_TRACK_FILES: Record<MusicTrack, string> = {
-  trance: 'trance.ogg',
+  battle: 'battle-theme.ogg',
   cozy: 'bg-cozy.ogg'
 }
+export const DEFAULT_MUSIC_TRACK: MusicTrack = 'battle'
+// Legacy saves may still hold the retired 'trance' id — coerce any unknown
+// value back to the default so the resolver never lands on a missing file.
+export const normalizeMusicTrack = (v: string): MusicTrack =>
+  Object.prototype.hasOwnProperty.call(MUSIC_TRACK_FILES, v) ? (v as MusicTrack) : DEFAULT_MUSIC_TRACK
 
 const readNumber = (key: string, fallback: number): number => {
   const v = getState<unknown>(key)
@@ -96,8 +101,8 @@ const userLanguage: Ref<string> = ref(readString(LANGUAGE_KEY, 'en'))
 // Difficulty defaults to MEDIUM; Easy slows travel speed −20%, Hard +10%
 // (applied in useEpicGame's per-frame speed calc via `difficultySpeedFactor`).
 const userDifficulty: Ref<Difficulties> = ref(readString<Difficulties>(DIFFICULTY_KEY, DIFFICULTY.MEDIUM))
-// Background-music track — defaults to 'trance' (Trance Tunnel).
-const userMusicTrack: Ref<MusicTrack> = ref(readString<MusicTrack>(MUSIC_TRACK_KEY, 'trance'))
+// Background-music track — defaults to 'battle' (Battle Theme).
+const userMusicTrack: Ref<MusicTrack> = ref(normalizeMusicTrack(readString<string>(MUSIC_TRACK_KEY, DEFAULT_MUSIC_TRACK)))
 
 // Re-read on hydrate-success bump. Module init reads these synchronously
 // from localStorage, but on cloud-only builds (CrazyGames) the blob is
@@ -124,7 +129,7 @@ watch(saveDataVersion, () => {
   userMusicVolume.value = readNumber(MUSIC_KEY, userMusicVolume.value)
   userLanguage.value = readString(LANGUAGE_KEY, userLanguage.value)
   userDifficulty.value = readString<Difficulties>(DIFFICULTY_KEY, userDifficulty.value)
-  userMusicTrack.value = readString<MusicTrack>(MUSIC_TRACK_KEY, userMusicTrack.value)
+  userMusicTrack.value = normalizeMusicTrack(readString<string>(MUSIC_TRACK_KEY, userMusicTrack.value))
 
   if (!hasState(SOUND_KEY)) setState(SOUND_KEY, userSoundVolume.value)
   if (!hasState(MUSIC_KEY)) setState(MUSIC_KEY, userMusicVolume.value)
@@ -209,7 +214,7 @@ const useUser = () => {
         setState(DIFFICULTY_KEY, userDifficulty.value)
         break
       case 'musicTrack':
-        userMusicTrack.value = value as MusicTrack
+        userMusicTrack.value = normalizeMusicTrack(value as string)
         setState(MUSIC_TRACK_KEY, userMusicTrack.value)
         break
     }

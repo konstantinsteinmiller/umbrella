@@ -261,7 +261,7 @@ export default {
     'musicTrack': '음악 트랙',
     'musicTracks': {
       'cozy': '아늑한 하모니',
-      'trance': '트랜스 터널'
+      'battle': '전투 테마'
     },
     'close': '저장 후 닫기',
     'difficulties': { 'easy': '쉬움', 'medium': '보통', 'hard': '어려움' },

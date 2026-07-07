@@ -102,3 +102,8 @@ export const notifyTutorial = (event: TutorialEvent): void => {
     advanceTo('done')
   }
 }
+
+// ⚠️ DEV-ONLY: skip the intro tutorial for promo capture (window.__skipTut()).
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  ;(window as unknown as Record<string, unknown>).__skipTut = (): void => { advanceTo('done') }
+}

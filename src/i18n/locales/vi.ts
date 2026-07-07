@@ -261,7 +261,7 @@ export default {
     'musicTrack': 'Bản nhạc nền',
     'musicTracks': {
       'cozy': 'Giai Điệu Ấm Cúng',
-      'trance': 'Đường Hầm Trance'
+      'battle': 'Nhạc Chiến Đấu'
     },
     'close': 'Lưu & Đóng',
     'difficulties': {

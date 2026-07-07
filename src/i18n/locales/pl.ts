@@ -261,7 +261,7 @@ export default {
     'musicTrack': 'Ścieżka muzyczna',
     'musicTracks': {
       'cozy': 'Przytulna Harmonia',
-      'trance': 'Tunel Trance'
+      'battle': 'Motyw Bitewny'
     },
     'close': 'Zapisz i Zamknij',
     'difficulties': { 'easy': 'Łatwy', 'medium': 'Średni', 'hard': 'Trudny' },

@@ -311,3 +311,43 @@ const usePrismGame = () => ({
 })
 
 export default usePrismGame
+
+// ⚠️ DEV-ONLY: fill the merge board for promo capture (window.__fillGrid()).
+// Dead-code-eliminated from platform builds (`import.meta.env.DEV` false).
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  const w = window as unknown as Record<string, unknown>
+  w.__fillGrid = (): void => {
+    // A rich, "mid-run" spread — varied tiers with adjacent mergeable pairs so
+    // the board reads full and colourful (not a fresh empty grid).
+    const spread = [4, 6, 6, 3, 8, 5, 2, 7, 5, 9, 4, 4, 7, 3, 6, 8]
+    const next = grid.value.slice()
+    for (let i = 0; i < next.length; i++) next[i] = spread[i % spread.length]!
+    grid.value = next
+    const top = Math.max(...next)
+    if (top > maxTier.value) maxTier.value = top
+    persistGrid()
+  }
+  // One pulse of merge activity: merge every available pair (pop VFX + tiles
+  // upgrade), then refill the freed slots with fresh low-tier pairs so the board
+  // keeps churning — this is the "merging process" shown live in the trailer.
+  w.__mergePulse = (): void => {
+    // Gentle churn: one merge + a couple of fresh units per beat, so the board
+    // reads as steady "merging in progress" rather than flickering wildly.
+    const p = findMergePair(); if (p) merge(p[0], p[1])
+    for (let k = 0; k < 2; k++) spawnUnitAt(2 + Math.floor(Math.random() * 5))
+  }
+  // Self-running promo driver: merges churn, ultimates fire, waves top up — all
+  // on page timers — so a plain rapid screenshot loop captures continuous
+  // motion (real gameplay), no per-frame poking needed. `__autoShow(false)` stops.
+  w.__autoShow = (on = true): void => {
+    const g = w as Record<string, ReturnType<typeof setInterval> | undefined> & Record<string, unknown>
+    for (const key of ['__miMerge', '__miUlt', '__miSwarm']) {
+      if (g[key]) clearInterval(g[key] as ReturnType<typeof setInterval>)
+      g[key] = undefined
+    }
+    if (!on) return
+    g.__miMerge = setInterval(() => (g.__mergePulse as (() => void) | undefined)?.(), 620)
+    g.__miUlt = setInterval(() => (g.__ult as (() => void) | undefined)?.(), 3200)
+    g.__miSwarm = setInterval(() => (g.__swarm as (() => void) | undefined)?.(), 1600)
+  }
+}

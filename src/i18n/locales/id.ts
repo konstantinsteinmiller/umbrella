@@ -186,7 +186,7 @@ export default {
     }
   },
   'options': {
-    'title': 'Opsi', 'general': 'Umum', 'audio': 'Audio', 'language': 'Bahasa', 'difficulty': 'Kesulitan', 'soundEffects': 'Efek Suara', 'music': 'Musik', 'musicTrack': 'Trek Musik', 'musicTracks': { 'cozy': 'Harmoni Nyaman', 'trance': 'Terowongan Trance' }, 'close': 'Simpan & Tutup',
+    'title': 'Opsi', 'general': 'Umum', 'audio': 'Audio', 'language': 'Bahasa', 'difficulty': 'Kesulitan', 'soundEffects': 'Efek Suara', 'music': 'Musik', 'musicTrack': 'Trek Musik', 'musicTracks': { 'cozy': 'Harmoni Nyaman', 'battle': 'Tema Pertempuran' }, 'close': 'Simpan & Tutup',
     'difficulties': { 'easy': 'Mudah', 'medium': 'Sedang', 'hard': 'Sulit' },
     'difficultyHints': { 'easy': 'Kecepatan gerak lebih lambat — lebih banyak waktu untuk bereaksi.', 'medium': 'Kecepatan standar yang seimbang.', 'hard': 'Kecepatan gerak lebih cepat — waktu yang lebih ketat dan presisi.' }
   },

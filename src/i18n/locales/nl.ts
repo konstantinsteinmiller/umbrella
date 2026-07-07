@@ -261,7 +261,7 @@ export default {
     'musicTrack': 'Muziektrack',
     'musicTracks': {
       'cozy': 'Gezellige Harmonie',
-      'trance': 'Trance-Tunnel'
+      'battle': 'Gevechtsthema'
     },
     'close': 'Opslaan & Sluiten',
     'difficulties': { 'easy': 'Makkelijk', 'medium': 'Gemiddeld', 'hard': 'Moeilijk' },

@@ -186,7 +186,7 @@ export default {
     }
   },
   'options': {
-    'title': 'ตัวเลือก', 'general': 'ทั่วไป', 'audio': 'เสียง', 'language': 'ภาษา', 'difficulty': 'ระดับความยาก', 'soundEffects': 'เสียงเอฟเฟกต์', 'music': 'เพลง', 'musicTrack': 'แทร็กเพลง', 'musicTracks': { 'cozy': 'ทำนองอบอุ่น', 'trance': 'อุโมงค์แทรนซ์' }, 'close': 'บันทึกและปิด',
+    'title': 'ตัวเลือก', 'general': 'ทั่วไป', 'audio': 'เสียง', 'language': 'ภาษา', 'difficulty': 'ระดับความยาก', 'soundEffects': 'เสียงเอฟเฟกต์', 'music': 'เพลง', 'musicTrack': 'แทร็กเพลง', 'musicTracks': { 'cozy': 'ทำนองอบอุ่น', 'battle': 'ธีมการต่อสู้' }, 'close': 'บันทึกและปิด',
     'difficulties': { 'easy': 'ง่าย', 'medium': 'ปานกลาง', 'hard': 'ยาก' },
     'difficultyHints': { 'easy': 'ความเร็วการเคลื่อนที่ช้าลง — มีเวลาตอบสนองมากขึ้น', 'medium': 'จังหวะมาตรฐานที่สมดุล', 'hard': 'ความเร็วการเคลื่อนที่เร็วขึ้น — จับจังหวะให้แม่นยำและกระชับขึ้น' }
   },

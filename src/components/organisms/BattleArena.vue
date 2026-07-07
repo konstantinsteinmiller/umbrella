@@ -264,9 +264,28 @@ const throttledSound = (group: string, name: string, vol: number, pitch = 1, min
   lastSfx.set(group, now)
   playSound(name, vol, pitch)
 }
+// Melee clashes are rate-limited by a sliding window (not a fixed min-gap):
+// at most CLASH_MAX distinct clash-1..5 hits sound per CLASH_WINDOW_MS, so a
+// dense brawl stays punchy for a beat then falls quiet instead of machine-
+// gunning. Timestamps older than the window are dropped on each call.
+const CLASH_WINDOW_MS = 1500
+const CLASH_MAX = 5
+const clashTimes: number[] = []
 const clashSound = (tier: number): void => {
+  const now = performance.now()
+  while (clashTimes.length && now - clashTimes[0]! > CLASH_WINDOW_MS) clashTimes.shift()
+  if (clashTimes.length >= CLASH_MAX) return
+  clashTimes.push(now)
   const n = 1 + ((Math.random() * 5) | 0)
-  throttledSound('clash', `clash-${n}`, 0.02, 0.9 + Math.min(10, tier) * 0.03, 90)
+  playSound(`clash-${n}`, 0.02, 0.9 + Math.min(10, tier) * 0.03)
+}
+const shotSound = (): void => {
+  const n = 1 + ((Math.random() * 3) | 0)
+  throttledSound('shot', `unit-shot-${n}`, 0.012, 1.2 + Math.random() * 0.2, 120)
+}
+const fleshHitSound = (): void => {
+  const n = 1 + ((Math.random() * 2) | 0)
+  throttledSound('flesh', `flesh-hit-${n}`, 0.02, 0.95 + Math.random() * 0.2, 70)
 }
 
 // ─── Shatter death effect ────────────────────────────────────────────────────
@@ -349,10 +368,14 @@ const onEvent = (e: BattleEvent): void => {
       break
     }
     case 'shot':
-      throttledSound('shot', 'unit-shot', 0.012, 1.3, 120)
+      shotSound()
       break
     case 'impact':
       if (!e.element || !addImpactSheet(e.element, e.x, e.y)) emitSparkle(toClientX(e.x), toClientY(e.y), e.color, 4)
+      // Wet flesh-hit only when a RANGED attack (element set) lands on an enemy;
+      // melee already has its clash on the 'strike' event, and enemy shots on
+      // our fighters are the 'fighter' target — neither should thud here.
+      if (e.element && e.target === 'enemy') fleshHitSound()
       break
     case 'splash':
       // Element-coloured spark burst for the AoE hit — no celebratory confetti.
@@ -374,7 +397,11 @@ const onEvent = (e: BattleEvent): void => {
       // cap skips the shatter (then it's just the small spark burst).
       shatterUnit(enemyEls.get(e.id)?.root, e.boss)
       emitSparkle(toClientX(e.x), toClientY(e.y), '#ffcf9a', e.boss ? 20 : 9)
-      throttledSound('death', 'enemy-death', 0.02, 1 + Math.random() * 0.3, 80)
+      // The ogre (brute) is a rock golem — it cracks apart with a stone-cut
+      // rather than the wet enemy-death pop. Its own throttle group so a flurry
+      // of normal deaths can't suppress the ogre's distinct shatter.
+      if (e.kind === 'brute') throttledSound('death-ogre', 'stone-cut', 0.03, 0.85 + Math.random() * 0.25, 80)
+      else throttledSound('death', 'enemy-death', 0.02, 1 + Math.random() * 0.3, 80)
       break
     case 'fighterDeath':
       if (!shatterUnit(fighterEls.get(e.id)?.root, false)) {

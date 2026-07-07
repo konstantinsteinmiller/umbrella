@@ -186,7 +186,7 @@ export default {
     }
   },
   'options': {
-    'title': 'Параметрлер', 'general': 'Жалпы', 'audio': 'Дыбыс', 'language': 'Тіл', 'difficulty': 'Қиындық', 'soundEffects': 'Дыбыс әсерлері', 'music': 'Музыка', 'musicTrack': 'Музыка тректі', 'musicTracks': { 'cozy': 'Жайлы әуен', 'trance': 'Транс туннелі' }, 'close': 'Сақтау және жабу',
+    'title': 'Параметрлер', 'general': 'Жалпы', 'audio': 'Дыбыс', 'language': 'Тіл', 'difficulty': 'Қиындық', 'soundEffects': 'Дыбыс әсерлері', 'music': 'Музыка', 'musicTrack': 'Музыка тректі', 'musicTracks': { 'cozy': 'Жайлы әуен', 'battle': 'Шайқас әуені' }, 'close': 'Сақтау және жабу',
     'difficulties': { 'easy': 'Оңай', 'medium': 'Орташа', 'hard': 'Қиын' },
     'difficultyHints': { 'easy': 'Баяу жылдамдық — әрекет етуге көбірек уақыт.', 'medium': 'Стандартты, теңдестірілген қарқын.', 'hard': 'Жоғары жылдамдық — қатаңырақ, дәлірек уақыт.' }
   },

@@ -186,7 +186,7 @@ export default {
     }
   },
   'options': {
-    'title': 'विकल्प', 'general': 'सामान्य', 'audio': 'ऑडियो', 'language': 'भाषा', 'difficulty': 'कठिनाई', 'soundEffects': 'ध्वनि प्रभाव', 'music': 'संगीत', 'musicTrack': 'संगीत ट्रैक', 'musicTracks': { 'cozy': 'आरामदायक धुन', 'trance': 'ट्रांस टनल' }, 'close': 'सहेजें और बंद करें',
+    'title': 'विकल्प', 'general': 'सामान्य', 'audio': 'ऑडियो', 'language': 'भाषा', 'difficulty': 'कठिनाई', 'soundEffects': 'ध्वनि प्रभाव', 'music': 'संगीत', 'musicTrack': 'संगीत ट्रैक', 'musicTracks': { 'cozy': 'आरामदायक धुन', 'battle': 'युद्ध थीम' }, 'close': 'सहेजें और बंद करें',
     'difficulties': { 'easy': 'आसान', 'medium': 'मध्यम', 'hard': 'कठिन' },
     'difficultyHints': { 'easy': 'धीमी गति — प्रतिक्रिया करने के लिए अधिक समय।', 'medium': 'मानक, संतुलित गति।', 'hard': 'तेज़ गति — सटीक और बारीक समय।' }
   },

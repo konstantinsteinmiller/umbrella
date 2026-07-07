@@ -1,5 +1,5 @@
 import { prependBaseUrl } from '@/utils/function'
-import useUser, { MUSIC_TRACK_FILES } from '@/use/useUser'
+import useUser, { MUSIC_TRACK_FILES, DEFAULT_MUSIC_TRACK } from '@/use/useUser'
 import { getAudioContext, loadAudioBuffer, resourceCache, registerHtmlAudio, unregisterHtmlAudio, isAudioSuspended, registerOneShotSource } from '@/use/useAssets'
 import { isGamePaused } from '@/use/useGamePause'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
@@ -25,7 +25,8 @@ export const SFX_FALLBACKS: Record<string, string> = {
   'deploy-land': 'stone-cut',
   'field-merge': 'level-up',
   'army-full': 'obstacle-hit',
-  'unit-shot': 'dodge',
+  // unit-shot ships as 3 real variants (unit-shot-1..3), fired randomly by the
+  // arena like clash-1..5 — so no single-file placeholder slot is needed.
   'chain-zap': 'crystal-cut',
   'frost-nova': 'crystal-cut',
   'black-hole': 'gravity',
@@ -50,10 +51,10 @@ export const SFX_FALLBACKS: Record<string, string> = {
   'upgrade-denied': 'obstacle-hit',
   // Rewards & offers (flying chest, milestone chest, RALLY! revive, 2× dmg)
   'chest-flyby': 'modal-open',
-  'chest-open': 'celebration-2',
+  'chest-open': 'level-up',
   'milestone-chest': 'celebration-2',
   'rally-revive': 'celebration-1',
-  'damage-buff': 'celebration-1'
+  'damage-buff': 'dodge'
 }
 
 const availableSfxOverrides = new Set<string>()
@@ -75,12 +76,6 @@ const resolveSfx = (effect: string): string => {
   const fallback = SFX_FALLBACKS[effect]
   return fallback === undefined || availableSfxOverrides.has(effect) ? effect : fallback
 }
-
-// Drop-in battle music: `public/audio/music/battle-theme.ogg` replaces the
-// default track when present (probed in `useMusic`; see sound-todo.md).
-const BATTLE_THEME_FILE = 'battle-theme.ogg'
-let battleThemeAvailable = false
-let battleThemeProbed = false
 
 // We keep the audio instance outside the hook so it's a true Singleton
 const bgMusic = ref<HTMLAudioElement | null>(null)
@@ -159,13 +154,11 @@ export const useMusic = () => {
     loadAndPlayTrack()
   })
 
-  // Resolve the active track's filename, falling back to the default. A
-  // dropped-in `battle-theme.ogg` (sound-todo.md) takes over the DEFAULT
-  // track slot; an explicit non-default pick (Cozy Harmony) is respected.
-  const currentTrackFile = (): string => {
-    if (battleThemeAvailable && userMusicTrack.value === 'trance') return BATTLE_THEME_FILE
-    return MUSIC_TRACK_FILES[userMusicTrack.value] ?? MUSIC_TRACK_FILES.trance
-  }
+  // Resolve the active track's filename. 'battle' (Battle Theme) is the
+  // default; 'cozy' (Cozy Harmony) is the only alternative. A stray legacy id
+  // was already normalized in useUser, but keep a default fallback for safety.
+  const currentTrackFile = (): string =>
+    MUSIC_TRACK_FILES[userMusicTrack.value] ?? MUSIC_TRACK_FILES[DEFAULT_MUSIC_TRACK]
 
   // Point the music element at the active track and fade it in — using the
   // preloaded/decoded copy when available, otherwise fetching on demand.
@@ -187,21 +180,6 @@ export const useMusic = () => {
         playWithFade()
       }, { once: true })
     }
-  }
-
-  // One-time probe for the drop-in battle theme. HEAD keeps it cheap; the
-  // content-type guard rejects the dev server's index.html SPA fallback. If
-  // the theme shows up while the default track is already playing, live-swap.
-  if (!battleThemeProbed && typeof window !== 'undefined') {
-    battleThemeProbed = true
-    void fetch(prependBaseUrl('audio/music/' + BATTLE_THEME_FILE), { method: 'HEAD' })
-      .then((res) => {
-        const type = res.headers.get('content-type') ?? ''
-        if (!res.ok || type.includes('text/html')) return
-        battleThemeAvailable = true
-        if (shouldPlay.value && bgMusic.value && userMusicTrack.value === 'trance') loadAndPlayTrack()
-      })
-      .catch(() => { /* offline / blocked — placeholder track stays */ })
   }
 
   const pauseMusic = () => {

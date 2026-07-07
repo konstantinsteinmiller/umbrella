@@ -24,6 +24,12 @@ export const MIDGAME_AD_INTERVAL_S = 121
 let elapsed = 0
 let firing = false
 let dueLogged = false
+// DEV-only: `window.__adTimerOff()` suppresses the periodic interstitial so it
+// can't interrupt promo screenshot / video capture. Dead code in prod.
+let disabledForCapture = false
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  ;(window as unknown as Record<string, unknown>).__adTimerOff = (): void => { disabledForCapture = true }
+}
 
 /**
  * Advance the midgame-ad clock by `dt` seconds of ACTIVE gameplay and fire an
@@ -36,7 +42,7 @@ let dueLogged = false
  * never resets until an ad actually plays.
  */
 export const tickMidgameAd = (dt: number): void => {
-  if (firing) return
+  if (firing || disabledForCapture) return
   elapsed += dt
   if (elapsed < MIDGAME_AD_INTERVAL_S) { dueLogged = false; return }
   // Interval reached — only pull the trigger when an ad is genuinely available

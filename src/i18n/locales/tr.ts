@@ -261,7 +261,7 @@ export default {
     'musicTrack': 'Müzik Parçası',
     'musicTracks': {
       'cozy': 'Huzurlu Uyum',
-      'trance': 'Trans Tüneli'
+      'battle': 'Savaş Teması'
     },
     'close': 'Kaydet ve Kapat',
     'difficulties': { 'easy': 'Kolay', 'medium': 'Orta', 'hard': 'Zor' },
