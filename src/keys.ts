@@ -33,6 +33,9 @@ export const BATTLE_ULT_KEY = 'battle_ult'
 export const PRISM_TUTORIAL_KEY = 'prism_tutorial_step'
 // 2× Damage buff (rewarded ad): epoch-ms timestamp the buff expires at.
 export const BATTLE_DMG_BUFF_KEY = 'battle_dmg_buff_until'
+// Rubber-band catch-up: epoch-ms timestamp the "-25% enemy stats" window
+// (granted when a wipe drops the player to their best-wave floor) expires at.
+export const BATTLE_RUBBER_BAND_KEY = 'battle_rubberband_until'
 // Last moment the game was alive (epoch ms) — drives the offline-earnings
 // "welcome back" grant (retention-roadmap #3). Touched on pagehide/tab-hide
 // plus a slow heartbeat while playing.
@@ -43,6 +46,9 @@ export const BATTLE_LAST_SEEN_KEY = 'battle_last_seen'
 
 export const STAGE_KEY = 'epic_stage'
 export const COINS_KEY = 'epic_coins'
+// Coin-mode buff economy: sticky flag set once the player has bought their
+// FIRST Instant Spawn with coins (the first is discounted, the rest cost full).
+export const FIRST_INSTANT_SPAWN_KEY = 'epic_first_instant_spawn_used'
 export const UPGRADES_KEY = 'epic_upgrades'
 export const BEST_SCORE_KEY = 'epic_best_score'
 // Pre-bought "Second Chance": a sticky flag that arms the player to start every

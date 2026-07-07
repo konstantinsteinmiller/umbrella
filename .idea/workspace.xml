@@ -4,115 +4,26 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="CG gameplay start and sound stop">
-      <change afterPath="$PROJECT_DIR$/public/audio/music/battle-theme.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/army-full.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/boss-death.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/boss-incoming.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/combo-tick.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/enemy-death.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/fever-start.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/field-merge.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/fighter-death.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/flesh-hit-1.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/flesh-hit-2.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/gate-hit.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/grid-full.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/instant-spawn.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/merge-pop.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/meteor-impact.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/overrun.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/ult-ready.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/unit-shot-1.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/unit-shot-2.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/unit-shot-3.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/unit-spawn.ogg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/audio/sfx/upgrade-buy.ogg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/static.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/static.yml" afterDir="false" />
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="added sounds&#10;hot path opimization">
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/favicon.ico" beforeDir="false" afterPath="$PROJECT_DIR$/dist/favicon.ico" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/audio/music/trance.ogg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/favicon.ico" beforeDir="false" afterPath="$PROJECT_DIR$/public/favicon.ico" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/images/logo/logo_192x192.png" beforeDir="false" afterPath="$PROJECT_DIR$/public/images/logo/logo_192x192.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/images/logo/logo_256x256.webp" beforeDir="false" afterPath="$PROJECT_DIR$/public/images/logo/logo_256x256.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/public/images/logo/logo_512x512.png" beforeDir="false" afterPath="$PROJECT_DIR$/public/images/logo/logo_512x512.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sound-todo.md" beforeDir="false" afterPath="$PROJECT_DIR$/sound-todo.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/favicon.ico" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/art/logo/favicon.ico" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/logo.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/art/logo/logo.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/logo_1024x1024.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/art/logo/logo_1024x1024.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/logo_192x192.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/art/logo/logo_192x192.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/logo_256x256.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/art/logo/logo_256x256.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/logo_256x256.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/art/logo/logo_256x256.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/logo_512x512.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/art/logo/logo_512x512.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/logo_512x512.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/old/favicon.ico" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/old/logo_1024x1024.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/old/logo_192x192.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/old/logo_256x256.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/old/logo_256x256.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/old/logo_512x512.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/old/logo_512x512.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/tinified/logo.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/tinified/logo_1024x1024.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/tinified/logo_192x192.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/tinified/logo_256x256.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/tinified/logo_256x256.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/tinified/logo_512x512.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/art/logo/tinified/logo_512x512.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-alt_1080x1920.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover2_1080x1920.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover3_1080x1920.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover4_1080x1920.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover5_1080x1920.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1024x1024.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1024x1024.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1920x1080 .png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1920x1080.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1920x1080.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_800x1200.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_800x1200.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_800x800.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_800x800.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/mobile-landscape-1-en.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/mobile-portrait-1-en.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/mobile-portrait-2-en.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/reference3.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/reference4.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/screen_1280x720.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/screen_1920x1080.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/screen_hd.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/audio/music/trance.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/images/logo/logo_192x192.png" beforeDir="false" afterPath="$PROJECT_DIR$/dist/images/logo/logo_192x192.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/images/logo/logo_256x256.webp" beforeDir="false" afterPath="$PROJECT_DIR$/dist/images/logo/logo_256x256.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/images/logo/logo_512x512.png" beforeDir="false" afterPath="$PROJECT_DIR$/dist/images/logo/logo_512x512.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/DamageBuffAdButton.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/DamageBuffAdButton.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/InstantSpawnAdButton.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/InstantSpawnAdButton.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/AdRewardButton.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/AdRewardButton.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/OptionsModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/OptionsModal.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/EpicUpgradesModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/EpicUpgradesModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/WelcomeBackModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/WelcomeBackModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/keys.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/keys.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useAds.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAds.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/use/useBattle.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBattle.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useMidgameAdTimer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useMidgameAdTimer.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/usePrismGame.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePrismGame.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/use/useSound.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useSound.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useSoundPreload.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useSoundPreload.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useTutorial.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useTutorial.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/use/useUser.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useUser.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/useAdsInterstitialMusic.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/useAdsInterstitialMusic.test.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -152,22 +63,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/konst/Documents/__p/merge-idle-war/public/images/logo",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "pnpm",
-    "npm.dev.executor": "Run",
-    "ts.external.directory.path": "C:\\Users\\konst\\Documents\\__p\\merge-idle-war\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/merge-idle-war/public/images/logo&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\konst\\Documents\\__p\\merge-idle-war\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\logo" />
@@ -216,7 +127,7 @@
       <workItem from="1783084667113" duration="5029000" />
       <workItem from="1783090146748" duration="14108000" />
       <workItem from="1783174841876" duration="44152000" />
-      <workItem from="1783431359086" duration="6526000" />
+      <workItem from="1783431359086" duration="10933000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -298,7 +209,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783360088121</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="added sounds&#10;hot path opimization">
+      <option name="closed" value="true" />
+      <created>1783438950278</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1783438950279</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -323,6 +242,7 @@
     <MESSAGE value="added player unit images" />
     <MESSAGE value="added enemy units, added bosses, bg images, remaining art." />
     <MESSAGE value="CG gameplay start and sound stop" />
-    <option name="LAST_COMMIT_MESSAGE" value="CG gameplay start and sound stop" />
+    <MESSAGE value="added sounds&#10;hot path opimization" />
+    <option name="LAST_COMMIT_MESSAGE" value="added sounds&#10;hot path opimization" />
   </component>
 </project>

@@ -24,7 +24,7 @@ import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 import useEpicConfig from '@/use/useEpicConfig'
 import useScreenshake from '@/use/useScreenshake'
 import { zoneRect } from '@/use/useDropZones'
-import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import useReward from '@/use/useReward'
 import { isMobileLandscape, isMobilePortrait, windowWidth, windowHeight } from '@/use/useUser'
 import { artSrc } from '@/use/useArtOverrides'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
@@ -46,6 +46,7 @@ import WelcomeBackModal from '@/components/organisms/WelcomeBackModal.vue'
 import { achievementToast } from '@/use/useAchievements'
 import { offlineGold } from '@/use/useOfflineEarnings'
 import IconMovie from '@/components/icons/IconMovie.vue'
+import IconCoin from '@/components/icons/IconCoin.vue'
 import { CHEST_EVERY_WAVES } from '@/use/useBattle'
 import { nextArchetypeUnlock } from '@/game/units'
 import { MAX_INGREDIENT_TIER } from '@/game/ingredients'
@@ -54,6 +55,8 @@ const { t } = useI18n()
 const game = usePrismGame()
 const battle = useBattle()
 const { addCoins } = useEpicConfig()
+// Double-boss-bounty: rewarded ad, or a coin purchase on coin-mode builds.
+const { buffsCostCoins, REWARD_COIN_COST, canRedeem, redeem } = useReward()
 const { playSound } = useSounds()
 const { startBattleMusic, stopBattleMusic } = useMusic()
 const { shakeStyle } = useScreenshake()
@@ -178,7 +181,7 @@ const onBossKill = (bounty: number, first: boolean): void => {
     window.clearTimeout(warChestPulseTimer)
     warChestPulseTimer = window.setTimeout(() => { warChestPulse.value = false }, 8000)
   }
-  if (!isRewardedReady.value || bounty <= 0) return
+  if (!canRedeem(REWARD_COIN_COST) || bounty <= 0) return
   bossOffer.value = bounty
   window.clearTimeout(bossOfferTimer)
   bossOfferTimer = window.setTimeout(() => { bossOffer.value = null }, BOSS_OFFER_MS)
@@ -196,7 +199,7 @@ const onDoubleBounty = async (): Promise<void> => {
   bossOffer.value = null
   window.clearTimeout(bossOfferTimer)
   if (!bounty) return
-  const ok = await showRewardedAd()
+  const ok = await redeem(REWARD_COIN_COST)
   if (ok) {
     addCoins(bounty)
     flyGold(bounty)
@@ -410,7 +413,11 @@ onUnmounted(() => {
           class="bg-gradient-to-b from-emerald-400 to-emerald-700 border-emerald-200 active:scale-95 transition-transform"
           @click="onDoubleBounty"
         )
-          IconMovie(class="w-6 h-6 shrink-0")
+          //- Coin mode shows the price + IconCoin; ad mode the movie icon.
+          template(v-if="buffsCostCoins")
+            IconCoin(class="w-6 h-6 shrink-0 text-yellow-200")
+            span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm leading-none") {{ REWARD_COIN_COST }}
+          IconMovie(v-else class="w-6 h-6 shrink-0")
           div.flex.flex-col.items-start
             span.text-white.font-black.uppercase.game-text(class="text-xs sm:text-sm leading-none") {{ t('battle.doubleBounty') }}
             span.text-emerald-100.font-black.game-text(class="text-[11px] sm:text-sm") +{{ bossOffer }}

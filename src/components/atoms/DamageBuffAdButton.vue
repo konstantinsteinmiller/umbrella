@@ -12,16 +12,19 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBattle from '@/use/useBattle'
 import useSounds from '@/use/useSound'
-import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import useReward from '@/use/useReward'
 import IconMovie from '@/components/icons/IconMovie.vue'
+import IconCoin from '@/components/icons/IconCoin.vue'
 
 defineProps<{ pulse?: boolean }>()
 
 const { t } = useI18n()
 const battle = useBattle()
 const { playSound } = useSounds()
+const { buffsCostCoins, REWARD_COIN_COST, rewardAvailable, canRedeem, redeem } = useReward()
 
 const busy = ref(false)
+const affordable = computed(() => canRedeem(REWARD_COIN_COST))
 
 const buffActive = computed(() => battle.dmgBuffRemainingMs.value > 0)
 const countdown = computed(() => {
@@ -31,9 +34,10 @@ const countdown = computed(() => {
 
 const onWatch = async (): Promise<void> => {
   if (busy.value || buffActive.value) return
+  if (buffsCostCoins && !affordable.value) return
   busy.value = true
   try {
-    const ok = await showRewardedAd()
+    const ok = await redeem(REWARD_COIN_COST)
     if (ok) {
       battle.activateDamageBuff()
       playSound('damage-buff', 0.06)
@@ -58,12 +62,13 @@ const onWatch = async (): Promise<void> => {
         path(d="M6 17 L8 19 M18 17 L16 19")
       span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm") {{ countdown }}
 
-  //- Offer (only while a rewarded ad can actually fill)
+  //- Offer — coin mode shows the price + IconCoin (dimmed when unaffordable);
+  //- ad mode shows the movie icon + label, gated on a fillable rewarded ad.
   button.relative.cursor-pointer.transition-transform(
-    v-else-if="isRewardedReady"
+    v-else-if="rewardAvailable"
     class="active:scale-95 hover:scale-[102%] disabled:opacity-50"
     :class="{ 'dmg-pulse': pulse }"
-    :disabled="busy"
+    :disabled="busy || (buffsCostCoins && !affordable)"
     :aria-label="t('prism.doubleDamage')"
     @click="onWatch"
   )
@@ -71,8 +76,12 @@ const onWatch = async (): Promise<void> => {
     div.relative.flex.items-center.gap-1.rounded-xl.border-2.px-2(
       class="py-2 bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]"
     )
-      IconMovie(class="w-4 h-4 sm:w-5 sm:h-5 shrink-0")
-      span.text-white.font-black.uppercase.game-text.leading-none(class="text-[9px] sm:text-[11px]") {{ t('prism.doubleDamage') }}
+      template(v-if="buffsCostCoins")
+        IconCoin(class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-100 shrink-0")
+        span.text-white.font-black.game-text.leading-none.tabular-nums(class="text-[9px] sm:text-[11px]") {{ REWARD_COIN_COST }}
+      template(v-else)
+        IconMovie(class="w-4 h-4 sm:w-5 sm:h-5 shrink-0")
+        span.text-white.font-black.uppercase.game-text.leading-none(class="text-[9px] sm:text-[11px]") {{ t('prism.doubleDamage') }}
 </template>
 
 <style scoped lang="sass">

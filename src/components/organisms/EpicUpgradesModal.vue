@@ -7,7 +7,7 @@ import IconMovie from '@/components/icons/IconMovie.vue'
 import useEpicProgress, { UPGRADES, levelOf, upgradeCost, sellRefund, SELLABLE_UPGRADES, SECOND_CHANCE_COST } from '@/use/useEpicProgress'
 import useEpicConfig from '@/use/useEpicConfig'
 import { isRewardedReady, showRewardedAd } from '@/use/useAds'
-import { isMobilePortrait } from '@/use/useUser'
+import { isMobilePortrait, buffsCostCoins } from '@/use/useUser'
 import { prependBaseUrl } from '@/utils/function'
 import useSounds from '@/use/useSound'
 
@@ -84,7 +84,10 @@ const canWatchSc = computed(() => !scActive.value && isRewardedReady.value && !s
 // Only SHOW the rewarded "Free" option when a rewarded ad is actually
 // available (loaded / filled / off cooldown) — or while one is mid-watch — so
 // the button never appears as a dead, disabled stub. Hidden entirely otherwise.
-const showWatchSc = computed(() => !scActive.value && (isRewardedReady.value || scAdInFlight.value))
+// On coin-mode builds there are no rewarded ads, and Second Chance already has
+// its own coin-buy button (`buySecondChance` at SECOND_CHANCE_COST), so the
+// "watch for free" option is dropped rather than duplicated as a coin price.
+const showWatchSc = computed(() => !scActive.value && !buffsCostCoins && (isRewardedReady.value || scAdInFlight.value))
 
 const buySecondChance = (): void => {
   if (progress.buyStartSecondChance()) playSound('level-up', 0.06)

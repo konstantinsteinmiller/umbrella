@@ -28,7 +28,7 @@ import { isGamePaused } from '@/use/useGamePause'
 import { tickMidgameAd } from '@/use/useMidgameAdTimer'
 import {
   BATTLE_UPGRADES_KEY, BATTLE_WAVE_KEY, BATTLE_BEST_WAVE_KEY, BATTLE_ARMY_KEY,
-  BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY
+  BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY, BATTLE_RUBBER_BAND_KEY
 } from '@/keys'
 import {
   getFighterDef, ENEMY_DEFS, composeWave, isBossWave, bossName, rollMutator,
@@ -91,10 +91,14 @@ const COUNTDOWN_SECS = 3.5
 const OVERRUN_SECS = 2.5
 /** Extended overrun pause while the RALLY! rewarded offer is on screen. */
 const RALLY_OFFER_SECS = 5
-/** Waves lost when the gate falls and the army is NOT revived — the recovery
- *  valve: a wiped player retreats to easier waves instead of being walled on
- *  the one that killed them (best wave is untouched). */
-const OVERRUN_WAVE_SETBACK = 3
+/** Waves lost per wipe when the gate falls and the army is NOT revived — the
+ *  recovery valve: a wiped player retreats to easier waves instead of being
+ *  walled on the one that killed them (best wave is untouched). */
+const OVERRUN_WAVE_SETBACK = 2
+/** Floor on the retreat: the player can never be set back more than this many
+ *  waves below their BEST wave. Lets them rebuild an army on beatable waves
+ *  without grinding all the way from wave 1 back to their highscore. */
+const MAX_FALL_FROM_BEST = 10
 /** Milestone chest cadence (retention-roadmap #4): every 10th wave. */
 export const CHEST_EVERY_WAVES = 10
 export const UPGRADE_MAX_LEVEL = 25
@@ -257,6 +261,28 @@ export const activateDamageBuff = (): void => {
   dmgBuffRemainingMs.value = DMG_BUFF_MS
   setState(BATTLE_DMG_BUFF_KEY, dmgBuffUntil.value)
 }
+
+// ─── Rubber-band catch-up ────────────────────────────────────────────────────
+// When a wipe drops the player all the way to their best-wave floor (they've
+// slid the full MAX_FALL_FROM_BEST waves off their best and keep losing), every
+// enemy spawned for the next RUBBER_BAND_MS is RUBBER_BAND_MULT weaker in BOTH
+// hp and attack — so the struggling player can rebuild an army on now-beatable
+// waves and climb back to their highscore instead of being walled. Persisted as
+// an epoch expiry (same pattern as the 2× damage buff) so a reload mid-window
+// keeps the remaining time.
+export const RUBBER_BAND_MS = 900_000 // 15 minutes
+const RUBBER_BAND_MULT = 0.75         // enemies at 75% (−25%) while active
+const rubberBandUntil = ref(Number(getState(BATTLE_RUBBER_BAND_KEY, 0)) || 0)
+/** True while the −25% enemy catch-up window is live. */
+export const rubberBandActive = ref(rubberBandUntil.value > Date.now())
+
+const activateRubberBand = (): void => {
+  rubberBandUntil.value = Date.now() + RUBBER_BAND_MS
+  rubberBandActive.value = true
+  setState(BATTLE_RUBBER_BAND_KEY, rubberBandUntil.value)
+}
+/** Enemy-stat multiplier: 0.75 while the catch-up window is live, else 1. */
+const rubberBandMult = (): number => (rubberBandUntil.value > Date.now() ? RUBBER_BAND_MULT : 1)
 
 const atkMult = (): number =>
   (1 + battleUpgrades.value.attack * 0.06) * (dmgBuffUntil.value > Date.now() ? 2 : 1)
@@ -488,7 +514,8 @@ const spawnEnemy = (kind: EnemyKind, elite = false, portal = 1): void => {
   const c = challengeMult.value
   const cAtk = 1 + (c - 1) * 0.6
   const cBounty = 1 + (c - 1) * 0.5
-  const maxHp = Math.round(waveHp(w) * def.hpMult * hordeHp * (elite ? 7 : 1) * c)
+  const rb = rubberBandMult()
+  const maxHp = Math.round(waveHp(w) * def.hpMult * hordeHp * (elite ? 7 : 1) * c * rb)
   const e: Enemy = {
     id: ++idSeq, kind,
     // Emerge from the assigned portal near the right edge (on-screen).
@@ -497,7 +524,7 @@ const spawnEnemy = (kind: EnemyKind, elite = false, portal = 1): void => {
       ? (PORTAL_POSITIONS[portal] ?? PORTAL_POSITIONS[1]).y
       : Math.max(8, Math.min(90, (PORTAL_POSITIONS[portal] ?? PORTAL_POSITIONS[1]).y + (Math.random() - 0.5) * 12)),
     hp: maxHp, maxHp,
-    atk: Math.round(waveAtk(w) * def.atkMult * (elite ? 1.6 : 1) * cAtk),
+    atk: Math.round(waveAtk(w) * def.atkMult * (elite ? 1.6 : 1) * cAtk * rb),
     speed: def.speed * (1 + Math.min(0.5, w / 60)) * (elite ? 0.85 : 1),
     range: def.range, attackInterval: def.attackInterval,
     bounty: Math.round(waveBounty(w) * def.bountyMult * (elite ? 9 : 1) * cBounty),
@@ -912,7 +939,19 @@ const resetAfterOverrun = (): void => {
   // rebuild an army on beatable waves instead of re-losing wave N forever.
   // A RALLY! revive keeps the wave — the resurrected army earned the retry.
   if (!rallyClaimed) {
-    const fallback = Math.max(1, wave.value - OVERRUN_WAVE_SETBACK)
+    // Retreat OVERRUN_WAVE_SETBACK waves, but never below the best-wave floor
+    // (bestWave - MAX_FALL_FROM_BEST) nor below wave 1. The floor already folds
+    // in the wave-1 clamp, so the retreat is just "floor vs natural setback".
+    const floor = Math.max(1, bestWave.value - MAX_FALL_FROM_BEST)
+    const fallback = Math.max(floor, wave.value - OVERRUN_WAVE_SETBACK)
+    // Struggling: the natural retreat was capped by the best-wave floor — the
+    // player has slid the full MAX_FALL_FROM_BEST waves off their best and keeps
+    // wiping. Grant the rubber-band catch-up (only meaningful once best is high
+    // enough for a real floor, i.e. best > MAX_FALL_FROM_BEST). Re-firing on a
+    // later floored wipe just refreshes the 15-min window — fine, still stuck.
+    if (bestWave.value > MAX_FALL_FROM_BEST && wave.value - OVERRUN_WAVE_SETBACK <= floor) {
+      activateRubberBand()
+    }
     if (fallback !== wave.value) {
       wave.value = fallback
       persistBattle()
@@ -1264,6 +1303,11 @@ const frame = (t: number): void => {
   const dmgRemaining = Math.max(0, dmgBuffUntil.value - Date.now())
   if (dmgRemaining !== dmgBuffRemainingMs.value) dmgBuffRemainingMs.value = dmgRemaining
 
+  // Keep the rubber-band flag in sync so it flips false the moment the 15-min
+  // catch-up window lapses (enemy spawns read `rubberBandUntil` live regardless).
+  const rbLive = rubberBandUntil.value > Date.now()
+  if (rbLive !== rubberBandActive.value) rubberBandActive.value = rbLive
+
   // Slow-mo runs on real time so it always recovers.
   if (slowmoRealLeft > 0) {
     slowmoRealLeft -= realDt
@@ -1349,6 +1393,11 @@ const refreshFromBlob = (): void => {
   if (savedUlt > ultCharge.value) ultCharge.value = savedUlt
   const savedDmgBuff = Number(getState(BATTLE_DMG_BUFF_KEY, 0)) || 0
   if (savedDmgBuff > dmgBuffUntil.value) dmgBuffUntil.value = savedDmgBuff
+  const savedRubberBand = Number(getState(BATTLE_RUBBER_BAND_KEY, 0)) || 0
+  if (savedRubberBand > rubberBandUntil.value) {
+    rubberBandUntil.value = savedRubberBand
+    rubberBandActive.value = rubberBandUntil.value > Date.now()
+  }
 
   // Army: only when nothing is fielded (the boot-hydration case).
   if (fighters.value.length === 0) restoreArmy()

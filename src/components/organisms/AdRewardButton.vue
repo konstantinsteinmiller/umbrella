@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import { buffsCostCoins } from '@/use/useUser'
 import useEpicConfig from '@/use/useEpicConfig'
 import { getState, setState } from '@/use/useEpicState'
 
@@ -35,7 +36,9 @@ const tickNow = ref(Date.now())
 let tickIntervalId: number | null = null
 
 const cooldownActive = computed(() => tickNow.value < adReadyAt.value)
-const isVisible = computed(() => isRewardedReady.value && !cooldownActive.value)
+// The War Chest grants raw coins FOR watching an ad — meaningless on coin-mode
+// builds (no ad; paying coins for coins is degenerate), so it's hidden there.
+const isVisible = computed(() => !buffsCostCoins && isRewardedReady.value && !cooldownActive.value)
 
 onMounted(() => {
   tickIntervalId = window.setInterval(() => {

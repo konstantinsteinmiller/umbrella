@@ -21,13 +21,14 @@ import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import EnemyUnit from '@/components/organisms/EnemyUnit.vue'
 import FlyingChest from '@/components/organisms/FlyingChest.vue'
 import IconMovie from '@/components/icons/IconMovie.vue'
+import IconCoin from '@/components/icons/IconCoin.vue'
 import { artSrc, type ArtKey } from '@/use/useArtOverrides'
 import useSounds from '@/use/useSound'
 import useScreenshake from '@/use/useScreenshake'
 import { emitConfetti, emitSparkle, emitSplash } from '@/use/usePrismParticles'
 import { registerDropZone, unregisterDropZone, dragActive } from '@/use/useDropZones'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
-import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import useReward from '@/use/useReward'
 import { bestWaveRank } from '@/platforms/leaderboard'
 
 const props = defineProps<{
@@ -431,9 +432,10 @@ const onEvent = (e: BattleEvent): void => {
     case 'overrun':
       playSound('overrun', 0.06)
       triggerShake('big')
-      // RALLY! rewarded revive (roadmap #8): hold the restart only when an ad
-      // can actually fill AND fighters fell this wave.
-      if (isRewardedReady.value && battle.requestRallyHold()) rallyBusy.value = false
+      // RALLY! rewarded revive (roadmap #8): hold the restart only when the
+      // revive can actually be redeemed — a fillable ad, or enough coins in
+      // coin mode — AND fighters fell this wave.
+      if (rallyAffordable.value && battle.requestRallyHold()) rallyBusy.value = false
       break
     case 'setback':
       // Unrevived wipe → the front line retreats to an easier wave.
@@ -548,12 +550,15 @@ const newEnemyIncoming = computed(() =>
   battle.wavePhase.value === 'countdown' && nextArchetypeUnlock(battle.wave.value - 1) === battle.wave.value)
 
 // ─── RALLY! rewarded revive (roadmap #8) ─────────────────────────────────────
+// Redeemed via a rewarded ad, or bought for coins on coin-mode builds.
+const { buffsCostCoins, REWARD_COIN_COST, canRedeem, redeem } = useReward()
+const rallyAffordable = computed(() => canRedeem(REWARD_COIN_COST))
 const rallyBusy = ref(false)
 const onRally = async (): Promise<void> => {
   if (rallyBusy.value || !battle.rallyOffer.value) return
   rallyBusy.value = true
   try {
-    const ok = await showRewardedAd()
+    const ok = await redeem(REWARD_COIN_COST)
     if (ok) {
       const revived = battle.claimRally()
       if (revived > 0) {
@@ -756,13 +761,17 @@ onUnmounted(() => {
       )
         span.game-text.font-black.uppercase.text-red-400(class="text-2xl sm:text-4xl animate-pulse") {{ t('battle.overrun') }}
         span.game-text.text-white(class="text-xs sm:text-sm opacity-90") {{ t('battle.overrunBody') }}
-        template(v-if="battle.rallyOffer.value && isRewardedReady")
+        template(v-if="battle.rallyOffer.value && rallyAffordable")
           button.rally-btn.pointer-events-auto.cursor-pointer.mt-2.rounded-xl.border-2.px-4.py-2.flex.items-center.gap-2(
             class="bg-gradient-to-b from-emerald-400 to-emerald-700 border-emerald-200 active:scale-95 transition-transform disabled:opacity-50"
             :disabled="rallyBusy"
             @click="onRally"
           )
-            IconMovie(class="w-6 h-6 shrink-0")
+            //- Coin mode shows the price + IconCoin; ad mode the movie icon.
+            template(v-if="buffsCostCoins")
+              IconCoin(class="w-6 h-6 shrink-0 text-yellow-200")
+              span.text-white.font-black.game-text.tabular-nums(class="text-sm sm:text-base leading-none") {{ REWARD_COIN_COST }}
+            IconMovie(v-else class="w-6 h-6 shrink-0")
             div.flex.flex-col.items-start
               span.text-white.font-black.uppercase.game-text(class="text-sm sm:text-base leading-none") {{ t('battle.rally') }}
               span.text-emerald-100.game-text(class="text-[10px] sm:text-xs") {{ t('battle.rallyBody') }}

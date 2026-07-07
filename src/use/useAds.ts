@@ -27,7 +27,7 @@ import { isAdShowing, isGamePaused, acquireAppPause } from '@/use/useGamePause'
 import { installGamePauseAudio } from '@/use/useGamePauseAudio'
 import { __audioDebugSnapshot, killOneShotSfx } from '@/use/useAssets'
 import { isDebug } from '@/use/useMatch'
-import { forceStopMusic } from '@/use/useSound'
+import { forceStopMusic, resumeMusicAfterAd } from '@/use/useSound'
 
 const provider: AdProvider = resolveAdProvider({
   flags: { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex },
@@ -156,6 +156,10 @@ export const showRewardedAd = async (): Promise<boolean> => {
     // active) → orchestrator resumes audio synchronously, render loop
     // restarts. Runs on success, no-fill, AND the throw path above.
     isAdShowing.value = false
+    // Now the ad is truly gone and the gate has dropped: bring the bg music
+    // back if it was playing before (forceStopMusic hard-killed it above, so
+    // nothing else restarts it mid-session). No-op when it wasn't playing.
+    resumeMusicAfterAd()
   }
 }
 
@@ -215,6 +219,10 @@ export const showMidgameAd = async (): Promise<void> => {
     console.warn(`${TAG} ✖ interstitial ERROR (provider=${provider.name}) — resuming`, e)
   } finally {
     isAdShowing.value = false
+    // Restart the bg music once the interstitial has fully closed and the gate
+    // dropped — forceStopMusic hard-stopped it (and midgame ads fire mid-wave,
+    // so nothing else brings it back). No-op if music wasn't playing.
+    resumeMusicAfterAd()
   }
 }
 

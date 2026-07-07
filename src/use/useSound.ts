@@ -100,7 +100,22 @@ const shouldPlay = ref(false)
  * false` stops any in-flight fade. The next round's `startBattleMusic()`
  * brings it back. Idempotent and null-safe.
  */
+// Whether the music was PLAYING (intended on) when the last ad hard-stopped it,
+// so `resumeMusicAfterAd()` can bring it back once the ad closes. Interstitials
+// fire mid-wave (every ~121s) and `startBattleMusic()` only runs on scene
+// mount, so without an explicit post-ad resume the track stays dead for the
+// rest of the session after the first ad.
+let musicWantedBeforeAd = false
+// Module-level handle to the scene's "start the battle track" entry, captured
+// by `useMusic()`, so the module-level `resumeMusicAfterAd()` can re-kick the
+// track without holding a composable closure.
+let startTrackImpl: (() => void) | null = null
+
 export const forceStopMusic = (): void => {
+  // Remember the play-intent BEFORE we clear it — `resumeMusicAfterAd()` reads
+  // this to decide whether the post-ad restart is wanted (a battle was running)
+  // or not (ad shown on a menu / result screen where music was already off).
+  musicWantedBeforeAd = shouldPlay.value
   shouldPlay.value = false
   try {
     bgMusic.value?.pause()
@@ -109,6 +124,23 @@ export const forceStopMusic = (): void => {
     }
   } catch { /* element gone / not ready */ }
   isPlaying.value = false
+}
+
+/**
+ * Restart the background music after an ad IFF it was playing when the ad
+ * hard-stopped it. Called by `useAds` once the ad has fully closed AND the
+ * pause gate has dropped (`isAdShowing = false`). This is a DELIBERATE explicit
+ * resume, not the `isGamePaused`-drop watcher: that watcher stays gated on
+ * `shouldPlay` (which `forceStopMusic` set false) precisely so an early-closing
+ * ad SDK — GamePix resolves its promise before the overlay visually closes —
+ * can never restart the music UNDER the ad. Once we're truly past the ad here,
+ * re-kick the track via the scene's `startBattleMusic` (its own gate guard
+ * defers the actual sound if some other pause reason is still active).
+ */
+export const resumeMusicAfterAd = (): void => {
+  if (!musicWantedBeforeAd) return
+  musicWantedBeforeAd = false
+  startTrackImpl?.()
 }
 
 /**
@@ -254,6 +286,11 @@ export const useMusic = () => {
     shouldPlay.value = true
     loadAndPlayTrack()
   }
+  // Expose this closure's starter to the module-level `resumeMusicAfterAd()`
+  // (post-ad restart lives outside any composable instance). Reassigned on each
+  // `useMusic()` call — all instances drive the same module-level bgMusic, so
+  // whichever wins is equivalent.
+  startTrackImpl = startBattleMusic
 
   const stopBattleMusic = () => {
     shouldPlay.value = false

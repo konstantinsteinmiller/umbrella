@@ -39,6 +39,25 @@ export const showMediatorAds = import.meta.env.VITE_APP_SHOW_MEDIATOR_ADS === 't
 export const isNative = import.meta.env.VITE_APP_NATIVE === 'true'
 export const isWeb = import.meta.env.VITE_APP_NATIVE !== 'true'
 export const isDemo = import.meta.env.VITE_APP_DEMO === 'true'
+
+// "Basic launch" = the plain default build with NO distribution-platform flag
+// set (local dev / a bare `vite build`). No ad SDK runs there, so rewarded
+// placements can never fill.
+export const isBasicLaunch =
+  !isCrazyWeb && !isWaveDash && !isItch && !isGlitch && !isGameDistribution &&
+  !isPlaygama && !isGamepix && !isGameMonetize && !isYandex
+
+// Rewarded BUFFS/REWARDS are BOUGHT WITH COINS instead of a rewarded ad on the
+// basic launch (no ad SDK) and on any CrazyGames build that is NOT flagged as a
+// full release — i.e. VITE_APP_CRAZY_GAMES_FULL_RELEASE is unset OR 'false'
+// (only an explicit 'true' opts into real rewarded ads). Every other ad-funded
+// portal (GamePix/Yandex/Playgama/…) keeps its own rewarded ads untouched.
+// Drives BOTH the payment path (coins vs ad) AND the button icon (coin cost vs
+// movie). Build-time literal so the dead branch tree-shakes per build.
+export const buffsCostCoins =
+  isBasicLaunch ||
+  (isCrazyWeb && import.meta.env.VITE_APP_CRAZY_GAMES_FULL_RELEASE !== 'true')
+
 export const version: string = APP_VERSION
 
 // ─── Persisted settings (localStorage-backed) ──────────────────────────────

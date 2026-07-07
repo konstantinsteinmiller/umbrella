@@ -13,7 +13,7 @@ import IconCoin from '@/components/icons/IconCoin.vue'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import useEpicConfig from '@/use/useEpicConfig'
 import useSounds from '@/use/useSound'
-import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import useReward from '@/use/useReward'
 import { offlineGold, consumeOfflineGold } from '@/use/useOfflineEarnings'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 
@@ -27,6 +27,9 @@ const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 const { t } = useI18n()
 const { playSound } = useSounds()
 const { addCoins } = useEpicConfig()
+// 2× claim: rewarded ad, or a coin purchase on coin-mode builds.
+const { buffsCostCoins, REWARD_COIN_COST, rewardAvailable, canRedeem, redeem } = useReward()
+const affordable = computed(() => canRedeem(REWARD_COIN_COST))
 
 const busy = ref(false)
 const isOpen = computed({
@@ -55,12 +58,13 @@ const onClaim = (e: MouseEvent): void => {
 
 const onClaimDouble = async (e: MouseEvent): Promise<void> => {
   if (busy.value) return
+  if (buffsCostCoins && !affordable.value) return
   busy.value = true
   const el = e.currentTarget as HTMLElement
   try {
-    const ok = await showRewardedAd()
+    const ok = await redeem(REWARD_COIN_COST)
     const base = consumeOfflineGold()
-    if (base > 0) payout(ok ? base * 2 : base, el) // never punish a no-fill
+    if (base > 0) payout(ok ? base * 2 : base, el) // never punish a no-fill / failed spend
     else isOpen.value = false
   } finally {
     busy.value = false
@@ -83,13 +87,18 @@ const onClaimDouble = async (e: MouseEvent): Promise<void> => {
           @click="onClaim"
         )
           span.text-white.font-black.uppercase.game-text(class="text-xs sm:text-sm") {{ t('achievements.claim') }}
-        //- Rewarded 2× claim (readiness-gated)
+        //- Rewarded 2× claim — ad-fill-gated, or a coin purchase in coin mode.
         button.flex-1.cursor-pointer.transition-transform.rounded-xl.border-2.px-3.py-2.flex.items-center.justify-center.gap-1(
-          v-if="isRewardedReady"
+          v-if="rewardAvailable"
           class="bg-gradient-to-b from-emerald-400 to-emerald-700 border-emerald-200 active:scale-95 disabled:opacity-50"
-          :disabled="busy"
+          :disabled="busy || (buffsCostCoins && !affordable)"
           @click="onClaimDouble"
         )
-          IconMovie(class="w-5 h-5 shrink-0")
-          span.text-white.font-black.uppercase.game-text(class="text-xs sm:text-sm") {{ t('ads.doubleCoins') }}
+          //- Coin mode shows the price + IconCoin; ad mode the movie icon + label.
+          template(v-if="buffsCostCoins")
+            IconCoin(class="w-5 h-5 shrink-0 text-yellow-200")
+            span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm") {{ REWARD_COIN_COST }}
+          template(v-else)
+            IconMovie(class="w-5 h-5 shrink-0")
+            span.text-white.font-black.uppercase.game-text(class="text-xs sm:text-sm") {{ t('ads.doubleCoins') }}
 </template>

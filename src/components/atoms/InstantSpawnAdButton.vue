@@ -11,14 +11,18 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import usePrismGame from '@/use/usePrismGame'
 import useSounds from '@/use/useSound'
-import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import useReward from '@/use/useReward'
 import IconMovie from '@/components/icons/IconMovie.vue'
+import IconCoin from '@/components/icons/IconCoin.vue'
 
 const { t } = useI18n()
 const game = usePrismGame()
 const { playSound } = useSounds()
+const { buffsCostCoins, instantSpawnCost, rewardAvailable, canRedeem, redeem, markInstantSpawnBought } = useReward()
 
 const busy = ref(false)
+// Coin mode: dim/block the button when the player can't afford the buff.
+const affordable = computed(() => canRedeem(instantSpawnCost.value))
 
 const countdown = computed(() => {
   const s = Math.ceil(game.instantSpawnRemainingMs.value / 1000)
@@ -27,10 +31,13 @@ const countdown = computed(() => {
 
 const onWatch = async (): Promise<void> => {
   if (busy.value || game.instantSpawnActive.value) return
+  if (buffsCostCoins && !affordable.value) return
   busy.value = true
   try {
-    const ok = await showRewardedAd()
+    const cost = instantSpawnCost.value // capture before the discount flag flips
+    const ok = await redeem(cost)
     if (ok) {
+      if (buffsCostCoins) markInstantSpawnBought()
       game.activateInstantSpawn()
       playSound('instant-spawn', 0.06)
     }
@@ -51,11 +58,12 @@ const onWatch = async (): Promise<void> => {
         path(d="M13 2 L5 13 h5 l-1 9 l8 -11 h-5 Z" stroke="#7a3000" stroke-width="1.4" stroke-linejoin="round")
       span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm") {{ countdown }}
 
-  //- Offer (only while a rewarded ad can actually fill)
+  //- Offer — coin mode shows the price + IconCoin (dimmed when unaffordable);
+  //- ad mode shows the movie icon + label, gated on a fillable rewarded ad.
   button.relative.cursor-pointer.transition-transform(
-    v-else-if="isRewardedReady"
+    v-else-if="rewardAvailable"
     class="active:scale-95 hover:scale-[102%] disabled:opacity-50"
-    :disabled="busy"
+    :disabled="busy || (buffsCostCoins && !affordable)"
     :aria-label="t('prism.instantSpawn')"
     @click="onWatch"
   )
@@ -63,8 +71,12 @@ const onWatch = async (): Promise<void> => {
     div.relative.flex.items-center.gap-1.rounded-xl.border-2.px-2(
       class="py-2 bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
     )
-      IconMovie(class="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0")
-      span.text-white.font-black.uppercase.game-text.leading-none(class="text-[9px] sm:text-[11px]") {{ t('prism.instantSpawn') }}
+      template(v-if="buffsCostCoins")
+        IconCoin(class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-100 shrink-0")
+        span.text-white.font-black.game-text.leading-none.tabular-nums(class="text-[9px] sm:text-[11px]") {{ instantSpawnCost }}
+      template(v-else)
+        IconMovie(class="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0")
+        span.text-white.font-black.uppercase.game-text.leading-none(class="text-[9px] sm:text-[11px]") {{ t('prism.instantSpawn') }}
 </template>
 
 <style scoped lang="sass">
