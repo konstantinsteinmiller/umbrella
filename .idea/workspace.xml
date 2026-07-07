@@ -4,38 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="coin fallback for ads">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/atoms/DamageBuffAdButton.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/DamageBuffAdButton.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/atoms/InstantSpawnAdButton.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/InstantSpawnAdButton.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/UnitCodexModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/UnitCodexModal.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/WelcomeBackModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/WelcomeBackModal.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/units.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/units.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/usePrismGame.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePrismGame.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useReward.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useReward.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="tier merge update">
+      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1920x1080.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1920x1080.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x1200.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x1200.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x800.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x800.webp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,7 +111,7 @@
       <workItem from="1783084667113" duration="5029000" />
       <workItem from="1783090146748" duration="14108000" />
       <workItem from="1783174841876" duration="44152000" />
-      <workItem from="1783431359086" duration="13715000" />
+      <workItem from="1783431359086" duration="14187000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -237,7 +209,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783457446061</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="tier merge update">
+      <option name="closed" value="true" />
+      <created>1783460413257</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1783460413257</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -264,6 +244,7 @@
     <MESSAGE value="CG gameplay start and sound stop" />
     <MESSAGE value="added sounds&#10;hot path opimization" />
     <MESSAGE value="coin fallback for ads" />
-    <option name="LAST_COMMIT_MESSAGE" value="coin fallback for ads" />
+    <MESSAGE value="tier merge update" />
+    <option name="LAST_COMMIT_MESSAGE" value="tier merge update" />
   </component>
 </project>
