@@ -169,7 +169,7 @@ export default {
     },
     'codex': {
       'title': 'Kodeks jednostek',
-      'names': { 't1': 'Iskra Magmy', 't2': 'Lodowy Wir', 't3': 'Skalny Brutal', 't4': 'Lodowcowy Strażnik', 't5': 'Kropla Przypływu', 't6': 'Kamienny Kolos', 't7': 'Oko Mgławicy', 't8': 'Widmo Pustki', 't9': 'Złoty Szpon', 't10': 'Władca Feniks', 't11': 'Obsydianowy Wódz' },
+      'names': { 't1': 'Iskra Magmy', 't2': 'Lodowy Wir', 't3': 'Skalny Brutal', 't4': 'Lodowcowy Strażnik', 't5': 'Kropla Przypływu', 't6': 'Kamienny Kolos', 't7': 'Oko Mgławicy', 't8': 'Widmo Pustki', 't9': 'Złoty Szpon', 't10': 'Władca Feniks', 't11': 'Obsydianowy Wódz', 't12': "Piekielny Tytan", 't13': "Mroczny Żniwiarz", 't14': "Lewiatan Magmy", 't15': "Kosmiczny Wniebowstąpiony" },
       'locked': 'Połącz dwie jednostki poziomu {n}, aby odkryć!',
       'abilities': {
         'none': 'Roztopiona iskra — szybki, nieustraszony, zawsze na czele.',

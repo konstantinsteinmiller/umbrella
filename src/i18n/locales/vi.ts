@@ -169,7 +169,7 @@ export default {
     },
     'codex': {
       'title': 'Sổ tay đơn vị',
-      'names': { 't1': 'Tia Dung Nham', 't2': 'Lốc Băng Giá', 't3': 'Gã Đá Hung Bạo', 't4': 'Vệ Binh Băng Hà', 't5': 'Giọt Thủy Triều', 't6': 'Khổng Lồ Đá', 't7': 'Mắt Tinh Vân', 't8': 'Bóng Ma Hư Không', 't9': 'Móng Vuốt Vàng', 't10': 'Phượng Hoàng Chúa Tể', 't11': 'Lãnh Chúa Hắc Diện Thạch' },
+      'names': { 't1': 'Tia Dung Nham', 't2': 'Lốc Băng Giá', 't3': 'Gã Đá Hung Bạo', 't4': 'Vệ Binh Băng Hà', 't5': 'Giọt Thủy Triều', 't6': 'Khổng Lồ Đá', 't7': 'Mắt Tinh Vân', 't8': 'Bóng Ma Hư Không', 't9': 'Móng Vuốt Vàng', 't10': 'Phượng Hoàng Chúa Tể', 't11': 'Lãnh Chúa Hắc Diện Thạch', 't12': "Titan Địa Ngục", 't13': "Tử Thần Bóng Tối", 't14': "Thủy Quái Dung Nham", 't15': "Đấng Thăng Thiên Vũ Trụ" },
       'locked': 'Hợp nhất hai đơn vị bậc {n} để khám phá!',
       'abilities': {
         'none': 'Tia lửa nóng chảy — nhanh nhẹn, gan dạ, luôn đi đầu.',

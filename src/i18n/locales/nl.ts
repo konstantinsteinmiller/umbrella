@@ -169,7 +169,7 @@ export default {
     },
     'codex': {
       'title': 'Eenhedencodex',
-      'names': { 't1': 'Magmavonk', 't2': 'Vorstwerveling', 't3': 'Rotsbruut', 't4': 'Gletsjerwachter', 't5': 'Vloeddruppel', 't6': 'Rotskolos', 't7': 'Neveloog', 't8': 'Leegteschim', 't9': 'Gouden Klauw', 't10': 'Feniksvorst', 't11': 'Obsidiaan-Krijgsheer' },
+      'names': { 't1': 'Magmavonk', 't2': 'Vorstwerveling', 't3': 'Rotsbruut', 't4': 'Gletsjerwachter', 't5': 'Vloeddruppel', 't6': 'Rotskolos', 't7': 'Neveloog', 't8': 'Leegteschim', 't9': 'Gouden Klauw', 't10': 'Feniksvorst', 't11': 'Obsidiaan-Krijgsheer', 't12': "Inferno-Titaan", 't13': "Schaduwmaaier", 't14': "Magma-Leviathan", 't15': "Kosmische Verhevene" },
       'locked': 'Fuseer twee tier {n} om te ontdekken!',
       'abilities': {
         'none': 'Een gesmolten vonk — snel, onbevreesd en altijd voorop.',

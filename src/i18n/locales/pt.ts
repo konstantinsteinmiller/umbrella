@@ -169,7 +169,7 @@ export default {
     },
     'codex': {
       'title': 'Códice de unidades',
-      'names': { 't1': 'Faísca de Magma', 't2': 'Redemoinho Gélido', 't3': 'Bruto de Rocha', 't4': 'Guardião Glacial', 't5': 'Gota da Maré', 't6': 'Colosso de Pedra', 't7': 'Olho de Nebulosa', 't8': 'Espectro do Vazio', 't9': 'Garra Dourada', 't10': 'Soberano Fênix', 't11': 'Senhor da Guerra de Obsidiana' },
+      'names': { 't1': 'Faísca de Magma', 't2': 'Redemoinho Gélido', 't3': 'Bruto de Rocha', 't4': 'Guardião Glacial', 't5': 'Gota da Maré', 't6': 'Colosso de Pedra', 't7': 'Olho de Nebulosa', 't8': 'Espectro do Vazio', 't9': 'Garra Dourada', 't10': 'Soberano Fênix', 't11': 'Senhor da Guerra de Obsidiana', 't12': "Titã Infernal", 't13': "Ceifador Umbral", 't14': "Leviatã de Magma", 't15': "Ascendente Cósmico" },
       'locked': 'Funda duas de nível {n} para descobrir!',
       'abilities': {
         'none': 'Uma faísca incandescente: rápido, destemido e sempre na frente.',

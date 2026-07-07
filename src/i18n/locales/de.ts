@@ -169,7 +169,7 @@ export default {
     },
     'codex': {
       'title': 'Einheiten-Kodex',
-      'names': { 't1': 'Magmafunke', 't2': 'Frostwirbel', 't3': 'Felsbrocken', 't4': 'Gletscherwächter', 't5': 'Flutentropfen', 't6': 'Felskoloss', 't7': 'Sternennebel', 't8': 'Leerenschemen', 't9': 'Goldkralle', 't10': 'Phönixherrscher', 't11': 'Obsidian-Kriegsfürst' },
+      'names': { 't1': 'Magmafunke', 't2': 'Frostwirbel', 't3': 'Felsbrocken', 't4': 'Gletscherwächter', 't5': 'Flutentropfen', 't6': 'Felskoloss', 't7': 'Sternennebel', 't8': 'Leerenschemen', 't9': 'Goldkralle', 't10': 'Phönixherrscher', 't11': 'Obsidian-Kriegsfürst', 't12': "Infernaler Titan", 't13': "Schattenschnitter", 't14': "Magma-Leviathan", 't15': "Kosmischer Aufgestiegener" },
       'locked': 'Verschmilz zwei Stufe-{n}-Einheiten zum Entdecken!',
       'abilities': {
         'none': 'Ein glühender Funke — schnell, furchtlos und immer vorneweg.',

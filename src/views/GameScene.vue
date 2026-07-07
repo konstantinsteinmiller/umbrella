@@ -24,7 +24,7 @@ import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 import useEpicConfig from '@/use/useEpicConfig'
 import useScreenshake from '@/use/useScreenshake'
 import { zoneRect } from '@/use/useDropZones'
-import useReward from '@/use/useReward'
+import useReward, { formatCost } from '@/use/useReward'
 import { isMobileLandscape, isMobilePortrait, windowWidth, windowHeight } from '@/use/useUser'
 import { artSrc } from '@/use/useArtOverrides'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
@@ -416,7 +416,7 @@ onUnmounted(() => {
           //- Coin mode shows the price + IconCoin; ad mode the movie icon.
           template(v-if="buffsCostCoins")
             IconCoin(class="w-6 h-6 shrink-0 text-yellow-200")
-            span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm leading-none") {{ REWARD_COIN_COST }}
+            span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm leading-none") {{ formatCost(REWARD_COIN_COST) }}
           IconMovie(v-else class="w-6 h-6 shrink-0")
           div.flex.flex-col.items-start
             span.text-white.font-black.uppercase.game-text(class="text-xs sm:text-sm leading-none") {{ t('battle.doubleBounty') }}

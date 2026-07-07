@@ -28,7 +28,8 @@ import useScreenshake from '@/use/useScreenshake'
 import { emitConfetti, emitSparkle, emitSplash } from '@/use/usePrismParticles'
 import { registerDropZone, unregisterDropZone, dragActive } from '@/use/useDropZones'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
-import useReward from '@/use/useReward'
+import useReward, { formatCost } from '@/use/useReward'
+import { bumpMaxTier } from '@/use/usePrismGame'
 import { bestWaveRank } from '@/platforms/leaderboard'
 
 const props = defineProps<{
@@ -415,11 +416,16 @@ const onEvent = (e: BattleEvent): void => {
       addFlash('shockwave', e.x, e.y)
       emitSparkle(toClientX(e.x), toClientY(e.y), '#ffffff', 10)
       playSound('deploy-land', 0.04, 1.1)
+      // A deployed unit may be a new high tier — unlock its codex entry.
+      bumpMaxTier(e.tier)
       break
     case 'fieldMerge':
       addFlash('mergeburst', e.x, e.y)
       emitConfetti(toClientX(e.x), toClientY(e.y), 16, 1.2)
       playSound('field-merge', 0.05, 0.85 + Math.min(10, e.tier) * 0.05)
+      // Arena field merge climbs the fighter a tier — raise the codex watermark
+      // so the newly reached tier lights up in the Unit Codex.
+      bumpMaxTier(e.tier)
       break
     case 'gateHit': {
       gateShake.value = true
@@ -590,6 +596,10 @@ onMounted(() => {
   battle.setEventSink(onEvent)
   battle.setRenderSink(render)
   battle.startBattle()
+  // Reconcile the codex watermark against the RESTORED army: a fighter that
+  // climbed to a new high tier via field merges in a prior session (before this
+  // bump existed) fires no event on reload, so unlock it here on mount.
+  for (const f of battle.fighters.value) bumpMaxTier(f.tier)
 })
 onUnmounted(() => {
   battle.stopBattle()
@@ -770,7 +780,7 @@ onUnmounted(() => {
             //- Coin mode shows the price + IconCoin; ad mode the movie icon.
             template(v-if="buffsCostCoins")
               IconCoin(class="w-6 h-6 shrink-0 text-yellow-200")
-              span.text-white.font-black.game-text.tabular-nums(class="text-sm sm:text-base leading-none") {{ REWARD_COIN_COST }}
+              span.text-white.font-black.game-text.tabular-nums(class="text-sm sm:text-base leading-none") {{ formatCost(REWARD_COIN_COST) }}
             IconMovie(v-else class="w-6 h-6 shrink-0")
             div.flex.flex-col.items-start
               span.text-white.font-black.uppercase.game-text(class="text-sm sm:text-base leading-none") {{ t('battle.rally') }}

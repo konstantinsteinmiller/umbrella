@@ -11,7 +11,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import usePrismGame from '@/use/usePrismGame'
 import useSounds from '@/use/useSound'
-import useReward from '@/use/useReward'
+import useReward, { formatCost } from '@/use/useReward'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 
@@ -71,9 +71,11 @@ const onWatch = async (): Promise<void> => {
     div.relative.flex.items-center.gap-1.rounded-xl.border-2.px-2(
       class="py-2 bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
     )
+      //- Coin mode: effect label + compact price (🪙 1k); ad mode: movie + label.
       template(v-if="buffsCostCoins")
-        IconCoin(class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-100 shrink-0")
-        span.text-white.font-black.game-text.leading-none.tabular-nums(class="text-[9px] sm:text-[11px]") {{ instantSpawnCost }}
+        span.text-white.font-black.uppercase.game-text.leading-none(class="text-[9px] sm:text-[11px]") {{ t('prism.instantSpawn') }}
+        IconCoin(class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-100 shrink-0")
+        span.text-yellow-100.font-black.game-text.leading-none.tabular-nums(class="text-[9px] sm:text-[11px]") {{ formatCost(instantSpawnCost) }}
       template(v-else)
         IconMovie(class="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0")
         span.text-white.font-black.uppercase.game-text.leading-none(class="text-[9px] sm:text-[11px]") {{ t('prism.instantSpawn') }}

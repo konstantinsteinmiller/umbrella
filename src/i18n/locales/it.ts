@@ -169,7 +169,7 @@ export default {
     },
     'codex': {
       'title': 'Codex delle unità',
-      'names': { 't1': 'Favilla di Magma', 't2': 'Vortice di Gelo', 't3': 'Bruto di Roccia', 't4': 'Guardiano Glaciale', 't5': 'Goccia di Marea', 't6': 'Colosso di Pietra', 't7': 'Occhio di Nebulosa', 't8': 'Spettro del Vuoto', 't9': 'Artiglio Dorato', 't10': 'Sovrano Fenice', 't11': "Signore della Guerra d'Ossidiana" },
+      'names': { 't1': 'Favilla di Magma', 't2': 'Vortice di Gelo', 't3': 'Bruto di Roccia', 't4': 'Guardiano Glaciale', 't5': 'Goccia di Marea', 't6': 'Colosso di Pietra', 't7': 'Occhio di Nebulosa', 't8': 'Spettro del Vuoto', 't9': 'Artiglio Dorato', 't10': 'Sovrano Fenice', 't11': "Signore della Guerra d'Ossidiana", 't12': "Titano Infernale", 't13': "Mietitore Umbrale", 't14': "Leviatano di Magma", 't15': "Ascendente Cosmico" },
       'locked': 'Fondi due unità di livello {n} per scoprirla!',
       'abilities': {
         'none': 'Una favilla fusa: veloce, impavido e sempre in prima linea.',

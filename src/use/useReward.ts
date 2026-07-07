@@ -17,6 +17,11 @@ import { FIRST_INSTANT_SPAWN_KEY } from '@/keys'
 export const REWARD_COIN_COST = 1000
 export const FIRST_INSTANT_SPAWN_COIN_COST = 200
 
+/** Compact coin-cost label so a price fits ALONGSIDE the effect label on the
+ *  narrow buff buttons: 1000 → "1k", 1500 → "1.5k", 200 → "200". */
+export const formatCost = (n: number): string =>
+  n >= 1000 ? `${Number.isInteger(n / 1000) ? n / 1000 : (n / 1000).toFixed(1)}k` : String(n)
+
 // Reactive mirror of the sticky "first Instant Spawn already bought" flag so
 // `instantSpawnCost` recomputes the moment it flips (getState alone isn't
 // reactive). Seeded from persistence at module load.

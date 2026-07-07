@@ -61,14 +61,20 @@ export const FIGHTER_DEFS: FighterDef[] = [
   { ...fighterBase, tier: 11, atk: F_ATK(11), hp: Math.round(F_HP(11) * 1.4), attackInterval: 1.3, range: 10, speed: 11, ability: 'eruption', scale: 1.4 }
 ]
 
-// Tiers 12-15 have authored art (fighter-12..15) but live off the extrapolation
-// below (kept out of FIGHTER_DEFS so the codex stays on the localized set).
-// Melee by default; 13 & 15 are ranged, reusing tier-8 shadow / tier-7 cosmic
-// projectile+impact VFX (their element comes from getIngredient).
+// Tiers 12-15 have authored art (fighter-12..15) + localized codex names but
+// live off the extrapolation below (kept out of FIGHTER_DEFS so their stats stay
+// formula-driven). Melee by default; 13 & 15 are ranged, reusing tier-8 shadow /
+// tier-7 cosmic projectile+impact VFX (their element comes from getIngredient).
 const HIGH_TIER_DEFS: Record<number, Partial<FighterDef>> = {
   13: { range: 32, attackInterval: 1.3, ability: 'frost' },
   15: { range: 38, attackInterval: 1.4, ability: 'chain' }
 }
+
+// Highest tier the Unit Codex lists: 1-11 are authored in FIGHTER_DEFS, 12-15
+// extrapolate their stats via getFighterDef but carry authored art + localized
+// names (`battle.codex.names.t12..t15`). Tiers past this still merge/extrapolate
+// in-game; they're just beyond the illustrated bestiary.
+export const CODEX_MAX_TIER = 15
 
 export const getFighterDef = (tier: number): FighterDef => {
   if (tier <= FIGHTER_DEFS.length) return FIGHTER_DEFS[Math.max(0, tier - 1)]!

@@ -169,7 +169,7 @@ export default {
     },
     'codex': {
       'title': 'Códice de unidades',
-      'names': { 't1': 'Chispa de Magma', 't2': 'Torbellino Glacial', 't3': 'Bruto de Roca', 't4': 'Guardián Glaciar', 't5': 'Gota de Marea', 't6': 'Coloso Pétreo', 't7': 'Ojo de Nebulosa', 't8': 'Espectro del Vacío', 't9': 'Garra Dorada', 't10': 'Soberano Fénix', 't11': 'Señor de la Guerra de Obsidiana' },
+      'names': { 't1': 'Chispa de Magma', 't2': 'Torbellino Glacial', 't3': 'Bruto de Roca', 't4': 'Guardián Glaciar', 't5': 'Gota de Marea', 't6': 'Coloso Pétreo', 't7': 'Ojo de Nebulosa', 't8': 'Espectro del Vacío', 't9': 'Garra Dorada', 't10': 'Soberano Fénix', 't11': 'Señor de la Guerra de Obsidiana', 't12': "Titán Infernal", 't13': "Segador Umbrío", 't14': "Leviatán de Magma", 't15': "Ascendente Cósmico" },
       'locked': '¡Fusiona dos de nivel {n} para descubrirla!',
       'abilities': {
         'none': 'Una chispa fundida: rápido, intrépido y siempre el primero.',

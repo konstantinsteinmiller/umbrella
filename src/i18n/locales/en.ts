@@ -50,7 +50,7 @@ export default {
     },
     'codex': {
       'title': 'Unit Codex',
-      'names': { 't1': 'Magma Mote', 't2': 'Frost Whirl', 't3': 'Boulder Brute', 't4': 'Glacier Guard', 't5': 'Tide Drop', 't6': 'Crag Colossus', 't7': 'Nebula Eye', 't8': 'Void Wraith', 't9': 'Golden Talon', 't10': 'Phoenix Sovereign', 't11': 'Obsidian Warlord' },
+      'names': { 't1': 'Magma Mote', 't2': 'Frost Whirl', 't3': 'Boulder Brute', 't4': 'Glacier Guard', 't5': 'Tide Drop', 't6': 'Crag Colossus', 't7': 'Nebula Eye', 't8': 'Void Wraith', 't9': 'Golden Talon', 't10': 'Phoenix Sovereign', 't11': 'Obsidian Warlord', 't12': "Infernal Titan", 't13': "Umbral Reaper", 't14': "Magma Leviathan", 't15': "Cosmic Ascendant" },
       'locked': 'Merge two Tier {n} to discover!',
       'abilities': {
         'none': 'A molten spark — fast, fearless, and first through the gate.',

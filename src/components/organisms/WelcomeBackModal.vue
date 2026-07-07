@@ -13,7 +13,7 @@ import IconCoin from '@/components/icons/IconCoin.vue'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import useEpicConfig from '@/use/useEpicConfig'
 import useSounds from '@/use/useSound'
-import useReward from '@/use/useReward'
+import useReward, { formatCost } from '@/use/useReward'
 import { offlineGold, consumeOfflineGold } from '@/use/useOfflineEarnings'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 
@@ -97,7 +97,7 @@ const onClaimDouble = async (e: MouseEvent): Promise<void> => {
           //- Coin mode shows the price + IconCoin; ad mode the movie icon + label.
           template(v-if="buffsCostCoins")
             IconCoin(class="w-5 h-5 shrink-0 text-yellow-200")
-            span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm") {{ REWARD_COIN_COST }}
+            span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm") {{ formatCost(REWARD_COIN_COST) }}
           template(v-else)
             IconMovie(class="w-5 h-5 shrink-0")
             span.text-white.font-black.uppercase.game-text(class="text-xs sm:text-sm") {{ t('ads.doubleCoins') }}

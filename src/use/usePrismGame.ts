@@ -56,6 +56,18 @@ const sanitizeGrid = (g: unknown): number[] => {
 const grid: Ref<number[]> = ref(sanitizeGrid(readJSON(GRID_KEY, [])))
 /** Highest tier ever created — the discovery watermark (codex, achievements). */
 export const maxTier: Ref<number> = ref(Number(readJSON(PRISM_MAX_TIER_KEY, 1)) || 1)
+
+/** Raise the discovery watermark to `tier` if it's a new high and persist it —
+ *  the single "unlock the codex entry" entry point. Every tier-producing path
+ *  (grid spawn/merge here, plus arena deploy/field-merge via the battle event
+ *  sink) funnels through this so a newly reached tier ALWAYS lights up the Unit
+ *  Codex. Idempotent and safe to call on every merge. */
+export const bumpMaxTier = (tier: number): void => {
+  if (Number.isFinite(tier) && tier > maxTier.value) {
+    maxTier.value = tier
+    setState(PRISM_MAX_TIER_KEY, maxTier.value)
+  }
+}
 /** Epoch-ms the instant-spawn buff expires at (persisted; survives reloads). */
 const instantSpawnUntil: Ref<number> = ref(Number(readJSON(PRISM_INSTANT_SPAWN_KEY, 0)) || 0)
 
@@ -118,7 +130,7 @@ export const spawnIngredient = (): number => {
   if (idx < 0) return -1
   const t = recruitTier.value
   setSlot(idx, t)
-  if (t > maxTier.value) { maxTier.value = t; setState(PRISM_MAX_TIER_KEY, maxTier.value) }
+  bumpMaxTier(t)
   bumpStat('spawns')
   persistGrid()
   notifyTutorial('spawn')
@@ -133,7 +145,7 @@ export const spawnUnitAt = (tier: number): number => {
   const idx = randomEmptyIndex()
   if (idx < 0) return -1
   setSlot(idx, t)
-  if (t > maxTier.value) { maxTier.value = t; setState(PRISM_MAX_TIER_KEY, maxTier.value) }
+  bumpMaxTier(t)
   persistGrid()
   return idx
 }
@@ -184,7 +196,7 @@ export const merge = (from: number, to: number): number => {
   next[to] = a + 1
   next[from] = 0
   grid.value = next
-  if (a + 1 > maxTier.value) { maxTier.value = a + 1; setState(PRISM_MAX_TIER_KEY, maxTier.value) }
+  bumpMaxTier(a + 1)
   bumpStat('merges')
   persistGrid()
   notifyTutorial('merge')
@@ -303,7 +315,7 @@ const usePrismGame = () => ({
   // derived
   canSpawn, clicksRequired, instantSpawnActive, instantSpawnRemainingMs, emptySlots,
   // actions
-  tapSpawn, activateInstantSpawn, spawnIngredient, spawnUnitAt, merge, moveSlot, takeFromGrid,
+  tapSpawn, activateInstantSpawn, spawnIngredient, spawnUnitAt, merge, moveSlot, takeFromGrid, bumpMaxTier,
   // events
   autoAction,
   // lifecycle

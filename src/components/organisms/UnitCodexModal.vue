@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Unit Codex (retention-roadmap #12): all 10 merge tiers with stats and
- * ability copy. Tiers above the player's discovery watermark (`maxTier`)
- * render as dark silhouettes with a "Merge 2× Tier N to discover!" tease —
- * the cheapest "one more merge" driver in the game.
+ * Unit Codex (retention-roadmap #12): all illustrated merge tiers (1-15) with
+ * stats and ability copy. Tiers above the player's discovery watermark
+ * (`maxTier`) render as dark silhouettes with a "Merge 2× Tier N to discover!"
+ * tease — the cheapest "one more merge" driver in the game.
  */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -12,7 +12,7 @@ import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import IconAttack from '@/components/icons/IconAttack.vue'
 import IconHp from '@/components/icons/IconHp.vue'
 import usePrismGame from '@/use/usePrismGame'
-import { FIGHTER_DEFS } from '@/game/units'
+import { getFighterDef, CODEX_MAX_TIER } from '@/game/units'
 
 defineProps<{ modelValue: boolean }>()
 defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
@@ -20,7 +20,11 @@ defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 const { t } = useI18n()
 const game = usePrismGame()
 
-const entries = computed(() => FIGHTER_DEFS.map((def) => {
+// Tiers 1-11 are authored in FIGHTER_DEFS; 12-15 extrapolate their stats via
+// getFighterDef but carry authored art + localized names — so drive the whole
+// bestiary off getFighterDef by tier.
+const entries = computed(() => Array.from({ length: CODEX_MAX_TIER }, (_, i) => {
+  const def = getFighterDef(i + 1)
   return {
     tier: def.tier,
     name: t(`battle.codex.names.t${def.tier}`),
