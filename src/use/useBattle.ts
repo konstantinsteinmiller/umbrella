@@ -379,7 +379,7 @@ export const combo = ref(0)
 export const feverActive = ref(false)
 export const ultCharge = ref(Math.max(0, Math.min(ULT_MAX, Number(getState(BATTLE_ULT_KEY, 0)) || 0)))
 export const ultMax = ULT_MAX
-export const boss = ref<{ name: string; hp: number; maxHp: number; enraged: boolean } | null>(null)
+export const boss = ref<{ nameKey: string; cycle: number; hp: number; maxHp: number; enraged: boolean } | null>(null)
 export const timescale = ref(1)
 /** Active wave mutator (retention-roadmap #13); null on plain/boss waves. */
 export const mutator = ref<WaveMutator | null>(null)
@@ -537,7 +537,10 @@ const spawnEnemy = (kind: EnemyKind, elite = false, portal = 1): void => {
   }
   enemies.value = [...enemies.value, e]
   triggerRef(enemies)
-  if (e.boss) boss.value = { name: bossName(w), hp: e.hp, maxHp: e.maxHp, enraged: false }
+  if (e.boss) {
+    const bn = bossName(w)
+    boss.value = { nameKey: bn.key, cycle: bn.cycle, hp: e.hp, maxHp: e.maxHp, enraged: false }
+  }
 }
 
 // ─── Combat helpers ──────────────────────────────────────────────────────────

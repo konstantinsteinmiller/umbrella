@@ -132,6 +132,7 @@ export default {
     'body': 'Deine Armee hat in deiner Abwesenheit weitergekämpft:'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp der Verschlinger", 'b1': "König Schlammfaust", 'b2': "Mawzilla", 'b3': "Der Tor-Fresser", 'b4': "Grumblor Prime" },
     'wave': 'Welle {n}',
     'best': 'Rekord {n}',
     'waveStart': 'Welle {n}',

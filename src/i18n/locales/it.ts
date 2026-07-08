@@ -132,6 +132,7 @@ export default {
     'body': 'Il tuo esercito ha continuato a combattere in tua assenza:'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp il Divoratore", 'b1': "Re Pugnofango", 'b2': "Mawzilla", 'b3': "Il Divora-Cancelli", 'b4': "Grumblor Prime" },
     'wave': 'Ondata {n}',
     'best': 'Record {n}',
     'waveStart': 'Ondata {n}',

@@ -544,6 +544,15 @@ const bossPct = computed(() => {
   return b ? Math.max(0, Math.min(100, (b.hp / b.maxHp) * 100)) : 0
 })
 
+// Localized boss name: translate the roster key, appending " +N" once the
+// roster has wrapped (cycle > 0).
+const bossDisplayName = computed(() => {
+  const b = battle.boss.value
+  if (!b) return ''
+  const base = t(`battle.bossNames.${b.nameKey}`)
+  return b.cycle > 0 ? `${base} +${b.cycle}` : base
+})
+
 const gatePct = computed(() => Math.max(0, Math.min(100, (battle.gateHp.value / battle.gateMax) * 100)))
 const countdownDisplay = computed(() => Math.max(1, Math.ceil(battle.countdown.value)))
 
@@ -719,7 +728,7 @@ onUnmounted(() => {
     //- ── Boss HP bar ──
     Transition(name="fade")
       div.absolute.left-2.right-2.top-1.flex.flex-col.items-center.gap-0.pointer-events-none(v-if="battle.boss.value" class="z-[1200]")
-        span.game-text.font-black.uppercase.text-red-300(class="text-[10px] sm:text-xs tracking-wider") {{ battle.boss.value.name }}
+        span.game-text.font-black.uppercase.text-red-300(class="text-[10px] sm:text-xs tracking-wider") {{ bossDisplayName }}
         div.w-full.rounded-full.overflow-hidden.border(class="h-2 sm:h-2.5 bg-black/60 border-red-900")
           div.h-full.boss-hp(:class="{ 'boss-enraged': battle.boss.value.enraged }" :style="{ width: bossPct + '%' }")
 

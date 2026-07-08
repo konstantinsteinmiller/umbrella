@@ -132,6 +132,7 @@ export default {
     'body': 'Seu exército continuou lutando enquanto você esteve fora:'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp o Devorador", 'b1': "Rei Punho de Lodo", 'b2': "Mawzilla", 'b3': "O Come-Portões", 'b4': "Grumblor Prime" },
     'wave': 'Onda {n}',
     'best': 'Recorde {n}',
     'waveStart': 'Onda {n}',

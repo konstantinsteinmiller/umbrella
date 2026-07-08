@@ -132,6 +132,7 @@ export default {
     'body': 'Twoja armia walczyła dalej pod twoją nieobecność:'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp Pożeracz", 'b1': "Król Błotna Pięść", 'b2': "Mawzilla", 'b3': "Pożeracz Bram", 'b4': "Grumblor Prime" },
     'wave': 'Fala {n}',
     'best': 'Rekord {n}',
     'waveStart': 'Fala {n}',

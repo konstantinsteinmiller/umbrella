@@ -2,9 +2,10 @@
 /**
  * Flying chest reward (retention-roadmap #1B). Every 2 minutes a winged
  * chest drifts across the arena left → right (~7 s). Tapping it opens it:
- * 50/50 it pays 150 gold or drops a copy of the SECOND-best fighter on the
- * field into the merge grid (fallback: a tier-2 unit when fewer than two
- * fighters stand; fallback gold when the grid is full). Untapped chests fly
+ * 50/50 it pays gold (150 + 75·wave, scaling with progress) or drops a copy of
+ * the SECOND-best fighter on the field into the merge grid (fallback: a tier-2
+ * unit when fewer than two fighters stand; fallback gold when the grid is full).
+ * Untapped chests fly
  * off and the timer restarts — a soft "watch the battlefield" pull.
  *
  * Mounted inside the BattleArena root (absolute overlay). The countdown only
@@ -28,7 +29,11 @@ const props = defineProps<{
 
 const CHEST_INTERVAL_MS = 120_000
 const CHEST_FLIGHT_MS = 7_000
-const CHEST_GOLD = 150
+// Gold payout scales with progress so the chest stays relevant late-game:
+// 150 base + 75 per wave reached.
+const CHEST_GOLD_BASE = 150
+const CHEST_GOLD_PER_WAVE = 75
+const chestGold = (): number => CHEST_GOLD_BASE + battle.wave.value * CHEST_GOLD_PER_WAVE
 
 const game = usePrismGame()
 const battle = useBattle()
@@ -95,7 +100,7 @@ const onOpen = (e: PointerEvent): void => {
   }
   // Gold branch (also the fallback when the grid is full).
   emitConfetti(e.clientX, e.clientY, 18, 1.2)
-  addCoins(CHEST_GOLD)
+  addCoins(chestGold())
   if (props.coinTarget && chestRef.value) {
     spawnCoinExplosion({ sourceEl: chestRef.value, targetEl: props.coinTarget, count: 12 })
   }

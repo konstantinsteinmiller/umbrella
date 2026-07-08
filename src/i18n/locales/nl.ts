@@ -132,6 +132,7 @@ export default {
     'body': 'Je leger vocht door terwijl je weg was:'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp de Verslinder", 'b1': "Koning Slijkvuist", 'b2': "Mawzilla", 'b3': "De Poortvreter", 'b4': "Grumblor Prime" },
     'wave': 'Golf {n}',
     'best': 'Record {n}',
     'waveStart': 'Golf {n}',

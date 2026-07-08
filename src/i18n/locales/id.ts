@@ -86,6 +86,7 @@ export default {
     'body': 'Pasukanmu terus bertempur selagi kamu pergi:'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp Sang Pelahap", 'b1': "Raja Tinju Lumpur", 'b2': "Mawzilla", 'b3': "Pemakan Gerbang", 'b4': "Grumblor Prime" },
     'wave': 'Gelombang {n}',
     'best': 'Terbaik {n}',
     'waveStart': 'Gelombang {n}',

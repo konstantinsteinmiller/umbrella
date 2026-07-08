@@ -4,10 +4,45 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="tier merge update">
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1920x1080.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1920x1080.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x1200.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x1200.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x800.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x800.webp" afterDir="false" />
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="removed old images">
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env.crazy-web" beforeDir="false" afterPath="$PROJECT_DIR$/.env.crazy-web" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/images/bg/bg-tile_400x400.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/images/bg/parchment-ribbon_553x188.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/images/icons/bag.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/landscape-7s_1280x720.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/portrait-10s_720x1280.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/trailer1_1280x720.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/trailer1_720x1280.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/trailer_1280x720.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/FlyingChest.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/FlyingChest.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/units.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/units.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useAssets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAssets.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useBattle.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBattle.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,22 +82,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/merge-idle-war/public/images/logo&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
-    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\konst\\Documents\\__p\\merge-idle-war\\node_modules\\typescript\\lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/konst/Documents/__p/merge-idle-war/public/images/logo",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "pnpm",
+    "npm.build:crazy-web.executor": "Run",
+    "npm.dev.executor": "Run",
+    "ts.external.directory.path": "C:\\Users\\konst\\Documents\\__p\\merge-idle-war\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\logo" />
@@ -79,7 +115,17 @@
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\attacks\animations" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="npm.build:crazy-web">
+    <configuration name="build:crazy-web" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="build:crazy-web" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
     <configuration name="dev" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
@@ -92,6 +138,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="npm.build:crazy-web" />
         <item itemvalue="npm.dev" />
       </list>
     </recent_temporary>
@@ -111,7 +158,7 @@
       <workItem from="1783084667113" duration="5029000" />
       <workItem from="1783090146748" duration="14108000" />
       <workItem from="1783174841876" duration="44152000" />
-      <workItem from="1783431359086" duration="14187000" />
+      <workItem from="1783431359086" duration="19031000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -217,7 +264,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783460413257</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="removed old images">
+      <option name="closed" value="true" />
+      <created>1783461016495</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1783461016495</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -245,6 +300,7 @@
     <MESSAGE value="added sounds&#10;hot path opimization" />
     <MESSAGE value="coin fallback for ads" />
     <MESSAGE value="tier merge update" />
-    <option name="LAST_COMMIT_MESSAGE" value="tier merge update" />
+    <MESSAGE value="removed old images" />
+    <option name="LAST_COMMIT_MESSAGE" value="removed old images" />
   </component>
 </project>

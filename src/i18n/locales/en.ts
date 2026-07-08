@@ -21,6 +21,7 @@ export default {
     'body': 'Your army kept fighting while you were away:'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp the Devourer", 'b1': "King Sludgefist", 'b2': "Mawzilla", 'b3': "The Gate-Eater", 'b4': "Grumblor Prime" },
     'wave': 'Wave {n}',
     'best': 'Best {n}',
     'waveStart': 'Wave {n}',

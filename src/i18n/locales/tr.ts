@@ -132,6 +132,7 @@ export default {
     'body': 'Sen yokken ordun savaşmaya devam etti:'
   },
   'battle': {
+    'bossNames': { 'b0': "Yiyici Glorp", 'b1': "Kral Balçıkyumruk", 'b2': "Mawzilla", 'b3': "Kapı Yiyen", 'b4': "Grumblor Prime" },
     'wave': 'Dalga {n}',
     'best': 'Rekor {n}',
     'waveStart': 'Dalga {n}',

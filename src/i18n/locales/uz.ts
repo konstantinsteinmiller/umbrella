@@ -132,6 +132,7 @@ export default {
     'body': 'Siz yoʻqligingizda qoʻshiningiz jang qilishda davom etdi:'
   },
   'battle': {
+    'bossNames': { 'b0': "Yutuvchi Glorp", 'b1': "Loymushtli Shoh", 'b2': "Mawzilla", 'b3': "Darvoza Yeyar", 'b4': "Grumblor Prime" },
     'wave': '{n}-toʻlqin',
     'best': 'Rekord {n}',
     'waveStart': '{n}-toʻlqin',

@@ -153,13 +153,15 @@ export const rollMutator = (wave: number): WaveMutator | null => {
   return MUTATOR_POOL[(h >>> 8) % MUTATOR_POOL.length]!
 }
 
-/** Boss display names cycle with a "+N" suffix once the list wraps. */
-const BOSS_NAMES = ['GLORP THE DEVOURER', 'KING SLUDGEFIST', 'MAWZILLA', 'THE GATE-EATER', 'GRUMBLOR PRIME']
-export const bossName = (wave: number): string => {
-  const idx = Math.floor(wave / 5) - 1
-  const cycle = Math.floor(idx / BOSS_NAMES.length)
-  const name = BOSS_NAMES[idx % BOSS_NAMES.length]!
-  return cycle > 0 ? `${name} +${cycle}` : name
+// Boss roster size — the display names live in i18n (`battle.bossNames.b0..b4`),
+// translated per locale; the roster cycles with a "+N" suffix once it wraps.
+const BOSS_NAME_COUNT = 5
+/** Boss identity for a wave: the localization key (`b0`..`b4`) and the
+ *  roster-wrap `cycle` (0 on the first pass; the view appends " +N" when > 0).
+ *  Keeps display strings out of the engine so the name localizes with the UI. */
+export const bossName = (wave: number): { key: string; cycle: number } => {
+  const idx = Math.max(0, Math.floor(wave / 5) - 1)
+  return { key: `b${idx % BOSS_NAME_COUNT}`, cycle: Math.floor(idx / BOSS_NAME_COUNT) }
 }
 
 // Boss sprite per boss wave (5,10,15,20,25,30…). One authored sprite each up to

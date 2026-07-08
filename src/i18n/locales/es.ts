@@ -132,6 +132,7 @@ export default {
     'body': 'Tu ejército siguió luchando mientras no estabas:'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp el Devorador", 'b1': "Rey Puño de Lodo", 'b2': "Mawzilla", 'b3': "El Devora-Puertas", 'b4': "Grumblor Prime" },
     'wave': 'Oleada {n}',
     'best': 'Récord {n}',
     'waveStart': 'Oleada {n}',

@@ -132,6 +132,7 @@ export default {
     'body': 'Votre armée a continué le combat pendant votre absence :'
   },
   'battle': {
+    'bossNames': { 'b0': "Glorp le Dévoreur", 'b1': "Roi Poing-de-Boue", 'b2': "Mawzilla", 'b3': "Le Mange-Portail", 'b4': "Grumblor Prime" },
     'wave': 'Vague {n}',
     'best': 'Record {n}',
     'waveStart': 'Vague {n}',
