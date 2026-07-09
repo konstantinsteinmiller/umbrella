@@ -132,6 +132,9 @@ export default {
     'body': 'Seu exército continuou lutando enquanto você esteve fora:'
   },
   'battle': {
+    'mutationWave': "MUTAÇÃO!",
+    'overrunSetbackHint': "Estas ondas são fortes demais — reforce seu exército em ondas mais fáceis primeiro.",
+    'spells': { 'heal': "Cura", 'reviveGuard': "Guarda de Ressurreição", 'defender': "Defensor" },
     'bossNames': { 'b0': "Glorp o Devorador", 'b1': "Rei Punho de Lodo", 'b2': "Mawzilla", 'b3': "O Come-Portões", 'b4': "Grumblor Prime" },
     'wave': 'Onda {n}',
     'best': 'Recorde {n}',

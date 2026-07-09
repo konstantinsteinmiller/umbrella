@@ -132,6 +132,9 @@ export default {
     'body': 'Sen yokken ordun savaşmaya devam etti:'
   },
   'battle': {
+    'mutationWave': "MUTASYON!",
+    'overrunSetbackHint': "Bu dalgalar senin için çok güçlü — önce ordunu daha kolay dalgalarda güçlendir.",
+    'spells': { 'heal': "İyileştirme", 'reviveGuard': "Diriliş Muhafızı", 'defender': "Savunucu" },
     'bossNames': { 'b0': "Yiyici Glorp", 'b1': "Kral Balçıkyumruk", 'b2': "Mawzilla", 'b3': "Kapı Yiyen", 'b4': "Grumblor Prime" },
     'wave': 'Dalga {n}',
     'best': 'Rekor {n}',

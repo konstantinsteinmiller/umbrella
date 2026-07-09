@@ -132,6 +132,9 @@ export default {
     'body': '자리를 비운 동안 군대가 계속 싸웠습니다:'
   },
   'battle': {
+    'mutationWave': "돌연변이!",
+    'overrunSetbackHint': "이 웨이브는 너무 강합니다. 먼저 쉬운 웨이브에서 군대를 키우세요.",
+    'spells': { 'heal': "치유", 'reviveGuard': "부활 수호", 'defender': "수호자" },
     'bossNames': { 'b0': "탐식자 글로프", 'b1': "슬러지피스트 왕", 'b2': "마우질라", 'b3': "관문을 삼키는 자", 'b4': "그럼블로 프라임" },
     'wave': '웨이브 {n}',
     'best': '최고 {n}',

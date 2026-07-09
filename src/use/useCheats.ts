@@ -3,6 +3,7 @@ import useEpicConfig from '@/use/useEpicConfig'
 import useEpicGame from '@/use/useEpicGame'
 import { setState } from '@/use/useEpicState'
 import { toggleDebug } from '@/use/useMatch'
+import { ultCharge, ultMax, healCharge, reviveCharge, defenderCharge, spellMax, cheatJumpToWave } from '@/use/useBattle'
 import { STAGE_KEY } from '@/keys'
 
 // `cheat` stays a top-level localStorage flag — it's an explicit dev toggle
@@ -104,11 +105,20 @@ const useCheats = () => {
     'ctrl+shift+8': () => setStage(8),
     'ctrl+shift+9': () => setStage(9),
     'ctrl+shift+alt+0': () => setStage(10),
-    'ctrl+shift+alt+1': () => setStage(11),
+    // Jump straight to the slime-tower boss (wave 5) to test its companion spawns.
+    'ctrl+shift+alt+1': () => { cheatJumpToWave(5); console.warn('[CHEAT] Jumped to the slime-tower boss (wave 5).') },
     'ctrl+shift+alt+2': () => setStage(12),
     'ctrl+shift+alt+3': () => setStage(13),
     'ctrl+shift+alt+4': () => setStage(14),
     'ctrl+shift+alt+k': () => { addCoins(20_000); console.warn('[CHEAT] +20,000 coins.') },
+    // Fully charge every arena spell (Meteor + Heal + Revive Guard).
+    'ctrl+shift+alt+r': () => {
+      ultCharge.value = ultMax
+      healCharge.value = spellMax
+      reviveCharge.value = spellMax
+      defenderCharge.value = spellMax
+      console.warn('[CHEAT] All spells fully charged.')
+    },
     // Jump to the stage-10 difficulty test level (the old, dense "stage 1").
     'ctrl+shift+alt+t': () => setStage(10),
     // Spawn a normal item box 1 tile ahead + a GOLDEN box 4 tiles ahead on the

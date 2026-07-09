@@ -132,6 +132,9 @@ export default {
     'body': 'Tu ejército siguió luchando mientras no estabas:'
   },
   'battle': {
+    'mutationWave': "¡MUTACIÓN!",
+    'overrunSetbackHint': "Estas oleadas son demasiado fuertes: refuerza tu ejército en oleadas más fáciles primero.",
+    'spells': { 'heal': "Curación", 'reviveGuard': "Guardia de Reanimación", 'defender': "Defensor" },
     'bossNames': { 'b0': "Glorp el Devorador", 'b1': "Rey Puño de Lodo", 'b2': "Mawzilla", 'b3': "El Devora-Puertas", 'b4': "Grumblor Prime" },
     'wave': 'Oleada {n}',
     'best': 'Récord {n}',

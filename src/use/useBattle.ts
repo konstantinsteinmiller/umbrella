@@ -28,14 +28,18 @@ import { isGamePaused } from '@/use/useGamePause'
 import { tickMidgameAd } from '@/use/useMidgameAdTimer'
 import {
   BATTLE_UPGRADES_KEY, BATTLE_WAVE_KEY, BATTLE_BEST_WAVE_KEY, BATTLE_ARMY_KEY,
-  BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY, BATTLE_RUBBER_BAND_KEY
+  BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY, BATTLE_RUBBER_BAND_KEY,
+  BATTLE_HEAL_UNLOCKED_KEY, BATTLE_HEAL_CHARGE_KEY,
+  BATTLE_REVIVE_UNLOCKED_KEY, BATTLE_REVIVE_CHARGE_KEY,
+  BATTLE_DEFENDER_UNLOCKED_KEY, BATTLE_DEFENDER_CHARGE_KEY,
+  BATTLE_MUTATION_CEILING_KEY
 } from '@/keys'
 import {
-  getFighterDef, ENEMY_DEFS, composeWave, isBossWave, bossName, rollMutator,
+  getFighterDef, ENEMY_DEFS, composeWave, isBossWave, bossName, bossArtKey, rollMutator,
   waveHp, waveAtk, waveBounty, waveClearBonus,
   type EnemyKind, type WaveSpawn, type FighterAbility, type WaveMutator
 } from '@/game/units'
-import { getIngredient, type ElementKind } from '@/game/ingredients'
+import { getIngredient, MAX_INGREDIENT_TIER, type ElementKind } from '@/game/ingredients'
 import { notifyTutorial } from '@/use/useTutorial'
 import useBattlePass, { CAMPAIGN_XP_SOURCES } from '@/use/useBattlePass'
 import { submitBestWave } from '@/platforms/leaderboard'
@@ -87,6 +91,34 @@ const ULT_MAX = 100
 const ULT_PER_KILL = 6
 const ULT_PER_BOSS = 30
 const METEOR_COUNT = 7
+// Slime-tower boss: births companion slimes from its body (up to 3 alive), each
+// scaling up + hopping down over BIRTH_SECS.
+const BIRTH_SECS = 0.8
+const COMPANION_MAX = 3
+const COMPANION_INTERVAL = 5.5 // seconds between companion births
+// Wave MUTATION: a 25% chance a fresh (new-territory, non-boss) wave turns into a
+// mutation wave, where ~66% of its spawns are enlarged (×1.5) and buffed by a
+// random +30…50% of their base stats — a spike of non-linear challenge.
+const MUTATION_CHANCE = 0.25
+const MUTATION_ENEMY_FRACTION = 0.45
+const MUTATION_BUFF_MIN = 0.3
+const MUTATION_BUFF_MAX = 0.5
+const MUTATION_SCALE = 1.5
+const MUTATION_MIN_WAVE = 3 // keep the FTUE (waves 1–2) clean
+// Unlockable spells (Heal, Revive Guard). Both charge a flat 1% per monster
+// killed (so ~100 kills per cast — deliberately slow, high-impact) and cost
+// coins to unlock before they charge at all.
+const SPELL_MAX = 100
+const SPELL_PER_KILL = 1
+const HEAL_UNLOCK_COST = 200_000
+const REVIVE_UNLOCK_COST = 200_000
+const DEFENDER_UNLOCK_COST = 150_000
+const HEAL_FRACTION = 0.25    // Heal restores 25% of each unit's max HP.
+const REVIVE_GUARD_SECS = 30  // Revive Guard window length.
+const DEFENDER_SECS = 120     // Defender tank duration (2 minutes).
+const TANK_DR = 0.2           // The tank takes only 20% of incoming damage.
+const TANK_HP_MULT = 2        // …and has double its normal max HP.
+const MELEE_RANGE_MAX = 14    // range > 14 ⇒ ranged (see FighterDef).
 const COUNTDOWN_SECS = 3.5
 const OVERRUN_SECS = 2.5
 /** Extended overrun pause while the RALLY! rewarded offer is on screen. */
@@ -120,6 +152,14 @@ export interface Fighter {
   /** Enemy this fighter is currently locked onto (transient; 0 = none).
    *  Sticky so the 1v1 assignment doesn't flip-flop between equal picks. */
   targetId: number
+  /** Revive Guard: true while this unit carries a pending revive (shows wings).
+   *  Consumed on death — the unit resurrects at full HP and the flag clears. */
+  revivePending: boolean
+  /** Defender: true while this unit is the promoted tank (shield crest, 2× HP,
+   *  takes 20% damage). Reverts when `tankUntil` lapses. */
+  isTank: boolean
+  /** Engine-time the tank buff expires at (0 ⇒ not a tank). */
+  tankUntil: number
 }
 
 export interface Enemy {
@@ -152,6 +192,16 @@ export interface Enemy {
   elite: boolean
   enraged: boolean
   striking: boolean
+  /** Mutation-wave spawn: enlarged (×1.5) + stat-buffed, so it reads as mutated. */
+  mutated: boolean
+  /** Slime-tower companion spawned FROM the boss (birth animation, then fights). */
+  companion: boolean
+  /** False while a companion is mid-birth (emerging + hopping down): the engine
+   *  holds its movement/attack and the view plays the spawn animation until it
+   *  flips true at `bornAt`. Always true for normal (portal) spawns. */
+  born: boolean
+  /** Engine-time the birth animation ends (0 ⇒ born on spawn). */
+  bornAt: number
 }
 
 export interface Projectile {
@@ -184,12 +234,17 @@ export type BattleEvent =
   | { type: 'nova'; x: number; y: number }
   | { type: 'death'; x: number; y: number; kind: EnemyKind; bounty: number; boss: boolean; id: number }
   | { type: 'fighterDeath'; x: number; y: number; tier: number; id: number }
+  | { type: 'heal'; x: number; y: number; id: number }
+  | { type: 'revive'; x: number; y: number; id: number }
+  | { type: 'reviveGuard' }
+  | { type: 'defender'; x: number; y: number; id: number }
+  | { type: 'slimeBirth'; x: number; y: number }
   | { type: 'deploy'; x: number; y: number; tier: number }
   | { type: 'fieldMerge'; x: number; y: number; tier: number }
   | { type: 'gateHit'; amount: number }
   | { type: 'overrun' }
   | { type: 'setback'; wave: number }
-  | { type: 'waveStart'; wave: number; boss: boolean; mutator: WaveMutator | null }
+  | { type: 'waveStart'; wave: number; boss: boolean; mutator: WaveMutator | null; mutated: boolean }
   | { type: 'waveCleared'; wave: number; bonus: number }
   | { type: 'milestone'; wave: number; gold: number }
   | { type: 'bossKill'; x: number; y: number; bounty: number; first: boolean }
@@ -290,6 +345,12 @@ const hpMult = (): number => 1 + battleUpgrades.value.vitality * 0.07
 const bountyMult = (): number => 1 + battleUpgrades.value.bounty * 0.08
 /** Base tier the Spawn button produces (1 + Recruits upgrade level). */
 export const recruitTier = computed(() => 1 + battleUpgrades.value.recruit)
+/** Tier of the Flying Chest's unit reward — scales with the Recruits upgrade so
+ *  the chest stays relevant late-game: recruitTier + recruit level (= 1 + 2·lvl),
+ *  reaching T11 at maxed Recruits (lvl 5). Caller floors it with the field's
+ *  second-best so it's never a downgrade. */
+export const chestUnitTier = computed(() =>
+  Math.min(MAX_INGREDIENT_TIER, recruitTier.value + battleUpgrades.value.recruit))
 /** Imp cadence in ms for `usePrismGame`'s automation loop (0 ⇒ disabled). */
 export const impCadenceMs = computed(() => {
   const lvl = battleUpgrades.value.automation
@@ -379,10 +440,34 @@ export const combo = ref(0)
 export const feverActive = ref(false)
 export const ultCharge = ref(Math.max(0, Math.min(ULT_MAX, Number(getState(BATTLE_ULT_KEY, 0)) || 0)))
 export const ultMax = ULT_MAX
+
+// ─── Unlockable spells (Heal, Revive Guard) ──────────────────────────────────
+const clampCharge = (v: unknown): number => Math.max(0, Math.min(SPELL_MAX, Number(v) || 0))
+export const spellMax = SPELL_MAX
+export const healUnlockCost = HEAL_UNLOCK_COST
+export const reviveUnlockCost = REVIVE_UNLOCK_COST
+export const defenderUnlockCost = DEFENDER_UNLOCK_COST
+export const healUnlocked = ref(getState<boolean>(BATTLE_HEAL_UNLOCKED_KEY, false) === true)
+export const reviveUnlocked = ref(getState<boolean>(BATTLE_REVIVE_UNLOCKED_KEY, false) === true)
+export const defenderUnlocked = ref(getState<boolean>(BATTLE_DEFENDER_UNLOCKED_KEY, false) === true)
+export const healCharge = ref(clampCharge(getState(BATTLE_HEAL_CHARGE_KEY, 0)))
+export const reviveCharge = ref(clampCharge(getState(BATTLE_REVIVE_CHARGE_KEY, 0)))
+export const defenderCharge = ref(clampCharge(getState(BATTLE_DEFENDER_CHARGE_KEY, 0)))
+/** True while the 30s Revive Guard window is live (units carry wings). */
+export const reviveGuardActive = ref(false)
+/** Remaining Revive Guard time in ms, for the button's countdown. */
+export const reviveGuardRemainingMs = ref(0)
+let reviveGuardUntil = 0
+
 export const boss = ref<{ nameKey: string; cycle: number; hp: number; maxHp: number; enraged: boolean } | null>(null)
 export const timescale = ref(1)
 /** Active wave mutator (retention-roadmap #13); null on plain/boss waves. */
 export const mutator = ref<WaveMutator | null>(null)
+/** True while the current wave is a MUTATION wave (enlarged, buffed spawns). */
+export const waveMutated = ref(false)
+/** Highest wave that has already resolved its mutation roll (persisted) — keeps a
+ *  wave from re-mutating on a rubber-band re-climb until the player pushes past it. */
+let mutationCeiling = Math.max(0, Math.floor(getState(BATTLE_MUTATION_CEILING_KEY, 0)))
 /** RALLY! rewarded revive offer is on screen (retention-roadmap #8). */
 export const rallyOffer = ref(false)
 
@@ -412,6 +497,9 @@ const persistBattle = (): void => {
   setState(BATTLE_WAVE_KEY, wave.value)
   setState(BATTLE_BEST_WAVE_KEY, bestWave.value)
   setState(BATTLE_ULT_KEY, Math.round(ultCharge.value))
+  setState(BATTLE_HEAL_CHARGE_KEY, Math.round(healCharge.value))
+  setState(BATTLE_REVIVE_CHARGE_KEY, Math.round(reviveCharge.value))
+  setState(BATTLE_DEFENDER_CHARGE_KEY, Math.round(defenderCharge.value))
 }
 const persistArmy = (): void => setState(BATTLE_ARMY_KEY, fighters.value.map((f) => f.tier))
 
@@ -425,7 +513,10 @@ const makeFighter = (tier: number, x: number, y: number): Fighter => {
     id: ++idSeq, tier,
     x: Math.max(4, Math.min(60, x)), y: Math.max(8, Math.min(92, y)),
     hp: maxHp, maxHp, cooldown: Math.random() * 0.4, abilityCd: 3, striking: false,
-    targetId: 0
+    targetId: 0,
+    // A unit that joins while Revive Guard is live is covered by it too.
+    revivePending: reviveGuardActive.value,
+    isTank: false, tankUntil: 0
   }
 }
 
@@ -533,14 +624,73 @@ const spawnEnemy = (kind: EnemyKind, elite = false, portal = 1): void => {
     slowUntil: 0, stunUntil: 0,
     burnDps: 0, burnUntil: 0, poisonStacks: 0, poisonUntil: 0,
     knockStacks: 0, knockUntil: 0,
-    boss: kind === 'boss', elite, enraged: false, striking: false
+    boss: kind === 'boss', elite, enraged: false, striking: false,
+    mutated: false, companion: false, born: true, bornAt: 0
+  }
+  // Mutation wave: ~66% of non-boss spawns mutate — 50% bigger + a random
+  // +30…50% to their core stats (HP/ATK), paying out extra bounty to match.
+  if (waveMutated.value && !e.boss && Math.random() < MUTATION_ENEMY_FRACTION) {
+    const buff = 1 + MUTATION_BUFF_MIN + Math.random() * (MUTATION_BUFF_MAX - MUTATION_BUFF_MIN)
+    e.mutated = true
+    e.scale *= MUTATION_SCALE
+    e.maxHp = Math.round(e.maxHp * buff)
+    e.hp = e.maxHp
+    e.atk = Math.round(e.atk * buff)
+    e.bounty = Math.round(e.bounty * buff)
   }
   enemies.value = [...enemies.value, e]
   triggerRef(enemies)
   if (e.boss) {
     const bn = bossName(w)
     boss.value = { nameKey: bn.key, cycle: bn.cycle, hp: e.hp, maxHp: e.maxHp, enraged: false }
+    // Slime-tower boss: arm the companion trickle a beat after it lands.
+    if (bossArtKey(w) === 'boss-slime-tower') nextCompanionAt = engineNow + 2
   }
+}
+
+let nextCompanionAt = 0
+
+/** Birth one companion slime out of the slime-tower boss: it lands on the ground
+ *  band just in front of the boss and plays its emerge-and-hop birth animation. */
+const spawnCompanionSlime = (bossE: Enemy): void => {
+  if (enemies.value.length >= ENEMY_CAP) return
+  const w = wave.value
+  const def = ENEMY_DEFS.slime
+  const c = challengeMult.value
+  const rb = rubberBandMult()
+  const e: Enemy = {
+    id: ++idSeq, kind: 'slime',
+    x: Math.max(8, Math.min(96, bossE.x - 3 - Math.random() * 9)),
+    y: Math.max(12, Math.min(90, bossE.y + 6 + (Math.random() - 0.5) * 22)),
+    hp: 0, maxHp: 1,
+    atk: Math.round(waveAtk(w) * def.atkMult * (1 + (c - 1) * 0.6) * rb),
+    speed: def.speed * (1 + Math.min(0.5, w / 60)),
+    range: def.range, attackInterval: def.attackInterval,
+    bounty: Math.round(waveBounty(w) * def.bountyMult * (1 + (c - 1) * 0.5)),
+    scale: def.scale,
+    cooldown: 0, abilityCd: 3,
+    slowUntil: 0, stunUntil: 0,
+    burnDps: 0, burnUntil: 0, poisonStacks: 0, poisonUntil: 0,
+    knockStacks: 0, knockUntil: 0,
+    boss: false, elite: false, enraged: false, striking: false,
+    mutated: false, companion: true, born: false, bornAt: engineNow + BIRTH_SECS
+  }
+  // A touch softer than a full wave slime — they're an accent, not the threat.
+  e.maxHp = Math.round(waveHp(w) * def.hpMult * c * rb * 0.6)
+  e.hp = e.maxHp
+  enemies.value = [...enemies.value, e]
+  triggerRef(enemies)
+  emit({ type: 'slimeBirth', x: bossE.x, y: bossE.y }) // burst at the boss body
+}
+
+/** Trickle up to COMPANION_MAX companion slimes out of a live slime-tower boss. */
+const tickCompanions = (): void => {
+  if (bossArtKey(wave.value) !== 'boss-slime-tower') return
+  const bossE = enemies.value.find((e) => e.boss && e.hp > 0)
+  if (!bossE || engineNow < nextCompanionAt) return
+  if (enemies.value.filter((e) => e.companion && e.hp > 0).length >= COMPANION_MAX) return
+  spawnCompanionSlime(bossE)
+  nextCompanionAt = engineNow + COMPANION_INTERVAL
 }
 
 // ─── Combat helpers ──────────────────────────────────────────────────────────
@@ -593,6 +743,10 @@ const registerKill = (e: Enemy): void => {
   const before = ultCharge.value
   ultCharge.value = Math.min(ULT_MAX, ultCharge.value + (e.boss ? ULT_PER_BOSS : ULT_PER_KILL))
   if (before < ULT_MAX && ultCharge.value >= ULT_MAX) emit({ type: 'ultReady' })
+  // Unlockable spells charge a flat 1% per kill (only once purchased).
+  if (healUnlocked.value) healCharge.value = Math.min(SPELL_MAX, healCharge.value + SPELL_PER_KILL)
+  if (reviveUnlocked.value) reviveCharge.value = Math.min(SPELL_MAX, reviveCharge.value + SPELL_PER_KILL)
+  if (defenderUnlocked.value) defenderCharge.value = Math.min(SPELL_MAX, defenderCharge.value + SPELL_PER_KILL)
   bumpStat('kills')
   emit({ type: 'death', x: e.x, y: e.y, kind: e.kind, bounty: payout, boss: e.boss, id: e.id })
   emit({ type: 'number', x: e.x, y: e.y - 6, amount: payout, variant: 'gold' })
@@ -830,6 +984,12 @@ const tickChallenge = (dt: number): void => {
 // ─── Ultimate ────────────────────────────────────────────────────────────────
 export const ultReady = computed(() => ultCharge.value >= ULT_MAX)
 
+/** True while a wipe would still RETREAT the player (they sit above the best-wave
+ *  floor), so the overrun screen can suggest rebuilding on easier waves. Once at
+ *  the floor / wave 1 there's nothing left to lose, so the hint hides. */
+export const canSetback = computed(() =>
+  wave.value > Math.max(1, bestWave.value - MAX_FALL_FROM_BEST))
+
 export const fireUltimate = (): boolean => {
   if (ultCharge.value < ULT_MAX || wavePhase.value === 'overrun') return false
   ultCharge.value = 0
@@ -838,6 +998,113 @@ export const fireUltimate = (): boolean => {
   for (let i = 0; i < METEOR_COUNT; i++) {
     pendingMeteors.push({ at: engineNow + 0.15 + i * 0.18 })
   }
+  return true
+}
+
+// ─── Unlockable spells ───────────────────────────────────────────────────────
+export const healReady = computed(() => healUnlocked.value && healCharge.value >= SPELL_MAX)
+export const reviveReady = computed(() => reviveUnlocked.value && reviveCharge.value >= SPELL_MAX)
+
+/** Buy the Heal spell for coins (idempotent — no double charge). */
+export const unlockHeal = (): boolean => {
+  if (healUnlocked.value || !spendCoins(HEAL_UNLOCK_COST)) return false
+  healUnlocked.value = true
+  setState(BATTLE_HEAL_UNLOCKED_KEY, true)
+  return true
+}
+export const unlockReviveGuard = (): boolean => {
+  if (reviveUnlocked.value || !spendCoins(REVIVE_UNLOCK_COST)) return false
+  reviveUnlocked.value = true
+  setState(BATTLE_REVIVE_UNLOCKED_KEY, true)
+  return true
+}
+
+/** Heal every fielded unit for HEAL_FRACTION of its max HP; one heal VFX/unit. */
+export const fireHeal = (): boolean => {
+  if (!healReady.value || wavePhase.value === 'overrun') return false
+  healCharge.value = 0
+  persistBattle()
+  for (const f of fighters.value) {
+    if (f.hp <= 0) continue
+    f.hp = Math.min(f.maxHp, f.hp + f.maxHp * HEAL_FRACTION)
+    emit({ type: 'heal', x: f.x, y: f.y, id: f.id })
+  }
+  triggerRef(fighters)
+  return true
+}
+
+/** Arm Revive Guard: for REVIVE_GUARD_SECS, every fielded unit gets one
+ *  auto-revive (wings). Consumed on death → resurrect at full HP, wings gone. */
+export const fireReviveGuard = (): boolean => {
+  if (!reviveReady.value || wavePhase.value === 'overrun') return false
+  reviveCharge.value = 0
+  persistBattle()
+  reviveGuardUntil = engineNow + REVIVE_GUARD_SECS
+  reviveGuardActive.value = true
+  reviveGuardRemainingMs.value = REVIVE_GUARD_SECS * 1000
+  for (const f of fighters.value) f.revivePending = true
+  triggerRef(fighters)
+  emit({ type: 'reviveGuard' })
+  return true
+}
+
+/** End the Revive Guard window: unused wings vanish. */
+const endReviveGuard = (): void => {
+  reviveGuardActive.value = false
+  reviveGuardRemainingMs.value = 0
+  let changed = false
+  for (const f of fighters.value) if (f.revivePending) { f.revivePending = false; changed = true }
+  if (changed) triggerRef(fighters)
+}
+
+// ─── Defender (tank) ─────────────────────────────────────────────────────────
+export const defenderReady = computed(() => defenderUnlocked.value && defenderCharge.value >= SPELL_MAX)
+
+/** Damage a fighter actually takes — the tank absorbs 80% of it. */
+const fighterDamage = (f: Fighter, raw: number): number => (f.isTank ? raw * TANK_DR : raw)
+
+/** Drop a unit's tank buff: max HP back to normal, HP clamped, crest gone. */
+const revertTank = (f: Fighter): void => {
+  f.isTank = false
+  f.tankUntil = 0
+  const normalMax = Math.round(getFighterDef(f.tier).hp * hpMult())
+  f.maxHp = normalMax
+  f.hp = Math.min(f.hp, normalMax)
+}
+
+export const unlockDefender = (): boolean => {
+  if (defenderUnlocked.value || !spendCoins(DEFENDER_UNLOCK_COST)) return false
+  defenderUnlocked.value = true
+  setState(BATTLE_DEFENDER_UNLOCKED_KEY, true)
+  return true
+}
+
+/** True while there's a valid tank target: at least one MELEE unit deployed. */
+const meleeFielded = (f: Fighter): boolean => getFighterDef(f.tier).range <= MELEE_RANGE_MAX
+export const hasTankTarget = computed(() => fighters.value.some(meleeFielded))
+
+/** Promote the highest-tier MELEE unit currently deployed on the battlefield into
+ *  a tank for 2 minutes (double max HP, takes 20% damage). STRICTLY melee — a
+ *  ranged unit is never chosen; if no melee unit is fielded the cast is a no-op
+ *  and the charge is kept. Only one tank exists at a time. */
+export const fireDefender = (): boolean => {
+  if (!defenderReady.value || wavePhase.value === 'overrun') return false
+  // Scan the LIVE field for the highest-tier melee (range ≤ 14) fighter.
+  let cand: Fighter | null = null
+  for (const f of fighters.value) {
+    if (!meleeFielded(f)) continue // ranged unit — never a tank
+    if (!cand || f.tier > cand.tier) cand = f
+  }
+  if (!cand) return false // no melee unit on the field → nothing to promote
+  defenderCharge.value = 0
+  persistBattle()
+  for (const f of fighters.value) if (f.isTank && f !== cand) revertTank(f) // one tank max
+  cand.isTank = true
+  cand.tankUntil = engineNow + DEFENDER_SECS
+  cand.maxHp = Math.round(getFighterDef(cand.tier).hp * hpMult() * TANK_HP_MULT)
+  cand.hp = cand.maxHp
+  triggerRef(fighters)
+  emit({ type: 'defender', x: cand.x, y: cand.y, id: cand.id })
   return true
 }
 
@@ -874,6 +1141,19 @@ const tickMeteors = (): void => {
   removeDeadEnemies()
 }
 
+/** DEV cheat: clear the field and jump straight into wave `n` (e.g. 5 = the
+ *  slime-tower boss, for testing its companion spawns). */
+export const cheatJumpToWave = (n: number): void => {
+  wave.value = Math.max(1, Math.floor(n))
+  enemies.value = []
+  projectiles.value = []
+  boss.value = null
+  triggerRef(enemies); triggerRef(projectiles)
+  deadThisWave = []
+  nextCompanionAt = 0
+  startCountdown(0.6)
+}
+
 // ─── Wave lifecycle ──────────────────────────────────────────────────────────
 const startCountdown = (secs = COUNTDOWN_SECS): void => {
   wavePhase.value = 'countdown'
@@ -889,8 +1169,18 @@ const beginWave = (): void => {
   deadThisWave = []
   rallyOffer.value = false
   mutator.value = rollMutator(wave.value)
+  // MUTATION roll — only on brand-new territory (above the ceiling) that isn't a
+  // boss wave. Advancing the ceiling for EVERY wave means a rubber-band re-climb
+  // never re-mutates an already-fought wave; only pushing past it rolls again.
+  const w = wave.value
+  const freshTerritory = w > mutationCeiling
+  if (w > mutationCeiling) {
+    mutationCeiling = w
+    setState(BATTLE_MUTATION_CEILING_KEY, mutationCeiling)
+  }
+  waveMutated.value = freshTerritory && !isBossWave(w) && w >= MUTATION_MIN_WAVE && Math.random() < MUTATION_CHANCE
   wavePhase.value = 'fighting'
-  emit({ type: 'waveStart', wave: wave.value, boss: isBossWave(wave.value), mutator: mutator.value })
+  emit({ type: 'waveStart', wave: w, boss: isBossWave(w), mutator: mutator.value, mutated: waveMutated.value })
 }
 
 const clearWave = (): void => {
@@ -1086,6 +1376,16 @@ const stepFighters = (dt: number): void => {
   // Bury the fallen (buffered per wave for the RALLY! revive offer).
   const alive = fighters.value.filter((f) => {
     if (f.hp > 0) return true
+    // Revive Guard: a pending revive resurrects the unit at full HP instead of
+    // removing it — the wings are consumed (flag cleared), and it stays fielded.
+    if (f.revivePending) {
+      f.revivePending = false
+      f.hp = f.maxHp
+      f.cooldown = Math.max(f.cooldown, 0.3)
+      emit({ type: 'revive', x: f.x, y: f.y, id: f.id })
+      removed = true // army composition changed → re-render + persist
+      return true
+    }
     emit({ type: 'fighterDeath', x: f.x, y: f.y, tier: f.tier, id: f.id })
     deadThisWave.push(f.tier)
     removed = true
@@ -1102,6 +1402,12 @@ const stepEnemies = (dt: number): void => {
   for (const e of enemies.value) {
     e.striking = false
     if (e.hp <= 0) continue
+    // A companion mid-birth just plays its emerge/hop animation — no moving,
+    // no attacking — until it lands (bornAt).
+    if (!e.born) {
+      if (engineNow >= e.bornAt) { e.born = true; triggerRef(enemies) }
+      else continue
+    }
     e.cooldown -= dt
     e.abilityCd -= dt
 
@@ -1154,8 +1460,9 @@ const stepEnemies = (dt: number): void => {
             element: 'stone'
           })
         } else {
-          target.hp -= e.atk
-          emit({ type: 'number', x: target.x, y: target.y - 5, amount: e.atk, variant: 'dmg' })
+          const dmg = fighterDamage(target, e.atk)
+          target.hp -= dmg
+          emit({ type: 'number', x: target.x, y: target.y - 5, amount: Math.round(dmg), variant: 'dmg' })
           // Frost March mutator: every landed hit chills the fighter's attack.
           if (mutator.value === 'frostMarch') target.cooldown = Math.min(3, Math.max(target.cooldown, 0) + 0.5)
         }
@@ -1178,11 +1485,14 @@ const stepEnemies = (dt: number): void => {
       }
       e.y += Math.sin(engineNow * 2 + e.id) * 1.2 * dt // lively wiggle
     } else if (e.cooldown <= 0) {
-      // Bash the gate.
+      // Bash the gate. Damage is a FIXED fraction of the gate's max (not the
+      // enemy's wave-scaled atk), so the gate always survives exactly 25 normal
+      // hits / 5 boss hits — late-game enemies can never one-shot it.
       e.cooldown = e.attackInterval
       e.striking = true
-      gateHp.value = Math.max(0, gateHp.value - e.atk)
-      emit({ type: 'gateHit', amount: e.atk })
+      const gateDmg = e.boss ? GATE_MAX / 5 : GATE_MAX / 25
+      gateHp.value = Math.max(0, gateHp.value - gateDmg)
+      emit({ type: 'gateHit', amount: gateDmg })
       if (gateHp.value <= 0) { triggerOverrun(); return }
     }
   }
@@ -1210,9 +1520,10 @@ const stepProjectiles = (dt: number): void => {
         landFighterHit({ tier: p.sourceTier, x: p.x, y: p.y }, target as Enemy, p.dmg, p.element, p.x, p.y)
       } else {
         const f = target as Fighter
-        f.hp -= p.dmg
+        const dmg = fighterDamage(f, p.dmg)
+        f.hp -= dmg
         emit({ type: 'impact', x: f.x, y: bodyY(f.y, getFighterDef(f.tier).scale), color: p.color, element: p.element, target: 'fighter' })
-        emit({ type: 'number', x: f.x, y: f.y - 5, amount: p.dmg, variant: 'dmg' })
+        emit({ type: 'number', x: f.x, y: f.y - 5, amount: Math.round(dmg), variant: 'dmg' })
         if (mutator.value === 'frostMarch') f.cooldown = Math.min(3, Math.max(f.cooldown, 0) + 0.5)
       }
       continue
@@ -1229,6 +1540,20 @@ const stepProjectiles = (dt: number): void => {
 
 const step = (dt: number): void => {
   engineNow += dt
+
+  // Revive Guard window countdown → wings vanish when it lapses.
+  if (reviveGuardActive.value) {
+    reviveGuardRemainingMs.value = Math.max(0, Math.round((reviveGuardUntil - engineNow) * 1000))
+    if (engineNow >= reviveGuardUntil) endReviveGuard()
+  }
+  // Defender tank expiry → revert stats + shed the crest.
+  let tankChanged = false
+  for (const f of fighters.value) {
+    if (f.tankUntil > 0 && engineNow >= f.tankUntil) { revertTank(f); tankChanged = true }
+  }
+  if (tankChanged) triggerRef(fighters)
+
+  tickCompanions()
 
   tickChallenge(dt)
 
@@ -1394,6 +1719,13 @@ const refreshFromBlob = (): void => {
 
   const savedUlt = Math.max(0, Math.min(ULT_MAX, Number(getState(BATTLE_ULT_KEY, 0)) || 0))
   if (savedUlt > ultCharge.value) ultCharge.value = savedUlt
+  // Spell unlocks are sticky (never un-buy); charges take the higher value.
+  if (getState<boolean>(BATTLE_HEAL_UNLOCKED_KEY, false) === true) healUnlocked.value = true
+  if (getState<boolean>(BATTLE_REVIVE_UNLOCKED_KEY, false) === true) reviveUnlocked.value = true
+  if (getState<boolean>(BATTLE_DEFENDER_UNLOCKED_KEY, false) === true) defenderUnlocked.value = true
+  healCharge.value = Math.max(healCharge.value, clampCharge(getState(BATTLE_HEAL_CHARGE_KEY, 0)))
+  reviveCharge.value = Math.max(reviveCharge.value, clampCharge(getState(BATTLE_REVIVE_CHARGE_KEY, 0)))
+  defenderCharge.value = Math.max(defenderCharge.value, clampCharge(getState(BATTLE_DEFENDER_CHARGE_KEY, 0)))
   const savedDmgBuff = Number(getState(BATTLE_DMG_BUFF_KEY, 0)) || 0
   if (savedDmgBuff > dmgBuffUntil.value) dmgBuffUntil.value = savedDmgBuff
   const savedRubberBand = Number(getState(BATTLE_RUBBER_BAND_KEY, 0)) || 0
@@ -1414,12 +1746,19 @@ const useBattle = () => ({
   // HUD state
   wave, bestWave, wavePhase, countdown, gateHp, gateMax, combo, feverActive,
   ultCharge, ultMax, ultReady, boss, timescale, armyCount, armyFull, stats,
-  mutator, rallyOffer, dmgBuffRemainingMs, challengeMult,
+  mutator, waveMutated, rallyOffer, dmgBuffRemainingMs, challengeMult, canSetback,
+  // unlockable spells
+  spellMax, healUnlocked, reviveUnlocked, defenderUnlocked,
+  healCharge, reviveCharge, defenderCharge,
+  healReady, reviveReady, defenderReady, hasTankTarget,
+  healUnlockCost, reviveUnlockCost, defenderUnlockCost,
+  reviveGuardActive, reviveGuardRemainingMs,
   // upgrades
   battleUpgrades, upgradeLevel, upgradeCost, canBuyUpgrade, buyUpgrade,
-  isUpgradeMaxed, impCadenceMs,
+  isUpgradeMaxed, impCadenceMs, recruitTier, chestUnitTier,
   // actions
   deployFighter, fieldMerge, fighterAt, fireUltimate, bumpStat,
+  fireHeal, fireReviveGuard, fireDefender, unlockHeal, unlockReviveGuard, unlockDefender,
   requestRallyHold, claimRally, declineRally, activateDamageBuff,
   // lifecycle
   startBattle, stopBattle, setEventSink, setRenderSink, setGateEdge

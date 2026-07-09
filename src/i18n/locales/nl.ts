@@ -132,6 +132,9 @@ export default {
     'body': 'Je leger vocht door terwijl je weg was:'
   },
   'battle': {
+    'mutationWave': "MUTATIE!",
+    'overrunSetbackHint': "Deze golven zijn te sterk — bouw je leger eerst op in makkelijkere golven.",
+    'spells': { 'heal': "Genezing", 'reviveGuard': "Herrijzingswacht", 'defender': "Verdediger" },
     'bossNames': { 'b0': "Glorp de Verslinder", 'b1': "Koning Slijkvuist", 'b2': "Mawzilla", 'b3': "De Poortvreter", 'b4': "Grumblor Prime" },
     'wave': 'Golf {n}',
     'best': 'Record {n}',

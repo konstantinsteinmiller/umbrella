@@ -132,6 +132,9 @@ export default {
     'body': '留守の間も軍団は戦い続けました:'
   },
   'battle': {
+    'mutationWave': "変異ウェーブ！",
+    'overrunSetbackHint': "この波は強すぎます。まずは簡単な波で軍を育てましょう。",
+    'spells': { 'heal': "回復", 'reviveGuard': "復活の守り", 'defender': "守護者" },
     'bossNames': { 'b0': "貪食のグロルプ", 'b1': "スラッジフィスト王", 'b2': "マウジラ", 'b3': "門を喰らう者", 'b4': "グラムブロア・プライム" },
     'wave': 'ウェーブ{n}',
     'best': '最高{n}',

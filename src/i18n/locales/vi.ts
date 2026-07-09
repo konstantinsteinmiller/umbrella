@@ -132,6 +132,9 @@ export default {
     'body': 'Đội quân của bạn vẫn chiến đấu khi bạn vắng mặt:'
   },
   'battle': {
+    'mutationWave': "ĐỘT BIẾN!",
+    'overrunSetbackHint': "Các đợt này quá mạnh — hãy xây dựng đội quân ở các đợt dễ hơn trước.",
+    'spells': { 'heal': "Hồi Máu", 'reviveGuard': "Hộ Vệ Hồi Sinh", 'defender': "Vệ Binh" },
     'bossNames': { 'b0': "Glorp Kẻ Nuốt Chửng", 'b1': "Vua Nắm Đấm Bùn", 'b2': "Mawzilla", 'b3': "Kẻ Ăn Cổng", 'b4': "Grumblor Nguyên Thủy" },
     'wave': 'Đợt {n}',
     'best': 'Kỷ lục {n}',

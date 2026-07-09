@@ -4,6 +4,7 @@ import { getAudioContext, loadAudioBuffer, resourceCache, registerHtmlAudio, unr
 import { isGamePaused } from '@/use/useGamePause'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
 import { tutorialActive } from '@/use/useTutorial'
+import { publicAssetExists } from '@/use/usePublicManifest'
 
 import { ref, onMounted, watch, onUnmounted } from 'vue'
 
@@ -59,13 +60,15 @@ export const SFX_FALLBACKS: Record<string, string> = {
 
 const availableSfxOverrides = new Set<string>()
 let sfxProbeStarted = false
-/** Probe every override slot by decoding it — a real .ogg lands in the buffer
- *  cache (so it's warm) and unlocks the final name; a 404 / bad file keeps the
- *  placeholder. Idempotent; called from the background sound preload. */
+/** Probe each override slot whose real `.ogg` ACTUALLY shipped (per the
+ *  build-time manifest) by decoding it — the buffer lands warm and unlocks the
+ *  final name over its placeholder. Unfilled slots are never requested, so no
+ *  404 (which CrazyGames' resource audit flags). Idempotent. */
 export const probeSfxOverrides = (): void => {
   if (sfxProbeStarted) return
   sfxProbeStarted = true
   for (const name of Object.keys(SFX_FALLBACKS)) {
+    if (!publicAssetExists(`audio/sfx/${name}.ogg`)) continue // slot unfilled → keep placeholder
     void loadAudioBuffer(prependBaseUrl(`audio/sfx/${name}.ogg`)).then((b) => {
       if (b) availableSfxOverrides.add(name)
     })

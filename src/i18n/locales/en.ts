@@ -21,6 +21,9 @@ export default {
     'body': 'Your army kept fighting while you were away:'
   },
   'battle': {
+    'mutationWave': "MUTATION!",
+    'overrunSetbackHint': "These waves are too strong for you — build up your army on easier waves first.",
+    'spells': { 'heal': "Heal", 'reviveGuard': "Revive Guard", 'defender': "Defender" },
     'bossNames': { 'b0': "Glorp the Devourer", 'b1': "King Sludgefist", 'b2': "Mawzilla", 'b3': "The Gate-Eater", 'b4': "Grumblor Prime" },
     'wave': 'Wave {n}',
     'best': 'Best {n}',

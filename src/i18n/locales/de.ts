@@ -132,6 +132,9 @@ export default {
     'body': 'Deine Armee hat in deiner Abwesenheit weitergekämpft:'
   },
   'battle': {
+    'mutationWave': "MUTATION!",
+    'overrunSetbackHint': "Diese Wellen sind zu stark für dich — baue deine Armee erst auf leichteren Wellen auf.",
+    'spells': { 'heal': "Heilung", 'reviveGuard': "Wiederbelebungswacht", 'defender': "Verteidiger" },
     'bossNames': { 'b0': "Glorp der Verschlinger", 'b1': "König Schlammfaust", 'b2': "Mawzilla", 'b3': "Der Tor-Fresser", 'b4': "Grumblor Prime" },
     'wave': 'Welle {n}',
     'best': 'Rekord {n}',

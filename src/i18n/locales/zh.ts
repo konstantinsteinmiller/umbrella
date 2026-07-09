@@ -132,6 +132,9 @@ export default {
     'body': '你不在时，军队仍在奋战：'
   },
   'battle': {
+    'mutationWave': "变异来袭！",
+    'overrunSetbackHint': "这些波次对你来说太强了——先在更简单的波次中壮大你的军队吧。",
+    'spells': { 'heal': "治疗", 'reviveGuard': "复活守护", 'defender': "守护者" },
     'bossNames': { 'b0': "吞噬者格洛普", 'b1': "泥拳之王", 'b2': "血盆兽", 'b3': "噬门者", 'b4': "格朗布洛·至尊" },
     'wave': '第{n}波',
     'best': '最佳{n}',

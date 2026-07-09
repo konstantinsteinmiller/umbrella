@@ -132,6 +132,9 @@ export default {
     'body': 'Twoja armia walczyła dalej pod twoją nieobecność:'
   },
   'battle': {
+    'mutationWave': "MUTACJA!",
+    'overrunSetbackHint': "Te fale są dla ciebie za silne — najpierw rozbuduj armię na łatwiejszych falach.",
+    'spells': { 'heal': "Leczenie", 'reviveGuard': "Straż Wskrzeszenia", 'defender': "Obrońca" },
     'bossNames': { 'b0': "Glorp Pożeracz", 'b1': "Król Błotna Pięść", 'b2': "Mawzilla", 'b3': "Pożeracz Bram", 'b4': "Grumblor Prime" },
     'wave': 'Fala {n}',
     'best': 'Rekord {n}',

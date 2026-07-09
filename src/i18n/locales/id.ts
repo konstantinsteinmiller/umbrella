@@ -86,6 +86,9 @@ export default {
     'body': 'Pasukanmu terus bertempur selagi kamu pergi:'
   },
   'battle': {
+    'mutationWave': "MUTASI!",
+    'overrunSetbackHint': "Gelombang ini terlalu kuat — bangun pasukanmu di gelombang yang lebih mudah dulu.",
+    'spells': { 'heal': "Penyembuhan", 'reviveGuard': "Penjaga Kebangkitan", 'defender': "Pembela" },
     'bossNames': { 'b0': "Glorp Sang Pelahap", 'b1': "Raja Tinju Lumpur", 'b2': "Mawzilla", 'b3': "Pemakan Gerbang", 'b4': "Grumblor Prime" },
     'wave': 'Gelombang {n}',
     'best': 'Terbaik {n}',

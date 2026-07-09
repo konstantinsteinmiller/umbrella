@@ -14,6 +14,7 @@
 import { reactive } from 'vue'
 import { prependBaseUrl } from '@/utils/function'
 import { resourceCache } from '@/use/useAssets'
+import { publicAssetExists } from '@/use/usePublicManifest'
 
 const ART_PATHS = {
   // The 11 merge-tier fighters (also shown on the grid + drag ghost).
@@ -59,18 +60,23 @@ const ART_PATHS = {
   // one fireball bitmap; the fall + impact is animated procedurally in CSS.
   'vfx-meteor': 'images/attacks/meteor_256x256',
   'meteor-button': 'images/attacks/meteor_256x256',
+  // Unlockable arena spells — button icons + the Revive Guard wings overlay.
+  'spell-heal': 'images/attacks/heal_128x128',
+  'spell-revive': 'images/attacks/revive_128x128',
+  'spell-defender': 'images/attacks/shield-crest_256x256',
+  'revive-wings': 'images/props/wings_260x108',
   // Ranged-attack projectiles, keyed by element (shared across tiers). A
   // ranged unit with no matching bitmap falls back to a glowing colour dot.
   'proj-fire': 'images/attacks/fire-projectile_128x128',
   'proj-ice': 'images/attacks/ice-projectile_128x128',
   // Optional ANIMATED in-flight projectiles (3×3 sprite sheet, looped). When
-  // present these win over the static `proj-*` image for that element.
+  // present these win over the static `proj-*` image for that element — so wind
+  // & cosmic ship ONLY the animated version (no static `proj-wind`/`proj-cosmic`
+  // slot, which would just be a redundant, never-rendered 404).
   'proj-anim-fire': 'images/attacks/animations/fire-projectile-vfx-9-frames_384x384',
   'proj-anim-wind': 'images/attacks/animations/wind-projectile-vfx-9-frames_384x384',
   'proj-anim-cosmic': 'images/attacks/animations/cosmic-projectile-vfx-9-frames_384x384',
-  'proj-wind': 'images/attacks/wind-projectile_128x128',
   'proj-stone': 'images/attacks/stone-projectile_128x128',
-  'proj-cosmic': 'images/attacks/cosmic-projectile_128x128',
   'proj-shadow': 'images/attacks/shadow-projectile_128x128',
   // Impact "splitter" bursts — a 3×3 sprite sheet (9 frames) played on land.
   // Absent → fall back to the coloured sparkle burst.
@@ -100,18 +106,23 @@ const probeOne = (key: ArtKey, ext: 'webp' | 'png'): void => {
     if (img.naturalWidth > 0) {
       resourceCache.images.set(src, img) // decoded — keep it warm
       resolved[key] = src
-    } else if (ext === 'webp') probeOne(key, 'png')
+    }
   }
-  img.onerror = () => { if (ext === 'webp') probeOne(key, 'png') }
   img.src = src
 }
 
 let probeStarted = false
-/** Fire-and-forget probe of every override slot. Idempotent; kicked off in
- *  parallel with the hot-path preload so present bitmaps are usually ready
- *  by the first gameplay frame. */
+/** Fire-and-forget probe of every override slot that ACTUALLY shipped (per the
+ *  build-time manifest — an unfilled slot is never requested, so no 404). Only
+ *  the format present is fetched; `.webp` wins when both exist. Idempotent;
+ *  kicked off in parallel with the hot-path preload. */
 export const probeArtOverrides = (): void => {
   if (probeStarted || typeof window === 'undefined') return
   probeStarted = true
-  for (const key of Object.keys(ART_PATHS) as ArtKey[]) probeOne(key, 'webp')
+  for (const key of Object.keys(ART_PATHS) as ArtKey[]) {
+    const base = ART_PATHS[key]
+    if (publicAssetExists(`${base}.webp`)) probeOne(key, 'webp')
+    else if (publicAssetExists(`${base}.png`)) probeOne(key, 'png')
+    // else: unfilled slot → component keeps its vector fallback, no request.
+  }
 }

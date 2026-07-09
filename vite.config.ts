@@ -1,6 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 import { resolve, dirname } from 'node:path'
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
 
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
@@ -115,6 +115,59 @@ const warmGameplayChunks = (): Plugin => {
   }
 }
 
+// ─── Drop-in override manifest ──────────────────────────────────────────────
+// The runtime drop-in probes (useArtOverrides / useSound) check every OPTIONAL
+// art + SFX slot for a real file so a dropped-in asset is picked up with no code
+// change. Slots that were never filled 404 — which CrazyGames' resource audit
+// flags as "missing resource". This virtual module ships the set of override
+// files that ACTUALLY EXIST under public/ at build time, so the probes only
+// request real files: present → used, absent → silent vector/placeholder
+// fallback with NO request. Adding an asset = drop the file + rebuild (dev
+// re-scans live via the watcher below, so drop-in-without-restart still works).
+const PUBLIC_MANIFEST_ID = 'virtual:public-override-manifest'
+const PUBLIC_MANIFEST_RESOLVED = '\0' + PUBLIC_MANIFEST_ID
+const PUBLIC_DIR = fileURLToPath(new URL('./public', import.meta.url))
+
+const scanPublicManifest = (): string[] => {
+  const out: string[] = []
+  const walk = (abs: string, rel: string): void => {
+    let entries
+    try { entries = readdirSync(abs, { withFileTypes: true }) } catch { return }
+    for (const e of entries) {
+      const name = String(e.name)
+      const childRel = rel ? `${rel}/${name}` : name
+      if (e.isDirectory()) walk(`${abs}/${name}`, childRel)
+      else out.push(childRel)
+    }
+  }
+  // Walk ALL of public/ — the override probes reference several trees
+  // (`images/`, `audio/`, AND `enemies/` for enemy/boss art), so scanning the
+  // whole root is the only way to avoid falsely marking a shipped asset absent.
+  walk(PUBLIC_DIR, '')
+  return out
+}
+
+const publicOverrideManifestPlugin = (): Plugin => ({
+  name: 'public-override-manifest',
+  resolveId(id) { return id === PUBLIC_MANIFEST_ID ? PUBLIC_MANIFEST_RESOLVED : null },
+  load(id) {
+    if (id !== PUBLIC_MANIFEST_RESOLVED) return null
+    return `export default ${JSON.stringify(scanPublicManifest())}`
+  },
+  configureServer(server) {
+    // Re-emit the manifest when a file is added/removed under public/ so a
+    // dropped-in asset is picked up live in dev without a manual restart.
+    const invalidate = (file: string): void => {
+      if (!resolve(file).startsWith(PUBLIC_DIR)) return
+      const mod = server.moduleGraph.getModuleById(PUBLIC_MANIFEST_RESOLVED)
+      if (mod) server.moduleGraph.invalidateModule(mod)
+      server.ws.send({ type: 'full-reload', path: '*' })
+    }
+    server.watcher.on('add', invalidate)
+    server.watcher.on('unlink', invalidate)
+  }
+})
+
 const mawCampaignOverridesPlugin = (): Plugin => ({
   name: 'maw-campaign-overrides',
   resolveId(id) {
@@ -210,6 +263,10 @@ export default defineConfig(({ mode, command }) => {
   // Campaign-overrides plugin — virtual module + dev write endpoints so
   // editor saves persist to `data/campaign-overrides.json` in the repo.
   plugins.push(mawCampaignOverridesPlugin())
+
+  // Drop-in override manifest — so the runtime probes only request art/SFX
+  // files that actually exist (no 404s for unfilled slots).
+  plugins.push(publicOverrideManifestPlugin())
 
   // Only push the obfuscator if both conditions are met
   if (isProduction && shouldObfuscate) {

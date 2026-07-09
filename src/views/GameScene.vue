@@ -279,17 +279,24 @@ onUnmounted(() => {
           paddingRight: 'calc(0.5rem + env(safe-area-inset-right, 0px))'\
         }"
       )
-        //- Wave badge (+ next-chest / new-enemy pips, roadmap #4)
+        //- Wave badge (+ next-chest / new-enemy pips, roadmap #4). On a MUTATION
+        //- wave it flips to a glowing purple + shows a MUTATION tag.
         div.flex.flex-col.items-start(class="gap-0.5")
           div.relative
-            div.absolute.inset-0.translate-y-1.rounded-xl(class="bg-[#7a1c1c]")
+            div.absolute.inset-0.translate-y-1.rounded-xl(:class="battle.waveMutated.value ? 'bg-[#3a1080]' : 'bg-[#7a1c1c]'")
             div.relative.flex.items-center.gap-2.rounded-xl.border-2.px-3(
-              class="py-1.5 bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]"
+              class="py-1.5"
+              :class="battle.waveMutated.value ? 'mutated-badge bg-gradient-to-b from-[#d24bff] to-[#7a1fd0] border-[#e9b6ff]' : 'bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]'"
             )
               svg(viewBox="0 0 24 24" class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round")
                 path(d="M5 21 L5 4 L13 4 L12 7 L19 7 L19 14 L11 14 L12 11 L5 11")
               span.text-white.font-black.game-text(class="text-xs sm:text-base") {{ t('battle.wave', { n: battle.wave.value }) }}
               span.text-yellow-200.font-black.game-text(class="text-[10px] sm:text-sm opacity-90") {{ t('battle.best', { n: battle.bestWave.value }) }}
+              //- Mutation marker — only on a mutated wave.
+              span.rounded.font-black.game-text.uppercase.leading-none.mutated-tag(
+                v-if="battle.waveMutated.value"
+                class="text-[8px] sm:text-[10px] px-1 py-0.5 bg-[#3a0d66] text-fuchsia-100 border border-fuchsia-300"
+              ) {{ t('battle.mutationWave') }}
           div.flex.gap-2.px-1
             span.game-text.font-black.text-yellow-200.drop-shadow(class="text-[9px] sm:text-[11px]") {{ t('battle.nextChest', { n: nextChestWave }) }}
             span.game-text.font-black.text-red-300.drop-shadow(v-if="nextEnemyWave" class="text-[9px] sm:text-[11px]") {{ t('battle.newEnemyAt', { n: nextEnemyWave }) }}
@@ -434,12 +441,17 @@ onUnmounted(() => {
         div.flex.items-center.gap-2.rounded-xl.border-2.px-3.py-2(
           class="bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30] shadow-2xl"
         )
-          svg(viewBox="0 0 24 24" class="w-5 h-5 shrink-0" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
-            path(d="M7 4 h10 v3 a5 5 0 0 1 -10 0 Z")
-            path(d="M7 5 H4 v1 a3 3 0 0 0 3 3")
-            path(d="M17 5 h3 v1 a3 3 0 0 1 -3 3")
-            path(d="M12 12 v4")
-            path(d="M9 20 h6 l-1 -4 h-4 Z")
+          //- Trophy medal — a dark badge so the gold trophy reads clearly on the
+          //- gold toast (a bare white trophy washed out into the background). The
+          //- glyph matches the HUD achievements button, signalling at a glance
+          //- that the yellow banner is an achievement unlock.
+          div.shrink-0.rounded-full.border-2.flex.items-center.justify-center(class="w-7 h-7 sm:w-8 sm:h-8 bg-[#0f1a30] border-white/60")
+            svg(viewBox="0 0 24 24" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="#ffd23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+              path(d="M7 4 h10 v3 a5 5 0 0 1 -10 0 Z")
+              path(d="M7 5 H4 v1 a3 3 0 0 0 3 3")
+              path(d="M17 5 h3 v1 a3 3 0 0 1 -3 3")
+              path(d="M12 12 v4")
+              path(d="M9 20 h6 l-1 -4 h-4 Z")
           div.flex.flex-col.items-start
             span.text-white.font-black.uppercase.game-text(class="text-[9px] sm:text-[10px] leading-none opacity-90") {{ t('achievements.unlocked') }}
             span.text-white.font-black.game-text(class="text-xs sm:text-sm") {{ t('achievements.items.' + achToast + '.name') }}
@@ -457,6 +469,22 @@ onUnmounted(() => {
 .prism-scene
   background: radial-gradient(ellipse at 50% 38%, #1c2742 0%, #0c1120 55%, #070a14 100%)
   background-color: #070a14
+
+// Mutation-wave marker on the wave badge: a pulsing purple glow + a throbbing tag.
+.mutated-badge
+  animation: mutated-badge-throb 0.9s ease-in-out infinite alternate
+@keyframes mutated-badge-throb
+  from
+    box-shadow: 0 0 7px rgba(190, 90, 255, 0.5)
+  to
+    box-shadow: 0 0 18px rgba(210, 120, 255, 0.95)
+.mutated-tag
+  animation: mutated-tag-throb 0.9s ease-in-out infinite alternate
+@keyframes mutated-tag-throb
+  from
+    filter: brightness(1)
+  to
+    filter: brightness(1.35)
 
 // Largest square that fits the available box, in BOTH orientations — uses
 // container-query units so the grid never overflows under the Spawn button on

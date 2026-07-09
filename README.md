@@ -11,3 +11,15 @@ WIP: [playable demo](https://konstantinsteinmiller.github.io/merge-idle-war/)
 
 
 - [ ] Leaderboard
+- [ ] Complex bosses
+  - [ ] Slime boss spawns additional slimes, up to 5 companion slimes
+  - [ ] Orc boss does aoe damage (circular stone slam (vfx needed) every 5s and a 1s charge up)
+  - [ ] Fire dragon boss does damage over time and has a (every 20s) cone fire breath attack
+  - [ ] 
+- [ ] Full skill system
+  - [ ] Unlock Skills with coins
+    - [x] Heal 25% of all units on the battlefield, 1% charge per killed monster (200k coins)
+    - [ ] 20 bounces chain lightning on enemy units on the battlefield (200k coins)
+    - [x] Create Tank unit(highest tier melee unit) on the battlefield, 1% charge per killed monster (150k coins)
+    - [x] revive all units on the battlefield automatically for 30 seconds, 1% charge per killed monster (200k coins)
+    - [ ] 2x def buff for 2 minutes for all units on the battlefield (500k coins)

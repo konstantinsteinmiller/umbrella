@@ -132,6 +132,9 @@ export default {
     'body': 'Votre armée a continué le combat pendant votre absence :'
   },
   'battle': {
+    'mutationWave': "MUTATION !",
+    'overrunSetbackHint': "Ces vagues sont trop fortes — renforce d'abord ton armée sur des vagues plus faciles.",
+    'spells': { 'heal': "Soin", 'reviveGuard': "Garde de Résurrection", 'defender': "Défenseur" },
     'bossNames': { 'b0': "Glorp le Dévoreur", 'b1': "Roi Poing-de-Boue", 'b2': "Mawzilla", 'b3': "Le Mange-Portail", 'b4': "Grumblor Prime" },
     'wave': 'Vague {n}',
     'best': 'Record {n}',

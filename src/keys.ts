@@ -36,6 +36,19 @@ export const BATTLE_DMG_BUFF_KEY = 'battle_dmg_buff_until'
 // Rubber-band catch-up: epoch-ms timestamp the "-25% enemy stats" window
 // (granted when a wipe drops the player to their best-wave floor) expires at.
 export const BATTLE_RUBBER_BAND_KEY = 'battle_rubberband_until'
+// Unlockable arena spells (coin sinks). Sticky "purchased" flags + their 0..100
+// charge (1% per kill once unlocked). Meteor is free/always-on; these two are
+// bought for coins before they can charge and fire.
+export const BATTLE_HEAL_UNLOCKED_KEY = 'battle_heal_unlocked'
+export const BATTLE_HEAL_CHARGE_KEY = 'battle_heal_charge'
+export const BATTLE_REVIVE_UNLOCKED_KEY = 'battle_revive_unlocked'
+export const BATTLE_REVIVE_CHARGE_KEY = 'battle_revive_charge'
+export const BATTLE_DEFENDER_UNLOCKED_KEY = 'battle_defender_unlocked'
+export const BATTLE_DEFENDER_CHARGE_KEY = 'battle_defender_charge'
+// Highest wave that has already resolved its MUTATION roll. A wave only rolls the
+// once (on first reach) — so a rubber-band setback never re-mutates a wave the
+// player has already fought; only pushing past the ceiling rolls again.
+export const BATTLE_MUTATION_CEILING_KEY = 'battle_mutation_ceiling'
 // Last moment the game was alive (epoch ms) — drives the offline-earnings
 // "welcome back" grant (retention-roadmap #3). Touched on pagehide/tab-hide
 // plus a slow heartbeat while playing.

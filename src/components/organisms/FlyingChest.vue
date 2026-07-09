@@ -70,10 +70,13 @@ const tick = (): void => {
   }
 }
 
-/** Copy of the 2nd-best fighter on the field; tier 2 when unavailable. */
-const secondBestTier = (): number => {
+/** Tier of the chest's unit reward: the Recruits-scaled tier (so it keeps up in
+ *  late game — T11 at maxed Recruits), but never below the field's 2nd-best so a
+ *  strong army still gets a strong drop. Tier 2 floor when the field is empty. */
+const rewardTier = (): number => {
   const tiers = battle.fighters.value.map((f) => f.tier).sort((a, b) => b - a)
-  return tiers.length >= 2 ? tiers[1]! : 2
+  const secondBest = tiers.length >= 2 ? tiers[1]! : 2
+  return Math.max(battle.chestUnitTier.value, secondBest)
 }
 
 const onOpen = (e: PointerEvent): void => {
@@ -88,7 +91,7 @@ const onOpen = (e: PointerEvent): void => {
   // the landing grid slot. Gold: the coin explosion into the wallet.
   const wantsUnit = Math.random() < 0.5
   if (wantsUnit) {
-    const idx = game.spawnUnitAt(secondBestTier())
+    const idx = game.spawnUnitAt(rewardTier())
     if (idx >= 0) {
       playSound('unit-spawn', 0.04, 1.1)
       emitSparkle(e.clientX, e.clientY, '#ffffff', 10)

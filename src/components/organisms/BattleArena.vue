@@ -20,9 +20,11 @@ import { getIngredient } from '@/game/ingredients'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import EnemyUnit from '@/components/organisms/EnemyUnit.vue'
 import FlyingChest from '@/components/organisms/FlyingChest.vue'
+import SpellButton from '@/components/atoms/SpellButton.vue'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import { artSrc, type ArtKey } from '@/use/useArtOverrides'
+import useEpicConfig from '@/use/useEpicConfig'
 import useSounds from '@/use/useSound'
 import useScreenshake from '@/use/useScreenshake'
 import { emitConfetti, emitSparkle, emitSplash } from '@/use/usePrismParticles'
@@ -238,7 +240,7 @@ const addChain = (points: { x: number; y: number }[]): void => {
 }
 
 // ─── Banners / HUD theatre ───────────────────────────────────────────────────
-type BannerVariant = 'wave' | 'boss' | 'mutator' | 'chest'
+type BannerVariant = 'wave' | 'boss' | 'mutator' | 'chest' | 'mutation'
 const waveBanner = ref<{ text: string; variant: BannerVariant } | null>(null)
 let waveBannerTimer = 0
 const showWaveBanner = (text: string, variant: BannerVariant, ms: number): void => {
@@ -248,6 +250,7 @@ const showWaveBanner = (text: string, variant: BannerVariant, ms: number): void 
 }
 const bannerClass = (variant: BannerVariant): string =>
   variant === 'boss' ? 'banner-boss text-base sm:text-2xl'
+    : variant === 'mutation' ? 'banner-mutation text-base sm:text-2xl'
     : variant === 'mutator' ? 'banner-mutator text-sm sm:text-xl'
     : variant === 'chest' ? 'banner-chest text-sm sm:text-xl'
     : 'banner-wave text-sm sm:text-xl'
@@ -412,6 +415,27 @@ const onEvent = (e: BattleEvent): void => {
       emitSparkle(toClientX(e.x), toClientY(e.y), getIngredient(e.tier).glow, 9)
       playSound('fighter-death', 0.03, 0.8)
       break
+    case 'heal':
+      // Greenish "+" floats up off the healed unit.
+      emitHealPlus(e.x, e.y - 6)
+      break
+    case 'revive':
+      // Guardian revive — golden burst as the wings are spent.
+      addFlash('warheal', e.x, e.y)
+      emitSparkle(toClientX(e.x), toClientY(e.y), '#ffe27a', 14)
+      playSound('rally-revive', 0.05)
+      break
+    case 'defender':
+      // Tank promotion — a steely shield shockwave off the chosen unit.
+      addFlash('shockwave', e.x, e.y)
+      emitSparkle(toClientX(e.x), toClientY(e.y), '#9fd8ff', 16)
+      break
+    case 'slimeBirth':
+      // A gooey burst at the boss body as a companion slime is born from it.
+      emitSplash(toClientX(e.x), toClientY(e.y), '#6fd66f')
+      emitSparkle(toClientX(e.x), toClientY(e.y), '#8fe08a', 10)
+      playSound('deploy-land', 0.03, 1.3)
+      break
     case 'deploy':
       addFlash('shockwave', e.x, e.y)
       emitSparkle(toClientX(e.x), toClientY(e.y), '#ffffff', 10)
@@ -448,7 +472,12 @@ const onEvent = (e: BattleEvent): void => {
       showWaveBanner(t('battle.waveSetback', { n: e.wave }), 'boss', 2200)
       break
     case 'waveStart':
-      if (e.mutator) {
+      if (e.mutated) {
+        // Mutation wave — a bigger, buffed swarm; flag it loudly.
+        showWaveBanner(t('battle.mutationWave'), 'mutation', 2400)
+        playSound('boss-incoming', 0.05)
+        triggerShake('small')
+      } else if (e.mutator) {
         showWaveBanner(t(`battle.mutators.${e.mutator}`), 'mutator', 2400)
         playSound('boss-incoming', 0.05)
         triggerShake('small')
@@ -527,15 +556,59 @@ const onEvent = (e: BattleEvent): void => {
   }
 }
 
-// ─── Ultimate button ─────────────────────────────────────────────────────────
+// ─── Spell buttons (Meteor / Heal / Revive Guard) ────────────────────────────
 const ultPct = computed(() => Math.min(100, Math.round((battle.ultCharge.value / battle.ultMax) * 100)))
-// Drop-in art: the fireball icon on the ult button.
+const healPct = computed(() => Math.round((battle.healCharge.value / battle.spellMax) * 100))
+const revivePct = computed(() => Math.round((battle.reviveCharge.value / battle.spellMax) * 100))
+const defenderPct = computed(() => Math.round((battle.defenderCharge.value / battle.spellMax) * 100))
+// Drop-in art: the spell icons.
 const meteorBtnArt = computed(() => artSrc('meteor-button'))
+const healBtnArt = computed(() => artSrc('spell-heal'))
+const reviveBtnArt = computed(() => artSrc('spell-revive'))
+const defenderBtnArt = computed(() => artSrc('spell-defender'))
+const wingsArt = computed(() => artSrc('revive-wings'))
+const crestArt = defenderBtnArt // the tank's shield crest reuses the spell icon
+
+const { coins } = useEpicConfig()
+const canAffordHeal = computed(() => coins.value >= battle.healUnlockCost)
+const canAffordRevive = computed(() => coins.value >= battle.reviveUnlockCost)
+const canAffordDefender = computed(() => coins.value >= battle.defenderUnlockCost)
+const reviveSecs = computed(() =>
+  battle.reviveGuardActive.value ? Math.ceil(battle.reviveGuardRemainingMs.value / 1000) : 0)
+
 const onUlt = (): void => {
   if (battle.fireUltimate()) {
     playSound('ult-cast', 0.05, 1.2)
     triggerShake('strong')
   }
+}
+const onHeal = (): void => {
+  if (battle.fireHeal()) playSound('happy', 0.06)
+}
+const onReviveGuard = (): void => {
+  if (battle.fireReviveGuard()) { playSound('celebration-2', 0.06); triggerShake('small') }
+}
+const onUnlockHeal = (): void => {
+  playSound(battle.unlockHeal() ? 'level-up' : 'barricade', 0.05)
+}
+const onUnlockRevive = (): void => {
+  playSound(battle.unlockReviveGuard() ? 'level-up' : 'barricade', 0.05)
+}
+const onDefender = (): void => {
+  if (battle.fireDefender()) { playSound('level-up', 0.06); triggerShake('small') }
+}
+const onUnlockDefender = (): void => {
+  playSound(battle.unlockDefender() ? 'level-up' : 'barricade', 0.05)
+}
+
+// Floating greenish "+" per healed unit — spawned at the unit, wobbles up.
+interface HealPlus { id: number; x: number; y: number }
+const healPluses = ref<HealPlus[]>([])
+let healPlusSeq = 0
+const emitHealPlus = (x: number, y: number): void => {
+  const id = ++healPlusSeq
+  healPluses.value = [...healPluses.value, { id, x, y }]
+  window.setTimeout(() => { healPluses.value = healPluses.value.filter((p) => p.id !== id) }, 1100)
 }
 
 // ─── Boss bar ────────────────────────────────────────────────────────────────
@@ -666,10 +739,16 @@ onUnmounted(() => {
       :style="fighterStyle(f)"
     )
       div.unit-box
+        //- Revive Guard wings — centred BEHIND the unit while its revive is
+        //- pending; vanish the moment it's consumed (unit dies → resurrects).
+        img.revive-wings(v-if="f.revivePending && wingsArt" :src="wingsArt" alt="" draggable="false")
         div.hpbar
           div.hpfill.hp-ally
         div.unit-body.fighter-march
           IngredientUnit(:tier="f.tier" :still="true")
+          //- Defender shield crest — 60% size, bottom-aligned + IN FRONT of the
+          //- promoted tank so it overlaps a good chunk of the unit.
+          img.tank-crest(v-if="f.isTank && crestArt" :src="crestArt" alt="" draggable="false")
 
     //- ── Enemies ──
     div.entity.absolute.top-0.left-0(
@@ -678,10 +757,10 @@ onUnmounted(() => {
       :ref="setEnemyEl(e.id)"
       :style="enemyStyle(e)"
     )
-      div.unit-box
-        div.hpbar
+      div.unit-box(:class="{ 'enemy-birth': !e.born }")
+        div.hpbar(v-if="e.born")
           div.hpfill.hp-enemy
-        div.unit-body.enemy-march(:class="{ 'elite-aura': e.elite }")
+        div.unit-body.enemy-march(:class="{ 'elite-aura': e.elite, 'mutated-aura': e.mutated && !e.elite }")
           EnemyUnit(:kind="e.kind" :enraged="e.enraged" :boss-wave="battle.wave.value")
 
     //- ── Projectiles ──
@@ -712,6 +791,16 @@ onUnmounted(() => {
       :class="'flash-' + fl.type"
       :style="flashStyle(fl)"
     )
+
+    //- ── Heal "+" symbols — one per healed unit, wobbling upward ──
+    div.heal-plus.absolute.pointer-events-none(
+      v-for="p in healPluses"
+      :key="'h' + p.id"
+      class="z-[1210]"
+      :style="{ left: p.x + '%', top: p.y + '%' }"
+    )
+      svg(viewBox="0 0 24 24" class="w-5 h-5 sm:w-6 sm:h-6")
+        path(d="M9.5 3 h5 v6.5 h6.5 v5 h-6.5 v6.5 h-5 v-6.5 h-6.5 v-5 h6.5 Z" fill="#5cff8a" stroke="#0a5a2a" stroke-width="1.3" stroke-linejoin="round")
 
     //- ── Damage numbers (pooled) ──
     div.dmg-num(v-for="i in NUM_POOL" :key="'n' + i" :ref="setNumEl(i - 1)")
@@ -780,6 +869,12 @@ onUnmounted(() => {
       )
         span.game-text.font-black.uppercase.text-red-400(class="text-2xl sm:text-4xl animate-pulse") {{ t('battle.overrun') }}
         span.game-text.text-white(class="text-xs sm:text-sm opacity-90") {{ t('battle.overrunBody') }}
+        //- When a wipe still retreats the player, nudge them to rebuild on
+        //- easier waves rather than keep throwing an underbuilt army at this one.
+        span.game-text.text-amber-200.text-center.px-6(
+          v-if="battle.canSetback.value"
+          class="text-[10px] sm:text-xs opacity-90 mt-1 max-w-md"
+        ) {{ t('battle.overrunSetbackHint') }}
         template(v-if="battle.rallyOffer.value && rallyAffordable")
           button.rally-btn.pointer-events-auto.cursor-pointer.mt-2.rounded-xl.border-2.px-4.py-2.flex.items-center.gap-2(
             class="bg-gradient-to-b from-emerald-400 to-emerald-700 border-emerald-200 active:scale-95 transition-transform disabled:opacity-50"
@@ -796,26 +891,35 @@ onUnmounted(() => {
               span.text-emerald-100.game-text(class="text-[10px] sm:text-xs") {{ t('battle.rallyBody') }}
           button.pointer-events-auto.cursor-pointer.game-text(class="text-white/60 text-xs mt-1" @click="battle.declineRally()") {{ t('secondChance.skip') }}
 
-    //- ── Ultimate button (bottom-right) ──
-    button.ult-btn.absolute.cursor-pointer(
-      class="bottom-1.5 right-1.5 z-[1240] active:scale-90 transition-transform"
-      :class="{ 'ult-ready': battle.ultReady.value }"
-      :disabled="!battle.ultReady.value"
-      :aria-label="t('battle.ultimate')"
-      @click="onUlt"
-    )
-      svg(viewBox="0 0 48 48" class="w-11 h-11 sm:w-14 sm:h-14")
-        circle(cx="24" cy="24" r="20" fill="#0e1426" stroke="#0f1a30" stroke-width="3")
-        circle(
-          cx="24" cy="24" r="20" fill="none" stroke="#ff8a1f" stroke-width="3.5" stroke-linecap="round"
-          :stroke-dasharray="125.6" :stroke-dashoffset="125.6 * (1 - ultPct / 100)"
-          transform="rotate(-90 24 24)"
-        )
-        //- Meteor icon: dropped-in bitmap, else the drawn glyph fallback
-        image(v-if="meteorBtnArt" :href="meteorBtnArt" x="9" y="9" width="30" height="30")
-        g(v-else transform="translate(24 25)")
-          path(d="M-9 -7 L5 7 M-4 -10 L8 2 M-11 0 L1 12" stroke="#ffcd5a" stroke-width="2" stroke-linecap="round" opacity="0.85")
-          circle(cx="6" cy="8" r="6" fill="#ff8a1f" stroke="#7a3000" stroke-width="1.5")
+    //- ── Spell buttons (bottom-right): Defender · Heal · Revive Guard · Meteor ──
+    div.absolute.flex.items-end.pointer-events-auto(class="bottom-1.5 right-1.5 z-[1240] gap-1 sm:gap-1.5")
+      //- Defender — promotes the top melee unit into a 2-min tank (2× HP, -80% dmg).
+      SpellButton(
+        :pct="defenderPct" :ready="battle.defenderReady.value && battle.hasTankTarget.value"
+        :locked="!battle.defenderUnlocked.value" :price="battle.defenderUnlockCost" :affordable="canAffordDefender"
+        :icon-art="defenderBtnArt" accent="#7fd6ff" :label="t('battle.spells.defender')"
+        @fire="onDefender" @unlock="onUnlockDefender"
+      )
+      //- Heal — locked until bought; then charges 1%/kill, heals 25% of all units.
+      SpellButton(
+        :pct="healPct" :ready="battle.healReady.value"
+        :locked="!battle.healUnlocked.value" :price="battle.healUnlockCost" :affordable="canAffordHeal"
+        :icon-art="healBtnArt" accent="#3ddc7a" :label="t('battle.spells.heal')"
+        @fire="onHeal" @unlock="onUnlockHeal"
+      )
+      //- Revive Guard — left of Meteor; 30s window that auto-revives fallen units.
+      SpellButton(
+        :pct="revivePct" :ready="battle.reviveReady.value" :active-secs="reviveSecs"
+        :locked="!battle.reviveUnlocked.value" :price="battle.reviveUnlockCost" :affordable="canAffordRevive"
+        :icon-art="reviveBtnArt" accent="#b45cff" :label="t('battle.spells.reviveGuard')"
+        @fire="onReviveGuard" @unlock="onUnlockRevive"
+      )
+      //- Meteor Storm — always unlocked.
+      SpellButton(
+        :pct="ultPct" :ready="battle.ultReady.value"
+        :icon-art="meteorBtnArt" accent="#ff8a1f" :label="t('battle.ultimate')"
+        @fire="onUlt"
+      )
 </template>
 
 <style scoped lang="sass">
@@ -929,6 +1033,29 @@ onUnmounted(() => {
   width: 100%
   height: 100%
 
+// Companion-slime birth: scale up from nothing near the boss body, then hop down
+// to the ground with a squash landing. Uses the INDEPENDENT scale/translate
+// properties so it composes with the unit-box's centering `transform` (and the
+// child's march `transform`) instead of fighting them.
+.unit-box.enemy-birth
+  animation: enemy-birth 0.8s cubic-bezier(0.34, 1.5, 0.5, 1) both
+@keyframes enemy-birth
+  0%
+    scale: 0
+    translate: 0 -72%
+  40%
+    scale: 1.08
+    translate: 0 -76%
+  60%
+    scale: 1
+    translate: 0 -70%
+  82%
+    scale: 1.14 0.86
+    translate: 0 6%
+  100%
+    scale: 1
+    translate: 0 0
+
 .enemy-march, .fighter-march
   animation: march 0.55s ease-in-out infinite
 
@@ -937,6 +1064,62 @@ onUnmounted(() => {
     transform: translateY(0) rotate(-2deg)
   50%
     transform: translateY(-4%) rotate(2deg)
+
+// Revive Guard wings — behind the unit (unit-box makes a stacking context via
+// its transform, so z-index:-1 sits the wings under the in-flow body sprite).
+.revive-wings
+  position: absolute
+  left: 50%
+  top: 44%
+  width: 258%
+  height: auto
+  z-index: -1
+  pointer-events: none
+  opacity: 1
+  // Brighter + a crisp light halo so the wings read clearly against the dark
+  // arena instead of blending in (~30% brighter than before).
+  filter: brightness(1.3) contrast(1.08) drop-shadow(0 0 7px rgba(150, 210, 255, 0.95))
+  transform: translate(-50%, -50%)
+  transform-origin: center
+  animation: wing-flutter 1.3s ease-in-out infinite alternate
+@keyframes wing-flutter
+  from
+    transform: translate(-50%, -50%) scale(0.95)
+  to
+    transform: translate(-50%, -50%) scale(1.06)
+
+// Defender shield crest — 60% of the unit, bottom-aligned, drawn OVER the sprite
+// so it overlaps a significant part of the promoted tank.
+.tank-crest
+  position: absolute
+  left: 50%
+  bottom: 0
+  width: 60%
+  height: auto
+  transform: translateX(-50%)
+  z-index: 4
+  pointer-events: none
+  filter: drop-shadow(0 0 4px rgba(159, 216, 255, 0.85))
+
+// Heal "+" — floats up off a healed unit with a gentle side-to-side wobble.
+.heal-plus
+  transform: translate(-50%, -50%)
+  animation: heal-rise 1.1s ease-out forwards
+  filter: drop-shadow(0 0 5px rgba(90, 255, 140, 0.8))
+@keyframes heal-rise
+  0%
+    opacity: 0
+    transform: translate(-50%, -50%) scale(0.5)
+  15%
+    opacity: 1
+    transform: translate(-42%, -74%) scale(1.15)
+  45%
+    transform: translate(-64%, -128%) scale(1.05)
+  72%
+    transform: translate(-42%, -190%) scale(1)
+  100%
+    opacity: 0
+    transform: translate(-56%, -262%) scale(0.9)
 
 .hpbar
   position: absolute
@@ -1132,6 +1315,11 @@ onUnmounted(() => {
   background: linear-gradient(180deg, #ffcd00, #f7a000)
   border-color: #0f1a30
   animation: boss-banner 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+.banner-mutation
+  background: linear-gradient(180deg, #d24bff, #7a1fd0)
+  border-color: #e9b6ff
+  box-shadow: 0 0 18px rgba(190, 90, 255, 0.7)
+  animation: boss-banner 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
 
 .mutator-chip
   background: rgba(80, 20, 140, 0.75)
@@ -1142,6 +1330,17 @@ onUnmounted(() => {
 .elite-aura
   filter: drop-shadow(0 0 6px rgba(255, 205, 0, 0.9)) drop-shadow(0 0 14px rgba(255, 140, 0, 0.6))
   animation: march 0.55s ease-in-out infinite, elite-throb 0.8s ease-in-out infinite alternate
+
+// Mutated enemies: a toxic purple glow (distinct from the elite gold) on top of
+// their 50%-bigger size, so they read at a glance as mutated.
+.mutated-aura
+  filter: drop-shadow(0 0 6px rgba(190, 90, 255, 0.95)) drop-shadow(0 0 14px rgba(120, 30, 200, 0.6))
+  animation: march 0.55s ease-in-out infinite, mutated-throb 0.9s ease-in-out infinite alternate
+@keyframes mutated-throb
+  from
+    filter: drop-shadow(0 0 4px rgba(190, 90, 255, 0.8)) drop-shadow(0 0 10px rgba(120, 30, 200, 0.45))
+  to
+    filter: drop-shadow(0 0 10px rgba(210, 120, 255, 1)) drop-shadow(0 0 22px rgba(140, 40, 220, 0.85))
 @keyframes elite-throb
   from
     filter: drop-shadow(0 0 4px rgba(255, 205, 0, 0.75)) drop-shadow(0 0 10px rgba(255, 140, 0, 0.45))
