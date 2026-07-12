@@ -267,14 +267,14 @@ const emit = (e: BattleEvent): void => { if (eventSink) eventSink(e) }
 export type BattleUpgradeId = 'attack' | 'vitality' | 'bounty' | 'automation' | 'recruit'
 export type BattleUpgrades = Record<BattleUpgradeId, number>
 
-export const RECRUIT_MAX_LEVEL = 5
+export const RECRUIT_MAX_LEVEL = 7
 
 export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth: number; max: number }> = {
   attack: { base: 60, growth: 1.55, max: UPGRADE_MAX_LEVEL },
   vitality: { base: 55, growth: 1.52, max: UPGRADE_MAX_LEVEL },
   bounty: { base: 80, growth: 1.6, max: UPGRADE_MAX_LEVEL },
   automation: { base: 130, growth: 1.72, max: UPGRADE_MAX_LEVEL },
-  // Recruits: each level raises the Spawn button's base tier by 1 (T1 → T6).
+  // Recruits: each level raises the Spawn button's base tier by 1 (T1 → T8).
   // One level ≈ doubles the whole grid's merge throughput (a T2 spawn = two
   // T1 spawns pre-merged) ≈ 4–5 waves of enemy scaling — priced as milestone
   // purchases on the hand-tuned RECRUIT_COSTS ladder below (base/growth here
@@ -282,8 +282,8 @@ export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth
   recruit: { base: 5000, growth: 1, max: RECRUIT_MAX_LEVEL }
 }
 
-/** Hand-tuned Recruits prices for levels 1–5. */
-const RECRUIT_COSTS = [5_000, 20_000, 50_000, 175_000, 500_000]
+/** Hand-tuned Recruits prices for levels 1–7. */
+const RECRUIT_COSTS = [5_000, 20_000, 50_000, 175_000, 500_000, 1_500_000, 7_000_000]
 
 const sanitizeUpgrades = (u: unknown): BattleUpgrades => {
   const o = (u && typeof u === 'object') ? u as Record<string, unknown> : {}
@@ -1589,7 +1589,15 @@ const step = (dt: number): void => {
       }
       while (schedule.length && schedule[0]!.at <= waveElapsed) {
         const s = schedule.shift()!
-        spawnEnemy(s.kind, s.elite ?? false, s.portal ?? 1)
+        // A portal can disgorge a CLUSTER: 3% → 3, 20% → 2, else 1 — so the
+        // early game isn't a trickle of lone monsters. Bosses and elite
+        // champions always spawn solo (they're a single, deliberate threat).
+        let count = 1
+        if (s.kind !== 'boss' && !s.elite) {
+          const r = Math.random()
+          count = r < 0.03 ? 3 : r < 0.23 ? 2 : 1
+        }
+        for (let i = 0; i < count; i++) spawnEnemy(s.kind, s.elite ?? false, s.portal ?? 1)
       }
       stepFighters(dt)
       if (wavePhase.value !== 'fighting') break // overrun mid-step

@@ -30,6 +30,11 @@ const OFFLINE_CAP_MS = 8 * 3_600_000
 /** Seconds a full wave cycle takes on average (fight + clear + countdown). */
 const WAVE_CYCLE_SECS = 35
 
+/** Hard ceiling on the welcome-back grant, by current wave ("level"). Absent
+ *  this, high-wave bounties turn a long absence into millions of free coins —
+ *  which trivialises the economy. Comeback gold is a nudge, not a jackpot. */
+const offlineGoldCap = (w: number): number => (w < 20 ? 5_000 : w <= 40 ? 10_000 : 20_000)
+
 /** Pending welcome-back gold (0 ⇔ nothing to claim). */
 export const offlineGold = ref(0)
 
@@ -46,7 +51,8 @@ const evaluate = (): void => {
   const enemiesPerWave = Math.min(22, 4 + Math.floor(w * 1.25))
   const goldPerSec = (waveBounty(w) * enemiesPerWave) / WAVE_CYCLE_SECS
   const impFactor = Math.min(0.8, 0.15 + battleUpgrades.value.automation * 0.06)
-  offlineGold.value = Math.max(5, Math.round((elapsedMs / 1000) * goldPerSec * impFactor))
+  const raw = Math.round((elapsedMs / 1000) * goldPerSec * impFactor)
+  offlineGold.value = Math.min(offlineGoldCap(w), Math.max(5, raw))
 }
 
 /** Consume the pending grant (the modal adds the coins itself, possibly ×2). */
