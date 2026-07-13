@@ -132,6 +132,7 @@ export default {
     'body': '자리를 비운 동안 군대가 계속 싸웠습니다:'
   },
   'battle': {
+    'spellDesc': { 'heal': "모든 유닛의 체력을 25% 회복합니다.", 'reviveGuard': "30초 동안 쓰러진 유닛이 즉시 완전한 체력으로 부활합니다.", 'defender': "최고의 근접 유닛을 2분간 탱커로: 체력 2배, 피해 80% 감소.", 'meteor': "전장에 운석을 쏟아부어 모든 적을 강타합니다." },
     'mutationWave': "돌연변이!",
     'overrunSetbackHint': "이 웨이브는 너무 강합니다. 먼저 쉬운 웨이브에서 군대를 키우세요.",
     'spells': { 'heal': "치유", 'reviveGuard': "부활 수호", 'defender': "수호자" },

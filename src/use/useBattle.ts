@@ -32,7 +32,7 @@ import {
   BATTLE_HEAL_UNLOCKED_KEY, BATTLE_HEAL_CHARGE_KEY,
   BATTLE_REVIVE_UNLOCKED_KEY, BATTLE_REVIVE_CHARGE_KEY,
   BATTLE_DEFENDER_UNLOCKED_KEY, BATTLE_DEFENDER_CHARGE_KEY,
-  BATTLE_MUTATION_CEILING_KEY
+  BATTLE_MUTATION_CEILING_KEY, BATTLE_SPELL_CASTS_KEY
 } from '@/keys'
 import {
   getFighterDef, ENEMY_DEFS, composeWave, isBossWave, bossName, bossArtKey, rollMutator,
@@ -134,6 +134,11 @@ const MAX_FALL_FROM_BEST = 10
 /** Milestone chest cadence (retention-roadmap #4): every 10th wave. */
 export const CHEST_EVERY_WAVES = 10
 export const UPGRADE_MAX_LEVEL = 25
+// Attack & Vitality get a much higher ceiling than Bounty/Automation: they're the
+// power upgrades that must keep scaling through the late game (their gentler cost
+// curve means income keeps funding them). The economy caps effective level long
+// before 100 — it's headroom, not an expected grind target.
+export const ATKVIT_MAX_LEVEL = 100
 
 // ─── Entities ────────────────────────────────────────────────────────────────
 export interface Fighter {
@@ -267,14 +272,14 @@ const emit = (e: BattleEvent): void => { if (eventSink) eventSink(e) }
 export type BattleUpgradeId = 'attack' | 'vitality' | 'bounty' | 'automation' | 'recruit'
 export type BattleUpgrades = Record<BattleUpgradeId, number>
 
-export const RECRUIT_MAX_LEVEL = 7
+export const RECRUIT_MAX_LEVEL = 15
 
 export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth: number; max: number }> = {
-  attack: { base: 60, growth: 1.55, max: UPGRADE_MAX_LEVEL },
-  vitality: { base: 55, growth: 1.52, max: UPGRADE_MAX_LEVEL },
+  attack: { base: 60, growth: 1.33, max: ATKVIT_MAX_LEVEL },
+  vitality: { base: 55, growth: 1.32, max: ATKVIT_MAX_LEVEL },
   bounty: { base: 80, growth: 1.6, max: UPGRADE_MAX_LEVEL },
   automation: { base: 130, growth: 1.72, max: UPGRADE_MAX_LEVEL },
-  // Recruits: each level raises the Spawn button's base tier by 1 (T1 → T8).
+  // Recruits: each level raises the Spawn button's base tier by 1 (T1 → T16).
   // One level ≈ doubles the whole grid's merge throughput (a T2 spawn = two
   // T1 spawns pre-merged) ≈ 4–5 waves of enemy scaling — priced as milestone
   // purchases on the hand-tuned RECRUIT_COSTS ladder below (base/growth here
@@ -282,8 +287,14 @@ export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth
   recruit: { base: 5000, growth: 1, max: RECRUIT_MAX_LEVEL }
 }
 
-/** Hand-tuned Recruits prices for levels 1–7. */
-const RECRUIT_COSTS = [5_000, 20_000, 50_000, 175_000, 500_000, 1_500_000, 7_000_000]
+/** Hand-tuned Recruits prices for levels 1–15. The high end continues the ~×3.3
+ *  step so each level lands as an affordable milestone against the exponential
+ *  coin income (bounty/clear-bonus/milestone chests) at the wave you'd be on —
+ *  keeping the base spawn tier climbing with the difficulty curve into T16. */
+const RECRUIT_COSTS = [
+  5_000, 20_000, 50_000, 175_000, 500_000, 1_500_000, 7_000_000, 15_000_000, 50_000_000,
+  150_000_000, 500_000_000, 1_500_000_000, 5_000_000_000, 15_000_000_000, 50_000_000_000
+]
 
 const sanitizeUpgrades = (u: unknown): BattleUpgrades => {
   const o = (u && typeof u === 'object') ? u as Record<string, unknown> : {}
@@ -292,8 +303,8 @@ const sanitizeUpgrades = (u: unknown): BattleUpgrades => {
     return Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : 0
   }
   return {
-    attack: clamp(o.attack, UPGRADE_MAX_LEVEL),
-    vitality: clamp(o.vitality, UPGRADE_MAX_LEVEL),
+    attack: clamp(o.attack, ATKVIT_MAX_LEVEL),
+    vitality: clamp(o.vitality, ATKVIT_MAX_LEVEL),
     bounty: clamp(o.bounty, UPGRADE_MAX_LEVEL),
     automation: clamp(o.automation, UPGRADE_MAX_LEVEL),
     recruit: clamp(o.recruit, RECRUIT_MAX_LEVEL)
@@ -339,9 +350,18 @@ const activateRubberBand = (): void => {
 /** Enemy-stat multiplier: 0.75 while the catch-up window is live, else 1. */
 const rubberBandMult = (): number => (rubberBandUntil.value > Date.now() ? RUBBER_BAND_MULT : 1)
 
-const atkMult = (): number =>
-  (1 + battleUpgrades.value.attack * 0.06) * (dmgBuffUntil.value > Date.now() ? 2 : 1)
-const hpMult = (): number => 1 + battleUpgrades.value.vitality * 0.07
+// Attack & Vitality scale PROGRESSIVELY — a quadratic term makes each later level
+// worth more than the last (≈2× the effect by the cap), so continued investment
+// keeps pace with the enemy curve deep into the run instead of flat-lining. Base
+// per-level rate is unchanged, so early-game feel is the same.
+const atkMult = (): number => {
+  const lvl = battleUpgrades.value.attack
+  return (1 + lvl * 0.06 + lvl * lvl * 0.0006) * (dmgBuffUntil.value > Date.now() ? 2 : 1)
+}
+const hpMult = (): number => {
+  const lvl = battleUpgrades.value.vitality
+  return 1 + lvl * 0.07 + lvl * lvl * 0.0007
+}
 const bountyMult = (): number => 1 + battleUpgrades.value.bounty * 0.08
 /** Base tier the Spawn button produces (1 + Recruits upgrade level). */
 export const recruitTier = computed(() => 1 + battleUpgrades.value.recruit)
@@ -453,6 +473,18 @@ export const defenderUnlocked = ref(getState<boolean>(BATTLE_DEFENDER_UNLOCKED_K
 export const healCharge = ref(clampCharge(getState(BATTLE_HEAL_CHARGE_KEY, 0)))
 export const reviveCharge = ref(clampCharge(getState(BATTLE_REVIVE_CHARGE_KEY, 0)))
 export const defenderCharge = ref(clampCharge(getState(BATTLE_DEFENDER_CHARGE_KEY, 0)))
+// Per-spell cast counts — the explanation toast only shows for the first
+// SPELL_TOAST_CASTS casts of each spell; after that the player knows the effect.
+const SPELL_TOAST_CASTS = 5
+const spellCasts = ref<Record<string, number>>({ ...getState<Record<string, number>>(BATTLE_SPELL_CASTS_KEY, {}) })
+/** Record a spell cast; returns true if its explanation toast should still show
+ *  (i.e. it's one of the first SPELL_TOAST_CASTS casts of this spell). */
+export const noteSpellCast = (id: string): boolean => {
+  const n = spellCasts.value[id] ?? 0
+  spellCasts.value = { ...spellCasts.value, [id]: n + 1 }
+  setState(BATTLE_SPELL_CASTS_KEY, spellCasts.value)
+  return n < SPELL_TOAST_CASTS
+}
 /** True while the 30s Revive Guard window is live (units carry wings). */
 export const reviveGuardActive = ref(false)
 /** Remaining Revive Guard time in ms, for the button's countdown. */
@@ -1734,6 +1766,11 @@ const refreshFromBlob = (): void => {
   healCharge.value = Math.max(healCharge.value, clampCharge(getState(BATTLE_HEAL_CHARGE_KEY, 0)))
   reviveCharge.value = Math.max(reviveCharge.value, clampCharge(getState(BATTLE_REVIVE_CHARGE_KEY, 0)))
   defenderCharge.value = Math.max(defenderCharge.value, clampCharge(getState(BATTLE_DEFENDER_CHARGE_KEY, 0)))
+  // Spell-toast cast counts only ever grow — take the higher of local/cloud per id.
+  const savedCasts = getState<Record<string, number>>(BATTLE_SPELL_CASTS_KEY, {})
+  const mergedCasts = { ...spellCasts.value }
+  for (const id in savedCasts) mergedCasts[id] = Math.max(mergedCasts[id] ?? 0, savedCasts[id] ?? 0)
+  spellCasts.value = mergedCasts
   const savedDmgBuff = Number(getState(BATTLE_DMG_BUFF_KEY, 0)) || 0
   if (savedDmgBuff > dmgBuffUntil.value) dmgBuffUntil.value = savedDmgBuff
   const savedRubberBand = Number(getState(BATTLE_RUBBER_BAND_KEY, 0)) || 0
@@ -1766,7 +1803,7 @@ const useBattle = () => ({
   isUpgradeMaxed, impCadenceMs, recruitTier, chestUnitTier,
   // actions
   deployFighter, fieldMerge, fighterAt, fireUltimate, bumpStat,
-  fireHeal, fireReviveGuard, fireDefender, unlockHeal, unlockReviveGuard, unlockDefender,
+  fireHeal, fireReviveGuard, fireDefender, unlockHeal, unlockReviveGuard, unlockDefender, noteSpellCast,
   requestRallyHold, claimRally, declineRally, activateDamageBuff,
   // lifecycle
   startBattle, stopBattle, setEventSink, setRenderSink, setGateEdge

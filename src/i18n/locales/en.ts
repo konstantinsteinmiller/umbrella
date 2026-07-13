@@ -21,6 +21,7 @@ export default {
     'body': 'Your army kept fighting while you were away:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Restores 25% of every unit's health.", 'reviveGuard': "For 30s, any unit that falls instantly revives at full health.", 'defender': "Turns your top melee unit into a tank: 2× health, 80% less damage, for 2 minutes.", 'meteor': "Rains meteors across the field, blasting all enemies." },
     'mutationWave': "MUTATION!",
     'overrunSetbackHint': "These waves are too strong for you — build up your army on easier waves first.",
     'spells': { 'heal': "Heal", 'reviveGuard': "Revive Guard", 'defender': "Defender" },

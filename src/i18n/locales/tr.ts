@@ -132,6 +132,7 @@ export default {
     'body': 'Sen yokken ordun savaşmaya devam etti:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Tüm birimlerin canının %25'ini yeniler.", 'reviveGuard': "30 sn boyunca düşen her birim anında tam canla dirilir.", 'defender': "En iyi yakın dövüş biriminizi 2 dk tanka çevirir: 2× can, %80 daha az hasar.", 'meteor': "Sahaya meteor yağdırır, tüm düşmanları vurur." },
     'mutationWave': "MUTASYON!",
     'overrunSetbackHint': "Bu dalgalar senin için çok güçlü — önce ordunu daha kolay dalgalarda güçlendir.",
     'spells': { 'heal': "İyileştirme", 'reviveGuard': "Diriliş Muhafızı", 'defender': "Savunucu" },

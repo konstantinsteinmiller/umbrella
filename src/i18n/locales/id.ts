@@ -86,6 +86,7 @@ export default {
     'body': 'Pasukanmu terus bertempur selagi kamu pergi:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Memulihkan 25% nyawa semua unit.", 'reviveGuard': "Selama 30 dtk, unit yang tumbang langsung hidup lagi dengan nyawa penuh.", 'defender': "Mengubah unit jarak dekat terkuatmu jadi tank selama 2 mnt: nyawa 2×, damage diterima −80%.", 'meteor': "Menurunkan hujan meteor ke medan, menghantam semua musuh." },
     'mutationWave': "MUTASI!",
     'overrunSetbackHint': "Gelombang ini terlalu kuat — bangun pasukanmu di gelombang yang lebih mudah dulu.",
     'spells': { 'heal': "Penyembuhan", 'reviveGuard': "Penjaga Kebangkitan", 'defender': "Pembela" },

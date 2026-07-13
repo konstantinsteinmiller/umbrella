@@ -132,6 +132,7 @@ export default {
     'body': '留守の間も軍団は戦い続けました:'
   },
   'battle': {
+    'spellDesc': { 'heal': "全ユニットのHPを25%回復する。", 'reviveGuard': "30秒間、倒れたユニットは即座に全回復で復活する。", 'defender': "最強の近接ユニットを2分間タンク化：HP2倍、被ダメージ80%減。", 'meteor': "戦場に隕石を降らせ、すべての敵を吹き飛ばす。" },
     'mutationWave': "変異ウェーブ！",
     'overrunSetbackHint': "この波は強すぎます。まずは簡単な波で軍を育てましょう。",
     'spells': { 'heal': "回復", 'reviveGuard': "復活の守り", 'defender': "守護者" },

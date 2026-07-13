@@ -33,6 +33,11 @@ const ART_PATHS = {
   'fighter-13': 'images/units/fighter-13',
   'fighter-14': 'images/units/fighter-14',
   'fighter-15': 'images/units/fighter-15',
+  'fighter-16': 'images/units/fighter-16',
+  'fighter-17': 'images/units/fighter-17',
+  'fighter-18': 'images/units/fighter-18',
+  'fighter-19': 'images/units/fighter-19',
+  'fighter-20': 'images/units/fighter-20',
   // Enemy walkers (public/enemies/) — bitmap over the SVG fallback. `slime-alt`
   // is a second slime look picked at random for variety.
   'enemy-slime': 'enemies/slime2_256x256',

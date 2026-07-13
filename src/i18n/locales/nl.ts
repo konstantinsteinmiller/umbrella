@@ -132,6 +132,7 @@ export default {
     'body': 'Je leger vocht door terwijl je weg was:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Herstelt 25% van de gezondheid van alle eenheden.", 'reviveGuard': "30 sec. lang herrijst elke gevallen eenheid direct met volle gezondheid.", 'defender': "Maakt je beste melee-eenheid 2 min. een tank: 2× gezondheid, 80% minder schade.", 'meteor': "Laat meteoren op het veld regenen en raakt alle vijanden." },
     'mutationWave': "MUTATIE!",
     'overrunSetbackHint': "Deze golven zijn te sterk — bouw je leger eerst op in makkelijkere golven.",
     'spells': { 'heal': "Genezing", 'reviveGuard': "Herrijzingswacht", 'defender': "Verdediger" },

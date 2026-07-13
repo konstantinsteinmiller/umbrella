@@ -132,6 +132,7 @@ export default {
     'body': 'Votre armée a continué le combat pendant votre absence :'
   },
   'battle': {
+    'spellDesc': { 'heal': "Restaure 25% des points de vie de toutes les unités.", 'reviveGuard': "Pendant 30 s, toute unité qui tombe ressuscite aussitôt avec toute sa vie.", 'defender': "Transforme votre meilleure unité de mêlée en tank pendant 2 min : 2× de vie, 80% de dégâts en moins.", 'meteor': "Fait pleuvoir des météores sur le champ, frappant tous les ennemis." },
     'mutationWave': "MUTATION !",
     'overrunSetbackHint': "Ces vagues sont trop fortes — renforce d'abord ton armée sur des vagues plus faciles.",
     'spells': { 'heal': "Soin", 'reviveGuard': "Garde de Résurrection", 'defender': "Défenseur" },

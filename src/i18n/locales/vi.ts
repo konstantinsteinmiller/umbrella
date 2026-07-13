@@ -132,6 +132,7 @@ export default {
     'body': 'Đội quân của bạn vẫn chiến đấu khi bạn vắng mặt:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Hồi 25% máu cho mọi đơn vị.", 'reviveGuard': "Trong 30 giây, đơn vị nào gục ngã sẽ hồi sinh ngay với đầy máu.", 'defender': "Biến đơn vị cận chiến mạnh nhất thành tank trong 2 phút: máu ×2, nhận ít hơn 80% sát thương.", 'meteor': "Trút mưa thiên thạch xuống trận, giáng đòn lên mọi kẻ địch." },
     'mutationWave': "ĐỘT BIẾN!",
     'overrunSetbackHint': "Các đợt này quá mạnh — hãy xây dựng đội quân ở các đợt dễ hơn trước.",
     'spells': { 'heal': "Hồi Máu", 'reviveGuard': "Hộ Vệ Hồi Sinh", 'defender': "Vệ Binh" },

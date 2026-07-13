@@ -61,13 +61,18 @@ export const FIGHTER_DEFS: FighterDef[] = [
   { ...fighterBase, tier: 11, atk: F_ATK(11), hp: Math.round(F_HP(11) * 1.4), attackInterval: 1.3, range: 10, speed: 11, ability: 'eruption', scale: 1.4 }
 ]
 
-// Tiers 12-15 have authored art (fighter-12..15) + localized codex names but
-// live off the extrapolation below (kept out of FIGHTER_DEFS so their stats stay
-// formula-driven). Melee by default; 13 & 15 are ranged, reusing tier-8 shadow /
-// tier-7 cosmic projectile+impact VFX (their element comes from getIngredient).
+// Tiers 12-20 have authored art (fighter-12..20) but live off the extrapolation
+// below (kept out of FIGHTER_DEFS so their stats stay formula-driven). MELEE by
+// default (tiers 12, 14, 18, 20); the entries below make the ranged ones fire —
+// their projectile/impact element comes from getIngredient (see HIGH_TIER_ELEMENTS):
+//   13 → shadow (like t8) · 15 → cosmic (like t7) · 16 → wind (like t2)
+//   17 → shadow (like t8) · 19 → cosmic (like t7)
 const HIGH_TIER_DEFS: Record<number, Partial<FighterDef>> = {
   13: { range: 32, attackInterval: 1.3, ability: 'frost' },
-  15: { range: 38, attackInterval: 1.4, ability: 'chain' }
+  15: { range: 38, attackInterval: 1.4, ability: 'chain' },
+  16: { range: 30, attackInterval: 1.2, ability: 'burn' },
+  17: { range: 32, attackInterval: 1.3, ability: 'frost' },
+  19: { range: 38, attackInterval: 1.4, ability: 'chain' }
 }
 
 // Highest tier the Unit Codex lists: 1-11 are authored in FIGHTER_DEFS, 12-15
@@ -113,11 +118,26 @@ export const ENEMY_DEFS: Record<EnemyKind, EnemyDef> = {
   boss: { kind: 'boss', hpMult: 20, atkMult: 4.5, speed: 4.2, range: 10, attackInterval: 1.8, bountyMult: 22, scale: 2.3 }
 }
 
-/** Wave-scaled baseline enemy HP / ATK / bounty. Tuned so tier ≈ wave/3 keeps up. */
-export const waveHp = (wave: number): number =>
-  Math.round(26 * Math.pow(1.16, wave - 1) * (1 + wave / 22))
-export const waveAtk = (wave: number): number =>
-  Math.round(5 * Math.pow(1.13, wave - 1) * (1 + wave / 30))
+// High-wave softening: a merge-grid army's tier grows only LOGARITHMICALLY with
+// playtime (each +1 tier needs 2× the fuel), while a raw exponential enemy curve
+// grows without bound — so past a point the ladder becomes impossible no matter
+// the upgrades. Past SOFT_WAVE the *effective* wave grows as a power curve, so
+// enemy stats decelerate to match the player's plateau. Validated by simulation
+// to keep waves ≤~160 beatable (challenging, ad-assisted near the top) instead of
+// walling in the mid-60s. Waves ≤ SOFT_WAVE are unchanged.
+const SOFT_WAVE = 45
+const softWave = (wave: number): number =>
+  wave <= SOFT_WAVE ? wave : SOFT_WAVE + Math.pow(wave - SOFT_WAVE, 0.85)
+/** Wave-scaled baseline enemy HP / ATK / bounty. Waves ≤ SOFT_WAVE are the
+ *  original curve; only the late game is softened. */
+export const waveHp = (wave: number): number => {
+  const w = softWave(wave)
+  return Math.round(26 * Math.pow(1.16, w - 1) * (1 + w / 22))
+}
+export const waveAtk = (wave: number): number => {
+  const w = softWave(wave)
+  return Math.round(5 * Math.pow(1.13, w - 1) * (1 + w / 30))
+}
 export const waveBounty = (wave: number): number =>
   Math.round(6 * Math.pow(1.09, wave - 1))
 /** Flat gold bonus paid when the wave is cleared. */

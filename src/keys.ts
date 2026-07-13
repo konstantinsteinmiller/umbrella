@@ -45,6 +45,9 @@ export const BATTLE_REVIVE_UNLOCKED_KEY = 'battle_revive_unlocked'
 export const BATTLE_REVIVE_CHARGE_KEY = 'battle_revive_charge'
 export const BATTLE_DEFENDER_UNLOCKED_KEY = 'battle_defender_unlocked'
 export const BATTLE_DEFENDER_CHARGE_KEY = 'battle_defender_charge'
+// How many times each spell has been cast (per spell id) — the explanation toast
+// only shows for the first few casts, after which the player knows the effect.
+export const BATTLE_SPELL_CASTS_KEY = 'battle_spell_casts'
 // Highest wave that has already resolved its MUTATION roll. A wave only rolls the
 // once (on first reach) — so a rubber-band setback never re-mutates a wave the
 // player has already fought; only pushing past the ceiling rolls again.

@@ -59,10 +59,14 @@ export const INGREDIENTS: Ingredient[] = [
 /** Top tier on the merge ladder. */
 export const MAX_INGREDIENT_TIER = INGREDIENTS.length
 
-// Tiers 12-15 have authored art (fighter-12..15.webp) but reuse the top tier's
+// Tiers 12-20 have authored art (fighter-12..20.webp) but reuse the top tier's
 // look/colours; only the combat ELEMENT is overridden so the ranged ones fire
-// the right projectile/impact VFX (13 → shadow like t8, 15 → cosmic like t7).
-const HIGH_TIER_ELEMENTS: Record<number, ElementKind> = { 13: 'shadow', 15: 'cosmic' }
+// the right projectile/impact VFX (13 → shadow like t8, 15/19 → cosmic like t7,
+// 16 → wind like t2, 17 → shadow like t8). Melee tiers (12,14,18,20) never fire
+// a projectile, so their element is irrelevant.
+const HIGH_TIER_ELEMENTS: Record<number, ElementKind> = {
+  13: 'shadow', 15: 'cosmic', 16: 'wind', 17: 'shadow', 19: 'cosmic'
+}
 
 export const getIngredient = (tier: number): Ingredient => {
   if (tier <= INGREDIENTS.length) return INGREDIENTS[Math.max(0, tier - 1)]!

@@ -132,6 +132,7 @@ export default {
     'body': 'Seu exército continuou lutando enquanto você esteve fora:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Restaura 25% da vida de todas as unidades.", 'reviveGuard': "Por 30 s, cada unidade que cai revive na hora com vida cheia.", 'defender': "Transforma sua melhor unidade corpo a corpo num tanque por 2 min: 2× de vida, 80% menos dano.", 'meteor': "Faz chover meteoros no campo, atingindo todos os inimigos." },
     'mutationWave': "MUTAÇÃO!",
     'overrunSetbackHint': "Estas ondas são fortes demais — reforce seu exército em ondas mais fáceis primeiro.",
     'spells': { 'heal': "Cura", 'reviveGuard': "Guarda de Ressurreição", 'defender': "Defensor" },

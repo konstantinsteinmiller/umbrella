@@ -132,6 +132,7 @@ export default {
     'body': 'Il tuo esercito ha continuato a combattere in tua assenza:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Ripristina il 25% della salute di tutte le unità.", 'reviveGuard': "Per 30 s, ogni unità che cade rinasce subito con salute piena.", 'defender': "Trasforma la tua migliore unità da mischia in un tank per 2 min: 2× salute, 80% danni in meno.", 'meteor': "Fa piovere meteore sul campo, colpendo tutti i nemici." },
     'mutationWave': "MUTAZIONE!",
     'overrunSetbackHint': "Queste ondate sono troppo forti: prima potenzia il tuo esercito su ondate più facili.",
     'spells': { 'heal': "Cura", 'reviveGuard': "Guardia di Rinascita", 'defender': "Difensore" },

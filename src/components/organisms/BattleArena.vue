@@ -255,6 +255,16 @@ const bannerClass = (variant: BannerVariant): string =>
     : variant === 'chest' ? 'banner-chest text-sm sm:text-xl'
     : 'banner-wave text-sm sm:text-xl'
 
+// Spell cast-in toast: names the spell + explains what it does, on screen for 5s
+// (spells aren't documented anywhere else). Shown whenever a spell is fired.
+const spellToast = ref<{ name: string; desc: string; accent: string } | null>(null)
+let spellToastTimer = 0
+const showSpellToast = (name: string, desc: string, accent: string): void => {
+  spellToast.value = { name, desc, accent }
+  window.clearTimeout(spellToastTimer)
+  spellToastTimer = window.setTimeout(() => { spellToast.value = null }, 5000)
+}
+
 const comboPop = ref<{ n: number; id: number } | null>(null)
 let comboTimerId = 0
 
@@ -580,13 +590,20 @@ const onUlt = (): void => {
   if (battle.fireUltimate()) {
     playSound('ult-cast', 0.05, 1.2)
     triggerShake('strong')
+    if (battle.noteSpellCast('meteor')) showSpellToast(t('battle.ultimate'), t('battle.spellDesc.meteor'), '#ff8a1f')
   }
 }
 const onHeal = (): void => {
-  if (battle.fireHeal()) playSound('happy', 0.06)
+  if (battle.fireHeal()) {
+    playSound('happy', 0.06)
+    if (battle.noteSpellCast('heal')) showSpellToast(t('battle.spells.heal'), t('battle.spellDesc.heal'), '#4ade80')
+  }
 }
 const onReviveGuard = (): void => {
-  if (battle.fireReviveGuard()) { playSound('celebration-2', 0.06); triggerShake('small') }
+  if (battle.fireReviveGuard()) {
+    playSound('celebration-2', 0.06); triggerShake('small')
+    if (battle.noteSpellCast('reviveGuard')) showSpellToast(t('battle.spells.reviveGuard'), t('battle.spellDesc.reviveGuard'), '#ffe27a')
+  }
 }
 const onUnlockHeal = (): void => {
   playSound(battle.unlockHeal() ? 'level-up' : 'barricade', 0.05)
@@ -595,7 +612,10 @@ const onUnlockRevive = (): void => {
   playSound(battle.unlockReviveGuard() ? 'level-up' : 'barricade', 0.05)
 }
 const onDefender = (): void => {
-  if (battle.fireDefender()) { playSound('level-up', 0.06); triggerShake('small') }
+  if (battle.fireDefender()) {
+    playSound('level-up', 0.06); triggerShake('small')
+    if (battle.noteSpellCast('defender')) showSpellToast(t('battle.spells.defender'), t('battle.spellDesc.defender'), '#7fd6ff')
+  }
 }
 const onUnlockDefender = (): void => {
   playSound(battle.unlockDefender() ? 'level-up' : 'barricade', 0.05)
@@ -827,6 +847,18 @@ onUnmounted(() => {
         div.rounded-2xl.border-2.px-4.py-1.game-text.font-black.uppercase.text-white.shadow-2xl(
           :class="bannerClass(waveBanner.variant)"
         ) {{ waveBanner.text }}
+
+    //- ── Spell cast toast (name + what it does, 5s) ──
+    Transition(name="banner")
+      div.absolute.left-2.right-2.flex.justify-center.pointer-events-none(v-if="spellToast" class="top-[15%] z-[1235]")
+        div.spell-toast.rounded-xl.border-2.flex.flex-col.items-center.shadow-2xl.max-w-md(
+          class="px-4 py-2 gap-1"
+          :style="{ borderColor: spellToast.accent, '--toast-glow': spellToast.accent }"
+        )
+          span.game-text.font-black.uppercase.leading-none(
+            class="text-sm sm:text-base tracking-wide" :style="{ color: spellToast.accent }"
+          ) {{ spellToast.name }}
+          span.game-text.text-white.text-center.leading-tight(class="text-[10px] sm:text-xs opacity-95") {{ spellToast.desc }}
 
     //- ── Active mutator chip (persists through the wave) ──
     Transition(name="fade")
@@ -1320,6 +1352,10 @@ onUnmounted(() => {
   border-color: #e9b6ff
   box-shadow: 0 0 18px rgba(190, 90, 255, 0.7)
   animation: boss-banner 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+.spell-toast
+  background: linear-gradient(180deg, #1e2c4e, #111a30)
+  box-shadow: 0 0 20px var(--toast-glow, #ff8a1f), 0 6px 18px rgba(0, 0, 0, 0.7)
+  animation: boss-banner 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)
 
 .mutator-chip
   background: rgba(80, 20, 140, 0.75)

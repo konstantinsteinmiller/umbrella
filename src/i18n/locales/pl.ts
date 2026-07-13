@@ -132,6 +132,7 @@ export default {
     'body': 'Twoja armia walczyła dalej pod twoją nieobecność:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Przywraca 25% zdrowia wszystkich jednostek.", 'reviveGuard': "Przez 30 s każda poległa jednostka natychmiast odradza się z pełnym zdrowiem.", 'defender': "Zamienia najlepszą jednostkę walczącą wręcz w czołg na 2 min: 2× zdrowia, 80% mniej obrażeń.", 'meteor': "Zsyła deszcz meteorów na pole, rażąc wszystkich wrogów." },
     'mutationWave': "MUTACJA!",
     'overrunSetbackHint': "Te fale są dla ciebie za silne — najpierw rozbuduj armię na łatwiejszych falach.",
     'spells': { 'heal': "Leczenie", 'reviveGuard': "Straż Wskrzeszenia", 'defender': "Obrońca" },

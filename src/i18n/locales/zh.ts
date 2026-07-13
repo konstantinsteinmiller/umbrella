@@ -132,6 +132,7 @@ export default {
     'body': '你不在时，军队仍在奋战：'
   },
   'battle': {
+    'spellDesc': { 'heal': "恢复所有单位25%的生命值。", 'reviveGuard': "30秒内，任何倒下的单位立即满血复活。", 'defender': "将你最强的近战单位变为坦克2分钟：生命2倍，受伤减少80%。", 'meteor': "向战场降下陨石，重创所有敌人。" },
     'mutationWave': "变异来袭！",
     'overrunSetbackHint': "这些波次对你来说太强了——先在更简单的波次中壮大你的军队吧。",
     'spells': { 'heal': "治疗", 'reviveGuard': "复活守护", 'defender': "守护者" },

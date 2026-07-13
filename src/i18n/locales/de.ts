@@ -132,6 +132,7 @@ export default {
     'body': 'Deine Armee hat in deiner Abwesenheit weitergekämpft:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Stellt 25% der Gesundheit aller Einheiten wieder her.", 'reviveGuard': "30 Sek. lang wird jede fallende Einheit sofort mit voller Gesundheit wiederbelebt.", 'defender': "Verwandelt deine stärkste Nahkampfeinheit 2 Min. in einen Tank: 2× Gesundheit, 80% weniger Schaden.", 'meteor': "Lässt Meteore auf das Feld regnen und trifft alle Feinde." },
     'mutationWave': "MUTATION!",
     'overrunSetbackHint': "Diese Wellen sind zu stark für dich — baue deine Armee erst auf leichteren Wellen auf.",
     'spells': { 'heal': "Heilung", 'reviveGuard': "Wiederbelebungswacht", 'defender': "Verteidiger" },

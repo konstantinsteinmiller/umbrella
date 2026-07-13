@@ -4,12 +4,43 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="added 3 new spells&#10;mutation waves">
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="updates qal">
+      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-16.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-17.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-18.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-19.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-20.webp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/UpgradePanel.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/UpgradePanel.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/ingredients.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/ingredients.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/units.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/units.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/keys.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/keys.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useArtOverrides.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useArtOverrides.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/use/useBattle.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBattle.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useOfflineEarnings.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useOfflineEarnings.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/usePrismGame.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePrismGame.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,7 +85,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/konst/Documents/__p/merge-idle-war/public/images/attacks",
+    "last_opened_file_path": "C:/Users/konst/Documents/__p/merge-idle-war/public/images/units",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -69,11 +100,11 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\units" />
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\attacks" />
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\props" />
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\icons" />
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\logo" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\units" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\attacks" />
@@ -137,7 +168,7 @@
       <workItem from="1783084667113" duration="5029000" />
       <workItem from="1783090146748" duration="14108000" />
       <workItem from="1783174841876" duration="44152000" />
-      <workItem from="1783431359086" duration="38307000" />
+      <workItem from="1783431359086" duration="46154000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -267,7 +298,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783630210974</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="updates qal">
+      <option name="closed" value="true" />
+      <created>1783873685954</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1783873685954</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -298,6 +337,7 @@
     <MESSAGE value="removed old images" />
     <MESSAGE value="hot path opimization, removed Epicrolla art&#10;translation finishes - boss names" />
     <MESSAGE value="added 3 new spells&#10;mutation waves" />
-    <option name="LAST_COMMIT_MESSAGE" value="added 3 new spells&#10;mutation waves" />
+    <MESSAGE value="updates qal" />
+    <option name="LAST_COMMIT_MESSAGE" value="updates qal" />
   </component>
 </project>

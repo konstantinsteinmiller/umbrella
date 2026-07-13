@@ -123,7 +123,7 @@ export const clicksRequired = computed(() =>
 
 /** Spawn a recruit into a random empty slot (free — the cost is the tap
  *  metering in `tapSpawn`). The tier comes from the Recruits battle upgrade
- *  (T1 baseline, up to T4 maxed). Returns the slot index or -1. */
+ *  (T1 baseline, up to T16 maxed). Returns the slot index or -1. */
 export const spawnIngredient = (): number => {
   if (gridFull.value) return -1
   const idx = randomEmptyIndex()

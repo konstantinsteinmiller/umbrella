@@ -132,6 +132,7 @@ export default {
     'body': 'Siz yoʻqligingizda qoʻshiningiz jang qilishda davom etdi:'
   },
   'battle': {
+    'spellDesc': { 'heal': "Barcha jangchilar salomatligining 25%ini tiklaydi.", 'reviveGuard': "30 soniya davomida qulagan har bir jangchi darhol to'liq salomatlik bilan tiriladi.", 'defender': "Eng kuchli yaqin jang jangchisini 2 daqiqaga tankka aylantiradi: 2× salomatlik, 80% kam zarar.", 'meteor': "Maydonga meteorlar yog'diradi va barcha dushmanlarni uradi." },
     'mutationWave': "MUTATSIYA!",
     'overrunSetbackHint': "Bu toʻlqinlar siz uchun juda kuchli — avval qoʻshiningizni yengilroq toʻlqinlarda kuchaytiring.",
     'spells': { 'heal': "Davolash", 'reviveGuard': "Tiriltirish Qo'riqchisi", 'defender': "Himoyachi" },
