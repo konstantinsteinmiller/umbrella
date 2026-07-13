@@ -174,7 +174,7 @@ export default {
     },
     'codex': {
       'title': 'Codex des unités',
-      'names': { 't1': 'Étincelle de Magma', 't2': 'Tourbillon de Givre', 't3': 'Brute de Roche', 't4': 'Gardien Glaciaire', 't5': 'Goutte de Marée', 't6': 'Colosse de Pierre', 't7': 'Œil de Nébuleuse', 't8': 'Spectre du Vide', 't9': 'Serre Dorée', 't10': 'Souverain Phénix', 't11': "Seigneur de Guerre d'Obsidienne", 't12': "Titan Infernal", 't13': "Faucheur Ombral", 't14': "Léviathan de Magma", 't15': "Ascendant Cosmique" },
+      'names': { 't1': 'Étincelle de Magma', 't2': 'Tourbillon de Givre', 't3': 'Brute de Roche', 't4': 'Gardien Glaciaire', 't5': 'Goutte de Marée', 't6': 'Colosse de Pierre', 't7': 'Œil de Nébuleuse', 't8': 'Spectre du Vide', 't9': 'Serre Dorée', 't10': 'Souverain Phénix', 't11': "Seigneur de Guerre d'Obsidienne", 't12': "Titan Infernal", 't13': "Faucheur Ombral", 't14': "Léviathan de Magma", 't15': "Ascendant Cosmique", 't16': "Souverain des Tempêtes", 't17': "Gardien Abyssal", 't18': "Béhémoth en Fusion", 't19': "Dévoreur Astral", 't20': "Divinité Éternelle" },
       'locked': 'Fusionnez deux unités de niveau {n} pour la découvrir !',
       'abilities': {
         'none': 'Une étincelle en fusion : rapide, intrépide, toujours en tête.',

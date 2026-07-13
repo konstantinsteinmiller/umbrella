@@ -174,7 +174,7 @@ export default {
     },
     'codex': {
       'title': 'Birliklar kodeksi',
-      'names': { 't1': 'Magma uchquni', 't2': 'Muzli quyun', 't3': 'Tosh gʻaddori', 't4': 'Muzlik posboni', 't5': 'Toshqin tomchisi', 't6': 'Qoyatosh koloss', 't7': 'Tumanlik koʻzi', 't8': 'Boʻshliq arvohi', 't9': 'Oltin panja', 't10': 'Feniks hukmdori', 't11': 'Obsidian sarkardasi', 't12': "Do'zax Titani", 't13': "Soya O'roqchisi", 't14': "Magma Leviafani", 't15': "Kosmik Yuksalgan" },
+      'names': { 't1': 'Magma uchquni', 't2': 'Muzli quyun', 't3': 'Tosh gʻaddori', 't4': 'Muzlik posboni', 't5': 'Toshqin tomchisi', 't6': 'Qoyatosh koloss', 't7': 'Tumanlik koʻzi', 't8': 'Boʻshliq arvohi', 't9': 'Oltin panja', 't10': 'Feniks hukmdori', 't11': 'Obsidian sarkardasi', 't12': "Do'zax Titani", 't13': "Soya O'roqchisi", 't14': "Magma Leviafani", 't15': "Kosmik Yuksalgan", 't16': "Boʻron Hukmdori", 't17': "Tubsizlik Qorovuli", 't18': "Erigan Behemot", 't19': "Astral Yutuvchi", 't20': "Abadiy Xudolik" },
       'locked': 'Kashf qilish uchun ikkita {n}-daraja birlashtiring!',
       'abilities': {
         'none': 'Erigan uchqun — tez, qoʻrqmas va doim oldinda.',

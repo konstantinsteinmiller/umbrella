@@ -75,11 +75,11 @@ const HIGH_TIER_DEFS: Record<number, Partial<FighterDef>> = {
   19: { range: 38, attackInterval: 1.4, ability: 'chain' }
 }
 
-// Highest tier the Unit Codex lists: 1-11 are authored in FIGHTER_DEFS, 12-15
+// Highest tier the Unit Codex lists: 1-11 are authored in FIGHTER_DEFS, 12-20
 // extrapolate their stats via getFighterDef but carry authored art + localized
-// names (`battle.codex.names.t12..t15`). Tiers past this still merge/extrapolate
+// names (`battle.codex.names.t12..t20`). Tiers past this still merge/extrapolate
 // in-game; they're just beyond the illustrated bestiary.
-export const CODEX_MAX_TIER = 15
+export const CODEX_MAX_TIER = 20
 
 export const getFighterDef = (tier: number): FighterDef => {
   if (tier <= FIGHTER_DEFS.length) return FIGHTER_DEFS[Math.max(0, tier - 1)]!

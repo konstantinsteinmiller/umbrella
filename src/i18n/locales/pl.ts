@@ -174,7 +174,7 @@ export default {
     },
     'codex': {
       'title': 'Kodeks jednostek',
-      'names': { 't1': 'Iskra Magmy', 't2': 'Lodowy Wir', 't3': 'Skalny Brutal', 't4': 'Lodowcowy Strażnik', 't5': 'Kropla Przypływu', 't6': 'Kamienny Kolos', 't7': 'Oko Mgławicy', 't8': 'Widmo Pustki', 't9': 'Złoty Szpon', 't10': 'Władca Feniks', 't11': 'Obsydianowy Wódz', 't12': "Piekielny Tytan", 't13': "Mroczny Żniwiarz", 't14': "Lewiatan Magmy", 't15': "Kosmiczny Wniebowstąpiony" },
+      'names': { 't1': 'Iskra Magmy', 't2': 'Lodowy Wir', 't3': 'Skalny Brutal', 't4': 'Lodowcowy Strażnik', 't5': 'Kropla Przypływu', 't6': 'Kamienny Kolos', 't7': 'Oko Mgławicy', 't8': 'Widmo Pustki', 't9': 'Złoty Szpon', 't10': 'Władca Feniks', 't11': 'Obsydianowy Wódz', 't12': "Piekielny Tytan", 't13': "Mroczny Żniwiarz", 't14': "Lewiatan Magmy", 't15': "Kosmiczny Wniebowstąpiony", 't16': "Władca Burzy", 't17': "Strażnik Otchłani", 't18': "Roztopiony Behemot", 't19': "Astralny Pożeracz", 't20': "Wieczne Bóstwo" },
       'locked': 'Połącz dwie jednostki poziomu {n}, aby odkryć!',
       'abilities': {
         'none': 'Roztopiona iskra — szybki, nieustraszony, zawsze na czele.',

@@ -4,17 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="updates qal">
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-16.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-17.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-18.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-19.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/public/images/units/fighter-20.webp" afterDir="false" />
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="add fighter 16-20 and spell notifications explaining spell effects.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/UpgradePanel.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/UpgradePanel.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game/ingredients.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/ingredients.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game/units.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/units.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
@@ -37,10 +29,6 @@
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/keys.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/keys.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useArtOverrides.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useArtOverrides.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useBattle.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBattle.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/usePrismGame.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePrismGame.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,24 +68,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/konst/Documents/__p/merge-idle-war/public/images/units",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "pnpm",
-    "npm.build:crazy-web.executor": "Run",
-    "npm.build:playgama.executor": "Run",
-    "npm.dev.executor": "Run",
-    "ts.external.directory.path": "C:\\Users\\konst\\Documents\\__p\\merge-idle-war\\node_modules\\typescript\\lib",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/merge-idle-war/public/images/units&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;npm.build:crazy-web.executor&quot;: &quot;Run&quot;,
+    &quot;npm.build:playgama.executor&quot;: &quot;Run&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\konst\\Documents\\__p\\merge-idle-war\\node_modules\\typescript\\lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\units" />
@@ -168,7 +156,7 @@
       <workItem from="1783084667113" duration="5029000" />
       <workItem from="1783090146748" duration="14108000" />
       <workItem from="1783174841876" duration="44152000" />
-      <workItem from="1783431359086" duration="46154000" />
+      <workItem from="1783431359086" duration="47278000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -306,7 +294,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783873685954</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="add fighter 16-20 and spell notifications explaining spell effects.">
+      <option name="closed" value="true" />
+      <created>1783947977070</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1783947977070</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -338,6 +334,7 @@
     <MESSAGE value="hot path opimization, removed Epicrolla art&#10;translation finishes - boss names" />
     <MESSAGE value="added 3 new spells&#10;mutation waves" />
     <MESSAGE value="updates qal" />
-    <option name="LAST_COMMIT_MESSAGE" value="updates qal" />
+    <MESSAGE value="add fighter 16-20 and spell notifications explaining spell effects." />
+    <option name="LAST_COMMIT_MESSAGE" value="add fighter 16-20 and spell notifications explaining spell effects." />
   </component>
 </project>

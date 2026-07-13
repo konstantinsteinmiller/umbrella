@@ -174,7 +174,7 @@ export default {
     },
     'codex': {
       'title': 'Birim Kodeksi',
-      'names': { 't1': 'Magma Kıvılcımı', 't2': 'Buz Kasırgası', 't3': 'Kaya Kabadayısı', 't4': 'Buzul Muhafızı', 't5': 'Gelgit Damlası', 't6': 'Taş Devi', 't7': 'Bulutsu Gözü', 't8': 'Boşluk Hayaleti', 't9': 'Altın Pençe', 't10': 'Anka Hükümdarı', 't11': 'Obsidyen Savaş Lordu', 't12': "Cehennem Titanı", 't13': "Gölge Orakçısı", 't14': "Magma Leviathanı", 't15': "Kozmik Yücelen" },
+      'names': { 't1': 'Magma Kıvılcımı', 't2': 'Buz Kasırgası', 't3': 'Kaya Kabadayısı', 't4': 'Buzul Muhafızı', 't5': 'Gelgit Damlası', 't6': 'Taş Devi', 't7': 'Bulutsu Gözü', 't8': 'Boşluk Hayaleti', 't9': 'Altın Pençe', 't10': 'Anka Hükümdarı', 't11': 'Obsidyen Savaş Lordu', 't12': "Cehennem Titanı", 't13': "Gölge Orakçısı", 't14': "Magma Leviathanı", 't15': "Kozmik Yücelen", 't16': "Fırtına Hükümdarı", 't17': "Uçurum Bekçisi", 't18': "Eriyik Behemot", 't19': "Astral Yutucu", 't20': "Ebedi Tanrı" },
       'locked': 'Keşfetmek için iki Seviye {n} birleştir!',
       'abilities': {
         'none': 'Erimiş bir kıvılcım — hızlı, korkusuz ve hep en önde.',

@@ -128,7 +128,7 @@ export default {
     },
     'codex': {
       'title': 'Kodeks Unit',
-      'names': { 't1': 'Percik Magma', 't2': 'Pusaran Beku', 't3': 'Bruto Batu', 't4': 'Penjaga Gletser', 't5': 'Tetes Pasang', 't6': 'Kolosus Batu', 't7': 'Mata Nebula', 't8': 'Arwah Kehampaan', 't9': 'Cakar Emas', 't10': 'Penguasa Feniks', 't11': 'Panglima Obsidian', 't12': "Titan Neraka", 't13': "Pencabut Bayangan", 't14': "Leviathan Magma", 't15': "Perwujudan Kosmik" },
+      'names': { 't1': 'Percik Magma', 't2': 'Pusaran Beku', 't3': 'Bruto Batu', 't4': 'Penjaga Gletser', 't5': 'Tetes Pasang', 't6': 'Kolosus Batu', 't7': 'Mata Nebula', 't8': 'Arwah Kehampaan', 't9': 'Cakar Emas', 't10': 'Penguasa Feniks', 't11': 'Panglima Obsidian', 't12': "Titan Neraka", 't13': "Pencabut Bayangan", 't14': "Leviathan Magma", 't15': "Perwujudan Kosmik", 't16': "Penguasa Badai", 't17': "Penjaga Jurang", 't18': "Behemoth Cair", 't19': "Pelahap Astral", 't20': "Ketuhanan Abadi" },
       'locked': 'Gabungkan dua Tingkat {n} untuk menemukan!',
       'abilities': {
         'none': 'Percikan lelehan — cepat, tanpa takut, selalu terdepan.',

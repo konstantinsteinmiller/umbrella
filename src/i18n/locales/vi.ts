@@ -174,7 +174,7 @@ export default {
     },
     'codex': {
       'title': 'Sổ tay đơn vị',
-      'names': { 't1': 'Tia Dung Nham', 't2': 'Lốc Băng Giá', 't3': 'Gã Đá Hung Bạo', 't4': 'Vệ Binh Băng Hà', 't5': 'Giọt Thủy Triều', 't6': 'Khổng Lồ Đá', 't7': 'Mắt Tinh Vân', 't8': 'Bóng Ma Hư Không', 't9': 'Móng Vuốt Vàng', 't10': 'Phượng Hoàng Chúa Tể', 't11': 'Lãnh Chúa Hắc Diện Thạch', 't12': "Titan Địa Ngục", 't13': "Tử Thần Bóng Tối", 't14': "Thủy Quái Dung Nham", 't15': "Đấng Thăng Thiên Vũ Trụ" },
+      'names': { 't1': 'Tia Dung Nham', 't2': 'Lốc Băng Giá', 't3': 'Gã Đá Hung Bạo', 't4': 'Vệ Binh Băng Hà', 't5': 'Giọt Thủy Triều', 't6': 'Khổng Lồ Đá', 't7': 'Mắt Tinh Vân', 't8': 'Bóng Ma Hư Không', 't9': 'Móng Vuốt Vàng', 't10': 'Phượng Hoàng Chúa Tể', 't11': 'Lãnh Chúa Hắc Diện Thạch', 't12': "Titan Địa Ngục", 't13': "Tử Thần Bóng Tối", 't14': "Thủy Quái Dung Nham", 't15': "Đấng Thăng Thiên Vũ Trụ", 't16': "Chúa Tể Bão Tố", 't17': "Người Gác Vực Thẳm", 't18': "Behemoth Nóng Chảy", 't19': "Kẻ Nuốt Chửng Tinh Tú", 't20': "Thần Thể Vĩnh Hằng" },
       'locked': 'Hợp nhất hai đơn vị bậc {n} để khám phá!',
       'abilities': {
         'none': 'Tia lửa nóng chảy — nhanh nhẹn, gan dạ, luôn đi đầu.',
