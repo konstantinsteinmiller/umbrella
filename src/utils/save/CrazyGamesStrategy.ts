@@ -8,6 +8,7 @@ import {
   type SaveMeta
 } from './SaveMergePolicy'
 import type {
+  FlushOptions,
   HydrateNotice,
   HydrateNoticeListener,
   HydrateState,
@@ -37,9 +38,19 @@ import type {
 //   3. When hydrate fails, schedule a background retry ladder
 //      (5s → 15s → 45s → 2m → 5m → 15m loop) so a brief outage at boot
 //      heals on its own without requiring the player to relaunch.
+//   4. Remote pushes are RATE LIMITED to one every REMOTE_MIN_INTERVAL_MS.
+//      Merge-idle gameplay writes constantly (every unit merge, every
+//      spawn, every imp step persists the grid), and each of those became
+//      its own `sdk.data` round-trip once the 250ms debounce elapsed —
+//      several writes per second against the CG backend. Writes still
+//      coalesce into the dirty queue at full speed; only the push to the
+//      SDK is throttled. The unload path (`flush()` with the default
+//      `immediate: true`) bypasses the limit so nothing is lost on close.
 
 const KEYS_MANIFEST = '__save_internal__crazy_keys'
 const FLUSH_DELAY_MS = 250
+/** Minimum wall-clock gap between two pushes to `sdk.data`. */
+const REMOTE_MIN_INTERVAL_MS = 5_000
 const HYDRATE_RETRY_DELAYS_MS = [5_000, 15_000, 45_000, 120_000, 300_000]
 const HYDRATE_RETRY_LOOP_MS = 900_000
 
@@ -71,6 +82,9 @@ export class CrazyGamesStrategy implements SaveStrategy {
   private local: LocalStorageAccessor | null = null
   private dirty = new Map<string, string | null>()
   private flushTimer: ReturnType<typeof setTimeout> | null = null
+  /** Wall-clock ms of the last push that actually reached `sdk.data`.
+   *  `0` means "never pushed", so the first flush is never delayed. */
+  private lastRemotePushAt = 0
   private retryAttempt = 0
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   private noticeListeners = new Set<HydrateNoticeListener>()
@@ -125,7 +139,20 @@ export class CrazyGamesStrategy implements SaveStrategy {
     this.scheduleFlush()
   }
 
-  async flush(): Promise<void> {
+  /**
+   * Push pending writes to `sdk.data`.
+   *
+   * Default (`immediate: true`) bypasses the rate limit — that's the
+   * page-hide / unload path, where waiting means losing the data.
+   * `immediate: false` is the checkpoint flush (`flushSaveNow`): it pushes
+   * right away when the rate-limit window is open, otherwise it just makes
+   * sure a push is scheduled for the earliest allowed moment.
+   */
+  async flush(opts: FlushOptions = {}): Promise<void> {
+    if (opts.immediate === false && this.remoteCooldownMs() > 0) {
+      this.scheduleFlush()
+      return
+    }
     if (this.flushTimer) {
       clearTimeout(this.flushTimer)
       this.flushTimer = null
@@ -363,10 +390,22 @@ export class CrazyGamesStrategy implements SaveStrategy {
   private scheduleFlush(): void {
     if (this.flushTimer !== null) return
     if (!this.canFlush()) return
+    // Short debounce normally; stretched out to whatever the rate limit
+    // still owes when gameplay is writing faster than once per interval.
+    // Everything written in the meantime keeps piling into `dirty`, so the
+    // deferred push carries the newest value of every key — one round-trip
+    // instead of one per merge/spawn.
+    const delay = Math.max(FLUSH_DELAY_MS, this.remoteCooldownMs())
     this.flushTimer = setTimeout(() => {
       this.flushTimer = null
       void this.doFlush()
-    }, FLUSH_DELAY_MS)
+    }, delay)
+  }
+
+  /** Ms remaining before another push to `sdk.data` is allowed (0 = now). */
+  private remoteCooldownMs(): number {
+    if (this.lastRemotePushAt === 0) return 0
+    return Math.max(0, REMOTE_MIN_INTERVAL_MS - (Date.now() - this.lastRemotePushAt))
   }
 
   /** Hard guard: NEVER push to remote unless we successfully observed
@@ -382,6 +421,11 @@ export class CrazyGamesStrategy implements SaveStrategy {
     const data = this.getData()
     if (!data) return
     if (this.dirty.size === 0) return
+
+    // Stamp before the awaits: the interval is measured from when a push
+    // starts, so a slow SDK round-trip can't let a second push queue up
+    // behind it and fire the instant it resolves.
+    this.lastRemotePushAt = Date.now()
 
     // Refresh META from current local state and queue it alongside the
     // gameplay-key writes so remote always carries a self-describing

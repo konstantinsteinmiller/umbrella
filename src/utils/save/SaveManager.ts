@@ -1,4 +1,5 @@
 import type {
+  FlushOptions,
   HydrateNoticeListener,
   HydrateState,
   LocalStorageAccessor,
@@ -209,9 +210,12 @@ export class SaveManager {
     this.fireBootComplete()
   }
 
-  /** Flush any pending writes. Best-effort — safe to await on unload. */
-  async flush(): Promise<void> {
-    await this.strategy.flush?.()
+  /** Flush any pending writes. Best-effort — safe to await on unload.
+   *  Defaults to an immediate push; pass `{ immediate: false }` for a
+   *  checkpoint flush that still honours the strategy's remote rate
+   *  limit (see `FlushOptions`). */
+  async flush(opts?: FlushOptions): Promise<void> {
+    await this.strategy.flush?.(opts)
   }
 
   /** Release timers / listeners held by the strategy. */

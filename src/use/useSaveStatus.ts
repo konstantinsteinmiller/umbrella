@@ -59,11 +59,18 @@ const bumpSaveDataVersion = (): void => {
  * stage and reloads a moment later lands back on the old stage. Starting the
  * push the instant the stage advances gives the cloud write the time it needs.
  * Fire-and-forget (`void`) so callers never block the UI on the network.
+ *
+ * `immediate: false` keeps step 2 inside the strategy's remote rate limit
+ * (CrazyGames: one push per 5s). Checkpoints fire in bursts during a wave —
+ * mission ticks, achievement unlocks, merges, spawns — and letting each one
+ * bypass the limit would defeat it. The push still happens within the
+ * interval, and the `pagehide` / tab-hide handlers in `main.ts` use the
+ * unthrottled `flush()`, so an actual reload or close still drains first.
  */
 export const flushSaveNow = async (): Promise<void> => {
   flushPersist()
   try {
-    await manager?.flush()
+    await manager?.flush({ immediate: false })
   } catch (e) {
     console.warn('[save] flushSaveNow failed', e)
   }

@@ -158,6 +158,74 @@ describe('CrazyGamesStrategy (per-key)', () => {
     expect(meta.maxStage).toBe(4)
   })
 
+  // ─── Remote rate limit (CG backend load) ────────────────────────────────
+  // Merge-idle gameplay persists the grid on every merge AND every spawn —
+  // plus the imp doing both on its own cadence. Each of those used to become
+  // its own `sdk.data` round-trip once the 250ms debounce elapsed, i.e.
+  // several writes per second at the CG backend. The strategy now pushes at
+  // most once per 5s; writes keep coalescing into the dirty queue meanwhile.
+
+  /** Drive one push so the rate-limit clock starts, then reset the spy. */
+  const primeFirstPush = async (data: ReturnType<typeof makeFakeData>) => {
+    window.localStorage.setItem(SAVE_KEYS.COINS, '1')
+    await vi.advanceTimersByTimeAsync(250)
+    expect(data.store.get(SAVE_KEYS.COINS)).toBe('1')
+    data.setItem.mockClear()
+  }
+
+  it('pushes at most once per 5s during a merge/spawn burst', async () => {
+    const data = makeFakeData()
+    const manager = new SaveManager(new CrazyGamesStrategy(() => data))
+    await initWithFakeTimers(manager)
+    await primeFirstPush(data)
+
+    // 8 writes spaced 400ms apart — each one clears the old 250ms debounce
+    // on its own, so pre-throttle this was 8 separate round-trips.
+    for (let i = 2; i <= 9; i++) {
+      window.localStorage.setItem(SAVE_KEYS.COINS, String(i))
+      await vi.advanceTimersByTimeAsync(400)
+    }
+
+    // 3.2s of continuous writing, still inside the interval → SDK untouched.
+    expect(data.setItem).not.toHaveBeenCalled()
+    expect(data.store.get(SAVE_KEYS.COINS)).toBe('1')
+
+    // Crossing the interval pushes ONE batch carrying the newest value.
+    await vi.advanceTimersByTimeAsync(2_000)
+    expect(data.store.get(SAVE_KEYS.COINS)).toBe('9')
+    const gameplayWrites = data.setItem.mock.calls.filter(c => c[0] === SAVE_KEYS.COINS)
+    expect(gameplayWrites).toHaveLength(1)
+  })
+
+  it('a checkpoint flush waits out the rate limit rather than pushing', async () => {
+    const data = makeFakeData()
+    const manager = new SaveManager(new CrazyGamesStrategy(() => data))
+    await initWithFakeTimers(manager)
+    await primeFirstPush(data)
+
+    window.localStorage.setItem(SAVE_KEYS.COINS, '2')
+    await manager.flush({ immediate: false })
+    expect(data.setItem).not.toHaveBeenCalled()
+
+    // …but it IS scheduled, and lands inside the 5s window.
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(data.store.get(SAVE_KEYS.COINS)).toBe('2')
+  })
+
+  it('an unload flush bypasses the rate limit', async () => {
+    // pagehide / tab-hide: the process may die next tick, so the push must
+    // not be deferred no matter how recently the last one went out.
+    const data = makeFakeData()
+    const manager = new SaveManager(new CrazyGamesStrategy(() => data))
+    await initWithFakeTimers(manager)
+    await primeFirstPush(data)
+
+    window.localStorage.setItem(SAVE_KEYS.COINS, '2')
+    await manager.flush()
+
+    expect(data.store.get(SAVE_KEYS.COINS)).toBe('2')
+  })
+
   // ─── Settings-stranding regression ──────────────────────────────────────
   // Background: useUser.ts holds language / difficulty / sound-volume /
   // music-volume in module-level Vue refs. The composable only writes a

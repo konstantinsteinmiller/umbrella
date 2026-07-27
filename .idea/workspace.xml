@@ -4,81 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="add fighter 16-20 and spell notifications explaining spell effects.">
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover-logo_1920x1080.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover-logo_800x1200.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover-logo_800x800.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover_1024x1024.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover_1920x1080.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover_800x1200.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover_800x1200.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/assets/promotion/A-B/cover_800x800.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env.crazy-web" beforeDir="false" afterPath="$PROJECT_DIR$/.env.crazy-web" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GDD.md" beforeDir="false" afterPath="$PROJECT_DIR$/GDD.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/description.md" beforeDir="false" afterPath="$PROJECT_DIR$/description.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game-implementation-plan.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/retention-roadmap.md" beforeDir="false" afterPath="$PROJECT_DIR$/retention-roadmap.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/App.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1080x1920.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1080x1920.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1920x1080.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1920x1080.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1920x1080.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_1920x1080.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_512x384.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_512x384.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x1200.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x1200.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x800.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x800.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x800.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover-logo_800x800.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1024x1024.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1024x1024.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1080x1920.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1080x1920.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1080x1920.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1080x1920.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1360x850.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1360x850.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1920x1080.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1920x1080.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1920x1080.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1920x1080.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_800x1200.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_800x1200.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_800x1200.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_800x1200.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_800x800.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_800x800.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_1280x550.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_1280x550.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_1280x720.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_1280x720.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_200x120.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_200x120.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_512x340.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_512x340.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_512x384.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_512x384.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_512x512.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/cover-logo_512x512.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_1280x550.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_1280x550.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_1280x720.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_1280x720.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_200x120.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_200x120.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_512x340.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_512x340.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_512x384.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_512x384.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_512x512.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/gamemonetize/tinified/cover-logo_512x512.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/merge-idle-war-preview_400x225.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/merge-idle-war-preview_400x225.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/merge-idle-war-promotion_800x450.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/merge-idle-war-promotion_800x450.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/screen-1.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/screen-1.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/screen-2.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/screen-2.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/screen-3.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/screen-3.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/tinified/cover-logo_1920x1080.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/tinified/cover-logo_1920x1080.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/tinified/cover-logo_800x1200.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/tinified/cover-logo_800x1200.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/tinified/cover-logo_800x800.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/tinified/cover-logo_800x800.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/merge-idle-war-landscape-hd.mkv" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/video/merge-idle-war-landscape-hd.mkv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/merge-idle-war-landscape-hd.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/video/merge-idle-war-landscape-hd.mp4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/merge-idle-war-portrait-hd.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/video/merge-idle-war-portrait-hd.mp4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/video/merge-idle-war-portrait-uncut-hd.mkv" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/video/merge-idle-war-portrait-uncut-hd.mkv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/CoinBadge.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/CoinBadge.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/MergeGrid.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/MergeGrid.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useAds.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAds.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useCrazyGames.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCrazyGames.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useGamePause.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useGamePause.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useGamePauseAudio.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useGamePauseAudio.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useModalGameplayGate.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useModalGameplayGate.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useModalState.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useModalState.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/usePrismGame.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePrismGame.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useSound.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useSound.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/platforms/useGamePauseAudio.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/useGamePauseAudio.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vitest.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/vitest.config.ts" afterDir="false" />
-    </list>
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="add fighter 16-20 and spell notifications explaining spell effects." />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -214,7 +140,7 @@
       <workItem from="1784492245294" duration="6000" />
       <workItem from="1784646204925" duration="3770000" />
       <workItem from="1785160828434" duration="732000" />
-      <workItem from="1785166586243" duration="2257000" />
+      <workItem from="1785166586243" duration="2552000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -368,7 +294,15 @@
       <option name="project" value="LOCAL" />
       <updated>1783948858325</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="add fighter 16-20 and spell notifications explaining spell effects.">
+      <option name="closed" value="true" />
+      <created>1785170457081</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1785170457081</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

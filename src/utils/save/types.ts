@@ -63,6 +63,24 @@ export interface HydrateNotice {
 
 export type HydrateNoticeListener = (notice: HydrateNotice) => void
 
+/** Options for an explicit `SaveStrategy.flush()`. */
+export interface FlushOptions {
+  /**
+   * Bypass any rate limit the strategy applies to remote writes.
+   *
+   * `true` (the default) — push NOW. Reserved for the page-hide / unload
+   * path, where the JS process is about to die and a delayed write would
+   * simply be lost.
+   *
+   * `false` — "checkpoint" flush: push as soon as the strategy's rate
+   * limit allows. Used by `flushSaveNow()`, which fires on discrete
+   * progression events that can arrive in bursts (merge, spawn, mission
+   * tick, achievement unlock). Without the rate limit those bursts hammer
+   * the backend with several writes per second.
+   */
+  immediate?: boolean
+}
+
 export interface SaveStrategy {
   /** Short human-readable name used in logs and for testing. */
   readonly name: string
@@ -119,8 +137,10 @@ export interface SaveStrategy {
   /** Companion to onLocalSet for removals. */
   onLocalRemove(key: string): void
 
-  /** Flush any pending writes. Optional — best-effort on page unload. */
-  flush?(): Promise<void>
+  /** Flush any pending writes. Optional — best-effort on page unload.
+   *  Pass `{ immediate: false }` for a checkpoint flush that should still
+   *  respect the strategy's remote rate limit. */
+  flush?(opts?: FlushOptions): Promise<void>
 
   /** Release resources (timers, listeners). Optional. */
   dispose?(): void
