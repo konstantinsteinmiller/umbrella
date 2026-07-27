@@ -25,7 +25,7 @@ import useEpicConfig from '@/use/useEpicConfig'
 import useScreenshake from '@/use/useScreenshake'
 import { zoneRect } from '@/use/useDropZones'
 import useReward, { formatCost } from '@/use/useReward'
-import { isMobileLandscape, isMobilePortrait, windowWidth, windowHeight } from '@/use/useUser'
+import { isMobileLandscape, isMobilePortrait, isCompactHud, isUltraCompactHud, windowWidth, windowHeight } from '@/use/useUser'
 import { artSrc } from '@/use/useArtOverrides'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 
@@ -101,6 +101,34 @@ const sideBySide = computed(() =>
   // Wide desktop landscape (width > 1.5× height): grid-on-the-right, like mobile.
   || windowWidth.value > windowHeight.value * 1.5
 )
+
+// ─── Top-bar height reserve ─────────────────────────────────────────────────
+//
+// The top bar (wave badge + gold wallet) is teleported to <body>, so the scene
+// has to reserve its height as padding. That reserve used to be a hard-coded
+// `3.4rem` — which meant shrinking the badges on tiny viewports gave the merge
+// grid nothing back, the exact "scaling down still keeps the original space in
+// the flow" problem. Measuring the real bar instead makes the reserve track
+// whatever the bar currently costs, and it self-corrects for two other cases a
+// constant can't: a mutation wave adding the MUTATION tag, and locales whose
+// "next chest / new enemy" strings wrap to a second line.
+//
+// `offsetHeight` already includes the bar's own safe-area top padding, so the
+// inset must NOT be added again here. The literal is kept only as the
+// pre-measurement fallback (and for browsers without ResizeObserver).
+const topBarEl = ref<HTMLElement | null>(null)
+const topBarH = ref(0)
+let topBarRo: ResizeObserver | null = null
+
+const contentPadTop = computed(() => topBarH.value > 0
+  ? `calc(${topBarH.value}px + 0.25rem)`
+  : 'calc(3.4rem + env(safe-area-inset-top, 0px))')
+
+/** Top bar's own top padding — trimmed on compact so the bar itself doesn't
+ *  waste height above the shrunken badges. Kept in the script (not an inline
+ *  template literal) to match `utilityBottom` and stay pug-safe. */
+const topBarPadTop = computed(() =>
+  `calc(${isCompactHud.value ? '0.15rem' : '0.4rem'} + env(safe-area-inset-top, 0px))`)
 
 // ─── Spawn ──────────────────────────────────────────────────────────────────
 const spawnFlash = ref(false)
@@ -227,6 +255,16 @@ const flyGold = (gold: number): void => {
 }
 onMounted(() => {
   startBattleMusic()
+  // Track the teleported top bar's real height so the content reserve above
+  // follows it (compact shrink, mutation tag, wrapped translations).
+  const el = topBarEl.value
+  if (!el) return
+  const measure = (): void => { topBarH.value = el.offsetHeight }
+  measure()
+  if (typeof ResizeObserver !== 'undefined') {
+    topBarRo = new ResizeObserver(measure)
+    topBarRo.observe(el)
+  }
 })
 // Battle-pass / achievement claim VFX: coins fly from the card to the wallet.
 const onBpCoins = (sourceEl: HTMLElement): void => {
@@ -258,6 +296,8 @@ watch(achievementToast, (v) => {
 
 onUnmounted(() => {
   stopBattleMusic()
+  topBarRo?.disconnect()
+  topBarRo = null
   window.clearTimeout(bossOfferTimer)
   window.clearTimeout(warChestPulseTimer)
   window.clearTimeout(achToastTimer)
@@ -277,34 +317,67 @@ onUnmounted(() => {
     //- with a hidden wallet reads as "the coins never arrived".
     Teleport(to="body")
       div.fixed.top-0.left-0.right-0.flex.items-center.justify-between(
-        class="px-2 py-1 z-[55]"
+        ref="topBarEl"
+        class="px-2 z-[55]"
+        :class="isCompactHud ? 'py-0' : 'py-1'"
         :style="{\
-          paddingTop: 'calc(0.4rem + env(safe-area-inset-top, 0px))',\
+          paddingTop: topBarPadTop,\
           paddingLeft: 'calc(0.5rem + env(safe-area-inset-left, 0px))',\
           paddingRight: 'calc(0.5rem + env(safe-area-inset-right, 0px))'\
         }"
       )
         //- Wave badge (+ next-chest / new-enemy pips, roadmap #4). On a MUTATION
         //- wave it flips to a glowing purple + shows a MUTATION tag.
-        div.flex.flex-col.items-start(class="gap-0.5")
+        //- On `isCompactHud` viewports every dimension shrinks for real —
+        //- font sizes, the flag icon, padding, borders and gaps — rather than
+        //- via `transform: scale()`, which would keep the original box in the
+        //- top bar and hand none of the height back to the merge grid.
+        div.flex.flex-col.items-start(:class="isCompactHud ? 'gap-0' : 'gap-0.5'")
           div.relative
-            div.absolute.inset-0.translate-y-1.rounded-xl(:class="battle.waveMutated.value ? 'bg-[#3a1080]' : 'bg-[#7a1c1c]'")
-            div.relative.flex.items-center.gap-2.rounded-xl.border-2.px-3(
-              class="py-1.5"
-              :class="battle.waveMutated.value ? 'mutated-badge bg-gradient-to-b from-[#d24bff] to-[#7a1fd0] border-[#e9b6ff]' : 'bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]'"
+            div.absolute.inset-0.rounded-xl(
+              :class="[\
+                battle.waveMutated.value ? 'bg-[#3a1080]' : 'bg-[#7a1c1c]',\
+                isCompactHud ? 'translate-y-0.5' : 'translate-y-1'\
+              ]"
             )
-              svg(viewBox="0 0 24 24" class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round")
+            div.relative.flex.items-center.rounded-xl(
+              :class="[\
+                battle.waveMutated.value ? 'mutated-badge bg-gradient-to-b from-[#d24bff] to-[#7a1fd0] border-[#e9b6ff]' : 'bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]',\
+                isCompactHud ? 'gap-1 border px-1.5 py-0.5' : 'gap-2 border-2 px-3 py-1.5'\
+              ]"
+            )
+              svg(
+                viewBox="0 0 24 24"
+                class="text-white"
+                :class="isCompactHud ? 'w-3.5 h-3.5' : 'w-5 h-5 sm:w-6 sm:h-6'"
+                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+              )
                 path(d="M5 21 L5 4 L13 4 L12 7 L19 7 L19 14 L11 14 L12 11 L5 11")
-              span.text-white.font-black.game-text(class="text-xs sm:text-base") {{ t('battle.wave', { n: battle.wave.value }) }}
-              span.text-yellow-200.font-black.game-text(class="text-[10px] sm:text-sm opacity-90") {{ t('battle.best', { n: battle.bestWave.value }) }}
+              span.text-white.font-black.game-text(
+                :class="isCompactHud ? 'text-[10px] leading-none' : 'text-xs sm:text-base'"
+              ) {{ t('battle.wave', { n: battle.wave.value }) }}
+              span.text-yellow-200.font-black.game-text.opacity-90(
+                :class="isCompactHud ? 'text-[8px] leading-none' : 'text-[10px] sm:text-sm'"
+              ) {{ t('battle.best', { n: battle.bestWave.value }) }}
               //- Mutation marker — only on a mutated wave.
               span.rounded.font-black.game-text.uppercase.leading-none.mutated-tag(
                 v-if="battle.waveMutated.value"
-                class="text-[8px] sm:text-[10px] px-1 py-0.5 bg-[#3a0d66] text-fuchsia-100 border border-fuchsia-300"
+                class="bg-[#3a0d66] text-fuchsia-100 border border-fuchsia-300"
+                :class="isCompactHud ? 'text-[7px] px-0.5 py-0' : 'text-[8px] sm:text-[10px] px-1 py-0.5'"
               ) {{ t('battle.mutationWave') }}
-          div.flex.gap-2.px-1
-            span.game-text.font-black.text-yellow-200.drop-shadow(class="text-[9px] sm:text-[11px]") {{ t('battle.nextChest', { n: nextChestWave }) }}
-            span.game-text.font-black.text-red-300.drop-shadow(v-if="nextEnemyWave" class="text-[9px] sm:text-[11px]") {{ t('battle.newEnemyAt', { n: nextEnemyWave }) }}
+          //- Teaser pips. On compact they stay (they're the "one more wave"
+          //- bait) but drop to 8px with a tight gap so the whole stack costs
+          //- ~11px instead of ~18px. Under 320px they go entirely — pure teaser
+          //- chrome is the first thing to yield, and dropping the second line
+          //- takes the whole top bar down to just the badge row.
+          div.flex(v-if="!isUltraCompactHud" :class="isCompactHud ? 'gap-1 px-0.5' : 'gap-2 px-1'")
+            span.game-text.font-black.text-yellow-200.drop-shadow(
+              :class="isCompactHud ? 'text-[8px] leading-tight' : 'text-[9px] sm:text-[11px]'"
+            ) {{ t('battle.nextChest', { n: nextChestWave }) }}
+            span.game-text.font-black.text-red-300.drop-shadow(
+              v-if="nextEnemyWave"
+              :class="isCompactHud ? 'text-[8px] leading-tight' : 'text-[9px] sm:text-[11px]'"
+            ) {{ t('battle.newEnemyAt', { n: nextEnemyWave }) }}
         //- Gold counter
         CoinBadge(ref="coinBadgeRef")
 
@@ -312,7 +385,7 @@ onUnmounted(() => {
     div.absolute.inset-0.flex.min-h-0(
       :class="sideBySide ? 'flex-row' : 'flex-col'"
       :style="{\
-        paddingTop: 'calc(3.4rem + env(safe-area-inset-top, 0px))',\
+        paddingTop: contentPadTop,\
         paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',\
         paddingLeft: 'calc(0.4rem + env(safe-area-inset-left, 0px))',\
         paddingRight: 'calc(0.4rem + env(safe-area-inset-right, 0px))'\
@@ -331,8 +404,17 @@ onUnmounted(() => {
         :class="sideBySide ? 'w-[46%] h-full' : 'w-full'"
         :style="sideBySide ? {} : { flex: '1 1 0%' }"
       )
-        //- Upgrade controls
-        div.shrink-0.w-full.max-w-md.mx-auto(class="h-[15%] min-h-14 max-h-[92px] mb-1 mt-1")
+        //- Upgrade controls. The `min-h-14` (56px) floor was the single biggest
+        //- block on a ~280px-tall viewport — bigger than the whole top bar — and
+        //- since the grid below is height-led (`min(100cqh, …)`) every pixel
+        //- taken here comes straight out of the merge grid. Compact drops the
+        //- floor to 36px and the cap to 54px; UpgradePanel shrinks its chips to
+        //- match.
+        div.shrink-0.w-full.max-w-md.mx-auto(
+          :class="isUltraCompactHud\
+            ? 'h-[13%] min-h-7 max-h-[38px] mb-0.5 mt-0.5'\
+            : (isCompactHud ? 'h-[15%] min-h-9 max-h-[54px] mb-0.5 mt-0.5' : 'h-[15%] min-h-14 max-h-[92px] mb-1 mt-1')"
+        )
           UpgradePanel
         //- Merge grid — square that always fits the available box (height-led
         //- so it never overflows under the Spawn button on short viewports).
@@ -340,27 +422,44 @@ onUnmounted(() => {
           div.grid-square(data-tut="grid" :class="{ 'grid-square--sbs': sideBySide }")
             MergeGrid(ref="gridRef" @deploy="onDeploy")
         //- Spawn row: [rewarded Instant Spawn] [Spawn button] [rewarded 2× Damage]
-        div.shrink-0.w-full.max-w-md.mx-auto.flex.items-center.justify-center.gap-2.mt-1
+        div.shrink-0.w-full.max-w-md.mx-auto.flex.items-center.justify-center(
+          :class="isCompactHud ? 'gap-1 mt-0.5' : 'gap-2 mt-1'"
+        )
           InstantSpawnAdButton
           button.relative.cursor-pointer.transition-transform(
             data-tut="spawn"
             class="active:scale-95 hover:scale-[101%]"
             @click="onSpawn"
           )
-            div.absolute.inset-0.translate-y-1.rounded-xl(:class="game.instantSpawnActive.value ? 'bg-[#7a5a00]' : 'bg-[#1c6b2a]'")
-            div.relative.flex.items-center.justify-center.gap-2.rounded-xl.border-2.py-2.px-5(
-              :class="game.instantSpawnActive.value\
-                ? 'bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]'\
-                : 'bg-gradient-to-b from-[#4fd16a] to-[#27a03f] border-[#0f1a30]'"
+            div.absolute.inset-0.rounded-xl(
+              :class="[\
+                game.instantSpawnActive.value ? 'bg-[#7a5a00]' : 'bg-[#1c6b2a]',\
+                isCompactHud ? 'translate-y-0.5' : 'translate-y-1'\
+              ]"
+            )
+            //- SPAWN is the game's primary verb and a thumb target — it keeps
+            //- its full border, padding and label even on the smallest screens.
+            //- The two rewarded chips beside it absorb the row's shrink instead.
+            div.relative.flex.items-center.justify-center.rounded-xl.border-2(
+              :class="[\
+                game.instantSpawnActive.value\
+                  ? 'bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]'\
+                  : 'bg-gradient-to-b from-[#4fd16a] to-[#27a03f] border-[#0f1a30]',\
+                isUltraCompactHud ? 'gap-1.5 py-1.5 px-5' : (isCompactHud ? 'gap-2 py-1.5 px-5' : 'gap-2 py-2 px-5')\
+              ]"
             )
               //- Next recruit (tier follows the Recruits upgrade), revealed
               //- radially tap by tap (grey → full color)
-              div.spawn-icon.relative.shrink-0(class="w-6 h-6 sm:w-7 sm:h-7" :class="{ 'spawn-pop': spawnFlash }")
+              div.spawn-icon.relative.shrink-0(
+                :class="[isUltraCompactHud ? 'w-5 h-5' : 'w-6 h-6 sm:w-7 sm:h-7', { 'spawn-pop': spawnFlash }]"
+              )
                 div.absolute.inset-0.spawn-icon-grey
                   IngredientUnit(:tier="game.recruitTier.value" :still="true")
                 div.absolute.inset-0.spawn-icon-reveal(:style="{ '--spawn-reveal': spawnReveal }")
                   IngredientUnit(:tier="game.recruitTier.value" :still="true")
-              span.text-white.font-black.uppercase.game-text(class="text-sm sm:text-base") {{ t('prism.spawn') }}
+              span.text-white.font-black.uppercase.game-text(
+                :class="isUltraCompactHud ? 'text-[13px]' : 'text-sm sm:text-base'"
+              ) {{ t('prism.spawn') }}
           //- 2× Damage rewarded buff (tap progress lives in the spawn icon's
           //- radial reveal, so this slot sells damage instead of a meter)
           DamageBuffAdButton(:pulse="warChestPulse")

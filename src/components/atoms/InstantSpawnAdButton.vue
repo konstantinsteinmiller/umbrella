@@ -14,6 +14,7 @@ import useSounds from '@/use/useSound'
 import useReward, { formatCost } from '@/use/useReward'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
+import { isCompactHud, isUltraCompactHud } from '@/use/useUser'
 
 const { t } = useI18n()
 const game = usePrismGame()
@@ -23,6 +24,12 @@ const { buffsCostCoins, instantSpawnCost, rewardAvailable, canRedeem, redeem, ma
 const busy = ref(false)
 // Coin mode: dim/block the button when the player can't afford the buff.
 const affordable = computed(() => canRedeem(instantSpawnCost.value))
+
+// Vertical padding only. This chip sits beside SPAWN in the bottom row — all
+// three are thumb targets, so the frame/icon/label never shrink; we just trade
+// a few px of padding on small screens. Stays ≥28px tall even at the tightest.
+const padY = computed(() =>
+  isUltraCompactHud.value ? 'py-1' : (isCompactHud.value ? 'py-1.5' : 'py-2'))
 
 const countdown = computed(() => {
   const s = Math.ceil(game.instantSpawnRemainingMs.value / 1000)
@@ -49,10 +56,17 @@ const onWatch = async (): Promise<void> => {
 
 <template lang="pug">
   //- Buff running → golden countdown chip (not clickable)
+  //- Compact viewports trim only the VERTICAL padding here. This is a thumb
+  //- target sitting next to SPAWN, so the frame, icon and label keep their size
+  //- — the row's height budget comes from the top bar and the upgrade row
+  //- instead. (`padY` is shared by both states below.)
   div.relative(v-if="game.instantSpawnActive.value")
-    div.absolute.inset-0.translate-y-1.rounded-xl(class="bg-[#7a5a00]")
+    div.absolute.inset-0.rounded-xl(
+      :class="[ 'bg-[#7a5a00]', isCompactHud ? 'translate-y-0.5' : 'translate-y-1' ]"
+    )
     div.relative.flex.items-center.gap-1.rounded-xl.border-2.px-2.instant-live(
-      class="py-2 bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
+      class="bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
+      :class="padY"
     )
       svg(viewBox="0 0 24 24" class="w-4 h-4 text-white" fill="currentColor")
         path(d="M13 2 L5 13 h5 l-1 9 l8 -11 h-5 Z" stroke="#7a3000" stroke-width="1.4" stroke-linejoin="round")
@@ -67,9 +81,12 @@ const onWatch = async (): Promise<void> => {
     :aria-label="t('prism.instantSpawn')"
     @click="onWatch"
   )
-    div.absolute.inset-0.translate-y-1.rounded-xl(class="bg-[#7a5a00]")
+    div.absolute.inset-0.rounded-xl(
+      :class="[ 'bg-[#7a5a00]', isCompactHud ? 'translate-y-0.5' : 'translate-y-1' ]"
+    )
     div.relative.flex.items-center.gap-1.rounded-xl.border-2.px-2(
-      class="py-2 bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
+      class="bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
+      :class="padY"
     )
       //- Coin mode: effect label + compact price (🪙 1k); ad mode: movie + label.
       template(v-if="buffsCostCoins")

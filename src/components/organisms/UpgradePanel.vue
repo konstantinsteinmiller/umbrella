@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n'
 import useBattle, { type BattleUpgradeId, BATTLE_UPGRADE_DEFS } from '@/use/useBattle'
 import useSounds from '@/use/useSound'
 import IconCoin from '@/components/icons/IconCoin.vue'
+import { isCompactHud, isUltraCompactHud } from '@/use/useUser'
 
 const { t } = useI18n()
 const battle = useBattle()
@@ -61,19 +62,33 @@ const chips = computed(() => ids.map((id) => ({
 </script>
 
 <template lang="pug">
-  div.upgrade-panel.flex.items-stretch.justify-center.gap-1.w-full.h-full(class="sm:gap-2")
-    button.chip.relative.flex.flex-col.items-center.justify-between.rounded-xl.border-2.px-1.py-1(
+  //- On `isCompactHud` the whole row has to fit ~36px of height so the merge
+  //- grid (which is height-led: `min(100cqh, …)`) gets the rest of the column.
+  //- Every dimension is reduced for real — padding, icon, font, pip size and
+  //- border — never a transform, which would keep the original footprint.
+  div.upgrade-panel.flex.items-stretch.justify-center.w-full.h-full(
+    :class="isCompactHud ? 'gap-0.5' : 'gap-1 sm:gap-1'"
+  )
+    button.chip.relative.flex.flex-col.items-center.justify-between.rounded-xl(
       v-for="c in chips"
       :key="c.id"
-      class="flex-1 min-w-0 active:scale-95 transition-transform sm:px-2"
-      :class="c.can ? 'chip-affordable cursor-pointer' : 'opacity-90 cursor-not-allowed'"
+      class="flex-1 min-w-0 active:scale-95 transition-transform !gap-[0px]"
+      :class="[\
+        c.can ? 'chip-affordable cursor-pointer' : 'opacity-90 cursor-not-allowed',\
+        isCompactHud ? 'border px-0.5 py-0 chip--compact' : 'border-2 px-1 py-1 sm:px-2'\
+      ]"
       :style="{ '--accent': c.accent }"
       :disabled="!c.can"
       @click="buy(c.id)"
     )
-      div.flex.items-center.gap-1.w-full.justify-center
+      div.flex.items-center.w-full.justify-center(:class="isCompactHud ? 'gap-0.25' : 'gap-0.25'")
         //- Themed mini gauge
-        svg(viewBox="0 0 24 24" class="w-4 h-4 sm:w-5 sm:h-5 shrink-0" :style="{ color: c.accent }")
+        svg(
+          viewBox="0 0 24 24"
+          class="shrink-0"
+          :class="isCompactHud ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'"
+          :style="{ color: c.accent }"
+        )
           template(v-if="c.id === 'attack'")
             //- Crossed sword
             path(d="M5 19 L15 9 L19 5 L19 9 L9 19 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round")
@@ -98,16 +113,34 @@ const chips = computed(() => ids.map((id) => ({
               line(x1="12" y1="18.5" x2="12" y2="21.5")
               line(x1="2.5" y1="12" x2="5.5" y2="12")
               line(x1="18.5" y1="12" x2="21.5" y2="12")
-        span.chip-name.font-black.uppercase.leading-none.truncate(class="text-[8px] sm:text-[10px]") {{ t('battle.upgrades.' + c.id) }}
+        //- Under 320px the name goes: the themed glyph already identifies the
+        //- upgrade (sword / heart / coins / gear / rank-up arrow), and dropping
+        //- the label is what lets the chip body fit ~28px so the merge grid
+        //- gets the height. The cost and level pips stay — those are the two
+        //- things the player actually decides on.
+        span.chip-name.font-black.uppercase.leading-none.truncate(
+          v-if="!isUltraCompactHud"
+          :class="isCompactHud ? 'text-[7px]' : 'text-[8px] sm:text-[10px]'"
+        ) {{ t('battle.upgrades.' + c.id) }}
       //- Level pips
-      div.flex.items-center(class="gap-0.5 my-0.5")
+      div.flex.items-center(class="gap-0.5" :class="isCompactHud ? 'my-0' : 'my-0.5'")
         span.pip(v-for="(on, i) in pips(c.level, c.max)" :key="i" :class="on ? 'pip-on' : ''" :style="{ background: on ? c.accent : 'rgba(255,255,255,0.15)' }")
       div.flex.items-center(class="gap-0.5")
         template(v-if="c.maxed")
-          span.font-black.text-yellow-300(class="text-[8px] sm:text-[10px]") {{ t('battle.upgrades.maxed') }}
+          span.font-black.text-yellow-300(
+            :class="isCompactHud ? 'text-[7px]' : 'text-[8px] sm:text-[10px]'"
+          ) {{ t('battle.upgrades.maxed') }}
         template(v-else)
-          IconCoin(class="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0")
-          span.font-black.leading-none(class="text-[9px] sm:text-[11px]" :class="c.can ? 'text-yellow-200' : 'text-red-300'") {{ fmt(c.cost) }}
+          IconCoin(
+            class="shrink-0"
+            :class="isCompactHud ? 'w-2 h-2' : 'w-2.5 h-2.5 sm:w-3 sm:h-3'"
+          )
+          span.font-black.leading-none(
+            :class="[\
+              c.can ? 'text-yellow-200' : 'text-red-300',\
+              isCompactHud ? 'text-[8px]' : 'text-[9px] sm:text-[11px]'\
+            ]"
+          ) {{ fmt(c.cost) }}
       //- Tier ribbon (every 5 levels)
       span.tier-ribbon(v-if="tier(c.level) > 0" :style="{ background: c.accent }") {{ tier(c.level) }}
 </template>
@@ -131,6 +164,22 @@ const chips = computed(() => ids.map((id) => ({
   height: 0.32rem
   border-radius: 9999px
   transition: background 0.2s ease
+
+// Compact chips: thinner pips and a smaller tier ribbon, so the chip body can
+// live inside ~36px without the pip row or the corner badge dominating it.
+.chip--compact
+  .pip
+    width: 0.2rem
+    height: 0.2rem
+
+  .tier-ribbon
+    top: -4px
+    right: -4px
+    min-width: 12px
+    height: 12px
+    font-size: 7px
+    border-width: 1px
+    padding: 0 2px
 
 .tier-ribbon
   position: absolute

@@ -25,6 +25,36 @@ export const isMobilePortrait = computed(() =>
 // overlay uses it to shrink the title, drop the tiles line, and tighten gaps.
 export const isShortViewport = computed(() => windowHeight.value <= 500)
 
+// "Exceptionally small" viewport — the HUD chrome (wave badge, gold wallet)
+// must shrink for REAL, not scale down, because a `transform: scale()` keeps
+// the element's original box in the flow and gives none of the space back to
+// the merge grid. Two ways to qualify:
+//
+//   • ≤ 500px tall  — the wide-and-short embeds (portal iframe on a Chromebook
+//     ~764×385, the ~1200×435 landscape frame QA tests). Here the top bar's
+//     vertical footprint is what starves the grid.
+//   • ≤ 400px wide  — the min-spec 320×658 portrait, where the wave badge and
+//     the wallet have to share one row and would otherwise collide.
+//
+// Consumers shrink font sizes, icon boxes, padding and gaps — and the scene
+// re-measures the top bar afterwards, so the reclaimed height goes straight
+// into the grid instead of staying reserved.
+export const isCompactHud = computed(
+  () => windowHeight.value <= 500 || windowWidth.value <= 400
+)
+
+// The extreme tier: under 320px in EITHER axis there is no room for anything
+// that isn't load-bearing. On top of the compact shrink, consumers also drop
+// pure-teaser chrome (the next-chest / new-enemy pips) and secondary labels
+// (the upgrade chip names — their icons already identify them).
+//
+// Two things deliberately do NOT shrink further here: the SPAWN button and the
+// merge grid. Spawn is the game's primary verb and the grid is what all this
+// reclaimed space is FOR — everything else gives way to them.
+export const isUltraCompactHud = computed(
+  () => windowHeight.value < 320 || windowWidth.value < 320
+)
+
 declare const APP_VERSION: string
 export const isCrazyWeb = import.meta.env.VITE_APP_CRAZY_WEB === 'true'
 export const isWaveDash = import.meta.env.VITE_APP_WAVEDASH === 'true'

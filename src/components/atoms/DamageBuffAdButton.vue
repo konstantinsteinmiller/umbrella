@@ -15,6 +15,7 @@ import useSounds from '@/use/useSound'
 import useReward, { formatCost } from '@/use/useReward'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
+import { isCompactHud, isUltraCompactHud } from '@/use/useUser'
 
 defineProps<{ pulse?: boolean }>()
 
@@ -25,6 +26,12 @@ const { buffsCostCoins, REWARD_COIN_COST, rewardAvailable, canRedeem, redeem } =
 
 const busy = ref(false)
 const affordable = computed(() => canRedeem(REWARD_COIN_COST))
+
+// Vertical padding only — see the matching note in InstantSpawnAdButton. Both
+// bottom-row chips stay full-size thumb targets; the height budget is taken
+// from the top bar and the upgrade row instead.
+const padY = computed(() =>
+  isUltraCompactHud.value ? 'py-1' : (isCompactHud.value ? 'py-1.5' : 'py-2'))
 
 const buffActive = computed(() => battle.dmgBuffRemainingMs.value > 0)
 const countdown = computed(() => {
@@ -50,10 +57,17 @@ const onWatch = async (): Promise<void> => {
 
 <template lang="pug">
   //- Buff running → crimson countdown chip (not clickable)
+  //- Compact viewports trim only the VERTICAL padding here. This is a thumb
+  //- target sitting next to SPAWN, so the frame, icon and label keep their size
+  //- — the row's height budget comes from the top bar and the upgrade row
+  //- instead. (`padY` is shared by both states below.)
   div.relative(v-if="buffActive")
-    div.absolute.inset-0.translate-y-1.rounded-xl(class="bg-[#7a1c1c]")
+    div.absolute.inset-0.rounded-xl(
+      :class="[ 'bg-[#7a1c1c]', isCompactHud ? 'translate-y-0.5' : 'translate-y-1' ]"
+    )
     div.relative.flex.items-center.gap-1.rounded-xl.border-2.px-2.dmg-live(
-      class="py-2 bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]"
+      class="bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]"
+      :class="padY"
     )
       //- Crossed-swords glyph
       svg(viewBox="0 0 24 24" class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
@@ -72,9 +86,12 @@ const onWatch = async (): Promise<void> => {
     :aria-label="t('prism.doubleDamage')"
     @click="onWatch"
   )
-    div.absolute.inset-0.translate-y-1.rounded-xl(class="bg-[#7a1c1c]")
+    div.absolute.inset-0.rounded-xl(
+      :class="[ 'bg-[#7a1c1c]', isCompactHud ? 'translate-y-0.5' : 'translate-y-1' ]"
+    )
     div.relative.flex.items-center.gap-1.rounded-xl.border-2.px-2(
-      class="py-2 bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]"
+      class="bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]"
+      :class="padY"
     )
       //- Coin mode: effect label + compact price (🪙 1k); ad mode: movie + label.
       template(v-if="buffsCostCoins")

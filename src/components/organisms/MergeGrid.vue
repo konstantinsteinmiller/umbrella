@@ -243,7 +243,7 @@ onUnmounted(() => {
     @contextmenu.prevent
   )
     div.grid.h-full.w-full(
-      :style="{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`, gap: '2.4%' }"
+      :style="{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))`, gap: '1.2  %' }"
     )
       div.slot.relative.flex.items-center.justify-center(
         v-for="(tier, idx) in grid"

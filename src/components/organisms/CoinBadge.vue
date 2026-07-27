@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import useEpicConfig from '@/use/useEpicConfig'
+import { isCompactHud } from '@/use/useUser'
 
 const { coins } = useEpicConfig()
 
@@ -28,14 +29,22 @@ defineExpose({ rootEl })
 </script>
 
 <template lang="pug">
-  div.coin-badge.relative.flex.items-center.gap-2.rounded-full.font-bold(
+  //- Compact mode shrinks the REAL box (padding, icon size, font), never a
+  //- transform: a scaled badge keeps its original footprint in the top bar and
+  //- the merge grid gets none of the room back. See `isCompactHud`.
+  div.coin-badge.relative.flex.items-center.rounded-full.font-bold(
     ref="rootEl"
-    class="pl-1 pr-3 py-1 text-sm sm:text-base"
+    :class="isCompactHud\
+      ? 'gap-1 pl-0.5 pr-1.5 py-0 text-[11px] coin-badge--compact'\
+      : 'gap-2 pl-1 pr-3 py-1 text-sm sm:text-base'"
   )
     div.coin-badge__icon.flex.items-center.justify-center.rounded-full(
-      class="w-7 h-7 sm:w-8 sm:h-8"
+      :class="isCompactHud ? 'w-5 h-5' : 'w-7 h-7 sm:w-8 sm:h-8'"
     )
-      IconCoin(class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-100 drop-shadow")
+      IconCoin(
+        class="text-yellow-100 drop-shadow"
+        :class="isCompactHud ? 'w-3.5 h-3.5' : 'w-5 h-5 sm:w-6 sm:h-6'"
+      )
     span.game-text.coin-badge__value {{ display }}
 </template>
 
@@ -43,6 +52,15 @@ defineExpose({ rootEl })
 .coin-badge
   background: linear-gradient(135deg, #50aaff 0%, #2266ff 50%, #1b3e95 100%)
   border: 2px solid #fcd34d
+
+  // Thinner frame + tighter tracking on tiny viewports — 2px of border on all
+  // four sides is a visible slice of a 20px-tall badge.
+  &--compact
+    border-width: 1px
+    letter-spacing: 0
+
+    .coin-badge__value
+      letter-spacing: 0
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.4)
   overflow: hidden
 
