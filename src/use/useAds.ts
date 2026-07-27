@@ -65,7 +65,7 @@ export const adProviderName = provider.name
 // disappears instead of offering a button that does nothing on tap.
 export const isAdsReady = computed(() => provider.isReady.value)
 // Throttle ride-along: when the player has already watched
-// `MAX_REWARDED` rewarded videos in the trailing 10-min window, we
+// `MAX_REWARDED` rewarded videos in the trailing `AD_WINDOW_MS`, we
 // flip `isRewardedReady` false so every reward placement
 // (RouletteWheel respin, AdRewardButton, 2x speed boost) hides — the
 // same UX as a no-fill SDK state. Anti-abuse for kids audience: caps

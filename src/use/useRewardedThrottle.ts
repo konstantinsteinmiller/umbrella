@@ -14,7 +14,7 @@
 // Why the periodic prune timer: `isRewardedThrottled` is a `computed`
 // over a `ref` array, so it only re-evaluates when the array mutates.
 // Without the pruning interval, a player who hits the cap and then
-// idles for 10 minutes wouldn't see the reward button reappear until
+// idles out the window wouldn't see the reward button reappear until
 // they triggered some other reactive write. The 60s prune cadence
 // matches the resolution players actually perceive.
 
@@ -24,9 +24,9 @@ import { getState, setState, removeState } from '@/use/useEpicState'
 const STORAGE_KEY = '__save_internal__rewarded_history'
 
 /** Max rewarded ad views permitted inside the rolling window. */
-export const MAX_REWARDED = 5
+export const MAX_REWARDED = 6
 /** Width of the rolling window, in ms. */
-export const AD_WINDOW_MS = 7 * 60 * 1000
+export const AD_WINDOW_MS = 4 * 60 * 1000
 /** How often to prune expired entries from the in-memory list so the
  *  reactive throttle flag flips back without requiring a fresh tap. */
 const PRUNE_INTERVAL_MS = 60_000

@@ -1,7 +1,9 @@
 // Unit tests for the rewarded-ad rolling-window throttle. Verifies the
-// 5-in-10-min cap, expiry, persistence, and graceful handling of a
-// corrupted localStorage blob. Module is reloaded per test (`vi.resetModules`)
-// so the in-memory `history` ref doesn't leak across cases.
+// MAX_REWARDED-per-AD_WINDOW_MS cap, expiry, persistence, and graceful
+// handling of a corrupted localStorage blob. Assertions are written against
+// the exported constants, not literals, so retuning the cap or the window
+// doesn't turn into a test edit. Module is reloaded per test
+// (`vi.resetModules`) so the in-memory `history` ref doesn't leak across cases.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -58,19 +60,18 @@ describe('useRewardedThrottle', () => {
     expect(mod.isRewardedThrottled.value).toBe(false)
   })
 
-  it('sliding window: a single grant still counts after 4 fall off', async () => {
+  it('sliding window: a late grant still counts after the earlier ones fall off', async () => {
     const mod = await importThrottle()
     const start = Date.now()
-    // Five grants spread across the window so the oldest 4 expire
-    // first while the newest stays.
-    mod.recordRewardedGranted(start)
-    mod.recordRewardedGranted(start + 1000)
-    mod.recordRewardedGranted(start + 2000)
-    mod.recordRewardedGranted(start + 3000)
+    // A full cap's worth of grants spread across the window, so the early
+    // cluster expires first while the newest one stays.
+    for (let i = 0; i < mod.MAX_REWARDED - 1; i++) {
+      mod.recordRewardedGranted(start + i * 1000)
+    }
     mod.recordRewardedGranted(start + mod.AD_WINDOW_MS - 1000) // newest, late in window
     expect(mod.isRewardedThrottled.value).toBe(true)
 
-    // Move just past when the first 4 expire — only the late one remains.
+    // Move just past when the early cluster expires — only the late one remains.
     vi.setSystemTime(start + mod.AD_WINDOW_MS + 100)
     mod.__pruneRewardedThrottleForTest()
     expect(mod.isRewardedThrottled.value).toBe(false)
@@ -90,12 +91,15 @@ describe('useRewardedThrottle', () => {
   })
 
   it('restores history from localStorage on module load', async () => {
-    const seed = [Date.now() - 1000, Date.now() - 500, Date.now() - 100]
+    const now = Date.now()
+    // Seed two short of the cap so the restored entries are provably counted:
+    // two fresh grants then have to tip it over.
+    const { MAX_REWARDED } = await import('@/use/useRewardedThrottle')
+    const seed = Array.from({ length: MAX_REWARDED - 2 }, (_, i) => now - 1000 + i * 100)
     // Single-blob model: the throttle reads its history as a field of the
     // consolidated blob, so seed it there (not at the bare key).
     window.localStorage.setItem('merge-idle-war_state', JSON.stringify({ [STORAGE_KEY]: seed }))
     const mod = await importThrottle()
-    // 3 entries < MAX (5), so still un-throttled, but the next 2 must throttle.
     expect(mod.isRewardedThrottled.value).toBe(false)
     mod.recordRewardedGranted()
     mod.recordRewardedGranted()
