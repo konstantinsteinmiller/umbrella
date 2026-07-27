@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Bekijk', 'revive': 'Herleven', 'secondChance': 'Tweede kans', 'doubleCoins': '2× munten', 'plusCoins': '+{n} munten'
+    'watch': 'Bekijk', 'revive': 'Herleven', 'secondChance': 'Tweede kans', 'doubleCoins': '2× munten', 'plusCoins': '+{n} munten',
+    'startingIn': 'Advertentie start in {n}…', 'stopTapping': 'Stop met tikken zodat je niet op de advertentie klikt'
   },
   'achievements': {
     'title': 'Prestaties', 'subtitle': 'Behaal mijlpalen om munten te verdienen.', 'claim': 'Claim', 'claimed': 'Geclaimd', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': 'Teruggeworpen naar golf {n}!',
     'rally': 'VERZAMELEN!',
     'rallyBody': 'Bekijk een advertentie om je gevallen vechters te doen herrijzen!',
+    'coinBuff': { 'offerTitle': 'De kist bevat {mult}× goud!', 'label': '{mult}× munteninkomen', 'duration': 'voor {m} minuten', 'expiresIn': 'Aanbod eindigt in {n}s' },
     'tutorial': {
       'spawn': 'Tik op OPROEPEN om twee vonken te rekruteren!',
       'merge': 'Sleep de ene vonk op de andere om te FUSEREN!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'GOUDKOORTS! 2× buit',
+      'goldRush': 'GOUDKOORTS! {mult}× buit',
       'frostMarch': 'VRIESMARS! IJzige klappen',
       'horde': 'HORDE! Dubbele zwerm',
       'elite': 'ELITE! Een kampioen leidt de golf'

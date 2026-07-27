@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'ดู', 'revive': 'ชุบชีวิต', 'secondChance': 'โอกาสที่สอง', 'doubleCoins': '2× เหรียญ', 'plusCoins': '+{n} เหรียญ'
+    'watch': 'ดู', 'revive': 'ชุบชีวิต', 'secondChance': 'โอกาสที่สอง', 'doubleCoins': '2× เหรียญ', 'plusCoins': '+{n} เหรียญ',
+    'startingIn': 'โฆษณาจะเริ่มใน {n}…', 'stopTapping': 'หยุดแตะเพื่อไม่ให้กดโฆษณาโดยไม่ตั้งใจ'
   },
   'achievements': {
     'title': 'ความสำเร็จ', 'subtitle': 'ทำเป้าหมายสะสมเพื่อรับเหรียญ', 'claim': 'รับ', 'claimed': 'รับแล้ว', 'progress': '{c} / {t}',
@@ -120,6 +121,7 @@ export default {
     'waveSetback': 'ถูกผลักกลับไปเวฟ {n}!',
     'rally': 'รวมพล!',
     'rallyBody': 'ดูโฆษณาเพื่อชุบชีวิตนักสู้ที่ล้มลง!',
+    'coinBuff': { 'offerTitle': 'ในหีบมีทอง {mult}× !', 'label': 'รายได้เหรียญ {mult}×', 'duration': 'เป็นเวลา {m} นาที', 'expiresIn': 'ข้อเสนอหมดใน {n} วิ' },
     'tutorial': {
       'spawn': 'แตะ เรียกพล เพื่อเรียกประกายไฟสองดวง!',
       'merge': 'ลากประกายหนึ่งไปทับอีกประกายเพื่อรวมร่าง!',
@@ -145,7 +147,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'ตื่นทอง! ค่าหัว 2 เท่า',
+      'goldRush': 'ตื่นทอง! ค่าหัว {mult} เท่า',
       'frostMarch': 'ทัพน้ำแข็ง! โจมตีเยือกแข็ง',
       'horde': 'ฝูงชน! จำนวนสองเท่า',
       'elite': 'อีลีท! แชมเปียนนำทัพ'

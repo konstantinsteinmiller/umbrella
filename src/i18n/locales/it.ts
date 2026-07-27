@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Guarda', 'revive': 'Rinasci', 'secondChance': 'Seconda chance', 'doubleCoins': '2× monete', 'plusCoins': '+{n} monete'
+    'watch': 'Guarda', 'revive': 'Rinasci', 'secondChance': 'Seconda chance', 'doubleCoins': '2× monete', 'plusCoins': '+{n} monete',
+    'startingIn': 'Pubblicità tra {n}…', 'stopTapping': 'Smetti di toccare per non cliccare la pubblicità'
   },
   'achievements': {
     'title': 'Obiettivi', 'subtitle': 'Raggiungi traguardi per ottenere monete.', 'claim': 'Riscuoti', 'claimed': 'Riscosso', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': "Respinto all'ondata {n}!",
     'rally': 'ADUNATA!',
     'rallyBody': 'Guarda un annuncio per resuscitare i combattenti caduti!',
+    'coinBuff': { 'offerTitle': 'Lo scrigno contiene {mult}× oro!', 'label': '{mult}× guadagno monete', 'duration': 'per {m} minuti', 'expiresIn': 'L\'offerta scade in {n}s' },
     'tutorial': {
       'spawn': 'Tocca EVOCA per reclutare due faville!',
       'merge': "Trascina una favilla sull'altra per FONDERLE!",
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': "CORSA ALL'ORO! Bottino 2×",
+      'goldRush': "CORSA ALL'ORO! Bottino {mult}×",
       'frostMarch': 'MARCIA GELIDA! Colpi glaciali',
       'horde': 'ORDA! Sciame raddoppiato',
       'elite': "ÉLITE! Un campione guida l'ondata"

@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': '观看', 'revive': '复活', 'secondChance': '第二次机会', 'doubleCoins': '2× 金币', 'plusCoins': '+{n} 金币'
+    'watch': '观看', 'revive': '复活', 'secondChance': '第二次机会', 'doubleCoins': '2× 金币', 'plusCoins': '+{n} 金币',
+    'startingIn': '广告将在 {n} 秒后播放…', 'stopTapping': '请停止点击，以免误点广告'
   },
   'achievements': {
     'title': '成就', 'subtitle': '达成长期里程碑赢取金币。', 'claim': '领取', 'claimed': '已领取', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': '被击退至第{n}波！',
     'rally': '集结！',
     'rallyBody': '观看广告复活阵亡的战士！',
+    'coinBuff': { 'offerTitle': '宝箱里有 {mult}× 金币！', 'label': '{mult}× 金币收入', 'duration': '持续 {m} 分钟', 'expiresIn': '优惠 {n} 秒后结束' },
     'tutorial': {
       'spawn': '点击"召唤"招募两个火花！',
       'merge': '把一个火花拖到另一个上进行合成！',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': '淘金热！赏金翻倍',
+      'goldRush': '淘金热！赏金 {mult}×',
       'frostMarch': '冰霜行军！攻击带寒气',
       'horde': '尸潮！数量翻倍',
       'elite': '精英！冠军率领敌潮'

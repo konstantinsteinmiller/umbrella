@@ -47,6 +47,16 @@ beforeEach(() => {
   mockProvider.showMidgameAd.mockReset()
   mockProvider.showMidgameAd.mockResolvedValue(undefined)
   window.localStorage.clear()
+  // Provider-generic contract: music dies before the SDK call. The CrazyGames
+  // full release additionally puts a real-time 3s "Ad starting in…" warning in
+  // front of every interstitial, which would add ~3s of wall-clock per test here
+  // (enough to blow vitest's 5s timeout under parallel load) without testing
+  // anything this file is about. `.env` ships that flag ON, so pin it off and
+  // let `adCountdown.test.ts` cover the CG path with fake timers.
+  vi.doMock('@/use/useMatch', async () => {
+    const actual = await vi.importActual<typeof import('@/use/useMatch')>('@/use/useMatch')
+    return { ...actual, isCrazyGamesFullRelease: false }
+  })
 })
 
 afterEach(() => {

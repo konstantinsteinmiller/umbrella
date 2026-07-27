@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인'
+    'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인',
+    'startingIn': '광고가 {n}초 후 시작…', 'stopTapping': '광고를 잘못 누르지 않도록 탭을 멈추세요'
   },
   'achievements': {
     'title': '업적', 'subtitle': '평생 이정표를 달성해 코인을 받으세요.', 'claim': '수령', 'claimed': '수령함', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': '웨이브 {n}(으)로 후퇴!',
     'rally': '집결!',
     'rallyBody': '광고를 보고 쓰러진 전사를 부활시키세요!',
+    'coinBuff': { 'offerTitle': '상자에 {mult}× 골드가 있어요!', 'label': '코인 수입 {mult}×', 'duration': '{m}분 동안', 'expiresIn': '{n}초 후 종료' },
     'tutorial': {
       'spawn': '소환을 탭해 불씨 두 개를 모집하세요!',
       'merge': '불씨를 서로 겹쳐 합체하세요!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': '골드 러시! 현상금 2배',
+      'goldRush': '골드 러시! 현상금 {mult}배',
       'frostMarch': '서리 행군! 냉기 공격',
       'horde': '대군! 두 배의 무리',
       'elite': '엘리트! 챔피언이 웨이브를 이끕니다'

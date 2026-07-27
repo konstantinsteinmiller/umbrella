@@ -29,6 +29,7 @@ import { tickMidgameAd } from '@/use/useMidgameAdTimer'
 import {
   BATTLE_UPGRADES_KEY, BATTLE_WAVE_KEY, BATTLE_BEST_WAVE_KEY, BATTLE_ARMY_KEY,
   BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY, BATTLE_RUBBER_BAND_KEY,
+  BATTLE_COIN_BUFF_KEY,
   BATTLE_HEAL_UNLOCKED_KEY, BATTLE_HEAL_CHARGE_KEY,
   BATTLE_REVIVE_UNLOCKED_KEY, BATTLE_REVIVE_CHARGE_KEY,
   BATTLE_DEFENDER_UNLOCKED_KEY, BATTLE_DEFENDER_CHARGE_KEY,
@@ -272,7 +273,12 @@ const emit = (e: BattleEvent): void => { if (eventSink) eventSink(e) }
 export type BattleUpgradeId = 'attack' | 'vitality' | 'bounty' | 'automation' | 'recruit'
 export type BattleUpgrades = Record<BattleUpgradeId, number>
 
-export const RECRUIT_MAX_LEVEL = 15
+/** Recruits cap. Level N ⇒ the Spawn button's base tier is N+1, so 20 ⇒ T21.
+ *  Extended from 15 → 20 for the deep-wave grind: at wave 200+ a T16 base spawn
+ *  no longer keeps merge throughput anywhere near the enemy curve. T21 is one
+ *  past `CODEX_MAX_TIER` (the illustrated bestiary ends at 20) — tiers beyond it
+ *  merge and extrapolate their stats normally, they're just not illustrated. */
+export const RECRUIT_MAX_LEVEL = 20
 
 export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth: number; max: number }> = {
   attack: { base: 60, growth: 1.33, max: ATKVIT_MAX_LEVEL },
@@ -287,13 +293,21 @@ export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth
   recruit: { base: 5000, growth: 1, max: RECRUIT_MAX_LEVEL }
 }
 
-/** Hand-tuned Recruits prices for levels 1–15. The high end continues the ~×3.3
- *  step so each level lands as an affordable milestone against the exponential
- *  coin income (bounty/clear-bonus/milestone chests) at the wave you'd be on —
- *  keeping the base spawn tier climbing with the difficulty curve into T16. */
+/** Hand-tuned Recruits prices. Levels 1–15 continue a ~×3.3 step so each level
+ *  lands as an affordable milestone against the exponential coin income
+ *  (bounty/clear-bonus/milestone chests) at the wave you'd be on.
+ *
+ *  Levels 16–20 (base spawn T17…T21) deliberately steepen to ~×4.2 per level
+ *  instead: by then a level is worth far more than earlier ones (it doubles the
+ *  grid's merge throughput on top of an already-high base tier) and late-game
+ *  income is enormous, so continuing the old ×3.3 would have made the deepest
+ *  levels the cheapest part of the curve in real terms. The step keeps each one
+ *  a genuine multi-session goal rather than a formality. */
 const RECRUIT_COSTS = [
   5_000, 20_000, 50_000, 175_000, 500_000, 1_500_000, 7_000_000, 15_000_000, 50_000_000,
-  150_000_000, 500_000_000, 1_500_000_000, 5_000_000_000, 15_000_000_000, 50_000_000_000
+  150_000_000, 500_000_000, 1_500_000_000, 5_000_000_000, 15_000_000_000, 50_000_000_000,
+  // 16–20
+  210_000_000_000, 900_000_000_000, 3_800_000_000_000, 16_000_000_000_000, 70_000_000_000_000
 ]
 
 const sanitizeUpgrades = (u: unknown): BattleUpgrades => {
@@ -328,6 +342,57 @@ export const activateDamageBuff = (): void => {
   setState(BATTLE_DMG_BUFF_KEY, dmgBuffUntil.value)
 }
 
+// ─── 3× Coin income rewarded buff (flying-chest offer) ───────────────────────
+// Watching a rewarded ad from a flying chest triples all COMBAT coin income —
+// kill bounties, the wave-clear bonus and the milestone-chest bonus, i.e.
+// everything that flows through `bountyMult()` — for 10 minutes.
+//
+// Unlike the 2× damage buff this drains on PLAY time, not wall-clock: the
+// remaining ms are decremented in the RAF driver, which sits behind the pause
+// gate. So the ten minutes the player was promised are ten minutes of actual
+// play — a modal, an ad break or a closed tab can't quietly eat the reward they
+// just watched a video for. That's also why the persisted value is
+// remaining-time rather than an expiry timestamp.
+export const COIN_BUFF_MS = 600_000 // 10 minutes
+export const COIN_BUFF_MULT = 3
+/** Play-time milliseconds left on the 3× coin buff. >0 ⇔ active. Ticked by the
+ *  engine, read by the HUD clock beside the wallet. */
+export const coinBuffRemainingMs = ref(Math.max(0, Number(getState(BATTLE_COIN_BUFF_KEY, 0)) || 0))
+/** True while coin income is tripled. Gates the flying-chest offer (never
+ *  offered on top of a running buff) and shows the wallet-side timer. */
+export const isCoinBuffActive = computed(() => coinBuffRemainingMs.value > 0)
+
+/** The buff's contribution to coin income: 3 while active, else 1. Exposed
+ *  read-only so the multiplier folded into `bountyMult()` is observable
+ *  (HUD copy, tests) without duplicating the condition. */
+export const coinBuffMult = computed(() => (isCoinBuffActive.value ? COIN_BUFF_MULT : 1))
+
+/** Grant / refresh the full 10 minutes. Called after the rewarded ad actually
+ *  granted (or the coin purchase went through on coin-mode builds). */
+export const activateCoinBuff = (): void => {
+  coinBuffRemainingMs.value = COIN_BUFF_MS
+  setState(BATTLE_COIN_BUFF_KEY, COIN_BUFF_MS)
+}
+
+// Persist the countdown at most every 5s of play (and always on expiry) — a
+// setState per frame would thrash the save blob for a value that only needs to
+// survive a reload with second-level accuracy.
+const COIN_BUFF_PERSIST_EVERY_MS = 5_000
+let coinBuffPersistDebt = 0
+
+/** Drain the buff by `dtMs` of play time. Called from the RAF driver, so it
+ *  only advances while the game is actually running. */
+const tickCoinBuff = (dtMs: number): void => {
+  if (coinBuffRemainingMs.value <= 0) return
+  const next = Math.max(0, coinBuffRemainingMs.value - dtMs)
+  coinBuffRemainingMs.value = next
+  coinBuffPersistDebt += dtMs
+  if (next === 0 || coinBuffPersistDebt >= COIN_BUFF_PERSIST_EVERY_MS) {
+    coinBuffPersistDebt = 0
+    setState(BATTLE_COIN_BUFF_KEY, Math.round(next))
+  }
+}
+
 // ─── Rubber-band catch-up ────────────────────────────────────────────────────
 // When a wipe drops the player all the way to their best-wave floor (they've
 // slid the full MAX_FALL_FROM_BEST waves off their best and keep losing), every
@@ -342,10 +407,57 @@ const rubberBandUntil = ref(Number(getState(BATTLE_RUBBER_BAND_KEY, 0)) || 0)
 /** True while the −25% enemy catch-up window is live. */
 export const rubberBandActive = ref(rubberBandUntil.value > Date.now())
 
+// ─── Deep-wave army boost (rides the same catch-up window) ──────────────────
+//
+// Past wave ~175 the −25% enemy nerf alone stopped being enough to break a wipe
+// loop: the enemy curve is still exponential up there while the army's top tier
+// has plateaued, so shaving a quarter off enemy stats only moves the wall by a
+// couple of waves (reported from a real run: reached 223, fell to 213, couldn't
+// climb back in any reasonable session).
+//
+// So while the catch-up window is live AND the player is deep enough to be past
+// the point where tier growth can keep up, the ARMY gets stronger too:
+//
+//   • +50% max HP on every fighter (retro-applied to the standing army, and
+//     folded into `hpMult()` so newly deployed / merged units get it as well)
+//   • incoming damage divided by 1.5 — "50% more defence", i.e. ≈33% less
+//     damage taken. Applied at `fighterDamage()`, the single choke point every
+//     hit already routes through (the Defender tank's DR lives there too).
+//
+// Combined with the enemy −25% that is ~3× effective durability against ~0.75×
+// incoming pressure for the 15-minute window — enough to actually re-clear the
+// waves that were just lost, without touching the base curve that the mid-game
+// is tuned around.
+const RUBBER_BAND_ARMY_MIN_WAVE = 175
+const RUBBER_BAND_ARMY_HP_MULT = 1.5  // +50% fighter max HP
+const RUBBER_BAND_ARMY_DEF_MULT = 1.5 // incoming damage ÷1.5 (≈ −33%)
+
+/**
+ * True while the deep-wave army half of the catch-up is in effect: the rubber-band
+ * window is live AND the player is past `RUBBER_BAND_ARMY_MIN_WAVE`.
+ *
+ * Public (and a computed, so lazy — `wave` is declared further down) because the
+ * boost is otherwise completely invisible: part of why the old catch-up "didn't
+ * feel like it worked" is that nothing ever told the player it was running. A HUD
+ * indicator can bind straight to this.
+ */
+export const rubberBandArmyActive = computed(
+  () => rubberBandActive.value && wave.value > RUBBER_BAND_ARMY_MIN_WAVE
+)
+
+const armyCatchUpActive = (): boolean => rubberBandArmyActive.value
+
+/** Army-HP multiplier from the deep-wave catch-up: 1.5 while it applies. */
+const armyCatchUpHpMult = (): number => (armyCatchUpActive() ? RUBBER_BAND_ARMY_HP_MULT : 1)
+
 const activateRubberBand = (): void => {
   rubberBandUntil.value = Date.now() + RUBBER_BAND_MS
   rubberBandActive.value = true
   setState(BATTLE_RUBBER_BAND_KEY, rubberBandUntil.value)
+  // Retro-apply the +50% HP to whoever is still standing — same delta-heal the
+  // Vitality upgrade uses, so the boost is felt immediately instead of only by
+  // units deployed after the wipe.
+  refreshArmyMaxHp()
 }
 /** Enemy-stat multiplier: 0.75 while the catch-up window is live, else 1. */
 const rubberBandMult = (): number => (rubberBandUntil.value > Date.now() ? RUBBER_BAND_MULT : 1)
@@ -360,9 +472,62 @@ const atkMult = (): number => {
 }
 const hpMult = (): number => {
   const lvl = battleUpgrades.value.vitality
-  return 1 + lvl * 0.07 + lvl * lvl * 0.0007
+  return (1 + lvl * 0.07 + lvl * lvl * 0.0007) * armyCatchUpHpMult()
 }
-const bountyMult = (): number => 1 + battleUpgrades.value.bounty * 0.08
+
+/**
+ * Recompute every standing fighter's `maxHp` from the current multipliers and
+ * heal by the delta, so a mid-fight buff is felt now rather than only by units
+ * deployed afterwards. Used by the Vitality purchase and by the deep-wave
+ * catch-up activation — both change `hpMult()` for an army already on the field.
+ */
+const refreshArmyMaxHp = (): void => {
+  for (const f of fighters.value) {
+    const newMax = Math.round(getFighterDef(f.tier).hp * hpMult() * (f.isTank ? TANK_HP_MULT : 1))
+    if (newMax === f.maxHp) continue
+    f.hp = Math.min(newMax, f.hp + (newMax - f.maxHp))
+    f.maxHp = newMax
+  }
+  triggerRef(fighters)
+}
+/**
+ * GOLD RUSH wave mutator: kill-bounty multiplier while that wave runs. Lowered
+ * from 2× to 1.5× so the rewarded 3× coin buff is clearly the stronger, more
+ * desirable boost — a free wave mutator matching two thirds of a watched video
+ * made the video feel weak. Exported so the wave banner's label reads the same
+ * number the economy uses (no hardcoded "2×" in 21 locale files to drift).
+ */
+export const GOLD_RUSH_MULT = 1.5
+
+/** The permanent, earned part of coin income: the Bounty upgrade alone. Kept
+ *  separate from the temporary boosts so those can be combined by MAX rather
+ *  than by product — see `killBoostMult`. */
+const bountyUpgradeMult = (): number => 1 + battleUpgrades.value.bounty * 0.08
+
+/**
+ * The temporary KILL-BOUNTY boosts, combined by taking the STRONGEST —
+ * deliberately NOT multiplied together:
+ *
+ *   • GOLD RUSH wave mutator — `GOLD_RUSH_MULT` (1.5×)
+ *   • 3× rewarded coin buff  — `COIN_BUFF_MULT`
+ *
+ * Stacking them multiplicatively made a gold-rush wave under the coin buff pay
+ * 4.5×, which both devalues the rewarded buff (its marginal worth depended on
+ * whichever wave you happened to be on) and spikes the economy unpredictably.
+ * Taking the max means activating the 3× buff always OVERWRITES a running gold
+ * rush, and the video is worth the same everywhere.
+ *
+ * Scope note: GOLD RUSH has always applied to kill bounty ONLY, never to the
+ * wave-clear or milestone-chest bonuses — hence this lives at the kill site and
+ * not inside `bountyMult()`, which those two use.
+ */
+const killBoostMult = (): number =>
+  Math.max(coinBuffMult.value, mutator.value === 'goldRush' ? GOLD_RUSH_MULT : 1)
+
+// Coin-income multiplier for the NON-kill payouts (wave-clear bonus,
+// milestone-chest bonus): earned upgrade × the rewarded coin buff. Gold rush
+// never reached these, and still doesn't.
+const bountyMult = (): number => bountyUpgradeMult() * coinBuffMult.value
 /** Base tier the Spawn button produces (1 + Recruits upgrade level). */
 export const recruitTier = computed(() => 1 + battleUpgrades.value.recruit)
 /** Tier of the Flying Chest's unit reward — scales with the Recruits upgrade so
@@ -397,15 +562,7 @@ export const buyUpgrade = (id: BattleUpgradeId): boolean => {
   battleUpgrades.value = { ...battleUpgrades.value, [id]: battleUpgrades.value[id] + 1 }
   setState(BATTLE_UPGRADES_KEY, battleUpgrades.value)
   // Vitality retro-applies to the standing army (heal by the delta).
-  if (id === 'vitality') {
-    for (const f of fighters.value) {
-      const def = getFighterDef(f.tier)
-      const newMax = Math.round(def.hp * hpMult())
-      f.hp = Math.min(newMax, f.hp + (newMax - f.maxHp))
-      f.maxHp = newMax
-    }
-    triggerRef(fighters)
-  }
+  if (id === 'vitality') refreshArmyMaxHp()
   flushPersist()
   return true
 }
@@ -755,8 +912,11 @@ const KNOCK_WINDOW = 0.5     // seconds; consecutive shoves inside this compound
 const comboGoldMult = (): number => (1 + 0.1 * combo.value) * (feverActive.value ? 2 : 1)
 
 const registerKill = (e: Enemy): void => {
-  const goldRush = mutator.value === 'goldRush' ? 2 : 1
-  const payout = Math.max(1, Math.round(e.bounty * bountyMult() * comboGoldMult() * goldRush))
+  // Earned upgrade × combo/fever × the STRONGEST temporary boost (gold rush OR
+  // the 3× coin buff, never both — see `killBoostMult`).
+  const payout = Math.max(1, Math.round(
+    e.bounty * bountyUpgradeMult() * comboGoldMult() * killBoostMult()
+  ))
   addCoins(payout)
   combo.value = Math.min(99, combo.value + 1)
   comboTimer = COMBO_WINDOW
@@ -1093,7 +1253,13 @@ const endReviveGuard = (): void => {
 export const defenderReady = computed(() => defenderUnlocked.value && defenderCharge.value >= SPELL_MAX)
 
 /** Damage a fighter actually takes — the tank absorbs 80% of it. */
-const fighterDamage = (f: Fighter, raw: number): number => (f.isTank ? raw * TANK_DR : raw)
+// Every hit on a fighter routes through here: the Defender tank's flat DR, then
+// the deep-wave catch-up's "+50% defence" (a divisor, so ≈33% less damage taken)
+// while that window applies. One choke point, so neither can be bypassed.
+const fighterDamage = (f: Fighter, raw: number): number => {
+  const afterTank = f.isTank ? raw * TANK_DR : raw
+  return armyCatchUpActive() ? afterTank / RUBBER_BAND_ARMY_DEF_MULT : afterTank
+}
 
 /** Drop a unit's tank buff: max HP back to normal, HP clamped, crest gone. */
 const revertTank = (f: Fighter): void => {
@@ -1671,6 +1837,10 @@ const frame = (t: number): void => {
   const dmgRemaining = Math.max(0, dmgBuffUntil.value - Date.now())
   if (dmgRemaining !== dmgBuffRemainingMs.value) dmgBuffRemainingMs.value = dmgRemaining
 
+  // 3× Coin buff drains on PLAY time — this line is past the pause gate, so a
+  // menu / ad / hidden tab freezes the clock instead of burning the reward.
+  tickCoinBuff(realDt * 1000)
+
   // Keep the rubber-band flag in sync so it flips false the moment the 15-min
   // catch-up window lapses (enemy spawns read `rubberBandUntil` live regardless).
   const rbLive = rubberBandUntil.value > Date.now()
@@ -1778,6 +1948,10 @@ const refreshFromBlob = (): void => {
     rubberBandUntil.value = savedRubberBand
     rubberBandActive.value = rubberBandUntil.value > Date.now()
   }
+  // Coin buff is stored as remaining PLAY time, so "more is newer" — take the
+  // larger of local vs cloud so a sync can't shorten a buff the player earned.
+  const savedCoinBuff = Math.max(0, Number(getState(BATTLE_COIN_BUFF_KEY, 0)) || 0)
+  if (savedCoinBuff > coinBuffRemainingMs.value) coinBuffRemainingMs.value = savedCoinBuff
 
   // Army: only when nothing is fielded (the boot-hydration case).
   if (fighters.value.length === 0) restoreArmy()
@@ -1792,6 +1966,7 @@ const useBattle = () => ({
   wave, bestWave, wavePhase, countdown, gateHp, gateMax, combo, feverActive,
   ultCharge, ultMax, ultReady, boss, timescale, armyCount, armyFull, stats,
   mutator, waveMutated, rallyOffer, dmgBuffRemainingMs, challengeMult, canSetback,
+  coinBuffRemainingMs, isCoinBuffActive, coinBuffMult,
   // unlockable spells
   spellMax, healUnlocked, reviveUnlocked, defenderUnlocked,
   healCharge, reviveCharge, defenderCharge,
@@ -1804,7 +1979,7 @@ const useBattle = () => ({
   // actions
   deployFighter, fieldMerge, fighterAt, fireUltimate, bumpStat,
   fireHeal, fireReviveGuard, fireDefender, unlockHeal, unlockReviveGuard, unlockDefender, noteSpellCast,
-  requestRallyHold, claimRally, declineRally, activateDamageBuff,
+  requestRallyHold, claimRally, declineRally, activateDamageBuff, activateCoinBuff,
   // lifecycle
   startBattle, stopBattle, setEventSink, setRenderSink, setGateEdge
 })

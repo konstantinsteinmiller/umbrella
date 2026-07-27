@@ -34,6 +34,7 @@ import BattleArena from '@/components/organisms/BattleArena.vue'
 import UpgradePanel from '@/components/organisms/UpgradePanel.vue'
 import ParticleCanvas from '@/components/organisms/ParticleCanvas.vue'
 import CoinBadge from '@/components/organisms/CoinBadge.vue'
+import CoinBuffTimer from '@/components/atoms/CoinBuffTimer.vue'
 import FMuteButton from '@/components/atoms/FMuteButton.vue'
 import InstantSpawnAdButton from '@/components/atoms/InstantSpawnAdButton.vue'
 import DamageBuffAdButton from '@/components/atoms/DamageBuffAdButton.vue'
@@ -378,8 +379,12 @@ onUnmounted(() => {
               v-if="nextEnemyWave"
               :class="isCompactHud ? 'text-[8px] leading-tight' : 'text-[9px] sm:text-[11px]'"
             ) {{ t('battle.newEnemyAt', { n: nextEnemyWave }) }}
-        //- Gold counter
-        CoinBadge(ref="coinBadgeRef")
+        //- Gold counter, preceded by the 3× coin-buff clock while that buff is
+        //- running (CoinBuffTimer renders nothing otherwise, so it costs no
+        //- layout the rest of the time).
+        div.flex.items-center.shrink-0(:class="isCompactHud ? 'gap-1' : 'gap-1.5'")
+          CoinBuffTimer
+          CoinBadge(ref="coinBadgeRef")
 
     //- ── Main content (column on portrait, row on landscape) ───────────────
     div.absolute.inset-0.flex.min-h-0(

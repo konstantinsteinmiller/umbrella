@@ -5,6 +5,7 @@ import { setState } from '@/use/useEpicState'
 import { toggleDebug } from '@/use/useMatch'
 import { ultCharge, ultMax, healCharge, reviveCharge, defenderCharge, spellMax, cheatJumpToWave } from '@/use/useBattle'
 import { STAGE_KEY } from '@/keys'
+import { requestFlyingChestSpawn } from '@/use/useFlyingChestCue'
 
 // `cheat` stays a top-level localStorage flag — it's an explicit dev toggle
 // that gates the whole keyboard-shortcut module, so we don't want it living
@@ -131,6 +132,13 @@ const useCheats = () => {
     'ctrl+shift+alt+c': () => {
       spawnTestCratePile()
       console.warn('[CHEAT] Spawned a 2×2 crate-pile ahead.')
+    },
+    // Launch a flying chest right now instead of waiting out its 110s timer —
+    // for testing the chest itself and the 3× coin-income rewarded offer it
+    // rolls on every 2nd open. No-op while a chest is already in flight.
+    'ctrl+shift+alt+f': () => {
+      requestFlyingChestSpawn()
+      console.warn('[CHEAT] Flying chest launched.')
     }
   }
 

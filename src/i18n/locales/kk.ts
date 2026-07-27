@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын'
+    'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын',
+    'startingIn': 'Жарнама {n} секундтан кейін…', 'stopTapping': 'Жарнамаға баспау үшін түртуді тоқтатыңыз'
   },
   'achievements': {
     'title': 'Жетістіктер', 'subtitle': 'Тиын табу үшін мақсаттарға жетіңіз.', 'claim': 'Алу', 'claimed': 'Алынды', 'progress': '{c} / {t}',
@@ -120,6 +121,7 @@ export default {
     'waveSetback': '{n}-толқынға шегіндіңіз!',
     'rally': 'ЖИНАЛЫҢДАР!',
     'rallyBody': 'Қаза тапқан жауынгерлерді тірілту үшін жарнама көріңіз!',
+    'coinBuff': { 'offerTitle': 'Сандықта {mult}× алтын бар!', 'label': '{mult}× тиын табысы', 'duration': '{m} минут бойы', 'expiresIn': 'Ұсыныс {n}с ішінде бітеді' },
     'tutorial': {
       'spawn': 'Екі ұшқынды шақыру үшін ШАҚЫРУ басыңыз!',
       'merge': 'Бір ұшқынды екіншісіне сүйреп БІРІКТІРІҢІЗ!',
@@ -145,7 +147,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'АЛТЫН БЕЗГЕГІ! 2× олжа',
+      'goldRush': 'АЛТЫН БЕЗГЕГІ! {mult}× олжа',
       'frostMarch': 'МҰЗ ЖОРЫҒЫ! Аязды соққылар',
       'horde': 'ТОБЫР! Екі есе көп жау',
       'elite': 'ЭЛИТА! Толқынды чемпион бастайды'

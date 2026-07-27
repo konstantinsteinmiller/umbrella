@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة'
+    'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة',
+    'startingIn': 'الإعلان يبدأ خلال {n}…', 'stopTapping': 'توقّف عن النقر حتى لا تضغط على الإعلان'
   },
   'achievements': {
     'title': 'الإنجازات', 'subtitle': 'حقّق إنجازات مدى الحياة لكسب العملات.', 'claim': 'استلام', 'claimed': 'تم الاستلام', 'progress': '{c} / {t}',
@@ -120,6 +121,7 @@ export default {
     'waveSetback': 'تراجعت إلى الموجة {n}!',
     'rally': 'استجمعوا!',
     'rallyBody': 'شاهد إعلانًا لإحياء مقاتليك الذين سقطوا!',
+    'coinBuff': { 'offerTitle': 'الصندوق يحتوي على ذهب {mult}×!', 'label': 'دخل العملات {mult}×', 'duration': 'لمدة {m} دقيقة', 'expiresIn': 'ينتهي العرض خلال {n} ث' },
     'tutorial': {
       'spawn': 'اضغط استدعاء لتجنيد شرارتين!',
       'merge': 'اسحب شرارة فوق الأخرى لدمجهما!',
@@ -145,7 +147,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'حمى الذهب! غنيمة ×2',
+      'goldRush': 'حمى الذهب! غنيمة ×{mult}',
       'frostMarch': 'الزحف الجليدي! ضربات قارسة',
       'horde': 'الحشد! ضعف الأعداد',
       'elite': 'النخبة! بطل يقود الموجة'

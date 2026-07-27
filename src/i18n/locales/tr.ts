@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para'
+    'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para',
+    'startingIn': 'Reklam {n} saniye içinde…', 'stopTapping': 'Reklama basmamak için dokunmayı bırak'
   },
   'achievements': {
     'title': 'Başarımlar', 'subtitle': 'Para kazanmak için kalıcı hedeflere ulaş.', 'claim': 'Al', 'claimed': 'Alındı', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': "Dalga {n}'e geri itildin!",
     'rally': 'TOPLAN!',
     'rallyBody': 'Düşen savaşçılarını diriltmek için reklam izle!',
+    'coinBuff': { 'offerTitle': 'Sandıkta {mult}× altın var!', 'label': '{mult}× para geliri', 'duration': '{m} dakika boyunca', 'expiresIn': 'Teklif {n}s içinde bitiyor' },
     'tutorial': {
       'spawn': "İki kıvılcım toplamak için ÇAĞIR'a dokun!",
       'merge': 'Bir kıvılcımı diğerinin üzerine sürükleyerek BİRLEŞTİR!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'ALTINA HÜCUM! 2× ganimet',
+      'goldRush': 'ALTINA HÜCUM! {mult}× ganimet',
       'frostMarch': 'BUZ YÜRÜYÜŞÜ! Dondurucu vuruşlar',
       'horde': 'SÜRÜ! İki kat kalabalık',
       'elite': 'ELİT! Dalgayı bir şampiyon yönetiyor'

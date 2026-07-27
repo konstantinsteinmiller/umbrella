@@ -47,6 +47,12 @@ export default {
     'waveSetback': 'Pushed back to wave {n}!',
     'rally': 'RALLY!',
     'rallyBody': 'Watch to resurrect your fallen fighters!',
+    'coinBuff': {
+      'offerTitle': 'The chest holds {mult}× gold!',
+      'label': '{mult}× Coin Income',
+      'duration': 'for {m} minutes',
+      'expiresIn': 'Offer ends in {n}s'
+    },
     'tutorial': {
       'spawn': 'Tap SPAWN to recruit two sparks!',
       'merge': 'Drag one spark onto the other to MERGE them!',
@@ -72,7 +78,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'GOLD RUSH! 2× bounty',
+      'goldRush': 'GOLD RUSH! {mult}× bounty',
       'frostMarch': 'FROST MARCH! Chilling hits',
       'horde': 'HORDE! Double the swarm',
       'elite': 'ELITE! A champion leads the wave'
@@ -134,7 +140,9 @@ export default {
     'revive': 'Revive',
     'secondChance': 'Second Chance',
     'doubleCoins': '2× Coins',
-    'plusCoins': '+{n} coins'
+    'plusCoins': '+{n} coins',
+    'startingIn': 'Ad starting in {n}…',
+    'stopTapping': 'Stop tapping so you don\'t click the ad'
   },
   'achievements': {
     'title': 'Achievements',

@@ -33,6 +33,15 @@ export const BATTLE_ULT_KEY = 'battle_ult'
 export const PRISM_TUTORIAL_KEY = 'prism_tutorial_step'
 // 2× Damage buff (rewarded ad): epoch-ms timestamp the buff expires at.
 export const BATTLE_DMG_BUFF_KEY = 'battle_dmg_buff_until'
+// 3× Coin income buff (rewarded ad from a flying chest): milliseconds of the
+// buff still OWED to the player. Stored as remaining-time rather than an expiry
+// timestamp on purpose — the buff drains on play time, not wall-clock, so
+// closing the tab or sitting in a menu can't silently eat it.
+export const BATTLE_COIN_BUFF_KEY = 'battle_coin_buff_left'
+// How many flying chests the player has opened. Drives the "every 2nd chest"
+// cadence of the coin-buff offer; persisted so a reload can't reset the parity
+// and hand out offers twice as often.
+export const BATTLE_CHEST_OPENS_KEY = 'battle_chest_opens'
 // Rubber-band catch-up: epoch-ms timestamp the "-25% enemy stats" window
 // (granted when a wipe drops the player to their best-wave floor) expires at.
 export const BATTLE_RUBBER_BAND_KEY = 'battle_rubberband_until'

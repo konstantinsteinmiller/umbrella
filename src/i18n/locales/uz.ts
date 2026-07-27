@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga'
+    'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga',
+    'startingIn': 'Reklama {n} soniyadan keyin…', 'stopTapping': 'Reklamani bosmaslik uchun bosishni toʻxtating'
   },
   'achievements': {
     'title': 'Yutuqlar', 'subtitle': 'Tanga olish uchun bosqichlarga erishing.', 'claim': 'Olish', 'claimed': 'Olingan', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': '{n}-toʻlqinga chekindingiz!',
     'rally': 'YIGʻILING!',
     'rallyBody': 'Halok boʻlgan jangchilarni tiriltirish uchun reklama koʻring!',
+    'coinBuff': { 'offerTitle': 'Sandiqda {mult}× tilla bor!', 'label': '{mult}× tanga daromadi', 'duration': '{m} daqiqa davomida', 'expiresIn': 'Taklif {n}s dan keyin tugaydi' },
     'tutorial': {
       'spawn': 'Ikkita uchqunni yollash uchun CHAQIRISH tugmasini bosing!',
       'merge': 'Bir uchqunni ikkinchisiga sudrab BIRLASHTIRING!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'OLTIN VASVASASI! 2× oʻlja',
+      'goldRush': 'OLTIN VASVASASI! {mult}× oʻlja',
       'frostMarch': 'MUZ YURISHI! Sovuq zarbalar',
       'horde': 'TOʻDA! Ikki baravar koʻp dushman',
       'elite': 'ELITA! Toʻlqinni chempion boshqaradi'

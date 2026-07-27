@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Regarder', 'revive': 'Revivre', 'secondChance': 'Seconde chance', 'doubleCoins': '2× pièces', 'plusCoins': '+{n} pièces'
+    'watch': 'Regarder', 'revive': 'Revivre', 'secondChance': 'Seconde chance', 'doubleCoins': '2× pièces', 'plusCoins': '+{n} pièces',
+    'startingIn': 'Publicité dans {n}…', 'stopTapping': 'Arrête de toucher l\'écran pour ne pas cliquer sur la pub'
   },
   'achievements': {
     'title': 'Succès', 'subtitle': 'Atteignez des jalons pour gagner des pièces.', 'claim': 'Réclamer', 'claimed': 'Réclamé', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': 'Repoussé à la vague {n} !',
     'rally': 'RALLIEMENT !',
     'rallyBody': 'Regardez une pub pour ressusciter vos combattants tombés !',
+    'coinBuff': { 'offerTitle': 'Le coffre contient {mult}× d\'or !', 'label': '{mult}× revenus en pièces', 'duration': 'pendant {m} minutes', 'expiresIn': 'Offre expire dans {n}s' },
     'tutorial': {
       'spawn': 'Touchez INVOQUER pour recruter deux étincelles !',
       'merge': "Faites glisser une étincelle sur l'autre pour FUSIONNER !",
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': "RUÉE VERS L'OR ! Butin ×2",
+      'goldRush': "RUÉE VERS L'OR ! Butin ×{mult}",
       'frostMarch': 'MARCHE GLACIALE ! Coups givrants',
       'horde': 'HORDE ! Essaim doublé',
       'elite': 'ÉLITE ! Un champion mène la vague'

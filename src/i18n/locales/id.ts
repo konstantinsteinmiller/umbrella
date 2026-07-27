@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin'
+    'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin',
+    'startingIn': 'Iklan mulai dalam {n}…', 'stopTapping': 'Berhenti mengetuk agar tidak mengeklik iklan'
   },
   'achievements': {
     'title': 'Pencapaian', 'subtitle': 'Raih tonggak seumur hidup untuk koin.', 'claim': 'Klaim', 'claimed': 'Diklaim', 'progress': '{c} / {t}',
@@ -120,6 +121,7 @@ export default {
     'waveSetback': 'Terpukul mundur ke gelombang {n}!',
     'rally': 'BERKUMPUL!',
     'rallyBody': 'Tonton iklan untuk menghidupkan kembali pejuang yang gugur!',
+    'coinBuff': { 'offerTitle': 'Peti berisi {mult}× emas!', 'label': '{mult}× pendapatan koin', 'duration': 'selama {m} menit', 'expiresIn': 'Tawaran berakhir dalam {n}s' },
     'tutorial': {
       'spawn': 'Ketuk PANGGIL untuk merekrut dua percikan!',
       'merge': 'Seret satu percikan ke percikan lain untuk MENGGABUNGKAN!',
@@ -145,7 +147,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'DEMAM EMAS! Hadiah 2×',
+      'goldRush': 'DEMAM EMAS! Hadiah {mult}×',
       'frostMarch': 'MARS BEKU! Serangan dingin',
       'horde': 'GEROMBOLAN! Kawanan dua kali lipat',
       'elite': 'ELIT! Seorang juara memimpin gelombang'

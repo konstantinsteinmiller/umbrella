@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Assistir', 'revive': 'Reviver', 'secondChance': 'Segunda chance', 'doubleCoins': '2× moedas', 'plusCoins': '+{n} moedas'
+    'watch': 'Assistir', 'revive': 'Reviver', 'secondChance': 'Segunda chance', 'doubleCoins': '2× moedas', 'plusCoins': '+{n} moedas',
+    'startingIn': 'Anúncio em {n}…', 'stopTapping': 'Pare de tocar para não clicar no anúncio'
   },
   'achievements': {
     'title': 'Conquistas', 'subtitle': 'Alcance marcos para ganhar moedas.', 'claim': 'Resgatar', 'claimed': 'Resgatado', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': 'Recuou para a onda {n}!',
     'rally': 'REAGRUPAR!',
     'rallyBody': 'Assista a um anúncio para ressuscitar seus lutadores caídos!',
+    'coinBuff': { 'offerTitle': 'O baú guarda {mult}× de ouro!', 'label': '{mult}× renda de moedas', 'duration': 'por {m} minutos', 'expiresIn': 'A oferta acaba em {n}s' },
     'tutorial': {
       'spawn': 'Toque em INVOCAR para recrutar duas faíscas!',
       'merge': 'Arraste uma faísca sobre a outra para FUNDIR!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'CORRIDA DO OURO! Recompensa 2×',
+      'goldRush': 'CORRIDA DO OURO! Recompensa {mult}×',
       'frostMarch': 'MARCHA GELADA! Golpes congelantes',
       'horde': 'HORDA! Enxame em dobro',
       'elite': 'ELITE! Um campeão lidera a onda'

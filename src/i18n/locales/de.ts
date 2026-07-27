@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Ansehen', 'revive': 'Wiederbeleben', 'secondChance': 'Zweite Chance', 'doubleCoins': '2× Münzen', 'plusCoins': '+{n} Münzen'
+    'watch': 'Ansehen', 'revive': 'Wiederbeleben', 'secondChance': 'Zweite Chance', 'doubleCoins': '2× Münzen', 'plusCoins': '+{n} Münzen',
+    'startingIn': 'Werbung startet in {n}…', 'stopTapping': 'Nicht mehr tippen, damit du nicht auf die Werbung klickst'
   },
   'achievements': {
     'title': 'Erfolge', 'subtitle': 'Erreiche Langzeit-Meilensteine für Münzen.', 'claim': 'Abholen', 'claimed': 'Abgeholt', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': 'Zurückgeworfen auf Welle {n}!',
     'rally': 'SAMMELN!',
     'rallyBody': 'Werbung ansehen und gefallene Kämpfer wiederbeleben!',
+    'coinBuff': { 'offerTitle': 'Die Truhe enthält {mult}× Gold!', 'label': '{mult}× Münz-Einkommen', 'duration': 'für {m} Minuten', 'expiresIn': 'Angebot endet in {n}s' },
     'tutorial': {
       'spawn': 'Tippe auf RUFEN, um zwei Funken zu rekrutieren!',
       'merge': 'Ziehe einen Funken auf den anderen, um sie zu VERSCHMELZEN!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'GOLDRAUSCH! 2× Beute',
+      'goldRush': 'GOLDRAUSCH! {mult}× Beute',
       'frostMarch': 'FROSTMARSCH! Eisige Treffer',
       'horde': 'HORDE! Doppelter Schwarm',
       'elite': 'ELITE! Ein Champion führt die Welle an'

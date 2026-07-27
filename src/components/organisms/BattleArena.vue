@@ -14,7 +14,7 @@
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import useBattle, { type BattleEvent, type Fighter, type Enemy } from '@/use/useBattle'
+import useBattle, { GOLD_RUSH_MULT, type BattleEvent, type Fighter, type Enemy } from '@/use/useBattle'
 import { getFighterDef, rollMutator, nextArchetypeUnlock } from '@/game/units'
 import { getIngredient } from '@/game/ingredients'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
@@ -489,7 +489,7 @@ const onEvent = (e: BattleEvent): void => {
         playSound('boss-incoming', 0.05)
         triggerShake('small')
       } else if (e.mutator) {
-        showWaveBanner(t(`battle.mutators.${e.mutator}`), 'mutator', 2400)
+        showWaveBanner(t(`battle.mutators.${e.mutator}`, { mult: GOLD_RUSH_MULT }), 'mutator', 2400)
         playSound('boss-incoming', 0.05)
         triggerShake('small')
       } else {
@@ -872,7 +872,7 @@ onUnmounted(() => {
         v-if="battle.mutator.value && battle.wavePhase.value === 'fighting'" class="top-[6%] z-[1200]"
       )
         span.mutator-chip.rounded-full.border.px-2.game-text.font-black.uppercase(class="py-0.5 text-[9px] sm:text-[11px]")
-          | {{ t('battle.mutators.' + battle.mutator.value) }}
+          | {{ t('battle.mutators.' + battle.mutator.value, { mult: GOLD_RUSH_MULT }) }}
 
     //- ── Combo pop ──
     div.absolute.left-0.right-0.flex.justify-center.pointer-events-none(class="top-[12%] z-[1220]")
@@ -897,7 +897,7 @@ onUnmounted(() => {
         span.game-text.font-black.uppercase.text-white(class="text-xs sm:text-sm opacity-80") {{ t('battle.nextWave', { n: battle.wave.value }) }}
         span.countdown-num.game-text.font-black.text-yellow-300(:key="countdownDisplay" class="text-4xl sm:text-6xl") {{ countdownDisplay }}
         //- Telegraphs: incoming mutator / brand-new enemy archetype
-        span.game-text.font-black.uppercase.text-purple-300(v-if="upcomingMutator" class="text-[10px] sm:text-sm animate-pulse") {{ t('battle.mutators.' + upcomingMutator) }}
+        span.game-text.font-black.uppercase.text-purple-300(v-if="upcomingMutator" class="text-[10px] sm:text-sm animate-pulse") {{ t('battle.mutators.' + upcomingMutator, { mult: GOLD_RUSH_MULT }) }}
         span.game-text.font-black.uppercase.text-red-300(v-if="newEnemyIncoming" class="text-[10px] sm:text-sm animate-pulse") {{ t('battle.newEnemy') }}
 
     //- ── OVERRUN overlay (+ RALLY! rewarded revive, roadmap #8) ──

@@ -66,6 +66,24 @@ export const tickMidgameAd = (dt: number): void => {
   void showMidgameAd().finally(() => { firing = false })
 }
 
+/**
+ * Is an automatic interstitial going to open within `withinS` seconds of play?
+ *
+ * Used by the flying chest to avoid launching into an ad handover — a chest that
+ * takes off just before an interstitial flies off-screen behind it and the
+ * player never gets to tap it.
+ *
+ * Only true when an ad will GENUINELY fire: `isInterstitialReady` is part of the
+ * answer on purpose. When the interval is up but nothing can fill, `elapsed`
+ * deliberately stays past the threshold (see above) — treating that as
+ * "imminent" would block the chest forever on the noop provider / in plain dev.
+ */
+export const isMidgameAdImminent = (withinS: number): boolean => {
+  if (disabledForCapture || firing) return false
+  if (!isInterstitialReady.value) return false
+  return MIDGAME_AD_INTERVAL_S - elapsed <= withinS
+}
+
 /** Reset the clock — e.g. on a fresh run so the first interstitial is a full
  *  interval into play, not left over from a previous session's tail. */
 export const resetMidgameAdTimer = (): void => {

@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン'
+    'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン',
+    'startingIn': '広告は {n} 秒後に開始…', 'stopTapping': '広告を誤タップしないよう画面から手を離してください'
   },
   'achievements': {
     'title': '実績', 'subtitle': '生涯マイルストーンを達成してコイン獲得。', 'claim': '受取', 'claimed': '受取済', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': 'ウェーブ{n}まで後退!',
     'rally': 'ラリー!',
     'rallyBody': '広告を見て倒れた戦士を復活させよう!',
+    'coinBuff': { 'offerTitle': '宝箱に {mult}× のゴールド!', 'label': 'コイン収入 {mult}×', 'duration': '{m} 分間', 'expiresIn': 'あと {n} 秒で終了' },
     'tutorial': {
       'spawn': '召喚をタップして火花を2体呼び出そう!',
       'merge': '火花同士をドラッグしてマージ!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'ゴールドラッシュ! 報酬2倍',
+      'goldRush': 'ゴールドラッシュ! 報酬{mult}倍',
       'frostMarch': 'フロストマーチ! 凍える攻撃',
       'horde': '大群! 敵の数2倍',
       'elite': 'エリート! チャンピオンがウェーブを率いる'

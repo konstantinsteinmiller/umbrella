@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu'
+    'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu',
+    'startingIn': 'Quảng cáo bắt đầu sau {n}…', 'stopTapping': 'Ngừng chạm để không bấm vào quảng cáo'
   },
   'achievements': {
     'title': 'Thành tựu', 'subtitle': 'Đạt cột mốc trọn đời để kiếm xu.', 'claim': 'Nhận', 'claimed': 'Đã nhận', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': 'Bị đẩy lùi về đợt {n}!',
     'rally': 'TẬP HỢP!',
     'rallyBody': 'Xem quảng cáo để hồi sinh các chiến binh đã ngã xuống!',
+    'coinBuff': { 'offerTitle': 'Hòm chứa {mult}× vàng!', 'label': '{mult}× thu nhập xu', 'duration': 'trong {m} phút', 'expiresIn': 'Ưu đãi kết thúc sau {n}s' },
     'tutorial': {
       'spawn': 'Chạm TRIỆU HỒI để chiêu mộ hai tia lửa!',
       'merge': 'Kéo tia lửa này lên tia lửa kia để HỢP NHẤT!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'CƠN SỐT VÀNG! Tiền thưởng 2×',
+      'goldRush': 'CƠN SỐT VÀNG! Tiền thưởng {mult}×',
       'frostMarch': 'HÀNH QUÂN BĂNG GIÁ! Đòn đánh lạnh buốt',
       'horde': 'BẦY ĐÀN! Số lượng gấp đôi',
       'elite': 'TINH NHUỆ! Một nhà vô địch dẫn đầu đợt tấn công'

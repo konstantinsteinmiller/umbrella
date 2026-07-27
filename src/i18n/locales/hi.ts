@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'देखें', 'revive': 'पुनर्जीवित', 'secondChance': 'दूसरा मौका', 'doubleCoins': '2× सिक्के', 'plusCoins': '+{n} सिक्के'
+    'watch': 'देखें', 'revive': 'पुनर्जीवित', 'secondChance': 'दूसरा मौका', 'doubleCoins': '2× सिक्के', 'plusCoins': '+{n} सिक्के',
+    'startingIn': 'विज्ञापन {n} में शुरू…', 'stopTapping': 'टैप करना बंद करें ताकि विज्ञापन पर क्लिक न हो'
   },
   'achievements': {
     'title': 'उपलब्धियाँ', 'subtitle': 'सिक्के कमाने के लिए मील के पत्थर पाएँ।', 'claim': 'क्लेम', 'claimed': 'क्लेम किया', 'progress': '{c} / {t}',
@@ -120,6 +121,7 @@ export default {
     'waveSetback': 'वेव {n} पर पीछे धकेले गए!',
     'rally': 'एकजुट हों!',
     'rallyBody': 'गिरे हुए योद्धाओं को पुनर्जीवित करने के लिए विज्ञापन देखें!',
+    'coinBuff': { 'offerTitle': 'संदूक में {mult}× सोना है!', 'label': '{mult}× सिक्का आय', 'duration': '{m} मिनट तक', 'expiresIn': 'ऑफ़र {n}से में समाप्त' },
     'tutorial': {
       'spawn': 'दो चिंगारियाँ भर्ती करने के लिए बुलाएँ दबाएँ!',
       'merge': 'एक चिंगारी को दूसरी पर खींचकर मर्ज करें!',
@@ -145,7 +147,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'सोने की दौड़! 2× इनाम',
+      'goldRush': 'सोने की दौड़! {mult}× इनाम',
       'frostMarch': 'हिम मार्च! बर्फ़ीले प्रहार',
       'horde': 'गिरोह! दोगुना झुंड',
       'elite': 'एलीट! वेव की अगुवाई एक चैंपियन करता है'

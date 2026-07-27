@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Obejrzyj', 'revive': 'Wskrześ', 'secondChance': 'Druga szansa', 'doubleCoins': '2× monety', 'plusCoins': '+{n} monet'
+    'watch': 'Obejrzyj', 'revive': 'Wskrześ', 'secondChance': 'Druga szansa', 'doubleCoins': '2× monety', 'plusCoins': '+{n} monet',
+    'startingIn': 'Reklama za {n}…', 'stopTapping': 'Przestań stukać, by nie kliknąć reklamy'
   },
   'achievements': {
     'title': 'Osiągnięcia', 'subtitle': 'Zdobywaj kamienie milowe, by zarobić monety.', 'claim': 'Odbierz', 'claimed': 'Odebrano', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': 'Cofnięto do fali {n}!',
     'rally': 'ZBIÓRKA!',
     'rallyBody': 'Obejrzyj reklamę, aby wskrzesić poległych wojowników!',
+    'coinBuff': { 'offerTitle': 'W skrzyni jest {mult}× złota!', 'label': '{mult}× dochód z monet', 'duration': 'na {m} minut', 'expiresIn': 'Oferta kończy się za {n}s' },
     'tutorial': {
       'spawn': 'Stuknij PRZYZWIJ, aby zrekrutować dwie iskry!',
       'merge': 'Przeciągnij jedną iskrę na drugą, aby je POŁĄCZYĆ!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': 'GORĄCZKA ZŁOTA! Łup 2×',
+      'goldRush': 'GORĄCZKA ZŁOTA! Łup {mult}×',
       'frostMarch': 'LODOWY MARSZ! Mroźne ciosy',
       'horde': 'HORDA! Podwójny rój',
       'elite': 'ELITA! Falę prowadzi czempion'

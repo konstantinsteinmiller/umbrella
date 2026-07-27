@@ -1,6 +1,7 @@
 export default {
   'ads': {
-    'watch': 'Ver', 'revive': 'Revivir', 'secondChance': 'Segunda oportunidad', 'doubleCoins': '2× monedas', 'plusCoins': '+{n} monedas'
+    'watch': 'Ver', 'revive': 'Revivir', 'secondChance': 'Segunda oportunidad', 'doubleCoins': '2× monedas', 'plusCoins': '+{n} monedas',
+    'startingIn': 'El anuncio empieza en {n}…', 'stopTapping': 'Deja de tocar para no hacer clic en el anuncio'
   },
   'achievements': {
     'title': 'Logros', 'subtitle': 'Alcanza hitos para ganar monedas.', 'claim': 'Reclamar', 'claimed': 'Reclamado', 'progress': '{c} / {t}',
@@ -166,6 +167,7 @@ export default {
     'waveSetback': '¡Retrocedes a la oleada {n}!',
     'rally': '¡REAGRUPARSE!',
     'rallyBody': '¡Mira un anuncio para resucitar a tus luchadores caídos!',
+    'coinBuff': { 'offerTitle': '¡El cofre guarda {mult}× de oro!', 'label': '{mult}× ingresos de monedas', 'duration': 'durante {m} minutos', 'expiresIn': 'La oferta acaba en {n}s' },
     'tutorial': {
       'spawn': '¡Toca INVOCAR para reclutar dos chispas!',
       'merge': '¡Arrastra una chispa sobre la otra para FUSIONARLAS!',
@@ -191,7 +193,7 @@ export default {
       }
     },
     'mutators': {
-      'goldRush': '¡FIEBRE DEL ORO! Botín 2×',
+      'goldRush': '¡FIEBRE DEL ORO! Botín {mult}×',
       'frostMarch': '¡MARCHA HELADA! Golpes gélidos',
       'horde': '¡HORDA! El doble de enjambre',
       'elite': '¡ÉLITE! Un campeón lidera la oleada'
