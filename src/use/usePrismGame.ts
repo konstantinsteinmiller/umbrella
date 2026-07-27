@@ -26,6 +26,7 @@ import { GRID_KEY, PRISM_MAX_TIER_KEY, PRISM_INSTANT_SPAWN_KEY } from '@/keys'
 import { MAX_INGREDIENT_TIER } from '@/game/ingredients'
 import { deployFighter, impCadenceMs, armyFull, bumpStat, recruitTier } from '@/use/useBattle'
 import { notifyTutorial, isTutorialOneTap } from '@/use/useTutorial'
+import { isGamePaused } from '@/use/useGamePause'
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 export const GRID_COLS = 4
@@ -280,11 +281,19 @@ let engineRefs = 0
 const tick = (): void => {
   const now = Date.now()
 
-  // Instant-spawn buff countdown (UI reads the ref; 0 ⇔ expired).
+  // Instant-spawn buff countdown (UI reads the ref; 0 ⇔ expired). Wall-clock
+  // by design, like the 2× damage buff — it keeps draining across a pause, so
+  // this stays OUTSIDE the gate to keep the UI chip honest.
   const remaining = Math.max(0, instantSpawnUntil.value - now)
   if (remaining !== instantSpawnRemainingMs.value) instantSpawnRemainingMs.value = remaining
 
-  // Automation imp (cadence owned by the battle upgrade).
+  // Automation imp (cadence owned by the battle upgrade). This is real
+  // gameplay — it merges and deploys units on the board — so it must halt
+  // behind the universal pause gate exactly like the battle RAF driver does.
+  // Without this the imp kept playing the game underneath ads and menus, which
+  // also made CrazyGames' `gameplayStop()` a lie. `lastAutoAt` is left stale
+  // while paused, so the imp takes its next action right after the resume.
+  if (isGamePaused.value) return
   const cadence = impCadenceMs.value
   if (cadence > 0 && now - lastAutoAt >= cadence) {
     lastAutoAt = now

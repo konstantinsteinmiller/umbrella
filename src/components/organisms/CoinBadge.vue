@@ -1,9 +1,26 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import useEpicConfig from '@/use/useEpicConfig'
 
 const { coins } = useEpicConfig()
+
+// Abbreviate big wallets: 1435 → "1.4k", 4.5m, 1.2b, 1.3t. One decimal, FLOORED
+// so the badge never shows more than the player actually has; trailing ".0"
+// dropped (2000 → "2k"). Under 1000 shows the exact count.
+const abbreviate = (n: number): string => {
+  const unit = (v: number, suffix: string): string => {
+    const t = Math.floor(v * 10) / 10
+    return (Number.isInteger(t) ? String(t) : t.toFixed(1)) + suffix
+  }
+  const abs = Math.abs(n)
+  if (abs >= 1e12) return unit(n / 1e12, 't')
+  if (abs >= 1e9) return unit(n / 1e9, 'b')
+  if (abs >= 1e6) return unit(n / 1e6, 'm')
+  if (abs >= 1e3) return unit(n / 1e3, 'k')
+  return String(Math.floor(n))
+}
+const display = computed(() => abbreviate(coins.value))
 
 // Exposed so siblings (e.g. TreasureChest) can target the badge for fly-to VFX.
 const rootEl = ref<HTMLElement | null>(null)
@@ -19,7 +36,7 @@ defineExpose({ rootEl })
       class="w-7 h-7 sm:w-8 sm:h-8"
     )
       IconCoin(class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-100 drop-shadow")
-    span.game-text.coin-badge__value {{ coins }}
+    span.game-text.coin-badge__value {{ display }}
 </template>
 
 <style scoped lang="sass">

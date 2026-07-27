@@ -1,11 +1,28 @@
 // ─── Unified pause gate ────────────────────────────────────────────────────
 //
-// One module, three flags, one `isGamePaused` computed. Every reason the
-// game has to halt (tab hidden, platform SDK pause callback fired, an ad
-// is on-screen, an app-side modal asked for a pause) ORs into the same
-// computed; the renderer reads it, audio mute can subscribe to its
-// transitions, and the SDK's pause/resume callbacks just toggle their
-// flag without knowing about the rest.
+// One module, four flags, TWO computed gates. Every reason the game has to
+// halt (tab hidden, platform SDK pause callback fired, an ad is on-screen,
+// an app-side modal asked for a pause) ORs into `isGamePaused`; the renderer
+// and the sim loops read it, and the SDK's pause/resume callbacks just toggle
+// their flag without knowing about the rest.
+//
+// **Two gates, not one — `isGamePaused` (sim) vs `isAudioPaused` (sound).**
+// Freezing the simulation and silencing the speakers are different products:
+//
+//   • An AD, a hidden tab, or a platform pause must do BOTH — nothing may be
+//     audible under an ad (portal review rejection #1) and nothing may
+//     advance while the player can't see the screen.
+//   • An in-game MODAL (Achievements, Battle Pass, Unit Codex, Options, …)
+//     must freeze the sim — CrazyGames' `gameplayStop()` is only truthful if
+//     the game really stopped — but the background music should keep playing,
+//     the way it does in every portal game's menus. Muting there also froze
+//     the modal-open SFX cue mid-buffer, which then replayed as a clipped
+//     tail when the modal closed.
+//
+// So the app/modal source ORs into `isGamePaused` only, and `isAudioPaused`
+// deliberately omits it. `useGamePauseAudio` subscribes to the audio gate;
+// `useBattle`'s RAF driver, `usePrismGame`'s engine tick and `FlyingChest`
+// read the sim gate.
 //
 // **Zero-dependency module on purpose.** `useAds` imports `GamepixProvider`,
 // which (transitively) imports this. If pause flags lived in `useAds`,
@@ -69,10 +86,18 @@ export const resumeGame = (): void => {
   if (isPlatformPaused.value) isPlatformPaused.value = false
 }
 
-/** OR of all four sources. Drives the renderer's early-return + any
- *  audio mute subscriber. */
+/** SIM gate — OR of all four sources. Drives the renderer's early-return,
+ *  the battle RAF driver, the merge-grid automation tick and the flying-chest
+ *  spawner. A modal counts here: gameplay must really stop behind a menu. */
 export const isGamePaused = computed(
   () => isAdShowing.value || isVisibilityHidden.value || isPlatformPaused.value || isAppPaused.value
+)
+
+/** AUDIO gate — the three sources that must SILENCE the game. Excludes the
+ *  app/modal pause on purpose: menus freeze the sim but keep the music
+ *  playing (see the file header). Subscribed by `useGamePauseAudio`. */
+export const isAudioPaused = computed(
+  () => isAdShowing.value || isVisibilityHidden.value || isPlatformPaused.value
 )
 
 /** The distinct reasons the game can be halted, in the same order they
@@ -92,24 +117,29 @@ export const getActivePauseReasons = (): PauseReason[] => {
   return reasons
 }
 
+/** Same snapshot, restricted to the sources that mute audio — so the
+ *  `[pause] 🔇` line can never claim `modal` as a mute reason. */
+export const getActiveAudioPauseReasons = (): PauseReason[] =>
+  getActivePauseReasons().filter((r) => r !== 'modal')
+
 // ─── Subscriber fanout ─────────────────────────────────────────────────────
 
 type PauseSubscriber = (paused: boolean) => void
-const subscribers = new Set<PauseSubscriber>()
+const audioSubscribers = new Set<PauseSubscriber>()
 
-/** Register a subscriber that fires on every `isGamePaused` transition.
- *  Returns an unsubscribe function. The watcher uses `flush: 'sync'` so
- *  the subscriber runs inside the same call stack as the flag flip —
- *  see file-level comment. */
-export const onPauseChange = (sub: PauseSubscriber): (() => void) => {
-  subscribers.add(sub)
+/** Register a subscriber that fires on every `isAudioPaused` transition
+ *  (ad / tab-hidden / platform — NOT modals). Returns an unsubscribe
+ *  function. The watcher uses `flush: 'sync'` so the subscriber runs
+ *  inside the same call stack as the flag flip — see file-level comment. */
+export const onAudioPauseChange = (sub: PauseSubscriber): (() => void) => {
+  audioSubscribers.add(sub)
   return (): void => {
-    subscribers.delete(sub)
+    audioSubscribers.delete(sub)
   }
 }
 
-watch(isGamePaused, (paused) => {
-  for (const sub of subscribers) {
+watch(isAudioPaused, (paused) => {
+  for (const sub of audioSubscribers) {
     try { sub(paused) }
     catch (e) { console.warn('[pause] subscriber threw', e) }
   }

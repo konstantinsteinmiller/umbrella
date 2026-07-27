@@ -23,7 +23,7 @@ import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygam
 import type { AdProvider } from './ads/types'
 import { resolveAdProvider } from '@/platforms/resolveAdProvider'
 import { isRewardedThrottled, recordRewardedGranted } from '@/use/useRewardedThrottle'
-import { isAdShowing, isGamePaused, acquireAppPause } from '@/use/useGamePause'
+import { isAdShowing, isGamePaused, isAudioPaused, getActivePauseReasons, acquireAppPause } from '@/use/useGamePause'
 import { installGamePauseAudio } from '@/use/useGamePauseAudio'
 import { __audioDebugSnapshot, killOneShotSfx } from '@/use/useAssets'
 import { isDebug } from '@/use/useMatch'
@@ -254,8 +254,14 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
   }
   w.__audioDebug = () => {
     const snap = {
+      // Two gates on purpose: `isGamePaused` freezes the sim (ad / tab-hidden /
+      // platform / MODAL), `isAudioPaused` silences it (ad / tab-hidden /
+      // platform — no modal). Opening a menu should show
+      // isGamePaused:true + isAudioPaused:false + audioCtxState:'running'.
       isGamePaused: isGamePaused.value,
+      isAudioPaused: isAudioPaused.value,
       isAdShowing: isAdShowing.value,
+      pauseReasons: getActivePauseReasons(),
       ...__audioDebugSnapshot()
     }
     console.info(`${TAG} [TEST] audio snapshot`, snap)

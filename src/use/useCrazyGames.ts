@@ -437,6 +437,91 @@ const isBenignAdError = (err: any): boolean => {
   return code === 'adcooldown' || code === 'adnotfound'
 }
 
+// ─── Request watchdog ─────────────────────────────────────────────────────
+//
+// `useAds` mutes ALL audio and freezes the sim for the entire span of these
+// promises, and only restores both in its `finally`. So a `requestAd()` that
+// never invokes ANY callback — SDK wedged, the iframe's ad slot never
+// negotiated, a network stall that the SDK doesn't surface — would strand the
+// game silent and frozen with no way out. The watchdog closes that hole: if
+// `adStarted` hasn't fired within this window, we treat the request as "could
+// not be served" and settle, which drops the pause gate and resumes music.
+//
+// It only guards the REQUEST phase. Once `adStarted` fires the timer is
+// cleared, because a real video legitimately runs far longer than this and
+// resolving mid-playback would unmute underneath it — the exact failure the
+// mute exists to prevent.
+const AD_REQUEST_TIMEOUT_MS = 12_000
+
+/**
+ * Shared plumbing for both CG ad formats: gameplay stop/resume bookkeeping,
+ * the request watchdog, and a one-shot settle so no SDK can resolve twice
+ * (CG has been observed firing `adFinished` after an `adError`).
+ *
+ * `settle` is invoked with the outcome exactly once; the caller maps that to
+ * its own resolve value.
+ */
+const runAdRequest = (
+  format: 'rewarded' | 'midgame',
+  onSettled: (completed: boolean) => void
+): void => {
+  // CrazyGames recommends pausing gameplay while an ad plays so that
+  // sounds + timers don't run behind the video. Only resume gameplay if it
+  // was active BEFORE the ad — ads fire from menus too (AdRewardButton,
+  // DailyRewards, BattlePass, the result screen), and calling gameplayStart()
+  // afterwards would falsely tell CG the player is in a match while they're
+  // on a menu.
+  let wasGameplayActive = false
+  let started = false
+  let done = false
+  let watchdog: ReturnType<typeof setTimeout> | null = null
+
+  const clearWatchdog = (): void => {
+    if (watchdog !== null) {
+      clearTimeout(watchdog)
+      watchdog = null
+    }
+  }
+
+  const settle = (completed: boolean): void => {
+    if (done) return
+    done = true
+    clearWatchdog()
+    if (wasGameplayActive) startGameplay()
+    onSettled(completed)
+  }
+
+  watchdog = setTimeout(() => {
+    if (started) return // video is genuinely playing — never cut it short
+    console.warn(
+      `[crazygames] ${format} ad request timed out after ${AD_REQUEST_TIMEOUT_MS}ms`
+      + ' (no adStarted / adError) — treating as not served and resuming'
+    )
+    settle(false)
+  }, AD_REQUEST_TIMEOUT_MS)
+
+  try {
+    sdk.ad?.requestAd?.(format, {
+      adStarted: () => {
+        started = true
+        clearWatchdog()
+        wasGameplayActive = gameplayActive
+        stopGameplay()
+      },
+      adFinished: () => settle(true),
+      adError: (err: unknown) => {
+        if (!isBenignAdError(err)) console.warn(`[crazygames] ${format} ad error`, err)
+        if (isAdBlockerError(err)) isCrazyAdsBlocked.value = true
+        settle(false)
+      }
+    })
+  } catch (e) {
+    console.warn(`[crazygames] requestAd ${format} threw`, e)
+    if (isAdBlockerError(e)) isCrazyAdsBlocked.value = true
+    settle(false)
+  }
+}
+
 // ─── Rewarded video ads ───────────────────────────────────────────────────
 
 /**
@@ -444,8 +529,9 @@ const isBenignAdError = (err: any): boolean => {
  * ad played all the way through — callers should only grant the reward on
  * a `true` result.
  *
- * Always resolves `false` (and is a no-op) when the SDK is not active, so
- * callers can use it unconditionally without guard checks.
+ * Always resolves (never rejects, never hangs): `false` when the SDK is
+ * inactive, on `adError`, on a throw, or when the request watchdog fires. That
+ * contract is what lets `useAds` restore audio + gameplay in its `finally`.
  */
 export const showRewardedAd = (): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -453,41 +539,7 @@ export const showRewardedAd = (): Promise<boolean> => {
       resolve(false)
       return
     }
-
-    // CrazyGames recommends pausing gameplay while an ad plays so that
-    // sounds + timers don't run behind the video. Only resume gameplay if it
-    // was active BEFORE the ad — rewarded ads fire from menus too (AdRewardButton,
-    // DailyRewards, BattlePass, the Second-Chance "Watch & Continue"), and
-    // calling gameplayStart() afterwards would falsely tell CG the player is in
-    // a match while they're on a menu / result screen.
-    let wasGameplayActive = false
-    const resumeAfterAd = () => {
-      if (wasGameplayActive) startGameplay()
-    }
-
-    try {
-      sdk.ad?.requestAd?.('rewarded', {
-        adStarted: () => {
-          wasGameplayActive = gameplayActive
-          stopGameplay()
-        },
-        adFinished: () => {
-          resumeAfterAd()
-          resolve(true)
-        },
-        adError: (err: unknown) => {
-          if (!isBenignAdError(err)) console.warn('[crazygames] rewarded ad error', err)
-          if (isAdBlockerError(err)) isCrazyAdsBlocked.value = true
-          resumeAfterAd()
-          resolve(false)
-        }
-      })
-    } catch (e) {
-      console.warn('[crazygames] requestAd threw', e)
-      if (isAdBlockerError(e)) isCrazyAdsBlocked.value = true
-      resumeAfterAd()
-      resolve(false)
-    }
+    runAdRequest('rewarded', resolve)
   })
 }
 
@@ -496,8 +548,9 @@ export const showRewardedAd = (): Promise<boolean> => {
 /**
  * Shows a midgame (interstitial) video ad via the CrazyGames SDK. Unlike
  * rewarded ads there is no reward to grant, so the promise simply resolves
- * once the SDK signals the ad has finished or errored — callers can `await`
- * it to know when it's safe to resume the next match.
+ * once the request is fully handled — ad finished, errored, was not filled, or
+ * the watchdog gave up — which is precisely when `useAds` may unmute and
+ * unfreeze. Never rejects, never hangs.
  *
  * No-op (and resolves immediately) when the SDK is not active.
  */
@@ -507,39 +560,7 @@ export const showMidgameAd = (): Promise<void> => {
       resolve()
       return
     }
-
-    // Pause gameplay while the ad plays so sounds and timers don't run
-    // behind the video. Only resume if gameplay was active before the ad — a
-    // midgame ad fired from the result screen (our 600ms-delayed win/lose
-    // interstitial) must NOT flip CG into "in match" state afterwards.
-    let wasGameplayActive = false
-    const resumeAfterAd = () => {
-      if (wasGameplayActive) startGameplay()
-    }
-
-    try {
-      sdk.ad?.requestAd?.('midgame', {
-        adStarted: () => {
-          wasGameplayActive = gameplayActive
-          stopGameplay()
-        },
-        adFinished: () => {
-          resumeAfterAd()
-          resolve()
-        },
-        adError: (err: unknown) => {
-          if (!isBenignAdError(err)) console.warn('[crazygames] midgame ad error', err)
-          if (isAdBlockerError(err)) isCrazyAdsBlocked.value = true
-          resumeAfterAd()
-          resolve()
-        }
-      })
-    } catch (e) {
-      console.warn('[crazygames] requestAd midgame threw', e)
-      if (isAdBlockerError(e)) isCrazyAdsBlocked.value = true
-      resumeAfterAd()
-      resolve()
-    }
+    runAdRequest('midgame', () => resolve())
   })
 }
 

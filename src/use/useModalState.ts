@@ -3,14 +3,17 @@ import { ref, computed } from 'vue'
 // ─── UI modal-open signal ────────────────────────────────────────────────────
 //
 // Tracks how many blocking FModal dialogs (Upgrades, Options, Daily, Battle
-// Pass, Achievements, …) are currently open. Its only consumer today is the
-// CrazyGames gameplay-lifecycle driver in `MawScene` — gameplay counts as
-// "interrupted" while a menu is up, so we fire `gameplayStop()` on open and
-// `gameplayStart()` on close (see CG SDK requirements).
+// Pass, Achievements, Unit Codex, …) are currently open. Its consumer is
+// `useModalGameplayGate`, which translates the signal into an app-pause on the
+// universal gate (so the battle sim + merge automation freeze behind the menu)
+// and, on the CrazyGames full release, into `gameplayStop()` / `gameplayStart()`.
 //
-// Intentionally SIDE-EFFECT-FREE: this does NOT pause the render loop or
-// suspend audio (that's the separate `useGamePause` gate, which would also
-// mute the modal-open cue). It's a pure signal for SDK event timing.
+// Intentionally SIDE-EFFECT-FREE *here*: this module is a pure refcounted
+// signal, no pausing and no audio calls of its own — the gate module owns those
+// so there is exactly one place that decides what "a menu is open" means.
+// Note that a modal does NOT mute audio: the mute gate (`isAudioPaused`) omits
+// the modal source on purpose, so menus keep their music and the modal-open cue
+// isn't cut off. See the header of `useGamePause.ts`.
 //
 // Refcounted so overlapping / stacked modals compose: gameplay only resumes
 // once the LAST modal closes. `acquireModalOpen()` returns a release function

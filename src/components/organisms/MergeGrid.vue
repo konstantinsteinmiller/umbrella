@@ -98,6 +98,12 @@ const onPointerDown = (e: PointerEvent): void => {
   ghostY.value = e.clientY
   dragActive.value = true
   dragTier.value = ghostTier.value
+  // Drive the rest of the gesture from WINDOW, not this element. Pointer capture
+  // is unreliable on mobile — if the drop lands on another control (e.g. the
+  // Spawn button) the grid's own pointerup never fires, so the drag never ends
+  // and the ghost freezes on screen (CG had to be restarted). Window listeners
+  // guarantee we always see the up/cancel wherever the finger lifts.
+  addDragListeners()
 }
 
 const onPointerMove = (e: PointerEvent): void => {
@@ -111,6 +117,7 @@ const onPointerMove = (e: PointerEvent): void => {
 }
 
 const endDrag = (): void => {
+  removeDragListeners()
   dragging.value = false
   dragSource.value = -1
   ghostTier.value = 0
@@ -149,7 +156,23 @@ const onPointerUp = (e: PointerEvent): void => {
   endDrag()
 }
 
-const onPointerCancel = (): void => { if (dragging.value) endDrag() }
+const onPointerCancel = (e: PointerEvent): void => {
+  if (dragging.value && e.pointerId === activePointer) endDrag()
+}
+
+// Window-level drag listeners (added on drag start, removed on end) — the safety
+// net that makes the drop robust regardless of where the finger lifts.
+const addDragListeners = (): void => {
+  window.addEventListener('pointermove', onPointerMove, { passive: false })
+  window.addEventListener('pointerup', onPointerUp)
+  window.addEventListener('pointercancel', onPointerCancel)
+}
+const removeDragListeners = (): void => {
+  window.removeEventListener('pointermove', onPointerMove)
+  window.removeEventListener('pointerup', onPointerUp)
+  window.removeEventListener('pointercancel', onPointerCancel)
+}
+onUnmounted(removeDragListeners) // never leak a global listener
 
 // ── Merge feedback ──
 const fireMerge = (idx: number, newTier: number): void => {
@@ -217,9 +240,6 @@ onUnmounted(() => {
     ref="rootRef"
     :class="{ 'is-shake': shake }"
     @pointerdown="onPointerDown"
-    @pointermove="onPointerMove"
-    @pointerup="onPointerUp"
-    @pointercancel="onPointerCancel"
     @contextmenu.prevent
   )
     div.grid.h-full.w-full(

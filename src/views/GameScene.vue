@@ -131,17 +131,22 @@ const utilityBottom = computed(() =>
   `calc(${utilityLifted.value ? '4.4rem' : '0.4rem'} + env(safe-area-inset-bottom, 0px))`
 )
 
-// Left utility stack (campaign / achievements / codex). On the side-by-side
-// landscape layout it moves to the CONTROLS half: anchored at the column's
-// left edge (arena is the left 54%), lifted above the Instant Spawn button —
-// mirroring the mute/settings stack above 2× Damage on the right edge. On
-// stacked layouts it stays bottom-left of the screen.
+// Left utility stack (campaign / achievements / codex). It lives INSIDE the
+// controls column so on the side-by-side landscape layout it anchors to the
+// column's real left edge — a screen-relative percentage drifts once the iOS
+// landscape safe-area insets pad the flex row, which floated the stack over
+// the merge grid. Landscape: absolute at the column edge, lifted above the
+// Instant Spawn button (mirroring mute/settings above 2× Damage). Stacked
+// layouts: fixed bottom-left of the screen (the scene root's screenshake
+// transform makes that resolve against the full-screen scene, as intended).
 const leftStackStyle = computed<Record<string, string>>(() => sideBySide.value
   ? {
-      bottom: 'calc(4.4rem + env(safe-area-inset-bottom, 0px))',
-      left: 'calc(54% + 0.4rem + env(safe-area-inset-left, 0px))'
+      position: 'absolute',
+      bottom: '4.4rem',
+      left: '0.4rem'
     }
   : {
+      position: 'fixed',
       bottom: utilityBottom.value,
       left: 'calc(0.4rem + env(safe-area-inset-left, 0px))'
     })
@@ -322,7 +327,7 @@ onUnmounted(() => {
         BattleArena(:coin-target="coinBadgeEl" @boss-kill="onBossKill" @milestone="onMilestone")
 
       //- ── Controls (upgrades + grid + spawn) ──
-      div.controls-area.flex.flex-col.min-h-0(
+      div.controls-area.relative.flex.flex-col.min-h-0(
         :class="sideBySide ? 'w-[46%] h-full' : 'w-full'"
         :style="sideBySide ? {} : { flex: '1 1 0%' }"
       )
@@ -360,33 +365,34 @@ onUnmounted(() => {
           //- radial reveal, so this slot sells damage instead of a meter)
           DamageBuffAdButton(:pulse="warChestPulse")
 
-    //- ── Bottom-left utility buttons (lifted above the spawn row on
-    //-    narrow portrait phones so they never crowd the Spawn controls).
-    //-    Only TWO buttons per stack — four in a column reached up into the
-    //-    upgrade row on portrait; mute + settings live in the right-side
-    //-    stack beside the merge grid instead. ─────────────────────────────
-    div.absolute.z-30.flex.flex-col.items-start.gap-1(:style="leftStackStyle")
-      //- War Campaign (free battle pass, roadmap #18)
-      BattlePass(@coins-awarded="onBpCoins")
-      //- Achievements (roadmap #10)
-      AchievementsButton(@coins-awarded="onBpCoins")
-      //- Unit Codex (roadmap #12) — the next undiscovered tier ghosts on the
-      //- button as a silhouette: pure "one more merge" bait.
-      button.cursor-pointer.transition-transform(
-        class="active:scale-90 hover:scale-[103%]"
-        :aria-label="t('battle.codex.title')"
-        @click="showCodex = true"
-      )
-        div.relative
-          div.absolute.inset-0.translate-y-1.rounded-lg(class="bg-[#7a4a10]")
-          div.relative.rounded-lg.border-2.flex.items-center.justify-center(
-            class="p-1.5 sm:p-2 bg-gradient-to-b from-[#ffb054] to-[#e07818] border-[#0f1a30]"
+        //- ── Left utility buttons (campaign / achievements / codex). Rendered
+        //-    inside the controls column so landscape anchors to the column's
+        //-    true left edge; portrait switches to fixed bottom-left (lifted
+        //-    above the spawn row on narrow phones so nothing overlaps). Only
+        //-    THREE buttons here — mute + settings live in the right-side
+        //-    stack beside the merge grid instead. ─────────────────────────
+        div.z-30.flex.flex-col.items-start.gap-1(:style="leftStackStyle")
+          //- War Campaign (free battle pass, roadmap #18)
+          BattlePass(@coins-awarded="onBpCoins")
+          //- Achievements (roadmap #10)
+          AchievementsButton(@coins-awarded="onBpCoins")
+          //- Unit Codex (roadmap #12) — the next undiscovered tier ghosts on the
+          //- button as a silhouette: pure "one more merge" bait.
+          button.cursor-pointer.transition-transform(
+            class="active:scale-90 hover:scale-[103%]"
+            :aria-label="t('battle.codex.title')"
+            @click="showCodex = true"
           )
-            svg(viewBox="0 0 24 24" class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
-              path(d="M4 19.5 A2.5 2.5 0 0 1 6.5 17 H20 V3 H6.5 A2.5 2.5 0 0 0 4 5.5 Z")
-              path(d="M4 19.5 A2.5 2.5 0 0 0 6.5 22 H20 V17")
-          div.absolute.codex-ghost(v-if="nextUndiscovered" class="-top-1.5 -right-1.5 w-5 h-5")
-            IngredientUnit(:tier="nextUndiscovered" :still="true")
+            div.relative
+              div.absolute.inset-0.translate-y-1.rounded-lg(class="bg-[#7a4a10]")
+              div.relative.rounded-lg.border-2.flex.items-center.justify-center(
+                class="p-1.5 sm:p-2 bg-gradient-to-b from-[#ffb054] to-[#e07818] border-[#0f1a30]"
+              )
+                svg(viewBox="0 0 24 24" class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+                  path(d="M4 19.5 A2.5 2.5 0 0 1 6.5 17 H20 V3 H6.5 A2.5 2.5 0 0 0 4 5.5 Z")
+                  path(d="M4 19.5 A2.5 2.5 0 0 0 6.5 22 H20 V17")
+              div.absolute.codex-ghost(v-if="nextUndiscovered" class="-top-1.5 -right-1.5 w-5 h-5")
+                IngredientUnit(:tier="nextUndiscovered" :still="true")
 
     //- ── Right of the merge grid: mute + settings (always lifted above the
     //-    spawn row — its right edge reaches the corner on landscape) ────────

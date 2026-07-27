@@ -137,15 +137,6 @@ them to `prism_stats` is nearly free and adds a whole completion axis.
 (`kills`, `waves`, `bossKills`, `merges`, `fieldMerges`, `maxTier`, combo peak —
 add `bestCombo` to stats). Toasts reuse the banner system in `BattleArena.vue`.
 
-### 11. Grid expansion + reserve bench — *depth, gold sink* · M
-**What:** Two purchasable expansions: 4×4 → 4×5 (late gold sink) and a 2-slot
-"reserve bench" to park units without blocking spawns.
-**Why:** "Grid full" is the main mid-game friction; selling the fix is a
-satisfying progression beat and soaks late-game gold inflation.
-**How:** `GRID_COLS/GRID_ROWS` are constants in `usePrismGame` — promote to
-blob-backed state, make `sanitizeGrid` size-aware (it already pads to
-`GRID_SIZE`). The grid CSS derives slot size from the container, so extra
-columns/rows scale for free.
 
 ### ✅ 12. Unit codex + next-tier silhouette — *hard-to-put-down, collection* · S
 **What:** A codex of all 10 tiers (tap a grid unit → stats + ability text);

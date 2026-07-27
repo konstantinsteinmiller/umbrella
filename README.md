@@ -12,7 +12,7 @@ WIP: [playable demo](https://konstantinsteinmiller.github.io/merge-idle-war/)
 
 - [ ] Leaderboard
 - [ ] Complex bosses
-  - [ ] Slime boss spawns additional slimes, up to 5 companion slimes
+  - [x] Slime boss spawns additional slimes, up to 5 companion slimes
   - [ ] Orc boss does aoe damage (circular stone slam (vfx needed) every 5s and a 1s charge up)
   - [ ] Fire dragon boss does damage over time and has a (every 20s) cone fire breath attack
   - [ ] 

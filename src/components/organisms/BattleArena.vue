@@ -33,6 +33,7 @@ import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 import useReward, { formatCost } from '@/use/useReward'
 import { bumpMaxTier } from '@/use/usePrismGame'
 import { bestWaveRank } from '@/platforms/leaderboard'
+import { triggerHappytime } from '@/use/useCrazyGames'
 
 const props = defineProps<{
   /** Wallet badge element — kill/boss payouts fly coins into it. */
@@ -527,6 +528,11 @@ const onEvent = (e: BattleEvent): void => {
       playSound('explosion-1', 0.07, 0.8)
       playSound('boss-death', 0.08)
       triggerShake('big')
+      // CrazyGames "happy moment": beating a boss is this game's win beat (an
+      // endless auto-battler has no win screen to hook), so it's the honest
+      // place for the SDK's happytime signal. No-op off CrazyGames — the module
+      // is aliased to an inert stub on every other build.
+      triggerHappytime()
       if (props.coinTarget && rootRef.value) {
         spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: e.first ? 60 : 30 })
       }

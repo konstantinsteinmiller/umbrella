@@ -2,7 +2,7 @@
 
 ## Short Description (max 150 chars)
 
-Merge elemental units into a 15-tier army and crush endless enemy waves. Combos, fever gold rushes, meteor storms — the war never stops!
+Merge elemental units into a 20-tier army and crush endless enemy waves. Combos, fever gold rushes, meteor storms — the war never stops!
 
 ## Long Description (max 500 chars)
 

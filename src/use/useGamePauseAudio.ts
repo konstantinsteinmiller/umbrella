@@ -1,10 +1,10 @@
 // ─── Central pause → audio + console-log orchestrator ──────────────────────
 //
-// ONE place, for EVERY build, that turns "the game is paused" into "all
-// audio is silenced and we said so in the console". Every reason the game
-// halts (rewarded / interstitial ad on screen, tab hidden, platform SDK
-// pause callback, an app-side modal) already OR's into `isGamePaused`
-// (see `useGamePause.ts`); this module subscribes to that single gate and:
+// ONE place, for EVERY build, that turns "the game must be silent" into "all
+// audio is silenced and we said so in the console". The reasons that require
+// silence (rewarded / interstitial ad on screen, tab hidden, platform SDK
+// pause callback) OR into `isAudioPaused` (see `useGamePause.ts`); this
+// module subscribes to that single gate and:
 //
 //   • suspends ALL engine audio on the false→true edge (bg music + the
 //     Web Audio context + every registered HTMLAudio element), and
@@ -15,8 +15,14 @@
 // rewarded ads. The fix is structural: route the audio mute through the
 // universal pause gate so it can NEVER be skipped on any provider —
 // CrazyGames, GameDistribution, Playgama, GamePix, or the Noop/web build.
-// The render loop already early-returns on `isGamePaused` (MawScene.vue),
-// so this module is the audio half of the same gate.
+// The sim loops early-return on the sibling `isGamePaused` gate, so this
+// module is the audio half of the same mechanism.
+//
+// **`isAudioPaused`, not `isGamePaused`.** An in-game modal freezes the sim
+// but must NOT mute — menus keep their music (and the modal-open cue plays to
+// completion instead of being frozen mid-buffer and replaying clipped on
+// close). The modal source is therefore absent from the gate this module
+// watches; ads / tab-hide / platform pause still mute unconditionally.
 //
 // **Single suspend slot.** `suspendAllAudio` / `resumeAllAudio` are
 // ref-counted in `useAssets.ts`. This orchestrator owns exactly ONE slot
@@ -26,14 +32,14 @@
 // `useAssets.armVisibilitySuspend`) were removed in favour of this — there
 // is now one suspend driver, not four overlapping ones.
 //
-// **`onPauseChange` fires with `flush: 'sync'`.** `useAds.showRewardedAd`
+// **`onAudioPauseChange` fires with `flush: 'sync'`.** `useAds.showRewardedAd`
 // flips `isAdShowing = true` and then immediately `await`s the SDK call,
 // which opens the ad overlay synchronously before the await yields. The
 // sync fanout guarantees this orchestrator's `suspendAllAudio()` runs
 // inside that same call stack — there is no microtask window where music
 // plays under the ad.
 
-import { isGamePaused, getActivePauseReasons, onPauseChange } from '@/use/useGamePause'
+import { isAudioPaused, getActiveAudioPauseReasons, onAudioPauseChange } from '@/use/useGamePause'
 import { suspendAllAudio, resumeAllAudio } from '@/use/useAssets'
 import { isDebug } from '@/use/useMatch'
 
@@ -58,7 +64,7 @@ const sync = (paused: boolean): void => {
   if (paused && !slotHeld) {
     slotHeld = true
     suspendAllAudio()
-    const reasons = getActivePauseReasons()
+    const reasons = getActiveAudioPauseReasons()
     dlog(
       `${TAG} ⏸ PAUSE  reasons=[${reasons.join(', ') || 'unknown'}]`
       + ' → music + SFX suspended, render loop halted'
@@ -85,8 +91,8 @@ export const installGamePauseAudio = (): (() => void) => {
   installed = true
   // Seed from the live gate so we don't miss a pause that is already
   // asserting at install time (e.g. booted in a backgrounded tab).
-  sync(isGamePaused.value)
-  unsubscribe = onPauseChange(sync)
+  sync(isAudioPaused.value)
+  unsubscribe = onAudioPauseChange(sync)
   return uninstallGamePauseAudio
 }
 

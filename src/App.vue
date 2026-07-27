@@ -26,8 +26,8 @@ const { initMusic, pauseMusic, continueMusic } = useMusic()
 useExtensionGuard()
 const { resourceCache } = useAssets()
 useCrazyMuteSync()
-// CG full release: stop CG gameplay + freeze sim/audio while any menu is open,
-// resume on close. No-op on the basic launch and every other platform.
+// Freeze the sim while any menu is open and resume on close (every build);
+// additionally fires CG gameplayStop/Start on the CrazyGames full release.
 installModalGameplayGate()
 // Attach the "cmarc" debug-unlock key listener at app boot (App.vue is eager),
 // so typing it anywhere flips debug mode — the lazy game scene used to be the

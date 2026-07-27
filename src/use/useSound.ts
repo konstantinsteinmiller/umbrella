@@ -1,7 +1,7 @@
 import { prependBaseUrl } from '@/utils/function'
 import useUser, { MUSIC_TRACK_FILES, DEFAULT_MUSIC_TRACK } from '@/use/useUser'
 import { getAudioContext, loadAudioBuffer, resourceCache, registerHtmlAudio, unregisterHtmlAudio, isAudioSuspended, registerOneShotSource } from '@/use/useAssets'
-import { isGamePaused } from '@/use/useGamePause'
+import { isAudioPaused } from '@/use/useGamePause'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
 import { tutorialActive } from '@/use/useTutorial'
 import { publicAssetExists } from '@/use/usePublicManifest'
@@ -133,7 +133,7 @@ export const forceStopMusic = (): void => {
  * Restart the background music after an ad IFF it was playing when the ad
  * hard-stopped it. Called by `useAds` once the ad has fully closed AND the
  * pause gate has dropped (`isAdShowing = false`). This is a DELIBERATE explicit
- * resume, not the `isGamePaused`-drop watcher: that watcher stays gated on
+ * resume, not the `isAudioPaused`-drop watcher: that watcher stays gated on
  * `shouldPlay` (which `forceStopMusic` set false) precisely so an early-closing
  * ad SDK — GamePix resolves its promise before the overlay visually closes —
  * can never restart the music UNDER the ad. Once we're truly past the ad here,
@@ -242,15 +242,19 @@ export const useMusic = () => {
       // and ad-show both halt the music track and resume it after.
       registerHtmlAudio(audio)
 
-      // Re-fire the music start when the pause gate clears. `playWithFade`
-      // refuses to play while `isGamePaused` is true (the ad/pause guard), so a
+      // Re-fire the music start when the AUDIO gate clears. `playWithFade`
+      // refuses to play while `isAudioPaused` is true (the ad/mute guard), so a
       // `startBattleMusic()` that was issued mid-ad sets `shouldPlay=true` but
-      // doesn't actually sound. This watcher catches the false-edge (ad finished
-      // or failed to fill, modal closed, tab refocused) and resumes the track
-      // iff it's still wanted — the "resume only after the ad ends" half of the
-      // requirement. `initMusic` is called once (App.vue) so this is a single
-      // app-lifetime watcher.
-      watch(isGamePaused, (paused) => {
+      // doesn't actually sound. This watcher catches the false-edge (ad finished,
+      // failed to fill, or was never served; tab refocused; platform resumed) and
+      // resumes the track iff it's still wanted — the "resume only after the ad
+      // ends" half of the requirement. `initMusic` is called once (App.vue) so
+      // this is a single app-lifetime watcher.
+      //
+      // Deliberately the audio gate, not `isGamePaused`: an open modal freezes
+      // the sim but keeps the music playing, so it must neither block a start
+      // nor trigger a re-fire on close.
+      watch(isAudioPaused, (paused) => {
         if (!paused && shouldPlay.value && bgMusic.value && bgMusic.value.paused) {
           playWithFade()
         }
@@ -307,19 +311,22 @@ export const useMusic = () => {
   const playWithFade = () => {
     if (!bgMusic.value) return
 
-    // HARD GUARD: never start bg music while the game is paused for ANY reason.
-    // `isGamePaused` ORs every pause source — a rewarded/interstitial ad on
+    // HARD GUARD: never start bg music while the game must be SILENT.
+    // `isAudioPaused` ORs every muting source — a rewarded/interstitial ad on
     // screen (`isAdShowing`, set by useAds), a Yandex auto-interstitial / tab-
-    // hide / purchase dialog (`isPlatformPaused`, set by the SDK pause bridge),
-    // or an app modal. The Yandex SDK fires transient pause/resume events around
-    // ad preload AND rejects frequency-capped interstitials synchronously; without
-    // this choke point a `startBattleMusic()` / `continueMusic()` call racing
-    // those events would start music UNDERNEATH the ad — the hard-requirement
-    // violation QA keeps flagging. `shouldPlay` stays true, so the
-    // `isGamePaused`-drop watcher in `initMusic` re-fires this the moment the
-    // gate clears (ad finished / failed to fill), satisfying "resume only after
+    // hide / purchase dialog (`isPlatformPaused`, set by the SDK pause bridge).
+    // The Yandex SDK fires transient pause/resume events around ad preload AND
+    // rejects frequency-capped interstitials synchronously; without this choke
+    // point a `startBattleMusic()` / `continueMusic()` call racing those events
+    // would start music UNDERNEATH the ad — the hard-requirement violation QA
+    // keeps flagging. `shouldPlay` stays true, so the `isAudioPaused`-drop
+    // watcher in `initMusic` re-fires this the moment the gate clears (ad
+    // finished / failed to fill / never served), satisfying "resume only after
     // the ad has finished or failed".
-    if (isGamePaused.value) return
+    //
+    // An open modal is NOT in this gate: it freezes the sim (`isGamePaused`)
+    // but menus keep their music, so a track may start / keep running there.
+    if (isAudioPaused.value) return
 
     // Mobile hard-mute: the player silenced the game to play their own audio.
     // Block the new start the same way the pause gate does; `shouldPlay` stays

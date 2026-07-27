@@ -20,8 +20,28 @@ const stubCampaignOverridesPlugin = () => ({
   }
 })
 
+// Same story for `virtual:public-override-manifest`, which the
+// `publicOverrideManifestPlugin` in vite.config.ts generates by scanning
+// `public/`. `usePublicManifest.ts` imports it statically, and it sits deep in
+// the useSound / useArtOverrides graph — so without this stub every test that
+// touches audio or ads (useAdsPause, useAdsThrottle, interstitialAudioKill)
+// died at resolve time instead of running. An empty manifest is the right test
+// default: "no drop-in override assets present", i.e. everything falls back to
+// the built-in art / placeholder SFX.
+const stubPublicManifestPlugin = () => ({
+  name: 'stub-public-override-manifest',
+  resolveId(id: string) {
+    if (id === 'virtual:public-override-manifest') return '\0virtual:public-override-manifest'
+    return null
+  },
+  load(id: string) {
+    if (id === '\0virtual:public-override-manifest') return 'export default []'
+    return null
+  }
+})
+
 export default defineConfig({
-  plugins: [vue(), stubCampaignOverridesPlugin()],
+  plugins: [vue(), stubCampaignOverridesPlugin(), stubPublicManifestPlugin()],
   // Vite's production config (`vite.config.ts`) injects `APP_VERSION` at
   // build time via `define`. Vitest doesn't run that plugin, so any
   // module that reads `APP_VERSION` at import time (e.g. `useUser.ts`)

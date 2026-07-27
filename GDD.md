@@ -271,7 +271,7 @@ Battle sounds use randomized variants with tier-pitched playback:
 ---
 
 ## General
-In GENERAL for all work: Do your work on a high-fidelity basis, don't do just good enough! that's important. Make the interactions feel good,
+In GENERAL for all work: Do your work on an ultra high-fidelity basis, don't do just good enough! that's important. Make the interactions feel real good,
 add vfx juice where applicable (take care of optimizing to not overload the CPU/GPU).
 Don't take shortcuts to save on tokens or implementation time.
 
@@ -288,5 +288,7 @@ Save all state variables in one object named `merge-idle-war_state`.
 
 ---
 
-## Roadmap
-Future retention / playtime / conversion features are tracked in **`retention-roadmap.md`** (sorted by impact, with actionable implementation suggestions).
+## After implementing the game -> Roadmap
+create a roadmap(min 15 features/action points, sorted by highest impact, best performance, highest game feel improvements)
+for future features that would increase the Day1 retention, the average playtime, the easy-to-pickup and hard-to-put-down
+metrics, that increase conversion of new players with actionable implementations suggestions. So that I can tackle these features later if I value them benefical.

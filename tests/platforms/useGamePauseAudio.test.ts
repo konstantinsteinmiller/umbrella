@@ -1,8 +1,8 @@
 // Unit tests for the central pause → audio + console-log orchestrator.
 //
 // This is the single audio-mute driver shared by EVERY build. It watches
-// the unified `isGamePaused` gate (the OR of ad-showing / tab-hidden /
-// platform-paused / app-modal) and:
+// the `isAudioPaused` gate (the OR of ad-showing / tab-hidden /
+// platform-paused — NOT the app/modal source, which freezes the sim only) and:
 //   • suspends audio on the false→true edge,
 //   • resumes it on the true→false edge,
 //   • owns exactly ONE ref-counted suspend slot (no drift on duplicate
@@ -35,6 +35,7 @@ import {
   isAdShowing,
   isVisibilityHidden,
   isGamePaused,
+  isAudioPaused,
   pauseGame,
   resumeGame,
   acquireAppPause
@@ -121,16 +122,33 @@ describe('useGamePauseAudio orchestrator', () => {
     expect(__isAudioSlotHeld()).toBe(false)
   })
 
-  it('stays muted while a modal opens during an ad (refcounted app pause)', () => {
+  it('does NOT mute for an app/modal pause — menus keep their music', () => {
+    // A modal freezes the sim (`isGamePaused`) but must never silence the game:
+    // muting there also froze the modal-open SFX cue mid-buffer, which then
+    // replayed clipped on close.
+    const releaseModal = acquireAppPause()
+    expect(isGamePaused.value).toBe(true)   // sim halted…
+    expect(isAudioPaused.value).toBe(false) // …but audio untouched
+    expect(suspendSpy).not.toHaveBeenCalled()
+
+    releaseModal()
+    expect(resumeSpy).not.toHaveBeenCalled()
+  })
+
+  it('a modal opening during an ad adds no suspend, and the ad end still unmutes', () => {
     isAdShowing.value = true
     const releaseModal = acquireAppPause()
     expect(suspendSpy).toHaveBeenCalledTimes(1) // modal added no extra suspend
 
-    isAdShowing.value = false // ad ends but modal still holds the pause
-    expect(resumeSpy).not.toHaveBeenCalled()
+    // Ad over → audio comes back even though the modal still holds the SIM
+    // pause. Music playing behind a menu is correct; music under an ad is not.
+    isAdShowing.value = false
+    expect(resumeSpy).toHaveBeenCalledTimes(1)
+    expect(isGamePaused.value).toBe(true)
 
     releaseModal()
-    expect(resumeSpy).toHaveBeenCalledTimes(1)
+    expect(resumeSpy).toHaveBeenCalledTimes(1) // no second resume — no drift
+    expect(isGamePaused.value).toBe(false)
   })
 
   it('logs a structured PAUSE line naming the active reasons', () => {
