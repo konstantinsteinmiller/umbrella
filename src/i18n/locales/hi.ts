@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'देखें', 'revive': 'पुनर्जीवित', 'secondChance': 'दूसरा मौका', 'doubleCoins': '2× सिक्के', 'plusCoins': '+{n} सिक्के',
-    'startingIn': 'विज्ञापन {n} में शुरू…', 'stopTapping': 'टैप करना बंद करें ताकि विज्ञापन पर क्लिक न हो'
+    'watch': 'देखें', 'revive': 'पुनर्जीवित', 'secondChance': 'दूसरा मौका', 'doubleCoins': '2× सिक्के', 'plusCoins': '+{n} सिक्के'
   },
   'achievements': {
     'title': 'उपलब्धियाँ', 'subtitle': 'सिक्के कमाने के लिए मील के पत्थर पाएँ।', 'claim': 'क्लेम', 'claimed': 'क्लेम किया', 'progress': '{c} / {t}',

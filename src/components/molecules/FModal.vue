@@ -11,10 +11,15 @@ interface Props {
   isClosable?: boolean
   tabs?: TabOption[]
   activeTab?: string | number
+  /** Report this modal to the CrazyGames gameplay lifecycle (gameplayStop on
+   *  open, gameplayStart on close). Set false for modals that open on their
+   *  own during boot — the sim pause below is unconditional either way. */
+  firesGameplayLifecycle?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isClosable: true,
+  firesGameplayLifecycle: true,
   tabs: () => []
 })
 
@@ -31,12 +36,17 @@ defineOptions({ inheritAttrs: false })
 // playSound call.
 const { playSound } = useSounds()
 
-// Signal "a modal is open" so the CrazyGames gameplay-lifecycle driver fires
-// `gameplayStop()` on open and `gameplayStart()` on close. Centralised here so
-// every FModal consumer participates without wiring it per-modal. Refcounted
-// release; held once per open and dropped on close or unmount.
+// Signal "a modal is open" so the sim freezes and — unless the consumer opted
+// out via `firesGameplayLifecycle` — the CrazyGames gameplay-lifecycle driver
+// fires `gameplayStop()` on open and `gameplayStart()` on close. Centralised
+// here so every FModal consumer participates without wiring it per-modal.
+// Refcounted release; held once per open and dropped on close or unmount.
 let releaseModalOpen: (() => void) | null = null
-const markOpen = (): void => { if (!releaseModalOpen) releaseModalOpen = acquireModalOpen() }
+const markOpen = (): void => {
+  if (!releaseModalOpen) {
+    releaseModalOpen = acquireModalOpen({ firesGameplayLifecycle: props.firesGameplayLifecycle })
+  }
+}
 const markClosed = (): void => { releaseModalOpen?.(); releaseModalOpen = null }
 
 watch(() => props.modelValue, (open, prev) => {

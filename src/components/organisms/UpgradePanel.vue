@@ -7,12 +7,12 @@
  * chip flashes and plays a confirm SFX. Fully responsive — chips wrap and
  * shrink on narrow viewports.
  */
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBattle, { type BattleUpgradeId, BATTLE_UPGRADE_DEFS } from '@/use/useBattle'
 import useSounds from '@/use/useSound'
 import IconCoin from '@/components/icons/IconCoin.vue'
-import { isCompactHud, isUltraCompactHud } from '@/use/useUser'
+import { isCompactHud, isUltraCompactHud, isRoomyHud, isWideCompactHud } from '@/use/useUser'
 
 const { t } = useI18n()
 const battle = useBattle()
@@ -50,6 +50,67 @@ const pips = (lvl: number, max: number): boolean[] => {
 }
 const tier = (lvl: number): number => Math.floor(lvl / 5)
 
+// ─── Chip type scale ─────────────────────────────────────────────────────────
+// Three tiers: compact shrinks for real, roomy (desktop) steps UP — the `sm:`
+// sizes top out at phone scale, which left the labels and costs as 10-11px type
+// on a 1280×800 desktop.
+//
+// On the roomy tier the name also gets its own ROW (the header flips to a
+// column). Horizontally there is nothing to win: the panel caps at `max-w-md`
+// and five chips split it ~86px each, so beside a glyph the label has ~41px —
+// `truncate` was already clipping "War Horns" at the old 10px and enlarging it
+// in place only clipped more. Stacking buys it the chip's full inner width.
+//
+// **Gated on the row's MEASURED height, not just the viewport.** The row is
+// `h-[15%] min-h-14 max-h-[92px]`, so on a stacked (non-side-by-side) layout it
+// collapses to its 56px floor even at 861×640 — a viewport that is otherwise
+// "roomy". The enlarged chip needs ~72px, so keying off `isRoomyHud` alone
+// overflowed the chip there. Below the threshold every consumer falls back to
+// the phone-tuned sizes, i.e. exactly today's rendering.
+const rootEl = ref<HTMLElement | null>(null)
+const panelH = ref(0)
+let panelRo: ResizeObserver | null = null
+
+onMounted(() => {
+  const el = rootEl.value
+  if (!el) return
+  const measure = (): void => { panelH.value = el.clientHeight }
+  measure()
+  if (typeof ResizeObserver !== 'undefined') {
+    panelRo = new ResizeObserver(measure)
+    panelRo.observe(el)
+  }
+})
+onUnmounted(() => {
+  panelRo?.disconnect()
+  panelRo = null
+})
+
+/** Chip height the enlarged (stacked glyph + label + pips + cost) layout needs. */
+const ROOMY_MIN_H = 74
+const roomy = computed(() => isRoomyHud.value && panelH.value >= ROOMY_MIN_H)
+
+// Compact-but-wide (1000×450 and friends) keeps the compact LAYOUT but lifts
+// the type — see `isWideCompactHud`. 12px is the ceiling for the name here:
+// beside the glyph a chip leaves it ~65px, and "War Horns" needs 59px at 12px.
+const nameTextClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'text-xs' : 'text-[12px]')
+  : roomy.value ? 'text-[13px]' : 'text-[9px] sm:text-[14px]')
+/** Roomy: glyph over label instead of beside it — see above. */
+const headerStackClass = computed(() => roomy.value ? 'flex-col gap-0.5' : 'gap-0.25')
+const costTextClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'text-[11px]' : 'text-[12px]')
+  : roomy.value ? 'text-[13px]' : 'text-[9px] sm:text-[14px]')
+const maxedTextClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'text-[11px]' : 'text-[12px]')
+  : roomy.value ? 'text-[13px]' : 'text-[9px] sm:text-[14px]')
+const glyphClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'w-4 h-4' : 'w-3 h-3')
+  : roomy.value ? 'w-6 h-6' : 'w-4 h-4 sm:w-5 sm:h-5')
+const coinIconClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'w-3 h-3' : 'w-2 h-2')
+  : roomy.value ? 'w-4 h-4' : 'w-2.5 h-2.5 sm:w-3 sm:h-3')
+
 const chips = computed(() => ids.map((id) => ({
   id,
   level: battle.upgradeLevel(id),
@@ -67,9 +128,10 @@ const chips = computed(() => ids.map((id) => ({
   //- Every dimension is reduced for real — padding, icon, font, pip size and
   //- border — never a transform, which would keep the original footprint.
   div.upgrade-panel.flex.items-stretch.justify-center.w-full.h-full(
+    ref="rootEl"
     :class="isCompactHud ? 'gap-0.5' : 'gap-1 sm:gap-1'"
   )
-    button.chip.relative.flex.flex-col.items-center.justify-between.rounded-xl(
+    button.chip.relative.flex.flex-col.items-center.justify-around.rounded-xl(
       v-for="c in chips"
       :key="c.id"
       class="flex-1 min-w-0 active:scale-95 transition-transform !gap-[0px]"
@@ -81,12 +143,12 @@ const chips = computed(() => ids.map((id) => ({
       :disabled="!c.can"
       @click="buy(c.id)"
     )
-      div.flex.items-center.w-full.justify-center(:class="isCompactHud ? 'gap-0.25' : 'gap-0.25'")
+      div.flex.items-center.w-full.justify-center.min-w-0(:class="headerStackClass")
         //- Themed mini gauge
         svg(
           viewBox="0 0 24 24"
           class="shrink-0"
-          :class="isCompactHud ? 'w-3 h-3' : 'w-4 h-4 sm:w-5 sm:h-5'"
+          :class="glyphClass"
           :style="{ color: c.accent }"
         )
           template(v-if="c.id === 'attack'")
@@ -120,26 +182,18 @@ const chips = computed(() => ids.map((id) => ({
         //- things the player actually decides on.
         span.chip-name.font-black.uppercase.leading-none.truncate(
           v-if="!isUltraCompactHud"
-          :class="isCompactHud ? 'text-[7px]' : 'text-[8px] sm:text-[10px]'"
+          :class="nameTextClass"
         ) {{ t('battle.upgrades.' + c.id) }}
       //- Level pips
       div.flex.items-center(class="gap-0.5" :class="isCompactHud ? 'my-0' : 'my-0.5'")
         span.pip(v-for="(on, i) in pips(c.level, c.max)" :key="i" :class="on ? 'pip-on' : ''" :style="{ background: on ? c.accent : 'rgba(255,255,255,0.15)' }")
       div.flex.items-center(class="gap-0.5")
         template(v-if="c.maxed")
-          span.font-black.text-yellow-300(
-            :class="isCompactHud ? 'text-[7px]' : 'text-[8px] sm:text-[10px]'"
-          ) {{ t('battle.upgrades.maxed') }}
+          span.font-black.text-yellow-300(:class="maxedTextClass") {{ t('battle.upgrades.maxed') }}
         template(v-else)
-          IconCoin(
-            class="shrink-0"
-            :class="isCompactHud ? 'w-2 h-2' : 'w-2.5 h-2.5 sm:w-3 sm:h-3'"
-          )
+          IconCoin(class="shrink-0" :class="coinIconClass")
           span.font-black.leading-none(
-            :class="[\
-              c.can ? 'text-yellow-200' : 'text-red-300',\
-              isCompactHud ? 'text-[8px]' : 'text-[9px] sm:text-[11px]'\
-            ]"
+            :class="[c.can ? 'text-yellow-200' : 'text-red-300', costTextClass]"
           ) {{ fmt(c.cost) }}
       //- Tier ribbon (every 5 levels)
       span.tier-ribbon(v-if="tier(c.level) > 0" :style="{ background: c.accent }") {{ tier(c.level) }}
@@ -177,7 +231,7 @@ const chips = computed(() => ids.map((id) => ({
     right: -4px
     min-width: 12px
     height: 12px
-    font-size: 7px
+    font-size: 16px
     border-width: 1px
     padding: 0 2px
 
@@ -191,7 +245,7 @@ const chips = computed(() => ids.map((id) => ({
   align-items: center
   justify-content: center
   border-radius: 9999px
-  font-size: 9px
+  font-size: 16px
   font-weight: 900
   color: #0a0d16
   border: 2px solid #0a0d16

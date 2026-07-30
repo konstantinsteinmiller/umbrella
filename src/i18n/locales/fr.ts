@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Regarder', 'revive': 'Revivre', 'secondChance': 'Seconde chance', 'doubleCoins': '2× pièces', 'plusCoins': '+{n} pièces',
-    'startingIn': 'Publicité dans {n}…', 'stopTapping': 'Arrête de toucher l\'écran pour ne pas cliquer sur la pub'
+    'watch': 'Regarder', 'revive': 'Revivre', 'secondChance': 'Seconde chance', 'doubleCoins': '2× pièces', 'plusCoins': '+{n} pièces'
   },
   'achievements': {
     'title': 'Succès', 'subtitle': 'Atteignez des jalons pour gagner des pièces.', 'claim': 'Réclamer', 'claimed': 'Réclamé', 'progress': '{c} / {t}',

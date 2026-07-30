@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para',
-    'startingIn': 'Reklam {n} saniye içinde…', 'stopTapping': 'Reklama basmamak için dokunmayı bırak'
+    'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para'
   },
   'achievements': {
     'title': 'Başarımlar', 'subtitle': 'Para kazanmak için kalıcı hedeflere ulaş.', 'claim': 'Al', 'claimed': 'Alındı', 'progress': '{c} / {t}',

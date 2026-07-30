@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인',
-    'startingIn': '광고가 {n}초 후 시작…', 'stopTapping': '광고를 잘못 누르지 않도록 탭을 멈추세요'
+    'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인'
   },
   'achievements': {
     'title': '업적', 'subtitle': '평생 이정표를 달성해 코인을 받으세요.', 'claim': '수령', 'claimed': '수령함', 'progress': '{c} / {t}',

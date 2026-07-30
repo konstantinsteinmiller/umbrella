@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin',
-    'startingIn': 'Iklan mulai dalam {n}…', 'stopTapping': 'Berhenti mengetuk agar tidak mengeklik iklan'
+    'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin'
   },
   'achievements': {
     'title': 'Pencapaian', 'subtitle': 'Raih tonggak seumur hidup untuk koin.', 'claim': 'Klaim', 'claimed': 'Diklaim', 'progress': '{c} / {t}',

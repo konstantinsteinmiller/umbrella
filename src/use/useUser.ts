@@ -55,6 +55,36 @@ export const isUltraCompactHud = computed(
   () => windowHeight.value < 320 || windowWidth.value < 320
 )
 
+// The opposite end of the same scale: a viewport with room to spare — desktop
+// and large tablets (> 800 × > 600). Everything above tops out at Tailwind's
+// `sm:` step, which was tuned so a phone fits; on a 1280×800 desktop that
+// leaves the wave badge, the teaser pips and the upgrade-chip labels/costs
+// reading as tiny type in a lot of empty space. Consumers step those one tier
+// UP here. Both axes must qualify: a wide-but-short embed (the Chromebook
+// 764×385 case) is a COMPACT viewport, not a roomy one.
+export const isRoomyHud = computed(
+  () => windowWidth.value > 800 && windowHeight.value > 600
+)
+
+// The in-between case the two tiers above miss: a viewport that is COMPACT by
+// height yet plainly a desktop window by width — 1000×450, a laptop-embedded
+// portal iframe, a half-height browser window. `isCompactHud` fires on
+// `height <= 500`, so those got the full phone treatment, and phone type at
+// arm's length on a 1000px-wide screen is simply unreadable (the wave badge at
+// 10px, its teaser line at 8px, the upgrade labels at 10px).
+//
+// The distinction is that compactness here is about VERTICAL budget, not
+// legibility. So consumers keep the compact LAYOUT — tight padding, small gaps,
+// the shrunken row caps — and lift only the TYPE and the glyphs that sit inline
+// with it. The chips already leave ~29px of their 54px row unused at 1000×450,
+// so this is paid for out of existing slack rather than out of the merge grid.
+//
+// The `> 400` height floor keeps genuinely cramped short windows (900×330) on
+// the phone sizes, where there is no slack to spend.
+export const isWideCompactHud = computed(
+  () => isCompactHud.value && windowWidth.value > 800 && windowHeight.value > 400
+)
+
 declare const APP_VERSION: string
 export const isCrazyWeb = import.meta.env.VITE_APP_CRAZY_WEB === 'true'
 export const isWaveDash = import.meta.env.VITE_APP_WAVEDASH === 'true'

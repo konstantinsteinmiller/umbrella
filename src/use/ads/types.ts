@@ -14,9 +14,9 @@
 //                           respin button, and the 2x speed-boost
 //                           switch — anything offering a rewarded ad.
 //   • `isInterstitialReady` — an interstitial is currently loaded.
-//                             Used to gate the midgame battle-cadence
-//                             ad so we don't pause gameplay only to
-//                             fall back to "no fill".
+//                             Used to gate the first-load / first-play
+//                             placement so we don't pause gameplay only
+//                             to fall back to "no fill".
 //
 // Per-format readiness flips false the moment an ad is consumed (or
 // fails to load) and flips back true on the next `onAdLoaded` event

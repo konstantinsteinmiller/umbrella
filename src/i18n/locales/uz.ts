@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga',
-    'startingIn': 'Reklama {n} soniyadan keyin…', 'stopTapping': 'Reklamani bosmaslik uchun bosishni toʻxtating'
+    'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga'
   },
   'achievements': {
     'title': 'Yutuqlar', 'subtitle': 'Tanga olish uchun bosqichlarga erishing.', 'claim': 'Olish', 'claimed': 'Olingan', 'progress': '{c} / {t}',

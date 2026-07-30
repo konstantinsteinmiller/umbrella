@@ -39,8 +39,9 @@
 // inside that same call stack — there is no microtask window where music
 // plays under the ad.
 
+import { ref } from 'vue'
 import { isAudioPaused, getActiveAudioPauseReasons, onAudioPauseChange } from '@/use/useGamePause'
-import { suspendAllAudio, resumeAllAudio } from '@/use/useAssets'
+import { suspendAllAudio, resumeAllAudio, killOneShotSfx } from '@/use/useAssets'
 import { isDebug } from '@/use/useMatch'
 
 const TAG = '[pause]'
@@ -111,16 +112,31 @@ export const uninstallGamePauseAudio = (): void => {
 
 // ─── Platform sound-toggle (audio-only, NOT a gameplay pause) ───────────────
 //
-// Portals like GamePix expose `soundOff` / `soundOn` callbacks that ask the
-// game to mute / unmute WITHOUT pausing gameplay — the portal's own mute
-// button, or an ad layer that wants silence while the game stays visible.
-// This is distinct from the pause gate (which freezes the render loop too),
-// so it does NOT go through `isGamePaused`. It still drives the SAME
-// ref-counted suspend stack in `useAssets`, so this module remains the only
-// audio authority — no second driver, no counter drift. Edge-triggered so a
-// duplicated `soundOff` from the SDK can't double-suspend and strand the game
-// muted.
+// Portals expose mute callbacks that ask the game to go silent WITHOUT pausing
+// gameplay — GamePix's `soundOff` / `soundOn`, and the CrazyGames toolbar's
+// mute toggle (bridged in `useCrazyMuteSync`). This is distinct from the pause
+// gate (which freezes the render loop too), so it does NOT go through
+// `isGamePaused`. It still drives the SAME ref-counted suspend stack in
+// `useAssets`, so this module remains the only audio authority — no second
+// driver, no counter drift. Edge-triggered so a duplicated `soundOff` from the
+// SDK can't double-suspend and strand the game muted.
+//
+// **This is a HARD mute, and it outranks the in-game sound settings.** The
+// CrazyGames bridge also zeroes the stored volumes so the in-game mute button
+// reflects the platform state, but a player who then drags the volume slider
+// back up must still hear nothing while the portal says muted — CG QA tests
+// exactly that. Zeroed volumes alone can't deliver it, so the guarantee lives
+// here instead: the AudioContext is suspended, every tracked HTMLAudio is
+// paused, `playSound`/`playLoop` refuse to start (they check
+// `isAudioSuspended()`), and `playWithFade` refuses to start the music (it
+// watches the ref below).
 let platformAudioMuted = false
+
+/** Reactive mirror of the hard platform mute. `useSound.playWithFade` reads it
+ *  to refuse a NEW music start — suspending only pauses elements that were
+ *  already playing, so without this a `startBattleMusic()` issued while muted
+ *  would sound straight through the suspend. */
+export const isPlatformAudioMuted = ref(false)
 
 /** Mute / unmute engine audio in response to a portal sound-toggle callback.
  *  Holds its own ref-counted suspend slot, independent of the pause-gate
@@ -129,12 +145,16 @@ let platformAudioMuted = false
 export const setPlatformAudioMuted = (muted: boolean): void => {
   if (muted === platformAudioMuted) return
   platformAudioMuted = muted
+  isPlatformAudioMuted.value = muted
   if (muted) {
     suspendAllAudio()
-    dlog(`${TAG} 🔇 platform soundOff → audio suspended`)
+    // Suspending only FREEZES in-flight Web Audio one-shots — they'd thaw and
+    // tail on unmute. Kill them so "muted" really means nothing is pending.
+    killOneShotSfx()
+    dlog(`${TAG} 🔇 platform mute → audio suspended (overrides in-game volume)`)
   } else {
     resumeAllAudio()
-    dlog(`${TAG} 🔊 platform soundOn → audio resumed`)
+    dlog(`${TAG} 🔊 platform unmute → audio resumed`)
   }
 }
 

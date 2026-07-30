@@ -25,7 +25,7 @@ import useEpicConfig from '@/use/useEpicConfig'
 import useScreenshake from '@/use/useScreenshake'
 import { zoneRect } from '@/use/useDropZones'
 import useReward, { formatCost } from '@/use/useReward'
-import { isMobileLandscape, isMobilePortrait, isCompactHud, isUltraCompactHud, windowWidth, windowHeight } from '@/use/useUser'
+import { isMobileLandscape, isMobilePortrait, isCompactHud, isUltraCompactHud, isRoomyHud, isWideCompactHud, windowWidth, windowHeight } from '@/use/useUser'
 import { artSrc } from '@/use/useArtOverrides'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 
@@ -130,6 +130,36 @@ const contentPadTop = computed(() => topBarH.value > 0
  *  template literal) to match `utilityBottom` and stay pug-safe. */
 const topBarPadTop = computed(() =>
   `calc(${isCompactHud.value ? '0.15rem' : '0.4rem'} + env(safe-area-inset-top, 0px))`)
+
+// ─── Wave-badge type scale ───────────────────────────────────────────────────
+// Four tiers. Compact viewports shrink for real (see `useUser`) and roomy
+// desktop ones step UP — the `sm:` sizes below top out at phone scale and read
+// as tiny at 1280×800. Between them sits compact-but-WIDE (1000×450): compact
+// by height, so it keeps the tight compact layout, but a desktop window by
+// width, where 10px wave text and an 8px teaser line are unreadable.
+//
+// Kept as computeds rather than nested ternaries in the template so the pug
+// class bindings stay legible. The top bar is measured by a ResizeObserver, so
+// a taller badge hands its cost to `contentPadTop` automatically instead of
+// overlapping the arena.
+const waveTextClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'text-sm leading-none' : 'text-[10px] leading-none')
+  : isRoomyHud.value ? 'text-xl' : 'text-xs sm:text-base')
+const bestTextClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'text-xs leading-none' : 'text-[8px] leading-none')
+  : isRoomyHud.value ? 'text-base' : 'text-[10px] sm:text-sm')
+const mutationTagClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'text-[9px] px-1 py-0' : 'text-[7px] px-0.5 py-0')
+  : isRoomyHud.value ? 'text-xs px-1.5 py-0.5' : 'text-[8px] sm:text-[10px] px-1 py-0.5')
+const waveIconClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'w-4 h-4' : 'w-3.5 h-3.5')
+  : isRoomyHud.value ? 'w-7 h-7' : 'w-5 h-5 sm:w-6 sm:h-6')
+/** The next-chest / new-enemy teaser pips under the badge — the "wave reward
+ *  announcements" line. Hardest hit by the compact tier: 8px on a 1000px-wide
+ *  window is the smallest type anywhere in the HUD. */
+const teaserTextClass = computed(() => isCompactHud.value
+  ? (isWideCompactHud.value ? 'text-[11px] leading-tight' : 'text-[8px] leading-tight')
+  : isRoomyHud.value ? 'text-sm' : 'text-[9px] sm:text-[11px]')
 
 // ─── Spawn ──────────────────────────────────────────────────────────────────
 const spawnFlash = ref(false)
@@ -350,21 +380,19 @@ onUnmounted(() => {
               svg(
                 viewBox="0 0 24 24"
                 class="text-white"
-                :class="isCompactHud ? 'w-3.5 h-3.5' : 'w-5 h-5 sm:w-6 sm:h-6'"
+                :class="waveIconClass"
                 fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
               )
                 path(d="M5 21 L5 4 L13 4 L12 7 L19 7 L19 14 L11 14 L12 11 L5 11")
-              span.text-white.font-black.game-text(
-                :class="isCompactHud ? 'text-[10px] leading-none' : 'text-xs sm:text-base'"
-              ) {{ t('battle.wave', { n: battle.wave.value }) }}
+              span.text-white.font-black.game-text(:class="waveTextClass") {{ t('battle.wave', { n: battle.wave.value }) }}
               span.text-yellow-200.font-black.game-text.opacity-90(
-                :class="isCompactHud ? 'text-[8px] leading-none' : 'text-[10px] sm:text-sm'"
+                :class="bestTextClass"
               ) {{ t('battle.best', { n: battle.bestWave.value }) }}
               //- Mutation marker — only on a mutated wave.
               span.rounded.font-black.game-text.uppercase.leading-none.mutated-tag(
                 v-if="battle.waveMutated.value"
                 class="bg-[#3a0d66] text-fuchsia-100 border border-fuchsia-300"
-                :class="isCompactHud ? 'text-[7px] px-0.5 py-0' : 'text-[8px] sm:text-[10px] px-1 py-0.5'"
+                :class="mutationTagClass"
               ) {{ t('battle.mutationWave') }}
           //- Teaser pips. On compact they stay (they're the "one more wave"
           //- bait) but drop to 8px with a tight gap so the whole stack costs
@@ -373,11 +401,11 @@ onUnmounted(() => {
           //- takes the whole top bar down to just the badge row.
           div.flex(v-if="!isUltraCompactHud" :class="isCompactHud ? 'gap-1 px-0.5' : 'gap-2 px-1'")
             span.game-text.font-black.text-yellow-200.drop-shadow(
-              :class="isCompactHud ? 'text-[8px] leading-tight' : 'text-[9px] sm:text-[11px]'"
+              :class="teaserTextClass"
             ) {{ t('battle.nextChest', { n: nextChestWave }) }}
             span.game-text.font-black.text-red-300.drop-shadow(
               v-if="nextEnemyWave"
-              :class="isCompactHud ? 'text-[8px] leading-tight' : 'text-[9px] sm:text-[11px]'"
+              :class="teaserTextClass"
             ) {{ t('battle.newEnemyAt', { n: nextEnemyWave }) }}
         //- Gold counter, preceded by the 3× coin-buff clock while that buff is
         //- running (CoinBuffTimer renders nothing otherwise, so it costs no
@@ -415,6 +443,13 @@ onUnmounted(() => {
         //- taken here comes straight out of the merge grid. Compact drops the
         //- floor to 36px and the cap to 54px; UpgradePanel shrinks its chips to
         //- match.
+        //- Deliberately NOT raised for roomy viewports: in the STACKED
+        //- (non-side-by-side) layout `h-[15%]` resolves under the 56px floor
+        //- even at 1024×768, so the enlarged chips would have to buy their
+        //- height from the grid — and that is exactly the trade this whole
+        //- block exists to refuse. UpgradePanel measures the height it actually
+        //- gets and falls back to the phone-tuned chip sizes below ~74px, so
+        //- the two can never disagree.
         div.shrink-0.w-full.max-w-md.mx-auto(
           :class="isUltraCompactHud\
             ? 'h-[13%] min-h-7 max-h-[38px] mb-0.5 mt-0.5'\

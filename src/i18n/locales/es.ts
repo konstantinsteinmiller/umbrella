@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Ver', 'revive': 'Revivir', 'secondChance': 'Segunda oportunidad', 'doubleCoins': '2× monedas', 'plusCoins': '+{n} monedas',
-    'startingIn': 'El anuncio empieza en {n}…', 'stopTapping': 'Deja de tocar para no hacer clic en el anuncio'
+    'watch': 'Ver', 'revive': 'Revivir', 'secondChance': 'Segunda oportunidad', 'doubleCoins': '2× monedas', 'plusCoins': '+{n} monedas'
   },
   'achievements': {
     'title': 'Logros', 'subtitle': 'Alcanza hitos para ganar monedas.', 'claim': 'Reclamar', 'claimed': 'Reclamado', 'progress': '{c} / {t}',

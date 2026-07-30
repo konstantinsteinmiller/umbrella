@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu',
-    'startingIn': 'Quảng cáo bắt đầu sau {n}…', 'stopTapping': 'Ngừng chạm để không bấm vào quảng cáo'
+    'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu'
   },
   'achievements': {
     'title': 'Thành tựu', 'subtitle': 'Đạt cột mốc trọn đời để kiếm xu.', 'claim': 'Nhận', 'claimed': 'Đã nhận', 'progress': '{c} / {t}',

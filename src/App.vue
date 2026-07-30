@@ -12,7 +12,6 @@ import FLogoProgress from '@/components/atoms/FLogoProgress.vue'
 import FPerfMeter from '@/components/atoms/FPerfMeter.vue'
 import SaveStatusBanner from '@/components/atoms/SaveStatusBanner.vue'
 import AdsBlockedModal from '@/components/atoms/AdsBlockedModal.vue'
-import AdCountdownOverlay from '@/components/atoms/AdCountdownOverlay.vue'
 import VConsoleHideButton from '@/components/atoms/VConsoleHideButton.vue'
 import { useCrazyMuteSync } from '@/use/useCrazyMuteSync'
 import { installModalGameplayGate } from '@/use/useModalGameplayGate'
@@ -163,10 +162,6 @@ const plattformText = computed(() => getPlattformText())
     FPerfMeter(v-if="isDebug" :offset-y="52")
     SaveStatusBanner
     AdsBlockedModal
-    //- CG full-release pre-interstitial warning. Lives at App level (not in the
-    //- scene) so it also covers an ad fired while the scene is remounting, and
-    //- it teleports to <body> at z-[200] to sit above every other layer.
-    AdCountdownOverlay
     VConsoleHideButton
     RouterView
 

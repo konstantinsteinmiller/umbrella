@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン',
-    'startingIn': '広告は {n} 秒後に開始…', 'stopTapping': '広告を誤タップしないよう画面から手を離してください'
+    'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン'
   },
   'achievements': {
     'title': '実績', 'subtitle': '生涯マイルストーンを達成してコイン獲得。', 'claim': '受取', 'claimed': '受取済', 'progress': '{c} / {t}',

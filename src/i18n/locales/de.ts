@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Ansehen', 'revive': 'Wiederbeleben', 'secondChance': 'Zweite Chance', 'doubleCoins': '2× Münzen', 'plusCoins': '+{n} Münzen',
-    'startingIn': 'Werbung startet in {n}…', 'stopTapping': 'Nicht mehr tippen, damit du nicht auf die Werbung klickst'
+    'watch': 'Ansehen', 'revive': 'Wiederbeleben', 'secondChance': 'Zweite Chance', 'doubleCoins': '2× Münzen', 'plusCoins': '+{n} Münzen'
   },
   'achievements': {
     'title': 'Erfolge', 'subtitle': 'Erreiche Langzeit-Meilensteine für Münzen.', 'claim': 'Abholen', 'claimed': 'Abgeholt', 'progress': '{c} / {t}',

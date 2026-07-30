@@ -49,7 +49,7 @@ const tabs = computed(() => {
   const list = [
     { value: 'general', label: t('options.general') }
   ]
-  return !isMobile.value ? list.concat({ label: t('options.audio'), value: 'audio' }) : list
+  return !isMobile.value ? list/*.concat({ label: t('options.audio'), value: 'audio' })*/ : list
 })
 
 // Native-name dropdown — every option legible regardless of the active locale.
@@ -118,18 +118,18 @@ const musicTrackList = computed(() => [
             @update:model-value="setSettingValue('musicTrack', $event)"
           )
 
-    div(v-else-if="currentTab === 'audio'").flex.flex-col.justify-between.items-center
-      FSlider.px-4(class="!py-1 !pb-3 !max-w-[300px]" :model-value="userSoundVolume" @update:modelValue="setSettingValue('sound', $event)" :label="t('options.soundEffects')" :min="0" :max="1" :step="0.01")
-      FSlider.px-4(class="!py-1 !pb-2 !max-w-[300px]" :model-value="userMusicVolume" @update:modelValue="setSettingValue('music', $event)" :label="t('options.music')" :min="0" :max="1" :step="0.01")
-      div(class="z-[5] flex flex-col gap-1 w-full max-w-[300px] scale-80 sm:scale-100")
-        FSelect(
-          class="!text-[10px] md:text-[12px]"
-          :label="t('options.musicTrack')"
-          :options="musicTrackList"
-          :model-value="userMusicTrack"
-          @update:model-value="setSettingValue('musicTrack', $event)"
-        )
-      hr(class="border-slate-600 my-1 md:my-2 pt-0")
+    //div(v-else-if="currentTab === 'audio'").flex.flex-col.justify-between.items-center
+    //  FSlider.px-4(class="!py-1 !pb-3 !max-w-[300px]" :model-value="userSoundVolume" @update:modelValue="setSettingValue('sound', $event)" :label="t('options.soundEffects')" :min="0" :max="1" :step="0.01")
+    //  FSlider.px-4(class="!py-1 !pb-2 !max-w-[300px]" :model-value="userMusicVolume" @update:modelValue="setSettingValue('music', $event)" :label="t('options.music')" :min="0" :max="1" :step="0.01")
+    //  div(class="z-[5] flex flex-col gap-1 w-full max-w-[300px] scale-80 sm:scale-100")
+    //    FSelect(
+    //      class="!text-[10px] md:text-[12px]"
+    //      :label="t('options.musicTrack')"
+    //      :options="musicTrackList"
+    //      :model-value="userMusicTrack"
+    //      @update:model-value="setSettingValue('musicTrack', $event)"
+    //    )
+    //  hr(class="border-slate-600 my-1 md:my-2 pt-0")
 
     template(#footer)
       FButton(class="px-6 sm:px-8" @click="emit('close')") {{ t('options.close') }}

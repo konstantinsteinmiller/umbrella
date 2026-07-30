@@ -57,9 +57,9 @@ void preloadAssets()
 // First-load interstitial — kept ON for GamePix only. GameDistribution and
 // GameMonetize were intentionally removed: the post-splash ad placement on
 // those networks was producing borderline-incidental-click impressions (the
-// player taps "play" expecting the game and lands on an ad), so we keep the
-// midgame between-rounds interstitial as the sole placement on those builds.
-// GamePix portal QA still requires the post-load ad, so its arm stays.
+// player taps "play" expecting the game and lands on an ad). Their required
+// placement is the first-play one in `useFirstStartInterstitial`.
+// GamePix portal QA requires the post-load ad, so its arm stays.
 // Every env read is a static literal so Rollup DCEs the entire branch (helper
 // module included) on other platform builds — same pattern as the Playgama /
 // GamePix loading signals further down.
@@ -203,10 +203,9 @@ watch(done, (isDone) => {
       signalGameReadyToYandex()
       // Triggers the GamePix first-load interstitial (no-op on other builds
       // — the orchestrator was never armed). GD / GameMonetize used to share
-      // this fire but were removed above; their first-load ad is gone, the
-      // midgame placement is the only ad on those builds now. Runs alongside
-      // the platform `game_ready` / `gameLoaded` signals so the ad lands
-      // immediately once the splash is gone and the SDK is fillable.
+      // this fire but were removed above. Runs alongside the platform
+      // `game_ready` / `gameLoaded` signals so the ad lands immediately once
+      // the splash is gone and the SDK is fillable.
       notifySplashGone()
     }, 150)
   }

@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Дивитися', 'revive': 'Відродити', 'secondChance': 'Другий шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет',
-    'startingIn': 'Реклама через {n}…', 'stopTapping': 'Перестаньте натискати, щоб не клікнути на рекламу'
+    'watch': 'Дивитися', 'revive': 'Відродити', 'secondChance': 'Другий шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'
   },
   'achievements': {
     'title': 'Досягнення', 'subtitle': 'Досягайте віх, щоб заробити монети.', 'claim': 'Забрати', 'claimed': 'Отримано', 'progress': '{c} / {t}',

@@ -14,14 +14,18 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { suspendSpy, resumeSpy } = vi.hoisted(() => ({
+const { suspendSpy, resumeSpy, killOneShotSpy } = vi.hoisted(() => ({
   suspendSpy: vi.fn(),
-  resumeSpy: vi.fn()
+  resumeSpy: vi.fn(),
+  killOneShotSpy: vi.fn()
 }))
 
 vi.mock('@/use/useAssets', () => ({
   suspendAllAudio: suspendSpy,
-  resumeAllAudio: resumeSpy
+  resumeAllAudio: resumeSpy,
+  // The platform hard-mute also kills in-flight one-shots (a suspend only
+  // FREEZES Web Audio sources, so they would thaw and tail on unmute).
+  killOneShotSfx: killOneShotSpy
 }))
 
 import {

@@ -73,7 +73,16 @@ const onClaimDouble = async (e: MouseEvent): Promise<void> => {
 </script>
 
 <template lang="pug">
-  FModal(v-model="isOpen" :title="t('welcomeBack.title')" :is-closable="false")
+  //- `fires-gameplay-lifecycle=false`: this pops ~1.2s into a returning
+  //- player's boot, so letting it drive CG's gameplayStop/gameplayStart would
+  //- stack a redundant pair straight onto the launch gameplayStart. The sim
+  //- still freezes behind it like any other modal.
+  FModal(
+    v-model="isOpen"
+    :title="t('welcomeBack.title')"
+    :is-closable="false"
+    :fires-gameplay-lifecycle="false"
+  )
     div.flex.flex-col.items-center.gap-3.p-4
       p.text-center.text-white.game-text.opacity-90(class="text-xs sm:text-sm") {{ t('welcomeBack.body') }}
       div.flex.items-center.gap-2

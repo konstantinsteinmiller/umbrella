@@ -2,6 +2,7 @@ import { prependBaseUrl } from '@/utils/function'
 import useUser, { MUSIC_TRACK_FILES, DEFAULT_MUSIC_TRACK } from '@/use/useUser'
 import { getAudioContext, loadAudioBuffer, resourceCache, registerHtmlAudio, unregisterHtmlAudio, isAudioSuspended, registerOneShotSource } from '@/use/useAssets'
 import { isAudioPaused } from '@/use/useGamePause'
+import { isPlatformAudioMuted } from '@/use/useGamePauseAudio'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
 import { tutorialActive } from '@/use/useTutorial'
 import { publicAssetExists } from '@/use/usePublicManifest'
@@ -104,10 +105,10 @@ const shouldPlay = ref(false)
  * brings it back. Idempotent and null-safe.
  */
 // Whether the music was PLAYING (intended on) when the last ad hard-stopped it,
-// so `resumeMusicAfterAd()` can bring it back once the ad closes. Interstitials
-// fire mid-wave (every ~121s) and `startBattleMusic()` only runs on scene
-// mount, so without an explicit post-ad resume the track stays dead for the
-// rest of the session after the first ad.
+// so `resumeMusicAfterAd()` can bring it back once the ad closes. Ads fire
+// mid-wave and `startBattleMusic()` only runs on scene mount, so without an
+// explicit post-ad resume the track stays dead for the rest of the session
+// after the first ad.
 let musicWantedBeforeAd = false
 // Module-level handle to the scene's "start the battle track" entry, captured
 // by `useMusic()`, so the module-level `resumeMusicAfterAd()` can re-kick the
@@ -271,6 +272,15 @@ export const useMusic = () => {
           playWithFade()
         }
       })
+
+      // And the same for the platform hard-mute clearing (CG toolbar unmute /
+      // GamePix soundOn) — the guard in `playWithFade` refused every start
+      // while it was up, so the track needs one re-fire once it drops.
+      watch(isPlatformAudioMuted, (muted) => {
+        if (!muted && shouldPlay.value && bgMusic.value && bgMusic.value.paused) {
+          playWithFade()
+        }
+      })
     })
     onUnmounted(() => {
       if (bgMusic.value) unregisterHtmlAudio(bgMusic.value)
@@ -333,6 +343,12 @@ export const useMusic = () => {
     // true so the `isMobileAudioMuted`-drop watcher in `initMusic` re-fires this
     // the moment they unmute (if a battle is still running).
     if (isMobileAudioMuted.value) return
+
+    // Platform hard-mute (CrazyGames toolbar, GamePix soundOff). Outranks the
+    // in-game volume setting on purpose: the portal said silent, so a player
+    // who turns the in-game sound back on must still hear nothing until the
+    // portal unmutes. Same `shouldPlay` + drop-watcher re-fire as above.
+    if (isPlatformAudioMuted.value) return
 
     // Browsers block autoplay until user interaction
     bgMusic.value.play().then(() => {

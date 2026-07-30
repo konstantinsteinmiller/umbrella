@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Смотреть', 'revive': 'Возродить', 'secondChance': 'Второй шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет',
-    'startingIn': 'Реклама через {n}…', 'stopTapping': 'Перестаньте нажимать, чтобы не кликнуть по рекламе'
+    'watch': 'Смотреть', 'revive': 'Возродить', 'secondChance': 'Второй шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'
   },
   'achievements': {
     'title': 'Достижения', 'subtitle': 'Достигайте вех, чтобы заработать монеты.', 'claim': 'Забрать', 'claimed': 'Получено', 'progress': '{c} / {t}',

@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Assistir', 'revive': 'Reviver', 'secondChance': 'Segunda chance', 'doubleCoins': '2× moedas', 'plusCoins': '+{n} moedas',
-    'startingIn': 'Anúncio em {n}…', 'stopTapping': 'Pare de tocar para não clicar no anúncio'
+    'watch': 'Assistir', 'revive': 'Reviver', 'secondChance': 'Segunda chance', 'doubleCoins': '2× moedas', 'plusCoins': '+{n} moedas'
   },
   'achievements': {
     'title': 'Conquistas', 'subtitle': 'Alcance marcos para ganhar moedas.', 'claim': 'Resgatar', 'claimed': 'Resgatado', 'progress': '{c} / {t}',

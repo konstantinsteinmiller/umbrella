@@ -45,16 +45,6 @@ const importAll = async () => {
   mockProvider.isAdsBlocked.value = false
   mockProvider.showRewardedAd.mockReset()
   mockProvider.showMidgameAd.mockReset()
-  // This file covers the PROVIDER-GENERIC contract: the gate flips and audio
-  // suspends synchronously, with nothing in front of the SDK call. The
-  // CrazyGames full release additionally puts a 3s "Ad starting in…" warning
-  // ahead of interstitials, which would shift those timings — so pin the flag
-  // off here and let `adCountdown.test.ts` own the CG-specific path. (Needed
-  // because `.env` ships the flag ON, so it is true by default under vitest.)
-  vi.doMock('@/use/useMatch', async () => {
-    const actual = await vi.importActual<typeof import('@/use/useMatch')>('@/use/useMatch')
-    return { ...actual, isCrazyGamesFullRelease: false }
-  })
   // Re-import the whole graph fresh so useAds, the gate, the audio layer and
   // the orchestrator all share one module registry (useAds installs the
   // orchestrator at import time).

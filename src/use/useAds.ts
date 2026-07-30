@@ -27,8 +27,7 @@ import { isAdShowing, isGamePaused, isAudioPaused, getActivePauseReasons, acquir
 import { installGamePauseAudio } from '@/use/useGamePauseAudio'
 import { __audioDebugSnapshot, killOneShotSfx } from '@/use/useAssets'
 import { isDebug } from '@/use/useMatch'
-import useSounds, { forceStopMusic, resumeMusicAfterAd } from '@/use/useSound'
-import { beginAdCountdown, endAdCountdown, setAdCountdownTick, isAdCountdownEnabled } from '@/use/useAdCountdown'
+import { forceStopMusic, resumeMusicAfterAd } from '@/use/useSound'
 
 const provider: AdProvider = resolveAdProvider({
   flags: { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex },
@@ -42,11 +41,6 @@ const provider: AdProvider = resolveAdProvider({
 // explicit install is ever reordered. Idempotent: the orchestrator installs
 // a single subscriber no matter how many callers invoke it.
 installGamePauseAudio()
-
-// Give the CG pre-ad countdown its per-second tick cue. Injected rather than
-// imported there so `useAdCountdown` stays dependency-light (it's pulled in by
-// the overlay component too) and can't form a cycle back through useSound.
-setAdCountdownTick(() => { useSounds().playSound('combo-tick', 0.05, 1.2) })
 
 const TAG = '[ads]'
 
@@ -182,17 +176,11 @@ export const showRewardedAd = async (): Promise<boolean> => {
 const AUDIO_DRAIN_MS = 200
 
 export const showMidgameAd = async (): Promise<void> => {
-  // CrazyGames full release: warn the player BEFORE the ad and block input for
-  // the whole handover (see `useAdCountdown`). Deliberately outside the
-  // try/finally below so the countdown's own teardown is guaranteed by
-  // `endAdCountdown()` in that finally, even if this throws.
+  // Nothing may run in front of this: `isAdShowing` has to flip SYNCHRONOUSLY
+  // (even a bare `await` on an immediately-returning callee yields a microtask),
+  // because that flip is the one property keeping music from sounding under an
+  // ad overlay that opens in the same call stack.
   //
-  // Guarded on the build-time flag rather than just awaiting a no-op: an
-  // `await` yields a microtask even when the callee returns immediately, and
-  // that would stop `isAdShowing` from flipping synchronously on every OTHER
-  // platform — the one property that keeps music from sounding under an ad
-  // overlay that opens in the same call stack.
-  if (isAdCountdownEnabled) await beginAdCountdown()
   // The audio kill: hard-stop the music, cut every in-flight one-shot SFX so
   // nothing tails into the ad, and flip the pause gate (`isAdShowing` →
   // `isGamePaused`, which `useGamePauseAudio` watches with `flush: 'sync'` to
@@ -236,13 +224,9 @@ export const showMidgameAd = async (): Promise<void> => {
     console.warn(`${TAG} ✖ interstitial ERROR (provider=${provider.name}) — resuming`, e)
   } finally {
     isAdShowing.value = false
-    // Drop the CG warning overlay + its sim freeze. Runs on every exit path —
-    // ad closed, no-fill, provider throw, watchdog timeout — so the blocker can
-    // never strand the player behind an un-dismissable screen.
-    endAdCountdown()
     // Restart the bg music once the interstitial has fully closed and the gate
-    // dropped — forceStopMusic hard-stopped it (and midgame ads fire mid-wave,
-    // so nothing else brings it back). No-op if music wasn't playing.
+    // dropped — forceStopMusic hard-stopped it, so nothing else brings it back.
+    // No-op if music wasn't playing.
     resumeMusicAfterAd()
   }
 }

@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Bekijk', 'revive': 'Herleven', 'secondChance': 'Tweede kans', 'doubleCoins': '2× munten', 'plusCoins': '+{n} munten',
-    'startingIn': 'Advertentie start in {n}…', 'stopTapping': 'Stop met tikken zodat je niet op de advertentie klikt'
+    'watch': 'Bekijk', 'revive': 'Herleven', 'secondChance': 'Tweede kans', 'doubleCoins': '2× munten', 'plusCoins': '+{n} munten'
   },
   'achievements': {
     'title': 'Prestaties', 'subtitle': 'Behaal mijlpalen om munten te verdienen.', 'claim': 'Claim', 'claimed': 'Geclaimd', 'progress': '{c} / {t}',

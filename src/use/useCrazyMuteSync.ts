@@ -6,6 +6,7 @@ import {
   setCrazyMuted
 } from '@/use/useCrazyGames'
 import { isDbInitialized } from '@/use/useMatch'
+import { setPlatformAudioMuted } from '@/use/useGamePauseAudio'
 
 const { userSoundVolume, userMusicVolume, setSettingValue } = useUser()
 
@@ -99,6 +100,17 @@ export const useCrazyMuteSync = () => {
   const pendingInitialMute = ref<boolean | null>(null)
 
   const handleSdkMute = (muted: boolean) => {
+    // HARD mute first, and unconditionally. Zeroing the stored volumes (below)
+    // keeps the in-game mute button in sync, but it cannot survive the player
+    // dragging the volume slider back up while CG still says muted — so the
+    // actual "no sound reaches the speakers" guarantee is this engine-level
+    // suspend, which outranks every in-game sound setting until CG unmutes.
+    //
+    // Deliberately NOT gated on `isDbInitialized`: it touches no saved
+    // settings, so there is nothing for the hydrating loader to fight, and a
+    // game booting into a muted CG frame must be silent from the first frame
+    // rather than from whenever IndexedDB finishes.
+    setPlatformAudioMuted(muted)
     if (!isDbInitialized.value) {
       pendingInitialMute.value = muted
       return

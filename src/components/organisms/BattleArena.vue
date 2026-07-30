@@ -34,6 +34,7 @@ import useReward, { formatCost } from '@/use/useReward'
 import { bumpMaxTier } from '@/use/usePrismGame'
 import { bestWaveRank } from '@/platforms/leaderboard'
 import { triggerHappytime } from '@/use/useCrazyGames'
+import { stopGameplayForWaveBreak, resumeGameplayAfterWaveBreak } from '@/use/useCrazyWaveGameplay'
 
 const props = defineProps<{
   /** Wallet badge element — kill/boss payouts fly coins into it. */
@@ -471,6 +472,8 @@ const onEvent = (e: BattleEvent): void => {
       break
     }
     case 'overrun':
+      // Run lost — active gameplay is over until the next wave begins (CG).
+      stopGameplayForWaveBreak()
       playSound('overrun', 0.06)
       triggerShake('big')
       // RALLY! rewarded revive (roadmap #8): hold the restart only when the
@@ -483,6 +486,9 @@ const onEvent = (e: BattleEvent): void => {
       showWaveBanner(t('battle.waveSetback', { n: e.wave }), 'boss', 2200)
       break
     case 'waveStart':
+      // The new wave is live → back in active play (CG). No-op unless a wave
+      // clear / overrun took the hold.
+      resumeGameplayAfterWaveBreak()
       if (e.mutated) {
         // Mutation wave — a bigger, buffed swarm; flag it loudly.
         showWaveBanner(t('battle.mutationWave'), 'mutation', 2400)
@@ -502,6 +508,9 @@ const onEvent = (e: BattleEvent): void => {
       }
       break
     case 'waveCleared': {
+      // Wave down — the field is empty and the next one hasn't spawned, so CG
+      // gameplay pauses until `waveStart`.
+      stopGameplayForWaveBreak()
       // Rank suffix only when a platform actually reported one (roadmap #16).
       const rank = bestWaveRank.value ? ` · #${bestWaveRank.value}` : ''
       showWaveBanner(t('battle.waveCleared', { n: e.bonus }) + rank, 'wave', 1500)

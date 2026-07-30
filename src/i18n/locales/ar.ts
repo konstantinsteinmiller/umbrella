@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة',
-    'startingIn': 'الإعلان يبدأ خلال {n}…', 'stopTapping': 'توقّف عن النقر حتى لا تضغط على الإعلان'
+    'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة'
   },
   'achievements': {
     'title': 'الإنجازات', 'subtitle': 'حقّق إنجازات مدى الحياة لكسب العملات.', 'claim': 'استلام', 'claimed': 'تم الاستلام', 'progress': '{c} / {t}',

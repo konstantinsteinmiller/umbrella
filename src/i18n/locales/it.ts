@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Guarda', 'revive': 'Rinasci', 'secondChance': 'Seconda chance', 'doubleCoins': '2× monete', 'plusCoins': '+{n} monete',
-    'startingIn': 'Pubblicità tra {n}…', 'stopTapping': 'Smetti di toccare per non cliccare la pubblicità'
+    'watch': 'Guarda', 'revive': 'Rinasci', 'secondChance': 'Seconda chance', 'doubleCoins': '2× monete', 'plusCoins': '+{n} monete'
   },
   'achievements': {
     'title': 'Obiettivi', 'subtitle': 'Raggiungi traguardi per ottenere monete.', 'claim': 'Riscuoti', 'claimed': 'Riscosso', 'progress': '{c} / {t}',

@@ -25,7 +25,6 @@ import { getState, setState } from '@/use/useEpicState'
 import { BATTLE_CHEST_OPENS_KEY } from '@/keys'
 import useReward, { REWARD_COIN_COST } from '@/use/useReward'
 import CoinBuffOffer from '@/components/atoms/CoinBuffOffer.vue'
-import { isMidgameAdImminent } from '@/use/useMidgameAdTimer'
 import { flyingChestRequests } from '@/use/useFlyingChestCue'
 
 const props = defineProps<{
@@ -33,18 +32,8 @@ const props = defineProps<{
   coinTarget?: HTMLElement | null
 }>()
 
-// 110s, not 120s. At 120s the chest beat almost exactly against the 121s midgame
-// ad interval: once the two lined up they stayed within a second or two of each
-// other for dozens of cycles, so the chest kept taking off into the ad handover
-// and flying away unseen. 110s both pulls the spawn 10s earlier and de-phases it
-// (an 11s shift per cycle instead of 1s, so a near-collision passes immediately
-// instead of persisting). The `isMidgameAdImminent` guard below is the actual
-// safety net — phase alone can still coincide occasionally.
 const CHEST_INTERVAL_MS = 110_000
 const CHEST_FLIGHT_MS = 7_000
-/** Seconds of clearance the chest needs before an interstitial: its whole flight
- *  plus the CG "Ad starting in 3…" warning and the audio drain. */
-const AD_CLEARANCE_S = Math.ceil(CHEST_FLIGHT_MS / 1000) + 5
 // Gold payout scales with progress so the chest stays relevant late-game:
 // 150 base + 75 per wave reached.
 const CHEST_GOLD_BASE = 150
@@ -82,11 +71,6 @@ const tick = (): void => {
   if (isGamePaused.value || active.value) return
   remainingMs -= 1000
   if (remainingMs <= 0) {
-    // Hold the launch if an interstitial is about to open — the chest would spend
-    // its whole 7s flight behind the ad and be gone by the time the player is
-    // back. `remainingMs` stays ≤ 0, so this retries every second and the chest
-    // flies as soon as the ad has passed (never skipped, just deferred).
-    if (isMidgameAdImminent(AD_CLEARANCE_S)) return
     remainingMs = CHEST_INTERVAL_MS
     launch()
   }

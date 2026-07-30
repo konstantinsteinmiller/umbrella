@@ -140,9 +140,7 @@ export default {
     'revive': 'Revive',
     'secondChance': 'Second Chance',
     'doubleCoins': '2× Coins',
-    'plusCoins': '+{n} coins',
-    'startingIn': 'Ad starting in {n}…',
-    'stopTapping': 'Stop tapping so you don\'t click the ad'
+    'plusCoins': '+{n} coins'
   },
   'achievements': {
     'title': 'Achievements',

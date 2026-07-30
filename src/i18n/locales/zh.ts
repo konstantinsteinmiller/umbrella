@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': '观看', 'revive': '复活', 'secondChance': '第二次机会', 'doubleCoins': '2× 金币', 'plusCoins': '+{n} 金币',
-    'startingIn': '广告将在 {n} 秒后播放…', 'stopTapping': '请停止点击，以免误点广告'
+    'watch': '观看', 'revive': '复活', 'secondChance': '第二次机会', 'doubleCoins': '2× 金币', 'plusCoins': '+{n} 金币'
   },
   'achievements': {
     'title': '成就', 'subtitle': '达成长期里程碑赢取金币。', 'claim': '领取', 'claimed': '已领取', 'progress': '{c} / {t}',

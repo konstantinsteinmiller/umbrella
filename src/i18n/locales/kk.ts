@@ -1,7 +1,6 @@
 export default {
   'ads': {
-    'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын',
-    'startingIn': 'Жарнама {n} секундтан кейін…', 'stopTapping': 'Жарнамаға баспау үшін түртуді тоқтатыңыз'
+    'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын'
   },
   'achievements': {
     'title': 'Жетістіктер', 'subtitle': 'Тиын табу үшін мақсаттарға жетіңіз.', 'claim': 'Алу', 'claimed': 'Алынды', 'progress': '{c} / {t}',
