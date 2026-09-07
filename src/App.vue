@@ -15,8 +15,10 @@ import AdsBlockedModal from '@/components/atoms/AdsBlockedModal.vue'
 import VConsoleHideButton from '@/components/atoms/VConsoleHideButton.vue'
 import { useCrazyMuteSync } from '@/use/useCrazyMuteSync'
 import { installModalGameplayGate } from '@/use/useModalGameplayGate'
+import { installTutorialPauseGate } from '@/use/useTutorialPauseGate'
+import { installPokiGameplayBracket } from '@/use/usePokiGameplay'
 import useCheats, { installDebugUnlock } from '@/use/useCheats'
-import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isNative, orientation } from '@/use/useUser'
+import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isNative, orientation } from '@/use/useUser'
 import { glitchLicenseStatus } from '@/use/useGlitchLicense'
 import { resolveCapabilities } from '@/platforms/capabilities'
 import { getPlattformText } from '@/platforms/plattformText'
@@ -29,6 +31,15 @@ useCrazyMuteSync()
 // Freeze the sim while any menu is open and resume on close (every build);
 // additionally fires CG gameplayStop/Start on the CrazyGames full release.
 installModalGameplayGate()
+// Hold the battle sim while the first-session coach-marks run, so wave 1 can't
+// overrun the gate before the player has ever deployed a fighter. Releases on
+// their first deploy.
+installTutorialPauseGate()
+// Poki's gameplayStart/Stop bracket, derived from the same pause gate the two
+// installs above feed. Its FIRST start is held until the player touches the
+// viewport (Poki rejects a gameplayStart nobody asked for) and the whole watcher
+// is dead code on non-Poki builds. See `usePokiGameplay.ts`.
+installPokiGameplayBracket()
 // Attach the "cmarc" debug-unlock key listener at app boot (App.vue is eager),
 // so typing it anywhere flips debug mode — the lazy game scene used to be the
 // only importer, which tree-shook the listener out of production builds.
@@ -126,7 +137,7 @@ onUnmounted(() => {
 const hostname = window.location.hostname
 const parentOrigin = window.location.ancestorOrigins?.[0] ?? document.referrer ?? ''
 const platformFlags = {
-  isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex
+  isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki
 }
 const capabilities = computed(() => resolveCapabilities({
   flags: platformFlags,
@@ -145,6 +156,7 @@ const isGameShowAllowed = computed(() =>
   capabilities.value.allowedToShowOnGamepix ||
   capabilities.value.allowedToShowOnGameMonetize ||
   capabilities.value.allowedToShowOnYandex ||
+  capabilities.value.allowedToShowOnPoki ||
   location.hostname.includes('localhost')
 )
 const isGlitchDenied = computed(() => capabilities.value.isGlitchDenied)
@@ -176,7 +188,15 @@ const plattformText = computed(() => getPlattformText())
 
 <style lang="sass">
 *
-  font-family: 'Angry', sans-serif
+  // Script-aware stack. `--app-font-stack` is set on <html> by
+  // `applyLocaleDirection()` on every locale switch; the literal fallback
+  // keeps the Latin look if that never ran (SSR-less first paint, tests).
+  //
+  // `'Angry'` is a Latin-only display face, so before this the Arabic and
+  // CJK locales fell straight through to the generic `sans-serif` — a
+  // per-platform coin flip that renders tofu (□□□) wherever the system
+  // default sans has no coverage. See `i18n/localeDirection.ts`.
+  font-family: var(--app-font-stack, 'Angry', 'Segoe UI', Roboto, system-ui, sans-serif)
   user-select: none
   outline: none
   // Standard

@@ -25,7 +25,7 @@ import useEpicConfig from '@/use/useEpicConfig'
 import useScreenshake from '@/use/useScreenshake'
 import { zoneRect } from '@/use/useDropZones'
 import useReward, { formatCost } from '@/use/useReward'
-import { isMobileLandscape, isMobilePortrait, isCompactHud, isUltraCompactHud, isRoomyHud, isWideCompactHud, windowWidth, windowHeight } from '@/use/useUser'
+import { isMobileLandscape, isMobilePortrait, isCompactHud, isUltraCompactHud, isRoomyHud, isWideCompactHud, windowWidth, windowHeight, isCrazyWeb, androidNavBarPx } from '@/use/useUser'
 import { artSrc } from '@/use/useArtOverrides'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 
@@ -131,6 +131,32 @@ const contentPadTop = computed(() => topBarH.value > 0
 const topBarPadTop = computed(() =>
   `calc(${isCompactHud.value ? '0.15rem' : '0.4rem'} + env(safe-area-inset-top, 0px))`)
 
+// ─── Bottom-edge reserve ─────────────────────────────────────────────────────
+//
+// The mirror of the top-bar reserve. Everything anchored to the bottom edge —
+// the scene's own padding, the spawn row it carries, and the two floating
+// utility stacks — measures from `bottomInset` rather than from a bare
+// `env(safe-area-inset-bottom)`, so the Android system nav-bar strip
+// (`androidNavBarPx`) is honored in one place instead of four. It's a `max()`,
+// not a sum: a host that reports a real inset already covers the bar.
+const bottomInset = computed(() => androidNavBarPx.value > 0
+  ? `max(env(safe-area-inset-bottom, 0px), ${androidNavBarPx.value}px)`
+  : 'env(safe-area-inset-bottom, 0px)')
+
+const contentPadBottom = computed(() => `calc(0.5rem + ${bottomInset.value})`)
+/** Mute + settings stack, right of the merge grid — always lifted clear of the
+ *  spawn row, which the reserve has just pushed up by the same amount. */
+const rightStackBottom = computed(() => `calc(4.4rem + ${bottomInset.value})`)
+
+// The stacked (portrait) layout splits the column 1.25 : 1 between the arena
+// and the controls. The BATTLEFIELD should pay for the nav-bar reserve in full
+// — the merge grid and the spawn row are what the strip exists to keep
+// reachable, so shrinking them would defeat it — and a plain flex ratio would
+// instead bill both in proportion. Handing the controls a flex-basis of
+// `reserve / 1.25` makes the 1.25 : 1 grow top them back up to exactly the
+// height they had before the reserve, leaving the arena to absorb all of it.
+const controlsFlex = computed(() => `1 1 ${androidNavBarPx.value / 1.25}px`)
+
 // ─── Wave-badge type scale ───────────────────────────────────────────────────
 // Four tiers. Compact viewports shrink for real (see `useUser`) and roomy
 // desktop ones step UP — the `sm:` sizes below top out at phone scale and read
@@ -187,7 +213,7 @@ const utilityLifted = computed(() =>
   isMobilePortrait.value || (windowWidth.value < 640 && windowWidth.value < windowHeight.value)
 )
 const utilityBottom = computed(() =>
-  `calc(${utilityLifted.value ? '4.4rem' : '0.4rem'} + env(safe-area-inset-bottom, 0px))`
+  `calc(${utilityLifted.value ? '4.4rem' : '0.4rem'} + ${bottomInset.value})`
 )
 
 // Left utility stack (campaign / achievements / codex). It lives INSIDE the
@@ -419,7 +445,7 @@ onUnmounted(() => {
       :class="sideBySide ? 'flex-row' : 'flex-col'"
       :style="{\
         paddingTop: contentPadTop,\
-        paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',\
+        paddingBottom: contentPadBottom,\
         paddingLeft: 'calc(0.4rem + env(safe-area-inset-left, 0px))',\
         paddingRight: 'calc(0.4rem + env(safe-area-inset-right, 0px))'\
       }"
@@ -435,7 +461,7 @@ onUnmounted(() => {
       //- ── Controls (upgrades + grid + spawn) ──
       div.controls-area.relative.flex.flex-col.min-h-0(
         :class="sideBySide ? 'w-[46%] h-full' : 'w-full'"
-        :style="sideBySide ? {} : { flex: '1 1 0%' }"
+        :style="sideBySide ? {} : { flex: controlsFlex }"
       )
         //- Upgrade controls. The `min-h-14` (56px) floor was the single biggest
         //- block on a ~280px-tall viewport — bigger than the whole top bar — and
@@ -537,11 +563,18 @@ onUnmounted(() => {
     //-    spawn row — its right edge reaches the corner on landscape) ────────
     div.absolute.z-30.flex.flex-col.items-end.gap-1(
       :style="{\
-        bottom: 'calc(4.4rem + env(safe-area-inset-bottom, 0px))',\
+        bottom: rightStackBottom,\
         right: 'calc(0.4rem + env(safe-area-inset-right, 0px))'\
       }"
     )
-      FMuteButton
+      //- CrazyGames owns the sound toggle on their build: their toolbar has its
+      //- own mute, and CG QA requires the platform state to win over any in-game
+      //- setting. `useCrazyMuteSync` already enforces that (hard AudioContext
+      //- suspend via `setPlatformAudioMuted`), but shipping a second, in-game
+      //- mute button beside it reads as two competing switches — so we take QA's
+      //- offered alternative and drop ours from the CG build entirely. The volume
+      //- sliders in Options stay: they trim levels, they can't defeat the mute.
+      FMuteButton(v-if="!isCrazyWeb")
       button.cursor-pointer.transition-transform(
         class="active:scale-90 hover:scale-[103%] scale-90 sm:scale-100"
         @click="showOptions = true"

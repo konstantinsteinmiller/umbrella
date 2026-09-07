@@ -213,18 +213,13 @@ const spawn = (): number => {
 }
 defineExpose({ spawn })
 
-// ── Mirror the automation imp's merges/deploys with the same VFX ──
+// ── Mirror the automation imp's merges with the same VFX ──
+// Merges are the ONLY thing the imp does — deploying stayed with the player
+// (see `usePrismGame.autoStep`), so there is no auto-deploy flash to mirror.
 watch(game.autoAction, (v) => {
   if (!v || !v.action) return
   const a = v.action
-  if (a.type === 'merge') {
-    fireMerge(a.to, a.tier)
-  } else if (a.type === 'deploy') {
-    // The imp already committed the deploy in game logic — just flash the slot.
-    const r = slotRect(a.idx)
-    if (r) emitSparkle(r.left + r.width / 2, r.top + r.height / 2, '#ffe23a', 6)
-    playSound('deploy-land', 0.03, 1.1)
-  }
+  if (a.type === 'merge') fireMerge(a.to, a.tier)
 })
 
 onMounted(() => {

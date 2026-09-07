@@ -13,6 +13,16 @@
 //      the GameDistribution pattern (open the relevant directives to `https:`).
 //   4. Otherwise no change to this file is needed — `'self'` + the BASE_HOSTS
 //      cover the rest.
+//
+// POKI IS A DELIBERATE EXCEPTION AND MUST STAY ONE. The Poki build emits NO CSP
+// meta tag at all (`skipCspMeta` in `vite.config.ts`, alongside Yandex and
+// GamePix): Poki applies a per-game allowlist server-side in P4D and injects its
+// own ad stack — GPT, IMA, Amazon TAM, prebid — into our iframe, so a self-imposed
+// policy kills all of it silently (the game runs, `commercialBreak()` resolves,
+// no ad ever plays). Adding `game-cdn.poki.com` or any `*.poki.com` to
+// BASE_HOSTS would therefore do nothing for Poki and would leak a foreign
+// hostname string into every OTHER platform's bundle — exactly the "Service
+// storage URL detected" rejection this file's Yandex notes are about.
 
 /** Hosts allowed across every build mode (the platform stays itself when
  *  loaded standalone, and the SDK from each portal can reach its API).

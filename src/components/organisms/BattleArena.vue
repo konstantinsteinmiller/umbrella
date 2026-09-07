@@ -32,6 +32,7 @@ import { registerDropZone, unregisterDropZone, dragActive } from '@/use/useDropZ
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 import useReward, { formatCost } from '@/use/useReward'
 import { bumpMaxTier } from '@/use/usePrismGame'
+import { tutorialHoldsBattle } from '@/use/useTutorial'
 import { bestWaveRank } from '@/platforms/leaderboard'
 import { triggerHappytime } from '@/use/useCrazyGames'
 import { stopGameplayForWaveBreak, resumeGameplayAfterWaveBreak } from '@/use/useCrazyWaveGameplay'
@@ -899,9 +900,13 @@ onUnmounted(() => {
           span.fever-text.game-text.font-black.uppercase(class="text-lg sm:text-2xl") {{ t('battle.fever') }}
 
     //- ── Countdown ──
+    //- Hidden while the tutorial holds the sim (`useTutorialPauseGate`): the
+    //- clock is frozen, so the number would sit there as a dead "4" over the
+    //- arena the coach-marks are pointing at. It reappears, ticking, the moment
+    //- the player deploys their first fighter and the hold releases.
     Transition(name="fade")
       div.absolute.inset-0.flex.flex-col.items-center.justify-center.pointer-events-none.gap-1(
-        v-if="battle.wavePhase.value === 'countdown'" class="z-[1210]"
+        v-if="battle.wavePhase.value === 'countdown' && !tutorialHoldsBattle" class="z-[1210]"
       )
         span.game-text.font-black.uppercase.text-white(class="text-xs sm:text-sm opacity-80") {{ t('battle.nextWave', { n: battle.wave.value }) }}
         span.countdown-num.game-text.font-black.text-yellow-300(:key="countdownDisplay" class="text-4xl sm:text-6xl") {{ countdownDisplay }}

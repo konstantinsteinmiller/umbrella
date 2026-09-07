@@ -157,7 +157,14 @@ export default {
       'bounty': 'Butin',
       'automation': 'Diablotin',
       'recruit': 'Recrues',
-      'maxed': 'MAX'
+      'maxed': 'MAX',
+      'desc': {
+        'attack': 'Augmente les dégâts d\'attaque de toute votre armée.',
+        'vitality': 'Augmente les points de vie maximum de chaque combattant.',
+        'bounty': 'Gagnez plus de pièces pour chaque ennemi vaincu.',
+        'automation': 'Fusionne les unités à votre place, plus vite à chaque niveau.',
+        'recruit': 'Les nouvelles unités apparaissent à un rang supérieur.'
+      }
     },
     'nextChest': 'Prochain : 🎁 vague {n}',
     'newEnemyAt': 'Nouvel ennemi à la vague {n} !',

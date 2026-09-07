@@ -157,7 +157,14 @@ export default {
       'bounty': 'Ganimet',
       'automation': 'Cin',
       'recruit': 'Acemiler',
-      'maxed': 'MAKS'
+      'maxed': 'MAKS',
+      'desc': {
+        'attack': 'Tüm ordunun saldırı hasarını artırır.',
+        'vitality': 'Her savaşçının maksimum canını artırır.',
+        'bounty': 'Yendiğin her düşmandan daha fazla altın kazan.',
+        'automation': 'Birimleri senin için otomatik birleştirir, her seviyede daha hızlı.',
+        'recruit': 'Yeni birimler daha yüksek kademede gelir.'
+      }
     },
     'nextChest': 'Sıradaki: 🎁 dalga {n}',
     'newEnemyAt': "Dalga {n}'de yeni düşman!",

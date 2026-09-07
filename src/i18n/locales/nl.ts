@@ -157,7 +157,14 @@ export default {
       'bounty': 'Buit',
       'automation': 'Duiveltje',
       'recruit': 'Rekruten',
-      'maxed': 'MAX'
+      'maxed': 'MAX',
+      'desc': {
+        'attack': 'Verhoogt de aanvalsschade van je hele leger.',
+        'vitality': 'Verhoogt de maximale gezondheid van elke strijder.',
+        'bounty': 'Verdien meer munten voor elke verslagen vijand.',
+        'automation': 'Voegt automatisch eenheden voor je samen, sneller met elk niveau.',
+        'recruit': 'Nieuwe eenheden verschijnen op een hogere rang.'
+      }
     },
     'nextChest': 'Volgende: 🎁 golf {n}',
     'newEnemyAt': 'Nieuwe vijand bij golf {n}!',

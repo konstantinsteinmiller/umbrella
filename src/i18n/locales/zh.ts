@@ -157,7 +157,14 @@ export default {
       'bounty': '赏金',
       'automation': '小鬼',
       'recruit': '新兵',
-      'maxed': '满级'
+      'maxed': '满级',
+      'desc': {
+        'attack': '提升全军的攻击伤害。',
+        'vitality': '提升每个战士的最大生命值。',
+        'bounty': '击杀每个敌人可获得更多金币。',
+        'automation': '自动为你合并单位，每级速度更快。',
+        'recruit': '新单位以更高阶级出场。'
+      }
     },
     'nextChest': '下一个：🎁 第{n}波',
     'newEnemyAt': '第{n}波出现新敌人！',

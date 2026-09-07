@@ -17,6 +17,8 @@
     "build:gamepix": "vite build --mode gamepix --base=./ && cd dist && tar -a -cf ../merge-idle-war-gamepix.zip * && cd .. && move merge-idle-war-gamepix.zip dist\\",
     "build:gamemonetize": "vite build --mode gamemonetize --base=./ && cd dist && tar -a -cf ../merge-idle-war-gamemonetize.zip * && cd .. && move merge-idle-war-gamemonetize.zip dist\\",
     "build:yandex": "vite build --mode yandex --base=./ && cd dist && tar -a -cf ../merge-idle-war-yandex.zip * && cd .. && move merge-idle-war-yandex.zip dist\\",
+    "build:poki": "vite build --mode poki --base=./ && cd dist && tar -a -cf ../merge-idle-war-poki.zip * && cd .. && move merge-idle-war-poki.zip dist\\",
+    "build:poki-playtest": "vite build --mode poki-playtest --base=./ && cd dist && tar -a -cf ../merge-idle-war-poki-playtest.zip * && cd .. && move merge-idle-war-poki-playtest.zip dist\\",
     "build-github-main": "vite build --base=/merge-idle-war/ --outDir=dist",
     "build-github-develop": "vite build --base=/merge-idle-war/develop/ --outDir=dist/develop",
     "deploy": "vite build && surge dist/ --domain merge-idle-war.surge.sh",

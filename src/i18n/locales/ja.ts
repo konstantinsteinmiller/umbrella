@@ -157,7 +157,14 @@ export default {
       'bounty': '報酬',
       'automation': 'インプ',
       'recruit': '新兵',
-      'maxed': '最大'
+      'maxed': '最大',
+      'desc': {
+        'attack': '軍全体の攻撃力を上げる。',
+        'vitality': '各兵士の最大体力を上げる。',
+        'bounty': '敵を倒すたびに得られるコインが増える。',
+        'automation': 'ユニットを自動で合成し、レベルごとに速くなる。',
+        'recruit': '新しいユニットがより高いティアで登場する。'
+      }
     },
     'nextChest': '次: 🎁 ウェーブ{n}',
     'newEnemyAt': 'ウェーブ{n}で新しい敵が出現!',

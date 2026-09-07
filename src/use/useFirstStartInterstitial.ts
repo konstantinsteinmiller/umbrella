@@ -16,6 +16,13 @@
 // then begins fresh after the ad finishes (or immediately on a no-fill), and
 // never plays underneath the ad.
 //
+// POKI IS DELIBERATELY NOT IN THIS LIST. `commercialBreak()` before the first
+// `gameplayStart()` is served as a PREROLL, which is exactly what this
+// placement would be — and Poki measures conversion-to-play on that very first
+// `gameplayStart()`, with a 65 % gate at the Web Fit Test. A preroll sits
+// directly in front of the metric that decides whether the game progresses
+// through the funnel. Revisit only once the game is through Web Fit, if at all.
+//
 // Fires at most once per session (module-level flag survives a GameScene
 // remount). Resolves immediately (no ad) on non-GM/GD builds and when no
 // interstitial is currently fillable — leaving the flag unset in the

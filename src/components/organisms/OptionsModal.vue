@@ -33,6 +33,12 @@ const {
 
 const currentTab = ref('general')
 
+// The dropdown binds to the LIVE i18n locale, not `userLanguage`.
+// `userLanguage` is the player's persisted choice and defaults to 'en'; since
+// the portal-reported locale is deliberately never persisted (see `main.ts`),
+// binding to it would show "English" while the game renders Arabic. `locale`
+// is always what is actually on screen. Picking an entry still writes the
+// player's choice through `setSettingValue`, which the watcher below applies.
 watch(userLanguage, async (newValue: string) => {
   if (appI18n) {
     await setI18nLocale(appI18n, newValue)
@@ -94,7 +100,7 @@ const musicTrackList = computed(() => [
             class="!text-[10px] md:text-[12px]"
             :label="t('options.language')"
             :options="languagesList"
-            :model-value="userLanguage"
+            :model-value="locale"
             @update:model-value="setSettingValue('language', $event)"
           )
         div(class="z-[10] flex flex-col gap-1" :class="{ 'scale-80 sm:scale-100': !isMobileLandscape }")

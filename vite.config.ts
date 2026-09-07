@@ -430,8 +430,59 @@ export default defineConfig(({ mode, command }) => {
   // Skipping our meta tag on the GamePix build lets GamePix's environment own
   // the policy — same exception we already make for Yandex.
   const isGamepixBuild = env.VITE_APP_GAMEPIX === 'true'
-  const skipCspMeta = isYandexBuild || isGamepixBuild
+  // POKI: same exception, stronger reason. Poki applies a PER-GAME allowlist
+  // server-side (P4D -> Settings -> CSP) and injects its OWN ad stack into our
+  // iframe — Google Publisher Tag, IMA, Amazon TAM and a prebid waterfall
+  // (securepubads.g.doubleclick.net, imasdk.googleapis.com, prebid.adnxs.com,
+  // aax.amazon-adsystem.com, onetag-sys.com, s0.2mdn.net, ...). Our meta tag
+  // would block the entire waterfall with NO error surfaced: the game runs,
+  // `commercialBreak()` resolves, and no ad ever plays. Whitelisting those
+  // hosts is the wrong fix — the list rotates with Poki's ad partners. Let P4D
+  // own the policy. (`src/platforms/csp.ts` gets no Poki arm either: this build
+  // emits no meta tag at all, so an entry there would only leak `*.poki.com`
+  // into every OTHER platform's bundle — the "Service storage URL detected"
+  // rejection trigger on Yandex moderation.)
+  const isPokiBuild = env.VITE_APP_POKI === 'true'
+  const skipCspMeta = isYandexBuild || isGamepixBuild || isPokiBuild
   const cspValue = buildCsp(env)
+
+  // ─── Exactly-one-platform guard ─────────────────────────────────────────
+  //
+  // Vite merges `.env` with `.env.<mode>`, so a platform flag set in the base
+  // `.env` stays TRUE for every mode that does not explicitly clear it. That
+  // is how `build:playgama` silently became a CrazyGames build: `.env` sets
+  // `VITE_APP_CRAZY_WEB=true`, `.env.playgama` didn't mention it, and BOTH
+  // `resolveSaveStrategy` and `resolveAdProvider` check the CrazyGames arm
+  // first — so the Playgama bundle shipped `CrazyGamesStrategy` + the CG ad
+  // provider, no `PlaygamaStrategy` chunk at all, and `persistToRaw=false`
+  // (CG cloud-only mode) scrubbing local state on every boot. Nothing in the
+  // build output said a word about it.
+  //
+  // Fail the build instead. Two platform flags true at once is never valid.
+  const PLATFORM_FLAGS = [
+    'VITE_APP_CRAZY_WEB',
+    'VITE_APP_GAME_DISTRIBUTION',
+    'VITE_APP_PLAYGAMA',
+    'VITE_APP_GAMEPIX',
+    'VITE_APP_GAME_MONETIZE',
+    'VITE_APP_YANDEX',
+    'VITE_APP_GLITCH',
+    'VITE_APP_ITCH',
+    'VITE_APP_WAVEDASH',
+    'VITE_APP_POKI'
+  ] as const
+  const activePlatforms = PLATFORM_FLAGS.filter(f => env[f] === 'true')
+  if (activePlatforms.length > 1) {
+    throw new Error(
+      `[build] ${activePlatforms.length} platform flags are true at once: `
+      + `${activePlatforms.join(', ')} (mode="${mode}").\n`
+      + 'Only one platform may be active per build — the save-strategy and '
+      + 'ad-provider resolvers take the FIRST matching arm, so the extra flag '
+      + 'silently hijacks the build.\n'
+      + `Fix: set the flags you do not want to "false" in .env.${mode} `
+      + '(a flag omitted there inherits its value from the base `.env`).'
+    )
+  }
 
   plugins.push({
     name: 'inject-csp',
@@ -494,6 +545,31 @@ export default defineConfig(({ mode, command }) => {
     })
   }
 
+  // Strip the Poki SDK <script> tag from non-Poki builds. Same reason as the
+  // Playgama / GamePix strips — no extra DNS lookup to game-cdn.poki.com on
+  // other portals — plus the harder one: a foreign SDK host in the shipped
+  // index.html is what Yandex moderation rejects as "Service storage URL
+  // detected". The plugin re-injects the tag at runtime if it is missing, so a
+  // QA wrapper that serves its own index.html still works.
+  //
+  // The comment half is OPTIONAL and cannot cross a `-->`: a lazy `[^]*?`
+  // wildcard between `<!--` and the Poki comment can start matching at ANY
+  // earlier comment in the file and swallow every tag in between (that pattern
+  // ate the CrazyGames + Playgama tags in a sibling project). Making the
+  // comment optional also means the strip survives someone rewording it.
+  const isPoki = env.VITE_APP_POKI === 'true'
+  if (!isPoki) {
+    plugins.push({
+      name: 'strip-poki-sdk',
+      transformIndexHtml(html: string) {
+        return html.replace(
+          /(?:<!--(?:(?!-->)[\s\S])*?-->\s*)?<script[^>]*game-cdn\.poki\.com[^>]*><\/script>\s*/,
+          ''
+        )
+      }
+    })
+  }
+
   // ─── GamePix single-file bundle ─────────────────────────────────────────
   // The GamePix build CDN serves the root `index.html` (200) but intermittently
   // 403s the hashed `assets/*.js` / `assets/*.css` chunks — the 403 body is XML,
@@ -526,6 +602,26 @@ export default defineConfig(({ mode, command }) => {
   // localhost / QA-tool contexts (which speak different protocols than
   // the production portal). The config here intentionally OMITS
   // `forciblySetPlatformId` so the bridge auto-detects the right protocol.
+  //
+  // `storage.allowAnonymousCloudSave` is load-bearing for cloud saves. The
+  // Playgama platform adapter gates cloud storage as:
+  //
+  //   isStorageAvailable(PLATFORM_INTERNAL)
+  //     = isCloudSaveSupported
+  //       && (options.storage?.allowAnonymousCloudSave === true
+  //           || player.isAuthorized)
+  //
+  // Guest players — most portal traffic, and the QA reviewer's first run —
+  // are not authorized, so without this flag `PlaygamaStrategy` degrades to
+  // the bridge's `local_storage` adapter and NO progress ever reaches the
+  // Playgama remote. That was the "cleared wave isn't saved" bug.
+  //
+  // Keep in sync with `BRIDGE_OPTIONS` in `src/utils/playgamaPlugin.ts`,
+  // which the bridge falls back to when this file 404s.
+  const playgamaBridgeConfig = JSON.stringify({
+    storage: { allowAnonymousCloudSave: true },
+    advertisement: { minimumDelayBetweenInterstitial: 120 }
+  }, null, 2)
   if (isPlaygama) {
     plugins.push({
       name: 'emit-playgama-bridge-config',
@@ -534,9 +630,141 @@ export default defineConfig(({ mode, command }) => {
         (this as any).emitFile({
           type: 'asset',
           fileName: 'playgama-bridge-config.json',
-          source: JSON.stringify({
-            advertisement: { minimumDelayBetweenInterstitial: 120 }
-          }, null, 2)
+          source: playgamaBridgeConfig
+        })
+      }
+    })
+    // ─── Dev-only reload-durable Playgama bridge mock (`?pgmock=1`) ───────
+    //
+    // The runtime proof that cloud saves survive a reload (the
+    // `verify-cloud-save-hydration` protocol) needs two things the real
+    // bridge cannot give us on localhost:
+    //
+    //   • A cloud store that OUTLIVES a reload. On localhost the real bridge
+    //     detects the MOCK platform, whose adapter returns false for
+    //     `platform_internal` outright — so the cloud path is unreachable and
+    //     the test would be vacuous. This mock backs `platform_internal` with
+    //     real localStorage under a `__pgcloud__` prefix (not a payload key,
+    //     so BlobStorage and the save layer both ignore it).
+    //
+    //   • An injectable hydrate DELAY. A store that answers instantly beats
+    //     the module-eval defaults every time, so the boot race never happens
+    //     and a BROKEN strategy still passes. `?hydrateDelay=1500` reproduces
+    //     "the cloud answers 1.5s after the app already seeded stage 1".
+    //
+    // Injected before `/src/main.ts` so `window.bridge` exists at module-eval.
+    // `defineProperty` with `writable:false` keeps the real CDN bridge script
+    // (still tagged in dev `index.html`) from replacing it.
+    //
+    // Dev + mode-gated + query-gated: never reachable in a built bundle.
+    plugins.push({
+      name: 'playgama-reload-durable-mock',
+      apply: 'serve' as const,
+      transformIndexHtml(html: string, ctx: any) {
+        if (!ctx?.originalUrl?.includes('pgmock=1')) return html
+        const mock = `
+<script>
+(function () {
+  var CLOUD = '__pgcloud__';
+  var params = new URL(location.href).searchParams;
+  var DELAY = Number(params.get('hydrateDelay') || 0);
+  var FAIL_FIRST = params.get('failFirstGet') === '1';
+  var failed = false;
+  var listeners = {};
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms) }) };
+  var read = function (k) { return window.localStorage.getItem(CLOUD + k) };
+  var write = function (k, v) { window.localStorage.setItem(CLOUD + k, String(v)) };
+  var storage = {
+    defaultType: 'local_storage',
+    isAvailable: function (type) { return true },
+    get: function (key, type, tryParseJson) {
+      return (DELAY ? sleep(DELAY) : Promise.resolve()).then(function () {
+        if (FAIL_FIRST && !failed) { failed = true; throw new Error('mock: transient blip') }
+        var one = function (k) {
+          var raw = type === 'platform_internal' ? read(k) : window.localStorage.getItem(k);
+          if (raw !== null && tryParseJson !== false) { try { return JSON.parse(raw) } catch (e) {} }
+          return raw;
+        };
+        return Array.isArray(key) ? key.map(one) : one(key);
+      });
+    },
+    set: function (key, value, type) {
+      var keys = Array.isArray(key) ? key : [key];
+      var vals = Array.isArray(value) ? value : [value];
+      keys.forEach(function (k, i) {
+        var v = vals[i];
+        v = (typeof v === 'object' && v !== null) ? JSON.stringify(v) : String(v);
+        if (type === 'platform_internal') write(k, v); else window.localStorage.setItem(k, v);
+      });
+      return Promise.resolve();
+    },
+    'delete': function (key, type) {
+      var keys = Array.isArray(key) ? key : [key];
+      keys.forEach(function (k) {
+        if (type === 'platform_internal') window.localStorage.removeItem(CLOUD + k);
+        else window.localStorage.removeItem(k);
+      });
+      return Promise.resolve();
+    }
+  };
+  var platform = {
+    id: params.get('platformId') || 'playgama',
+    language: params.get('lang') || 'en',
+    isAudioEnabled: params.get('muted') !== '1',
+    isPaused: false,
+    on: function (n, cb) { (listeners[n] = listeners[n] || []).push(cb); return function () {} },
+    sendMessage: function (n) { console.info('[pgmock] sendMessage', n) }
+  };
+  var bridge = {
+    platform: platform,
+    storage: storage,
+    advertisement: { on: function () { return function () {} } },
+    EVENT_NAME: {
+      PAUSE_STATE_CHANGED: 'pause_state_changed',
+      AUDIO_STATE_CHANGED: 'audio_state_changed',
+      VISIBILITY_STATE_CHANGED: 'visibility_state_changed',
+      INTERSTITIAL_STATE_CHANGED: 'interstitial_state_changed',
+      REWARDED_STATE_CHANGED: 'rewarded_state_changed'
+    },
+    initialize: function (opts) { console.info('[pgmock] initialize', opts); return Promise.resolve() }
+  };
+  // Test hook so the MCP driver can fire portal signals.
+  window.__pgmock = {
+    emit: function (n, p) { (listeners[n] || []).forEach(function (cb) { cb(p) }) },
+    // Simulate Playgama's guided-testing tools flipping the portal language
+    // WITHOUT reloading the frame — the case the 2s poll exists for.
+    setLanguage: function (code) { platform.language = code },
+    cloudKeys: function () {
+      return Object.keys(window.localStorage).filter(function (k) { return k.indexOf(CLOUD) === 0 })
+    },
+    wipeLocalOnly: function () {
+      Object.keys(window.localStorage).forEach(function (k) {
+        if (k.indexOf(CLOUD) !== 0) window.localStorage.removeItem(k)
+      })
+    }
+  };
+  Object.defineProperty(window, 'bridge', { value: bridge, writable: false, configurable: true });
+  Object.defineProperty(window, 'playgamaBridge', { value: bridge, writable: false, configurable: true });
+  console.info('[pgmock] installed (delay=' + DELAY + 'ms, failFirstGet=' + FAIL_FIRST + ')');
+})();
+</script>`
+        return html.replace('<script type="module" src="/src/main.ts">', mock + '\n<script type="module" src="/src/main.ts">')
+      }
+    })
+
+    // Serve the SAME config from the dev server under `--mode playgama` so
+    // `pnpm dev-playgama` exercises the real config path (and the browser
+    // hydration QA in the playbook's Phase 7 isn't testing a different
+    // configuration than the one that ships). Dev-only + mode-gated, so it
+    // never leaks into another platform's dist/ the way a `public/` file would.
+    plugins.push({
+      name: 'serve-playgama-bridge-config',
+      apply: 'serve' as const,
+      configureServer(server: any) {
+        server.middlewares.use((req: any, res: any, next: any) => {
+          if (!req.url?.startsWith('/playgama-bridge-config.json')) return next()
+          res.setHeader('Content-Type', 'application/json')
+          res.end(playgamaBridgeConfig)
         })
       }
     })
@@ -624,6 +852,18 @@ export default defineConfig(({ mode, command }) => {
         }),
         ...(env.VITE_APP_GAME_MONETIZE === 'true' ? {} : {
           '@/use/ads/GameMonetizeProvider': fileURLToPath(new URL('./src/use/ads/GameMonetizeProvider.stub.ts', import.meta.url))
+        }),
+        ...(env.VITE_APP_POKI === 'true' ? {} : {
+          '@/use/ads/PokiProvider': fileURLToPath(new URL('./src/use/ads/PokiProvider.stub.ts', import.meta.url)),
+          // pokiPlugin is STATICALLY imported by `usePokiGameplay.ts` (installed
+          // from App.vue on every build) and by `PokiProvider`, so it lands in
+          // every build's module graph. The real module hardcodes the PokiSDK
+          // URL, and the env-literal `if` at each call site is NOT enough to
+          // keep it out: the obfuscator's stringArray pass hoists string
+          // literals into its indirection table BEFORE esbuild folds
+          // `import.meta.env.VITE_APP_POKI === 'true'` to `false`, so the URL
+          // survives DCE. Same failure — and same fix — as gamepixPlugin above.
+          '@/utils/pokiPlugin': fileURLToPath(new URL('./src/utils/pokiPlugin.stub.ts', import.meta.url))
         }),
         '@': fileURLToPath(new URL('./src', import.meta.url)),
         '@/': fileURLToPath(new URL('./src/', import.meta.url)),

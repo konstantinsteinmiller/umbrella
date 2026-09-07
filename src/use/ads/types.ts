@@ -83,6 +83,21 @@ export interface AdProvider {
    * before the ad closes MUST keep the up-front kill, so this stays opt-in.
    */
   readonly managesMidgameAudio?: boolean
+  /**
+   * Opt-in: grant a reward WITHOUT showing any ad. Returns `true` when it
+   * consumed such a grant, in which case `useAds.showRewardedAd()` resolves
+   * `true` immediately and never touches the SDK.
+   *
+   * Consulted BEFORE the audio kill and the `isAdShowing` flip, deliberately:
+   * a reward with no video must not run the ad-audio ceremony, or the player
+   * hears the music hard-stop and restart for an ad that never played.
+   *
+   * Today only the Poki PLAYTEST build sets it — `VITE_APP_POKI_FREE_REWARDS`
+   * hands out the first N rewards free so a 10-recording playtest, which is
+   * graded on average playtime and nothing else, isn't spent watching ads. The
+   * production Poki build folds the counter to 0 and this always returns false.
+   */
+  readonly tryInstantGrant?: () => boolean
   init: () => Promise<void>
   showRewardedAd: () => Promise<boolean>
   /**

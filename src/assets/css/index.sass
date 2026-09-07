@@ -21,6 +21,43 @@ html, body
   height: 100%
   width: 100%
 
+// ─── Script-aware typography corrections ──────────────────────────────────
+//
+// `text-transform: uppercase`, `font-style: italic` and negative
+// `letter-spacing` are Latin idioms used in ~51 places across the UI. They
+// are meaningless or actively destructive in other scripts, and Playgama QA
+// flagged the result as "content did not display correctly in Arabic":
+//
+//   • Arabic is a CURSIVE JOINED script. Positive or negative letter-spacing
+//     breaks the glyph joins, turning connected words into disconnected
+//     letterforms. Synthesised italic shears them further.
+//   • CJK is ideographic: fake-italic and tight tracking shear and collide
+//     Han glyphs, and uppercase is a no-op that only compounds the damage.
+//
+// Keyed off the `script-*` class `applyLocaleDirection()` puts on <html>, so
+// the corrections are one rule instead of 51 conditional call sites, and the
+// Latin locales are bit-for-bit unchanged.
+//
+// `!important` is required: the offending declarations come from Tailwind
+// utility classes (`uppercase`, `italic`, `tracking-*`) in the templates.
+html.script-arabic, html.script-cjk
+  *
+    font-style: normal !important
+    text-transform: none !important
+
+html.script-arabic *
+  letter-spacing: normal !important
+
+// Arabic words are typically longer than their English equivalents and, being
+// joined, cannot be hyphenated. Let labels shrink and wrap instead of
+// overflowing their button/badge bounds (QA cause 3: "text overflows UI
+// bounds"). `truncate` (overflow:hidden + nowrap + ellipsis) stays intact
+// where it's applied deliberately.
+html.script-arabic
+  button, .label, h1, h2, h3
+    word-break: normal
+    overflow-wrap: anywhere
+
 
 // 3. The Responsive Map Scaler
 .map-viewport

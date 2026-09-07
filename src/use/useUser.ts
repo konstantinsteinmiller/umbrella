@@ -4,6 +4,7 @@ import { mobileCheck } from '@/utils/function'
 import { DIFFICULTY, type Difficulties } from '@/utils/enums'
 import { isDbInitialized, isSplashScreenVisible } from '@/use/useMatch'
 import { saveDataVersion } from '@/use/useSaveStatus'
+import { LANGUAGE_EXPLICIT_KEY } from '@/i18n'
 import { getState, setState, hasState } from '@/use/useEpicState'
 
 export const windowWidth = ref(window.innerWidth)
@@ -16,6 +17,26 @@ export const isMobileLandscape = computed(() =>
 )
 export const isMobilePortrait = computed(() =>
   mobileCheck() && windowWidth.value < windowHeight.value
+)
+
+// ─── Android system navigation bar ───────────────────────────────────────────
+//
+// On Android the page viewport can extend UNDERNEATH the system navigation bar
+// (back / home / recents). Edge-to-edge WebViews do it by default — Android 15
+// enforces it — and so do the portal apps that embed the game. In portrait that
+// puts the bottom-anchored spawn row behind those buttons, where taps go to the
+// system instead of the game: the run becomes unplayable, not just cramped.
+//
+// There is nothing to measure — those hosts report `env(safe-area-inset-bottom)`
+// as 0, which is exactly why the row ends up there — so we reserve a fixed
+// strip instead. 40px on top of the layout's existing 8px of bottom padding
+// clears Android's 48dp three-button bar. Consumers apply it as a FLOOR
+// (`max(env(...), Npx)`), so a host that DOES report a real inset never
+// double-counts it.
+const isAndroid = /Android/i.test(navigator.userAgent)
+export const ANDROID_NAV_BAR_PX = 40
+export const androidNavBarPx = computed(() =>
+  isAndroid && windowWidth.value < windowHeight.value ? ANDROID_NAV_BAR_PX : 0
 )
 
 // A short viewport (≤ 500px tall) where the full-size desktop result/reward
@@ -95,6 +116,7 @@ export const isPlaygama = import.meta.env.VITE_APP_PLAYGAMA === 'true'
 export const isGamepix = import.meta.env.VITE_APP_GAMEPIX === 'true'
 export const isGameMonetize = import.meta.env.VITE_APP_GAME_MONETIZE === 'true'
 export const isYandex = import.meta.env.VITE_APP_YANDEX === 'true'
+export const isPoki = import.meta.env.VITE_APP_POKI === 'true'
 export const showMediatorAds = import.meta.env.VITE_APP_SHOW_MEDIATOR_ADS === 'true'
 export const isNative = import.meta.env.VITE_APP_NATIVE === 'true'
 export const isWeb = import.meta.env.VITE_APP_NATIVE !== 'true'
@@ -105,7 +127,7 @@ export const isDemo = import.meta.env.VITE_APP_DEMO === 'true'
 // placements can never fill.
 export const isBasicLaunch =
   !isCrazyWeb && !isWaveDash && !isItch && !isGlitch && !isGameDistribution &&
-  !isPlaygama && !isGamepix && !isGameMonetize && !isYandex
+  !isPlaygama && !isGamepix && !isGameMonetize && !isYandex && !isPoki
 
 // Rewarded BUFFS/REWARDS are BOUGHT WITH COINS instead of a rewarded ad on the
 // basic launch (no ad SDK) and on any CrazyGames build that is NOT flagged as a
@@ -139,6 +161,9 @@ export const version: string = APP_VERSION
 export const SOUND_KEY = 'spinner_user_sound_volume'
 export const MUSIC_KEY = 'spinner_user_music_volume'
 export const LANGUAGE_KEY = 'spinner_user_language'
+// Provenance flag for LANGUAGE_KEY — see `i18n/index.ts` for why it exists.
+// Imported rather than redeclared so there is exactly one definition.
+
 export const DIFFICULTY_KEY = 'spinner_user_difficulty'
 // Which background-music track plays during a run. 'battle' (Battle Theme,
 // battle-theme.ogg) is the default; 'cozy' maps to bg-cozy.ogg (Cozy Harmony).
@@ -287,6 +312,12 @@ const useUser = () => {
       case 'language':
         userLanguage.value = value as string
         setState(LANGUAGE_KEY, userLanguage.value)
+        // Stamp provenance. Reaching this case means a human picked a language
+        // in the Options modal — the ONLY thing that counts as an explicit
+        // choice. Portal locales are never routed through here any more (see
+        // `main.ts`), and legacy cloud rows written by the old portal-seeding
+        // code carry no flag, so they cannot outrank the portal.
+        setState(LANGUAGE_EXPLICIT_KEY, true)
         break
       case 'difficulty':
         userDifficulty.value = value as Difficulties

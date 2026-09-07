@@ -21,6 +21,7 @@ export interface PlatformFlags {
   isGamepix: boolean
   isGameMonetize: boolean
   isYandex: boolean
+  isPoki: boolean
 }
 
 export type GlitchLicenseStatus = 'pending' | 'ok' | 'denied'
@@ -65,6 +66,14 @@ export interface ResolvedCapabilities {
    *  explicitly forbid URL-based gating ("no technical ways of restricting
    *  gameplay based on the URL"). Flag-only, like Playgama / GameMonetize. */
   allowedToShowOnYandex: boolean
+  /** Always true on Poki builds. The bundle has to run in the Poki Inspector
+   *  (inspector.poki.dev) and in P4D Preview as well as on `*.poki-gdn.com`,
+   *  so a hostname gate would fail QA before it ever reached a player. There
+   *  is also nothing to match on — deliberately NO `isPokiUrl()` helper, since
+   *  a hostname string in the shared bundle is pure liability (Yandex's
+   *  moderator flags foreign hostnames here). Flag-only, like Playgama /
+   *  GameMonetize / Yandex. */
+  allowedToShowOnPoki: boolean
   /** True when Glitch was selected but their license API rejected the player. */
   isGlitchDenied: boolean
   /** True when the build targets a platform AND the license check has settled.
@@ -135,7 +144,7 @@ export const resolveCapabilities = (input: CapabilitiesInput): ResolvedCapabilit
   const parentOrigin = input.parentOrigin ?? ''
 
   const isNotPlatformBuild =
-    !flags.isCrazyWeb && !flags.isWaveDash && !flags.isItch && !flags.isGlitch && !flags.isGameDistribution && !flags.isPlaygama && !flags.isGamepix && !flags.isGameMonetize && !flags.isYandex
+    !flags.isCrazyWeb && !flags.isWaveDash && !flags.isItch && !flags.isGlitch && !flags.isGameDistribution && !flags.isPlaygama && !flags.isGamepix && !flags.isGameMonetize && !flags.isYandex && !flags.isPoki
 
   // Each `allowedToShowOnX` gate is wrapped in an `import.meta.env.VITE_APP_X`
   // env-literal `if`-block (NOT a ternary — empirically esbuild folds
@@ -191,8 +200,13 @@ export const resolveCapabilities = (input: CapabilitiesInput): ResolvedCapabilit
   // forbid runtime URL gating. Flag only, like Playgama / GameMonetize.
   const allowedToShowOnYandex = flags.isYandex || isNotPlatformBuild
 
+  // Poki: NO hostname check — the build has to run in the Inspector
+  // (inspector.poki.dev) and in P4D Preview, not only on the production
+  // *.poki-gdn.com origin. Flag-only, like Playgama / GameMonetize / Yandex.
+  const allowedToShowOnPoki = flags.isPoki || isNotPlatformBuild
+
   const anyPlatform =
-    flags.isCrazyWeb || flags.isWaveDash || flags.isItch || flags.isGlitch || flags.isGameDistribution || flags.isPlaygama || flags.isGamepix || flags.isGameMonetize || flags.isYandex
+    flags.isCrazyWeb || flags.isWaveDash || flags.isItch || flags.isGlitch || flags.isGameDistribution || flags.isPlaygama || flags.isGamepix || flags.isGameMonetize || flags.isYandex || flags.isPoki
   const showOnlyAvailableText = anyPlatform && glitchLicenseStatus !== 'pending'
 
   // `plattformText` moved to App.vue (env-literal ladder) so per-platform
@@ -210,6 +224,7 @@ export const resolveCapabilities = (input: CapabilitiesInput): ResolvedCapabilit
     allowedToShowOnGamepix,
     allowedToShowOnGameMonetize,
     allowedToShowOnYandex,
+    allowedToShowOnPoki,
     isGlitchDenied,
     showOnlyAvailableText
   }

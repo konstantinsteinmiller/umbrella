@@ -157,7 +157,14 @@ export default {
       'bounty': 'Beute',
       'automation': 'Kobold',
       'recruit': 'Rekruten',
-      'maxed': 'MAX'
+      'maxed': 'MAX',
+      'desc': {
+        'attack': 'Erhöht den Angriffsschaden deiner gesamten Armee.',
+        'vitality': 'Erhöht die maximale Lebenskraft jedes Kämpfers.',
+        'bounty': 'Bringt mehr Münzen für jeden besiegten Gegner.',
+        'automation': 'Verschmilzt Einheiten automatisch für dich, mit jeder Stufe schneller.',
+        'recruit': 'Neue Einheiten erscheinen in einer höheren Stufe.'
+      }
     },
     'nextChest': 'Nächste: 🎁 Welle {n}',
     'newEnemyAt': 'Neuer Gegner ab Welle {n}!',

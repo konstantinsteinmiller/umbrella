@@ -157,7 +157,14 @@ export default {
       'bounty': 'Oʻlja',
       'automation': 'Jin',
       'recruit': 'Yollanmalar',
-      'maxed': 'MAKS'
+      'maxed': 'MAKS',
+      'desc': {
+        'attack': 'Butun qoʻshiningizning hujum zararini oshiradi.',
+        'vitality': 'Har bir jangchining maksimal sogʻligʻini oshiradi.',
+        'bounty': 'Har bir magʻlub etilgan dushmandan koʻproq tanga oling.',
+        'automation': 'Boʻlinmalarni siz uchun avtomatik birlashtiradi, har bosqichda tezroq.',
+        'recruit': 'Yangi boʻlinmalar yuqoriroq darajada paydo boʻladi.'
+      }
     },
     'nextChest': 'Keyingi: 🎁 {n}-toʻlqin',
     'newEnemyAt': '{n}-toʻlqinda yangi dushman!',

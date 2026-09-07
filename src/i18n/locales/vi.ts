@@ -157,7 +157,14 @@ export default {
       'bounty': 'Tiền Thưởng',
       'automation': 'Tiểu Quỷ',
       'recruit': 'Tân Binh',
-      'maxed': 'TỐI ĐA'
+      'maxed': 'TỐI ĐA',
+      'desc': {
+        'attack': 'Tăng sát thương tấn công của toàn quân.',
+        'vitality': 'Tăng máu tối đa của mọi chiến binh.',
+        'bounty': 'Nhận nhiều xu hơn từ mỗi kẻ địch bị hạ.',
+        'automation': 'Tự động ghép đơn vị giúp bạn, nhanh hơn mỗi cấp.',
+        'recruit': 'Đơn vị mới xuất hiện ở bậc cao hơn.'
+      }
     },
     'nextChest': 'Tiếp: 🎁 đợt {n}',
     'newEnemyAt': 'Kẻ địch mới ở đợt {n}!',

@@ -193,6 +193,36 @@ const signalGameReadyToYandex = () => {
   })
 }
 
+// Poki's `gameLoadingFinished()` is the ONE strictly-required SDK call — every
+// byte transferred before it counts toward the load-size metric P4D reports.
+// Same splash-resolved edge as CG's `loadingStop` / Playgama's `game_ready` /
+// GamePix's `gameLoaded` / Yandex's `LoadingAPI.ready()`; the plugin guards it
+// internally so a re-trigger is harmless.
+//
+// `notifyPokiGameLive()` rides along on the same edge: this game boots straight
+// into a live arena, so "the splash is gone" IS "the simulation is running".
+// That opens the gameplay bracket — which the plugin then HOLDS until the
+// player's first trusted gesture, so nothing is reported for a player who has
+// not touched anything yet. See `usePokiGameplay.ts`.
+//
+// Same `import.meta.env` literal pattern as the branches above so non-Poki
+// builds DCE the dynamic import entirely (this component is in the obfuscator's
+// exclude list, which is what keeps the `'@/…'` specifier resolvable).
+let pokiLoadSignaled = false
+const signalGameReadyToPoki = () => {
+  if (pokiLoadSignaled) return
+  if (import.meta.env.VITE_APP_POKI !== 'true') return
+  pokiLoadSignaled = true
+  void import('@/utils/pokiPlugin').then(({ pokiGameLoadingFinished }) => {
+    try { pokiGameLoadingFinished() }
+    catch (e) { console.warn('[FLogoProgress] Poki gameLoadingFinished failed', e) }
+  })
+  void import('@/use/usePokiGameplay').then(({ notifyPokiGameLive }) => {
+    try { notifyPokiGameLive() }
+    catch (e) { console.warn('[FLogoProgress] Poki game-live signal failed', e) }
+  })
+}
+
 watch(done, (isDone) => {
   if (isDone) {
     setTimeout(() => {
@@ -201,6 +231,7 @@ watch(done, (isDone) => {
       signalGameReadyToPlaygama()
       signalGameReadyToGamepix()
       signalGameReadyToYandex()
+      signalGameReadyToPoki()
       // Triggers the GamePix first-load interstitial (no-op on other builds
       // — the orchestrator was never armed). GD / GameMonetize used to share
       // this fire but were removed above. Runs alongside the platform

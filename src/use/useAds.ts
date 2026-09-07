@@ -19,7 +19,7 @@
 // GameDistribution because the SDK script is dynamically injected and we
 // don't want to pay that latency on the boot critical path.
 import { computed, ref } from 'vue'
-import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isNative, showMediatorAds } from '@/use/useUser'
+import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isNative, showMediatorAds } from '@/use/useUser'
 import type { AdProvider } from './ads/types'
 import { resolveAdProvider } from '@/platforms/resolveAdProvider'
 import { isRewardedThrottled, recordRewardedGranted } from '@/use/useRewardedThrottle'
@@ -30,7 +30,7 @@ import { isDebug } from '@/use/useMatch'
 import { forceStopMusic, resumeMusicAfterAd } from '@/use/useSound'
 
 const provider: AdProvider = resolveAdProvider({
-  flags: { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex },
+  flags: { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki },
   showMediatorAds,
   isNative
 })
@@ -120,6 +120,17 @@ export const showRewardedAd = async (): Promise<boolean> => {
   // already hidden via `isRewardedReady`, so this branch only fires
   // if a placement somehow bypassed that check.
   if (isRewardedThrottled.value) return false
+  // Ad-free grant (Poki playtest builds only — `VITE_APP_POKI_FREE_REWARDS`).
+  // Consulted BEFORE the audio kill on purpose: no video plays, so nothing may
+  // stop the music, kill the SFX or raise the pause gate. Still recorded
+  // against the rewarded throttle — a free grant is still a reward redeemed,
+  // and the cap is what stops reward farming. Providers that don't opt in
+  // leave `tryInstantGrant` undefined and this is a dead branch.
+  if (provider.tryInstantGrant?.()) {
+    recordRewardedGranted()
+    dlog(`${TAG} ✔ rewarded GRANTED with no ad (provider=${provider.name})`)
+    return true
+  }
   // Flip `isAdShowing` BEFORE the await. It OR's into `isGamePaused`,
   // which the audio orchestrator (`useGamePauseAudio`) watches with
   // `flush: 'sync'` — so the renderer pause AND the audio suspend both

@@ -27,7 +27,8 @@ const ALL_PLATFORM_ENVS = [
   'VITE_APP_GAME_DISTRIBUTION',
   'VITE_APP_GAME_MONETIZE',
   'VITE_APP_YANDEX',
-  'VITE_APP_GLITCH'
+  'VITE_APP_GLITCH',
+  'VITE_APP_POKI'
 ] as const
 
 const clearEnv = () => {
@@ -90,6 +91,19 @@ describe('resolveSaveStrategy', () => {
     const resolveSaveStrategy = await loadResolver()
     const strategy = await resolveSaveStrategy({ ...allOff, isYandex: true } as any)
     expect(strategy.name).toBe('yandex')
+  })
+
+  it('returns PokiStrategy (local-only) when isPoki env is set', async () => {
+    vi.stubEnv('VITE_APP_POKI', 'true')
+    const resolveSaveStrategy = await loadResolver()
+    const strategy = await resolveSaveStrategy({ ...allOff, isPoki: true } as any)
+    // Poki has NO cloud-save API — its wrapper mirrors the iframe's whole
+    // localStorage + IndexedDB itself. Its own class rather than
+    // LocalStorageStrategy so `SaveManager.strategyName` reports `poki` during
+    // Poki QA, and `hydrateState` is `success-with-data` because there is no
+    // remote that could be in a failed state.
+    expect(strategy.name).toBe('poki')
+    expect(strategy.hydrateState).toBe('success-with-data')
   })
 
   it('returns GlitchStrategy or LocalStorageStrategy fallback when isGlitch env is set', async () => {

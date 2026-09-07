@@ -111,7 +111,14 @@ export default {
       'bounty': 'Hadiah',
       'automation': 'Jin Kecil',
       'recruit': 'Rekrutan',
-      'maxed': 'MAKS'
+      'maxed': 'MAKS',
+      'desc': {
+        'attack': 'Meningkatkan damage serangan seluruh pasukanmu.',
+        'vitality': 'Meningkatkan darah maksimum setiap prajurit.',
+        'bounty': 'Dapatkan lebih banyak koin dari setiap musuh yang dikalahkan.',
+        'automation': 'Menggabungkan unit untukmu secara otomatis, makin cepat tiap level.',
+        'recruit': 'Unit baru muncul di tingkat yang lebih tinggi.'
+      }
     },
     'nextChest': 'Berikutnya: 🎁 gelombang {n}',
     'newEnemyAt': 'Musuh baru di gelombang {n}!',

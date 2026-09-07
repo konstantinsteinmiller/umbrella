@@ -157,7 +157,14 @@ export default {
       'bounty': 'Łup',
       'automation': 'Chochlik',
       'recruit': 'Rekruci',
-      'maxed': 'MAKS'
+      'maxed': 'MAKS',
+      'desc': {
+        'attack': 'Zwiększa obrażenia ataku całej twojej armii.',
+        'vitality': 'Zwiększa maksymalne zdrowie każdego wojownika.',
+        'bounty': 'Zdobywaj więcej monet za każdego pokonanego wroga.',
+        'automation': 'Automatycznie łączy za ciebie jednostki, szybciej z każdym poziomem.',
+        'recruit': 'Nowe jednostki pojawiają się na wyższym poziomie.'
+      }
     },
     'nextChest': 'Następna: 🎁 fala {n}',
     'newEnemyAt': 'Nowy wróg od fali {n}!',

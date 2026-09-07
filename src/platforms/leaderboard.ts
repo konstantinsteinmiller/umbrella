@@ -11,7 +11,10 @@
  *   • GamePix  — sdk.updateScore(bestWave) — the toolkit's score metric.
  *                (The plugin's legacy gamesPlayed watcher only writes once at
  *                boot in this game; best-wave submissions supersede it.)
- *   • everything else — silent no-op (CrazyGames' web SDK has no leaderboard).
+ *   • everything else — silent no-op (CrazyGames' web SDK has no leaderboard;
+ *                       Poki's `getLeaderboard()` is `() => Promise.resolve([])`
+ *                       in the shipped v2 core and `sendHighscore()` a no-op, so
+ *                       there is deliberately no Poki arm here either).
  *
  * Only NEW personal bests are submitted (portals treat scores as max anyway;
  * this just avoids spamming the SDKs on every wave clear).

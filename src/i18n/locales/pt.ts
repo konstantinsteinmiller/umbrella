@@ -157,7 +157,14 @@ export default {
       'bounty': 'Prêmio',
       'automation': 'Diabrete',
       'recruit': 'Recrutas',
-      'maxed': 'MÁX'
+      'maxed': 'MÁX',
+      'desc': {
+        'attack': 'Aumenta o dano de ataque de todo o seu exército.',
+        'vitality': 'Aumenta a vida máxima de cada lutador.',
+        'bounty': 'Ganhe mais moedas por cada inimigo derrotado.',
+        'automation': 'Funde unidades por você automaticamente, mais rápido a cada nível.',
+        'recruit': 'Novas unidades surgem em um nível superior.'
+      }
     },
     'nextChest': 'Próximo: 🎁 onda {n}',
     'newEnemyAt': 'Novo inimigo na onda {n}!',

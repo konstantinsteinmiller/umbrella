@@ -89,7 +89,14 @@ export default {
       'bounty': 'Bounty',
       'automation': 'Imp',
       'recruit': 'Recruits',
-      'maxed': 'MAX'
+      'maxed': 'MAX',
+      'desc': {
+        'attack': 'Raises the attack damage of your whole army.',
+        'vitality': 'Raises the maximum health of every fighter.',
+        'bounty': 'Earn more coins from every enemy you kill.',
+        'automation': 'Merges units for you automatically, faster each level.',
+        'recruit': 'New units spawn at a higher tier.'
+      }
     }
   },
   'cancel': 'Cancel',

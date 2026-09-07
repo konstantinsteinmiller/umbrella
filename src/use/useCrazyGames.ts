@@ -85,6 +85,23 @@ let sdk: any = null
 let initialized = false
 let gameplayActive = false
 
+// ─── Gameplay-event suppression while an ad request is in flight ───────────
+//
+// CG QA: "There's no need to call gameplay events while ads are playing."
+// The SDK brackets the ad itself — it stops and restarts gameplay around the
+// video internally — so anything WE emit between `requestAd()` and its final
+// callback is redundant at best and contradictory at worst (an ad is usually
+// fired from a modal, and the modal gate / wave-break hooks keep firing while
+// the overlay is up).
+//
+// `adInFlight` therefore silences BOTH wrappers for the whole request. The
+// calls aren't dropped though — the last one wins into `pendingGameplay` and is
+// applied once the request settles, so a modal that opened (or closed) behind
+// the ad still leaves CG with a truthful state afterwards. `null` = nothing
+// asked for a change while the ad was up.
+let adInFlight = false
+let pendingGameplay: boolean | null = null
+
 const getSdk = (): any => (typeof window !== 'undefined' ? window.CrazyGames?.SDK ?? null : null)
 
 const isActiveEnv = (s: any): boolean => {
@@ -268,8 +285,14 @@ export const stopLoading = (): void => {
 /**
  * Notify CrazyGames that interactive gameplay is starting. Idempotent.
  * Call when the player enters the arena / begins a match.
+ *
+ * Deferred (not dropped) while an ad request is in flight — see `adInFlight`.
  */
 export const startGameplay = (): void => {
+  if (adInFlight) {
+    pendingGameplay = true
+    return
+  }
   if (!sdk || gameplayActive) return
   try {
     sdk.game?.gameplayStart?.()
@@ -281,9 +304,15 @@ export const startGameplay = (): void => {
 
 /**
  * Notify CrazyGames that gameplay has ended. Idempotent.
- * Call when leaving the arena, opening a blocking menu, or mid-ad.
+ * Call when leaving the arena or opening a blocking menu — NOT around ads,
+ * where the SDK does its own bracketing and the call is deferred until the
+ * request settles (see `adInFlight`).
  */
 export const stopGameplay = (): void => {
+  if (adInFlight) {
+    pendingGameplay = false
+    return
+  }
   if (!sdk || !gameplayActive) return
   try {
     sdk.game?.gameplayStop?.()
@@ -454,9 +483,9 @@ const isBenignAdError = (err: any): boolean => {
 const AD_REQUEST_TIMEOUT_MS = 12_000
 
 /**
- * Shared plumbing for both CG ad formats: gameplay stop/resume bookkeeping,
- * the request watchdog, and a one-shot settle so no SDK can resolve twice
- * (CG has been observed firing `adFinished` after an `adError`).
+ * Shared plumbing for both CG ad formats: the gameplay-event mute, the request
+ * watchdog, and a one-shot settle so no SDK can resolve twice (CG has been
+ * observed firing `adFinished` after an `adError`).
  *
  * `settle` is invoked with the outcome exactly once; the caller maps that to
  * its own resolve value.
@@ -465,16 +494,20 @@ const runAdRequest = (
   format: 'rewarded' | 'midgame',
   onSettled: (completed: boolean) => void
 ): void => {
-  // CrazyGames recommends pausing gameplay while an ad plays so that
-  // sounds + timers don't run behind the video. Only resume gameplay if it
-  // was active BEFORE the ad — ads fire from menus too (AdRewardButton,
-  // DailyRewards, BattlePass, the result screen), and calling gameplayStart()
-  // afterwards would falsely tell CG the player is in a match while they're
-  // on a menu.
-  let wasGameplayActive = false
+  // No gameplay events for the duration of the request — the SDK brackets the
+  // ad itself (CG QA: "There's no need to call gameplay events while ads are
+  // playing"). Everything the rest of the app asks for in the meantime lands in
+  // `pendingGameplay` and is replayed by `settle`, so a menu that opened or
+  // closed behind the overlay still ends up reported correctly.
+  //
+  // The sim is frozen for this whole span anyway (`useAds` holds `isAdShowing`
+  // → `isGamePaused`), so nothing in the run can change state underneath it.
   let started = false
   let done = false
   let watchdog: ReturnType<typeof setTimeout> | null = null
+
+  adInFlight = true
+  pendingGameplay = null
 
   const clearWatchdog = (): void => {
     if (watchdog !== null) {
@@ -487,7 +520,13 @@ const runAdRequest = (
     if (done) return
     done = true
     clearWatchdog()
-    if (wasGameplayActive) startGameplay()
+    adInFlight = false
+    // Replay the last state the game asked for while we were muted. Nothing
+    // asked → leave CG exactly as the SDK left it after its own bracketing.
+    const desired = pendingGameplay
+    pendingGameplay = null
+    if (desired === true) startGameplay()
+    else if (desired === false) stopGameplay()
     onSettled(completed)
   }
 
@@ -505,8 +544,6 @@ const runAdRequest = (
       adStarted: () => {
         started = true
         clearWatchdog()
-        wasGameplayActive = gameplayActive
-        stopGameplay()
       },
       adFinished: () => settle(true),
       adError: (err: unknown) => {

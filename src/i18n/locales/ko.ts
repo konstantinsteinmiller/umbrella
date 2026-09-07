@@ -157,7 +157,14 @@ export default {
       'bounty': '현상금',
       'automation': '임프',
       'recruit': '신병',
-      'maxed': '최대'
+      'maxed': '최대',
+      'desc': {
+        'attack': '전군의 공격력을 높입니다.',
+        'vitality': '모든 전사의 최대 체력을 높입니다.',
+        'bounty': '적을 처치할 때마다 더 많은 코인을 얻습니다.',
+        'automation': '유닛을 자동으로 합쳐 주며, 레벨마다 빨라집니다.',
+        'recruit': '새 유닛이 더 높은 등급으로 등장합니다.'
+      }
     },
     'nextChest': '다음: 🎁 웨이브 {n}',
     'newEnemyAt': '웨이브 {n}에 새로운 적 등장!',

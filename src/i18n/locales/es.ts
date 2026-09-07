@@ -157,7 +157,14 @@ export default {
       'bounty': 'Botín',
       'automation': 'Diablillo',
       'recruit': 'Reclutas',
-      'maxed': 'MÁX'
+      'maxed': 'MÁX',
+      'desc': {
+        'attack': 'Aumenta el daño de ataque de todo tu ejército.',
+        'vitality': 'Aumenta la salud máxima de cada luchador.',
+        'bounty': 'Gana más monedas por cada enemigo que derrotes.',
+        'automation': 'Fusiona unidades por ti automáticamente, más rápido con cada nivel.',
+        'recruit': 'Las nuevas unidades aparecen en un nivel superior.'
+      }
     },
     'nextChest': 'Siguiente: 🎁 oleada {n}',
     'newEnemyAt': '¡Nuevo enemigo en la oleada {n}!',

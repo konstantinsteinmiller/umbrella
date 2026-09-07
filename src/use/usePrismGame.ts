@@ -24,7 +24,7 @@ import { getState, setState, prismState } from '@/use/useEpicState'
 import useEpicConfig from '@/use/useEpicConfig'
 import { GRID_KEY, PRISM_MAX_TIER_KEY, PRISM_INSTANT_SPAWN_KEY } from '@/keys'
 import { MAX_INGREDIENT_TIER } from '@/game/ingredients'
-import { deployFighter, impCadenceMs, armyFull, bumpStat, recruitTier } from '@/use/useBattle'
+import { impCadenceMs, bumpStat, recruitTier } from '@/use/useBattle'
 import { notifyTutorial, isTutorialOneTap } from '@/use/useTutorial'
 import { isGamePaused } from '@/use/useGamePause'
 
@@ -243,30 +243,23 @@ const findMergePair = (): [number, number] | null => {
   return best
 }
 
-/** One imp step: merge the best pair, else march the highest-tier unit into
- *  the arena. Returns a hint of what it did so the view can mirror VFX/SFX. */
+/** One imp step: merge the best pair on the board. Returns a hint of what it
+ *  did so the view can mirror VFX/SFX (`null` ⇒ no pair, imp idles).
+ *
+ *  The imp MERGES ONLY — it deliberately never deploys. It used to march the
+ *  highest-tier unit into the arena whenever the army had room, which fought
+ *  the player for control of the board: anyone saving up to merge toward a
+ *  bigger unit had their best tile shipped off to the front before they could
+ *  pair it. Deploying is the player's call now; the imp just does the tedious
+ *  half of the loop. */
 export type AutoAction =
   | { type: 'merge'; from: number; to: number; tier: number }
-  | { type: 'deploy'; idx: number; tier: number }
   | null
 const autoStep = (): AutoAction => {
   const pair = findMergePair()
   if (pair) {
     const tier = merge(pair[0], pair[1])
     if (tier) return { type: 'merge', from: pair[0], to: pair[1], tier }
-  }
-  // Army has room → send the highest-tier unit to the front.
-  if (!armyFull.value) {
-    let pick = -1, pickTier = 0
-    for (let i = 0; i < grid.value.length; i++) {
-      const gt = grid.value[i] ?? 0
-      if (gt > pickTier) { pickTier = gt; pick = i }
-    }
-    if (pick >= 0 && pickTier > 0 && deployFighter(pickTier)) {
-      setSlot(pick, 0)
-      persistGrid()
-      return { type: 'deploy', idx: pick, tier: pickTier }
-    }
   }
   return null
 }

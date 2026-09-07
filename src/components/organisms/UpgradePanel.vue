@@ -7,12 +7,13 @@
  * chip flashes and plays a confirm SFX. Fully responsive — chips wrap and
  * shrink on narrow viewports.
  */
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBattle, { type BattleUpgradeId, BATTLE_UPGRADE_DEFS } from '@/use/useBattle'
 import useSounds from '@/use/useSound'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import { isCompactHud, isUltraCompactHud, isRoomyHud, isWideCompactHud } from '@/use/useUser'
+import { isAnyModalOpen } from '@/use/useModalState'
 
 const { t } = useI18n()
 const battle = useBattle()
@@ -111,6 +112,151 @@ const coinIconClass = computed(() => isCompactHud.value
   ? (isWideCompactHud.value ? 'w-3 h-3' : 'w-2 h-2')
   : roomy.value ? 'w-4 h-4' : 'w-2.5 h-2.5 sm:w-3 sm:h-3')
 
+// ─── Hover tooltip ───────────────────────────────────────────────────────────
+// CG QA: "The texts/titles of the upgrade cards are truncated. Please show the
+// full text when players hover over it." Five chips split a `max-w-md` panel, so
+// `truncate` clips the longer names in most languages and drops them entirely on
+// the ultra-compact HUD — the tooltip is the readable copy of both the name and
+// what the upgrade actually does.
+//
+// Teleported to `body` and `position: fixed`: the chip lives inside the scene's
+// `overflow-hidden` column, so an in-flow tooltip would be clipped by the very
+// container that causes the truncation. Positioned imperatively (above the chip,
+// flipped below when there's no room, clamped to the viewport on both axes)
+// rather than with a CSS-only anchor, because the outermost chips would
+// otherwise hang off the screen edge.
+const tipId = ref<BattleUpgradeId | null>(null)
+const tipEl = ref<HTMLElement | null>(null)
+/** Null until measured — the tooltip renders invisible for that one frame so it
+ *  never flashes at the top-left corner before it lands on its chip. */
+const tipPos = ref<{ left: number; top: number } | null>(null)
+
+const TIP_GAP = 8
+const TIP_MARGIN = 6
+
+// ─── Why the close is a hit-test, not a `pointerleave` ───────────────────────
+// Boundary events alone cannot decide this. With a battle running the panel is
+// never still: chip contents re-render (cost, pips, tier ribbon), the chip
+// widths follow the cost strings, and the top bar gains/loses its second line —
+// so the chips slide under a stationary cursor. Chrome faithfully reports that
+// as pointerout/pointerleave, and hiding on it blinked the tooltip out (often
+// before it was ever painted) even though the mouse had not moved a pixel.
+//
+// So `pointerout` only ARMS a close. When it fires we look at where the pointer
+// actually is: still inside a chip → keep the tooltip (re-anchored to whichever
+// chip is under it now), otherwise close. `elementFromPoint` skips the tooltip
+// itself, which is `pointer-events: none`.
+const HIDE_GRACE_MS = 120
+let hideTimer: ReturnType<typeof setTimeout> | null = null
+/** Last position the pointer reported to us — every boundary event carries it. */
+let lastX = 0
+let lastY = 0
+
+const cancelHide = (): void => {
+  if (hideTimer !== null) {
+    clearTimeout(hideTimer)
+    hideTimer = null
+  }
+}
+
+/**
+ * Show (or re-anchor) the tooltip for `id` against `anchor`.
+ * `force` re-measures an already-open tooltip — used when the chip moved under
+ * the cursor; without it the tooltip would drift away from its chip.
+ */
+const showTipFor = async (
+  id: BattleUpgradeId,
+  anchor: HTMLElement,
+  force = false
+): Promise<void> => {
+  cancelHide()
+  const sameChip = tipId.value === id
+  if (sameChip && !force) return
+  tipId.value = id
+  // Only blank the position when the tooltip is (re)opening — a forced
+  // re-measure of a visible tooltip must not flash it to `opacity: 0` first.
+  if (!sameChip) tipPos.value = null
+  await nextTick()
+  const tip = tipEl.value
+  // Bail if the pointer already moved on to another chip while we waited.
+  if (!tip || tipId.value !== id) return
+  const a = anchor.getBoundingClientRect()
+  const w = tip.offsetWidth
+  const h = tip.offsetHeight
+  const left = Math.max(
+    TIP_MARGIN,
+    Math.min(a.left + a.width / 2 - w / 2, window.innerWidth - w - TIP_MARGIN)
+  )
+  const above = a.top - h - TIP_GAP
+  const top = above >= TIP_MARGIN
+    ? above
+    : Math.max(TIP_MARGIN, Math.min(a.bottom + TIP_GAP, window.innerHeight - h - TIP_MARGIN))
+  tipPos.value = { left, top }
+}
+
+const hideTip = (): void => {
+  cancelHide()
+  tipId.value = null
+  tipPos.value = null
+}
+
+/** The chip (if any) the pointer is really over right now. */
+const chipUnderPointer = (): HTMLElement | null => {
+  const el = document.elementFromPoint(lastX, lastY)
+  return (el instanceof Element ? el.closest('.chip') : null) as HTMLElement | null
+}
+
+/** Armed by `pointerout`: close only if the pointer has genuinely left the row. */
+const settleHide = (): void => {
+  hideTimer = null
+  const chip = chipUnderPointer()
+  const id = chip?.dataset.upgradeId as BattleUpgradeId | undefined
+  if (!chip || !id) {
+    hideTip()
+    return
+  }
+  void showTipFor(id, chip, true)
+}
+
+const scheduleHide = (ev: PointerEvent): void => {
+  lastX = ev.clientX
+  lastY = ev.clientY
+  cancelHide()
+  hideTimer = setTimeout(settleHide, HIDE_GRACE_MS)
+}
+
+// A resize (or an orientation flip) moves the chip out from under a tooltip that
+// was measured against the old layout — drop it rather than leave it stranded.
+onMounted(() => { window.addEventListener('resize', hideTip) })
+onUnmounted(() => {
+  window.removeEventListener('resize', hideTip)
+  cancelHide()
+})
+
+// Same for a modal opening under the cursor (wave cleared, daily reward, …): the
+// tooltip outranks the HUD by design, and it must not outrank a modal.
+watch(isAnyModalOpen, (open) => { if (open) hideTip() })
+
+// Mouse only. On touch the same chip is a buy button — `pointerover` fires on
+// tap there, which would park a tooltip over the panel after every purchase.
+const onChipOver = (id: BattleUpgradeId, ev: PointerEvent): void => {
+  if (ev.pointerType !== 'mouse') return
+  lastX = ev.clientX
+  lastY = ev.clientY
+  const anchor = ev.currentTarget as HTMLElement | null
+  if (anchor) void showTipFor(id, anchor)
+}
+
+// Keyboard focus gets the same affordance (and `blur` covers the tab-away).
+const onChipFocus = (id: BattleUpgradeId, ev: FocusEvent): void => {
+  const anchor = ev.currentTarget as HTMLElement | null
+  if (anchor) void showTipFor(id, anchor)
+}
+
+/** Full, never-truncated label for screen readers — the visible span is clipped. */
+const chipLabel = (id: BattleUpgradeId): string =>
+  `${t('battle.upgrades.' + id)}. ${t('battle.upgrades.desc.' + id)}`
+
 const chips = computed(() => ids.map((id) => ({
   id,
   level: battle.upgradeLevel(id),
@@ -141,7 +287,13 @@ const chips = computed(() => ids.map((id) => ({
       ]"
       :style="{ '--accent': c.accent }"
       :disabled="!c.can"
+      :aria-label="chipLabel(c.id)"
+      :data-upgrade-id="c.id"
       @click="buy(c.id)"
+      @pointerover="onChipOver(c.id, $event)"
+      @pointerout="scheduleHide($event)"
+      @focus="onChipFocus(c.id, $event)"
+      @blur="hideTip"
     )
       div.flex.items-center.w-full.justify-center.min-w-0(:class="headerStackClass")
         //- Themed mini gauge
@@ -197,6 +349,22 @@ const chips = computed(() => ids.map((id) => ({
           ) {{ fmt(c.cost) }}
       //- Tier ribbon (every 5 levels)
       span.tier-ribbon(v-if="tier(c.level) > 0" :style="{ background: c.accent }") {{ tier(c.level) }}
+    //- Hover/focus tooltip with the un-truncated name + what the upgrade does.
+    //- Teleported out of the scene's clipping column; `opacity` rides the
+    //- measured position so it never paints before it has one.
+    Teleport(to="body")
+      div.upgrade-tip.fixed(
+        v-if="tipId"
+        ref="tipEl"
+        role="tooltip"
+        :style="{\
+          left: (tipPos ? tipPos.left : 0) + 'px',\
+          top: (tipPos ? tipPos.top : 0) + 'px',\
+          opacity: tipPos ? 1 : 0\
+        }"
+      )
+        div.tip-name.font-black.uppercase.leading-tight {{ t('battle.upgrades.' + tipId) }}
+        div.tip-desc.leading-snug {{ t('battle.upgrades.desc.' + tipId) }}
 </template>
 
 <style scoped lang="sass">
@@ -234,6 +402,35 @@ const chips = computed(() => ids.map((id) => ({
     font-size: 16px
     border-width: 1px
     padding: 0 2px
+
+// Tooltip. Teleported to <body>, so it sits outside every game stacking
+// context. It has to clear the HUD top bar (`z-[55]`) — in the side-by-side
+// layout the upgrade row is high enough that the tooltip opens right over the
+// wave and coin badges, and at a lower z-index the coin badge cut the
+// description in half. Nothing can be stacked *under* by this: the chips are
+// only hoverable when no modal is up, and `hideTip` also fires the moment one
+// opens. `pointer-events: none` keeps the tooltip from stealing the hover that
+// spawned it, which would flicker it on and off over the chip.
+.upgrade-tip
+  z-index: 60
+  pointer-events: none
+  max-width: min(15rem, calc(100vw - 1.5rem))
+  padding: 0.35rem 0.55rem
+  border-radius: 0.55rem
+  border: 2px solid rgba(255, 255, 255, 0.16)
+  background: linear-gradient(180deg, #1a2440 0%, #0c122a 100%)
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.9)
+  transition: opacity 0.12s ease
+
+.tip-name
+  color: #fff
+  font-size: 13px
+  text-shadow: 1px 1px 0 #000
+
+.tip-desc
+  color: #cdd8f0
+  font-size: 11px
+  margin-top: 0.12rem
 
 .tier-ribbon
   position: absolute

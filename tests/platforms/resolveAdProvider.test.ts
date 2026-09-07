@@ -17,7 +17,7 @@ const allOff: PlatformFlags = {
   isGameMonetize: false
 }
 
-const ALL_ENVS = ['VITE_APP_CRAZY_WEB', 'VITE_APP_GAME_DISTRIBUTION', 'VITE_APP_GAME_MONETIZE', 'VITE_APP_YANDEX', 'VITE_APP_NATIVE'] as const
+const ALL_ENVS = ['VITE_APP_CRAZY_WEB', 'VITE_APP_GAME_DISTRIBUTION', 'VITE_APP_GAME_MONETIZE', 'VITE_APP_YANDEX', 'VITE_APP_POKI', 'VITE_APP_NATIVE'] as const
 
 const clearEnv = () => {
   for (const k of ALL_ENVS) vi.stubEnv(k, '')
@@ -85,6 +85,26 @@ describe('resolveAdProvider', () => {
       isNative: false
     })
     expect(provider.name).toBe('yandex')
+  })
+
+  it('returns Poki when VITE_APP_POKI env is set', async () => {
+    vi.stubEnv('VITE_APP_POKI', 'true')
+    const resolveAdProvider = await loadResolver()
+    const provider = resolveAdProvider({
+      flags: { ...allOff, isPoki: true } as any,
+      showMediatorAds: false,
+      isNative: false
+    })
+    expect(provider.name).toBe('poki')
+    // `commercialBreak(onStart)` only fires `onStart` when a video genuinely
+    // opens, so the mute has to be deferred to that edge — otherwise a no-fill
+    // cuts the result-screen stinger for an ad the player never saw.
+    expect(provider.managesMidgameAudio).toBe(true)
+    // `PokiSDK.isAdBlocked()` is hardcoded `() => false` in the shipped v2 core,
+    // so the shared AdsBlockedModal can never fire here, and there is no
+    // platform popup for it to stack with either.
+    expect(provider.isAdsBlocked.value).toBe(false)
+    expect(provider.ownsAdBlockUi).toBeUndefined()
   })
 
   it('returns Noop when showMediatorAds is true but isNative is false (web build)', async () => {

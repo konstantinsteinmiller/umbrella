@@ -70,6 +70,22 @@ const rehydrate = (): void => {
 watch(saveDataVersion, rehydrate)
 watch(prismState, rehydrate, { deep: false })
 export const tutorialActive = computed(() => tutorialStep.value !== 'done')
+
+/** True while the coach-marks must HOLD the battle simulation frozen.
+ *
+ *  The tutorial walks a first-timer through spawn → merge → deploy at their own
+ *  reading pace, but the battle clock used to keep running underneath it: wave 1
+ *  spawned, walked past an empty guard line and could overrun the gate before
+ *  the player had ever placed a fighter — i.e. you could LOSE the run inside the
+ *  tutorial. So every step up to and including 'deploy' holds the sim.
+ *
+ *  The hold drops the instant the first fighter lands in the arena ('fieldMerge'
+ *  onwards): the player now has a defender, and the field-merge step needs a
+ *  live fighter to merge onto anyway — teaching it against a real wave is the
+ *  point. `useTutorialPauseGate` bridges this to the universal pause gate. */
+export const tutorialHoldsBattle = computed(
+  () => STEP_ORDER.indexOf(tutorialStep.value) < STEP_ORDER.indexOf('fieldMerge'))
+
 /** 1-based index of the current step for the "1/4" progress label. */
 export const tutorialStepIndex = computed(() =>
   Math.min(TUTORIAL_STEP_COUNT, STEP_ORDER.indexOf(tutorialStep.value) + 1))

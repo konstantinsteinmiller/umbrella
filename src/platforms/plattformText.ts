@@ -30,5 +30,6 @@ export const getPlattformText = (): string => {
   if (import.meta.env.VITE_APP_PLAYGAMA === 'true') return 'playgama.com'
   if (import.meta.env.VITE_APP_GAMEPIX === 'true') return 'gamepix.com'
   if (import.meta.env.VITE_APP_GAME_MONETIZE === 'true') return 'gamemonetize.com'
+  if (import.meta.env.VITE_APP_POKI === 'true') return 'poki.com'
   return ''
 }

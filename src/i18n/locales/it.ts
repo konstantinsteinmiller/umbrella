@@ -157,7 +157,14 @@ export default {
       'bounty': 'Bottino',
       'automation': 'Diavoletto',
       'recruit': 'Reclute',
-      'maxed': 'MAX'
+      'maxed': 'MAX',
+      'desc': {
+        'attack': 'Aumenta i danni d\'attacco di tutto il tuo esercito.',
+        'vitality': 'Aumenta la salute massima di ogni combattente.',
+        'bounty': 'Guadagna più monete per ogni nemico sconfitto.',
+        'automation': 'Unisce le unità al posto tuo, più veloce a ogni livello.',
+        'recruit': 'Le nuove unità compaiono a un livello superiore.'
+      }
     },
     'nextChest': 'Prossimo: 🎁 ondata {n}',
     'newEnemyAt': "Nuovo nemico all'ondata {n}!",
