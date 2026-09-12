@@ -157,6 +157,31 @@ const signalGameReadyToPlaygama = () => {
   })
 }
 
+// Feed the Bridge's own loading logo. v2 moved this off the deleted
+// `bridge.game` module onto `bridge.setGameLoadingProgress(percent)`, and the
+// Bridge renders that overlay BY DEFAULT on every platform except Yandex/Y8
+// (`disableLoadingLogo` in the config would suppress it). We deliberately keep
+// it — it is Playgama's own branding on their own portal, and suppressing a
+// portal's loading UI is the kind of deviation a reviewer notices — but an
+// overlay stuck at 0% while our splash loads underneath is worse than no
+// overlay, so it gets the real number.
+//
+// Rounded + deduped: `progress` ticks on every asset, and each report walks
+// the Bridge's DOM overlay.
+let playgamaProgressPromise: Promise<typeof import('@/utils/playgamaPlugin')> | null = null
+let lastReportedProgress = -1
+if (import.meta.env.VITE_APP_PLAYGAMA === 'true') {
+  watch(progress, (val) => {
+    const pct = Math.max(0, Math.min(100, Math.round(val)))
+    if (pct === lastReportedProgress) return
+    lastReportedProgress = pct
+    if (!playgamaProgressPromise) playgamaProgressPromise = import('@/utils/playgamaPlugin')
+    void playgamaProgressPromise
+      .then(({ playgamaSetLoadingProgress }) => playgamaSetLoadingProgress(pct))
+      .catch(() => undefined)
+  }, { immediate: true })
+}
+
 // GamePix's `gameLoaded` is the analogous certification-critical edge —
 // the toolkit's pause/resume self-test requires a complete
 // `customLoading → gameLoading(0..100) → gameLoaded` chain or
@@ -199,11 +224,11 @@ const signalGameReadyToYandex = () => {
 // GamePix's `gameLoaded` / Yandex's `LoadingAPI.ready()`; the plugin guards it
 // internally so a re-trigger is harmless.
 //
-// `notifyPokiGameLive()` rides along on the same edge: this game boots straight
+// `notifyPortalGameLive()` rides along on the same edge: this game boots straight
 // into a live arena, so "the splash is gone" IS "the simulation is running".
 // That opens the gameplay bracket — which the plugin then HOLDS until the
 // player's first trusted gesture, so nothing is reported for a player who has
-// not touched anything yet. See `usePokiGameplay.ts`.
+// not touched anything yet. See `usePortalGameplay.ts`.
 //
 // Same `import.meta.env` literal pattern as the branches above so non-Poki
 // builds DCE the dynamic import entirely (this component is in the obfuscator's
@@ -217,8 +242,8 @@ const signalGameReadyToPoki = () => {
     try { pokiGameLoadingFinished() }
     catch (e) { console.warn('[FLogoProgress] Poki gameLoadingFinished failed', e) }
   })
-  void import('@/use/usePokiGameplay').then(({ notifyPokiGameLive }) => {
-    try { notifyPokiGameLive() }
+  void import('@/use/usePortalGameplay').then(({ notifyPortalGameLive }) => {
+    try { notifyPortalGameLive() }
     catch (e) { console.warn('[FLogoProgress] Poki game-live signal failed', e) }
   })
 }

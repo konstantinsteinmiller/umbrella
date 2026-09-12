@@ -28,6 +28,9 @@ export const BATTLE_BEST_WAVE_KEY = 'battle_best_wave'
 export const BATTLE_ARMY_KEY = 'battle_army'
 // Meteor Storm ultimate charge (0..100).
 export const BATTLE_ULT_KEY = 'battle_ult'
+// Sticky: the first-ever boss has spawned and the Meteor Storm was coached for
+// it (charge filled + button highlighted). Later bosses never repeat it.
+export const BATTLE_FIRST_BOSS_COACHED_KEY = 'battle_first_boss_coached'
 // First-session FTUE progress: index into the coach-mark step order
 // (retention-roadmap #1). Values ≥ 4 ⇔ tutorial finished/skipped.
 export const PRISM_TUTORIAL_KEY = 'prism_tutorial_step'
@@ -54,6 +57,18 @@ export const BATTLE_REVIVE_UNLOCKED_KEY = 'battle_revive_unlocked'
 export const BATTLE_REVIVE_CHARGE_KEY = 'battle_revive_charge'
 export const BATTLE_DEFENDER_UNLOCKED_KEY = 'battle_defender_unlocked'
 export const BATTLE_DEFENDER_CHARGE_KEY = 'battle_defender_charge'
+// Arena skills, slots 5–8 (Warcry of the Legion, Legion Call, and — desktop
+// only — Executioner's Mark and Soul Pact). The first three charge per kill like
+// the spells above; Soul Pact runs on a play-time cooldown, persisted as the
+// milliseconds LEFT so a closed tab cannot run it down.
+export const BATTLE_WARCRY_UNLOCKED_KEY = 'battle_warcry_unlocked'
+export const BATTLE_WARCRY_CHARGE_KEY = 'battle_warcry_charge'
+export const BATTLE_LEGION_UNLOCKED_KEY = 'battle_legion_unlocked'
+export const BATTLE_LEGION_CHARGE_KEY = 'battle_legion_charge'
+export const BATTLE_MARK_UNLOCKED_KEY = 'battle_mark_unlocked'
+export const BATTLE_MARK_CHARGE_KEY = 'battle_mark_charge'
+export const BATTLE_PACT_UNLOCKED_KEY = 'battle_pact_unlocked'
+export const BATTLE_PACT_COOLDOWN_KEY = 'battle_pact_cooldown_left'
 // How many times each spell has been cast (per spell id) — the explanation toast
 // only shows for the first few casts, after which the player knows the effect.
 export const BATTLE_SPELL_CASTS_KEY = 'battle_spell_casts'
@@ -65,6 +80,25 @@ export const BATTLE_MUTATION_CEILING_KEY = 'battle_mutation_ceiling'
 // "welcome back" grant (retention-roadmap #3). Touched on pagehide/tab-hide
 // plus a slow heartbeat while playing.
 export const BATTLE_LAST_SEEN_KEY = 'battle_last_seen'
+// ─── Global leaderboard (the Cloudflare board, see `useLeaderboard.ts`) ──────
+// The player's stable leaderboard id. Also mirrored to a standalone
+// localStorage key OUTSIDE the state blob (`merge-idle-war_uid`) — see
+// `usePlayerIdentity`: a cloud hydrate carrying an older blob must never be able
+// to erase it, because a lost id is a duplicate row that cannot be repaired.
+export const PLAYER_ID_KEY = 'lb_player_id'
+// Tier 1 name: chosen by the player. Highest precedence, never overwritten.
+export const PLAYER_NAME_KEY = 'lb_player_name'
+// Tier 2: the last name a platform SDK gave us (CrazyGames username),
+// REMEMBERED so an offline session does not flip the row back to a generated one.
+export const SDK_NAME_KEY = 'lb_sdk_name'
+// Tier 3: the generated name (`Warlord483105`), minted once and kept.
+export const ANON_NAME_KEY = 'lb_anon_name'
+// The name the row currently carries on the server. A mismatch is what triggers
+// the one relabel POST.
+export const POSTED_NAME_KEY = 'lb_posted_name'
+// The best wave the server has ACCEPTED. The whole write rule is `best > this`,
+// so it may only be set after a confirmed 200.
+export const SUBMITTED_SCORE_KEY = 'lb_submitted_score'
 // (Retired alchemy fields — `prism_upgrades`, `prism_index`, `prism_onboarded`,
 // `prism_page_rewards`, `prism_discount` — may still sit orphaned inside old
 // players' blobs; they are simply ignored.)

@@ -20,6 +20,7 @@
  */
 import { ref, watch } from 'vue'
 import { getState, setState, flushPersist } from '@/use/useEpicState'
+import { onGameSuspended, USES_PAGE_VISIBILITY } from '@/use/useGamePause'
 import { saveDataVersion } from '@/use/useSaveStatus'
 import { BATTLE_LAST_SEEN_KEY, BATTLE_WAVE_KEY } from '@/keys'
 import { battleUpgrades } from '@/use/useBattle'
@@ -75,12 +76,14 @@ watch(saveDataVersion, () => {
   touch()
 })
 
+const checkpoint = (): void => { touch(); flushPersist() }
+// Same rule as `useEpicState`: the suspend edge comes from `useGamePause`, so
+// the checkpoint still lands on the Playgama build (where the Page Visibility
+// API — and `pagehide` with it — is forbidden, because that archive is also
+// the YouTube Playables submission). See `USES_PAGE_VISIBILITY`.
+onGameSuspended(checkpoint)
 if (typeof window !== 'undefined') {
-  const checkpoint = (): void => { touch(); flushPersist() }
-  window.addEventListener('pagehide', checkpoint)
-  window.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') checkpoint()
-  })
+  if (USES_PAGE_VISIBILITY) window.addEventListener('pagehide', checkpoint)
   // Heartbeat: rides the debounced blob write — negligible cost.
   window.setInterval(touch, 30_000)
 }

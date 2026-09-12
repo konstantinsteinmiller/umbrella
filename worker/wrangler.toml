@@ -1,0 +1,15 @@
+name = "merge-idle-war-leaderboard"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "merge-idle-war-leaderboard"
+# The id `wrangler d1 create merge-idle-war-leaderboard` printed (2026-09-11).
+database_id = "9fbbce39-3226-492e-a931-82d3e9822e87"
+
+[vars]
+# Empty = allow any origin. Every portal build serves the game from a different
+# origin and a sandboxed iframe sends `null`, so an allowlist is opt-in.
+ALLOWED_ORIGINS = ""
+# SCORE_SECRET is deliberately NOT here — `wrangler secret put SCORE_SECRET`.

@@ -73,7 +73,18 @@ watch(hasBonusToShow, (on) => {
 </script>
 
 <template lang="pug">
-  div.fixed.left-2.right-2.z-40.pointer-events-none(class="bottom-2 sm:left-auto sm:right-4 sm:max-w-sm")
+  //- Hung just under the top bar, over the ARENA — never at the bottom edge. The
+  //- bottom of the screen is the spawn row and the merge grid, the two things a
+  //- player is touching all session, and a 50-60px banner there covered the
+  //- Spawn button and the grid's last row (and, from `sm` up, the landscape
+  //- controls column). From `sm` up it sits top-left, capped to the width the
+  //- arena always has in the side-by-side layout (the controls column never
+  //- takes more than 56 %): at a flat `max-w-sm` it reached across a 667px-wide
+  //- landscape phone's 319px arena into the upgrade chips and the grid's corner.
+  div.fixed.left-2.right-2.z-40.pointer-events-none(
+    class="sm:right-auto sm:left-4 sm:max-w-[min(24rem,calc(44vw_-_1.5rem))]"
+    :style="{ top: 'calc(4rem + env(safe-area-inset-top, 0px))' }"
+  )
     //- Bonus banner — green / celebratory
     div.pointer-events-auto.rounded-lg.shadow-lg.text-white.text-sm.flex.items-center.gap-3.cursor-pointer(
       v-if="showBonus"

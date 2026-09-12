@@ -132,10 +132,11 @@ export default {
     'body': 'Seu exército continuou lutando enquanto você esteve fora:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Restaura 25% da vida de todas as unidades.", 'reviveGuard': "Por 30 s, cada unidade que cai revive na hora com vida cheia.", 'defender': "Transforma sua melhor unidade corpo a corpo num tanque por 2 min: 2× de vida, 80% menos dano.", 'meteor': "Faz chover meteoros no campo, atingindo todos os inimigos." },
+    'spellDesc': { 'heal': "Restaura 25% da vida de todas as unidades.", 'reviveGuard': "Por 30 s, cada unidade que cai revive na hora com vida cheia.", 'defender': "Transforma sua melhor unidade corpo a corpo num tanque por 2 min: 2× de vida, 80% menos dano.", 'meteor': "Faz chover meteoros no campo, atingindo todos os inimigos.", 'warcry': "Por 8 s, seu exército causa +60% de dano e ataca 30% mais rápido.", 'legionCall': "Invoca por 20 s 3 guerreiros espectrais um nível abaixo da sua melhor unidade. Carrega rápido quando suas unidades caem.", 'executionerMark': "Marca o inimigo mais resistente por 10 s: ele sofre +75% de dano e é executado abaixo de 12% de vida.", 'soulPact': "Sua unidade mais forte ganha um gêmeo — a próxima mais forte é sacrificada por ele. Recarrega em 3 minutos." },
     'mutationWave': "MUTAÇÃO!",
     'overrunSetbackHint': "Estas ondas são fortes demais — reforce seu exército em ondas mais fáceis primeiro.",
-    'spells': { 'heal': "Cura", 'reviveGuard': "Guarda de Ressurreição", 'defender': "Defensor" },
+    'spells': { 'heal': "Cura", 'reviveGuard': "Guarda de Ressurreição", 'defender': "Defensor", 'warcry': "Grito de Guerra da Legião", 'legionCall': "Chamado da Legião", 'executionerMark': "Marca do Carrasco", 'soulPact': "Pacto das Almas" },
+    'pactNeedsSacrifice': "O Pacto das Almas precisa de uma unidade de nível inferior em campo para sacrificar.",
     'bossNames': { 'b0': "Glorp o Devorador", 'b1': "Rei Punho de Lodo", 'b2': "Mawzilla", 'b3': "O Come-Portões", 'b4': "Grumblor Prime" },
     'wave': 'Onda {n}',
     'best': 'Recorde {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Códice de unidades',
-      'names': { 't1': 'Faísca de Magma', 't2': 'Redemoinho Gélido', 't3': 'Bruto de Rocha', 't4': 'Guardião Glacial', 't5': 'Gota da Maré', 't6': 'Colosso de Pedra', 't7': 'Olho de Nebulosa', 't8': 'Espectro do Vazio', 't9': 'Garra Dourada', 't10': 'Soberano Fênix', 't11': 'Senhor da Guerra de Obsidiana', 't12': "Titã Infernal", 't13': "Ceifador Umbral", 't14': "Leviatã de Magma", 't15': "Ascendente Cósmico", 't16': "Soberano da Tempestade", 't17': "Guardião Abissal", 't18': "Beemote Fundido", 't19': "Devorador Astral", 't20': "Divindade Eterna" },
+      'names': { 't1': 'Faísca de Magma', 't2': 'Redemoinho Gélido', 't3': 'Bruto de Rocha', 't4': 'Guardião Glacial', 't5': 'Gota da Maré', 't6': 'Colosso de Pedra', 't7': 'Olho de Nebulosa', 't8': 'Espectro do Vazio', 't9': 'Garra Dourada', 't10': 'Soberano Fênix', 't11': 'Senhor da Guerra de Obsidiana', 't12': "Titã Infernal", 't13': "Ceifador Umbral", 't14': "Leviatã de Magma", 't15': "Ascendente Cósmico", 't16': "Soberano da Tempestade", 't17': "Guardião Abissal", 't18': "Beemote Fundido", 't19': "Devorador Astral", 't20': "Divindade Eterna", 't21': "Sentinela de Aço", 't22': "Trapaceiro de Mercúrio", 't23': "Tirano Magnético", 't24': "Guardião de Âmbar", 't25': "Djinn das Dunas", 't26': "Frasco Cáustico", 't27': "Coração de Espinhos", 't28': "Monarca de Coral", 't29': "Sábio Cogumelo-Luz", 't30': "Fúria da Tempestade", 't31': "Oráculo de Jade", 't32': "Monólito Rúnico", 't33': "Motor Crono", 't34': "Espírito Origami", 't35': "Duende Bolha", 't36': "Cubo Glitch", 't37': "Sino do Eco", 't38': "Lanterna Espiritual", 't39': "Espectro Espelho", 't40': "Coração de Rubi", 't41': "Fogo-Fátuo Gélido", 't42': "Diamante Supremo", 't43': "Dínamo de Plasma", 't44': "Arauto Cometa", 't45': "Serafim Aurora", 't46': "Imperador Solar", 't47': "Estrela dos Desejos", 't48': "Farol Pulsar", 't49': "Matéria Escura", 't50': "Singularidade Suprema" },
       'locked': 'Funda duas de nível {n} para descobrir!',
+      'effects': { 'none': "Golpes rápidos — velozes e implacáveis.", 'burn': "Os golpes deixam dano que continua a agir.", 'knockback': "Golpes pesados empurram os inimigos para trás.", 'heal': "Cada golpe cura seu aliado mais fraco.", 'splash': "Cada golpe explode em todos os inimigos próximos.", 'poison': "Os golpes acumulam dano ao longo do tempo.", 'chain': "Os ataques saltam para mais três inimigos.", 'frost': "Desacelera ao acertar; um pulso atordoa grupos próximos.", 'midas': "Alta chance de crítico e ouro bônus a cada golpe.", 'eruption': "Explode no impacto e queima todos os inimigos próximos." },
       'abilities': {
         'none': 'Uma faísca incandescente: rápido, destemido e sempre na frente.',
         'burn': 'O gelo cortante permanece: os inimigos continuam sofrendo dano após o golpe.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Acesso negado: adquira uma licença.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'de {n}',
+    'aria': 'Classificação: posição {rank} de {n}',
+    'ariaRank': 'Classificação: posição {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'NOVA UNIDADE!',
+    'tier': 'Nível {n}'
   }
 }

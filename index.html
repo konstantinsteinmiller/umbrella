@@ -4,6 +4,27 @@
   <meta charset="UTF-8">
   <meta name="color-scheme" content="dark only">
   <link rel="icon" href="/favicon.ico">
+  <!--
+    YouTube Playables SDK. Kept ONLY on the Playgama build — that archive is
+    also the Playables submission — and stripped from every other build by
+    vite.config.ts. Load-bearing there: the Playgama Bridge's `youtube`
+    adapter waits for `window.ytgame` with a 100ms poll that has NO timeout,
+    so without this tag `bridge.initialize()` never settles and the game
+    "does not start". YouTube requires it before any game code, hence the
+    position.
+  -->
+  <script src="https://www.youtube.com/game_api/v1"></script>
+  <!--
+    Web Storage shim. MUST stay the first of OUR scripts and MUST stay a
+    classic (non-module) tag: module scripts are deferred, so a shim installed
+    from inside the module graph runs AFTER the entry chunk's static imports
+    have already evaluated — and several of those read `localStorage` at
+    module scope (`useMatch.ts`). On YouTube Playables `window.localStorage`
+    is **null**, not absent, so those reads throw before `bootstrap()` gets a
+    chance to defend itself. Ships on every build: sandboxed iframes and
+    blocked-storage embeds fail identically.
+  -->
+  <script src="/js/storage-shim.js"></script>
   <!-- CSP meta tag injected by vite.config.ts at build time -->
   <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -54,8 +75,11 @@
 </div>
 <!-- Load the SDK before your game code -->
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
-<!-- Load the SDK before your game code -->
-<script src="https://bridge.playgama.com/v1/stable/playgama-bridge.js"></script>
+<!-- No Playgama Bridge tag: v2 is bundled from the @playgama/bridge npm
+     package (see src/utils/playgamaBridgeLoader.ts). The CDN build fetches
+     adapter chunks at runtime and posts to api.playgama.com, neither of which
+     YouTube Playables permits — and the Playgama archive IS the Playables
+     submission. -->
 <!-- Load the SDK before your game code -->
 <script src="https://integration.gamepix.com/sdk/v3/gamepix.sdk.js"></script>
 <!-- Poki SDK - stripped for non-Poki builds by vite.config.ts -->

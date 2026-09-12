@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Unit Codex (retention-roadmap #12): all illustrated merge tiers (1-15) with
- * stats and ability copy. Tiers above the player's discovery watermark
+ * Unit Codex (retention-roadmap #12): every illustrated merge tier (1 to
+ * `CODEX_MAX_TIER`, 50) with stats and ability copy. Tiers above the player's discovery watermark
  * (`maxTier`) render as dark silhouettes with a "Merge 2× Tier N to discover!"
  * tease — the cheapest "one more merge" driver in the game.
  */
@@ -13,6 +13,8 @@ import IconAttack from '@/components/icons/IconAttack.vue'
 import IconHp from '@/components/icons/IconHp.vue'
 import usePrismGame from '@/use/usePrismGame'
 import { getFighterDef, CODEX_MAX_TIER } from '@/game/units'
+import { formatBig } from '@/utils/bigNumber'
+import { ELEMENTAL_FIRST_TIER } from '@/game/ingredients'
 
 defineProps<{ modelValue: boolean }>()
 defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
@@ -20,8 +22,8 @@ defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 const { t } = useI18n()
 const game = usePrismGame()
 
-// Tiers 1-11 are authored in FIGHTER_DEFS; 12-15 extrapolate their stats via
-// getFighterDef but carry authored art + localized names — so drive the whole
+// Tiers 1-11 are authored in FIGHTER_DEFS; 12-50 extrapolate their stats via
+// getFighterDef but carry their own look + localized names — so drive the whole
 // bestiary off getFighterDef by tier.
 const entries = computed(() => Array.from({ length: CODEX_MAX_TIER }, (_, i) => {
   const def = getFighterDef(i + 1)
@@ -30,7 +32,11 @@ const entries = computed(() => Array.from({ length: CODEX_MAX_TIER }, (_, i) => 
     name: t(`battle.codex.names.t${def.tier}`),
     atk: def.atk,
     hp: def.hp,
-    ability: t(`battle.codex.abilities.${def.ability}`),
+    // `abilities` copy is themed to the tiers 1-20 it was written for ("biting
+    // frost", "crashing waves"); the elementals get the plain mechanic instead.
+    ability: def.tier >= ELEMENTAL_FIRST_TIER
+      ? t(`battle.codex.effects.${def.ability}`)
+      : t(`battle.codex.abilities.${def.ability}`),
     discovered: def.tier <= game.maxTier.value
   }
 }))
@@ -56,10 +62,10 @@ const entries = computed(() => Array.from({ length: CODEX_MAX_TIER }, (_, i) => 
             div.flex.items-center.gap-2(class="text-[10px] sm:text-xs")
               span.flex.items-center.text-orange-300.font-black.game-text(class="gap-0.5")
                 IconAttack(class="w-3 h-3")
-                | {{ e.atk }}
+                | {{ formatBig(e.atk, { sig: 3, trim: true }) }}
               span.flex.items-center.text-emerald-300.font-black.game-text(class="gap-0.5")
                 IconHp(class="w-3 h-3")
-                | {{ e.hp }}
+                | {{ formatBig(e.hp, { sig: 3, trim: true }) }}
             span.text-white.game-text.opacity-75.leading-tight(class="text-[9px] sm:text-[11px]") {{ e.ability }}
           template(v-else)
             span.game-text.font-black.text-white.opacity-60(class="text-xs sm:text-sm") ???

@@ -132,10 +132,11 @@ export default {
     'body': 'Je leger vocht door terwijl je weg was:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Herstelt 25% van de gezondheid van alle eenheden.", 'reviveGuard': "30 sec. lang herrijst elke gevallen eenheid direct met volle gezondheid.", 'defender': "Maakt je beste melee-eenheid 2 min. een tank: 2× gezondheid, 80% minder schade.", 'meteor': "Laat meteoren op het veld regenen en raakt alle vijanden." },
+    'spellDesc': { 'heal': "Herstelt 25% van de gezondheid van alle eenheden.", 'reviveGuard': "30 sec. lang herrijst elke gevallen eenheid direct met volle gezondheid.", 'defender': "Maakt je beste melee-eenheid 2 min. een tank: 2× gezondheid, 80% minder schade.", 'meteor': "Laat meteoren op het veld regenen en raakt alle vijanden.", 'warcry': "8 sec. lang doet je leger +60% schade en valt het 30% sneller aan.", 'legionCall': "Roept 20 sec. lang 3 spookkrijgers op, één tier onder je beste eenheid. Laadt snel op als je eenheden vallen.", 'executionerMark': "Markeert 10 sec. lang de taaiste vijand: die krijgt +75% schade en wordt onder 12% gezondheid geëxecuteerd.", 'soulPact': "Je sterkste eenheid krijgt een tweeling — de op één na sterkste wordt ervoor geofferd. Laadt op in 3 minuten." },
     'mutationWave': "MUTATIE!",
     'overrunSetbackHint': "Deze golven zijn te sterk — bouw je leger eerst op in makkelijkere golven.",
-    'spells': { 'heal': "Genezing", 'reviveGuard': "Herrijzingswacht", 'defender': "Verdediger" },
+    'spells': { 'heal': "Genezing", 'reviveGuard': "Herrijzingswacht", 'defender': "Verdediger", 'warcry': "Strijdkreet van het Legioen", 'legionCall': "Roep van het Legioen", 'executionerMark': "Merkteken van de Beul", 'soulPact': "Zielenpact" },
+    'pactNeedsSacrifice': "Het Zielenpact heeft een eenheid van een lagere tier op het veld nodig om te offeren.",
     'bossNames': { 'b0': "Glorp de Verslinder", 'b1': "Koning Slijkvuist", 'b2': "Mawzilla", 'b3': "De Poortvreter", 'b4': "Grumblor Prime" },
     'wave': 'Golf {n}',
     'best': 'Record {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Eenhedencodex',
-      'names': { 't1': 'Magmavonk', 't2': 'Vorstwerveling', 't3': 'Rotsbruut', 't4': 'Gletsjerwachter', 't5': 'Vloeddruppel', 't6': 'Rotskolos', 't7': 'Neveloog', 't8': 'Leegteschim', 't9': 'Gouden Klauw', 't10': 'Feniksvorst', 't11': 'Obsidiaan-Krijgsheer', 't12': "Inferno-Titaan", 't13': "Schaduwmaaier", 't14': "Magma-Leviathan", 't15': "Kosmische Verhevene", 't16': "Stormvorst", 't17': "Afgrondwachter", 't18': "Gesmolten Behemoth", 't19': "Astrale Verslinder", 't20': "Eeuwige Godheid" },
+      'names': { 't1': 'Magmavonk', 't2': 'Vorstwerveling', 't3': 'Rotsbruut', 't4': 'Gletsjerwachter', 't5': 'Vloeddruppel', 't6': 'Rotskolos', 't7': 'Neveloog', 't8': 'Leegteschim', 't9': 'Gouden Klauw', 't10': 'Feniksvorst', 't11': 'Obsidiaan-Krijgsheer', 't12': "Inferno-Titaan", 't13': "Schaduwmaaier", 't14': "Magma-Leviathan", 't15': "Kosmische Verhevene", 't16': "Stormvorst", 't17': "Afgrondwachter", 't18': "Gesmolten Behemoth", 't19': "Astrale Verslinder", 't20': "Eeuwige Godheid", 't21': "Stalen Schildwacht", 't22': "Kwikzilveren Schelm", 't23': "Magneettiran", 't24': "Barnsteenhoeder", 't25': "Duinendjinn", 't26': "Bijtende Fles", 't27': "Doornhart", 't28': "Koraalvorst", 't29': "Lichtzwam-Wijze", 't30': "Stormwolkfurie", 't31': "Jade-Orakel", 't32': "Runenmonoliet", 't33': "Chronomachine", 't34': "Origamigeest", 't35': "Zeepbelkobold", 't36': "Glitchkubus", 't37': "Echoklok", 't38': "Geestlantaarn", 't39': "Spiegelschim", 't40': "Robijnhart", 't41': "Vorstvuur-Dwaallicht", 't42': "Volmaakte Diamant", 't43': "Plasmadynamo", 't44': "Komeetheraut", 't45': "Poollichtserafijn", 't46': "Zonnekeizer", 't47': "Wensster", 't48': "Pulsarbaken", 't49': "Donkere Materie", 't50': "Oppersingulariteit" },
       'locked': 'Fuseer twee tier {n} om te ontdekken!',
+      'effects': { 'none': "Snelle slagen — vlug en meedogenloos.", 'burn': "Treffers laten schade achter die blijft doortikken.", 'knockback': "Zware klappen slaan vijanden terug.", 'heal': "Elke treffer geneest je zwakste bondgenoot.", 'splash': "Elke treffer spat uit over alle vijanden in de buurt.", 'poison': "Treffers stapelen schade over tijd.", 'chain': "Aanvallen springen over naar nog drie vijanden.", 'frost': "Vertraagt bij een treffer; een puls verdooft groepen in de buurt.", 'midas': "Grote kans op kritiek en extra goud bij elke treffer.", 'eruption': "Ontploft bij inslag en zet alle vijanden in de buurt in brand." },
       'abilities': {
         'none': 'Een gesmolten vonk — snel, onbevreesd en altijd voorop.',
         'burn': 'Bijtende vorst blijft hangen — vijanden nemen na de klap schade.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Toegang geweigerd: koop een licentie.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'van {n}',
+    'aria': 'Ranglijst: plaats {rank} van {n}',
+    'ariaRank': 'Ranglijst: plaats {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'NIEUWE EENHEID!',
+    'tier': 'Tier {n}'
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "merge-idle-war",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -25,9 +25,21 @@
     "validated-build": "vue-tsc -b && vite build",
     "type-check": "vue-tsc --build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "leaderboard:snapshot": "node scripts/leaderboard-snapshot.mjs",
+    "leaderboard:seed": "node scripts/leaderboard-seed.mjs",
+    "sfx:render": "node scripts/sfx/render-new-tier-reveal.mjs",
+    "sfx:skills": "node scripts/sfx/render-arena-skills.mjs",
+    "art:export": "node scripts/art/export-sheets.mjs",
+    "art:prompts": "node --import ./scripts/art/ts-resolve.mjs scripts/art/art-prompts.mjs",
+    "art:status": "node --import ./scripts/art/ts-resolve.mjs scripts/art/art-status.mjs",
+    "art:slice": "node scripts/art/slice-sheets.mjs",
+    "art:measure": "python scripts/art/measure-art.py",
+    "art:desk": "node scripts/art/art-desk/server.mjs",
+    "preview:video": "node tools/preview-video/record.mjs"
   },
   "dependencies": {
+    "@playgama/bridge": "^2.1.0",
     "@vueuse/core": "^14.2.1",
     "@wvdsh/sdk-js": "^0.0.38",
     "lodash.clonedeep": "^4.5.0",
@@ -47,8 +59,10 @@
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.8.1",
     "autoprefixer": "^10.4.27",
+    "ffmpeg-static": "^5.3.0",
     "jsdom": "^28.1.0",
     "npm-run-all2": "^8.0.4",
+    "playwright-core": "^1.63.0",
     "postcss": "^8.5.8",
     "pug": "^3.0.3",
     "sass": "^1.97.3",
@@ -63,5 +77,10 @@
   },
   "engines": {
     "node": "^25.5.0 || >=22.12.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "ffmpeg-static"
+    ]
   }
 }

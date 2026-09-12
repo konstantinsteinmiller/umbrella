@@ -132,10 +132,11 @@ export default {
     'body': 'Tu ejército siguió luchando mientras no estabas:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Restaura el 25% de la salud de todas las unidades.", 'reviveGuard': "Durante 30 s, cada unidad que cae revive al instante con toda la vida.", 'defender': "Convierte tu mejor unidad cuerpo a cuerpo en un tanque 2 min: 2× de vida, 80% menos de daño.", 'meteor': "Hace llover meteoros por el campo, golpeando a todos los enemigos." },
+    'spellDesc': { 'heal': "Restaura el 25% de la salud de todas las unidades.", 'reviveGuard': "Durante 30 s, cada unidad que cae revive al instante con toda la vida.", 'defender': "Convierte tu mejor unidad cuerpo a cuerpo en un tanque 2 min: 2× de vida, 80% menos de daño.", 'meteor': "Hace llover meteoros por el campo, golpeando a todos los enemigos.", 'warcry': "Durante 8 s, tu ejército inflige +60% de daño y ataca un 30% más rápido.", 'legionCall': "Invoca durante 20 s a 3 guerreros espectrales un nivel por debajo de tu mejor unidad. Se carga rápido cuando caen tus unidades.", 'executionerMark': "Marca al enemigo más resistente durante 10 s: recibe +75% de daño y es ejecutado por debajo del 12% de vida.", 'soulPact': "Tu unidad más fuerte obtiene un gemelo; la siguiente más fuerte se sacrifica por él. Se recarga en 3 minutos." },
     'mutationWave': "¡MUTACIÓN!",
     'overrunSetbackHint': "Estas oleadas son demasiado fuertes: refuerza tu ejército en oleadas más fáciles primero.",
-    'spells': { 'heal': "Curación", 'reviveGuard': "Guardia de Reanimación", 'defender': "Defensor" },
+    'spells': { 'heal': "Curación", 'reviveGuard': "Guardia de Reanimación", 'defender': "Defensor", 'warcry': "Grito de Guerra de la Legión", 'legionCall': "Llamada de la Legión", 'executionerMark': "Marca del Verdugo", 'soulPact': "Pacto de Almas" },
+    'pactNeedsSacrifice': "El Pacto de Almas necesita una unidad de nivel inferior en el campo para sacrificarla.",
     'bossNames': { 'b0': "Glorp el Devorador", 'b1': "Rey Puño de Lodo", 'b2': "Mawzilla", 'b3': "El Devora-Puertas", 'b4': "Grumblor Prime" },
     'wave': 'Oleada {n}',
     'best': 'Récord {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Códice de unidades',
-      'names': { 't1': 'Chispa de Magma', 't2': 'Torbellino Glacial', 't3': 'Bruto de Roca', 't4': 'Guardián Glaciar', 't5': 'Gota de Marea', 't6': 'Coloso Pétreo', 't7': 'Ojo de Nebulosa', 't8': 'Espectro del Vacío', 't9': 'Garra Dorada', 't10': 'Soberano Fénix', 't11': 'Señor de la Guerra de Obsidiana', 't12': "Titán Infernal", 't13': "Segador Umbrío", 't14': "Leviatán de Magma", 't15': "Ascendente Cósmico", 't16': "Soberano de la Tempestad", 't17': "Guardián Abisal", 't18': "Behemot Fundido", 't19': "Devorador Astral", 't20': "Deidad Eterna" },
+      'names': { 't1': 'Chispa de Magma', 't2': 'Torbellino Glacial', 't3': 'Bruto de Roca', 't4': 'Guardián Glaciar', 't5': 'Gota de Marea', 't6': 'Coloso Pétreo', 't7': 'Ojo de Nebulosa', 't8': 'Espectro del Vacío', 't9': 'Garra Dorada', 't10': 'Soberano Fénix', 't11': 'Señor de la Guerra de Obsidiana', 't12': "Titán Infernal", 't13': "Segador Umbrío", 't14': "Leviatán de Magma", 't15': "Ascendente Cósmico", 't16': "Soberano de la Tempestad", 't17': "Guardián Abisal", 't18': "Behemot Fundido", 't19': "Devorador Astral", 't20': "Deidad Eterna", 't21': "Centinela de Acero", 't22': "Embaucador de Mercurio", 't23': "Tirano Magnético", 't24': "Guardián de Ámbar", 't25': "Genio de las Dunas", 't26': "Frasco Cáustico", 't27': "Corazón de Zarzas", 't28': "Monarca de Coral", 't29': "Sabio Fulgoseta", 't30': "Furia Tormentosa", 't31': "Oráculo de Jade", 't32': "Monolito Rúnico", 't33': "Motor Crono", 't34': "Espíritu Origami", 't35': "Duendecillo Burbuja", 't36': "Cubo Glitch", 't37': "Campana Eco", 't38': "Farol Espiritual", 't39': "Espectro Espejo", 't40': "Corazón de Rubí", 't41': "Fuego Fatuo Helado", 't42': "Diamante Parangón", 't43': "Dínamo de Plasma", 't44': "Heraldo Cometa", 't45': "Serafín Aurora", 't46': "Emperador Solar", 't47': "Estrella de los Deseos", 't48': "Faro Púlsar", 't49': "Materia Oscura", 't50': "Singularidad Suprema" },
       'locked': '¡Fusiona dos de nivel {n} para descubrirla!',
+      'effects': { 'none': "Golpes rápidos: veloces e implacables.", 'burn': "Los golpes dejan daño que sigue haciendo efecto.", 'knockback': "Golpes contundentes que hacen retroceder a los enemigos.", 'heal': "Cada golpe cura a tu aliado más débil.", 'splash': "Cada golpe estalla sobre todos los enemigos cercanos.", 'poison': "Los golpes acumulan daño con el tiempo.", 'chain': "Los ataques saltan a tres enemigos más.", 'frost': "Ralentiza al golpear; un pulso aturde a los grupos cercanos.", 'midas': "Alta probabilidad de crítico y oro extra en cada golpe.", 'eruption': "Explota al impactar y quema a todos los enemigos cercanos." },
       'abilities': {
         'none': 'Una chispa fundida: rápido, intrépido y siempre el primero.',
         'burn': 'La escarcha mordaz persiste: los enemigos siguen recibiendo daño tras el golpe.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Acceso denegado: compra una licencia.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'de {n}',
+    'aria': 'Clasificación: puesto {rank} de {n}',
+    'ariaRank': 'Clasificación: puesto {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': '¡NUEVA UNIDAD!',
+    'tier': 'Nivel {n}'
   }
 }

@@ -15,10 +15,12 @@ const importBattle = async () => {
 
 beforeEach(() => { window.localStorage.clear() })
 
-describe('Recruits ladder — levels 16-20', () => {
-  it('caps at level 20 (base spawn tier 21)', async () => {
+describe('Recruits ladder — levels 16-49', () => {
+  it('caps at level 49 (base spawn tier 50, the last illustrated tier)', async () => {
     const b = await importBattle()
-    expect(b.RECRUIT_MAX_LEVEL).toBe(20)
+    const { CODEX_MAX_TIER } = await import('@/game/units')
+    expect(b.RECRUIT_MAX_LEVEL).toBe(49)
+    expect(1 + b.RECRUIT_MAX_LEVEL).toBe(CODEX_MAX_TIER)
   })
 
   it('has a price for every level, and prices only ever rise', async () => {
@@ -28,10 +30,28 @@ describe('Recruits ladder — levels 16-20', () => {
       b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: lvl }
       prices.push(b.upgradeCost('recruit'))
     }
-    expect(prices).toHaveLength(20)
+    expect(prices).toHaveLength(49)
     for (let i = 1; i < prices.length; i++) {
       expect(prices[i]!).toBeGreaterThan(prices[i - 1]!)
     }
+  })
+
+  it('keeps the authored 1–20 prices and continues the ×4.25 step past 20', async () => {
+    const b = await importBattle()
+    const costAt = (lvl: number): number => {
+      b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: lvl }
+      return b.upgradeCost('recruit')
+    }
+    expect(costAt(0)).toBe(2_000)
+    expect(costAt(19)).toBe(70_000_000_000_000) // level 20 unchanged
+    expect(costAt(20)).toBe(300_000_000_000_000) // 70T × 4.25 → two significant figures
+    for (let lvl = 21; lvl < 49; lvl++) {
+      const step = costAt(lvl) / costAt(lvl - 1)
+      expect(step).toBeGreaterThan(3.9)
+      expect(step).toBeLessThan(4.6)
+    }
+    expect(costAt(48)).toBeGreaterThan(1e31) // the far end of the ladder
+    expect(Number.isFinite(costAt(48))).toBe(true)
   })
 
   it('steepens past level 15 rather than continuing the old ~3.3× step', async () => {
@@ -47,20 +67,30 @@ describe('Recruits ladder — levels 16-20', () => {
     for (const s of lateSteps) expect(s).toBeGreaterThan(3.3)
   })
 
-  it('recruitTier tracks the level so 20 ⇒ T21', async () => {
+  it('recruitTier tracks the level so 20 ⇒ T21 and 49 ⇒ T50', async () => {
     const b = await importBattle()
     b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: 20 }
     expect(b.recruitTier.value).toBe(21)
+    b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: 49 }
+    expect(b.recruitTier.value).toBe(50)
   })
 
-  it('sanitize clamps a tampered/legacy save to the new cap', async () => {
+  it('a save at the old cap (20) is buyable again; the new cap is 49', async () => {
     window.localStorage.clear()
     const b = await importBattle()
     b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: 20 }
-    expect(b.isUpgradeMaxed('recruit')).toBe(true)
-    // One below the cap is still buyable (not maxed).
-    b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: 19 }
     expect(b.isUpgradeMaxed('recruit')).toBe(false)
+    b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: 49 }
+    expect(b.isUpgradeMaxed('recruit')).toBe(true)
+  })
+
+  it('sanitize clamps a tampered save to the new cap', async () => {
+    window.localStorage.clear()
+    const { setState, flushPersist } = await import('@/use/useEpicState')
+    setState('battle_upgrades', { recruit: 999 })
+    flushPersist()
+    const b = await importBattle()
+    expect(b.battleUpgrades.value.recruit).toBe(49)
   })
 })
 

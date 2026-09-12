@@ -47,10 +47,17 @@ import { computed, ref, watch } from 'vue'
 export const isAdShowing = ref(false)
 
 /** True when `document.visibilityState === 'hidden'`. Seeded from the
- *  document on first import, kept current by the listener installed
- *  below. */
+ *  document on first import, kept current by the listener installed below.
+ *
+ *  Always `false` on the Playgama build — that one may not read the Page
+ *  Visibility API at all (see `USES_PAGE_VISIBILITY` at the bottom of this
+ *  file), and the Bridge's own visibility event drives `isPlatformPaused`
+ *  instead. The seed is gated too: `document.visibilityState` is a read of
+ *  the banned API, not just the listener. */
 export const isVisibilityHidden = ref(
-  typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  import.meta.env.VITE_APP_PLAYGAMA !== 'true'
+  && typeof document !== 'undefined'
+  && document.visibilityState === 'hidden'
 )
 
 /** True while the embedding portal (GamePix, etc.) has asked the game
@@ -145,9 +152,62 @@ watch(isAudioPaused, (paused) => {
   }
 }, { flush: 'sync' })
 
-// ─── Visibility listener ───────────────────────────────────────────────────
+// ─── Suspend fanout (save flushes) ─────────────────────────────────────────
+//
+// Rising edge of "the player is no longer looking at a running game", from
+// whichever source THIS build is allowed to use. Everything that needs to get
+// state to disk before the process can be evicted subscribes here instead of
+// registering its own `visibilitychange` / `pagehide` listener — see
+// `USES_PAGE_VISIBILITY` below for why that matters.
+//
+// `isPlatformPaused` is in the expression on purpose: on a Playgama build it
+// is the ONLY signal that arrives (fed by the Bridge's `PAUSE_STATE_CHANGED`,
+// which on Playables is fed by YouTube's own `onPause` — the event that exists
+// precisely because "the game has a short window to save any state before it
+// is evicted"). On every other build it costs one extra flush per portal
+// pause, which is exactly when you want one.
 
-if (typeof document !== 'undefined') {
+type SuspendSubscriber = () => void
+const suspendSubscribers = new Set<SuspendSubscriber>()
+
+/** Subscribe to the "game just went away" edge. Returns an unsubscribe fn. */
+export const onGameSuspended = (sub: SuspendSubscriber): (() => void) => {
+  suspendSubscribers.add(sub)
+  return (): void => {
+    suspendSubscribers.delete(sub)
+  }
+}
+
+const isSuspended = computed(() => isVisibilityHidden.value || isPlatformPaused.value)
+
+watch(isSuspended, (suspended) => {
+  if (!suspended) return
+  for (const sub of suspendSubscribers) {
+    try { sub() }
+    catch (e) { console.warn('[pause] suspend subscriber threw', e) }
+  }
+})
+
+// ─── Visibility listener ───────────────────────────────────────────────────
+//
+// **The Page Visibility API is BANNED on the Playgama build**, and this is the
+// only place in the codebase that may touch it.
+//
+// `build:playgama` produces the YouTube Playables submission as well —
+// Playgama is an official Playables partner and distributes the one archive —
+// and Playables states: "Game MUST NOT use the web Page Visibility API or
+// similar web APIs and MUST only use Playables SDK `onPause` and `onResume`."
+// `pagehide` counts as "similar", so it is gated on this flag too wherever it
+// appears.
+//
+// Nothing is lost on that build. The Playgama Bridge emits
+// `VISIBILITY_STATE_CHANGED` for a tab hide and `PAUSE_STATE_CHANGED` for
+// overlays and ads, and `playgamaPlugin` routes BOTH into `isPlatformPaused`
+// — a strictly better signal than the raw DOM event, since it also fires for
+// portal chrome this document never sees.
+export const USES_PAGE_VISIBILITY = import.meta.env.VITE_APP_PLAYGAMA !== 'true'
+
+if (USES_PAGE_VISIBILITY && typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     isVisibilityHidden.value = document.visibilityState === 'hidden'
   })

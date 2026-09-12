@@ -39,8 +39,11 @@ const BASE_HOSTS: ReadonlyArray<string> = [
   'https://gamedistribution.com',
   'https://*.gamedistribution.com',
   'https://playgama.com',
+  // Covers `api.playgama.com` (the Bridge's analytics/config endpoints) and
+  // any partner subdomain. `bridge.playgama.com` used to be listed here for
+  // the Bridge's CDN <script> tag; since the v2 migration the SDK is bundled
+  // from npm and nothing fetches that host any more.
   'https://*.playgama.com',
-  'https://bridge.playgama.com',
   'https://gamepix.com',
   'https://*.gamepix.com',
   'https://integration.gamepix.com',
@@ -176,15 +179,56 @@ const CSP_DIRECTIVES = [
 ] as const
 
 /**
+ * The global-leaderboard Worker's ORIGIN, or `null` when this build has none.
+ *
+ * Read from the same `VITE_LEADERBOARD_URL` the client posts to, so the policy
+ * can never fall out of step with the endpoint. ORIGIN ONLY, never the URL: a
+ * CSP source with a path is a PATH-PREFIX match, so `https://host/api` would
+ * refuse `https://host/api2/top` and narrow the policy in a way that only shows
+ * up as a blocked request on someone else's phone. `new URL()` throws on a
+ * malformed value, and a typo'd env var must cost a leaderboard, not a build.
+ */
+const leaderboardOrigin = (raw: string | undefined): string | null => {
+  if (!raw) return null
+  try {
+    return new URL(raw).origin
+  } catch {
+    return null
+  }
+}
+
+/**
  * Build the full CSP string for the given build env. Mirrors what
  * vite.config.ts used to do inline; intended to be called from there at
  * `transformIndexHtml` time.
  */
 export const buildCsp = (env: Record<string, string>): string => {
+  // ─── PLAYGAMA: no policy at all, and the reason is YouTube ──────────────
+  //
+  // The `build:playgama` archive IS the YouTube Playables submission —
+  // Playgama is an official Playables partner and distributes the one ZIP to
+  // playgama.com, its partner portals AND Playables. On Playables our
+  // document is shared with YouTube's own runtime: their `game_api/v1` SDK
+  // and their telemetry. A CSP meta tag applies to the whole DOCUMENT, so any
+  // host we forget is a host we silently break for THEM — the game keeps
+  // running and nothing in our console says why their plumbing died. YouTube
+  // already sandboxes the frame and enforces "no external server calls" at
+  // review time, so a self-imposed policy buys nothing and can only cause
+  // false failures.
+  //
+  // Nothing is lost on playgama.com either: the game is an iframe on a portal
+  // that sets its own frame policy, and the meta tag was never what kept this
+  // build honest — the release audit greps `dist/` for runtime hosts instead.
+  //
+  // Returning '' tells `vite.config.ts` to skip the meta tag entirely; it
+  // makes the same decision independently via `skipCspMeta`, so this is the
+  // unit-testable half of one rule. Same call the Poki / Yandex / GamePix
+  // builds make, for their own reasons.
+  if (env.VITE_APP_PLAYGAMA === 'true') return ''
+
   const isGameDistribution = env.VITE_APP_GAME_DISTRIBUTION === 'true'
   const isGlitch = env.VITE_APP_GLITCH === 'true'
   const isCrazyWeb = env.VITE_APP_CRAZY_WEB === 'true'
-  const isPlaygama = env.VITE_APP_PLAYGAMA === 'true'
   const isGamepix = env.VITE_APP_GAMEPIX === 'true'
   const isGameMonetize = env.VITE_APP_GAME_MONETIZE === 'true'
   const isYandex = env.VITE_APP_YANDEX === 'true'
@@ -192,7 +236,9 @@ export const buildCsp = (env: Record<string, string>): string => {
   // Playgama / GamePix / GameMonetize / Yandex run an ad-waterfall like GD —
   // open the same directives so partner creatives / bidders (the Google-IMA
   // bidder chain on most, Yandex Direct on Yandex) aren't refused.
-  const adWaterfallBuild = isGameDistribution || isPlaygama || isGamepix || isGameMonetize || isYandex
+  // NOTE: no Playgama arm here on purpose — that build returned above with
+  // no policy at all, so an entry would be permanently dead code.
+  const adWaterfallBuild = isGameDistribution || isGamepix || isGameMonetize || isYandex
 
   // Yandex's moderator rejects any third-party "service storage" URL it finds
   // anywhere in the bundle — including the CSP meta tag. `BASE_HOSTS` contains
@@ -241,6 +287,12 @@ export const buildCsp = (env: Record<string, string>): string => {
       // open `https:` / `wss:` added below for ad-waterfall builds still
       // covers what's actually needed at runtime).
       ...(isYandex ? [] : CONNECT_BASE_EXTRA),
+      // The global leaderboard (`useLeaderboard`). Skipped on Yandex AS WELL AS
+      // emptied in `.env.yandex.local`: moderation greps the bundle, CSP tag
+      // included, for third-party storage endpoints, and the two switches fail
+      // independently. (Poki / Playgama / GamePix emit no meta tag at all.)
+      ...(isYandex ? [] : [leaderboardOrigin(env.VITE_LEADERBOARD_URL)]
+        .filter((o): o is string => o !== null)),
       // GD / Playgama partner analytics / ad telemetry beacons.
       ...(adWaterfallBuild ? ['https:', 'wss:'] : [])
     ],

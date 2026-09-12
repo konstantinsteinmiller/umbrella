@@ -25,6 +25,7 @@ import { getState, setState, flushPersist } from '@/use/useEpicState'
 import { saveDataVersion } from '@/use/useSaveStatus'
 import useEpicConfig from '@/use/useEpicConfig'
 import { isGamePaused } from '@/use/useGamePause'
+import { tickBreakInterstitial } from '@/use/useBreakInterstitial'
 import {
   BATTLE_UPGRADES_KEY, BATTLE_WAVE_KEY, BATTLE_BEST_WAVE_KEY, BATTLE_ARMY_KEY,
   BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY, BATTLE_RUBBER_BAND_KEY,
@@ -32,14 +33,19 @@ import {
   BATTLE_HEAL_UNLOCKED_KEY, BATTLE_HEAL_CHARGE_KEY,
   BATTLE_REVIVE_UNLOCKED_KEY, BATTLE_REVIVE_CHARGE_KEY,
   BATTLE_DEFENDER_UNLOCKED_KEY, BATTLE_DEFENDER_CHARGE_KEY,
-  BATTLE_MUTATION_CEILING_KEY, BATTLE_SPELL_CASTS_KEY
+  BATTLE_WARCRY_UNLOCKED_KEY, BATTLE_WARCRY_CHARGE_KEY,
+  BATTLE_LEGION_UNLOCKED_KEY, BATTLE_LEGION_CHARGE_KEY,
+  BATTLE_MARK_UNLOCKED_KEY, BATTLE_MARK_CHARGE_KEY,
+  BATTLE_PACT_UNLOCKED_KEY, BATTLE_PACT_COOLDOWN_KEY,
+  BATTLE_MUTATION_CEILING_KEY, BATTLE_SPELL_CASTS_KEY,
+  BATTLE_FIRST_BOSS_COACHED_KEY, PRISM_MAX_TIER_KEY
 } from '@/keys'
 import {
   getFighterDef, ENEMY_DEFS, composeWave, isBossWave, bossName, bossArtKey, rollMutator,
   waveHp, waveAtk, waveBounty, waveClearBonus,
   type EnemyKind, type WaveSpawn, type FighterAbility, type WaveMutator
 } from '@/game/units'
-import { getIngredient, MAX_INGREDIENT_TIER, type ElementKind } from '@/game/ingredients'
+import { getIngredient, type ElementKind } from '@/game/ingredients'
 import { notifyTutorial } from '@/use/useTutorial'
 import useBattlePass, { CAMPAIGN_XP_SOURCES } from '@/use/useBattlePass'
 import { submitBestWave } from '@/platforms/leaderboard'
@@ -119,6 +125,51 @@ const DEFENDER_SECS = 120     // Defender tank duration (2 minutes).
 const TANK_DR = 0.2           // The tank takes only 20% of incoming damage.
 const TANK_HP_MULT = 2        // …and has double its normal max HP.
 const MELEE_RANGE_MAX = 14    // range > 14 ⇒ ranged (see FighterDef).
+
+// ─── Arena skills, slots 5–8 ─────────────────────────────────────────────────
+// Balanced as COOLDOWN × STRENGTH: the faster a skill comes back, the smaller
+// its effect, so none of them out-values the others per minute of play. The
+// yardstick is kills: ~95 per 5-wave boss cycle from wave 15 on.
+//
+// Warcry of the Legion — the everyday burst. 80 kills (≈ 4 waves) buys 8 s of
+// +60% damage and +30% attack speed: 2.08× army DPS for 8 s, ≈ +10% averaged
+// over its charge. Worth it by TIMING — pop it on a boss, a horde, an elite.
+// The +60% is ADDED to the damage multiplier, so under the 2× ad buff it is
+// 2.6×, not 3.2× (two boosts must not compound). Attack speed takes the higher
+// of Warcry and FEVER, never both.
+const WARCRY_UNLOCK_COST = 300_000
+const WARCRY_PER_KILL = 1.25
+const WARCRY_SECS = 8
+const WARCRY_DMG_BONUS = 0.6
+const WARCRY_ATK_SPEED = 1.3
+// Legion Call — the comeback. Charges mainly from LOSSES: +20 per fighter that
+// falls (5 losses fill it), plus a slow 0.25 per kill so it is never out of
+// reach on a clean run (400 kills). Summons 3 spectral warriors one tier below
+// your best, at 60% health, for 20 s — a full squad arriving exactly when the
+// army is breaking. Spectral warriors are not army: never persisted, never
+// counted against ARMY_CAP, and their deaths refill nothing.
+const LEGION_UNLOCK_COST = 1_100_000
+const LEGION_PER_KILL = 0.25
+const LEGION_PER_FALLEN = 20
+const LEGION_COUNT = 3
+const LEGION_SECS = 20
+const LEGION_HP_FRACTION = 0.6
+// Executioner's Mark (desktop) — the boss breaker. 100 kills ≈ one per boss
+// cycle. For 10 s the boss (else an elite, else the healthiest enemy) takes
+// +75% damage from every source and is executed outright below 12% health:
+// on a boss that is roughly a quarter to a third off the fight.
+const MARK_UNLOCK_COST = 600_000
+const MARK_PER_KILL = 1
+const MARK_SECS = 10
+const MARK_DMG_TAKEN = 1.75
+const MARK_EXECUTE_BELOW = 0.12
+// Soul Pact (desktop) — the only PERMANENT effect, hence the only one on a
+// clock instead of a charge, and the priciest. Your highest-tier fighter gains
+// a twin; the strongest fighter of a LOWER tier is consumed to pay for it. Net:
+// that slot climbs from the second tier to the first, once every 3 minutes of
+// play (paused with the game, like the coin buff).
+const PACT_UNLOCK_COST = 1_500_000
+export const PACT_COOLDOWN_MS = 180_000
 const COUNTDOWN_SECS = 3.5
 const OVERRUN_SECS = 2.5
 /** Extended overrun pause while the RALLY! rewarded offer is on screen. */
@@ -165,6 +216,13 @@ export interface Fighter {
   isTank: boolean
   /** Engine-time the tank buff expires at (0 ⇒ not a tank). */
   tankUntil: number
+  /** Legion Call: a summoned spectral warrior. It fights like any fighter but
+   *  is NOT army — never counted toward ARMY_CAP, never persisted, never
+   *  mourned (no RALLY! slot, no Legion charge), and never a Defender, Soul
+   *  Pact or field-merge target. Dissolves at `expiresAt`. */
+  spectral: boolean
+  /** Engine-time a spectral warrior dissolves at (0 ⇒ a real fighter). */
+  expiresAt: number
 }
 
 export interface Enemy {
@@ -259,6 +317,18 @@ export type BattleEvent =
   | { type: 'ultReady' }
   | { type: 'meteor'; x: number; y: number }
   | { type: 'warHeal'; x: number; y: number }
+  /** Warcry of the Legion cast — (x, y) is the army's centre, where the roar rings out. */
+  | { type: 'warcry'; x: number; y: number }
+  /** Legion Call — one portal per summoned spectral warrior. */
+  | { type: 'legionCall'; tier: number; points: { x: number; y: number; id: number }[] }
+  /** A spectral warrior dissolving (its time ran out, or it was struck down). */
+  | { type: 'spectralFade'; x: number; y: number; id: number }
+  | { type: 'mark'; x: number; y: number; id: number }
+  /** The marked enemy dropped under the execute line and was finished off. */
+  | { type: 'execute'; x: number; y: number; id: number; boss: boolean }
+  /** Soul Pact — (x, y) is the champion; the twin stands beside it, the
+   *  sacrifice at (vx, vy) is already off the field. */
+  | { type: 'soulPact'; x: number; y: number; tier: number; twinId: number; victimId: number; vx: number; vy: number; victimTier: number }
 
 type EventSink = (e: BattleEvent) => void
 type RenderSink = () => void
@@ -272,24 +342,24 @@ const emit = (e: BattleEvent): void => { if (eventSink) eventSink(e) }
 export type BattleUpgradeId = 'attack' | 'vitality' | 'bounty' | 'automation' | 'recruit'
 export type BattleUpgrades = Record<BattleUpgradeId, number>
 
-/** Recruits cap. Level N ⇒ the Spawn button's base tier is N+1, so 20 ⇒ T21.
- *  Extended from 15 → 20 for the deep-wave grind: at wave 200+ a T16 base spawn
- *  no longer keeps merge throughput anywhere near the enemy curve. T21 is one
- *  past `CODEX_MAX_TIER` (the illustrated bestiary ends at 20) — tiers beyond it
- *  merge and extrapolate their stats normally, they're just not illustrated. */
-export const RECRUIT_MAX_LEVEL = 20
+/** Recruits cap. Level N ⇒ the Spawn button's base tier is N+1, so 49 ⇒ T50,
+ *  the top of the illustrated bestiary (`CODEX_MAX_TIER`): the Spawn button
+ *  never produces a unit without its own look. Extended 15 → 20 for the
+ *  deep-wave grind, then 20 → 49 with the elemental tiers 21–50; merges past
+ *  T50 still climb and extrapolate their stats as before. */
+export const RECRUIT_MAX_LEVEL = 49
 
 export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth: number; max: number }> = {
   attack: { base: 60, growth: 1.33, max: ATKVIT_MAX_LEVEL },
   vitality: { base: 55, growth: 1.32, max: ATKVIT_MAX_LEVEL },
   bounty: { base: 80, growth: 1.6, max: UPGRADE_MAX_LEVEL },
   automation: { base: 130, growth: 1.72, max: UPGRADE_MAX_LEVEL },
-  // Recruits: each level raises the Spawn button's base tier by 1 (T1 → T16).
+  // Recruits: each level raises the Spawn button's base tier by 1 (T1 → T50).
   // One level ≈ doubles the whole grid's merge throughput (a T2 spawn = two
   // T1 spawns pre-merged) ≈ 4–5 waves of enemy scaling — priced as milestone
   // purchases on the hand-tuned RECRUIT_COSTS ladder below (base/growth here
   // are unused for this id; `upgradeCost` special-cases it).
-  recruit: { base: 5000, growth: 1, max: RECRUIT_MAX_LEVEL }
+  recruit: { base: 2000, growth: 1, max: RECRUIT_MAX_LEVEL }
 }
 
 /** Hand-tuned Recruits prices. Levels 1–15 continue a ~×3.3 step so each level
@@ -301,12 +371,32 @@ export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth
  *  grid's merge throughput on top of an already-high base tier) and late-game
  *  income is enormous, so continuing the old ×3.3 would have made the deepest
  *  levels the cheapest part of the curve in real terms. The step keeps each one
- *  a genuine multi-session goal rather than a formality. */
-const RECRUIT_COSTS = [
-  5_000, 20_000, 50_000, 175_000, 500_000, 1_500_000, 7_000_000, 15_000_000, 50_000_000,
+ *  a genuine multi-session goal rather than a formality.
+ *
+ *  Level 1 is 2k, not 5k: T2 spawns are the first big power spike, and at 5k
+ *  a first session reached it long after the wave-5 boss wall. */
+const RECRUIT_COSTS_AUTHORED = [
+  2_000, 20_000, 50_000, 175_000, 500_000, 1_500_000, 7_000_000, 15_000_000, 50_000_000,
   150_000_000, 500_000_000, 1_500_000_000, 5_000_000_000, 15_000_000_000, 50_000_000_000,
   // 16–20
   210_000_000_000, 900_000_000_000, 3_800_000_000_000, 16_000_000_000_000, 70_000_000_000_000
+]
+/** Levels 21–49 (base spawn T22…T50, the new elemental tiers) continue the
+ *  16–20 step unchanged: ×4.25 a level, rounded to two significant figures.
+ *  Why the same step still fits: coin income grows ×1.11 a wave, so ×4.25 lands
+ *  each level ~14 waves after the last — and past wave 45 the softened enemy
+ *  curve roughly doubles its HP in those same ~14 waves, which is what one more
+ *  Recruits level (double merge throughput, +1 top tier) buys back. Level 21 is
+ *  300T; level 49 is ~1.2×10³² — "Nod"-scale, a genuine end-game horizon. */
+const RECRUIT_DEEP_STEP = 4.25
+const twoSig = (v: number): number => {
+  const p = Math.pow(10, Math.floor(Math.log10(v)) - 1)
+  return Math.round(v / p) * p
+}
+const RECRUIT_COSTS = [
+  ...RECRUIT_COSTS_AUTHORED,
+  ...Array.from({ length: RECRUIT_MAX_LEVEL - RECRUIT_COSTS_AUTHORED.length }, (_, i) =>
+    twoSig(RECRUIT_COSTS_AUTHORED[RECRUIT_COSTS_AUTHORED.length - 1]! * Math.pow(RECRUIT_DEEP_STEP, i + 1)))
 ]
 
 const sanitizeUpgrades = (u: unknown): BattleUpgrades => {
@@ -465,10 +555,18 @@ const rubberBandMult = (): number => (rubberBandUntil.value > Date.now() ? RUBBE
 // worth more than the last (≈2× the effect by the cap), so continued investment
 // keeps pace with the enemy curve deep into the run instead of flat-lining. Base
 // per-level rate is unchanged, so early-game feel is the same.
-const atkMult = (): number => {
+const atkUpgradeMult = (): number => {
   const lvl = battleUpgrades.value.attack
-  return (1 + lvl * 0.06 + lvl * lvl * 0.0006) * (dmgBuffUntil.value > Date.now() ? 2 : 1)
+  return 1 + lvl * 0.06 + lvl * lvl * 0.0006
 }
+const dmgBuffMult = (): number => (dmgBuffUntil.value > Date.now() ? 2 : 1)
+/** Every hit's damage multiplier: upgrades × (the 2× ad buff + Warcry's +60%).
+ *  Warcry ADDS to the buff term rather than multiplying it — see WARCRY_*. */
+const atkMult = (): number =>
+  atkUpgradeMult() * (dmgBuffMult() + (warcryActive.value ? WARCRY_DMG_BONUS : 0))
+/** The same without Warcry — what the challenge valuation reads (see
+ *  `playerPower`): an 8-second burst must not buy beefier spawns. */
+const sustainedAtkMult = (): number => atkUpgradeMult() * dmgBuffMult()
 const hpMult = (): number => {
   const lvl = battleUpgrades.value.vitality
   return (1 + lvl * 0.07 + lvl * lvl * 0.0007) * armyCatchUpHpMult()
@@ -482,7 +580,7 @@ const hpMult = (): number => {
  */
 const refreshArmyMaxHp = (): void => {
   for (const f of fighters.value) {
-    const newMax = Math.round(getFighterDef(f.tier).hp * hpMult() * (f.isTank ? TANK_HP_MULT : 1))
+    const newMax = Math.round(getFighterDef(f.tier).hp * hpMult() * (f.isTank ? TANK_HP_MULT : 1) * (f.spectral ? LEGION_HP_FRACTION : 1))
     if (newMax === f.maxHp) continue
     f.hp = Math.min(newMax, f.hp + (newMax - f.maxHp))
     f.maxHp = newMax
@@ -529,12 +627,20 @@ const killBoostMult = (): number =>
 const bountyMult = (): number => bountyUpgradeMult() * coinBuffMult.value
 /** Base tier the Spawn button produces (1 + Recruits upgrade level). */
 export const recruitTier = computed(() => 1 + battleUpgrades.value.recruit)
-/** Tier of the Flying Chest's unit reward — scales with the Recruits upgrade so
- *  the chest stays relevant late-game: recruitTier + recruit level (= 1 + 2·lvl),
- *  reaching T11 at maxed Recruits (lvl 5). Caller floors it with the field's
- *  second-best so it's never a downgrade. */
-export const chestUnitTier = computed(() =>
-  Math.min(MAX_INGREDIENT_TIER, recruitTier.value + battleUpgrades.value.recruit))
+/** The strongest ARMY fighter's tier on the field right now — Legion Call's
+ *  spectral warriors excluded — or 0 with nobody deployed. */
+export const topFieldTier = computed(() => {
+  let top = 0
+  for (const f of fighters.value) if (!f.spectral && f.tier > top) top = f.tier
+  return top
+})
+/** Tier of a chest's unit reward (the flying chest, the every-10th-wave
+ *  milestone chest): ONE BELOW the strongest fighter on the field, so the drop
+ *  always matters to the army the player has now — merge it with one more and
+ *  that is another of their best — and never below the Spawn button's own
+ *  tier. It used to be capped at T11 by a constant from the days T11 was the
+ *  top of the ladder, which made every late-game chest unit worthless. */
+export const chestUnitTier = computed(() => Math.max(recruitTier.value, topFieldTier.value - 1))
 /** Imp cadence in ms for `usePrismGame`'s automation loop (0 ⇒ disabled). */
 export const impCadenceMs = computed(() => {
   const lvl = battleUpgrades.value.automation
@@ -647,6 +753,33 @@ export const reviveGuardActive = ref(false)
 export const reviveGuardRemainingMs = ref(0)
 let reviveGuardUntil = 0
 
+// ─── Arena skills, slots 5–8 (state) ─────────────────────────────────────────
+export const warcryUnlockCost = WARCRY_UNLOCK_COST
+export const legionUnlockCost = LEGION_UNLOCK_COST
+export const markUnlockCost = MARK_UNLOCK_COST
+export const pactUnlockCost = PACT_UNLOCK_COST
+export const warcryUnlocked = ref(getState<boolean>(BATTLE_WARCRY_UNLOCKED_KEY, false) === true)
+export const legionUnlocked = ref(getState<boolean>(BATTLE_LEGION_UNLOCKED_KEY, false) === true)
+export const markUnlocked = ref(getState<boolean>(BATTLE_MARK_UNLOCKED_KEY, false) === true)
+export const pactUnlocked = ref(getState<boolean>(BATTLE_PACT_UNLOCKED_KEY, false) === true)
+export const warcryCharge = ref(clampCharge(getState(BATTLE_WARCRY_CHARGE_KEY, 0)))
+export const legionCharge = ref(clampCharge(getState(BATTLE_LEGION_CHARGE_KEY, 0)))
+export const markCharge = ref(clampCharge(getState(BATTLE_MARK_CHARGE_KEY, 0)))
+const clampPactCd = (v: unknown): number => Math.max(0, Math.min(PACT_COOLDOWN_MS, Number(v) || 0))
+/** Play-time milliseconds until Soul Pact can be cast again (0 ⇔ off cooldown). */
+export const pactCooldownMs = ref(clampPactCd(getState(BATTLE_PACT_COOLDOWN_KEY, 0)))
+/** True while Warcry's 8 s window runs (drives damage, attack speed, the auras). */
+export const warcryActive = ref(false)
+export const warcryRemainingMs = ref(0)
+let warcryUntil = 0
+/** Remaining life of the summoned legion in ms (0 ⇔ none on the field). */
+export const legionRemainingMs = ref(0)
+let legionUntil = 0
+/** Id of the enemy under Executioner's Mark (0 ⇔ none). */
+export const markedId = ref(0)
+export const markRemainingMs = ref(0)
+let markUntil = 0
+
 export const boss = ref<{ nameKey: string; cycle: number; hp: number; maxHp: number; enraged: boolean } | null>(null)
 export const timescale = ref(1)
 /** Active wave mutator (retention-roadmap #13); null on plain/boss waves. */
@@ -662,8 +795,14 @@ export const rallyOffer = ref(false)
 export const fighters = shallowRef<Fighter[]>([])
 export const enemies = shallowRef<Enemy[]>([])
 export const projectiles = shallowRef<Projectile[]>([])
-export const armyCount = computed(() => fighters.value.length)
-export const armyFull = computed(() => fighters.value.length >= ARMY_CAP)
+/** The ARMY: every fielded fighter except Legion Call's spectral warriors. */
+const armySize = (): number => {
+  let n = 0
+  for (const f of fighters.value) if (!f.spectral) n++
+  return n
+}
+export const armyCount = computed(() => armySize())
+export const armyFull = computed(() => armySize() >= ARMY_CAP)
 
 let idSeq = 0
 let engineNow = 0 // engine-time seconds (scaled by timescale)
@@ -688,31 +827,38 @@ const persistBattle = (): void => {
   setState(BATTLE_HEAL_CHARGE_KEY, Math.round(healCharge.value))
   setState(BATTLE_REVIVE_CHARGE_KEY, Math.round(reviveCharge.value))
   setState(BATTLE_DEFENDER_CHARGE_KEY, Math.round(defenderCharge.value))
+  setState(BATTLE_WARCRY_CHARGE_KEY, Math.round(warcryCharge.value))
+  setState(BATTLE_LEGION_CHARGE_KEY, Math.round(legionCharge.value))
+  setState(BATTLE_MARK_CHARGE_KEY, Math.round(markCharge.value))
 }
-const persistArmy = (): void => setState(BATTLE_ARMY_KEY, fighters.value.map((f) => f.tier))
+// Spectral warriors are summoned, not owned: they never reach the save.
+const persistArmy = (): void => setState(BATTLE_ARMY_KEY, fighters.value.filter((f) => !f.spectral).map((f) => f.tier))
 
 // ─── Spawning / deploying ────────────────────────────────────────────────────
 const guardY = (idx: number): number => 18 + ((idx * 37) % 68)
 
-const makeFighter = (tier: number, x: number, y: number): Fighter => {
+const makeFighter = (tier: number, x: number, y: number, spectralUntil = 0): Fighter => {
   const def = getFighterDef(tier)
-  const maxHp = Math.round(def.hp * hpMult())
+  const spectral = spectralUntil > 0
+  const maxHp = Math.round(def.hp * hpMult() * (spectral ? LEGION_HP_FRACTION : 1))
   return {
     id: ++idSeq, tier,
     x: Math.max(4, Math.min(60, x)), y: Math.max(8, Math.min(92, y)),
     hp: maxHp, maxHp, cooldown: Math.random() * 0.4, abilityCd: 3, striking: false,
     targetId: 0,
-    // A unit that joins while Revive Guard is live is covered by it too.
-    revivePending: reviveGuardActive.value,
-    isTank: false, tankUntil: 0
+    // A unit that joins while Revive Guard is live is covered by it too — a
+    // summoned one is not (it has no death to undo).
+    revivePending: !spectral && reviveGuardActive.value,
+    isTank: false, tankUntil: 0,
+    spectral, expiresAt: spectralUntil
   }
 }
 
 /** Deploy a merged unit onto the battlefield. Returns false when the army is
  *  at cap (the caller then bounces the drop). */
 export const deployFighter = (tier: number, xNorm?: number, yNorm?: number): boolean => {
-  if (fighters.value.length >= ARMY_CAP) return false
-  const f = makeFighter(tier, xNorm ?? GUARD_X, yNorm ?? guardY(fighters.value.length))
+  if (armySize() >= ARMY_CAP) return false
+  const f = makeFighter(tier, xNorm ?? GUARD_X, yNorm ?? guardY(armySize()))
   fighters.value = [...fighters.value, f]
   triggerRef(fighters)
   persistArmy()
@@ -726,8 +872,10 @@ export const deployFighter = (tier: number, xNorm?: number, yNorm?: number): boo
 export const fieldMerge = (fighterId: number, tier: number): boolean => {
   const f = fighters.value.find((x) => x.id === fighterId)
   // No tier cap — two same-tier fighters always rank up (art/stats extrapolate
-  // past the authored tiers via getFighterDef / getIngredient).
-  if (!f || f.tier !== tier) return false
+  // past the authored tiers via getFighterDef / getIngredient). A spectral
+  // warrior is not a merge target: it dissolves in seconds, taking the unit
+  // fed into it along.
+  if (!f || f.spectral || f.tier !== tier) return false
   const def = getFighterDef(tier + 1)
   f.tier = tier + 1
   f.maxHp = Math.round(def.hp * hpMult())
@@ -743,15 +891,23 @@ export const fieldMerge = (fighterId: number, tier: number): boolean => {
 /** Hit-test a deployed fighter near a normalized arena point (for drop-merge).
  *  The visual body is anchored ABOVE the logical (x, y) foot point, so the
  *  test compares against a slightly raised centre with a generous radius —
- *  a finger drop on any part of the unit should land the merge. */
-export const fighterAt = (xNorm: number, yNorm: number, radius = 13): Fighter | null => {
+ *  a finger drop on any part of the unit should land the merge.
+ *
+ *  Pass the dropped unit's `tier` and a same-tier fighter anywhere in the radius
+ *  wins over a closer fighter of another tier: melee clumps, and "nearest of
+ *  any tier" turned a drop aimed at the right fighter into a fresh deploy. */
+export const fighterAt = (xNorm: number, yNorm: number, radius = 13, tier?: number): Fighter | null => {
   let best: Fighter | null = null
   let bestD = radius
+  let match: Fighter | null = null
+  let matchD = radius
   for (const f of fighters.value) {
+    if (f.spectral) continue // never a drop-merge target (see fieldMerge)
     const d = Math.hypot(f.x - xNorm, f.y - 5 - yNorm)
     if (d < bestD) { bestD = d; best = f }
+    if (tier !== undefined && f.tier === tier && d < matchD) { matchD = d; match = f }
   }
-  return best
+  return match ?? best
 }
 
 /** Group a wave's flat spawn list into portal subwaves: consecutive spawns
@@ -765,9 +921,13 @@ const buildPortals = (spawns: WaveSpawn[]): void => {
   let groupStart = 0
   let lastPortal = -1
   for (const s of spawns) {
+    // A spawn that already names its portal keeps it, opening a window of its
+    // own when that differs from the open one (the DEV video seam authors its
+    // arrivals); a composed wave never names one.
     const startNew = portalWindows.length === 0 || s.at - prevAt > SUBWAVE_GAP || s.at - groupStart > PORTAL_MAX_OPEN
+      || (s.portal !== undefined && s.portal !== lastPortal)
     if (startNew) {
-      const portal = s.kind === 'boss' ? 1 : (lastPortal + 1 + ((Math.random() * 2) | 0)) % 3
+      const portal = s.portal ?? (s.kind === 'boss' ? 1 : (lastPortal + 1 + ((Math.random() * 2) | 0)) % 3)
       lastPortal = portal
       groupStart = s.at
       portalWindows.push({ portal, openAt: Math.max(0, s.at - PORTAL_LEAD), closeAt: s.at + PORTAL_TAIL })
@@ -833,6 +993,7 @@ const spawnEnemy = (kind: EnemyKind, elite = false, portal = 1): void => {
     boss.value = { nameKey: bn.key, cycle: bn.cycle, hp: e.hp, maxHp: e.maxHp, enraged: false }
     // Slime-tower boss: arm the companion trickle a beat after it lands.
     if (bossArtKey(w) === 'boss-slime-tower') nextCompanionAt = engineNow + 2
+    coachFirstBoss()
   }
 }
 
@@ -882,8 +1043,9 @@ const tickCompanions = (): void => {
 }
 
 // ─── Combat helpers ──────────────────────────────────────────────────────────
-const FIGHTER_GLOWS = ['#ff7a3c', '#bfe6ff', '#c8a97e', '#9fd8ff', '#7fd6ff', '#ff9a3c', '#8a6cff', '#b45cff', '#ffe27a', '#ff8a3c', '#ff7a2e']
-const glowOf = (tier: number): string => FIGHTER_GLOWS[Math.max(0, Math.min(FIGHTER_GLOWS.length - 1, tier - 1))]!
+// Impact / splash / projectile tint: the tier's own glow from the catalogue, so
+// the elemental tiers (21–50) spark in their own colours.
+const glowOf = (tier: number): string => getIngredient(tier).glow
 
 // Units are drawn anchored at their FEET (see `.unit-box` translate(-50%,-88%)
 // in BattleArena). Ranged shots + their impact VFX should target the BODY
@@ -938,6 +1100,11 @@ const registerKill = (e: Enemy): void => {
   if (healUnlocked.value) healCharge.value = Math.min(SPELL_MAX, healCharge.value + SPELL_PER_KILL)
   if (reviveUnlocked.value) reviveCharge.value = Math.min(SPELL_MAX, reviveCharge.value + SPELL_PER_KILL)
   if (defenderUnlocked.value) defenderCharge.value = Math.min(SPELL_MAX, defenderCharge.value + SPELL_PER_KILL)
+  if (warcryUnlocked.value) warcryCharge.value = Math.min(SPELL_MAX, warcryCharge.value + WARCRY_PER_KILL)
+  if (legionUnlocked.value) legionCharge.value = Math.min(SPELL_MAX, legionCharge.value + LEGION_PER_KILL)
+  if (markUnlocked.value) markCharge.value = Math.min(SPELL_MAX, markCharge.value + MARK_PER_KILL)
+  // The mark dies with its target — on this frame, not the next step's sweep.
+  if (markedId.value === e.id) { markedId.value = 0; markRemainingMs.value = 0 }
   bumpStat('kills')
   emit({ type: 'death', x: e.x, y: e.y, kind: e.kind, bounty: payout, boss: e.boss, id: e.id })
   emit({ type: 'number', x: e.x, y: e.y - 6, amount: payout, variant: 'gold' })
@@ -946,6 +1113,7 @@ const registerKill = (e: Enemy): void => {
     // deeper slow-mo held longer; the arena boosts the particle/coin theatre.
     const first = stats.value.bossKills === 0
     boss.value = null
+    meteorHintActive.value = false
     bumpStat('bossKills')
     timescale.value = first ? 0.22 : 0.35
     slowmoRealLeft = first ? 2.0 : 0.9
@@ -961,8 +1129,22 @@ const removeDeadEnemies = (): void => {
   }
 }
 
+/** Damage taken multiplier: Executioner's Mark makes its target take +75%. */
+const markAmp = (e: Enemy): number => (markedId.value === e.id ? MARK_DMG_TAKEN : 1)
+
+/** Executioner's Mark: a marked enemy that has dropped under the execute line
+ *  is finished off on the spot. Every damage path calls this after landing its
+ *  hit, the damage-over-time ticks included. */
+const checkExecute = (e: Enemy): void => {
+  if (markedId.value !== e.id || e.hp <= 0 || e.hp >= e.maxHp * MARK_EXECUTE_BELOW) return
+  emit({ type: 'execute', x: e.x, y: e.y, id: e.id, boss: e.boss })
+  e.hp = 0
+  if (e.boss && boss.value) boss.value = { ...boss.value, hp: 0 }
+}
+
 const hurtEnemy = (e: Enemy, amount: number, variant: 'dmg' | 'crit' | 'burn' | 'poison' = 'dmg'): void => {
   if (e.hp <= 0) return
+  amount *= markAmp(e)
   e.hp -= amount
   emit({ type: 'number', x: e.x, y: e.y - 4, amount: Math.round(amount), variant })
   if (e.boss && boss.value) {
@@ -975,6 +1157,7 @@ const hurtEnemy = (e: Enemy, amount: number, variant: 'dmg' | 'crit' | 'burn' | 
       emit({ type: 'enrage' })
     }
   }
+  checkExecute(e)
   if (e.hp <= 0) registerKill(e)
 }
 
@@ -1136,13 +1319,16 @@ export const challengeMult = ref(1)
 
 /** Fielded-army strength: √(total DPS × total current HP). Damage buff and
  *  upgrades flow in via `atkMult`; wounded armies rate lower (current hp). */
+// Skills are left out on purpose: Warcry (sustainedAtkMult) and the summoned
+// legion are bursts the player spent a charge on, and a burst that ramps up the
+// very enemies it was cast against would be a tax on using it.
 const playerPower = (): number => {
   let dps = 0
   let hp = 0
   for (const f of fighters.value) {
-    if (f.hp <= 0) continue
+    if (f.hp <= 0 || f.spectral) continue
     const def = getFighterDef(f.tier)
-    dps += (def.atk * atkMult()) / def.attackInterval
+    dps += (def.atk * sustainedAtkMult()) / def.attackInterval
     hp += f.hp
   }
   return Math.sqrt(dps * hp)
@@ -1181,8 +1367,30 @@ export const ultReady = computed(() => ultCharge.value >= ULT_MAX)
 export const canSetback = computed(() =>
   wave.value > Math.max(1, bestWave.value - MAX_FALL_FROM_BEST))
 
+// ─── First-boss Meteor coaching ──────────────────────────────────────────────
+/** True while the Meteor button is coached (golden glow + runic arrow). */
+export const meteorHintActive = ref(false)
+
+/** The first boss a player ever meets: hand them a full Meteor Storm and point
+ *  at it. Glorp breaks a tier-3 army, and by wave 5 the kill-charged ultimate
+ *  is often spent or not yet full; seven meteors on the boss are what turns the
+ *  play-testers' first wipe into a win. Once per player — the sticky flag is
+ *  read from the live blob at spawn time (so a hydrated veteran save never gets
+ *  it), and `bossKills` covers saves from before the flag existed. */
+const coachFirstBoss = (): void => {
+  if (getState<boolean>(BATTLE_FIRST_BOSS_COACHED_KEY, false) === true || stats.value.bossKills > 0) return
+  setState(BATTLE_FIRST_BOSS_COACHED_KEY, true)
+  if (ultCharge.value < ULT_MAX) {
+    ultCharge.value = ULT_MAX
+    persistBattle()
+    emit({ type: 'ultReady' })
+  }
+  meteorHintActive.value = true
+}
+
 export const fireUltimate = (): boolean => {
   if (ultCharge.value < ULT_MAX || wavePhase.value === 'overrun') return false
+  meteorHintActive.value = false
   ultCharge.value = 0
   persistBattle()
   pendingMeteors = []
@@ -1233,7 +1441,7 @@ export const fireReviveGuard = (): boolean => {
   reviveGuardUntil = engineNow + REVIVE_GUARD_SECS
   reviveGuardActive.value = true
   reviveGuardRemainingMs.value = REVIVE_GUARD_SECS * 1000
-  for (const f of fighters.value) f.revivePending = true
+  for (const f of fighters.value) if (!f.spectral) f.revivePending = true
   triggerRef(fighters)
   emit({ type: 'reviveGuard' })
   return true
@@ -1276,8 +1484,9 @@ export const unlockDefender = (): boolean => {
   return true
 }
 
-/** True while there's a valid tank target: at least one MELEE unit deployed. */
-const meleeFielded = (f: Fighter): boolean => getFighterDef(f.tier).range <= MELEE_RANGE_MAX
+/** True while there's a valid tank target: at least one MELEE unit deployed
+ *  (a spectral warrior never counts — it would take the tank buff with it). */
+const meleeFielded = (f: Fighter): boolean => !f.spectral && getFighterDef(f.tier).range <= MELEE_RANGE_MAX
 export const hasTankTarget = computed(() => fighters.value.some(meleeFielded))
 
 /** Promote the highest-tier MELEE unit currently deployed on the battlefield into
@@ -1303,6 +1512,207 @@ export const fireDefender = (): boolean => {
   triggerRef(fighters)
   emit({ type: 'defender', x: cand.x, y: cand.y, id: cand.id })
   return true
+}
+
+// ─── Arena skills, slots 5–8 ─────────────────────────────────────────────────
+const unlockSkill = (unlocked: typeof warcryUnlocked, cost: number, key: string): boolean => {
+  if (unlocked.value || !spendCoins(cost)) return false
+  unlocked.value = true
+  setState(key, true)
+  return true
+}
+export const unlockWarcry = (): boolean => unlockSkill(warcryUnlocked, WARCRY_UNLOCK_COST, BATTLE_WARCRY_UNLOCKED_KEY)
+export const unlockLegion = (): boolean => unlockSkill(legionUnlocked, LEGION_UNLOCK_COST, BATTLE_LEGION_UNLOCKED_KEY)
+export const unlockMark = (): boolean => unlockSkill(markUnlocked, MARK_UNLOCK_COST, BATTLE_MARK_UNLOCKED_KEY)
+export const unlockPact = (): boolean => unlockSkill(pactUnlocked, PACT_UNLOCK_COST, BATTLE_PACT_UNLOCKED_KEY)
+
+export const warcryReady = computed(() => warcryUnlocked.value && warcryCharge.value >= SPELL_MAX)
+export const legionReady = computed(() => legionUnlocked.value && legionCharge.value >= SPELL_MAX)
+export const markReady = computed(() => markUnlocked.value && markCharge.value >= SPELL_MAX)
+export const pactReady = computed(() => pactUnlocked.value && pactCooldownMs.value <= 0)
+
+/** Where the army stands: the centroid of the living, fielded fighters. */
+const armyCentre = (): { x: number; y: number } => {
+  let x = 0, y = 0, n = 0
+  for (const f of fighters.value) { if (f.hp > 0) { x += f.x; y += f.y; n++ } }
+  return n ? { x: x / n, y: y / n } : { x: fighterGuardX() + 8, y: 50 }
+}
+
+/** Warcry of the Legion: 8 s of +60% damage and +30% attack speed. A second
+ *  cast inside the window just restarts the eight seconds. */
+export const fireWarcry = (): boolean => {
+  if (!warcryReady.value || wavePhase.value === 'overrun') return false
+  warcryCharge.value = 0
+  persistBattle()
+  warcryActive.value = true
+  warcryUntil = engineNow + WARCRY_SECS
+  warcryRemainingMs.value = WARCRY_SECS * 1000
+  const c = armyCentre()
+  emit({ type: 'warcry', x: c.x, y: c.y })
+  return true
+}
+
+/** The tier Legion Call summons: one below the army's best (never below 1). */
+export const legionTier = (): number => {
+  let best = 0
+  for (const f of fighters.value) if (!f.spectral && f.tier > best) best = f.tier
+  return Math.max(1, best - 1)
+}
+
+/**
+ * Legion Call: three spectral warriors, one tier below your best, at 60%
+ * health for 20 s. They take the field whether or not the army is full. A cast
+ * while a legion still stands refreshes it — the survivors get their health
+ * and full time back and the fallen are replaced — so there are never more
+ * than three.
+ */
+export const fireLegion = (): boolean => {
+  if (!legionReady.value || wavePhase.value === 'overrun') return false
+  legionCharge.value = 0
+  persistBattle()
+  const tier = legionTier()
+  legionUntil = engineNow + LEGION_SECS
+  legionRemainingMs.value = LEGION_SECS * 1000
+  const standing = fighters.value.filter((f) => f.spectral)
+  for (const f of standing) { f.expiresAt = legionUntil; f.hp = f.maxHp }
+  const points: { x: number; y: number; id: number }[] = []
+  const summoned: Fighter[] = []
+  const gx = fighterGuardX()
+  for (let i = standing.length; i < LEGION_COUNT; i++) {
+    // Portals open in a column just ahead of the guard line: top, middle, bottom.
+    const y = 26 + i * 24 + (Math.random() - 0.5) * 6
+    const f = makeFighter(tier, gx + 6 + Math.random() * 4, y, legionUntil)
+    summoned.push(f)
+    points.push({ x: f.x, y: f.y, id: f.id })
+  }
+  if (summoned.length) fighters.value = [...fighters.value, ...summoned]
+  triggerRef(fighters)
+  emit({ type: 'legionCall', tier, points })
+  return true
+}
+
+/** Who Executioner's Mark lands on: the boss, else an elite, else the enemy
+ *  with the most health left. Only living, landed, on-screen enemies. */
+const markTarget = (): Enemy | null => {
+  let bossE: Enemy | null = null
+  let elite: Enemy | null = null
+  let top: Enemy | null = null
+  for (const e of enemies.value) {
+    if (e.hp <= 0 || !e.born || e.x > 101) continue
+    if (e.boss && (!bossE || e.hp > bossE.hp)) bossE = e
+    if (e.elite && (!elite || e.hp > elite.hp)) elite = e
+    if (!top || e.hp > top.hp) top = e
+  }
+  return bossE ?? elite ?? top
+}
+/** Something on the field to mark. `enemies` is triggered on every spawn,
+ *  birth and death, which is exactly when this can change. */
+export const hasMarkTarget = computed(() =>
+  enemies.value.some((e) => e.hp > 0 && e.born && e.x <= 101))
+
+export const fireMark = (): boolean => {
+  if (!markReady.value || wavePhase.value !== 'fighting') return false
+  const t = markTarget()
+  if (!t) return false
+  markCharge.value = 0
+  persistBattle()
+  markedId.value = t.id
+  markUntil = engineNow + MARK_SECS
+  markRemainingMs.value = MARK_SECS * 1000
+  emit({ type: 'mark', x: t.x, y: t.y, id: t.id })
+  // Already under the line (a boss finished off by the mark itself).
+  checkExecute(t)
+  if (t.hp <= 0) { registerKill(t); removeDeadEnemies() }
+  return true
+}
+
+/**
+ * The two parties to a Soul Pact on the current field: the champion (the
+ * highest-tier fighter) and the sacrifice (the strongest fighter of a strictly
+ * LOWER tier — among equals, the most wounded). Null when there is no such pair
+ * (an empty field, one fighter, or every fighter on the same tier): then there
+ * is nothing to gain and the pact refuses.
+ */
+export const pactPair = (): { champion: Fighter; victim: Fighter } | null => {
+  let champion: Fighter | null = null
+  for (const f of fighters.value) {
+    if (!f.spectral && f.hp > 0 && (!champion || f.tier > champion.tier)) champion = f
+  }
+  if (!champion) return null
+  let victim: Fighter | null = null
+  for (const f of fighters.value) {
+    if (f.spectral || f.hp <= 0 || f.tier >= champion.tier) continue
+    if (!victim || f.tier > victim.tier || (f.tier === victim.tier && f.hp / f.maxHp < victim.hp / victim.maxHp)) victim = f
+  }
+  return victim ? { champion, victim } : null
+}
+export const hasPactPair = computed(() => pactPair() !== null)
+
+/**
+ * Soul Pact: the champion gains a twin at full health, and the sacrifice is
+ * consumed — removed, not killed, so it neither fills a RALLY! slot nor charges
+ * Legion Call. The twin takes the field right beside the champion; the arena
+ * animates it splitting off the champion's body into that spot.
+ */
+export const firePact = (): boolean => {
+  if (!pactReady.value || wavePhase.value === 'overrun') return false
+  const pair = pactPair()
+  if (!pair) return false
+  const { champion, victim } = pair
+  const twin = makeFighter(champion.tier, champion.x, champion.y)
+  // It splits off where the champion stands (not clamped into the deploy band),
+  // one separation-distance away toward the open middle — between waves the
+  // soft separation does not run, and a twin stacked exactly on its champion
+  // would read as nothing having happened.
+  twin.x = Math.min(96, champion.x + 2)
+  twin.y = Math.max(6, Math.min(94, champion.y + (champion.y < 50 ? 7.5 : -7.5)))
+  fighters.value = [...fighters.value.filter((f) => f !== victim), twin]
+  triggerRef(fighters)
+  persistArmy()
+  pactCooldownMs.value = PACT_COOLDOWN_MS
+  setState(BATTLE_PACT_COOLDOWN_KEY, PACT_COOLDOWN_MS)
+  flushPersist() // a permanent change to the army — checkpoint it now
+  emit({
+    type: 'soulPact', x: champion.x, y: champion.y, tier: champion.tier, twinId: twin.id,
+    victimId: victim.id, vx: victim.x, vy: victim.y, victimTier: victim.tier
+  })
+  return true
+}
+
+// The pact's cooldown drains on PLAY time (called from the RAF driver past the
+// pause gate, like the coin buff) and is persisted at most every 5 s.
+let pactPersistDebt = 0
+const tickPactCooldown = (dtMs: number): void => {
+  if (pactCooldownMs.value <= 0) return
+  const next = Math.max(0, pactCooldownMs.value - dtMs)
+  pactCooldownMs.value = next
+  pactPersistDebt += dtMs
+  if (next === 0 || pactPersistDebt >= 5_000) {
+    pactPersistDebt = 0
+    setState(BATTLE_PACT_COOLDOWN_KEY, Math.round(next))
+  }
+}
+
+/** Per logic step: Warcry's window, the legion's lifetime, the mark's hold. */
+const tickSkills = (): void => {
+  if (warcryActive.value) {
+    warcryRemainingMs.value = Math.max(0, Math.round((warcryUntil - engineNow) * 1000))
+    if (engineNow >= warcryUntil) { warcryActive.value = false; warcryRemainingMs.value = 0 }
+  }
+  if (legionRemainingMs.value > 0) {
+    legionRemainingMs.value = Math.max(0, Math.round((legionUntil - engineNow) * 1000))
+  }
+  let faded = false
+  for (const f of fighters.value) {
+    if (f.spectral && engineNow >= f.expiresAt) { f.hp = 0; faded = true }
+  }
+  if (faded) buryFallen() // a spectral warrior dissolves; it is never mourned
+  if (!fighters.value.some((f) => f.spectral)) legionRemainingMs.value = 0
+  if (markedId.value) {
+    const alive = enemies.value.some((e) => e.id === markedId.value && e.hp > 0)
+    markRemainingMs.value = Math.max(0, Math.round((markUntil - engineNow) * 1000))
+    if (!alive || engineNow >= markUntil) { markedId.value = 0; markRemainingMs.value = 0 }
+  }
 }
 
 /** Where the next meteor lands: on a random living, on-screen enemy — with a
@@ -1412,6 +1822,7 @@ const triggerOverrun = (): void => {
   timescale.value = 0.45
   slowmoRealLeft = 1.0
   boss.value = null
+  meteorHintActive.value = false
   emit({ type: 'overrun' })
 }
 
@@ -1469,11 +1880,36 @@ export const claimRally = (): number => {
   rallyOffer.value = false
   rallyClaimed = true
   let revived = 0
+  let championBack = false
+  // The discovery watermark (the Unit Codex's highest tier) lives in the grid
+  // module's state; read it from the blob rather than import the grid module.
+  const topTier = Math.max(1, Math.floor(Number(getState(PRISM_MAX_TIER_KEY, 1))) || 1)
   for (const tier of deadThisWave) {
     if (!deployFighter(tier)) break
     revived++
+    if (tier >= topTier) championBack = true
   }
   deadThisWave = []
+  // The ad must always hand back the best unit the player has discovered: when
+  // none of the resurrected fighters is of that tier, one is gifted on top —
+  // making room by dismissing the weakest fighter if the army is at cap.
+  if (!championBack) {
+    let spot: { x: number; y: number } | null = null
+    if (armySize() >= ARMY_CAP) {
+      let weakest: Fighter | null = null
+      for (const f of fighters.value) {
+        if (f.spectral) continue
+        if (!weakest || f.tier < weakest.tier || (f.tier === weakest.tier && f.hp < weakest.hp)) weakest = f
+      }
+      if (weakest && weakest.tier < topTier) {
+        const gone = weakest
+        spot = { x: gone.x, y: gone.y } // the champion takes its place in the line
+        fighters.value = fighters.value.filter((f) => f !== gone)
+        triggerRef(fighters)
+      }
+    }
+    if (deployFighter(topTier, spot?.x, spot?.y)) revived++
+  }
   phaseTimer = Math.min(phaseTimer, 1.0) // ceremony done — restart promptly
   return revived
 }
@@ -1486,11 +1922,87 @@ export const declineRally = (): void => {
 }
 
 // ─── Logic step ──────────────────────────────────────────────────────────────
-const stepFighters = (dt: number): void => {
+/** Attack-speed multiplier: FEVER or Warcry, whichever is higher — never both. */
+const attackSpeedMult = (): number =>
+  Math.max(feverActive.value ? FEVER_ATK_SPEED : 1, warcryActive.value ? WARCRY_ATK_SPEED : 1)
+
+/** Bury the fallen (buffered per wave for the RALLY! revive offer). */
+const buryFallen = (): void => {
   let removed = false
+  const alive = fighters.value.filter((f) => {
+    if (f.hp > 0) return true
+    // A spectral warrior just dissolves: no RALLY! slot, no Legion charge.
+    if (f.spectral) {
+      emit({ type: 'spectralFade', x: f.x, y: f.y, id: f.id })
+      removed = true
+      return false
+    }
+    // Revive Guard: a pending revive resurrects the unit at full HP instead of
+    // removing it — the wings are consumed (flag cleared), and it stays fielded.
+    if (f.revivePending) {
+      f.revivePending = false
+      f.hp = f.maxHp
+      f.cooldown = Math.max(f.cooldown, 0.3)
+      emit({ type: 'revive', x: f.x, y: f.y, id: f.id })
+      removed = true // army composition changed → re-render + persist
+      return true
+    }
+    emit({ type: 'fighterDeath', x: f.x, y: f.y, tier: f.tier, id: f.id })
+    deadThisWave.push(f.tier)
+    // Legion Call is the comeback skill: it charges from losses.
+    if (legionUnlocked.value) legionCharge.value = Math.min(SPELL_MAX, legionCharge.value + LEGION_PER_FALLEN)
+    removed = true
+    return false
+  })
+  if (removed) {
+    fighters.value = alive
+    triggerRef(fighters)
+    persistArmy()
+  }
+}
+
+// ─── Engagement ring: attackers fan out round their target ──────────────────
+// Every fighter used to walk the straight line to its target and stop at range,
+// so all the melee units on one enemy stood on the SAME spot — one blob where
+// tier badges, hit sparks and field-merge drops landed on top of each other.
+// Now each attacker takes its own slot on an arc round the target's army-facing
+// side: the first straight in front, the next above and below, fanning wider as
+// more join — never round the far side, where the wave comes from. Ranged units
+// fan on a tighter arc at their longer reach.
+const RING_ARC_MELEE = Math.PI * 1.1   // ≈ 200° of arc for melee slots
+const RING_ARC_RANGED = Math.PI * 0.5  // ≈ 90° for ranged
+const RING_STEP_MAX = Math.PI / 4      // never more than 45° between neighbours
+/** Fraction of its range an attacker stands off at — inside reach, so it can swing. */
+const RING_STANDOFF = 0.78
+/** How fast an attacker in reach keeps sliding to its slot (× its walk speed). */
+const RING_DRIFT_WHILE_FIGHTING = 0.35
+
+/** Slot angle for attacker `k` of `n` on one target (π = straight in front). */
+const ringAngle = (k: number, n: number, arc: number): number => {
+  if (n <= 1) return Math.PI
+  const step = Math.min(RING_STEP_MAX, arc / (n - 1))
+  // 0 front, then alternate above / below: 0, +1, −1, +2, −2 …
+  const side = k === 0 ? 0 : (k % 2 === 1 ? 1 : -1) * Math.ceil(k / 2)
+  return Math.PI + side * step
+}
+
+const stepFighters = (dt: number): void => {
   // Fresh claim tally per step — earlier fighters in the array claim first,
   // later ones route around crowded targets (see pickTarget).
   const claims = new Map<number, number>()
+  // Pass 1 — targets, and how many melee / ranged attackers each one draws, so
+  // pass 2 can give every attacker its own slot on the target's ring.
+  const targets = new Map<Fighter, Enemy | null>()
+  const ringCount = new Map<string, number>()
+  for (const f of fighters.value) {
+    const target = pickTarget(f, claims)
+    targets.set(f, target)
+    if (!target) continue
+    claims.set(target.id, (claims.get(target.id) ?? 0) + 1)
+    const key = `${target.id}:${getFighterDef(f.tier).range > MELEE_RANGE_MAX ? 'r' : 'm'}`
+    ringCount.set(key, (ringCount.get(key) ?? 0) + 1)
+  }
+  const ringNext = new Map<string, number>()
   for (const f of fighters.value) {
     f.striking = false
     const def = getFighterDef(f.tier)
@@ -1509,7 +2021,7 @@ const stepFighters = (dt: number): void => {
       }
     }
 
-    const target = pickTarget(f, claims)
+    const target = targets.get(f) ?? null
     if (!target) {
       f.targetId = 0
       // No enemies → drift back to the guard line (kept clear of the gate).
@@ -1519,15 +2031,28 @@ const stepFighters = (dt: number): void => {
       continue
     }
     f.targetId = target.id
-    claims.set(target.id, (claims.get(target.id) ?? 0) + 1)
     const dist = Math.hypot(target.x - f.x, (target.y - f.y) * 0.8)
-    if (dist > def.range) {
-      const nx = (target.x - f.x) / (dist || 1)
-      const ny = (target.y - f.y) / (dist || 1)
-      f.x = Math.max(fighterGuardX(), Math.min(96, f.x + nx * def.speed * dt))
-      f.y = Math.max(6, Math.min(94, f.y + ny * def.speed * dt))
-    } else if (f.cooldown <= 0) {
-      const interval = def.attackInterval / (feverActive.value ? FEVER_ATK_SPEED : 1)
+
+    // This attacker's slot on the target's ring (same 0.8 y-metric as `dist`).
+    const ranged = def.range > MELEE_RANGE_MAX
+    const key = `${target.id}:${ranged ? 'r' : 'm'}`
+    const k = ringNext.get(key) ?? 0
+    ringNext.set(key, k + 1)
+    const angle = ringAngle(k, ringCount.get(key) ?? 1, ranged ? RING_ARC_RANGED : RING_ARC_MELEE)
+    const r = def.range * RING_STANDOFF
+    const slotX = target.x + Math.cos(angle) * r
+    const slotY = target.y + (Math.sin(angle) * r) / 0.8
+    const toSlot = Math.hypot(slotX - f.x, slotY - f.y)
+    // Out of reach: head for the slot at full speed. In reach: keep swinging,
+    // and slide toward the slot meanwhile so the ring forms mid-fight.
+    const inReach = dist <= def.range
+    if (toSlot > 0.5) {
+      const step = Math.min(toSlot, def.speed * dt * (inReach ? RING_DRIFT_WHILE_FIGHTING : 1))
+      f.x = Math.max(fighterGuardX(), Math.min(96, f.x + ((slotX - f.x) / toSlot) * step))
+      f.y = Math.max(6, Math.min(94, f.y + ((slotY - f.y) / toSlot) * step))
+    }
+    if (inReach && f.cooldown <= 0) {
+      const interval = def.attackInterval / attackSpeedMult()
       f.cooldown = interval
       const dmg = def.atk * atkMult()
       if (def.range > 14) {
@@ -1549,8 +2074,9 @@ const stepFighters = (dt: number): void => {
   }
   // Soft separation: stacked fighters ease apart so every unit (and its tier
   // badge) stays readable. Gentle rate — never fights the chase movement hard
-  // enough to hold a melee unit out of range.
-  const SEP_DIST = 7.5
+  // enough to hold a melee unit out of range. A notch wider than it was now
+  // that the engagement ring hands each attacker its own spot to hold.
+  const SEP_DIST = 8.5
   const list = fighters.value
   for (let i = 0; i < list.length; i++) {
     for (let j = i + 1; j < list.length; j++) {
@@ -1570,29 +2096,7 @@ const stepFighters = (dt: number): void => {
       b.y = Math.max(6, Math.min(94, b.y + py))
     }
   }
-  // Bury the fallen (buffered per wave for the RALLY! revive offer).
-  const alive = fighters.value.filter((f) => {
-    if (f.hp > 0) return true
-    // Revive Guard: a pending revive resurrects the unit at full HP instead of
-    // removing it — the wings are consumed (flag cleared), and it stays fielded.
-    if (f.revivePending) {
-      f.revivePending = false
-      f.hp = f.maxHp
-      f.cooldown = Math.max(f.cooldown, 0.3)
-      emit({ type: 'revive', x: f.x, y: f.y, id: f.id })
-      removed = true // army composition changed → re-render + persist
-      return true
-    }
-    emit({ type: 'fighterDeath', x: f.x, y: f.y, tier: f.tier, id: f.id })
-    deadThisWave.push(f.tier)
-    removed = true
-    return false
-  })
-  if (removed) {
-    fighters.value = alive
-    triggerRef(fighters)
-    persistArmy()
-  }
+  buryFallen()
 }
 
 const stepEnemies = (dt: number): void => {
@@ -1608,16 +2112,18 @@ const stepEnemies = (dt: number): void => {
     e.cooldown -= dt
     e.abilityCd -= dt
 
-    // Status DoTs.
+    // Status DoTs (amplified under Executioner's Mark, like every other hit).
+    const amp = markAmp(e)
     if (e.burnUntil > engineNow) {
-      e.hp -= e.burnDps * dt
-      if (Math.random() < dt * 2) emit({ type: 'number', x: e.x, y: e.y - 4, amount: Math.max(1, Math.round(e.burnDps * 0.5)), variant: 'burn' })
+      e.hp -= e.burnDps * amp * dt
+      if (Math.random() < dt * 2) emit({ type: 'number', x: e.x, y: e.y - 4, amount: Math.max(1, Math.round(e.burnDps * amp * 0.5)), variant: 'burn' })
     }
     if (e.poisonUntil > engineNow && e.poisonStacks > 0) {
-      const dps = e.poisonStacks * e.maxHp * 0.01 + e.poisonStacks * 2
+      const dps = (e.poisonStacks * e.maxHp * 0.01 + e.poisonStacks * 2) * amp
       e.hp -= dps * dt
       if (Math.random() < dt * 2) emit({ type: 'number', x: e.x, y: e.y - 4, amount: Math.max(1, Math.round(dps * 0.5)), variant: 'poison' })
     }
+    checkExecute(e)
     if (e.hp <= 0) { registerKill(e); continue }
 
     if (e.stunUntil > engineNow) continue
@@ -1750,6 +2256,9 @@ const step = (dt: number): void => {
   }
   if (tankChanged) triggerRef(fighters)
 
+  // Warcry window, the legion's lifetime, the mark's hold.
+  tickSkills()
+
   tickCompanions()
 
   tickChallenge(dt)
@@ -1789,8 +2298,8 @@ const step = (dt: number): void => {
         // A portal can disgorge a CLUSTER: 3% → 3, 20% → 2, else 1 — so the
         // early game isn't a trickle of lone monsters. Bosses and elite
         // champions always spawn solo (they're a single, deliberate threat).
-        let count = 1
-        if (s.kind !== 'boss' && !s.elite) {
+        let count = s.count ?? 1
+        if (s.count === undefined && s.kind !== 'boss' && !s.elite) {
           const r = Math.random()
           count = r < 0.03 ? 3 : r < 0.23 ? 2 : 1
         }
@@ -1828,6 +2337,11 @@ const frame = (t: number): void => {
   lastT = t
   if (isGamePaused.value) return
 
+  // Past the pause gate ⇒ this is real, active gameplay time: advance the
+  // break-paced interstitial clock. It only decides WHEN an ad becomes owed;
+  // the ad itself fires at the next wave clear / run loss, never here.
+  tickBreakInterstitial(realDt)
+
   // 2× Damage buff countdown (UI chip reads the ref; 0 ⇔ expired).
   const dmgRemaining = Math.max(0, dmgBuffUntil.value - Date.now())
   if (dmgRemaining !== dmgBuffRemainingMs.value) dmgBuffRemainingMs.value = dmgRemaining
@@ -1835,6 +2349,8 @@ const frame = (t: number): void => {
   // 3× Coin buff drains on PLAY time — this line is past the pause gate, so a
   // menu / ad / hidden tab freezes the clock instead of burning the reward.
   tickCoinBuff(realDt * 1000)
+  // Soul Pact's 3-minute cooldown, on the same play-time clock.
+  tickPactCooldown(realDt * 1000)
 
   // Keep the rubber-band flag in sync so it flips false the moment the 15-min
   // catch-up window lapses (enemy spawns read `rubberBandUntil` live regardless).
@@ -1931,6 +2447,18 @@ const refreshFromBlob = (): void => {
   healCharge.value = Math.max(healCharge.value, clampCharge(getState(BATTLE_HEAL_CHARGE_KEY, 0)))
   reviveCharge.value = Math.max(reviveCharge.value, clampCharge(getState(BATTLE_REVIVE_CHARGE_KEY, 0)))
   defenderCharge.value = Math.max(defenderCharge.value, clampCharge(getState(BATTLE_DEFENDER_CHARGE_KEY, 0)))
+  if (getState<boolean>(BATTLE_WARCRY_UNLOCKED_KEY, false) === true) warcryUnlocked.value = true
+  if (getState<boolean>(BATTLE_LEGION_UNLOCKED_KEY, false) === true) legionUnlocked.value = true
+  if (getState<boolean>(BATTLE_MARK_UNLOCKED_KEY, false) === true) markUnlocked.value = true
+  if (getState<boolean>(BATTLE_PACT_UNLOCKED_KEY, false) === true) pactUnlocked.value = true
+  warcryCharge.value = Math.max(warcryCharge.value, clampCharge(getState(BATTLE_WARCRY_CHARGE_KEY, 0)))
+  legionCharge.value = Math.max(legionCharge.value, clampCharge(getState(BATTLE_LEGION_CHARGE_KEY, 0)))
+  markCharge.value = Math.max(markCharge.value, clampCharge(getState(BATTLE_MARK_CHARGE_KEY, 0)))
+  // Soul Pact's cooldown takes the LONGER of local vs cloud: a boot on module
+  // defaults reads 0, and adopting that over a real pending cooldown would hand
+  // out a free cast on every device switch.
+  const savedPactCd = clampPactCd(getState(BATTLE_PACT_COOLDOWN_KEY, 0))
+  if (savedPactCd > pactCooldownMs.value) pactCooldownMs.value = savedPactCd
   // Spell-toast cast counts only ever grow — take the higher of local/cloud per id.
   const savedCasts = getState<Record<string, number>>(BATTLE_SPELL_CASTS_KEY, {})
   const mergedCasts = { ...spellCasts.value }
@@ -1968,12 +2496,19 @@ const useBattle = () => ({
   healReady, reviveReady, defenderReady, hasTankTarget,
   healUnlockCost, reviveUnlockCost, defenderUnlockCost,
   reviveGuardActive, reviveGuardRemainingMs,
+  // arena skills, slots 5–8
+  warcryUnlocked, legionUnlocked, markUnlocked, pactUnlocked,
+  warcryCharge, legionCharge, markCharge, pactCooldownMs,
+  warcryReady, legionReady, markReady, pactReady, hasMarkTarget, hasPactPair,
+  warcryUnlockCost, legionUnlockCost, markUnlockCost, pactUnlockCost,
+  warcryActive, warcryRemainingMs, legionRemainingMs, markedId, markRemainingMs,
   // upgrades
   battleUpgrades, upgradeLevel, upgradeCost, canBuyUpgrade, buyUpgrade,
-  isUpgradeMaxed, impCadenceMs, recruitTier, chestUnitTier,
+  isUpgradeMaxed, impCadenceMs, recruitTier, chestUnitTier, topFieldTier,
   // actions
   deployFighter, fieldMerge, fighterAt, fireUltimate, bumpStat,
   fireHeal, fireReviveGuard, fireDefender, unlockHeal, unlockReviveGuard, unlockDefender, noteSpellCast,
+  fireWarcry, fireLegion, fireMark, firePact, unlockWarcry, unlockLegion, unlockMark, unlockPact,
   requestRallyHold, claimRally, declineRally, activateDamageBuff, activateCoinBuff,
   // lifecycle
   startBattle, stopBattle, setEventSink, setRenderSink, setGateEdge
@@ -2036,4 +2571,88 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
     }
   }
   w.__ult = (): void => { fireUltimate() }
+  // Unlock and fully charge every arena skill (slots 5–8) and clear Soul Pact's
+  // cooldown — for trying the skills and their VFX without the grind.
+  w.__skills = (): void => {
+    for (const r of [warcryUnlocked, legionUnlocked, markUnlocked, pactUnlocked, healUnlocked, reviveUnlocked, defenderUnlocked]) r.value = true
+    for (const c of [warcryCharge, legionCharge, markCharge, healCharge, reviveCharge, defenderCharge]) c.value = SPELL_MAX
+    pactCooldownMs.value = 0
+    ultCharge.value = ULT_MAX
+  }
 }
+
+/** Advance the simulation headlessly by `secs` of engine time, in the same
+ *  fixed logic steps the RAF driver takes. No render, no pause gate, no
+ *  play-time clocks (coin buff, Soul Pact) — for tests and tooling. */
+export const advanceBattle = (secs: number): void => {
+  for (let t = 0; t < secs - 1e-9; t += LOGIC_STEP) step(LOGIC_STEP)
+}
+
+/** DEV only — the engine internals the gameplay-video seam stages a fight
+ *  through (`src/dev/videoSeam.ts`). Null in every platform build. */
+export const devBattle = import.meta.env.DEV
+  ? {
+      /** Wave `wave`, mid-fight, with an empty field and NO composed schedule:
+       *  only `spawns` arrive, each out of the portal it names. */
+      stageFight(o: { wave: number; gate?: number; spawns?: WaveSpawn[] }): void {
+        // The engine clock and the id sequence restart too: both carry however
+        // long the boot happened to take (enemies wiggle on sin(engineNow + id)),
+        // and a staged fight must be the same fight on every take.
+        engineNow = 0
+        idSeq = 0
+        wave.value = Math.max(1, Math.floor(o.wave))
+        if (wave.value > bestWave.value) bestWave.value = wave.value
+        fighters.value = []
+        enemies.value = []
+        projectiles.value = []
+        boss.value = null
+        pendingMeteors = []
+        deadThisWave = []
+        nextCompanionAt = 0
+        combo.value = 0
+        feverActive.value = false
+        rallyOffer.value = false
+        mutator.value = null
+        waveMutated.value = false
+        gateHp.value = Math.max(1, Math.min(GATE_MAX, o.gate ?? GATE_MAX))
+        schedule = [...(o.spawns ?? [])].sort((a, b) => a.at - b.at)
+        buildPortals(schedule)
+        activePortal.value = null
+        waveElapsed = 0
+        wavePhase.value = 'fighting'
+        triggerRef(fighters); triggerRef(enemies); triggerRef(projectiles)
+      },
+      /** A fighter at (x, y), `hp` a fraction of its max — no deploy event. */
+      addFighter(tier: number, x: number, y: number, hp = 1): Fighter {
+        const f = makeFighter(tier, x, y)
+        f.hp = Math.max(1, Math.round(f.maxHp * hp))
+        fighters.value = [...fighters.value, f]
+        return f
+      },
+      /** An enemy of `kind` at (x, y), its HP `hp`× the wave's own. */
+      addEnemy(kind: EnemyKind, x: number, y: number, hp = 1, elite = false): Enemy {
+        spawnEnemy(kind, elite, 1)
+        const e = enemies.value[enemies.value.length - 1]!
+        e.x = x
+        e.y = y
+        e.maxHp = Math.max(1, Math.round(e.maxHp * hp))
+        e.hp = e.maxHp
+        if (e.boss && boss.value) boss.value = { ...boss.value, hp: e.hp, maxHp: e.maxHp }
+        return e
+      },
+      /** Drop the RAF driver's leftover partial step: the next frame steps
+       *  exactly once, whatever real frames came before. */
+      syncClock(): void {
+        acc = 0
+        lastT = 0
+      },
+      /** Simulate `secs` with the event sink unplugged, so a staged fight can
+       *  open mid-exchange without a burst of every VFX it skipped. */
+      preroll(secs: number): void {
+        const sink = eventSink
+        eventSink = null
+        try { advanceBattle(secs) } finally { eventSink = sink }
+        if (renderSink) renderSink()
+      }
+    }
+  : null

@@ -132,10 +132,11 @@ export default {
     'body': 'Il tuo esercito ha continuato a combattere in tua assenza:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Ripristina il 25% della salute di tutte le unità.", 'reviveGuard': "Per 30 s, ogni unità che cade rinasce subito con salute piena.", 'defender': "Trasforma la tua migliore unità da mischia in un tank per 2 min: 2× salute, 80% danni in meno.", 'meteor': "Fa piovere meteore sul campo, colpendo tutti i nemici." },
+    'spellDesc': { 'heal': "Ripristina il 25% della salute di tutte le unità.", 'reviveGuard': "Per 30 s, ogni unità che cade rinasce subito con salute piena.", 'defender': "Trasforma la tua migliore unità da mischia in un tank per 2 min: 2× salute, 80% danni in meno.", 'meteor': "Fa piovere meteore sul campo, colpendo tutti i nemici.", 'warcry': "Per 8 s il tuo esercito infligge +60% di danni e attacca il 30% più velocemente.", 'legionCall': "Evoca per 20 s 3 guerrieri spettrali di un livello inferiore alla tua unità migliore. Si carica in fretta quando le tue unità cadono.", 'executionerMark': "Marchia il nemico più resistente per 10 s: subisce +75% di danni e viene giustiziato sotto il 12% di salute.", 'soulPact': "La tua unità più forte ottiene un gemello: la successiva più forte viene sacrificata per lui. Si ricarica in 3 minuti." },
     'mutationWave': "MUTAZIONE!",
     'overrunSetbackHint': "Queste ondate sono troppo forti: prima potenzia il tuo esercito su ondate più facili.",
-    'spells': { 'heal': "Cura", 'reviveGuard': "Guardia di Rinascita", 'defender': "Difensore" },
+    'spells': { 'heal': "Cura", 'reviveGuard': "Guardia di Rinascita", 'defender': "Difensore", 'warcry': "Grido di Guerra della Legione", 'legionCall': "Richiamo della Legione", 'executionerMark': "Marchio del Boia", 'soulPact': "Patto delle Anime" },
+    'pactNeedsSacrifice': "Il Patto delle Anime richiede un'unità di livello inferiore in campo da sacrificare.",
     'bossNames': { 'b0': "Glorp il Divoratore", 'b1': "Re Pugnofango", 'b2': "Mawzilla", 'b3': "Il Divora-Cancelli", 'b4': "Grumblor Prime" },
     'wave': 'Ondata {n}',
     'best': 'Record {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Codex delle unità',
-      'names': { 't1': 'Favilla di Magma', 't2': 'Vortice di Gelo', 't3': 'Bruto di Roccia', 't4': 'Guardiano Glaciale', 't5': 'Goccia di Marea', 't6': 'Colosso di Pietra', 't7': 'Occhio di Nebulosa', 't8': 'Spettro del Vuoto', 't9': 'Artiglio Dorato', 't10': 'Sovrano Fenice', 't11': "Signore della Guerra d'Ossidiana", 't12': "Titano Infernale", 't13': "Mietitore Umbrale", 't14': "Leviatano di Magma", 't15': "Ascendente Cosmico", 't16': "Sovrano delle Tempeste", 't17': "Guardiano Abissale", 't18': "Behemoth Fuso", 't19': "Divoratore Astrale", 't20': "Divinità Eterna" },
+      'names': { 't1': 'Favilla di Magma', 't2': 'Vortice di Gelo', 't3': 'Bruto di Roccia', 't4': 'Guardiano Glaciale', 't5': 'Goccia di Marea', 't6': 'Colosso di Pietra', 't7': 'Occhio di Nebulosa', 't8': 'Spettro del Vuoto', 't9': 'Artiglio Dorato', 't10': 'Sovrano Fenice', 't11': "Signore della Guerra d'Ossidiana", 't12': "Titano Infernale", 't13': "Mietitore Umbrale", 't14': "Leviatano di Magma", 't15': "Ascendente Cosmico", 't16': "Sovrano delle Tempeste", 't17': "Guardiano Abissale", 't18': "Behemoth Fuso", 't19': "Divoratore Astrale", 't20': "Divinità Eterna", 't21': "Sentinella d'Acciaio", 't22': "Burlone di Mercurio", 't23': "Tiranno Magnetico", 't24': "Custode d'Ambra", 't25': "Djinn delle Dune", 't26': "Fiala Caustica", 't27': "Cuore di Rovi", 't28': "Monarca di Corallo", 't29': "Saggio Fungo Lucente", 't30': "Furia Tempestosa", 't31': "Oracolo di Giada", 't32': "Monolite Runico", 't33': "Motore Crono", 't34': "Spirito Origami", 't35': "Folletto Bolla", 't36': "Cubo Glitch", 't37': "Campana Eco", 't38': "Lanterna Spirituale", 't39': "Spettro Specchio", 't40': "Cuore di Rubino", 't41': "Fuoco Fatuo Gelido", 't42': "Diamante Perfetto", 't43': "Dinamo al Plasma", 't44': "Araldo Cometa", 't45': "Serafino Aurora", 't46': "Imperatore Solare", 't47': "Stella dei Desideri", 't48': "Faro Pulsar", 't49': "Materia Oscura", 't50': "Singolarità Suprema" },
       'locked': 'Fondi due unità di livello {n} per scoprirla!',
+      'effects': { 'none': "Colpi rapidi: veloci e implacabili.", 'burn': "I colpi lasciano danni che continuano nel tempo.", 'knockback': "Colpi possenti respingono i nemici.", 'heal': "Ogni colpo cura l'alleato più debole.", 'splash': "Ogni colpo esplode su tutti i nemici vicini.", 'poison': "I colpi accumulano danni nel tempo.", 'chain': "Gli attacchi rimbalzano su altri tre nemici.", 'frost': "Rallenta a ogni colpo; un impulso stordisce i gruppi vicini.", 'midas': "Alta probabilità di critico e oro bonus a ogni colpo.", 'eruption': "Esplode all'impatto e brucia tutti i nemici vicini." },
       'abilities': {
         'none': 'Una favilla fusa: veloce, impavido e sempre in prima linea.',
         'burn': 'Il gelo pungente persiste: i nemici continuano a subire danni dopo il colpo.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Accesso negato: acquista una licenza.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'su {n}',
+    'aria': 'Classifica: posizione {rank} su {n}',
+    'ariaRank': 'Classifica: posizione {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'NUOVA UNITÀ!',
+    'tier': 'Livello {n}'
   }
 }

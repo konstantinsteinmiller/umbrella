@@ -9,6 +9,8 @@
  */
 import { computed } from 'vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
+import SkillIcon, { type SkillIconId } from '@/components/atoms/SkillIcon.vue'
+import RuneHintArrow from '@/components/atoms/RuneHintArrow.vue'
 import { formatCost } from '@/use/useReward'
 
 const props = defineProps<{
@@ -18,9 +20,11 @@ const props = defineProps<{
   price?: number           // coin cost while locked
   affordable?: boolean     // can pay the price right now
   iconArt?: string | null  // dropped-in bitmap icon
+  skill?: SkillIconId      // procedural icon while `iconArt` has no bitmap
   accent?: string          // ring / glow colour
   activeSecs?: number      // >0 → the spell is live (show a countdown)
   label?: string
+  hint?: boolean           // coach it: golden glow + a runic arrow above
 }>()
 const emit = defineEmits<{ (e: 'fire'): void; (e: 'unlock'): void }>()
 
@@ -35,12 +39,14 @@ const onClick = (): void => { if (props.locked) emit('unlock'); else emit('fire'
 <template lang="pug">
   button.spell-btn.relative.cursor-pointer(
     class="active:scale-90 transition-transform disabled:cursor-default"
-    :class="{ 'spell-ready': ready && !locked && !activeSecs, 'spell-dim': disabled, 'spell-affordable': affordableLocked }"
+    :class="{ 'spell-ready': ready && !locked && !activeSecs, 'spell-dim': disabled, 'spell-affordable': affordableLocked, 'spell-hint': hint && !locked }"
     :disabled="disabled"
     :aria-label="label"
     @click="onClick"
   )
-    svg(viewBox="0 0 48 48" class="w-11 h-11 sm:w-14 sm:h-14")
+    //- Sized by `--spell-size` when the row sets it (a row of eight shrinks to
+    //- fit its arena), else the classic 44 / 56 px.
+    svg.spell-svg(viewBox="0 0 48 48")
       circle(cx="24" cy="24" r="20" fill="#0e1426" stroke="#0f1a30" stroke-width="3")
       //- Charge ring — only meaningful once unlocked.
       circle(
@@ -49,10 +55,16 @@ const onClick = (): void => { if (props.locked) emit('unlock'); else emit('fire'
         :stroke-dasharray="RING" :stroke-dashoffset="RING * (1 - Math.min(100, pct) / 100)"
         transform="rotate(-90 24 24)"
       )
-      //- Icon (greyed while locked). No bitmap yet → a neutral dot placeholder.
+      //- Icon (greyed while locked). No bitmap yet → the skill's procedural
+      //- drawing, else a neutral dot placeholder.
       image(
         v-if="iconArt"
         :href="iconArt" x="8" y="8" width="32" height="32"
+        :class="{ 'spell-icon-locked': locked }"
+      )
+      SkillIcon(
+        v-else-if="skill"
+        :skill="skill" x="7" y="7" width="34" height="34"
         :class="{ 'spell-icon-locked': locked }"
       )
       circle(v-else cx="24" cy="24" r="9" :fill="ring" :opacity="locked ? 0.35 : 0.85")
@@ -70,11 +82,22 @@ const onClick = (): void => { if (props.locked) emit('unlock'); else emit('fire'
         class="text-[8px] sm:text-[9px]"
         :class="affordableLocked ? 'text-emerald-300' : 'text-white/70'"
       ) {{ formatCost(price ?? 0) }}
+    //- Coach arrow (first boss: "fire the Meteor now").
+    RuneHintArrow.spell-hint-arrow.absolute(v-if="hint && !locked" :size="22")
 </template>
 
 <style scoped lang="sass">
 .spell-btn:disabled
   pointer-events: none
+
+.spell-svg
+  display: block
+  width: var(--spell-size, 2.75rem)
+  height: var(--spell-size, 2.75rem)
+@media (min-width: 640px)
+  .spell-svg
+    width: var(--spell-size, 3.5rem)
+    height: var(--spell-size, 3.5rem)
 
 .spell-ready
   animation: spell-pulse 1.2s ease-in-out infinite
@@ -95,6 +118,19 @@ const onClick = (): void => { if (props.locked) emit('unlock'); else emit('fire'
     filter: drop-shadow(0 0 1px rgba(60, 220, 122, 0.5))
   50%
     filter: drop-shadow(0 0 10px rgba(60, 220, 122, 0.95))
+
+// Coached: a hot golden glow that out-shines the ready pulse, plus the arrow.
+.spell-hint
+  animation: spell-hint-glow 0.8s ease-in-out infinite
+@keyframes spell-hint-glow
+  0%, 100%
+    filter: drop-shadow(0 0 4px rgba(255, 210, 60, 0.85)) drop-shadow(0 0 1px #fff3a8)
+  50%
+    filter: drop-shadow(0 0 14px rgba(255, 196, 40, 1)) drop-shadow(0 0 3px #fff3a8)
+.spell-hint-arrow
+  left: 50%
+  bottom: calc(100% + 3px)
+  margin-left: -11px
 
 .spell-icon-locked
   filter: grayscale(1) brightness(0.55)

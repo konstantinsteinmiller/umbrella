@@ -132,10 +132,11 @@ export default {
     'body': 'Siz yoʻqligingizda qoʻshiningiz jang qilishda davom etdi:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Barcha jangchilar salomatligining 25%ini tiklaydi.", 'reviveGuard': "30 soniya davomida qulagan har bir jangchi darhol to'liq salomatlik bilan tiriladi.", 'defender': "Eng kuchli yaqin jang jangchisini 2 daqiqaga tankka aylantiradi: 2× salomatlik, 80% kam zarar.", 'meteor': "Maydonga meteorlar yog'diradi va barcha dushmanlarni uradi." },
+    'spellDesc': { 'heal': "Barcha jangchilar salomatligining 25%ini tiklaydi.", 'reviveGuard': "30 soniya davomida qulagan har bir jangchi darhol to'liq salomatlik bilan tiriladi.", 'defender': "Eng kuchli yaqin jang jangchisini 2 daqiqaga tankka aylantiradi: 2× salomatlik, 80% kam zarar.", 'meteor': "Maydonga meteorlar yog'diradi va barcha dushmanlarni uradi.", 'warcry': "8 soniya davomida qo'shiningiz +60% zarar yetkazadi va 30% tezroq hujum qiladi.", 'legionCall': "20 soniyaga eng kuchli jangchingizdan bir daraja past 3 ta arvoh jangchini chaqiradi. Jangchilaringiz halok bo'lganda tez to'ladi.", 'executionerMark': "Eng chidamli dushmanni 10 soniyaga belgilaydi: u +75% zarar oladi va salomatligi 12% dan tushganda qatl etiladi.", 'soulPact': "Eng kuchli jangchingiz egizak oladi — keyingi eng kuchlisi uning uchun qurbon qilinadi. 3 daqiqada qayta to'ladi." },
     'mutationWave': "MUTATSIYA!",
     'overrunSetbackHint': "Bu toʻlqinlar siz uchun juda kuchli — avval qoʻshiningizni yengilroq toʻlqinlarda kuchaytiring.",
-    'spells': { 'heal': "Davolash", 'reviveGuard': "Tiriltirish Qo'riqchisi", 'defender': "Himoyachi" },
+    'spells': { 'heal': "Davolash", 'reviveGuard': "Tiriltirish Qo'riqchisi", 'defender': "Himoyachi", 'warcry': "Legionning Jangovar Nidosi", 'legionCall': "Legion Chaqiruvi", 'executionerMark': "Jallod Tamg'asi", 'soulPact': "Jonlar Ahdi" },
+    'pactNeedsSacrifice': "Jonlar Ahdi uchun maydonda qurbon qilinadigan pastroq darajali jangchi kerak.",
     'bossNames': { 'b0': "Yutuvchi Glorp", 'b1': "Loymushtli Shoh", 'b2': "Mawzilla", 'b3': "Darvoza Yeyar", 'b4': "Grumblor Prime" },
     'wave': '{n}-toʻlqin',
     'best': 'Rekord {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Birliklar kodeksi',
-      'names': { 't1': 'Magma uchquni', 't2': 'Muzli quyun', 't3': 'Tosh gʻaddori', 't4': 'Muzlik posboni', 't5': 'Toshqin tomchisi', 't6': 'Qoyatosh koloss', 't7': 'Tumanlik koʻzi', 't8': 'Boʻshliq arvohi', 't9': 'Oltin panja', 't10': 'Feniks hukmdori', 't11': 'Obsidian sarkardasi', 't12': "Do'zax Titani", 't13': "Soya O'roqchisi", 't14': "Magma Leviafani", 't15': "Kosmik Yuksalgan", 't16': "Boʻron Hukmdori", 't17': "Tubsizlik Qorovuli", 't18': "Erigan Behemot", 't19': "Astral Yutuvchi", 't20': "Abadiy Xudolik" },
+      'names': { 't1': 'Magma uchquni', 't2': 'Muzli quyun', 't3': 'Tosh gʻaddori', 't4': 'Muzlik posboni', 't5': 'Toshqin tomchisi', 't6': 'Qoyatosh koloss', 't7': 'Tumanlik koʻzi', 't8': 'Boʻshliq arvohi', 't9': 'Oltin panja', 't10': 'Feniks hukmdori', 't11': 'Obsidian sarkardasi', 't12': "Do'zax Titani", 't13': "Soya O'roqchisi", 't14': "Magma Leviafani", 't15': "Kosmik Yuksalgan", 't16': "Boʻron Hukmdori", 't17': "Tubsizlik Qorovuli", 't18': "Erigan Behemot", 't19': "Astral Yutuvchi", 't20': "Abadiy Xudolik", 't21': "Po'lat Soqchi", 't22': "Simob Hiylakor", 't23': "Magnit Zolim", 't24': "Qahrabo Posboni", 't25': "Qum Jini", 't26': "O'yuvchi Kolba", 't27': "Tikan Yurak", 't28': "Marjon Hukmdor", 't29': "Nurqo'ziqorin Donishmand", 't30': "Bo'ron G'azabi", 't31': "Nefrit Bashoratchi", 't32': "Runa Monoliti", 't33': "Xrono Mexanizmi", 't34': "Origami Ruhi", 't35': "Pufak Parisi", 't36': "Glitch Kub", 't37': "Aks-sado Qo'ng'irog'i", 't38': "Ruh Chirog'i", 't39': "Ko'zgu Arvohi", 't40': "Yoqut Yurak", 't41': "Ayoz Olovi", 't42': "Benuqson Olmos", 't43': "Plazma Dinamosi", 't44': "Kometa Jarchisi", 't45': "Qutb Nuri Serafimi", 't46': "Quyosh Imperatori", 't47': "Tilak Yulduzi", 't48': "Pulsar Mayoq", 't49': "Qorong'u Materiya", 't50': "Oliy Singulyarlik" },
       'locked': 'Kashf qilish uchun ikkita {n}-daraja birlashtiring!',
+      'effects': { 'none': "Tezkor zarbalar — chaqqon va shafqatsiz.", 'burn': "Zarbalar davom etuvchi zarar qoldiradi.", 'knockback': "Kuchli zarbalar dushmanlarni orqaga uloqtiradi.", 'heal': "Har bir zarba eng zaif ittifoqchingizni davolaydi.", 'splash': "Har bir zarba yaqindagi barcha dushmanlarga tegadi.", 'poison': "Zarbalar vaqt o'tishi bilan zarar to'playdi.", 'chain': "Hujumlar yana uchta dushmanga sakraydi.", 'frost': "Zarbada sekinlashtiradi; to'lqin yaqindagi guruhlarni karaxt qiladi.", 'midas': "Yuqori krit ehtimoli va har zarbada bonus oltin.", 'eruption': "Tekkanida portlab, yaqindagi barcha dushmanlarni yondiradi." },
       'abilities': {
         'none': 'Erigan uchqun — tez, qoʻrqmas va doim oldinda.',
         'burn': 'Achchiq sovuq qoladi — dushmanlar zarbadan keyin ham zarar oladi.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Kirish rad etildi: iltimos, litsenziya sotib oling.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': '{n} tadan',
+    'aria': 'Reyting: {n} tadan {rank}-oʻrin',
+    'ariaRank': 'Reyting: {rank}-oʻrin'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'YANGI BIRLIK!',
+    'tier': '{n}-daraja'
   }
 }

@@ -20,6 +20,7 @@ import useBattlePass, {
 } from '@/use/useBattlePass'
 import usePrismGame from '@/use/usePrismGame'
 import useBattle from '@/use/useBattle'
+import { formatBig } from '@/utils/bigNumber'
 import useSounds from '@/use/useSound.ts'
 
 const {
@@ -170,7 +171,7 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
           svg(v-else-if="card.reward.instantSpawn" viewBox="0 0 24 24" class="w-4 h-4 sm:w-5 sm:h-5 my-0.5" fill="#ffe23a" stroke="#7a3000" stroke-width="1.4" stroke-linejoin="round")
             path(d="M13 2 L5 13 h5 l-1 9 l8 -11 h-5 Z")
           IconCoin(v-else class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 my-0.5")
-          span.font-black.game-text.text-yellow-100(class="text-[9px] sm:text-[10px]") +{{ card.reward.coins }}
+          span.font-black.game-text.text-yellow-100(class="text-[9px] sm:text-[10px]") +{{ formatBig(card.reward.coins) }}
 </template>
 
 <style scoped lang="sass">

@@ -51,10 +51,16 @@ const submitYandex = async (w: number): Promise<void> => {
 const submitPlaygama = (w: number): void => {
   try {
     const bridge = getPlaygamaBridge()
-    if (!bridge?.leaderboard?.setScore) return
-    // Option shape differs per portal protocol; the common fields cover the
-    // supported ones and unsupported portals reject harmlessly.
-    void Promise.resolve(bridge.leaderboard.setScore({ score: w, leaderboardName: LEADERBOARD_NAME }))
+    // v2 renamed the module `leaderboard` -> `leaderboards` AND changed the
+    // call from one options object to positional `(id, score)`. Under v1 this
+    // arm therefore did nothing at all: `bridge.leaderboard` was undefined, the
+    // optional-chain bailed, and the silent-no-op catch hid it. The Bridge's
+    // own types are what surfaced it during the migration.
+    if (!bridge?.leaderboards?.setScore) return
+    // Unsupported portals reject harmlessly — most of the 28 have no
+    // leaderboard at all, and a guest player on one that does is also a
+    // rejection. Neither is worth a console line on the player's screen.
+    void Promise.resolve(bridge.leaderboards.setScore(LEADERBOARD_NAME, w))
       .catch(() => undefined)
   } catch { /* portal without leaderboard support — silent no-op */ }
 }

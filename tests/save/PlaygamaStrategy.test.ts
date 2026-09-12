@@ -1,30 +1,51 @@
-// Regression coverage for "the cleared wave never reaches the Playgama remote".
+// Regression coverage for "the cleared wave never reaches the Playgama remote",
+// carried forward to Bridge SDK v2.
 //
-// Three separate defects produced that symptom and each gets a test here:
+// Three separate defects produced that symptom and each still gets a test here:
 //
-//   1. `platform_internal` is gated on `allowAnonymousCloudSave`. The live
-//      bridge's Playgama adapter computes
-//        isStorageAvailable(PLATFORM_INTERNAL)
-//          = isCloudSaveSupported && (allowAnonymousCloudSave || isAuthorized)
-//      so a guest player fell back to `local_storage` and nothing reached the
-//      cloud. The strategy must USE platform_internal whenever the bridge says
-//      it's available, and must still call through the bridge (never skip) in
-//      the local fallback, because the "Game Saves" cert check watches
-//      `storage.set` as its detection signal.
+//   1. Cloud storage is gated on `allowAnonymousCloudSave`. The gate survived
+//      the v2 upgrade — the shipped bundle still computes
+//        canUseCloud = isCloudSaveSupported
+//                      && (allowAnonymousCloudSave || player.isAuthorized)
+//      — so a guest player without the flag silently writes local-only and
+//      nothing reaches the remote. What CHANGED is who decides: v1 made the
+//      game probe `isAvailable('platform_internal')` and pass a storage TYPE
+//      on every call; v2 removed both and routes internally. So the flag is
+//      now asserted where it is actually set (the init options, in
+//      `playgamaSignals.test.ts`, and the emitted bridge config) and this file
+//      asserts the half that is still ours: every write goes THROUGH
+//      `bridge.storage.set`, whatever backend it lands in.
 //
 //   2. `hydrate()` was a no-op with a hard-coded `success-with-data`. Nothing
 //      was ever read back, and the fake terminal state disabled BOTH the boot
 //      sanity guard and the "don't push before a good hydrate" rule — so a
 //      defaults boot published defaults over the real save.
 //
-//   3. `storage.get(key, type)` defaults its third arg `tryParseJson` to TRUE,
-//      so our JSON payload came back as an OBJECT. A `typeof === 'string'`
-//      check drops it silently.
+//   3. `storage.get(key, tryParseJson)` defaults `tryParseJson` to TRUE, so
+//      our JSON payload came back as an OBJECT. A `typeof === 'string'` check
+//      drops it silently. (v2 dropped the middle storage-type argument; the
+//      parsing default is unchanged.)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PlaygamaStrategy } from '@/utils/save/PlaygamaStrategy'
 import { isPlaygamaSdkActive } from '@/utils/playgamaPlugin'
 import { META_KEY, computeMeta, serializeMeta } from '@/utils/save/SaveMergePolicy'
+
+// v2 has no `window.bridge` global to stub: the Bridge is an npm singleton the
+// plugin loads and hands out via `getPlaygamaBridge()`. Mock that one accessor
+// (plus the readiness ref the strategy gates on) and the strategy is exercised
+// exactly as it runs in production.
+const { bridgeHandle } = vi.hoisted(() => ({
+  bridgeHandle: { current: null as unknown }
+}))
+
+vi.mock('@/utils/playgamaPlugin', async () => {
+  const { ref } = await import('vue')
+  return {
+    isPlaygamaSdkActive: ref(false),
+    getPlaygamaBridge: () => bridgeHandle.current
+  }
+})
 
 const STATE_KEY = 'merge-idle-war_state'
 const WAVE_FIELD = 'battle_wave'
@@ -54,13 +75,10 @@ const makeLocal = (seed: Record<string, string> = {}): FakeLocal & { map: Map<st
 const stateBlob = (fields: Record<string, unknown>): string => JSON.stringify(fields)
 
 interface FakeBridgeOpts {
-  /** Mirrors the adapter gate: cloud is available only for an authorized
-   *  player OR when `allowAnonymousCloudSave` is configured. */
-  isAuthorized?: boolean
-  allowAnonymousCloudSave?: boolean
-  /** Pre-existing cloud row, keyed by storage type. */
+  /** Pre-existing row in the Bridge's store. v2 exposes ONE keyspace — which
+   *  backend it lands in (portal cloud or the Bridge's local adapter) is the
+   *  Bridge's decision, not ours, so the fake has one store too. */
   cloudSeed?: Record<string, string>
-  localSeed?: Record<string, string>
   /** Make `storage.get` reject, simulating an api.playgama.com blip. */
   failGet?: boolean
   /** Reproduce the real default: `get` JSON-parses unless told otherwise. */
@@ -69,27 +87,18 @@ interface FakeBridgeOpts {
 
 const installFakeBridge = (opts: FakeBridgeOpts = {}) => {
   const cloud = new Map<string, string>(Object.entries(opts.cloudSeed ?? {}))
-  const local = new Map<string, string>(Object.entries(opts.localSeed ?? {}))
-  const cloudAvailable =
-    (opts.allowAnonymousCloudSave === true) || (opts.isAuthorized === true)
 
-  const bucket = (type?: string) =>
-    type === 'platform_internal' ? cloud : local
+  const calls = { set: [] as Array<{ keys: string[] }>, get: 0 }
 
-  const calls = { set: [] as Array<{ keys: string[]; type: string }>, get: 0 }
-
+  // v2 signatures: `get(key, tryParseJson?)`, `set(key, value)`,
+  // `delete(key)`. The storage-TYPE argument every v1 call carried is gone.
   const storage = {
-    defaultType: 'local_storage' as const,
-    isAvailable: (type: string) =>
-      type === 'platform_internal' ? cloudAvailable : true,
-    get: (key: string | string[], type?: string, tryParseJson?: boolean) => {
+    get: (key: string | string[], tryParseJson?: boolean) => {
       calls.get += 1
       if (opts.failGet) return Promise.reject(new Error('network'))
-      const store = bucket(type)
-      // The real helper parses when `tryParseJson` is not explicitly false.
       const shouldParse = opts.parseJsonByDefault === true && tryParseJson !== false
       const read = (k: string): unknown => {
-        const raw = store.get(k) ?? null
+        const raw = cloud.get(k) ?? null
         if (raw !== null && shouldParse) {
           try { return JSON.parse(raw) } catch { return raw }
         }
@@ -98,27 +107,25 @@ const installFakeBridge = (opts: FakeBridgeOpts = {}) => {
       if (Array.isArray(key)) return Promise.resolve(key.map(read))
       return Promise.resolve(read(key))
     },
-    set: (key: string | string[], value: unknown, type?: string) => {
-      const store = bucket(type)
+    set: (key: string | string[], value: unknown) => {
       const keys = Array.isArray(key) ? key : [key]
       const values = Array.isArray(value) ? value : [value]
-      calls.set.push({ keys, type: type ?? 'local_storage' })
+      calls.set.push({ keys })
       keys.forEach((k, i) => {
         const v = values[i]
-        store.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v))
+        cloud.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v))
       })
       return Promise.resolve()
     },
-    delete: (key: string | string[], type?: string) => {
-      const store = bucket(type)
-      for (const k of (Array.isArray(key) ? key : [key])) store.delete(k)
+    delete: (key: string | string[]) => {
+      for (const k of (Array.isArray(key) ? key : [key])) cloud.delete(k)
       return Promise.resolve()
     }
   }
 
-  ;(window as unknown as { bridge?: unknown }).bridge = { storage }
+  bridgeHandle.current = { storage }
   isPlaygamaSdkActive.value = true
-  return { cloud, local, calls, storage }
+  return { cloud, calls, storage }
 }
 
 beforeEach(() => {
@@ -127,42 +134,43 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
-  delete (window as unknown as { bridge?: unknown }).bridge
+  bridgeHandle.current = null
   isPlaygamaSdkActive.value = false
 })
 
-describe('PlaygamaStrategy — cloud storage selection', () => {
-  it('uses platform_internal when anonymous cloud save is allowed (the fix)', async () => {
-    const fake = installFakeBridge({ allowAnonymousCloudSave: true })
+describe('PlaygamaStrategy — v2 has no storage-type probe', () => {
+  it('hydrates straight off bridge.storage, with no isAvailable() call', async () => {
+    // v1 asked `storage.isAvailable('platform_internal')` and then passed a
+    // type to every call. On adapters where the probe answered false or threw
+    // — YouTube's among them, where `localStorage` is null so the "safe"
+    // local fallback cannot work either — the game wrote into a store that
+    // does not exist and nothing surfaced as an error. v2 deletes the concept,
+    // so the fake exposes no `isAvailable` at all: if the strategy still
+    // reached for one, this hydrate would not settle.
+    const fake = installFakeBridge()
     const local = makeLocal()
     const strat = new PlaygamaStrategy()
 
     await strat.hydrate(local)
 
-    expect(strat.resolvedStorageType).toBe('platform_internal')
+    expect(strat.hydrateState).toBe('success-empty')
+    expect(fake.calls.get).toBeGreaterThan(0)
+    expect('isAvailable' in fake.storage).toBe(false)
   })
 
-  it('still reaches cloud for an authorized player with no config flag', async () => {
-    installFakeBridge({ isAuthorized: true })
-    const strat = new PlaygamaStrategy()
-    await strat.hydrate(makeLocal())
-    expect(strat.resolvedStorageType).toBe('platform_internal')
-  })
-
-  it('falls back to local_storage for an anonymous player with no flag — the bug', async () => {
-    // This is the pre-fix production state: guest player, no config flag.
-    // Documented here so a config regression is caught by a failing
-    // expectation elsewhere rather than by a rejected submission.
-    installFakeBridge({ isAuthorized: false, allowAnonymousCloudSave: false })
-    const strat = new PlaygamaStrategy()
-    await strat.hydrate(makeLocal())
-    expect(strat.resolvedStorageType).toBe('local_storage')
+  it('reads BOTH portal keys in ONE get() call', async () => {
+    // Rule 4: on a whole-blob adapter every read is a full download and every
+    // write a read-modify-write of the entire save. One batched call is the
+    // difference between one round trip and 2N.
+    const fake = installFakeBridge()
+    await new PlaygamaStrategy().hydrate(makeLocal())
+    expect(fake.calls.get).toBe(1)
   })
 })
 
 describe('PlaygamaStrategy — the cleared wave round-trips to the remote', () => {
   it('writes the wave through bridge.storage.set into the cloud bucket', async () => {
-    const fake = installFakeBridge({ allowAnonymousCloudSave: true })
+    const fake = installFakeBridge()
     const local = makeLocal()
     const strat = new PlaygamaStrategy()
     await strat.hydrate(local)
@@ -177,15 +185,19 @@ describe('PlaygamaStrategy — the cleared wave round-trips to the remote', () =
 
     expect(fake.cloud.get(STATE_KEY)).toBe(blob)
     expect(JSON.parse(fake.cloud.get(STATE_KEY)!)[BEST_WAVE_FIELD]).toBe(37)
-    // Cert signal: the write went through the bridge, tagged platform_internal.
-    expect(fake.calls.set.some(c => c.type === 'platform_internal')).toBe(true)
+    // Cert signal: the write went through `bridge.storage.set` — the call the
+    // QA Tool's "Game Saves" check watches for. Which backend the Bridge
+    // routed it to is its business, not ours, in v2.
+    expect(fake.calls.set.length).toBeGreaterThan(0)
+    // ONE batched call carrying both keys, never one call per key (rule 4).
+    expect(fake.calls.set).toHaveLength(1)
+    expect(fake.calls.set[0].keys).toEqual(expect.arrayContaining([STATE_KEY, META_KEY]))
   })
 
   it('reads the wave back on the next boot (hydrate is no longer a no-op)', async () => {
     const blob = stateBlob({ [WAVE_FIELD]: 37, [BEST_WAVE_FIELD]: 37, [STAGE_FIELD]: 5 })
     const meta = serializeMeta(computeMeta({ get: (k) => (k === STATE_KEY ? blob : null) }))
     installFakeBridge({
-      allowAnonymousCloudSave: true,
       cloudSeed: { [STATE_KEY]: blob, [META_KEY]: meta }
     })
     // Fresh device / wiped iframe storage: local has nothing.
@@ -204,7 +216,6 @@ describe('PlaygamaStrategy — the cleared wave round-trips to the remote', () =
     // must re-serialize rather than drop it.
     const blob = stateBlob({ [BEST_WAVE_FIELD]: 88, [STAGE_FIELD]: 9 })
     installFakeBridge({
-      allowAnonymousCloudSave: true,
       cloudSeed: { [STATE_KEY]: blob },
       parseJsonByDefault: true
     })
@@ -217,9 +228,10 @@ describe('PlaygamaStrategy — the cleared wave round-trips to the remote', () =
     expect(JSON.parse(local.get(STATE_KEY)!)[BEST_WAVE_FIELD]).toBe(88)
   })
 
-  it('calls through the bridge even in local_storage mode (cert detection)', async () => {
-    // Rule 3: a "local-only → skip" optimization zeroes the Game Saves check.
-    const fake = installFakeBridge({ isAuthorized: false, allowAnonymousCloudSave: false })
+  it('always calls through the bridge, never straight to local (cert detection)', async () => {
+    // Rule 3: a "this write is only local anyway → skip" optimization zeroes
+    // the Game Saves check even while local writes land perfectly.
+    const fake = installFakeBridge()
     const local = makeLocal()
     const strat = new PlaygamaStrategy()
     await strat.hydrate(local)
@@ -231,7 +243,7 @@ describe('PlaygamaStrategy — the cleared wave round-trips to the remote', () =
     await strat.flush()
 
     expect(fake.calls.set.length).toBeGreaterThan(0)
-    expect(fake.local.get(STATE_KEY)).toBe(blob)
+    expect(fake.cloud.get(STATE_KEY)).toBe(blob)
   })
 })
 
@@ -242,7 +254,6 @@ describe('PlaygamaStrategy — defaults must never clobber a real cloud save', (
       computeMeta({ get: (k) => (k === STATE_KEY ? cloudBlob : null) })
     )
     installFakeBridge({
-      allowAnonymousCloudSave: true,
       cloudSeed: { [STATE_KEY]: cloudBlob, [META_KEY]: cloudMeta }
     })
     // Fresh-defaults local: stage 1, no waves.
@@ -256,7 +267,7 @@ describe('PlaygamaStrategy — defaults must never clobber a real cloud save', (
   })
 
   it('does NOT push while hydrate is unresolved (failed read)', async () => {
-    const fake = installFakeBridge({ allowAnonymousCloudSave: true, failGet: true })
+    const fake = installFakeBridge({ failGet: true })
     const local = makeLocal()
     const strat = new PlaygamaStrategy()
 
@@ -280,7 +291,6 @@ describe('PlaygamaStrategy — defaults must never clobber a real cloud save', (
       computeMeta({ get: (k) => (k === STATE_KEY ? cloudBlob : null) })
     )
     const fake = installFakeBridge({
-      allowAnonymousCloudSave: true,
       cloudSeed: { [STATE_KEY]: cloudBlob, [META_KEY]: cloudMeta }
     })
     const localBlob = stateBlob({ [BEST_WAVE_FIELD]: 90, [STAGE_FIELD]: 11 })
@@ -300,7 +310,7 @@ describe('PlaygamaStrategy — defaults must never clobber a real cloud save', (
   })
 
   it('publishes a META blob so the next boot can score this save', async () => {
-    const fake = installFakeBridge({ allowAnonymousCloudSave: true })
+    const fake = installFakeBridge()
     const local = makeLocal()
     const strat = new PlaygamaStrategy()
     await strat.hydrate(local)
@@ -319,7 +329,7 @@ describe('PlaygamaStrategy — defaults must never clobber a real cloud save', (
 
 describe('PlaygamaStrategy — key allowlist', () => {
   it('does not mirror the bridge guest id or dev toggles to the portal', async () => {
-    const fake = installFakeBridge({ allowAnonymousCloudSave: true })
+    const fake = installFakeBridge()
     const local = makeLocal()
     const strat = new PlaygamaStrategy()
     await strat.hydrate(local)

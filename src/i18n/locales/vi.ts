@@ -132,10 +132,11 @@ export default {
     'body': 'Đội quân của bạn vẫn chiến đấu khi bạn vắng mặt:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Hồi 25% máu cho mọi đơn vị.", 'reviveGuard': "Trong 30 giây, đơn vị nào gục ngã sẽ hồi sinh ngay với đầy máu.", 'defender': "Biến đơn vị cận chiến mạnh nhất thành tank trong 2 phút: máu ×2, nhận ít hơn 80% sát thương.", 'meteor': "Trút mưa thiên thạch xuống trận, giáng đòn lên mọi kẻ địch." },
+    'spellDesc': { 'heal': "Hồi 25% máu cho mọi đơn vị.", 'reviveGuard': "Trong 30 giây, đơn vị nào gục ngã sẽ hồi sinh ngay với đầy máu.", 'defender': "Biến đơn vị cận chiến mạnh nhất thành tank trong 2 phút: máu ×2, nhận ít hơn 80% sát thương.", 'meteor': "Trút mưa thiên thạch xuống trận, giáng đòn lên mọi kẻ địch.", 'warcry': "Trong 8 giây, quân của bạn gây thêm 60% sát thương và tấn công nhanh hơn 30%.", 'legionCall': "Triệu hồi 3 chiến binh linh hồn thấp hơn đơn vị mạnh nhất một bậc trong 20 giây. Nạp nhanh khi đơn vị của bạn gục ngã.", 'executionerMark': "Đánh dấu kẻ địch lì đòn nhất trong 10 giây: nhận thêm 75% sát thương và bị hành quyết khi máu dưới 12%.", 'soulPact': "Đơn vị mạnh nhất của bạn có thêm một bản sao — đơn vị mạnh thứ nhì bị hiến tế cho nó. Hồi lại sau 3 phút." },
     'mutationWave': "ĐỘT BIẾN!",
     'overrunSetbackHint': "Các đợt này quá mạnh — hãy xây dựng đội quân ở các đợt dễ hơn trước.",
-    'spells': { 'heal': "Hồi Máu", 'reviveGuard': "Hộ Vệ Hồi Sinh", 'defender': "Vệ Binh" },
+    'spells': { 'heal': "Hồi Máu", 'reviveGuard': "Hộ Vệ Hồi Sinh", 'defender': "Vệ Binh", 'warcry': "Chiến Hống Quân Đoàn", 'legionCall': "Triệu Hồi Quân Đoàn", 'executionerMark': "Dấu Ấn Đao Phủ", 'soulPact': "Khế Ước Linh Hồn" },
+    'pactNeedsSacrifice': "Khế Ước Linh Hồn cần một đơn vị bậc thấp hơn trên sân để hiến tế.",
     'bossNames': { 'b0': "Glorp Kẻ Nuốt Chửng", 'b1': "Vua Nắm Đấm Bùn", 'b2': "Mawzilla", 'b3': "Kẻ Ăn Cổng", 'b4': "Grumblor Nguyên Thủy" },
     'wave': 'Đợt {n}',
     'best': 'Kỷ lục {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Sổ tay đơn vị',
-      'names': { 't1': 'Tia Dung Nham', 't2': 'Lốc Băng Giá', 't3': 'Gã Đá Hung Bạo', 't4': 'Vệ Binh Băng Hà', 't5': 'Giọt Thủy Triều', 't6': 'Khổng Lồ Đá', 't7': 'Mắt Tinh Vân', 't8': 'Bóng Ma Hư Không', 't9': 'Móng Vuốt Vàng', 't10': 'Phượng Hoàng Chúa Tể', 't11': 'Lãnh Chúa Hắc Diện Thạch', 't12': "Titan Địa Ngục", 't13': "Tử Thần Bóng Tối", 't14': "Thủy Quái Dung Nham", 't15': "Đấng Thăng Thiên Vũ Trụ", 't16': "Chúa Tể Bão Tố", 't17': "Người Gác Vực Thẳm", 't18': "Behemoth Nóng Chảy", 't19': "Kẻ Nuốt Chửng Tinh Tú", 't20': "Thần Thể Vĩnh Hằng" },
+      'names': { 't1': 'Tia Dung Nham', 't2': 'Lốc Băng Giá', 't3': 'Gã Đá Hung Bạo', 't4': 'Vệ Binh Băng Hà', 't5': 'Giọt Thủy Triều', 't6': 'Khổng Lồ Đá', 't7': 'Mắt Tinh Vân', 't8': 'Bóng Ma Hư Không', 't9': 'Móng Vuốt Vàng', 't10': 'Phượng Hoàng Chúa Tể', 't11': 'Lãnh Chúa Hắc Diện Thạch', 't12': "Titan Địa Ngục", 't13': "Tử Thần Bóng Tối", 't14': "Thủy Quái Dung Nham", 't15': "Đấng Thăng Thiên Vũ Trụ", 't16': "Chúa Tể Bão Tố", 't17': "Người Gác Vực Thẳm", 't18': "Behemoth Nóng Chảy", 't19': "Kẻ Nuốt Chửng Tinh Tú", 't20': "Thần Thể Vĩnh Hằng", 't21': "Lính Gác Thép", 't22': "Kẻ Lừa Thủy Ngân", 't23': "Bạo Chúa Nam Châm", 't24': "Hộ Vệ Hổ Phách", 't25': "Thần Đèn Cồn Cát", 't26': "Bình Axit", 't27': "Trái Tim Gai", 't28': "Quân Vương San Hô", 't29': "Hiền Giả Nấm Sáng", 't30': "Cuồng Nộ Mây Bão", 't31': "Nhà Tiên Tri Ngọc Bích", 't32': "Cột Đá Rune", 't33': "Cỗ Máy Thời Gian", 't34': "Linh Hồn Origami", 't35': "Tiên Bong Bóng", 't36': "Khối Lập Phương Lỗi", 't37': "Chuông Vọng", 't38': "Đèn Lồng Linh Hồn", 't39': "Bóng Ma Gương", 't40': "Trái Tim Hồng Ngọc", 't41': "Ma Trơi Băng Hỏa", 't42': "Kim Cương Hoàn Mỹ", 't43': "Máy Phát Plasma", 't44': "Sứ Giả Sao Chổi", 't45': "Thiên Thần Cực Quang", 't46': "Hoàng Đế Mặt Trời", 't47': "Ngôi Sao Ước Nguyện", 't48': "Hải Đăng Sao Xung", 't49': "Vật Chất Tối", 't50': "Điểm Kỳ Dị Tối Thượng" },
       'locked': 'Hợp nhất hai đơn vị bậc {n} để khám phá!',
+      'effects': { 'none': "Đòn đánh nhanh — lanh lẹ và không khoan nhượng.", 'burn': "Đòn đánh để lại sát thương tiếp tục gây hại.", 'knockback': "Đòn nặng hất văng kẻ địch về sau.", 'heal': "Mỗi đòn đánh hồi máu cho đồng minh yếu nhất.", 'splash': "Mỗi đòn đánh lan ra mọi kẻ địch lân cận.", 'poison': "Đòn đánh cộng dồn sát thương theo thời gian.", 'chain': "Đòn tấn công nảy sang thêm ba kẻ địch.", 'frost': "Làm chậm khi trúng; xung lực làm choáng các nhóm gần đó.", 'midas': "Tỉ lệ chí mạng cao và thêm vàng mỗi đòn.", 'eruption': "Phát nổ khi va chạm, thiêu đốt mọi kẻ địch lân cận." },
       'abilities': {
         'none': 'Tia lửa nóng chảy — nhanh nhẹn, gan dạ, luôn đi đầu.',
         'burn': 'Giá buốt còn vương — kẻ địch tiếp tục nhận sát thương sau đòn đánh.',
@@ -309,5 +311,19 @@ export default {
   },
   'license': {
     'denied': 'Truy cập bị từ chối: vui lòng mua giấy phép.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'trên {n}',
+    'aria': 'Bảng xếp hạng: hạng {rank} trên {n}',
+    'ariaRank': 'Bảng xếp hạng: hạng {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'ĐƠN VỊ MỚI!',
+    'tier': 'Bậc {n}'
   }
 }

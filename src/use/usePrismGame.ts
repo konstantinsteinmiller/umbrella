@@ -7,7 +7,7 @@
  * in the grid. Grid contents and the max-tier watermark survive reloads via
  * the single `merge-idle-war_state` blob (`useEpicState`).
  *
- * Spawning is clicker-style pacing (no gold cost): 4 taps of the Spawn button
+ * Spawning is clicker-style pacing (no gold cost): 3 taps of the Spawn button
  * produce one tier-1 recruit. The rewarded "Instant Spawn" buff drops that to
  * 1 tap for 2 minutes — the tap friction is what gives the player recovery
  * time after a wave wipes the army, while the buff sells the power fantasy.
@@ -23,17 +23,19 @@ import { saveDataVersion } from '@/use/useSaveStatus'
 import { getState, setState, prismState } from '@/use/useEpicState'
 import useEpicConfig from '@/use/useEpicConfig'
 import { GRID_KEY, PRISM_MAX_TIER_KEY, PRISM_INSTANT_SPAWN_KEY } from '@/keys'
-import { MAX_INGREDIENT_TIER } from '@/game/ingredients'
 import { impCadenceMs, bumpStat, recruitTier } from '@/use/useBattle'
 import { notifyTutorial, isTutorialOneTap } from '@/use/useTutorial'
 import { isGamePaused } from '@/use/useGamePause'
+import { announceNewTier, endReveal, retargetReveal, revealTargets } from '@/use/useTierReveal'
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 export const GRID_COLS = 4
 export const GRID_ROWS = 4
 export const GRID_SIZE = GRID_COLS * GRID_ROWS
-/** Spawn-button taps required per recruit without the buff. */
-const CLICKS_PER_SPAWN = 4
+/** Spawn-button taps required per recruit without the buff. Was 4: play-testers
+ *  read a 4-tap meter as a cooldown and waited between taps, which starved the
+ *  army before the wave-5 boss. The button now counts the taps left out loud. */
+export const CLICKS_PER_SPAWN = 3
 /** Instant-spawn buff duration (rewarded ad): 1 tap per recruit. */
 const INSTANT_SPAWN_MS = 120_000
 
@@ -68,6 +70,25 @@ export const bumpMaxTier = (tier: number): void => {
     maxTier.value = tier
     setState(PRISM_MAX_TIER_KEY, maxTier.value)
   }
+}
+
+/**
+ * An arena field merge landed on fighter `fighterId`, which is now `tier`.
+ * Raises the watermark like `bumpMaxTier`, and — only when `tier` is one the
+ * player never had — starts the new-tier reveal on that fighter. Returns
+ * whether it was a discovery, so the arena plays the reveal sting instead of
+ * the ordinary field-merge sound.
+ *
+ * The discovery test has to run BEFORE the bump: afterwards every tier is
+ * "already known". It lives here rather than in a watcher on `maxTier` because
+ * the watermark also moves on spawns, deploys, chest rewards and the
+ * restored-army reconcile, and none of those may trigger the moment.
+ */
+export const noteFieldMerge = (tier: number, fighterId: number | null): boolean => {
+  const discovered = Number.isFinite(tier) && tier > maxTier.value
+  bumpMaxTier(tier)
+  if (discovered && fighterId !== null) announceNewTier(tier, { kind: 'fighter', fighterId })
+  return discovered
 }
 /** Epoch-ms the instant-spawn buff expires at (persisted; survives reloads). */
 const instantSpawnUntil: Ref<number> = ref(Number(readJSON(PRISM_INSTANT_SPAWN_KEY, 0)) || 0)
@@ -142,7 +163,9 @@ export const spawnIngredient = (): number => {
  *  for milestone chests / flying chest / campaign tiers (not the tap economy).
  *  Returns the slot index or -1 when the grid is full. */
 export const spawnUnitAt = (tier: number): number => {
-  const t = Math.max(1, Math.min(MAX_INGREDIENT_TIER, Math.floor(tier)))
+  // No gameplay cap (the callers decide the tier — see `chestUnitTier`); 999 is
+  // the same junk bound the army restore uses.
+  const t = Math.max(1, Math.min(999, Math.floor(tier)))
   const idx = randomEmptyIndex()
   if (idx < 0) return -1
   setSlot(idx, t)
@@ -193,15 +216,25 @@ export const merge = (from: number, to: number): number => {
   if (!a || !b || a !== b) return 0
   // No tier cap — merging always climbs a level (art/stats clamp/extrapolate
   // past the authored tiers until more are added).
+  const tier = a + 1
+  // Decided before the watermark moves — see `noteFieldMerge`.
+  const discovered = tier > maxTier.value
   const next = grid.value.slice()
-  next[to] = a + 1
+  next[to] = tier
   next[from] = 0
   grid.value = next
-  bumpMaxTier(a + 1)
+  bumpMaxTier(tier)
   bumpStat('merges')
   persistGrid()
+  if (discovered) {
+    // A tier the player has never had: the new unit gets its moment.
+    announceNewTier(tier, { kind: 'grid', idx: to })
+  } else if (revealTargets({ kind: 'grid', idx: from }) || revealTargets({ kind: 'grid', idx: to })) {
+    // The revealed unit was merged into something else: it no longer exists.
+    endReveal()
+  }
   notifyTutorial('merge')
-  return a + 1
+  return tier
 }
 
 /** Move a unit to an empty slot (drag rearrange QoL). Returns true if moved. */
@@ -213,6 +246,8 @@ export const moveSlot = (from: number, to: number): boolean => {
   next[from] = 0
   grid.value = next
   persistGrid()
+  // A freshly revealed unit dragged to another slot keeps its spotlight.
+  retargetReveal({ kind: 'grid', idx: from }, { kind: 'grid', idx: to })
   return true
 }
 
@@ -317,7 +352,7 @@ const usePrismGame = () => ({
   // derived
   canSpawn, clicksRequired, instantSpawnActive, instantSpawnRemainingMs, emptySlots,
   // actions
-  tapSpawn, activateInstantSpawn, spawnIngredient, spawnUnitAt, merge, moveSlot, takeFromGrid, bumpMaxTier,
+  tapSpawn, activateInstantSpawn, spawnIngredient, spawnUnitAt, merge, moveSlot, takeFromGrid, bumpMaxTier, noteFieldMerge,
   // events
   autoAction,
   // lifecycle

@@ -132,10 +132,11 @@ export default {
     'body': 'Sen yokken ordun savaşmaya devam etti:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Tüm birimlerin canının %25'ini yeniler.", 'reviveGuard': "30 sn boyunca düşen her birim anında tam canla dirilir.", 'defender': "En iyi yakın dövüş biriminizi 2 dk tanka çevirir: 2× can, %80 daha az hasar.", 'meteor': "Sahaya meteor yağdırır, tüm düşmanları vurur." },
+    'spellDesc': { 'heal': "Tüm birimlerin canının %25'ini yeniler.", 'reviveGuard': "30 sn boyunca düşen her birim anında tam canla dirilir.", 'defender': "En iyi yakın dövüş biriminizi 2 dk tanka çevirir: 2× can, %80 daha az hasar.", 'meteor': "Sahaya meteor yağdırır, tüm düşmanları vurur.", 'warcry': "8 sn boyunca ordun +%60 hasar verir ve %30 daha hızlı saldırır.", 'legionCall': "20 sn boyunca en iyi biriminden bir seviye aşağıda 3 hayalet savaşçı çağırır. Birimlerin düştükçe hızla dolar.", 'executionerMark': "En dayanıklı düşmanı 10 sn damgalar: +%75 hasar alır ve canı %12'nin altına düşünce infaz edilir.", 'soulPact': "En güçlü birimin bir ikiz kazanır — bir sonraki en güçlü birim onun için feda edilir. 3 dakikada yenilenir." },
     'mutationWave': "MUTASYON!",
     'overrunSetbackHint': "Bu dalgalar senin için çok güçlü — önce ordunu daha kolay dalgalarda güçlendir.",
-    'spells': { 'heal': "İyileştirme", 'reviveGuard': "Diriliş Muhafızı", 'defender': "Savunucu" },
+    'spells': { 'heal': "İyileştirme", 'reviveGuard': "Diriliş Muhafızı", 'defender': "Savunucu", 'warcry': "Lejyonun Savaş Çığlığı", 'legionCall': "Lejyon Çağrısı", 'executionerMark': "Cellat Damgası", 'soulPact': "Ruh Paktı" },
+    'pactNeedsSacrifice': "Ruh Paktı için sahada feda edilecek daha düşük seviyeli bir birim gerekir.",
     'bossNames': { 'b0': "Yiyici Glorp", 'b1': "Kral Balçıkyumruk", 'b2': "Mawzilla", 'b3': "Kapı Yiyen", 'b4': "Grumblor Prime" },
     'wave': 'Dalga {n}',
     'best': 'Rekor {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Birim Kodeksi',
-      'names': { 't1': 'Magma Kıvılcımı', 't2': 'Buz Kasırgası', 't3': 'Kaya Kabadayısı', 't4': 'Buzul Muhafızı', 't5': 'Gelgit Damlası', 't6': 'Taş Devi', 't7': 'Bulutsu Gözü', 't8': 'Boşluk Hayaleti', 't9': 'Altın Pençe', 't10': 'Anka Hükümdarı', 't11': 'Obsidyen Savaş Lordu', 't12': "Cehennem Titanı", 't13': "Gölge Orakçısı", 't14': "Magma Leviathanı", 't15': "Kozmik Yücelen", 't16': "Fırtına Hükümdarı", 't17': "Uçurum Bekçisi", 't18': "Eriyik Behemot", 't19': "Astral Yutucu", 't20': "Ebedi Tanrı" },
+      'names': { 't1': 'Magma Kıvılcımı', 't2': 'Buz Kasırgası', 't3': 'Kaya Kabadayısı', 't4': 'Buzul Muhafızı', 't5': 'Gelgit Damlası', 't6': 'Taş Devi', 't7': 'Bulutsu Gözü', 't8': 'Boşluk Hayaleti', 't9': 'Altın Pençe', 't10': 'Anka Hükümdarı', 't11': 'Obsidyen Savaş Lordu', 't12': "Cehennem Titanı", 't13': "Gölge Orakçısı", 't14': "Magma Leviathanı", 't15': "Kozmik Yücelen", 't16': "Fırtına Hükümdarı", 't17': "Uçurum Bekçisi", 't18': "Eriyik Behemot", 't19': "Astral Yutucu", 't20': "Ebedi Tanrı", 't21': "Çelik Nöbetçi", 't22': "Cıva Hilebazı", 't23': "Mıknatıs Zorbası", 't24': "Kehribar Muhafızı", 't25': "Kum Cini", 't26': "Yakıcı Şişe", 't27': "Diken Yürek", 't28': "Mercan Hükümdarı", 't29': "Işıkmantar Bilgesi", 't30': "Fırtına Öfkesi", 't31': "Yeşim Kâhini", 't32': "Rün Monoliti", 't33': "Krono Motoru", 't34': "Origami Ruhu", 't35': "Baloncuk Perisi", 't36': "Glitch Küpü", 't37': "Yankı Çanı", 't38': "Ruh Feneri", 't39': "Ayna Hayaleti", 't40': "Yakut Yürek", 't41': "Buz Ateşi Perisi", 't42': "Kusursuz Elmas", 't43': "Plazma Dinamosu", 't44': "Kuyruklu Yıldız Habercisi", 't45': "Kutup Işığı Serafı", 't46': "Güneş İmparatoru", 't47': "Dilek Yıldızı", 't48': "Pulsar Işığı", 't49': "Karanlık Madde", 't50': "Yüce Tekillik" },
       'locked': 'Keşfetmek için iki Seviye {n} birleştir!',
+      'effects': { 'none': "Seri darbeler — hızlı ve amansız.", 'burn': "Vuruşlar işlemeye devam eden hasar bırakır.", 'knockback': "Ağır darbeler düşmanları geri savurur.", 'heal': "Her vuruş en zayıf müttefikini iyileştirir.", 'splash': "Her vuruş yakındaki tüm düşmanlara sıçrar.", 'poison': "Vuruşlar zamanla biriken hasar verir.", 'chain': "Saldırılar üç düşmana daha sıçrar.", 'frost': "Vuruşta yavaşlatır; bir dalga yakındaki grupları sersemletir.", 'midas': "Yüksek kritik şansı ve her vuruşta bonus altın.", 'eruption': "Çarpınca patlar ve yakındaki tüm düşmanları yakar." },
       'abilities': {
         'none': 'Erimiş bir kıvılcım — hızlı, korkusuz ve hep en önde.',
         'burn': 'Keskin ayaz sürüp gider — düşmanlar vuruştan sonra da hasar almaya devam eder.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Erişim reddedildi: lütfen bir lisans satın al.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'toplam {n}',
+    'aria': 'Sıralama: {n} oyuncu içinde {rank}. sıra',
+    'ariaRank': 'Sıralama: {rank}. sıra'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'YENİ BİRİM!',
+    'tier': 'Seviye {n}'
   }
 }

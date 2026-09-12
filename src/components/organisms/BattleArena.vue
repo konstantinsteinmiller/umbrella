@@ -14,7 +14,9 @@
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import useBattle, { GOLD_RUSH_MULT, type BattleEvent, type Fighter, type Enemy } from '@/use/useBattle'
+import useBattle, { GOLD_RUSH_MULT, PACT_COOLDOWN_MS, meteorHintActive, type BattleEvent, type Fighter, type Enemy } from '@/use/useBattle'
+import { mobileCheck } from '@/utils/function'
+import { formatBig } from '@/utils/bigNumber'
 import { getFighterDef, rollMutator, nextArchetypeUnlock } from '@/game/units'
 import { getIngredient } from '@/game/ingredients'
 import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
@@ -31,11 +33,20 @@ import { emitConfetti, emitSparkle, emitSplash } from '@/use/usePrismParticles'
 import { registerDropZone, unregisterDropZone, dragActive } from '@/use/useDropZones'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 import useReward, { formatCost } from '@/use/useReward'
-import { bumpMaxTier } from '@/use/usePrismGame'
-import { tutorialHoldsBattle } from '@/use/useTutorial'
+import { bumpMaxTier, noteFieldMerge } from '@/use/usePrismGame'
+import { activeReveal, revealAnimationDelay } from '@/use/useTierReveal'
+import { tutorialActive, tutorialHoldsBattle } from '@/use/useTutorial'
 import { bestWaveRank } from '@/platforms/leaderboard'
+import { leaderboardEnabled } from '@/use/useLeaderboard'
+import { installWaveLeaderboard, rankedBest } from '@/use/useWaveLeaderboard'
+import RankBadge from '@/components/atoms/RankBadge.vue'
 import { triggerHappytime } from '@/use/useCrazyGames'
 import { stopGameplayForWaveBreak, resumeGameplayAfterWaveBreak } from '@/use/useCrazyWaveGameplay'
+import {
+  scheduleWaveClearInterstitial,
+  playDeathScreenInterstitial,
+  isDeathAdPlaying
+} from '@/use/useBreakInterstitial'
 
 const props = defineProps<{
   /** Wallet badge element — kill/boss payouts fly coins into it. */
@@ -141,7 +152,8 @@ const numEls: (HTMLElement | null)[] = Array.from({ length: NUM_POOL }, () => nu
 const numBusy: number[] = Array.from({ length: NUM_POOL }, () => 0)
 const setNumEl = (i: number) => (el: unknown): void => { numEls[i] = el instanceof HTMLElement ? el : null }
 
-const fmtNum = (n: number): string => n >= 10_000 ? `${Math.round(n / 1000)}K` : String(Math.round(n))
+// Floating numbers stay short at any depth: 9999, 12.3K, 456K, 7.89M … 1.2Qa.
+const fmtNum = (n: number): string => formatBig(n, { sig: 3, trim: true, plainBelow: 10_000 })
 
 const popNumber = (x: number, y: number, amount: number, variant: string): void => {
   const i = numBusy.indexOf(0)
@@ -160,11 +172,17 @@ const popNumber = (x: number, y: number, amount: number, variant: string): void 
 }
 
 // ─── Transient overlay effects (low frequency → fine as reactive lists) ──────
-interface Flash { id: number; type: 'nova' | 'meteor' | 'warheal' | 'shockwave' | 'mergeburst' | 'impactsheet'; x: number; y: number; art?: string }
+interface Flash {
+  id: number
+  type: 'nova' | 'meteor' | 'warheal' | 'shockwave' | 'mergeburst' | 'impactsheet'
+    | 'warcry' | 'legion' | 'markcast' | 'execute' | 'pact'
+  x: number; y: number; art?: string
+}
 const flashes = ref<Flash[]>([])
 let flashSeq = 0
 const FLASH_MS: Record<Flash['type'], number> = {
-  nova: 600, meteor: 700, warheal: 600, shockwave: 500, mergeburst: 500, impactsheet: 480
+  nova: 600, meteor: 700, warheal: 600, shockwave: 500, mergeburst: 500, impactsheet: 480,
+  warcry: 950, legion: 1100, markcast: 520, execute: 640, pact: 800
 }
 const addFlash = (type: Flash['type'], x: number, y: number): void => {
   const id = ++flashSeq
@@ -240,6 +258,84 @@ const addChain = (points: { x: number; y: number }[]): void => {
   const id = ++flashSeq
   chains.value = [...chains.value, { id, points: points.map((p) => `${p.x},${p.y}`).join(' ') }]
   window.setTimeout(() => { chains.value = chains.value.filter((c) => c.id !== id) }, 260)
+}
+
+// Soul Pact's tether: sacrifice → champion, body centre to body centre.
+interface Tether { id: number; x1: number; y1: number; x2: number; y2: number }
+const tethers = ref<Tether[]>([])
+const addTether = (x1: number, y1: number, x2: number, y2: number): void => {
+  const id = ++flashSeq
+  tethers.value = [...tethers.value, { id, x1, y1, x2, y2 }]
+  window.setTimeout(() => { tethers.value = tethers.value.filter((t) => t.id !== id) }, 900)
+}
+
+// ─── Skill VFX: sprites that outlive their unit ──────────────────────────────
+// A dissolving spectral warrior and a Soul Pact sacrifice are already gone from
+// the engine when their event fires; their DOM node is still mounted (Vue
+// patches after the event sink returns), so the sprite is cloned onto the arena
+// — same trick as the shatter — and the clone plays the exit.
+const ghostOf = (root: HTMLElement | undefined): { el: HTMLElement; h: number } | null => {
+  if (!root || !rootRef.value) return null
+  const body = root.querySelector<HTMLElement>('.unit-body')
+  if (!body) return null
+  const r = body.getBoundingClientRect()
+  if (r.width < 1 || r.height < 1) return null
+  const arena = rootRef.value.getBoundingClientRect()
+  const box = document.createElement('div')
+  box.style.cssText = `position:absolute;left:${r.left - arena.left}px;top:${r.top - arena.top}px;width:${r.width}px;height:${r.height}px;pointer-events:none;z-index:1185;will-change:transform,opacity`
+  const vis = body.cloneNode(true) as HTMLElement
+  vis.style.width = '100%'; vis.style.height = '100%'; vis.style.animation = 'none'; vis.style.transform = 'none'
+  box.appendChild(vis)
+  rootRef.value.appendChild(box)
+  return { el: box, h: r.height }
+}
+
+/** A spectral warrior's time is up (or it was struck down): it rises and thins out. */
+const dissolveSpectral = (id: number): void => {
+  const g = ghostOf(fighterEls.get(id)?.root)
+  if (!g) return
+  g.el.animate([
+    { transform: 'translateY(0) scale(1)', opacity: 0.85, filter: 'brightness(1.3)' },
+    { transform: `translateY(${(-g.h * 0.6).toFixed(1)}px) scale(0.7, 1.4)`, opacity: 0, filter: 'brightness(2.4) blur(2px)' }
+  ], { duration: 700, easing: 'ease-in', fill: 'forwards' })
+  window.setTimeout(() => g.el.remove(), 720)
+}
+
+/** The fighter that just split off a Soul Pact champion, and where the champion
+ *  stands relative to it (px) — the split animation starts on the champion's
+ *  body and slides out into the twin's own spot. */
+const pactTwin = ref<{ id: number; dx: number; dy: number } | null>(null)
+let pactTwinTimer = 0
+
+/** Soul Pact: a violet-gold tether snaps from the sacrifice to the champion,
+ *  the sacrifice drains violet and is pulled along it into the champion, and
+ *  as it arrives the twin splits off in a burst. */
+const soulPactFx = (e: Extract<BattleEvent, { type: 'soulPact' }>): void => {
+  addTether(e.vx, e.vy - 5, e.x, e.y - 5)
+  const g = ghostOf(fighterEls.get(e.victimId)?.root)
+  if (g) {
+    const dx = ((e.x - e.vx) / 100) * boxW
+    const dy = ((e.y - e.vy) / 100) * boxH
+    const drained = 'grayscale(1) sepia(1) hue-rotate(230deg) saturate(3.5)'
+    g.el.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1, filter: 'none' },
+      { transform: `translate(${(dx * 0.12).toFixed(1)}px, ${(dy * 0.12 - 8).toFixed(1)}px) scale(1.06)`, opacity: 0.95, filter: `${drained} brightness(1.3)`, offset: 0.28 },
+      { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(0.18)`, opacity: 0, filter: `${drained} brightness(2.4) blur(1px)` }
+    ], { duration: 780, easing: 'cubic-bezier(0.55, 0, 0.75, 1)', fill: 'forwards' })
+    window.setTimeout(() => g.el.remove(), 800)
+  }
+  emitSparkle(toClientX(e.vx), toClientY(e.vy - 5), '#c084fc', 14)
+  const twin = battle.fighters.value.find((f) => f.id === e.twinId)
+  pactTwin.value = twin
+    ? { id: twin.id, dx: ((e.x - twin.x) / 100) * boxW, dy: ((e.y - twin.y) / 100) * boxH }
+    : null
+  window.clearTimeout(pactTwinTimer)
+  pactTwinTimer = window.setTimeout(() => { pactTwin.value = null }, 1500)
+  window.setTimeout(() => {
+    addFlash('pact', e.x, e.y - 5)
+    emitSparkle(toClientX(e.x), toClientY(e.y - 5), '#f5d0fe', 16)
+    emitSparkle(toClientX(e.x), toClientY(e.y - 5), '#ffd66b', 12)
+  }, 660)
 }
 
 // ─── Banners / HUD theatre ───────────────────────────────────────────────────
@@ -456,14 +552,25 @@ const onEvent = (e: BattleEvent): void => {
       // A deployed unit may be a new high tier — unlock its codex entry.
       bumpMaxTier(e.tier)
       break
-    case 'fieldMerge':
+    case 'fieldMerge': {
       addFlash('mergeburst', e.x, e.y)
-      emitConfetti(toClientX(e.x), toClientY(e.y), 16, 1.2)
-      playSound('field-merge', 0.05, 0.85 + Math.min(10, e.tier) * 0.05)
+      // The event carries the fighter's position, not its id; it is emitted
+      // synchronously from `fieldMerge`, so the promoted fighter still sits on
+      // exactly these coordinates.
+      const merged = battle.fighters.value.find((f) => f.x === e.x && f.y === e.y && f.tier === e.tier)
       // Arena field merge climbs the fighter a tier — raise the codex watermark
-      // so the newly reached tier lights up in the Unit Codex.
-      bumpMaxTier(e.tier)
+      // (so the tier lights up in the Unit Codex) and, when it is a tier the
+      // player never had, stage the new-tier reveal on that fighter. The reveal
+      // sting replaces the ordinary merge sound and holds its confetti for the
+      // bloom (TierRevealFx).
+      if (noteFieldMerge(e.tier, merged?.id ?? null)) {
+        playSound('new-tier-reveal', 0.07)
+      } else {
+        emitConfetti(toClientX(e.x), toClientY(e.y), 16, 1.2)
+        playSound('field-merge', 0.05, 0.85 + Math.min(10, e.tier) * 0.05)
+      }
       break
+    }
     case 'gateHit': {
       gateShake.value = true
       window.clearTimeout(gateShakeTimer)
@@ -475,6 +582,14 @@ const onEvent = (e: BattleEvent): void => {
     case 'overrun':
       // Run lost — active gameplay is over until the next wave begins (CG).
       stopGameplayForWaveBreak()
+      // Break-paced interstitial, BEFORE the OVERRUN overlay — never over it.
+      // The call flips `isDeathAdPlaying` synchronously (the overlay's `v-if`
+      // reads it), so the death screen never gets a frame in front of the ad;
+      // it animates in when the ad closes. No-op unless one is actually owed
+      // AND fillable, so a due-less loss shows the overlay immediately as
+      // before. Not awaited: the ordering is enforced by the ref, and this
+      // handler must stay synchronous for the rally hold below.
+      void playDeathScreenInterstitial()
       playSound('overrun', 0.06)
       triggerShake('big')
       // RALLY! rewarded revive (roadmap #8): hold the restart only when the
@@ -512,10 +627,19 @@ const onEvent = (e: BattleEvent): void => {
       // Wave down — the field is empty and the next one hasn't spawned, so CG
       // gameplay pauses until `waveStart`.
       stopGameplayForWaveBreak()
-      // Rank suffix only when a platform actually reported one (roadmap #16).
-      const rank = bestWaveRank.value ? ` · #${bestWaveRank.value}` : ''
-      showWaveBanner(t('battle.waveCleared', { n: e.bonus }) + rank, 'wave', 1500)
+      // Rank suffix only when a platform actually reported one (roadmap #16) —
+      // and only on a build WITHOUT the global board. With it, the arena corner
+      // already carries a rank, and two rank sources that disagree (Yandex's own
+      // board vs ours) on one screen read as the game not knowing its own number.
+      const rank = !leaderboardEnabled && bestWaveRank.value ? ` · #${bestWaveRank.value}` : ''
+      showWaveBanner(t('battle.waveCleared', { n: formatBig(e.bonus) }) + rank, 'wave', 1500)
       playSound('wave-cleared', 0.045)
+      // Break-paced interstitial: arms for 1s after the banner so the player
+      // reads their reward first, and only when 121s of active play have
+      // actually elapsed since the last one. No-op on every non-Playgama
+      // build. The sim is frozen for the ad, so the wave break just runs long
+      // and the next wave spawns after it closes.
+      scheduleWaveClearInterstitial()
       if (props.coinTarget && rootRef.value) {
         spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: 12 })
       }
@@ -524,7 +648,7 @@ const onEvent = (e: BattleEvent): void => {
     case 'milestone':
       // Every-10th-wave chest (roadmap #4): fat fountain here; the scene
       // drops the free high-tier unit onto the grid.
-      showWaveBanner(t('battle.chestWave', { n: e.gold }), 'chest', 2000)
+      showWaveBanner(t('battle.chestWave', { n: formatBig(e.gold) }), 'chest', 2000)
       playSound('milestone-chest', 0.06)
       emitConfetti(toClientX(50), toClientY(40), 30, 1.5)
       if (props.coinTarget && rootRef.value) {
@@ -578,6 +702,43 @@ const onEvent = (e: BattleEvent): void => {
       break
     case 'warHeal':
       addFlash('warheal', e.x, e.y)
+      break
+    // ── Arena skills, slots 5–8 (their cast sounds play in the button handlers,
+    // on the click — only the execute is an engine-timed hit) ──
+    case 'warcry':
+      // Two war-red rings roll out of the army's centre; every fighter throws
+      // embers as its aura lights (the auras + edge vignette are template).
+      addFlash('warcry', e.x, e.y - 5)
+      emitSparkle(toClientX(e.x), toClientY(e.y - 5), '#ffd66b', 18)
+      for (const f of battle.fighters.value) emitSparkle(toClientX(f.x), toClientY(f.y - 6), '#ff7a2e', 6)
+      break
+    case 'legionCall':
+      // One portal per warrior, opening at its feet; the warrior rises out of
+      // it (the `.spectral` mount animation).
+      for (const p of e.points) {
+        addFlash('legion', p.x, p.y)
+        emitSparkle(toClientX(p.x), toClientY(p.y - 4), '#8ff3ff', 10)
+      }
+      break
+    case 'spectralFade':
+      dissolveSpectral(e.id)
+      emitSparkle(toClientX(e.x), toClientY(e.y - 5), '#9ff0ff', 8)
+      throttledSound('spectral', 'crystal-cut', 0.012, 1.7, 120)
+      break
+    case 'mark':
+      // A crimson rune ring snaps down onto the target; the turning reticle
+      // that follows it is template.
+      addFlash('markcast', e.x, e.y - 5)
+      break
+    case 'execute':
+      // Crossed crimson slashes and a white flash — then the death shatter.
+      addFlash('execute', e.x, e.y - 5)
+      emitSparkle(toClientX(e.x), toClientY(e.y - 5), '#ff2d4a', e.boss ? 26 : 14)
+      playSound('skill-execute', 0.07)
+      triggerShake(e.boss ? 'big' : 'strong')
+      break
+    case 'soulPact':
+      soulPactFx(e)
       break
   }
 }
@@ -637,6 +798,78 @@ const onUnlockDefender = (): void => {
   playSound(battle.unlockDefender() ? 'level-up' : 'barricade', 0.05)
 }
 
+// ─── Arena skills, slots 5–8 ─────────────────────────────────────────────────
+// Warcry of the Legion (5) and Legion Call (6) everywhere; Executioner's Mark
+// (7) and Soul Pact (8) on desktop only — a phone arena fits six buttons at a
+// thumb-safe size, not eight.
+const desktopSkills = !mobileCheck()
+const spellCount = desktopSkills ? 8 : 6
+const SKILL_ACCENT = { warcry: '#ff5a2a', legion: '#5ce1ff', mark: '#ff2d4a', pact: '#c084fc' } as const
+const warcryPct = computed(() => Math.round((battle.warcryCharge.value / battle.spellMax) * 100))
+const legionPct = computed(() => Math.round((battle.legionCharge.value / battle.spellMax) * 100))
+const markPct = computed(() => Math.round((battle.markCharge.value / battle.spellMax) * 100))
+const pactPct = computed(() => Math.round((1 - battle.pactCooldownMs.value / PACT_COOLDOWN_MS) * 100))
+const warcryBtnArt = computed(() => artSrc('spell-warcry'))
+const legionBtnArt = computed(() => artSrc('spell-legion'))
+const markBtnArt = computed(() => artSrc('spell-execute'))
+const pactBtnArt = computed(() => artSrc('spell-pact'))
+const canAffordWarcry = computed(() => coins.value >= battle.warcryUnlockCost)
+const canAffordLegion = computed(() => coins.value >= battle.legionUnlockCost)
+const canAffordMark = computed(() => coins.value >= battle.markUnlockCost)
+const canAffordPact = computed(() => coins.value >= battle.pactUnlockCost)
+const secsLeft = (ms: number): number => (ms > 0 ? Math.ceil(ms / 1000) : 0)
+const warcrySecs = computed(() => secsLeft(battle.warcryRemainingMs.value))
+const legionSecs = computed(() => secsLeft(battle.legionRemainingMs.value))
+const markSecs = computed(() => (battle.markedId.value ? secsLeft(battle.markRemainingMs.value) : 0))
+// A three-minute cooldown is too slow for a ring alone to read: count it down.
+const pactSecs = computed(() => (battle.pactUnlocked.value ? secsLeft(battle.pactCooldownMs.value) : 0))
+
+const onWarcry = (): void => {
+  if (!battle.fireWarcry()) return
+  playSound('skill-warcry', 0.07)
+  triggerShake('strong')
+  if (battle.noteSpellCast('warcry')) showSpellToast(t('battle.spells.warcry'), t('battle.spellDesc.warcry'), SKILL_ACCENT.warcry)
+}
+const onLegion = (): void => {
+  if (!battle.fireLegion()) return
+  playSound('skill-legion-call', 0.07)
+  triggerShake('small')
+  if (battle.noteSpellCast('legionCall')) showSpellToast(t('battle.spells.legionCall'), t('battle.spellDesc.legionCall'), SKILL_ACCENT.legion)
+}
+const onMark = (): void => {
+  if (!battle.fireMark()) return
+  playSound('skill-mark', 0.06)
+  if (battle.noteSpellCast('executionerMark')) showSpellToast(t('battle.spells.executionerMark'), t('battle.spellDesc.executionerMark'), SKILL_ACCENT.mark)
+}
+const onPact = (): void => {
+  // Off cooldown but nothing to give (one fighter, or all on one tier): say so
+  // instead of silently doing nothing.
+  if (!battle.hasPactPair.value) {
+    playSound('barricade', 0.05)
+    showSpellToast(t('battle.spells.soulPact'), t('battle.pactNeedsSacrifice'), SKILL_ACCENT.pact)
+    return
+  }
+  if (!battle.firePact()) return
+  playSound('skill-soul-pact', 0.07)
+  triggerShake('small')
+  if (battle.noteSpellCast('soulPact')) showSpellToast(t('battle.spells.soulPact'), t('battle.spellDesc.soulPact'), SKILL_ACCENT.pact)
+}
+const unlockSound = (ok: boolean): void => { playSound(ok ? 'level-up' : 'barricade', 0.05) }
+const onUnlockWarcry = (): void => unlockSound(battle.unlockWarcry())
+const onUnlockLegion = (): void => unlockSound(battle.unlockLegion())
+const onUnlockMark = (): void => unlockSound(battle.unlockMark())
+const onUnlockPact = (): void => unlockSound(battle.unlockPact())
+
+// DEV only: the gameplay-video seam (`src/dev/videoSeam.ts`) casts through the
+// SAME handlers the buttons call, so a scripted Meteor gets the cast sound, the
+// shake and the VFX a tap would. Statically false in every platform build.
+if (import.meta.env.DEV) {
+  ;(window as unknown as Record<string, unknown>).__arenaCast = {
+    meteor: onUlt, heal: onHeal, revive: onReviveGuard, defender: onDefender,
+    warcry: onWarcry, legion: onLegion, mark: onMark, pact: onPact
+  }
+}
+
 // Floating greenish "+" per healed unit — spawned at the unit, wobbles up.
 interface HealPlus { id: number; x: number; y: number }
 const healPluses = ref<HealPlus[]>([])
@@ -646,6 +879,13 @@ const emitHealPlus = (x: number, y: number): void => {
   healPluses.value = [...healPluses.value, { id, x, y }]
   window.setTimeout(() => { healPluses.value = healPluses.value.filter((p) => p.id !== id) }, 1100)
 }
+
+/** The fighter carrying a new-tier reveal (field-merge discovery, or a freshly
+ *  revealed grid unit deployed into the arena), or null. */
+const revealedFighterId = computed<number | null>(() => {
+  const r = activeReveal.value
+  return r && r.target.kind === 'fighter' ? r.target.fighterId : null
+})
 
 // ─── Boss bar ────────────────────────────────────────────────────────────────
 const bossPct = computed(() => {
@@ -701,6 +941,14 @@ const onRally = async (): Promise<void> => {
 const fighterStyle = (f: Fighter): Record<string, string> => ({
   '--scale': String(getFighterDef(f.tier).scale)
 })
+/** The unit box's per-fighter animation inputs: the new-tier reveal's phase,
+ *  or a Soul Pact twin's split-off offset. */
+const unitBoxStyle = (f: Fighter): Record<string, string> | undefined => {
+  if (revealedFighterId.value === f.id) return { animationDelay: revealAnimationDelay(activeReveal.value) }
+  const twin = pactTwin.value
+  if (twin?.id === f.id) return { '--split-x': `${twin.dx.toFixed(1)}px`, '--split-y': `${twin.dy.toFixed(1)}px` }
+  return undefined
+}
 const enemyStyle = (e: Enemy): Record<string, string> => ({
   '--scale': String(e.scale)
 })
@@ -718,6 +966,9 @@ onMounted(() => {
   // climbed to a new high tier via field merges in a prior session (before this
   // bump existed) fires no event on reload, so unlock it here on mount.
   for (const f of battle.fighters.value) bumpMaxTier(f.tier)
+  // Global leaderboard: boot report + new-best / overrun / suspend edges. After
+  // the watermark reconcile above, so the posted tie-break tier is current.
+  installWaveLeaderboard()
 })
 onUnmounted(() => {
   battle.stopBattle()
@@ -729,6 +980,7 @@ onUnmounted(() => {
   window.clearTimeout(waveBannerTimer)
   window.clearTimeout(comboTimerId)
   window.clearTimeout(gateShakeTimer)
+  window.clearTimeout(pactTwinTimer)
 })
 </script>
 
@@ -753,7 +1005,7 @@ onUnmounted(() => {
         div.gate-cracks.absolute.inset-0(v-if="gatePct < 55" :style="gateMaskStyle")
       //- HP bar is absolute (below the tower) so it doesn't add flow height that
       //- would shove the centred tower off the arena's vertical midline.
-      div.rounded-full.overflow-hidden(class="absolute top-full left-0 w-full mt-1 h-1.5 bg-black/50")
+      div.gate-hpbar.rounded-full.overflow-hidden(class="absolute top-full left-0 w-full mt-1 h-1.5 bg-black/50")
         div.h-full.gate-hp(:style="{ width: gatePct + '%' }")
 
     //- ── Enemy portal — opens at one of 3 positions per subwave, then closes ──
@@ -773,14 +1025,24 @@ onUnmounted(() => {
       :key="f.id"
       :ref="setFighterEl(f.id)"
       :style="fighterStyle(f)"
+      :data-fighter-id="f.id"
     )
-      div.unit-box
+      //- `tier-revealed`: this fighter is the unit of a new-tier discovery
+      //- (TierRevealFx follows it via `data-fighter-id`).
+      //- `spectral`: a Legion Call warrior (rises out of its portal, then glows
+      //- translucent cyan). `pact-twin`: just split off a Soul Pact champion.
+      div.unit-box(
+        :class="{ 'tier-revealed': revealedFighterId === f.id, spectral: f.spectral, 'pact-twin': pactTwin?.id === f.id }"
+        :style="unitBoxStyle(f)"
+      )
         //- Revive Guard wings — centred BEHIND the unit while its revive is
         //- pending; vanish the moment it's consumed (unit dies → resurrects).
         img.revive-wings(v-if="f.revivePending && wingsArt" :src="wingsArt" alt="" draggable="false")
+        //- Warcry of the Legion: a war-red aura throbbing behind every fighter.
+        div.warcry-aura(v-if="battle.warcryActive.value")
         div.hpbar
-          div.hpfill.hp-ally
-        div.unit-body.fighter-march
+          div.hpfill(:class="f.spectral ? 'hp-spectral' : 'hp-ally'")
+        div.unit-body.fighter-march(:class="{ 'warcry-body': battle.warcryActive.value }")
           IngredientUnit(:tier="f.tier" :still="true")
           //- Defender shield crest — 60% size, bottom-aligned + IN FRONT of the
           //- promoted tank so it overlaps a good chunk of the unit.
@@ -798,6 +1060,19 @@ onUnmounted(() => {
           div.hpfill.hp-enemy
         div.unit-body.enemy-march(:class="{ 'elite-aura': e.elite, 'mutated-aura': e.mutated && !e.elite }")
           EnemyUnit(:kind="e.kind" :enraged="e.enraged" :boss-wave="battle.wave.value")
+        //- Executioner's Mark: two crimson rune rings turning against each
+        //- other around the target, for as long as the mark holds.
+        div.mark-reticle(v-if="battle.markedId.value === e.id")
+          svg.mark-ring-outer(viewBox="0 0 100 100")
+            circle(cx="50" cy="50" r="46" fill="none" stroke="#ff2d4a" stroke-width="3.2" stroke-dasharray="15 6")
+            path(
+              v-for="a in [0, 90, 180, 270]" :key="a"
+              d="M50 1.5 L53.5 6.5 L50 11.5 L46.5 6.5 Z" fill="#ff6a78" stroke="#3a0208" stroke-width="1"
+              :transform="`rotate(${a + 45} 50 50)`"
+            )
+          svg.mark-ring-inner(viewBox="0 0 100 100")
+            circle(cx="50" cy="50" r="33" fill="none" stroke="#ff6a78" stroke-width="2.2")
+            path(d="M50 9 V23 M50 77 V91 M9 50 H23 M77 50 H91" stroke="#ff2d4a" stroke-width="4.5" stroke-linecap="round")
 
     //- ── Projectiles ──
     div.proj.absolute.top-0.left-0(
@@ -819,6 +1094,16 @@ onUnmounted(() => {
         style="filter: drop-shadow(0 0 3px #5cf0ff)"
         class="chain-bolt"
       )
+      //- Soul Pact tether: a violet glow with a gold core flowing to the champion.
+      g.pact-tether(v-for="tt in tethers" :key="'t' + tt.id")
+        line(
+          :x1="tt.x1" :y1="tt.y1" :x2="tt.x2" :y2="tt.y2"
+          stroke="#b366ff" stroke-width="7" stroke-linecap="round" opacity="0.55" vector-effect="non-scaling-stroke"
+        )
+        line.pact-tether-core(
+          :x1="tt.x1" :y1="tt.y1" :x2="tt.x2" :y2="tt.y2"
+          stroke="#ffe08a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7 5" vector-effect="non-scaling-stroke"
+        )
 
     //- ── Transient flashes (nova / meteor / heals / shockwaves) ──
     div.flash.absolute.pointer-events-none(
@@ -850,16 +1135,24 @@ onUnmounted(() => {
         span.game-text.font-black.uppercase.text-white(class="text-xs sm:text-sm drop-shadow-lg")
           | {{ battle.armyFull.value ? t('battle.armyFullHint') : t('battle.deployHint') }}
 
-    //- ── Boss HP bar ──
-    Transition(name="fade")
-      div.absolute.left-2.right-2.top-1.flex.flex-col.items-center.gap-0.pointer-events-none(v-if="battle.boss.value" class="z-[1200]")
-        span.game-text.font-black.uppercase.text-red-300(class="text-[10px] sm:text-xs tracking-wider") {{ bossDisplayName }}
-        div.w-full.rounded-full.overflow-hidden.border(class="h-2 sm:h-2.5 bg-black/60 border-red-900")
-          div.h-full.boss-hp(:class="{ 'boss-enraged': battle.boss.value.enraged }" :style="{ width: bossPct + '%' }")
+    //- ── Top strip: boss HP bar + the hanging global-rank tag ──
+    //- One flex row, so on a boss wave the bar ends where the tag begins instead
+    //- of running under it; with no tag (tutorial, or no board on this build) the
+    //- bar spans the full width exactly as before. The tag sits 0.5rem in from
+    //- the strip (1rem from the arena edge) so the arena's rounded corner, which
+    //- clips with `overflow-hidden`, cannot shave its top-right edge.
+    div.arena-top-strip.absolute.left-2.right-2.top-0.flex.items-start.pointer-events-none(class="z-[1200] gap-2")
+      div.flex-1.min-w-0.pt-1
+        Transition(name="fade")
+          div.flex.flex-col.items-center.gap-0(v-if="battle.boss.value")
+            span.game-text.font-black.uppercase.text-red-300(class="text-[10px] sm:text-xs tracking-wider") {{ bossDisplayName }}
+            div.w-full.rounded-full.overflow-hidden.border(class="h-2 sm:h-2.5 bg-black/60 border-red-900")
+              div.h-full.boss-hp(:class="{ 'boss-enraged': battle.boss.value.enraged }" :style="{ width: bossPct + '%' }")
+      RankBadge.mr-2(v-if="leaderboardEnabled && !tutorialActive" :score="rankedBest")
 
     //- ── Wave banner ──
     Transition(name="banner")
-      div.absolute.left-0.right-0.flex.justify-center.pointer-events-none(v-if="waveBanner" class="top-[30%] z-[1220]")
+      div.wave-banner.absolute.left-0.right-0.flex.justify-center.pointer-events-none(v-if="waveBanner" class="top-[30%] z-[1220]")
         div.rounded-2xl.border-2.px-4.py-1.game-text.font-black.uppercase.text-white.shadow-2xl(
           :class="bannerClass(waveBanner.variant)"
         ) {{ waveBanner.text }}
@@ -893,6 +1186,10 @@ onUnmounted(() => {
         :style="{ fontSize: Math.min(2.4, 1 + comboPop.n * 0.09) + 'rem' }"
       ) ×{{ comboPop.n }}{{ comboPop.n >= 7 ? ' ' + t('battle.rampage') : '' }}
 
+    //- ── Warcry of the Legion: a war-red edge vignette throbbing for 8 s ──
+    Transition(name="fade")
+      div.absolute.inset-0.warcry-vignette.pointer-events-none(v-if="battle.warcryActive.value" class="z-[1175]")
+
     //- ── FEVER overlay ──
     Transition(name="fade")
       div.absolute.inset-0.fever-overlay.pointer-events-none(v-if="battle.feverActive.value" class="z-[1180]")
@@ -905,7 +1202,7 @@ onUnmounted(() => {
     //- arena the coach-marks are pointing at. It reappears, ticking, the moment
     //- the player deploys their first fighter and the hold releases.
     Transition(name="fade")
-      div.absolute.inset-0.flex.flex-col.items-center.justify-center.pointer-events-none.gap-1(
+      div.wave-countdown.absolute.inset-0.flex.flex-col.items-center.justify-center.pointer-events-none.gap-1(
         v-if="battle.wavePhase.value === 'countdown' && !tutorialHoldsBattle" class="z-[1210]"
       )
         span.game-text.font-black.uppercase.text-white(class="text-xs sm:text-sm opacity-80") {{ t('battle.nextWave', { n: battle.wave.value }) }}
@@ -915,9 +1212,14 @@ onUnmounted(() => {
         span.game-text.font-black.uppercase.text-red-300(v-if="newEnemyIncoming" class="text-[10px] sm:text-sm animate-pulse") {{ t('battle.newEnemy') }}
 
     //- ── OVERRUN overlay (+ RALLY! rewarded revive, roadmap #8) ──
+    //- `!isDeathAdPlaying` is the ad-before-result-screen ordering, enforced
+    //- rather than hoped for: the break interstitial flips that ref
+    //- synchronously inside the `overrun` handler, so the overlay never gets a
+    //- frame in front of the ad and fades in once it closes. An interstitial
+    //- ON TOP of a result screen is a documented portal rejection.
     Transition(name="fade")
       div.absolute.inset-0.flex.flex-col.items-center.justify-center.overrun-overlay.pointer-events-none.gap-1(
-        v-if="battle.wavePhase.value === 'overrun'" class="z-[1230]"
+        v-if="battle.wavePhase.value === 'overrun' && !isDeathAdPlaying" class="z-[1230]"
       )
         span.game-text.font-black.uppercase.text-red-400(class="text-2xl sm:text-4xl animate-pulse") {{ t('battle.overrun') }}
         span.game-text.text-white(class="text-xs sm:text-sm opacity-90") {{ t('battle.overrunBody') }}
@@ -943,8 +1245,43 @@ onUnmounted(() => {
               span.text-emerald-100.game-text(class="text-[10px] sm:text-xs") {{ t('battle.rallyBody') }}
           button.pointer-events-auto.cursor-pointer.game-text(class="text-white/60 text-xs mt-1" @click="battle.declineRally()") {{ t('secondChance.skip') }}
 
-    //- ── Spell buttons (bottom-right): Defender · Heal · Revive Guard · Meteor ──
-    div.absolute.flex.items-end.pointer-events-auto(class="bottom-1.5 right-1.5 z-[1240] gap-1 sm:gap-1.5")
+    //- ── Spell buttons, numbered from the bottom-right corner: Meteor (1) ·
+    //- Revive Guard · Heal · Defender · Warcry of the Legion (5) · Legion Call
+    //- (6) · desktop only: Executioner's Mark (7) · Soul Pact (8). The row sizes
+    //- its buttons to fit the arena (`--spell-size`, see `.spell-row`). ──
+    div.spell-row.absolute.flex.items-end.pointer-events-auto(
+      class="bottom-1.5 right-1.5 z-[1240]"
+      :style="{ '--spell-n': spellCount }"
+    )
+      template(v-if="desktopSkills")
+        //- Soul Pact — your best unit gains a twin, a lower one pays for it; 3-min cooldown.
+        SpellButton(
+          :pct="pactPct" :ready="battle.pactReady.value" :active-secs="pactSecs"
+          :locked="!battle.pactUnlocked.value" :price="battle.pactUnlockCost" :affordable="canAffordPact"
+          :icon-art="pactBtnArt" skill="pact" :accent="SKILL_ACCENT.pact" :label="t('battle.spells.soulPact')"
+          @fire="onPact" @unlock="onUnlockPact"
+        )
+        //- Executioner's Mark — the boss takes +75% damage for 10s and dies at 12%.
+        SpellButton(
+          :pct="markPct" :ready="battle.markReady.value && battle.hasMarkTarget.value" :active-secs="markSecs"
+          :locked="!battle.markUnlocked.value" :price="battle.markUnlockCost" :affordable="canAffordMark"
+          :icon-art="markBtnArt" skill="execute" :accent="SKILL_ACCENT.mark" :label="t('battle.spells.executionerMark')"
+          @fire="onMark" @unlock="onUnlockMark"
+        )
+      //- Legion Call — three spectral warriors for 20s; charges from losses.
+      SpellButton(
+        :pct="legionPct" :ready="battle.legionReady.value" :active-secs="legionSecs"
+        :locked="!battle.legionUnlocked.value" :price="battle.legionUnlockCost" :affordable="canAffordLegion"
+        :icon-art="legionBtnArt" skill="legion" :accent="SKILL_ACCENT.legion" :label="t('battle.spells.legionCall')"
+        @fire="onLegion" @unlock="onUnlockLegion"
+      )
+      //- Warcry of the Legion — 8s of +60% damage and +30% attack speed.
+      SpellButton(
+        :pct="warcryPct" :ready="battle.warcryReady.value" :active-secs="warcrySecs"
+        :locked="!battle.warcryUnlocked.value" :price="battle.warcryUnlockCost" :affordable="canAffordWarcry"
+        :icon-art="warcryBtnArt" skill="warcry" :accent="SKILL_ACCENT.warcry" :label="t('battle.spells.warcry')"
+        @fire="onWarcry" @unlock="onUnlockWarcry"
+      )
       //- Defender — promotes the top melee unit into a 2-min tank (2× HP, -80% dmg).
       SpellButton(
         :pct="defenderPct" :ready="battle.defenderReady.value && battle.hasTankTarget.value"
@@ -966,9 +1303,9 @@ onUnmounted(() => {
         :icon-art="reviveBtnArt" accent="#b45cff" :label="t('battle.spells.reviveGuard')"
         @fire="onReviveGuard" @unlock="onUnlockRevive"
       )
-      //- Meteor Storm — always unlocked.
+      //- Meteor Storm — always unlocked. `hint`: coached on the first boss.
       SpellButton(
-        :pct="ultPct" :ready="battle.ultReady.value"
+        :pct="ultPct" :ready="battle.ultReady.value" :hint="meteorHintActive"
         :icon-art="meteorBtnArt" accent="#ff8a1f" :label="t('battle.ultimate')"
         @fire="onUlt"
       )
@@ -1084,6 +1421,37 @@ onUnmounted(() => {
 .unit-body
   width: 100%
   height: 100%
+
+// New-tier reveal on a fighter: a pop synced to the reveal sting's bloom
+// (0.35 s), then a breathing golden glow for the rest of the five seconds. The
+// halo itself is TierRevealFx; this only lights the unit. `scale` (the
+// independent property) so it composes with the centering transform above.
+.unit-box.tier-revealed
+  animation: fighter-revealed 5s ease-in-out both
+@keyframes fighter-revealed
+  0%
+    scale: 0.9
+    filter: brightness(1) drop-shadow(0 0 0 rgba(255, 230, 140, 0))
+  7%
+    scale: 1.3
+    filter: brightness(1.8) drop-shadow(0 0 10px rgba(255, 240, 170, 1))
+  12%
+    scale: 1
+  25%, 55%, 85%
+    filter: brightness(1.25) drop-shadow(0 0 7px rgba(255, 214, 90, 0.95))
+  40%, 70%
+    filter: brightness(1.05) drop-shadow(0 0 3px rgba(255, 214, 90, 0.5))
+  100%
+    scale: 1
+    filter: brightness(1) drop-shadow(0 0 0 rgba(255, 214, 90, 0))
+@media (prefers-reduced-motion: reduce)
+  .unit-box.tier-revealed
+    animation-name: fighter-revealed-still
+  @keyframes fighter-revealed-still
+    0%, 100%
+      filter: none
+    10%, 90%
+      filter: brightness(1.25) drop-shadow(0 0 6px rgba(255, 214, 90, 0.9))
 
 // Companion-slime birth: scale up from nothing near the boss body, then hop down
 // to the ground with a squash landing. Uses the INDEPENDENT scale/translate
@@ -1313,6 +1681,264 @@ onUnmounted(() => {
     opacity: 1
   100%
     opacity: 0
+
+// ── Arena skills, slots 5–8 ──
+// Everything that loops while a skill holds (auras, reticle, vignette) animates
+// transform / opacity only, so it stays on the compositor; the filters sit on
+// elements that do not themselves change, so they rasterise once.
+
+// Warcry of the Legion — two war-red rings rolling out of the army's centre…
+.flash-warcry
+  width: 14cqmin
+  height: 14cqmin
+  border-radius: 9999px
+  border: 4px solid #ff5a2a
+  box-shadow: 0 0 18px 4px rgba(255, 90, 42, 0.75), inset 0 0 14px rgba(255, 190, 70, 0.8)
+  animation: warcry-ring 0.95s cubic-bezier(0.2, 0.7, 0.3, 1) forwards
+  &::after
+    content: ''
+    position: absolute
+    inset: 14%
+    border-radius: inherit
+    border: 3px solid #ffd66b
+    animation: warcry-ring-inner 0.95s 0.12s cubic-bezier(0.2, 0.7, 0.3, 1) both
+@keyframes warcry-ring
+  0%
+    transform: translate(-50%, -50%) scale(0.2)
+    opacity: 1
+  100%
+    transform: translate(-50%, -50%) scale(4.4)
+    opacity: 0
+@keyframes warcry-ring-inner
+  0%
+    transform: scale(0.4)
+    opacity: 1
+  100%
+    transform: scale(1)
+    opacity: 0
+// …a throbbing aura behind every fighter and embers on its outline…
+.warcry-aura
+  position: absolute
+  left: 50%
+  top: 55%
+  width: 170%
+  height: 170%
+  border-radius: 50%
+  background: radial-gradient(circle, rgba(255, 120, 40, 0.6) 0%, rgba(255, 60, 30, 0.3) 40%, rgba(255, 60, 30, 0) 68%)
+  z-index: -1
+  pointer-events: none
+  animation: warcry-aura 0.5s ease-in-out infinite alternate
+@keyframes warcry-aura
+  from
+    transform: translate(-50%, -50%) scale(0.86)
+    opacity: 0.7
+  to
+    transform: translate(-50%, -50%) scale(1.08)
+    opacity: 1
+.warcry-body > *
+  filter: drop-shadow(0 0 2px #ff5a2a) drop-shadow(0 0 1px #ffd66b)
+// …and a war-red edge vignette over the whole field.
+.warcry-vignette
+  background: radial-gradient(ellipse at center, rgba(255, 70, 30, 0) 52%, rgba(255, 50, 20, 0.3) 100%)
+  animation: warcry-throb 0.55s ease-in-out infinite alternate
+@keyframes warcry-throb
+  from
+    opacity: 0.6
+  to
+    opacity: 1
+
+// Legion Call — a ground portal opens at each warrior's feet…
+.flash-legion
+  width: 17cqmin
+  height: 6cqmin
+  border-radius: 50%
+  background: radial-gradient(ellipse at center, #021a2a 0%, #0b5f86 45%, rgba(63, 216, 255, 0.95) 68%, rgba(184, 246, 255, 0) 74%)
+  box-shadow: 0 0 16px 4px rgba(92, 225, 255, 0.7)
+  animation: legion-portal 1.1s ease-in-out forwards
+@keyframes legion-portal
+  0%
+    transform: translate(-50%, -50%) scale(0)
+    opacity: 0
+  18%
+    transform: translate(-50%, -50%) scale(1.15)
+    opacity: 1
+  70%
+    transform: translate(-50%, -50%) scale(1)
+    opacity: 1
+  100%
+    transform: translate(-50%, -50%) scale(0.2, 0.1)
+    opacity: 0
+// …the warrior rises out of it and stays a translucent, cyan-lit spirit.
+.unit-box.spectral
+  animation: spectral-rise 0.75s 0.12s cubic-bezier(0.2, 1.2, 0.4, 1) both
+  .unit-body > *
+    opacity: 0.8
+    filter: grayscale(1) sepia(1) hue-rotate(150deg) saturate(2.6) brightness(1.25) drop-shadow(0 0 5px rgba(110, 230, 255, 0.95))
+@keyframes spectral-rise
+  0%
+    translate: 0 45%
+    scale: 0.4 0.2
+    opacity: 0
+  60%
+    translate: 0 -6%
+    scale: 1.08
+    opacity: 1
+  100%
+    translate: 0 0
+    scale: 1
+    opacity: 1
+.hp-spectral
+  background: linear-gradient(90deg, #3fd8ff, #b8f6ff)
+
+// Executioner's Mark — a rune ring snaps onto the target…
+.flash-markcast
+  width: 18cqmin
+  height: 18cqmin
+  border-radius: 9999px
+  border: 3px dashed #ff2d4a
+  box-shadow: 0 0 14px rgba(255, 45, 74, 0.8)
+  animation: mark-snap 0.52s cubic-bezier(0.5, 0, 0.2, 1) forwards
+@keyframes mark-snap
+  0%
+    transform: translate(-50%, -50%) scale(2.6) rotate(-120deg)
+    opacity: 0
+  25%
+    opacity: 1
+  80%
+    transform: translate(-50%, -50%) scale(0.95) rotate(0deg)
+    opacity: 1
+  100%
+    transform: translate(-50%, -50%) scale(1) rotate(0deg)
+    opacity: 0
+// …and two rings keep turning around it while the mark holds.
+.mark-reticle
+  position: absolute
+  left: 50%
+  top: 46%
+  width: 150%
+  height: 150%
+  transform: translate(-50%, -50%)
+  pointer-events: none
+  z-index: 3
+  svg
+    position: absolute
+    inset: 0
+    width: 100%
+    height: 100%
+    filter: drop-shadow(0 0 3px rgba(255, 45, 74, 0.95))
+.mark-ring-outer
+  animation: mark-spin 3.2s linear infinite
+.mark-ring-inner
+  animation: mark-spin 2.2s linear infinite reverse, mark-pulse 0.6s ease-in-out infinite alternate
+@keyframes mark-spin
+  to
+    rotate: 360deg
+@keyframes mark-pulse
+  from
+    scale: 0.9
+  to
+    scale: 1.04
+// The execute: crossed crimson slashes over a white flash.
+.flash-execute
+  width: 26cqmin
+  height: 26cqmin
+  border-radius: 50%
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 80, 100, 0.7) 22%, rgba(255, 45, 74, 0) 60%)
+  animation: execute-flash 0.64s ease-out forwards
+  &::before, &::after
+    content: ''
+    position: absolute
+    left: -12%
+    right: -12%
+    top: 46%
+    height: 8%
+    border-radius: 50%
+    background: linear-gradient(90deg, rgba(255, 45, 74, 0), #ffffff 45%, #ff2d4a 58%, rgba(255, 45, 74, 0))
+    box-shadow: 0 0 10px rgba(255, 45, 74, 0.9)
+  &::before
+    rotate: -34deg
+    animation: execute-slash 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) forwards
+  &::after
+    rotate: 34deg
+    animation: execute-slash 0.42s 0.09s cubic-bezier(0.2, 0.9, 0.3, 1) both
+@keyframes execute-flash
+  0%
+    transform: translate(-50%, -50%) scale(0.3)
+    opacity: 1
+  100%
+    transform: translate(-50%, -50%) scale(1.25)
+    opacity: 0
+@keyframes execute-slash
+  0%
+    scale: 0 1
+    opacity: 1
+  60%
+    scale: 1 1
+    opacity: 1
+  100%
+    scale: 1.1 0.3
+    opacity: 0
+
+// Soul Pact — the tether (its core flows toward the champion)…
+.pact-tether
+  animation: chain-fade 0.9s ease-in forwards
+.pact-tether-core
+  animation: pact-flow 0.3s linear infinite
+@keyframes pact-flow
+  to
+    stroke-dashoffset: -12
+// …a violet-gold burst as the sacrifice arrives…
+.flash-pact
+  width: 12cqmin
+  height: 12cqmin
+  border-radius: 9999px
+  border: 3px solid #e9b8ff
+  box-shadow: 0 0 16px 5px rgba(192, 132, 252, 0.8), inset 0 0 12px rgba(255, 214, 107, 0.9)
+  animation: shockwave 0.8s ease-out forwards
+// …and the twin splits off: hidden while the soul is in flight, then it
+// flares out of the champion's body (--split-x/y: the champion, relative to
+// the twin) and slides into its own spot.
+.unit-box.pact-twin
+  animation: pact-twin 1.4s ease-out both
+@keyframes pact-twin
+  0%, 44%
+    opacity: 0
+    scale: 0.6
+    translate: var(--split-x, 0) var(--split-y, 0)
+    filter: brightness(3) drop-shadow(0 0 10px #e9b8ff)
+  52%
+    opacity: 1
+    scale: 1.1
+    translate: var(--split-x, 0) var(--split-y, 0)
+    filter: brightness(2.4) drop-shadow(0 0 12px #ffd66b)
+  76%
+    scale: 1.12
+    translate: 0 0
+    filter: brightness(1.6) drop-shadow(0 0 8px #e9b8ff)
+  88%
+    scale: 0.96
+  100%
+    opacity: 1
+    scale: 1
+    translate: 0 0
+    filter: brightness(1) drop-shadow(0 0 0 rgba(255, 214, 107, 0))
+
+// The spell row sizes its buttons to the arena: never past the classic 44 /
+// 56 px, and small enough that --spell-n of them fit across it with room to
+// spare (100cqw is the arena — `.battle-arena` is the size container).
+.spell-row
+  --spell-gap: 0.25rem
+  --spell-max: 2.75rem
+  gap: var(--spell-gap)
+  --spell-size: min(var(--spell-max), calc((100cqw - 0.75rem - (var(--spell-n) - 1) * var(--spell-gap)) / var(--spell-n)))
+@media (min-width: 640px)
+  .spell-row
+    --spell-gap: 0.375rem
+    --spell-max: 3.5rem
+
+@media (prefers-reduced-motion: reduce)
+  .warcry-aura, .warcry-vignette, .mark-ring-outer, .mark-ring-inner, .pact-tether-core
+    animation: none
 
 // ── Damage numbers ──
 .dmg-num

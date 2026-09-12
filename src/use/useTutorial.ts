@@ -31,10 +31,13 @@ export const TUTORIAL_STEP_COUNT = STEP_ORDER.length - 1
 const SPAWNS_NEEDED = 2
 
 const readStep = (): TutorialStep => {
-  // Veterans skip entirely — they've already fought past wave 1.
+  // Veterans skip entirely — they've already fought past wave 1. Only a player
+  // who never STARTED the coach-marks counts as one: the battle runs during the
+  // field-merge step, so a first-timer routinely clears wave 1 there, and this
+  // check (re-run on every blob change) used to end the tutorial mid-step.
   const bestWave = Math.floor(Number(getState(BATTLE_BEST_WAVE_KEY, 1))) || 1
   const saved = Math.floor(Number(getState(PRISM_TUTORIAL_KEY, 0))) || 0
-  if (bestWave > 1 && saved < STEP_ORDER.length - 1) return 'done'
+  if (bestWave > 1 && saved === 0) return 'done'
   return STEP_ORDER[Math.max(0, Math.min(STEP_ORDER.length - 1, saved))]!
 }
 
@@ -91,6 +94,13 @@ export const tutorialStepIndex = computed(() =>
   Math.min(TUTORIAL_STEP_COUNT, STEP_ORDER.indexOf(tutorialStep.value) + 1))
 /** One-tap spawns for the whole onboarding session. */
 export const isTutorialOneTap = computed(() => tutorialActive.value)
+
+/** What the textless coach-mark overlay is animating right now: 'spawn' (a hand
+ *  pressing SPAWN) or one of the drag previews — or null. Written only by
+ *  `TutorialOverlay`; the Spawn button reads it to press itself down in time
+ *  with the hand. */
+export type TutorialPreview = 'spawn' | 'merge' | 'deploy' | 'fieldMerge'
+export const tutorialPreview = ref<TutorialPreview | null>(null)
 
 let spawnsSeen = 0
 

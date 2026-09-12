@@ -51,7 +51,10 @@ const GAMEPLAY_SFX: ReadonlyArray<string> = [
   'gravity',
   'chainsaw-break',
   'celebration-1',
-  'celebration-2'
+  'celebration-2',
+  // The new-tier reveal (sound-todo.md). Rare, but it must hit ON the merge —
+  // a first-play decode would land the bloom late against the halo.
+  'new-tier-reveal'
 ]
 
 let preloadStarted = false

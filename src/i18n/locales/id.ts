@@ -86,10 +86,11 @@ export default {
     'body': 'Pasukanmu terus bertempur selagi kamu pergi:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Memulihkan 25% nyawa semua unit.", 'reviveGuard': "Selama 30 dtk, unit yang tumbang langsung hidup lagi dengan nyawa penuh.", 'defender': "Mengubah unit jarak dekat terkuatmu jadi tank selama 2 mnt: nyawa 2×, damage diterima −80%.", 'meteor': "Menurunkan hujan meteor ke medan, menghantam semua musuh." },
+    'spellDesc': { 'heal': "Memulihkan 25% nyawa semua unit.", 'reviveGuard': "Selama 30 dtk, unit yang tumbang langsung hidup lagi dengan nyawa penuh.", 'defender': "Mengubah unit jarak dekat terkuatmu jadi tank selama 2 mnt: nyawa 2×, damage diterima −80%.", 'meteor': "Menurunkan hujan meteor ke medan, menghantam semua musuh.", 'warcry': "Selama 8 dtk, pasukanmu memberi +60% damage dan menyerang 30% lebih cepat.", 'legionCall': "Memanggil 3 pejuang arwah satu tingkat di bawah unit terbaikmu selama 20 dtk. Terisi cepat saat unitmu tumbang.", 'executionerMark': "Menandai musuh terkuat selama 10 dtk: ia menerima +75% damage dan dieksekusi di bawah 12% nyawa.", 'soulPact': "Unit terkuatmu mendapat kembaran — unit terkuat berikutnya dikorbankan untuknya. Terisi ulang dalam 3 menit." },
     'mutationWave': "MUTASI!",
     'overrunSetbackHint': "Gelombang ini terlalu kuat — bangun pasukanmu di gelombang yang lebih mudah dulu.",
-    'spells': { 'heal': "Penyembuhan", 'reviveGuard': "Penjaga Kebangkitan", 'defender': "Pembela" },
+    'spells': { 'heal': "Penyembuhan", 'reviveGuard': "Penjaga Kebangkitan", 'defender': "Pembela", 'warcry': "Pekik Perang Legiun", 'legionCall': "Panggilan Legiun", 'executionerMark': "Tanda Algojo", 'soulPact': "Pakta Jiwa" },
+    'pactNeedsSacrifice': "Pakta Jiwa butuh unit bertingkat lebih rendah di medan untuk dikorbankan.",
     'bossNames': { 'b0': "Glorp Sang Pelahap", 'b1': "Raja Tinju Lumpur", 'b2': "Mawzilla", 'b3': "Pemakan Gerbang", 'b4': "Grumblor Prime" },
     'wave': 'Gelombang {n}',
     'best': 'Terbaik {n}',
@@ -136,8 +137,9 @@ export default {
     },
     'codex': {
       'title': 'Kodeks Unit',
-      'names': { 't1': 'Percik Magma', 't2': 'Pusaran Beku', 't3': 'Bruto Batu', 't4': 'Penjaga Gletser', 't5': 'Tetes Pasang', 't6': 'Kolosus Batu', 't7': 'Mata Nebula', 't8': 'Arwah Kehampaan', 't9': 'Cakar Emas', 't10': 'Penguasa Feniks', 't11': 'Panglima Obsidian', 't12': "Titan Neraka", 't13': "Pencabut Bayangan", 't14': "Leviathan Magma", 't15': "Perwujudan Kosmik", 't16': "Penguasa Badai", 't17': "Penjaga Jurang", 't18': "Behemoth Cair", 't19': "Pelahap Astral", 't20': "Ketuhanan Abadi" },
+      'names': { 't1': 'Percik Magma', 't2': 'Pusaran Beku', 't3': 'Bruto Batu', 't4': 'Penjaga Gletser', 't5': 'Tetes Pasang', 't6': 'Kolosus Batu', 't7': 'Mata Nebula', 't8': 'Arwah Kehampaan', 't9': 'Cakar Emas', 't10': 'Penguasa Feniks', 't11': 'Panglima Obsidian', 't12': "Titan Neraka", 't13': "Pencabut Bayangan", 't14': "Leviathan Magma", 't15': "Perwujudan Kosmik", 't16': "Penguasa Badai", 't17': "Penjaga Jurang", 't18': "Behemoth Cair", 't19': "Pelahap Astral", 't20': "Ketuhanan Abadi", 't21': "Penjaga Baja", 't22': "Penipu Raksa", 't23': "Tiran Magnet", 't24': "Wali Ambar", 't25': "Jin Gurun", 't26': "Labu Kaustik", 't27': "Hati Duri", 't28': "Raja Karang", 't29': "Petapa Jamur Bercahaya", 't30': "Amukan Badai", 't31': "Orakel Giok", 't32': "Monolit Rune", 't33': "Mesin Kronos", 't34': "Roh Origami", 't35': "Peri Gelembung", 't36': "Kubus Glitch", 't37': "Lonceng Gema", 't38': "Lentera Roh", 't39': "Hantu Cermin", 't40': "Hati Delima", 't41': "Api Salju", 't42': "Berlian Sempurna", 't43': "Dinamo Plasma", 't44': "Bentara Komet", 't45': "Serafim Aurora", 't46': "Kaisar Surya", 't47': "Bintang Harapan", 't48': "Suar Pulsar", 't49': "Materi Gelap", 't50': "Singularitas Agung" },
       'locked': 'Gabungkan dua Tingkat {n} untuk menemukan!',
+      'effects': { 'none': "Serangan cepat — gesit dan tanpa ampun.", 'burn': "Serangan meninggalkan damage yang terus berjalan.", 'knockback': "Pukulan berat melempar musuh ke belakang.", 'heal': "Setiap serangan menyembuhkan sekutu terlemahmu.", 'splash': "Setiap serangan meledak ke semua musuh di dekatnya.", 'poison': "Serangan menumpuk damage seiring waktu.", 'chain': "Serangan melompat ke tiga musuh lagi.", 'frost': "Memperlambat saat kena; denyut membuat kerumunan terdekat pingsan.", 'midas': "Peluang kritis tinggi dan emas bonus setiap serangan.", 'eruption': "Meledak saat menghantam dan membakar semua musuh di dekatnya." },
       'abilities': {
         'none': 'Percikan lelehan — cepat, tanpa takut, selalu terdepan.',
         'burn': 'Beku menggigit bertahan — musuh terus menerima kerusakan setelah pukulan.',
@@ -224,5 +226,19 @@ export default {
   },
   'license': {
     'denied': 'Akses ditolak: silakan beli lisensi.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'dari {n}',
+    'aria': 'Papan peringkat: peringkat {rank} dari {n}',
+    'ariaRank': 'Papan peringkat: peringkat {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'UNIT BARU!',
+    'tier': 'Tingkat {n}'
   }
 }

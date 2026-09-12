@@ -3,11 +3,13 @@
  * Full-screen, non-interactive canvas overlay that drives the shared particle
  * pool (`usePrismParticles`). One RAF for every effect in the scene. It idles
  * itself (skips the draw clear/loop body) when no particles are alive, and
- * pauses entirely while the tab is hidden, to keep the CPU/GPU cost near zero
+ * pauses entirely while the game is paused (tab hidden, portal pause, ad or
+ * modal on screen), to keep the CPU/GPU cost near zero
  * when the lab is calm.
  */
 import { onMounted, onUnmounted, ref } from 'vue'
 import { updateParticles, drawParticles, hasLiveParticles, clearParticles } from '@/use/usePrismParticles'
+import { isGamePaused } from '@/use/useGamePause'
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
@@ -34,7 +36,11 @@ const loop = (t: number): void => {
   raf = requestAnimationFrame(loop)
   const dt = lastT ? Math.min(t - lastT, 48) : 16
   lastT = t
-  if (document.hidden) return
+  // Was `document.hidden` — a Page Visibility read, which the Playgama build
+  // (= the YouTube Playables submission) may not make. `isGamePaused` covers
+  // strictly more: tab hidden, portal pause, an ad on screen, or an open
+  // modal. Particles have no business animating in any of those.
+  if (isGamePaused.value) return
   if (!ctx) return
   if (!hasLiveParticles()) {
     // Nothing to draw — clear once so the last frame doesn't linger, then idle.

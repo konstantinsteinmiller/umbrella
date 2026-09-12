@@ -1,0 +1,485 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>arena skills — synth sources</title>
+<!--
+  ─── The arena-skill SFX (slots 5–8), as synth graphs ─────────────────────────
+
+  The sources of five files in public/audio/sfx/, rendered by
+  `render-arena-skills.mjs` in a private headless Chrome through an
+  OfflineAudioContext, then loudness-matched and encoded by ffmpeg. Open this
+  file in a browser and call `renderSfx({ name: 'skill-warcry' })` in the
+  console to poke at one.
+
+  skill-warcry       Warcry of the Legion · 1.7 s
+                     BOOM-BOOM on two war drums, a brass war horn swelling on A2
+                     with its fifth, and a legion's "HAAA!" roaring up under it.
+  skill-legion-call  Legion Call · 2.2 s
+                     A portal tearing open (resonant noise sweep + sub drop), three
+                     glass bells — one per spectral warrior, timed to their three
+                     portals — over a hollow "ooh" ghost choir on A minor.
+  skill-mark         Executioner's Mark (cast) · 1.2 s
+                     A two-click lock-on, a low inharmonic death-bell toll on D3
+                     and a dark whisper falling away under it.
+  skill-execute      Executioner's Mark (the execute) · 1.1 s
+                     A blade whoosh, a bright steel "shing" and a heavy thud with
+                     a gong tail — the X of the two crossed slashes.
+  skill-soul-pact    Soul Pact · 2.3 s
+                     0–0.66 s a rising, tremolo'd pull (the soul drawn along the
+                     tether); 0.66 s the arrival — a fifth of violet and gold bells
+                     over a low boom — then two beating tones, the twin, fading.
+
+  Deterministic in everything audible: every random choice comes from one seeded
+  PRNG per sound. Chrome's audio-rate FM and filter paths still add float jitter
+  far below the noise floor, so two renders are indistinguishable, not
+  byte-identical.
+-->
+<script>
+(() => {
+  const SR = 44100
+  const T60 = 6.9078 // ln(1000): tau = t60 / T60 decays to −60 dB at t60
+
+  /** mulberry32 — tiny, fast, seedable. */
+  const prng = (seed) => () => {
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = seed
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+  const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12)
+
+  /** A generated room: bright early energy over a darker, longer body. */
+  const makeImpulse = (ctx, rand, seconds, bright, dark) => {
+    const pre = Math.round(0.012 * SR)
+    const n = Math.ceil(seconds * SR)
+    const buf = ctx.createBuffer(1, n, SR)
+    const d = buf.getChannelData(0)
+    const kBright = T60 / bright
+    const kDark = T60 / dark
+    let lp = 0
+    for (let i = pre; i < n; i++) {
+      const t = (i - pre) / SR
+      const w = rand() * 2 - 1
+      lp += 0.12 * (w - lp)
+      const build = Math.min(1, t / 0.01)
+      d[i] = (0.5 * w * Math.exp(-kBright * t) + 1.1 * lp * Math.exp(-kDark * t)) * build
+    }
+    for (const [t, a] of [[0.009, 0.45], [0.016, -0.34], [0.025, 0.28], [0.037, -0.2]]) d[Math.round(t * SR)] += a
+    return buf
+  }
+
+  /** The kit every sound builds from, bound to one context and one PRNG. */
+  const kit = (ctx, seed, { room = 1.6, bright = 0.7, dark = 1.5, wet = 0.5 } = {}) => {
+    const rand = prng(seed)
+    const between = (a, b) => a + (b - a) * rand()
+    const master = ctx.createGain()
+    const hp = ctx.createBiquadFilter()
+    hp.type = 'highpass'
+    hp.frequency.value = 30
+    const shelf = ctx.createBiquadFilter()
+    shelf.type = 'highshelf'
+    shelf.frequency.value = 9500
+    shelf.gain.value = -4
+    master.connect(hp).connect(shelf).connect(ctx.destination)
+    const reverb = ctx.createConvolver()
+    reverb.buffer = makeImpulse(ctx, prng(seed + 1), room, bright, dark)
+    const verbIn = ctx.createGain()
+    const verbOut = ctx.createGain()
+    verbOut.gain.value = wet
+    verbIn.connect(reverb).connect(verbOut).connect(master)
+
+    /** A bus sent `dry` to the master and `send` into the room. */
+    const bus = (dry, send) => {
+      const b = ctx.createGain()
+      const d = ctx.createGain()
+      d.gain.value = dry
+      const w = ctx.createGain()
+      w.gain.value = send
+      b.connect(d).connect(master)
+      b.connect(w).connect(verbIn)
+      return b
+    }
+
+    const noiseBuf = ctx.createBuffer(1, SR * 2, SR)
+    {
+      const nr = prng(seed + 2)
+      const d = noiseBuf.getChannelData(0)
+      for (let i = 0; i < d.length; i++) d[i] = nr() * 2 - 1
+    }
+    const noise = (t0, dur) => {
+      const s = ctx.createBufferSource()
+      s.buffer = noiseBuf
+      s.loop = true
+      s.start(t0, rand() * 1.5)
+      s.stop(t0 + dur)
+      return s
+    }
+    const filter = (type, freq, q = 0.707) => {
+      const f = ctx.createBiquadFilter()
+      f.type = type
+      f.frequency.value = freq
+      f.Q.value = q
+      return f
+    }
+    /** Attack to `peak`, then exponential decay to −60 dB at `t60`. */
+    const envAD = (param, t0, peak, attack, t60) => {
+      param.value = 0
+      param.setValueAtTime(0, t0)
+      param.linearRampToValueAtTime(peak, t0 + attack)
+      param.setTargetAtTime(0, t0 + attack, t60 / T60)
+    }
+    const gainAD = (t0, peak, attack, t60) => {
+      const g = ctx.createGain()
+      envAD(g.gain, t0, peak, attack, t60)
+      return g
+    }
+    /** Two-operator FM bell / celesta. */
+    const fm = ({ t0, freq, ratio, index0, index1, indexTime, peak, t60, dest, attack = 0.003, detune = 0 }) => {
+      const car = ctx.createOscillator()
+      car.frequency.value = freq
+      car.detune.value = detune
+      const mod = ctx.createOscillator()
+      const mf = freq * ratio
+      mod.frequency.value = mf
+      const depth = ctx.createGain()
+      depth.gain.setValueAtTime(index0 * mf, t0)
+      depth.gain.exponentialRampToValueAtTime(Math.max(0.001, index1 * mf), t0 + indexTime)
+      mod.connect(depth).connect(car.frequency)
+      const amp = gainAD(t0, peak, attack, t60)
+      car.connect(amp).connect(dest)
+      const end = t0 + t60 + 0.05
+      car.start(t0); mod.start(t0); car.stop(end); mod.stop(end)
+    }
+    /** A decaying sine partial (optionally gliding). */
+    const partial = ({ t0, freq, peak, t60, dest, attack = 0.002, to = null, glide = 0.1, type = 'sine' }) => {
+      const o = ctx.createOscillator()
+      o.type = type
+      o.frequency.setValueAtTime(freq, t0)
+      if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + glide)
+      const a = gainAD(t0, peak, attack, t60)
+      o.connect(a).connect(dest)
+      o.start(t0)
+      o.stop(t0 + t60 + 0.05)
+    }
+    /** A drum: a falling sine thump + its triangle octave + a noise skin. */
+    const drum = (t0, peak, dest, { from = 110, to = 42, t60 = 0.55, skin = 0.35 } = {}) => {
+      partial({ t0, freq: from, to, glide: 0.14, peak, t60, dest, attack: 0.003 })
+      partial({ t0, freq: from * 2, to: to * 2, glide: 0.12, peak: peak * 0.22, t60: t60 * 0.6, dest, type: 'triangle' })
+      const n = noise(t0, 0.3)
+      const bp = filter('bandpass', 180, 0.9)
+      const g = gainAD(t0, peak * skin, 0.002, 0.22)
+      n.connect(bp).connect(g).connect(dest)
+      const n2 = noise(t0, 0.06)
+      const hp2 = filter('highpass', 2500)
+      const g2 = gainAD(t0, peak * 0.12, 0.001, 0.05)
+      n2.connect(hp2).connect(g2).connect(dest)
+    }
+    /** A vowel: noise or a source through a formant bank. */
+    const formants = (src, dest, bank) => {
+      for (const [f, q, g] of bank) {
+        const bp = filter('bandpass', f, q)
+        const gg = ctx.createGain()
+        gg.gain.value = g
+        src.connect(bp).connect(gg).connect(dest)
+      }
+    }
+    return { rand, between, master, bus, noise, filter, envAD, gainAD, fm, partial, drum, formants }
+  }
+
+  /** Fade the master out (cos²) between `a` and `b`. */
+  const tailFade = (k, a, b) => {
+    const fade = new Float32Array(64)
+    for (let i = 0; i < fade.length; i++) fade[i] = Math.cos((i / (fade.length - 1)) * Math.PI / 2) ** 2
+    k.master.gain.setValueAtTime(1, 0)
+    k.master.gain.setValueCurveAtTime(fade, a, b - a)
+  }
+
+  // ─── The sounds ──────────────────────────────────────────────────────────
+
+  const SOUNDS = {
+    // BOOM-BOOM, the horn, the roar.
+    'skill-warcry': { length: 1.75, build: (ctx) => {
+      const k = kit(ctx, 5101, { room: 1.5, bright: 0.6, dark: 1.3, wet: 0.45 })
+      tailFade(k, 1.35, 1.72)
+      const drums = k.bus(1, 0.35)
+      k.drum(0, 0.7, drums, { from: 118, to: 44, t60: 0.6 })
+      k.drum(0.26, 0.8, drums, { from: 104, to: 40, t60: 0.75 })
+
+      // The horn: three detuned saws on A2 + a fifth, scooping up into pitch,
+      // through a low-pass that opens like a player pushing air, with vibrato.
+      const horn = k.bus(0.9, 0.55)
+      const lp = k.filter('lowpass', 380, 2.2)
+      lp.frequency.setValueAtTime(380, 0.06)
+      lp.frequency.exponentialRampToValueAtTime(2600, 0.42)
+      lp.frequency.exponentialRampToValueAtTime(1500, 1.15)
+      const env = ctx.createGain()
+      env.gain.value = 0
+      env.gain.setValueAtTime(0, 0.05)
+      env.gain.linearRampToValueAtTime(0.5, 0.2)
+      env.gain.linearRampToValueAtTime(0.42, 0.9)
+      env.gain.setTargetAtTime(0, 1.08, 0.12)
+      lp.connect(env).connect(horn)
+      const vib = ctx.createOscillator()
+      vib.frequency.value = 5.4
+      const vibD = ctx.createGain()
+      vibD.gain.value = 0
+      vibD.gain.setValueAtTime(0, 0.35)
+      vibD.gain.linearRampToValueAtTime(9, 0.8)
+      vib.connect(vibD)
+      vib.start(0); vib.stop(1.6)
+      for (const [m, lvl] of [[45, 1], [52, 0.55], [57, 0.3]]) {
+        for (const cents of [-7, 0, 6]) {
+          const o = ctx.createOscillator()
+          o.type = 'sawtooth'
+          o.frequency.setValueAtTime(hz(m) * 0.92, 0.05)
+          o.frequency.exponentialRampToValueAtTime(hz(m), 0.17)
+          o.detune.value = cents
+          vibD.connect(o.detune)
+          const g = ctx.createGain()
+          g.gain.value = 0.5 * lvl
+          o.connect(g).connect(lp)
+          o.start(0.05); o.stop(1.6)
+        }
+      }
+
+      // The legion: many throats on an "a" vowel, swelling under the horn.
+      const roar = k.bus(0.8, 0.6)
+      const src = ctx.createGain()
+      const renv = ctx.createGain()
+      renv.gain.value = 0
+      renv.gain.setValueAtTime(0, 0.08)
+      renv.gain.linearRampToValueAtTime(1, 0.34)
+      renv.gain.setTargetAtTime(0, 0.9, 0.18)
+      src.connect(renv)
+      k.formants(renv, roar, [[700, 5, 0.5], [1120, 7, 0.28], [2500, 9, 0.12]])
+      const n = k.noise(0.06, 1.5)
+      const ng = ctx.createGain()
+      ng.gain.value = 1
+      n.connect(ng).connect(src)
+      // Voices: a dozen buzzy saws at scattered pitches, each wobbling.
+      for (let i = 0; i < 12; i++) {
+        const o = ctx.createOscillator()
+        o.type = 'sawtooth'
+        const f = k.between(95, 185)
+        o.frequency.setValueAtTime(f * 0.9, 0.08)
+        o.frequency.linearRampToValueAtTime(f * k.between(1.02, 1.1), 0.5)
+        o.frequency.linearRampToValueAtTime(f * 0.94, 1.2)
+        const g = ctx.createGain()
+        g.gain.value = 0.1
+        o.connect(g).connect(src)
+        o.start(0.06); o.stop(1.5)
+      }
+    } },
+
+    // A portal tearing open, three bells for three warriors, a ghost choir.
+    'skill-legion-call': { length: 2.25, build: (ctx) => {
+      const k = kit(ctx, 5202, { room: 2.4, bright: 1.0, dark: 2.2, wet: 0.7 })
+      tailFade(k, 1.8, 2.22)
+      // The tear: a resonant band sweeping up, then collapsing with a sub drop.
+      const tear = k.bus(1, 0.6)
+      const n = k.noise(0, 0.9)
+      const bp = k.filter('bandpass', 300, 5)
+      bp.frequency.setValueAtTime(300, 0)
+      bp.frequency.exponentialRampToValueAtTime(3800, 0.3)
+      bp.frequency.exponentialRampToValueAtTime(600, 0.85)
+      const g = ctx.createGain()
+      g.gain.value = 0
+      g.gain.setValueAtTime(0.001, 0)
+      g.gain.exponentialRampToValueAtTime(0.55, 0.28)
+      g.gain.setTargetAtTime(0, 0.32, 0.15)
+      n.connect(bp).connect(g).connect(tear)
+      k.partial({ t0: 0.3, freq: 150, to: 38, glide: 0.4, peak: 0.6, t60: 0.9, dest: tear, attack: 0.004 })
+      // Three arrivals — the arena opens the three portals on this beat.
+      const bells = k.bus(0.8, 0.75)
+      ;[[76, 0.34], [81, 0.46], [84, 0.58]].forEach(([m, t0]) => {
+        k.fm({ t0, freq: hz(m), ratio: 3.5, index0: 1.6, index1: 0.08, indexTime: 0.5, peak: 0.16, t60: 1.5, dest: bells })
+        k.fm({ t0, freq: hz(m + 12), ratio: 4, index0: 0.8, index1: 0.04, indexTime: 0.2, peak: 0.05, t60: 0.7, dest: bells })
+      })
+      // The choir: hollow "ooh" on detuned saws, A minor, rising into pitch.
+      const choir = k.bus(0.7, 0.8)
+      const src = ctx.createGain()
+      k.formants(src, choir, [[320, 8, 1], [800, 10, 0.35], [2400, 14, 0.08]])
+      const env = ctx.createGain()
+      env.gain.value = 0
+      env.gain.setValueAtTime(0, 0.2)
+      env.gain.setTargetAtTime(1, 0.2, 0.22)
+      env.gain.setTargetAtTime(0, 1.25, 0.28)
+      env.connect(src)
+      ;[[45, 0.6], [57, 1], [60, 0.8], [64, 0.75], [69, 0.5]].forEach(([m, lvl], vi) => {
+        const lfo = ctx.createOscillator()
+        lfo.frequency.value = 4.2 + vi * 0.31
+        const lfoD = ctx.createGain()
+        lfoD.gain.value = 7
+        lfo.connect(lfoD)
+        lfo.start(0.2); lfo.stop(2.2)
+        for (const cents of [-11, 0, 9]) {
+          const o = ctx.createOscillator()
+          o.type = 'sawtooth'
+          o.frequency.setValueAtTime(hz(m) * 0.97, 0.2)
+          o.frequency.exponentialRampToValueAtTime(hz(m), 0.7)
+          o.detune.value = cents
+          lfoD.connect(o.detune)
+          const gg = ctx.createGain()
+          gg.gain.value = 0.11 * lvl
+          o.connect(gg).connect(env)
+          o.start(0.2); o.stop(2.2)
+        }
+      })
+    } },
+
+    // Lock-on, death bell, whisper.
+    'skill-mark': { length: 1.25, build: (ctx) => {
+      const k = kit(ctx, 5303, { room: 1.4, bright: 0.5, dark: 1.2, wet: 0.5 })
+      tailFade(k, 0.95, 1.22)
+      const click = k.bus(1, 0.25)
+      for (const t0 of [0, 0.075]) {
+        const n = k.noise(t0, 0.03)
+        const hp = k.filter('highpass', 3000)
+        n.connect(hp).connect(k.gainAD(t0, 0.35, 0.0008, 0.03)).connect(click)
+        k.partial({ t0, freq: 3150, peak: 0.12, t60: 0.08, dest: click, attack: 0.0008 })
+      }
+      // An inharmonic toll: D3 with the ratios of a small, cracked bell.
+      const bell = k.bus(0.9, 0.6)
+      const t0 = 0.08
+      k.fm({ t0, freq: hz(50), ratio: 1.41, index0: 3.2, index1: 0.2, indexTime: 0.7, peak: 0.36, t60: 1.1, dest: bell })
+      for (const [r, p, t60] of [[2.76, 0.07, 0.8], [5.4, 0.035, 0.45], [8.93, 0.018, 0.3]]) {
+        k.partial({ t0, freq: hz(50) * r, peak: p, t60, dest: bell })
+      }
+      // The whisper: breathy noise on an "sh" falling away.
+      const w = k.bus(0.7, 0.6)
+      const n = k.noise(0.05, 0.9)
+      const bp = k.filter('bandpass', 3400, 1.4)
+      bp.frequency.setValueAtTime(3400, 0.05)
+      bp.frequency.exponentialRampToValueAtTime(900, 0.8)
+      n.connect(bp).connect(k.gainAD(0.05, 0.12, 0.08, 0.9)).connect(w)
+    } },
+
+    // Whoosh, shing, thud.
+    'skill-execute': { length: 1.15, build: (ctx) => {
+      const k = kit(ctx, 5404, { room: 1.2, bright: 0.45, dark: 1.0, wet: 0.4 })
+      tailFade(k, 0.85, 1.12)
+      const hit = 0.11
+      // The blade: a band sweeping up across the swing, cut at the hit.
+      const swoosh = k.bus(1, 0.3)
+      const n = k.noise(0, hit + 0.04)
+      const bp = k.filter('bandpass', 700, 1.1)
+      bp.frequency.setValueAtTime(700, 0)
+      bp.frequency.exponentialRampToValueAtTime(5200, hit)
+      const g = ctx.createGain()
+      g.gain.value = 0
+      g.gain.setValueAtTime(0.002, 0)
+      g.gain.exponentialRampToValueAtTime(0.5, hit - 0.01)
+      g.gain.linearRampToValueAtTime(0, hit + 0.02)
+      n.connect(bp).connect(g).connect(swoosh)
+      // Steel.
+      const steel = k.bus(0.9, 0.45)
+      for (const [f, p, t60] of [[2130, 0.17, 0.65], [3310, 0.14, 0.55], [4720, 0.1, 0.4], [6240, 0.06, 0.3], [7950, 0.035, 0.22]]) {
+        k.partial({ t0: hit, freq: f, peak: p, t60, dest: steel, attack: 0.0008 })
+      }
+      // The thud and its crunch.
+      const body = k.bus(1, 0.3)
+      k.partial({ t0: hit, freq: 170, to: 55, glide: 0.16, peak: 0.25, t60: 0.4, dest: body, attack: 0.002 })
+      const c = k.noise(hit, 0.3)
+      const lp = k.filter('lowpass', 2600, 0.9)
+      c.connect(lp).connect(k.gainAD(hit, 0.9, 0.001, 0.24)).connect(body)
+      // A low gong under it all.
+      k.fm({ t0: hit, freq: hz(43), ratio: 1.63, index0: 2.4, index1: 0.1, indexTime: 0.6, peak: 0.1, t60: 0.95, dest: body })
+    } },
+
+    // The pull, the arrival, the twin.
+    'skill-soul-pact': { length: 2.35, build: (ctx) => {
+      const k = kit(ctx, 5505, { room: 2.0, bright: 0.9, dark: 1.9, wet: 0.65 })
+      tailFade(k, 1.85, 2.32)
+      const arrive = 0.66 // the arena's sacrifice lands on the champion here
+      // The pull: a tremolo'd sine climbing an octave under a rising hiss.
+      const pull = k.bus(0.9, 0.55)
+      const o = ctx.createOscillator()
+      o.frequency.setValueAtTime(hz(57), 0)
+      o.frequency.exponentialRampToValueAtTime(hz(69), arrive)
+      const trem = ctx.createGain()
+      trem.gain.value = 0.5
+      const lfo = ctx.createOscillator()
+      lfo.frequency.setValueAtTime(6, 0)
+      lfo.frequency.linearRampToValueAtTime(22, arrive)
+      const lfoD = ctx.createGain()
+      lfoD.gain.value = 0.5
+      lfo.connect(lfoD).connect(trem.gain)
+      const pg = ctx.createGain()
+      pg.gain.value = 0
+      pg.gain.setValueAtTime(0.03, 0)
+      pg.gain.exponentialRampToValueAtTime(0.2, arrive - 0.02)
+      pg.gain.linearRampToValueAtTime(0, arrive + 0.03)
+      o.connect(trem).connect(pg).connect(pull)
+      o.start(0); lfo.start(0); o.stop(arrive + 0.05); lfo.stop(arrive + 0.05)
+      const n = k.noise(0, arrive + 0.02)
+      const bp = k.filter('bandpass', 900, 1.2)
+      bp.frequency.setValueAtTime(900, 0)
+      bp.frequency.exponentialRampToValueAtTime(7000, arrive)
+      const ng = ctx.createGain()
+      ng.gain.value = 0
+      ng.gain.setValueAtTime(0.03, 0)
+      ng.gain.exponentialRampToValueAtTime(0.26, arrive - 0.02)
+      ng.gain.linearRampToValueAtTime(0, arrive + 0.01)
+      n.connect(bp).connect(ng).connect(pull)
+      // The arrival: violet (C#5) and gold (G#5) bells a fifth apart, a boom.
+      const bells = k.bus(1, 0.6)
+      k.fm({ t0: arrive, freq: hz(73), ratio: 3.5, index0: 1.5, index1: 0.07, indexTime: 0.6, peak: 0.2, t60: 1.6, dest: bells })
+      k.fm({ t0: arrive + 0.012, freq: hz(80), ratio: 4, index0: 1.2, index1: 0.05, indexTime: 0.4, peak: 0.17, t60: 1.5, dest: bells })
+      k.partial({ t0: arrive, freq: 110, to: 45, glide: 0.2, peak: 0.55, t60: 0.7, dest: bells, attack: 0.004 })
+      // The twin: two tones a few Hz apart, beating — one soul become two.
+      const twin = k.bus(0.8, 0.7)
+      for (const f of [hz(73), hz(73) + 3.2]) {
+        const t = ctx.createOscillator()
+        t.frequency.value = f
+        const g = ctx.createGain()
+        g.gain.value = 0
+        g.gain.setValueAtTime(0, arrive + 0.05)
+        g.gain.linearRampToValueAtTime(0.07, arrive + 0.3)
+        g.gain.setTargetAtTime(0, arrive + 0.6, 0.35)
+        t.connect(g).connect(twin)
+        t.start(arrive); t.stop(2.3)
+      }
+      // A breath of choir behind the bond.
+      const choir = k.bus(0.5, 0.8)
+      const src = ctx.createGain()
+      k.formants(src, choir, [[730, 7, 1], [1090, 9, 0.45], [2440, 12, 0.2]])
+      const env = ctx.createGain()
+      env.gain.value = 0
+      env.gain.setValueAtTime(0, arrive)
+      env.gain.setTargetAtTime(1, arrive, 0.15)
+      env.gain.setTargetAtTime(0, arrive + 0.55, 0.3)
+      env.connect(src)
+      for (const [m, lvl] of [[49, 0.7], [61, 1], [68, 0.8], [73, 0.6]]) {
+        for (const cents of [-8, 7]) {
+          const s = ctx.createOscillator()
+          s.type = 'sawtooth'
+          s.frequency.value = hz(m)
+          s.detune.value = cents
+          const gg = ctx.createGain()
+          gg.gain.value = 0.06 * lvl
+          s.connect(gg).connect(env)
+          s.start(arrive); s.stop(2.3)
+        }
+      }
+    } }
+  }
+
+  /**
+   * Render one sound. @returns {{ sampleRate, length, pcm }} mono float32
+   * little-endian PCM, base64.
+   */
+  window.renderSfx = async ({ name } = {}) => {
+    const def = SOUNDS[name]
+    if (!def) throw new Error(`unknown sound ${name}; have ${Object.keys(SOUNDS).join(', ')}`)
+    const ctx = new OfflineAudioContext(1, Math.ceil(SR * def.length), SR)
+    def.build(ctx)
+    const rendered = await ctx.startRendering()
+    const pcm = rendered.getChannelData(0)
+    const bytes = new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength)
+    let s = ''
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000))
+    return { sampleRate: SR, length: pcm.length, pcm: btoa(s) }
+  }
+  window.SFX_NAMES = Object.keys(SOUNDS)
+})()
+</script>

@@ -9,6 +9,7 @@
  */
 import { computed } from 'vue'
 import { getIngredient } from '@/game/ingredients'
+import { elementalArt } from '@/game/elementalArt'
 import { artSrc, type ArtKey } from '@/use/useArtOverrides'
 
 const props = withDefaults(defineProps<{
@@ -17,7 +18,11 @@ const props = withDefaults(defineProps<{
   merging?: boolean
   /** Disable the idle breathing loop (e.g. for the flying inject ghost). */
   still?: boolean
-}>(), { dragging: false, merging: false, still: false })
+  /** The figure alone — no tier badge, no drop shadow. The art bench renders
+   *  references this way: the painter must not repaint the badge, and a
+   *  shadow on the magenta ground is exactly what the prompt forbids. */
+  bare?: boolean
+}>(), { dragging: false, merging: false, still: false, bare: false })
 
 const ing = computed(() => getIngredient(props.tier))
 
@@ -27,6 +32,14 @@ const bitmap = computed(() => artSrc(`fighter-${props.tier}` as ArtKey))
 
 // Unique gradient ids per instance so multiple SVGs never collide in <defs>.
 const uid = `ing${(Math.random() * 1e9) | 0}`
+
+// The elemental tiers (21-50) have their own drawing until their painting
+// lands — see `elementalArt.ts`. Null for every other tier.
+const elemental = computed(() => elementalArt(props.tier, uid))
+
+const shadow = computed(() => (props.bare
+  ? undefined
+  : { filter: props.dragging ? 'drop-shadow(0 6px 8px rgba(0,0,0,0.45))' : 'drop-shadow(0 3px 3px rgba(0,0,0,0.35))' }))
 </script>
 
 <template lang="pug">
@@ -37,10 +50,16 @@ const uid = `ing${(Math.random() * 1e9) | 0}`
     template(v-if="bitmap")
       img.w-full.h-full.object-contain(
         :src="bitmap" alt="" draggable="false"
-        :style="{ filter: dragging ? 'drop-shadow(0 6px 8px rgba(0,0,0,0.45))' : 'drop-shadow(0 3px 3px rgba(0,0,0,0.35))' }"
+        :style="shadow"
       )
-      span.tier-badge {{ tier }}
-    svg(v-else viewBox="0 0 100 100" class="w-full h-full overflow-visible" :style="{ filter: dragging ? 'drop-shadow(0 6px 8px rgba(0,0,0,0.45))' : 'drop-shadow(0 3px 3px rgba(0,0,0,0.35))' }")
+      span.tier-badge(v-if="!bare") {{ tier }}
+    //- An elemental tier's own figure (a floating elemental, no feet).
+    svg(v-else-if="elemental" viewBox="0 0 100 100" class="w-full h-full overflow-visible" :style="shadow")
+      g(v-html="elemental")
+      g.tier-badge-svg(v-if="!bare")
+        circle(cx="80" cy="80" r="13" fill="#0e1426" stroke="#fff" stroke-width="2.5")
+        text(x="80" y="85" text-anchor="middle" font-size="15" font-weight="900" fill="#fff" font-family="inherit") {{ tier }}
+    svg(v-else viewBox="0 0 100 100" class="w-full h-full overflow-visible" :style="shadow")
       defs
         radialGradient(:id="uid + '-body'" cx="38%" cy="32%" r="80%")
           stop(offset="0%" :stop-color="ing.bodyLight")
@@ -123,7 +142,7 @@ const uid = `ing${(Math.random() * 1e9) | 0}`
         path(d="M66 18 l5 -12 l5 12 z")
 
       //- Tier number badge (readability)
-      g
+      g.tier-badge-svg(v-if="!bare")
         circle(cx="80" cy="80" r="13" fill="#0e1426" stroke="#fff" stroke-width="2.5")
         text(x="80" y="85" text-anchor="middle" font-size="15" font-weight="900" fill="#fff" font-family="inherit") {{ tier }}
 </template>

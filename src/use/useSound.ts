@@ -48,6 +48,13 @@ export const SFX_FALLBACKS: Record<string, string> = {
   'ult-ready': 'reward-continue',
   'ult-cast': 'gravity',
   'meteor-impact': 'explosion-1',
+  // Arena skills, slots 5–8 (synthesised: scripts/sfx/arena-skills.html). Real
+  // files ship; the placeholders only cover a build that lost them.
+  'skill-warcry': 'barricade',
+  'skill-legion-call': 'gravity',
+  'skill-mark': 'crystal-cut',
+  'skill-execute': 'chainsaw-break',
+  'skill-soul-pact': 'celebration-3',
   // Upgrades
   'upgrade-buy': 'level-up',
   'upgrade-denied': 'obstacle-hit',
@@ -58,6 +65,15 @@ export const SFX_FALLBACKS: Record<string, string> = {
   'rally-revive': 'celebration-1',
   'damage-buff': 'dodge'
 }
+
+/**
+ * One-shots that still play while the FTUE coach-marks run (see the quiet-first-
+ * session rule in `playSound`). Only the new-tier reveal: the tutorial's own
+ * merge (T1+T1 → T2) and field merge (→ T3) are the player's first two
+ * discoveries — the exact moments the reveal exists for. It is bespoke and rare
+ * (once per tier, ever), not the placeholder noise that rule keeps out.
+ */
+const TUTORIAL_AUDIBLE_SFX: ReadonlySet<string> = new Set(['new-tier-reveal'])
 
 const availableSfxOverrides = new Set<string>()
 let sfxProbeStarted = false
@@ -529,7 +545,8 @@ const useSounds = () => {
     // Quiet first session: no one-shot SFX while the FTUE coach-marks run —
     // the placeholder sounds spamming under the tutorial reads as noise, not
     // juice. Music is untouched; SFX come alive on the tutorial's last step.
-    if (tutorialActive.value) return null
+    // The new-tier reveal is the one exception (`TUTORIAL_AUDIBLE_SFX`).
+    if (tutorialActive.value && !TUTORIAL_AUDIBLE_SFX.has(effect)) return null
 
     const src = prependBaseUrl(`audio/sfx/${resolveSfx(effect)}.ogg`)
 

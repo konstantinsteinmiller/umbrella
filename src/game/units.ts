@@ -67,19 +67,59 @@ export const FIGHTER_DEFS: FighterDef[] = [
 // their projectile/impact element comes from getIngredient (see HIGH_TIER_ELEMENTS):
 //   13 → shadow (like t8) · 15 → cosmic (like t7) · 16 → wind (like t2)
 //   17 → shadow (like t8) · 19 → cosmic (like t7)
+const ranged = (range: number, attackInterval: number, ability: FighterAbility): Partial<FighterDef> =>
+  ({ range, attackInterval, ability, speed: 11 })
+const melee = (attackInterval: number, ability: FighterAbility): Partial<FighterDef> =>
+  ({ range: 10, attackInterval, ability, speed: 12.5 })
+
 const HIGH_TIER_DEFS: Record<number, Partial<FighterDef>> = {
   13: { range: 32, attackInterval: 1.3, ability: 'frost' },
   15: { range: 38, attackInterval: 1.4, ability: 'chain' },
   16: { range: 30, attackInterval: 1.2, ability: 'burn' },
   17: { range: 32, attackInterval: 1.3, ability: 'frost' },
-  19: { range: 38, attackInterval: 1.4, ability: 'chain' }
+  19: { range: 38, attackInterval: 1.4, ability: 'chain' },
+  // ── The elemental tiers (ingredients.ts ELEMENTALS). ATK/HP stay on the same
+  // formula as every tier above 11; what each gets is a role that suits its
+  // element, and the spread across the 30 keeps every ability in rotation:
+  // 8 melee (Defender needs melee to promote), 22 ranged firing an EXISTING
+  // projectile picked by the element.
+  21: melee(1.2, 'knockback'),       // Steel Sentinel — gauntlet haymakers
+  22: melee(1.1, 'splash'),          // Mercury Trickster — splatters on impact
+  23: ranged(30, 1.35, 'knockback'), // Lodestone Tyrant — repels (stone slug)
+  24: melee(1.0, 'midas'),           // Amber Warden — treasure-crit
+  25: ranged(32, 1.3, 'frost'),      // Dune Djinn — blinding sand (wind)
+  26: melee(0.95, 'poison'),         // Caustic Flask — acid
+  27: ranged(34, 1.25, 'poison'),    // Bramble Heart — thorn seeds (stone)
+  28: melee(1.1, 'burn'),            // Coral Monarch — stinging fronds
+  29: ranged(30, 1.2, 'heal'),       // Glowcap Sage — healing spores (cosmic)
+  30: ranged(36, 1.4, 'chain'),      // Stormcloud Fury — forked lightning (wind)
+  31: melee(1.15, 'heal'),           // Jade Oracle
+  32: ranged(32, 1.4, 'splash'),     // Rune Monolith — rune blast (stone)
+  33: ranged(32, 1.3, 'frost'),      // Chrono Engine — slows time (cosmic)
+  34: ranged(30, 0.7, 'none'),       // Origami Spirit — fast paper cuts (wind)
+  35: melee(1.1, 'splash'),          // Bubble Sprite — pops
+  36: ranged(36, 1.35, 'chain'),     // Glitch Cube — jumps between targets (cosmic)
+  37: ranged(30, 1.3, 'knockback'),  // Echo Bell — shockwave (wind)
+  38: ranged(32, 1.2, 'burn'),       // Spirit Lantern — soulfire (cosmic)
+  39: ranged(34, 1.35, 'chain'),     // Mirror Specter — reflections (ice)
+  40: melee(1.25, 'eruption'),       // Ruby Heart
+  41: ranged(32, 1.2, 'burn'),       // Frostfire Wisp — frostburn (ice)
+  42: ranged(34, 1.35, 'splash'),    // Diamond Paragon — shattering shards (ice)
+  43: ranged(36, 1.4, 'chain'),      // Plasma Dynamo — arcs (cosmic)
+  44: ranged(34, 1.5, 'eruption'),   // Comet Herald — impact (ice)
+  45: ranged(30, 1.2, 'heal'),       // Aurora Seraph (wind)
+  46: ranged(32, 1.45, 'eruption'),  // Solar Emperor — flares (fire)
+  47: ranged(30, 1.0, 'midas'),      // Wishing Star — wishes come true (cosmic)
+  48: ranged(34, 1.3, 'frost'),      // Pulsar Beacon — stun pulses (cosmic)
+  49: ranged(34, 1.4, 'splash'),     // Dark Matter — gravity well (shadow)
+  50: { ...ranged(36, 1.5, 'eruption'), scale: 1.5 } // Singularity Prime (shadow)
 }
 
-// Highest tier the Unit Codex lists: 1-11 are authored in FIGHTER_DEFS, 12-20
-// extrapolate their stats via getFighterDef but carry authored art + localized
-// names (`battle.codex.names.t12..t20`). Tiers past this still merge/extrapolate
+// Highest tier the Unit Codex lists: 1-11 are authored in FIGHTER_DEFS, 12-50
+// extrapolate their stats via getFighterDef but carry their own look + localized
+// names (`battle.codex.names.t12..t50`). Tiers past this still merge/extrapolate
 // in-game; they're just beyond the illustrated bestiary.
-export const CODEX_MAX_TIER = 20
+export const CODEX_MAX_TIER = 50
 
 export const getFighterDef = (tier: number): FighterDef => {
   if (tier <= FIGHTER_DEFS.length) return FIGHTER_DEFS[Math.max(0, tier - 1)]!
@@ -202,6 +242,9 @@ export interface WaveSpawn {
   /** Spawn portal index (0 top-right, 1 centre-right, 2 bottom-right); assigned
    *  by the engine when it groups spawns into portal subwaves. */
   portal?: number
+  /** Exactly this many — an authored spawn (the DEV video seam). Omitted, the
+   *  engine rolls its usual 1-3 cluster. */
+  count?: number
 }
 
 /** Compose a wave's spawn schedule. Deterministic-ish in shape, random jitter

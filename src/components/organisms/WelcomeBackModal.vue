@@ -14,6 +14,7 @@ import IconMovie from '@/components/icons/IconMovie.vue'
 import useEpicConfig from '@/use/useEpicConfig'
 import useSounds from '@/use/useSound'
 import useReward, { formatCost } from '@/use/useReward'
+import { formatBig } from '@/utils/bigNumber'
 import { offlineGold, consumeOfflineGold } from '@/use/useOfflineEarnings'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 
@@ -87,7 +88,7 @@ const onClaimDouble = async (e: MouseEvent): Promise<void> => {
       p.text-center.text-white.game-text.opacity-90(class="text-xs sm:text-sm") {{ t('welcomeBack.body') }}
       div.flex.items-center.gap-2
         IconCoin(class="w-8 h-8 sm:w-10 sm:h-10")
-        span.font-black.game-text.text-yellow-300(class="text-2xl sm:text-3xl") +{{ offlineGold }}
+        span.font-black.game-text.text-yellow-300(class="text-2xl sm:text-3xl") +{{ formatBig(offlineGold) }}
       div.flex.items-stretch.gap-2.w-full.max-w-xs
         //- Base claim
         button.flex-1.cursor-pointer.transition-transform.rounded-xl.border-2.px-3.py-2(

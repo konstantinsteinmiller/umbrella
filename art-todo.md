@@ -8,6 +8,32 @@
 - Style: vibrant stylized vector cartoon, bold black outlines (3–5px at 256px), saturated colors — match the existing SVG units.
 - Facing: fighters march right → draw fighters facing **right**; enemies march left → draw enemies facing **left**.
 
+## Repainting through the art pipeline (art-generation-pipeline skill)
+
+Every slot below already ships a painting. The pipeline is for **re-rolls,
+restyles and new art registered against what ships**, so a repaint drops in at
+the same size and place. The key → path table is `src/game/artCatalogue.ts`;
+the manifest (what each drawable is, its lattice, its prompt text) is
+`src/game/artSheet.ts`. The prompt text is only ever edited there.
+
+| Step | Command | What it does |
+| :--- | :--- | :--- |
+| 1 | `pnpm dev` → `/#/art-sheets` → **Export all sheets** (or `pnpm art:export` with the dev server up) | Lays each reference on magenta, measures its box, writes `art-sheets/<id>.png`, `-key.png` for 3×3 sheets, `sheet-index.json` and `PROMPTS-*.md`. Only needed again when the SHIPPED art or the manifest's lattice changes. |
+| 2 | `pnpm art:prompts` | Rewrites the prompt docs (byte-identical to the bench's) and `art-sheets/PAINT-STATUS.md`. `--check` for CI. |
+| 3 | paint | Attach `art-sheets/<id>.png`, paste its fenced block from the named `PROMPTS-*.md`, and save the return into `art-sheets/painted/` under that id (any extension). Or run the whole loop from **`pnpm art:desk`** (http://127.0.0.1:5178). |
+| 4 | `pnpm art:slice` (`-- --dry` first) | Keys the magenta, registers the return onto the reference's measured box, and writes `public/<target>.webp`. 3×3 sheets are composed back into their grid. It refuses a re-composed grid, and refuses a painting whose reference was re-cut since. |
+| 5 | `/#/playground` | Every drawable through the game's own components. **Painted ⇄ Drawn** flips the art layer live. |
+| 6 | `pnpm art:measure cells`, `pnpm art:status` | Registration arithmetic (sliced vs measured box), and which drop-ins are on disk. |
+
+The art flag: painted art is **on** by default. `VITE_ENABLE_ART_OVERRIDES=false`
+turns it off in any build. `?art=off|on` and `__art.on()/.off()/.refresh()/.status()`
+work in dev only.
+
+Known on the shipped art (found by `pnpm art:measure`): the 3×3 VFX sheets have a
+baked 1–2 px opaque grey rim around the outer edge of the whole sheet. The bench
+strips it from the references; a re-slice through the pipeline removes it from the
+art.
+
 ## Fighters (11 tiers) — `public/images/units/`
 One per merge tier, 256×256. A tier badge is overlaid automatically (bottom-right corner stays clear-ish). Names below are the internal descriptors; the in-game display names live in i18n (`battle.codex.names.t<tier>`).
 
@@ -29,9 +55,34 @@ One per merge tier, 256×256. A tier badge is overlaid automatically (bottom-rig
 extrapolation helpers (`getFighterDef` / `getIngredient`), **not** the codex, so
 they need no i18n. Behaviour: **12 & 14 melee**; **13 ranged** reusing tier-8
 **shadow** projectile+impact VFX; **15 ranged** reusing tier-7 **cosmic** VFX.
-Stats climb off the formula, colours/SVG-fallback reuse tier-11. Tiers 16+ merge
-on as melee clones of tier 11 (add real entries to `INGREDIENTS`/`FIGHTER_DEFS`
-+ locale codex strings to author them properly).
+Stats climb off the formula, colours/SVG-fallback reuse tier-11. Tiers 16–20
+ship painted art the same way.
+
+**The elemental tiers 21–50** (`fighter-21..50.webp`) — ⬜ no painting yet. Thirty
+new FLOATING elementals (no legs, no feet): each is drawn procedurally in
+`src/game/elementalArt.ts`, which is both the in-game look until its file lands
+and the pipeline REFERENCE (`/#/art-sheets` → `art-sheets/unit-fighter-<tier>.png`;
+the prompts, marked as new designs, are in `PROMPTS-UNITS.md`). Colours, element
+and name per tier: `ELEMENTALS` in `ingredients.ts`; role per tier: `HIGH_TIER_DEFS`
+in `units.ts`. Ranged ones reuse the existing projectile/impact art by element.
+
+| Tier | Name | Element | Tier | Name | Element |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 21 | Steel Sentinel | steel | 36 | Glitch Cube | corrupt data |
+| 22 | Mercury Trickster | quicksilver | 37 | Echo Bell | resonance |
+| 23 | Lodestone Tyrant | magnetism | 38 | Spirit Lantern | soulfire |
+| 24 | Amber Warden | fossil amber | 39 | Mirror Specter | living glass |
+| 25 | Dune Djinn | sand | 40 | Ruby Heart | ruby |
+| 26 | Caustic Flask | acid | 41 | Frostfire Wisp | cold flame |
+| 27 | Bramble Heart | thornwood | 42 | Diamond Paragon | diamond |
+| 28 | Coral Monarch | coral | 43 | Plasma Dynamo | plasma |
+| 29 | Glowcap Sage | fungus | 44 | Comet Herald | comet ice |
+| 30 | Stormcloud Fury | thunderhead | 45 | Aurora Seraph | polar light |
+| 31 | Jade Oracle | jade | 46 | Solar Emperor | stellar fire |
+| 32 | Rune Monolith | runestone | 47 | Wishing Star | starlight |
+| 33 | Chrono Engine | clockwork | 48 | Pulsar Beacon | neutron star |
+| 34 | Origami Spirit | paper | 49 | Dark Matter | dark matter |
+| 35 | Bubble Sprite | soap film | 50 | Singularity Prime | black hole |
 
 ## Enemies — `public/enemies/` (256×256, facing **left**)
 ✅ **DONE** — bitmap over the SVG fallback; enrage red-flush stays CSS. The 5 walker
@@ -85,6 +136,20 @@ Static sprites; the existing CSS keyframes animate them (fall-in, spin-suck, sca
 | `attacks/meteor_256x256.webp` | 256×256, transparent | ✅ **DONE** — Meteor Storm **button** icon (fireball) | drawn glyph in the ult button |
 
 *(Deliberately NOT asset-driven — already crisp procedurally: nova/shockwave/heal rings, chain-lightning bolts, particles/confetti, damage numbers.)*
+
+## Arena skill icons, slots 5–8 — `public/images/attacks/`
+Button icons for the skills after Meteor · Revive Guard · Heal · Defender. Until a
+file lands, SpellButton draws the procedural `SkillIcon.vue` — which is also each
+one's REFERENCE on the `/#/art-sheets` bench (the prompts are in `PROMPTS-VFX.md`
+after `pnpm art:export`). Their VFX (auras, portals, reticle, slashes, tether) are
+procedural CSS and need no art.
+
+| File | Size | Content | Current fallback |
+| :--- | :--- | :--- | :--- |
+| `attacks/warcry_128x128.webp` | 128×128, transparent | ⬜ Warcry of the Legion (slot 5) — ivory war horn blasting red-gold shockwaves | `SkillIcon` `warcry` |
+| `attacks/legion-call_128x128.webp` | 128×128, transparent | ⬜ Legion Call (slot 6) — three spectral cyan helmets rising from a portal | `SkillIcon` `legion` |
+| `attacks/executioners-mark_128x128.webp` | 128×128, transparent | ⬜ Executioner's Mark (slot 7, desktop) — skull in a crimson rune reticle | `SkillIcon` `execute` |
+| `attacks/soul-pact_128x128.webp` | 128×128, transparent | ⬜ Soul Pact (slot 8, desktop) — a violet and a golden soul flame chained together | `SkillIcon` `pact` |
 
 ## Attacks — projectiles & impact VFX — `public/images/attacks/`
 Only **ranged** units (arena range > 14) fire a projectile; everything else hits

@@ -40,8 +40,25 @@ const stubPublicManifestPlugin = () => ({
   }
 })
 
+// Same story for `virtual:leaderboard-snapshot`, which `leaderboardSnapshot.ts`
+// imports statically. Stubbed to `null` — "no baked board" — so the leaderboard
+// suites assert the real "no endpoint, no leaderboard" contract by default; the
+// specs that need a baked board mock `@/use/leaderboardSnapshot` itself, which
+// is why that module exists as a thin re-export of the virtual id.
+const stubLeaderboardSnapshotPlugin = () => ({
+  name: 'stub-leaderboard-snapshot',
+  resolveId(id: string) {
+    if (id === 'virtual:leaderboard-snapshot') return '\0virtual:leaderboard-snapshot'
+    return null
+  },
+  load(id: string) {
+    if (id === '\0virtual:leaderboard-snapshot') return 'export default null'
+    return null
+  }
+})
+
 export default defineConfig({
-  plugins: [vue(), stubCampaignOverridesPlugin(), stubPublicManifestPlugin()],
+  plugins: [vue(), stubCampaignOverridesPlugin(), stubPublicManifestPlugin(), stubLeaderboardSnapshotPlugin()],
   // Vite's production config (`vite.config.ts`) injects `APP_VERSION` at
   // build time via `define`. Vitest doesn't run that plugin, so any
   // module that reads `APP_VERSION` at import time (e.g. `useUser.ts`)
@@ -60,6 +77,12 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/save/setup.ts'],
+    // 15 s, not the 5 s default. Many suites `await import('@/use/useBattle')`
+    // inside their FIRST case, and that graph (battle engine, sound, art,
+    // platform layer) takes several seconds to transform while ~60 files load
+    // in parallel — so the first case of those files timed out at random on a
+    // full run while passing every time alone. Real hangs still fail.
+    testTimeout: 15_000,
     // tests/e2e runs under Playwright + a real Vite dev server (Node env,
     // not jsdom). Excluded from the default suite so `pnpm test` stays
     // fast; run them with `pnpm test:e2e`.

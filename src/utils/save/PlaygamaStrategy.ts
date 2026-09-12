@@ -1,36 +1,46 @@
-// ─── Playgama save strategy (authoritative cloud-read) ─────────────────────
+// ─── Playgama save strategy, SDK v2 (authoritative cloud-read) ─────────────
 //
-// Mirrors the consolidated state blob through `bridge.storage`, preferring
-// the portal's cloud row (`platform_internal`) and degrading to the bridge's
-// `local_storage` adapter when cloud isn't available in the active context.
+// Mirrors the consolidated state blob through `bridge.storage`. In v2 the
+// Bridge decides cloud-vs-local itself — the storage-TYPE argument that every
+// v1 call carried is gone from `get` / `set` / `delete`, and so is
+// `isAvailable()`.
 //
-// ## The three rules that make cloud saves actually work on Playgama
+// ## The rules that make cloud saves actually work on Playgama
 //
-//   1. **`platform_internal` is gated on `allowAnonymousCloudSave`.**
-//      De-minifying the live `v1/stable` bridge's Playgama adapter gives:
+//   1. **Cloud storage is still gated on `allowAnonymousCloudSave`.** It
+//      survived the v2 upgrade — the shipped 2.1.0 bundle gates its cloud
+//      path on
 //
-//        isStorageAvailable(PLATFORM_INTERNAL)
-//          = isCloudSaveSupported
-//            && (options.storage?.allowAnonymousCloudSave === true
-//                || player.isAuthorized)
+//        isCloudSaveSupported
+//          && (options.storage?.allowAnonymousCloudSave === true
+//              || player.isAuthorized)
 //
 //      Guest players — i.e. most portal traffic AND the QA reviewer's first
-//      run — are NOT authorized, so without the config flag every cloud
-//      write silently degrades to `local_storage` and no progress ever
-//      reaches the remote. The flag is set in the emitted
-//      `playgama-bridge-config.json` (see `vite.config.ts`) and passed again
-//      inline to `bridge.initialize()` as a fallback for when that file 404s.
+//      run — are NOT authorized, so without the flag every write silently
+//      degrades to local and no progress ever reaches the remote. It is set
+//      in the emitted `playgama-bridge-config.json` (see `vite.config.ts`)
+//      and passed again inline to `bridge.initialize()` as the fallback for
+//      when that file 404s.
 //
-//   2. **`storage.get` parses JSON by default.** The real signature is
-//      `get(key | key[], storageType?, tryParseJson = true)`. Our payload IS
-//      a JSON string, so the default would hand back a parsed OBJECT and the
+//   2. **`storage.get` parses JSON by default.** The v2 signature is
+//      `get(key | key[], tryParseJson = true)`. Our payload IS a JSON string,
+//      so the default would hand back a parsed OBJECT and the
 //      `typeof value === 'string'` check would drop it on the floor. We pass
 //      `false` explicitly and still re-serialize defensively.
 //
-//   3. **Never skip the bridge call when storageType === 'local_storage'.**
-//      The "Game Saves" certification check watches `bridge.storage.set` as
-//      its detection signal. A "local-only → skip" optimization breaks the
-//      gate at 0% even when local writes are landing fine.
+//   3. **Never skip the bridge call because a write "is only local".** The
+//      "Game Saves" certification check watches `bridge.storage.set` as its
+//      detection signal. A local-only skip breaks the gate at 0% even when
+//      local writes are landing fine.
+//
+//   4. **ONE coalesced, serialized batch — never concurrent `set` calls.**
+//      Several adapters (YouTube's above all) have no per-key storage: the
+//      Bridge implements the write as `loadData() -> merge -> saveData(whole
+//      blob)`, a read-modify-write of the ENTIRE save. Two overlapping calls
+//      both read the same snapshot and the later one silently drops the
+//      earlier one's keys. `drain()` therefore issues a single
+//      `set(keys[], values[])` with at most one batch in flight — which is
+//      also ~1 round trip instead of 2N on a whole-blob backend.
 //
 // ## Re-entrancy
 //
@@ -99,22 +109,13 @@ const WRITE_DEBOUNCE_MS = 600
  *  flushes. `pagehide` / tab-hide use `{ immediate: true }` and bypass it. */
 const REMOTE_MIN_GAP_MS = 5_000
 
-/** Storage types the bridge accepts as the storageType argument. */
-type StorageType = 'platform_internal' | 'local_storage'
-
-/** Subset of `bridge.storage` we touch — defensively typed so future bridge
- *  versions can add fields without us breaking. Note the third `get` arg:
+/** Subset of `bridge.storage` we touch — defensively typed so future Bridge
+ *  versions can add fields without us breaking. Note the second `get` arg:
  *  `tryParseJson`, which DEFAULTS TO TRUE in the real implementation. */
 interface BridgeStorage {
-  defaultType?: StorageType
-  isAvailable?: (type: StorageType) => boolean | Promise<boolean>
-  set?: (key: string | string[], value: unknown, type?: StorageType) => unknown
-  get?: (
-    key: string | string[],
-    type?: StorageType,
-    tryParseJson?: boolean
-  ) => unknown
-  delete?: (key: string | string[], type?: StorageType) => unknown
+  set?: (key: string | string[], value: unknown) => unknown
+  get?: (key: string | string[], tryParseJson?: boolean) => unknown
+  delete?: (key: string | string[]) => unknown
 }
 
 /** Only these round-trip to the portal. Debug/cheat toggles, the bridge's own
@@ -151,24 +152,6 @@ const waitForBridgeStorage = async (timeoutMs: number): Promise<BridgeStorage | 
     if (Date.now() - start >= timeoutMs) return null
     await sleep(BRIDGE_POLL_MS)
   }
-}
-
-/**
- * Pick the storage type. `isAvailable` is SYNCHRONOUS in the real bridge
- * (it returns a boolean, not a promise) but we await it anyway so a future
- * async version doesn't silently coerce a Promise to truthy.
- */
-const resolveStorageType = async (storage: BridgeStorage): Promise<StorageType> => {
-  if (typeof storage.isAvailable !== 'function') {
-    return storage.defaultType ?? 'local_storage'
-  }
-  try {
-    const cloud = await Promise.resolve(storage.isAvailable('platform_internal'))
-    if (cloud) return 'platform_internal'
-  } catch (e) {
-    console.warn(`${TAG} isAvailable(platform_internal) threw`, e)
-  }
-  return 'local_storage'
 }
 
 /**
@@ -209,16 +192,9 @@ export class PlaygamaStrategy implements SaveStrategy {
   /** Re-entrancy guard — see the file header. */
   private writeInFlight = new Set<string>()
 
-  private storageType: StorageType = 'local_storage'
-  private storageTypeResolved = false
   private retriesRun = 0
   /** Held so `retryHydrate` can run without the SaveManager handing it back. */
   private local: LocalStorageAccessor | null = null
-
-  /** Test/QA introspection — which storage type the session settled on. */
-  get resolvedStorageType(): StorageType | null {
-    return this.storageTypeResolved ? this.storageType : null
-  }
 
   // ─── Hydrate ────────────────────────────────────────────────────────────
 
@@ -261,8 +237,6 @@ export class PlaygamaStrategy implements SaveStrategy {
     storage: BridgeStorage,
     local: LocalStorageAccessor
   ): Promise<void> {
-    await this.ensureStorageType(storage)
-
     let remoteState: string | null = null
     let remoteMetaRaw: string | null = null
     try {
@@ -270,10 +244,11 @@ export class PlaygamaStrategy implements SaveStrategy {
         this.setState('success-empty', { reason: 'no-get-api' })
         return
       }
-      // `tryParseJson = false` — the default TRUE would hand back a parsed
-      // object for our JSON payload. See rule 2 in the file header.
+      // ONE batched read, and `tryParseJson = false` — the default TRUE
+      // would hand back a parsed object for our JSON payload (rule 2), and a
+      // per-key read is a whole-blob download on a whole-blob adapter (rule 4).
       const raw = await Promise.resolve(
-        storage.get([STATE_KEY, META_KEY], this.storageType, false)
+        storage.get([STATE_KEY, META_KEY], false)
       )
       const arr = Array.isArray(raw) ? raw : [raw, null]
       remoteState = asStoredString(arr[0])
@@ -288,7 +263,7 @@ export class PlaygamaStrategy implements SaveStrategy {
     }
 
     if (remoteState === null && remoteMetaRaw === null) {
-      dlog(`${TAG} hydrate: remote empty (${this.storageType}) → success-empty`)
+      dlog(`${TAG} hydrate: remote empty → success-empty`)
       this.setState('success-empty')
       // Nothing remote, but local may hold progress that has never been
       // pushed — seed the queue so the first flush uploads it.
@@ -433,26 +408,6 @@ export class PlaygamaStrategy implements SaveStrategy {
     }, WRITE_DEBOUNCE_MS)
   }
 
-  private async ensureStorageType(storage: BridgeStorage): Promise<void> {
-    if (this.storageTypeResolved) return
-    this.storageType = await resolveStorageType(storage)
-    this.storageTypeResolved = true
-    if (this.storageType === 'local_storage') {
-      // Loud on purpose: this is the exact state that made the cleared wave
-      // never reach the remote. If it shows up on the live portal, the
-      // bridge config's `storage.allowAnonymousCloudSave` didn't take.
-      console.warn(
-        `${TAG} cloud storage NOT available — falling back to 'local_storage'. `
-        + 'Progress will not sync to the Playgama remote for this session. '
-        + 'Check that playgama-bridge-config.json ships '
-        + '{"storage":{"allowAnonymousCloudSave":true}} and that the bridge '
-        + 'loaded it (a 404 falls back to the inline initialize() options).'
-      )
-    } else {
-      console.info(`${TAG} cloud storage active — storageType='platform_internal'`)
-    }
-  }
-
   /**
    * Push the dirty map to the bridge. Always writes the META blob alongside
    * the state so the next hydrate can score this save — nothing else in the
@@ -474,7 +429,6 @@ export class PlaygamaStrategy implements SaveStrategy {
     // below, and the bridge can swap its storage object during ad takeover.
     const setFn = storage.set.bind(storage)
     const deleteFn = storage.delete?.bind(storage) ?? null
-    await this.ensureStorageType(storage)
 
     // Refresh META from the CURRENT local snapshot so the score/timestamp we
     // publish matches the blob we're publishing.
@@ -501,16 +455,16 @@ export class PlaygamaStrategy implements SaveStrategy {
           const values = writes.map(([, v]) => v)
           for (const k of keys) this.writeInFlight.add(k)
           try {
-            await Promise.resolve(setFn(keys, values, this.storageType))
+            await Promise.resolve(setFn(keys, values))
           } finally {
             for (const k of keys) this.writeInFlight.delete(k)
           }
-          dlog(`${TAG} set [${keys.join(', ')}] → ${this.storageType}`)
+          dlog(`${TAG} set [${keys.join(', ')}]`)
         }
         if (deletes.length > 0 && deleteFn) {
           for (const k of deletes) this.writeInFlight.add(k)
           try {
-            await Promise.resolve(deleteFn(deletes, this.storageType))
+            await Promise.resolve(deleteFn(deletes))
           } finally {
             for (const k of deletes) this.writeInFlight.delete(k)
           }

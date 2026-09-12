@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { onGameSuspended, USES_PAGE_VISIBILITY } from '@/use/useGamePause'
 
 /**
  * Single-blob localStorage layer for Merge Idle War.
@@ -81,12 +82,15 @@ const schedulePersist = (): void => {
   }, delay)
 }
 
-if (typeof window !== 'undefined') {
-  const onHide = () => flushPersist()
-  window.addEventListener('pagehide', onHide)
-  window.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') flushPersist()
-  })
+// Flush the debounced blob write the moment the game goes away.
+// `onGameSuspended` is the build-agnostic edge — DOM visibility where we may
+// read it, the portal SDK's pause event where we may not — so this works
+// unchanged on the Playgama build, where the Page Visibility API is banned
+// (that archive is also the YouTube Playables submission). `pagehide` is a
+// "similar web API" under the same rule, hence the gate.
+onGameSuspended(() => flushPersist())
+if (USES_PAGE_VISIBILITY && typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => flushPersist())
 }
 
 const buildInitial = (): Record<string, unknown> => {

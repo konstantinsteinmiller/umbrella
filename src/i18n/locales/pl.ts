@@ -132,10 +132,11 @@ export default {
     'body': 'Twoja armia walczyła dalej pod twoją nieobecność:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Przywraca 25% zdrowia wszystkich jednostek.", 'reviveGuard': "Przez 30 s każda poległa jednostka natychmiast odradza się z pełnym zdrowiem.", 'defender': "Zamienia najlepszą jednostkę walczącą wręcz w czołg na 2 min: 2× zdrowia, 80% mniej obrażeń.", 'meteor': "Zsyła deszcz meteorów na pole, rażąc wszystkich wrogów." },
+    'spellDesc': { 'heal': "Przywraca 25% zdrowia wszystkich jednostek.", 'reviveGuard': "Przez 30 s każda poległa jednostka natychmiast odradza się z pełnym zdrowiem.", 'defender': "Zamienia najlepszą jednostkę walczącą wręcz w czołg na 2 min: 2× zdrowia, 80% mniej obrażeń.", 'meteor': "Zsyła deszcz meteorów na pole, rażąc wszystkich wrogów.", 'warcry': "Przez 8 s twoja armia zadaje +60% obrażeń i atakuje o 30% szybciej.", 'legionCall': "Przyzywa na 20 s 3 widmowych wojowników o poziom niższych od twojej najlepszej jednostki. Ładuje się szybko, gdy twoje jednostki giną.", 'executionerMark': "Oznacza najtwardszego wroga na 10 s: otrzymuje +75% obrażeń i ginie poniżej 12% zdrowia.", 'soulPact': "Twoja najsilniejsza jednostka zyskuje bliźniaka — kolejna najsilniejsza zostaje za to poświęcona. Odnawia się w 3 minuty." },
     'mutationWave': "MUTACJA!",
     'overrunSetbackHint': "Te fale są dla ciebie za silne — najpierw rozbuduj armię na łatwiejszych falach.",
-    'spells': { 'heal': "Leczenie", 'reviveGuard': "Straż Wskrzeszenia", 'defender': "Obrońca" },
+    'spells': { 'heal': "Leczenie", 'reviveGuard': "Straż Wskrzeszenia", 'defender': "Obrońca", 'warcry': "Okrzyk Wojenny Legionu", 'legionCall': "Zew Legionu", 'executionerMark': "Znak Kata", 'soulPact': "Pakt Dusz" },
+    'pactNeedsSacrifice': "Pakt Dusz wymaga jednostki niższego poziomu na polu do poświęcenia.",
     'bossNames': { 'b0': "Glorp Pożeracz", 'b1': "Król Błotna Pięść", 'b2': "Mawzilla", 'b3': "Pożeracz Bram", 'b4': "Grumblor Prime" },
     'wave': 'Fala {n}',
     'best': 'Rekord {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Kodeks jednostek',
-      'names': { 't1': 'Iskra Magmy', 't2': 'Lodowy Wir', 't3': 'Skalny Brutal', 't4': 'Lodowcowy Strażnik', 't5': 'Kropla Przypływu', 't6': 'Kamienny Kolos', 't7': 'Oko Mgławicy', 't8': 'Widmo Pustki', 't9': 'Złoty Szpon', 't10': 'Władca Feniks', 't11': 'Obsydianowy Wódz', 't12': "Piekielny Tytan", 't13': "Mroczny Żniwiarz", 't14': "Lewiatan Magmy", 't15': "Kosmiczny Wniebowstąpiony", 't16': "Władca Burzy", 't17': "Strażnik Otchłani", 't18': "Roztopiony Behemot", 't19': "Astralny Pożeracz", 't20': "Wieczne Bóstwo" },
+      'names': { 't1': 'Iskra Magmy', 't2': 'Lodowy Wir', 't3': 'Skalny Brutal', 't4': 'Lodowcowy Strażnik', 't5': 'Kropla Przypływu', 't6': 'Kamienny Kolos', 't7': 'Oko Mgławicy', 't8': 'Widmo Pustki', 't9': 'Złoty Szpon', 't10': 'Władca Feniks', 't11': 'Obsydianowy Wódz', 't12': "Piekielny Tytan", 't13': "Mroczny Żniwiarz", 't14': "Lewiatan Magmy", 't15': "Kosmiczny Wniebowstąpiony", 't16': "Władca Burzy", 't17': "Strażnik Otchłani", 't18': "Roztopiony Behemot", 't19': "Astralny Pożeracz", 't20': "Wieczne Bóstwo", 't21': "Stalowy Strażnik", 't22': "Rtęciowy Psotnik", 't23': "Tyran Magnetu", 't24': "Bursztynowy Opiekun", 't25': "Dżin Wydm", 't26': "Żrąca Kolba", 't27': "Cierniowe Serce", 't28': "Koralowy Monarcha", 't29': "Grzybowy Mędrzec", 't30': "Burzowa Furia", 't31': "Jadeitowa Wyrocznia", 't32': "Runiczny Monolit", 't33': "Silnik Chrono", 't34': "Duch Origami", 't35': "Bańkowy Chochlik", 't36': "Kostka Glitch", 't37': "Dzwon Echa", 't38': "Latarnia Duchów", 't39': "Lustrzana Zjawa", 't40': "Rubinowe Serce", 't41': "Mroźny Błędny Ognik", 't42': "Diament Doskonały", 't43': "Plazmowe Dynamo", 't44': "Herold Komety", 't45': "Serafin Zorzy", 't46': "Słoneczny Cesarz", 't47': "Gwiazda Życzeń", 't48': "Sygnał Pulsara", 't49': "Ciemna Materia", 't50': "Najwyższa Osobliwość" },
       'locked': 'Połącz dwie jednostki poziomu {n}, aby odkryć!',
+      'effects': { 'none': "Szybkie ciosy — zwinne i bezlitosne.", 'burn': "Trafienia zostawiają obrażenia, które wciąż narastają.", 'knockback': "Potężne ciosy odrzucają wrogów.", 'heal': "Każde trafienie leczy twojego najsłabszego sojusznika.", 'splash': "Każde trafienie rozchodzi się na wszystkich pobliskich wrogów.", 'poison': "Trafienia kumulują obrażenia w czasie.", 'chain': "Ataki przeskakują na trzech kolejnych wrogów.", 'frost': "Spowalnia przy trafieniu; impuls ogłusza pobliskie grupy.", 'midas': "Duża szansa na krytyk i dodatkowe złoto przy każdym trafieniu.", 'eruption': "Wybucha przy uderzeniu i podpala pobliskich wrogów." },
       'abilities': {
         'none': 'Roztopiona iskra — szybki, nieustraszony, zawsze na czele.',
         'burn': 'Gryzący mróz pozostaje — wrogowie wciąż otrzymują obrażenia po trafieniu.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Odmowa dostępu: kup licencję.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'z {n}',
+    'aria': 'Ranking: miejsce {rank} z {n}',
+    'ariaRank': 'Ranking: miejsce {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'NOWA JEDNOSTKA!',
+    'tier': 'Poziom {n}'
   }
 }

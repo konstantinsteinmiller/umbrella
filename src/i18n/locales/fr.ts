@@ -132,10 +132,11 @@ export default {
     'body': 'Votre armée a continué le combat pendant votre absence :'
   },
   'battle': {
-    'spellDesc': { 'heal': "Restaure 25% des points de vie de toutes les unités.", 'reviveGuard': "Pendant 30 s, toute unité qui tombe ressuscite aussitôt avec toute sa vie.", 'defender': "Transforme votre meilleure unité de mêlée en tank pendant 2 min : 2× de vie, 80% de dégâts en moins.", 'meteor': "Fait pleuvoir des météores sur le champ, frappant tous les ennemis." },
+    'spellDesc': { 'heal': "Restaure 25% des points de vie de toutes les unités.", 'reviveGuard': "Pendant 30 s, toute unité qui tombe ressuscite aussitôt avec toute sa vie.", 'defender': "Transforme votre meilleure unité de mêlée en tank pendant 2 min : 2× de vie, 80% de dégâts en moins.", 'meteor': "Fait pleuvoir des météores sur le champ, frappant tous les ennemis.", 'warcry': "Pendant 8 s, votre armée inflige +60% de dégâts et attaque 30% plus vite.", 'legionCall': "Invoque pendant 20 s 3 guerriers spectraux d'un rang sous votre meilleure unité. Se charge vite quand vos unités tombent.", 'executionerMark': "Marque l'ennemi le plus coriace pendant 10 s : il subit +75% de dégâts et est exécuté sous 12% de vie.", 'soulPact': "Votre unité la plus forte obtient un jumeau — la suivante est sacrifiée pour lui. Se recharge en 3 minutes." },
     'mutationWave': "MUTATION !",
     'overrunSetbackHint': "Ces vagues sont trop fortes — renforce d'abord ton armée sur des vagues plus faciles.",
-    'spells': { 'heal': "Soin", 'reviveGuard': "Garde de Résurrection", 'defender': "Défenseur" },
+    'spells': { 'heal': "Soin", 'reviveGuard': "Garde de Résurrection", 'defender': "Défenseur", 'warcry': "Cri de guerre de la Légion", 'legionCall': "Appel de la Légion", 'executionerMark': "Marque du Bourreau", 'soulPact': "Pacte des Âmes" },
+    'pactNeedsSacrifice': "Le Pacte des Âmes exige une unité de rang inférieur sur le champ à sacrifier.",
     'bossNames': { 'b0': "Glorp le Dévoreur", 'b1': "Roi Poing-de-Boue", 'b2': "Mawzilla", 'b3': "Le Mange-Portail", 'b4': "Grumblor Prime" },
     'wave': 'Vague {n}',
     'best': 'Record {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Codex des unités',
-      'names': { 't1': 'Étincelle de Magma', 't2': 'Tourbillon de Givre', 't3': 'Brute de Roche', 't4': 'Gardien Glaciaire', 't5': 'Goutte de Marée', 't6': 'Colosse de Pierre', 't7': 'Œil de Nébuleuse', 't8': 'Spectre du Vide', 't9': 'Serre Dorée', 't10': 'Souverain Phénix', 't11': "Seigneur de Guerre d'Obsidienne", 't12': "Titan Infernal", 't13': "Faucheur Ombral", 't14': "Léviathan de Magma", 't15': "Ascendant Cosmique", 't16': "Souverain des Tempêtes", 't17': "Gardien Abyssal", 't18': "Béhémoth en Fusion", 't19': "Dévoreur Astral", 't20': "Divinité Éternelle" },
+      'names': { 't1': 'Étincelle de Magma', 't2': 'Tourbillon de Givre', 't3': 'Brute de Roche', 't4': 'Gardien Glaciaire', 't5': 'Goutte de Marée', 't6': 'Colosse de Pierre', 't7': 'Œil de Nébuleuse', 't8': 'Spectre du Vide', 't9': 'Serre Dorée', 't10': 'Souverain Phénix', 't11': "Seigneur de Guerre d'Obsidienne", 't12': "Titan Infernal", 't13': "Faucheur Ombral", 't14': "Léviathan de Magma", 't15': "Ascendant Cosmique", 't16': "Souverain des Tempêtes", 't17': "Gardien Abyssal", 't18': "Béhémoth en Fusion", 't19': "Dévoreur Astral", 't20': "Divinité Éternelle", 't21': "Sentinelle d'Acier", 't22': "Farceur de Mercure", 't23': "Tyran Magnétique", 't24': "Gardien d'Ambre", 't25': "Djinn des Dunes", 't26': "Fiole Caustique", 't27': "Cœur de Ronces", 't28': "Monarque de Corail", 't29': "Sage Luminescent", 't30': "Furie Orageuse", 't31': "Oracle de Jade", 't32': "Monolithe Runique", 't33': "Moteur Chrono", 't34': "Esprit Origami", 't35': "Lutin Bulle", 't36': "Cube Glitch", 't37': "Cloche Écho", 't38': "Lanterne Spectrale", 't39': "Spectre Miroir", 't40': "Cœur de Rubis", 't41': "Feu Follet Givré", 't42': "Diamant Parangon", 't43': "Dynamo Plasma", 't44': "Héraut Comète", 't45': "Séraphin Aurore", 't46': "Empereur Solaire", 't47': "Étoile à Vœux", 't48': "Phare Pulsar", 't49': "Matière Noire", 't50': "Singularité Suprême" },
       'locked': 'Fusionnez deux unités de niveau {n} pour la découvrir !',
+      'effects': { 'none': "Frappes rapides — vives et implacables.", 'burn': "Les coups laissent des dégâts qui continuent d'agir.", 'knockback': "Des coups puissants repoussent les ennemis.", 'heal': "Chaque coup soigne votre allié le plus faible.", 'splash': "Chaque coup éclate sur tous les ennemis proches.", 'poison': "Les coups cumulent des dégâts sur la durée.", 'chain': "Les attaques rebondissent sur trois ennemis de plus.", 'frost': "Ralentit à l'impact ; une onde étourdit les groupes proches.", 'midas': "Fortes chances de critique et or bonus à chaque coup.", 'eruption': "Explose à l'impact et brûle tous les ennemis proches." },
       'abilities': {
         'none': 'Une étincelle en fusion : rapide, intrépide, toujours en tête.',
         'burn': 'Le givre mordant persiste : les ennemis continuent de subir des dégâts après le coup.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Accès refusé : veuillez acheter une licence.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'sur {n}',
+    'aria': 'Classement : rang {rank} sur {n}',
+    'ariaRank': 'Classement : rang {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'NOUVELLE UNITÉ !',
+    'tier': 'Niveau {n}'
   }
 }

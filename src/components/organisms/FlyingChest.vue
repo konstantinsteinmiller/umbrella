@@ -76,14 +76,9 @@ const tick = (): void => {
   }
 }
 
-/** Tier of the chest's unit reward: the Recruits-scaled tier (so it keeps up in
- *  late game — T11 at maxed Recruits), but never below the field's 2nd-best so a
- *  strong army still gets a strong drop. Tier 2 floor when the field is empty. */
-const rewardTier = (): number => {
-  const tiers = battle.fighters.value.map((f) => f.tier).sort((a, b) => b - a)
-  const secondBest = tiers.length >= 2 ? tiers[1]! : 2
-  return Math.max(battle.chestUnitTier.value, secondBest)
-}
+/** Tier of the chest's unit reward: one below the strongest fighter on the
+ *  field, never below the Spawn tier — see `chestUnitTier`. */
+const rewardTier = (): number => battle.chestUnitTier.value
 
 // ─── 3× Coin-income offer (every 2nd chest) ─────────────────────────────────
 //

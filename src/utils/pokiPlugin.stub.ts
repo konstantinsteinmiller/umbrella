@@ -4,7 +4,7 @@
 // `vite.config.ts`. Same mechanism, and the same reason, as
 // `gamepixPlugin.stub.ts` / `useCrazyGames.stub.ts`.
 //
-// WHY THIS EXISTS: `usePokiGameplay.ts` and `useAds.ts` STATICALLY import from
+// WHY THIS EXISTS: `usePortalGameplay.ts` and `useAds.ts` STATICALLY import from
 // the real module (a static import is the right call there — neither file is in
 // the obfuscator's exclude list, and a dynamic `'@/…'` literal would be at the
 // mercy of the `stringArray` rewrite). But the real module hardcodes the

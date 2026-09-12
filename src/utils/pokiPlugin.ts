@@ -14,7 +14,7 @@
 //      Nothing surfaces but a debug log line — the game keeps running and
 //      simply stops earning.
 //
-//      This project drives the bracket from `usePokiGameplay`, which watches
+//      This project drives the bracket from `usePortalGameplay`, which watches
 //      `isGameLive && !isGamePaused` — and `isGamePaused` is a computed over
 //      FOUR reactive sources (ad / tab-hidden / platform / modal). A modal
 //      closing in the same tick an ad opens produces exactly the sub-50 ms

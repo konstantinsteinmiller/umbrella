@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
@@ -168,6 +169,195 @@ const publicOverrideManifestPlugin = (): Plugin => ({
   }
 })
 
+// ─── The baked leaderboard ──────────────────────────────────────────────────
+//
+// Ships a board inside the bundle as the virtual module
+// `virtual:leaderboard-snapshot`, which `src/use/leaderboardSnapshot.ts`
+// re-exports and `useLeaderboard` ranks against. Which board depends on
+// whether this build may talk to the Worker at all:
+//
+//   • LIVE builds (a `VITE_LEADERBOARD_URL` is set) bake the last REAL board,
+//     `data/leaderboard-snapshot.json`, as the bottom rung of the offline
+//     ladder — what a first-session player is ranked against when the fetch
+//     fails and the device has no cache yet. Refreshed here via
+//     `scripts/leaderboard-snapshot.mjs` (skipped if fetched < 10 min ago, so a
+//     run of portal builds costs the Worker one request; a failed refresh never
+//     fails the build — the committed copy stands in).
+//   • Builds with NO endpoint — Poki (no external requests), Yandex (no
+//     third-party storage URLs), Playgama (the YouTube Playables archive: no
+//     external server calls) — can never post a score either, so their baked
+//     copy is the whole board forever. They bake the MODELLED board,
+//     `data/leaderboard-seed.json` from `pnpm leaderboard:seed`: a stated
+//     best-wave retention curve, no names, byte-reproducible.
+//
+// Either file missing or unusable → the module is `null`, `leaderboardEnabled`
+// goes false, and the game ships with no rank badge rather than a broken one.
+const SEED_FILE = resolve(
+  fileURLToPath(new URL('./data/leaderboard-seed.json', import.meta.url))
+)
+const SNAPSHOT_VIRTUAL_ID = 'virtual:leaderboard-snapshot'
+const SNAPSHOT_RESOLVED = '\0' + SNAPSHOT_VIRTUAL_ID
+const SNAPSHOT_FILE = resolve(
+  fileURLToPath(new URL('./data/leaderboard-snapshot.json', import.meta.url))
+)
+const SNAPSHOT_SCRIPT = resolve(
+  fileURLToPath(new URL('./scripts/leaderboard-snapshot.mjs', import.meta.url))
+)
+
+interface LeaderboardSnapshotFile {
+  /** When the file was last pulled off the Worker — the freshness clock. */
+  fetchedAt: number
+  updatedAt: number
+  total: number
+  entries: { rank: number; name: string; score: number; flair: number }[]
+  dist: [number, number][]
+}
+
+/** A refresh this recent is trusted as current (see the header). */
+const SNAPSHOT_FRESH_MS = 10 * 60_000
+
+const readSnapshotFile = (file: string): LeaderboardSnapshotFile | null => {
+  if (!existsSync(file)) return null
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf-8')) as Partial<LeaderboardSnapshotFile>
+    if (!Array.isArray(parsed.entries) || !Array.isArray(parsed.dist)) return null
+    if (!(Number(parsed.total) > 0)) return null
+    return {
+      fetchedAt: Number(parsed.fetchedAt) || 0,
+      updatedAt: Number(parsed.updatedAt) || 0,
+      total: Number(parsed.total),
+      entries: parsed.entries,
+      dist: parsed.dist
+    }
+  } catch {
+    return null
+  }
+}
+
+/** @param seeded this build has no endpoint (Poki / Yandex / Playgama), so it
+ *  bakes the modelled board instead of the real one. */
+const leaderboardSnapshotPlugin = (seeded: boolean): Plugin => ({
+  name: 'maw-leaderboard-snapshot',
+  buildStart() {
+    if (seeded) {
+      // Nothing to fetch: the seed is generated from a curve, committed, and
+      // deterministic — a build never needs to (and never should) regenerate it.
+      const seed = readSnapshotFile(SEED_FILE)
+      if (seed) {
+        console.log(
+          `[leaderboard] baking the SEEDED board — ${seed.total} players, top wave `
+          + `${seed.dist[0]?.[0] ?? 0}. This build cannot post scores, so the board is modelled.`
+        )
+      } else {
+        console.warn(`[leaderboard] no seed at ${SEED_FILE} — run \`pnpm leaderboard:seed\`. This build has no leaderboard.`)
+      }
+      return
+    }
+    const onDisk = readSnapshotFile(SNAPSHOT_FILE)
+    const fresh = onDisk !== null && Date.now() - onDisk.fetchedAt < SNAPSHOT_FRESH_MS
+    if (!fresh) {
+      try {
+        // A child process running the same code as `pnpm leaderboard:snapshot`,
+        // so the build cannot drift from the manual command, and a fetch that
+        // hangs or throws cannot take the vite process with it.
+        execFileSync(process.execPath, [SNAPSHOT_SCRIPT, '--soft'], { stdio: 'inherit', timeout: 60_000 })
+      } catch {
+        console.warn('[leaderboard] could not refresh the snapshot — building with the committed copy.')
+      }
+    }
+    const snap = readSnapshotFile(SNAPSHOT_FILE)
+    if (snap) {
+      console.log(
+        `[leaderboard] baking ${snap.total} players / ${snap.entries.length} rows `
+        + `(board of ${new Date(snap.updatedAt).toISOString().slice(0, 10)})`
+      )
+    } else {
+      // Normal while the live board is still empty: the badge then relies on
+      // the live fetch alone, and simply hides when that fails.
+      console.warn('[leaderboard] no usable snapshot yet — the live fetch is the only rung on this build.')
+    }
+  },
+  resolveId(id) {
+    return id === SNAPSHOT_VIRTUAL_ID ? SNAPSHOT_RESOLVED : null
+  },
+  load(id) {
+    if (id !== SNAPSHOT_RESOLVED) return null
+    return `export default ${JSON.stringify(readSnapshotFile(seeded ? SEED_FILE : SNAPSHOT_FILE))}`
+  }
+})
+
+// ─── Art bench export endpoint (DEV SERVER ONLY) ─────────────────────────────
+//
+// `/#/art-sheets` (src/views/ArtSheets.vue) writes its references, key sheets,
+// `sheet-index.json` and `PROMPTS-*.md` into `art-sheets/` through these two
+// POSTs — a browser download would land in Downloads under a name Chrome
+// picked. `apply: 'serve'`, so no build ever carries it. Writes need the
+// bench's own `x-maw-art` header (which forces a CORS preflight this server
+// never answers for a foreign page), names are validated, and nothing escapes
+// `art-sheets/`. (art-generation-pipeline, SKILL.md phase 1.)
+const ART_SHEETS_DIR = resolve(fileURLToPath(new URL('./art-sheets', import.meta.url)))
+
+const readBytes = (req: import('node:http').IncomingMessage): Promise<Buffer> =>
+  new Promise((res, rej) => {
+    const chunks: Buffer[] = []
+    req.on('data', (c: Buffer) => chunks.push(c))
+    req.on('end', () => res(Buffer.concat(chunks)))
+    req.on('error', rej)
+  })
+
+const artBenchPlugin = (): Plugin => ({
+  name: 'maw-art-bench',
+  apply: 'serve',
+  configureServer(server) {
+    type Req = import('node:http').IncomingMessage
+    type Res = import('node:http').ServerResponse
+    const refuse = (res: Res, code: number, why: string): void => {
+      res.statusCode = code
+      res.end(why)
+    }
+    const allowed = (req: Req, res: Res): boolean => {
+      if (req.method !== 'POST' || req.headers['x-maw-art'] !== '1') {
+        refuse(res, 403, 'art bench writes only')
+        return false
+      }
+      return true
+    }
+    server.middlewares.use('/__maw/art-export/file', async (req, res) => {
+      if (!allowed(req, res)) return
+      const name = new URL(req.url ?? '', 'http://bench').searchParams.get('name') ?? ''
+      if (!/^[a-z0-9][a-z0-9._-]*\.png$/i.test(name)) return refuse(res, 400, `bad name "${name}"`)
+      const bytes = await readBytes(req)
+      if (bytes.length < 8 || bytes.readUInt32BE(0) !== 0x89504e47) return refuse(res, 400, 'not a PNG')
+      mkdirSync(ART_SHEETS_DIR, { recursive: true })
+      writeFileSync(resolve(ART_SHEETS_DIR, name), bytes)
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ ok: true, name, bytes: bytes.length }))
+    })
+    server.middlewares.use('/__maw/art-export/meta', async (req, res) => {
+      if (!allowed(req, res)) return
+      let body: { index?: unknown; docs?: Record<string, unknown> }
+      try {
+        body = JSON.parse(await readBody(req))
+      } catch (e) {
+        return refuse(res, 400, `bad json: ${(e as Error).message}`)
+      }
+      mkdirSync(ART_SHEETS_DIR, { recursive: true })
+      const written: string[] = []
+      if (body.index && typeof body.index === 'object') {
+        writeFileSync(resolve(ART_SHEETS_DIR, 'sheet-index.json'), JSON.stringify(body.index, null, 2) + '\n', 'utf-8')
+        written.push('sheet-index.json')
+      }
+      for (const [name, text] of Object.entries(body.docs ?? {})) {
+        if (!/^PROMPTS-[A-Z]+\.md$/.test(name) || typeof text !== 'string') continue
+        writeFileSync(resolve(ART_SHEETS_DIR, name), text, 'utf-8')
+        written.push(name)
+      }
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ ok: true, written }))
+    })
+  }
+})
+
 const mawCampaignOverridesPlugin = (): Plugin => ({
   name: 'maw-campaign-overrides',
   resolveId(id) {
@@ -268,6 +458,13 @@ export default defineConfig(({ mode, command }) => {
   // files that actually exist (no 404s for unfilled slots).
   plugins.push(publicOverrideManifestPlugin())
 
+  // Baked leaderboard: the real board on live builds, the modelled one on the
+  // builds with no endpoint (Poki / Yandex / Playgama). See the plugin header.
+  plugins.push(leaderboardSnapshotPlugin((env.VITE_LEADERBOARD_URL ?? '').trim().length === 0))
+
+  // Art bench export endpoint — dev server only (`apply: 'serve'`).
+  plugins.push(artBenchPlugin())
+
   // Only push the obfuscator if both conditions are met
   if (isProduction && shouldObfuscate) {
     console.log('--- 🛡️  Obfuscating Production Build ---')
@@ -309,6 +506,18 @@ export default defineConfig(({ mode, command }) => {
           // same reason — keeps the ~280 LOC bridge module off non-Playgama
           // builds. The obfuscator would mangle the dynamic-import literal.
           /use[\\/]ads[\\/]PlaygamaProvider\.ts$/,
+          // `playgamaBridgeLoader.ts` is the ONE place `@playgama/bridge`
+          // enters the module graph, behind an `import.meta.env`-gated
+          // dynamic import. Same constraint: the `stringArray` transform
+          // would rewrite the bare specifier into a lookup Vite can no
+          // longer resolve. The loader is ~30 lines, which is exactly why
+          // the import lives there rather than in the ~500-line plugin —
+          // only this leaf file loses obfuscation.
+          /utils[\\/]playgamaBridgeLoader\.ts$/,
+          // usePortalGameplay dynamic-imports `@/utils/playgamaPlugin` to
+          // fire the gameplay_started / gameplay_stopped bracket. Same
+          // obfuscator-vs-dynamic-import constraint as FLogoProgress.
+          /use[\\/]usePortalGameplay\.ts$/,
           // GamepixProvider lazy-loads `@/utils/gamepixPlugin` so the
           // GamePix SDK glue only ships on GamePix builds. Same
           // obfuscator-vs-dynamic-import constraint as the others.
@@ -443,7 +652,20 @@ export default defineConfig(({ mode, command }) => {
   // into every OTHER platform's bundle — the "Service storage URL detected"
   // rejection trigger on Yandex moderation.)
   const isPokiBuild = env.VITE_APP_POKI === 'true'
-  const skipCspMeta = isYandexBuild || isGamepixBuild || isPokiBuild
+  // PLAYGAMA: no meta tag either, and the reason is YouTube. The
+  // `build:playgama` archive IS the YouTube Playables submission — Playgama
+  // is an official Playables partner and distributes the one ZIP — and on
+  // Playables our document is shared with YouTube's own runtime: their
+  // `game_api/v1` SDK and their telemetry. A CSP meta tag applies to the
+  // whole DOCUMENT, so any host we forget is a host we silently break for
+  // THEM, with no way for us to see it. YouTube already sandboxes the frame
+  // and enforces "no external server calls" at review time, so a self-imposed
+  // policy buys nothing here and can only cause false failures. On
+  // playgama.com nothing is lost either: it is an iframe on a portal that
+  // sets its own frame policy. `buildCsp` returns '' for this build too, so
+  // the decision is unit-testable in `csp.test.ts`.
+  const isPlaygama = env.VITE_APP_PLAYGAMA === 'true'
+  const skipCspMeta = isYandexBuild || isGamepixBuild || isPokiBuild || isPlaygama
   const cspValue = buildCsp(env)
 
   // ─── Exactly-one-platform guard ─────────────────────────────────────────
@@ -511,17 +733,27 @@ export default defineConfig(({ mode, command }) => {
     })
   }
 
-  // Strip the Playgama bridge <script> tag from non-Playgama builds. The
-  // build-time tag is mostly a perf shave — the plugin re-injects it at
-  // runtime if missing (some QA wrappers serve their own index.html) —
-  // but on other portals we don't want an extra DNS lookup to playgama.com.
-  const isPlaygama = env.VITE_APP_PLAYGAMA === 'true'
+  // ─── YouTube Playables SDK tag ──────────────────────────────────────────
+  //
+  // There is no longer a Playgama Bridge <script> tag to strip: v2 comes from
+  // the `@playgama/bridge` npm package (see `src/utils/playgamaBridgeLoader.ts`)
+  // because the CDN build fetches per-platform adapter chunks at runtime and
+  // posts to `api.playgama.com` — neither of which YouTube permits, and the
+  // Playgama archive IS the Playables submission.
+  //
+  // What gets stripped now is YOUTUBE's own SDK tag, which only the Playgama
+  // build keeps. There it is load-bearing rather than cosmetic: the Bridge's
+  // `youtube` adapter waits for `window.ytgame` with a 100ms poll that has NO
+  // timeout, so a Playables build without the tag hangs inside
+  // `bridge.initialize()` forever and reads as "the game does not start".
+  // Every other portal strips it so nobody pays for a third-party request
+  // they cannot use.
   if (!isPlaygama) {
     plugins.push({
-      name: 'strip-playgama-sdk',
+      name: 'strip-youtube-sdk',
       transformIndexHtml(html: string) {
         return html.replace(
-          /<!-- Load the SDK before your game code -->\s*<script[^>]*bridge\.playgama\.com[^>]*><\/script>\s*/,
+          /<!--[^]*?YouTube Playables SDK[^]*?-->\s*<script[^>]*youtube\.com\/game_api[^>]*><\/script>\s*/,
           ''
         )
       }
@@ -603,18 +835,19 @@ export default defineConfig(({ mode, command }) => {
   // the production portal). The config here intentionally OMITS
   // `forciblySetPlatformId` so the bridge auto-detects the right protocol.
   //
-  // `storage.allowAnonymousCloudSave` is load-bearing for cloud saves. The
-  // Playgama platform adapter gates cloud storage as:
+  // `storage.allowAnonymousCloudSave` is load-bearing for cloud saves and it
+  // SURVIVED the v2 upgrade — verified in the shipped 2.1.0 bundle, which
+  // gates its cloud path on:
   //
-  //   isStorageAvailable(PLATFORM_INTERNAL)
-  //     = isCloudSaveSupported
-  //       && (options.storage?.allowAnonymousCloudSave === true
-  //           || player.isAuthorized)
+  //   isCloudSaveSupported
+  //     && (options.storage?.allowAnonymousCloudSave === true
+  //         || player.isAuthorized)
   //
   // Guest players — most portal traffic, and the QA reviewer's first run —
-  // are not authorized, so without this flag `PlaygamaStrategy` degrades to
-  // the bridge's `local_storage` adapter and NO progress ever reaches the
-  // Playgama remote. That was the "cleared wave isn't saved" bug.
+  // are not authorized, so without this flag every write degrades to local
+  // and NO progress ever reaches the Playgama remote. That was the "cleared
+  // wave isn't saved" bug. (v2 dropped the per-call storage TYPE argument,
+  // not this option.)
   //
   // Keep in sync with `BRIDGE_OPTIONS` in `src/utils/playgamaPlugin.ts`,
   // which the bridge falls back to when this file 404s.
@@ -785,8 +1018,19 @@ export default defineConfig(({ mode, command }) => {
 
   return {
     base: '/',
+    // The gameplay-video pipeline's own dev server (`tools/preview-video`) sets
+    // VITE_CACHE_DIR so its dependency pre-bundle lives apart: starting it can
+    // never re-bundle the cache out from under a `pnpm dev` that is running.
+    cacheDir: process.env.VITE_CACHE_DIR || 'node_modules/.vite',
     server: {
-      port: 2050
+      port: 2050,
+      // `art-sheets/` is the art pipeline's workbench (references, prompt
+      // docs, painted returns, the slicer's receipt) — never part of the app.
+      // Unwatched, so an export or an Art Desk run doesn't set off Tailwind's
+      // source rescan and an HMR storm in the middle of the bench's own export.
+      // `preview-videos/` is the video pipeline's output: frames and mp4s, the
+      // same story.
+      watch: { ignored: ['**/art-sheets/**', '**/preview-videos/**'] }
     },
     define: {
       APP_VERSION: JSON.stringify(appVersion)
@@ -873,8 +1117,19 @@ export default defineConfig(({ mode, command }) => {
     },
     build: {
       minify: 'esbuild',
-      // Disable source maps in production if you want maximum protection
-      sourcemap: !shouldObfuscate
+      // Source maps ride along on any build that is NOT obfuscated (there is
+      // no point mapping a bundle whose identifiers were rewritten), EXCEPT
+      // the Playgama one.
+      //
+      // That build deliberately turns obfuscation off — it is the YouTube
+      // Playables submission as well, both portals review by hand, and a
+      // rejection arrives as a stack trace that an obfuscated bundle cannot
+      // map back to a source line. But maps are the opposite mistake: the ZIP
+      // is served from a public URL, so shipping them publishes the entire
+      // original source next to it. Minified-but-readable is the sweet spot —
+      // QA still gets a greppable file+line, which is all the last rejection
+      // was missing.
+      sourcemap: !shouldObfuscate && !isPlaygama
     }
   }
 })

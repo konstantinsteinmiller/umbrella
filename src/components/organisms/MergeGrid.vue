@@ -23,6 +23,7 @@ import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import useSounds from '@/use/useSound'
 import { emitConfetti, emitSparkle } from '@/use/usePrismParticles'
 import { hitZone, dragActive, dragTier, dragOverDrop } from '@/use/useDropZones'
+import { activeReveal, claimRevealSound, revealAnimationDelay } from '@/use/useTierReveal'
 
 const emit = defineEmits<{
   (e: 'deploy', payload: { idx: number; tier: number; x: number; y: number }): void
@@ -178,6 +179,14 @@ onUnmounted(removeDragListeners) // never leak a global listener
 const fireMerge = (idx: number, newTier: number): void => {
   mergingIndex.value = idx
   setTimeout(() => { if (mergingIndex.value === idx) mergingIndex.value = -1 }, 340)
+  // A merge that produced a tier the player never had (announced by
+  // `usePrismGame.merge`): the reveal sting REPLACES the ordinary pop, and the
+  // confetti is held back for the bloom 0.35 s later (TierRevealFx) — the
+  // contrast between the hush and the burst is most of what makes it land.
+  if (claimRevealSound({ kind: 'grid', idx })) {
+    playSound('new-tier-reveal', 0.07)
+    return
+  }
   const r = slotRect(idx)
   if (r) {
     const cx = r.left + r.width / 2
@@ -187,6 +196,12 @@ const fireMerge = (idx: number, newTier: number): void => {
   // Pitch climbs with tier for a satisfying ladder.
   playSound('merge-pop', 0.04, 0.85 + Math.min(newTier, 10) * 0.05)
 }
+
+/** Grid slot of the unit currently being revealed, or -1. */
+const revealIdx = computed<number>(() => {
+  const r = activeReveal.value
+  return r && r.target.kind === 'grid' ? r.target.idx : -1
+})
 
 // ── Spawn (called by the scene's Spawn button; taps meter up to a spawn) ──
 const spawn = (): number => {
@@ -251,15 +266,17 @@ onUnmounted(() => {
           div.unit-holder.absolute(
             v-if="tier > 0"
             :key="tier + '-' + idx"
-            :class="{ 'unit-pop-anim': poppingIndex === idx }"
-            :style="{ opacity: dragSource === idx ? 0.25 : 1 }"
+            :class="{ 'unit-pop-anim': poppingIndex === idx, 'unit-revealed': revealIdx === idx && dragSource !== idx }"
+            :style="{ opacity: dragSource === idx ? 0.25 : 1, animationDelay: revealIdx === idx ? revealAnimationDelay(activeReveal) : undefined }"
           )
             IngredientUnit(:tier="tier" :merging="mergingIndex === idx")
 
-    //- Floating drag ghost (follows the pointer, fixed to viewport)
+    //- Floating drag ghost (follows the pointer, fixed to viewport).
+    //- `data-drag-src` lets TierRevealFx follow a revealed unit while carried.
     Teleport(to="body")
       div.drag-ghost.fixed.pointer-events-none(
         v-if="dragging && ghostTier > 0"
+        :data-drag-src="dragSource"
         class="z-[80]"
         :style="{ left: ghostX + 'px', top: ghostY + 'px', width: ghostSize + 'px', height: ghostSize + 'px', transform: 'translate(-50%, -50%)' }"
       )
@@ -289,6 +306,51 @@ onUnmounted(() => {
 
 .unit-pop-anim
   animation: unit-spawn 0.36s cubic-bezier(0.34, 1.56, 0.64, 1)
+
+// New-tier reveal: the unit itself is part of the show. It sinks as the sting
+// winds up, POPS at the bloom (0.35 s = 7 % of 5 s), then floats and glows for
+// the rest of the moment. Rendered under TierRevealFx, whose halo has a clear
+// centre so the unit always reads crisp through it.
+.unit-revealed
+  z-index: 2
+  animation: unit-revealed 5s ease-in-out both
+@keyframes unit-revealed
+  0%
+    transform: scale(0.82)
+    filter: brightness(1)
+  7%
+    transform: scale(1.34) translateY(-6%)
+    filter: brightness(2.1) drop-shadow(0 0 12px rgba(255, 244, 190, 1))
+  11%
+    transform: scale(0.96) translateY(0)
+  15%
+    transform: scale(1.08) translateY(-3%)
+    filter: brightness(1.35) drop-shadow(0 0 9px rgba(255, 220, 110, 0.95))
+  30%
+    transform: scale(1.04) translateY(-6%)
+  45%
+    transform: scale(1.06) translateY(-1%)
+    filter: brightness(1.1) drop-shadow(0 0 4px rgba(255, 220, 110, 0.6))
+  60%
+    transform: scale(1.04) translateY(-6%)
+    filter: brightness(1.3) drop-shadow(0 0 9px rgba(255, 220, 110, 0.95))
+  75%
+    transform: scale(1.05) translateY(-1%)
+    filter: brightness(1.1) drop-shadow(0 0 4px rgba(255, 220, 110, 0.6))
+  90%
+    transform: scale(1.02) translateY(-4%)
+    filter: brightness(1.2) drop-shadow(0 0 7px rgba(255, 220, 110, 0.8))
+  100%
+    transform: scale(1) translateY(0)
+    filter: brightness(1)
+@media (prefers-reduced-motion: reduce)
+  .unit-revealed
+    animation-name: unit-revealed-still
+  @keyframes unit-revealed-still
+    0%, 100%
+      filter: none
+    10%, 90%
+      filter: brightness(1.3) drop-shadow(0 0 8px rgba(255, 220, 110, 0.9))
 
 @keyframes unit-spawn
   0%

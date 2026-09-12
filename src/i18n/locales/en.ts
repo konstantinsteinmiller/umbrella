@@ -21,10 +21,11 @@ export default {
     'body': 'Your army kept fighting while you were away:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Restores 25% of every unit's health.", 'reviveGuard': "For 30s, any unit that falls instantly revives at full health.", 'defender': "Turns your top melee unit into a tank: 2× health, 80% less damage, for 2 minutes.", 'meteor': "Rains meteors across the field, blasting all enemies." },
+    'spellDesc': { 'heal': "Restores 25% of every unit's health.", 'reviveGuard': "For 30s, any unit that falls instantly revives at full health.", 'defender': "Turns your top melee unit into a tank: 2× health, 80% less damage, for 2 minutes.", 'meteor': "Rains meteors across the field, blasting all enemies.", 'warcry': "For 8s your army deals +60% damage and attacks 30% faster.", 'legionCall': "Summons 3 spectral warriors one tier below your best for 20s. Charges fast when your units fall.", 'executionerMark': "Marks the toughest enemy for 10s: it takes +75% damage and is executed below 12% health.", 'soulPact': "Your strongest unit gains a twin — the next-strongest is sacrificed for it. Recharges in 3 minutes." },
     'mutationWave': "MUTATION!",
     'overrunSetbackHint': "These waves are too strong for you — build up your army on easier waves first.",
-    'spells': { 'heal': "Heal", 'reviveGuard': "Revive Guard", 'defender': "Defender" },
+    'spells': { 'heal': "Heal", 'reviveGuard': "Revive Guard", 'defender': "Defender", 'warcry': "Warcry of the Legion", 'legionCall': "Legion Call", 'executionerMark': "Executioner's Mark", 'soulPact': "Soul Pact" },
+    'pactNeedsSacrifice': "Soul Pact needs a lower-tier unit on the field to sacrifice.",
     'bossNames': { 'b0': "Glorp the Devourer", 'b1': "King Sludgefist", 'b2': "Mawzilla", 'b3': "The Gate-Eater", 'b4': "Grumblor Prime" },
     'wave': 'Wave {n}',
     'best': 'Best {n}',
@@ -61,8 +62,9 @@ export default {
     },
     'codex': {
       'title': 'Unit Codex',
-      'names': { 't1': 'Magma Mote', 't2': 'Frost Whirl', 't3': 'Boulder Brute', 't4': 'Glacier Guard', 't5': 'Tide Drop', 't6': 'Crag Colossus', 't7': 'Nebula Eye', 't8': 'Void Wraith', 't9': 'Golden Talon', 't10': 'Phoenix Sovereign', 't11': 'Obsidian Warlord', 't12': "Infernal Titan", 't13': "Umbral Reaper", 't14': "Magma Leviathan", 't15': "Cosmic Ascendant", 't16': "Tempest Sovereign", 't17': "Abyssal Warden", 't18': "Molten Behemoth", 't19': "Astral Devourer", 't20': "Eternal Godhead" },
+      'names': { 't1': 'Magma Mote', 't2': 'Frost Whirl', 't3': 'Boulder Brute', 't4': 'Glacier Guard', 't5': 'Tide Drop', 't6': 'Crag Colossus', 't7': 'Nebula Eye', 't8': 'Void Wraith', 't9': 'Golden Talon', 't10': 'Phoenix Sovereign', 't11': 'Obsidian Warlord', 't12': "Infernal Titan", 't13': "Umbral Reaper", 't14': "Magma Leviathan", 't15': "Cosmic Ascendant", 't16': "Tempest Sovereign", 't17': "Abyssal Warden", 't18': "Molten Behemoth", 't19': "Astral Devourer", 't20': "Eternal Godhead", 't21': "Steel Sentinel", 't22': "Mercury Trickster", 't23': "Lodestone Tyrant", 't24': "Amber Warden", 't25': "Dune Djinn", 't26': "Caustic Flask", 't27': "Bramble Heart", 't28': "Coral Monarch", 't29': "Glowcap Sage", 't30': "Stormcloud Fury", 't31': "Jade Oracle", 't32': "Rune Monolith", 't33': "Chrono Engine", 't34': "Origami Spirit", 't35': "Bubble Sprite", 't36': "Glitch Cube", 't37': "Echo Bell", 't38': "Spirit Lantern", 't39': "Mirror Specter", 't40': "Ruby Heart", 't41': "Frostfire Wisp", 't42': "Diamond Paragon", 't43': "Plasma Dynamo", 't44': "Comet Herald", 't45': "Aurora Seraph", 't46': "Solar Emperor", 't47': "Wishing Star", 't48': "Pulsar Beacon", 't49': "Dark Matter", 't50': "Singularity Prime" },
       'locked': 'Merge two Tier {n} to discover!',
+      'effects': { 'none': "Rapid strikes — fast and relentless.", 'burn': "Hits leave damage that keeps ticking.", 'knockback': "Heavy blows knock enemies backward.", 'heal': "Every hit heals your weakest ally.", 'splash': "Each hit bursts onto every nearby enemy.", 'poison': "Hits stack damage over time.", 'chain': "Attacks leap to three more enemies.", 'frost': "Slows on hit; a pulse stuns nearby crowds.", 'midas': "High crit chance and bonus gold on every hit.", 'eruption': "Explodes on impact, burning every nearby enemy." },
       'abilities': {
         'none': 'A molten spark — fast, fearless, and first through the gate.',
         'burn': 'Biting frost lingers — enemies keep taking damage after the hit.',
@@ -325,5 +327,19 @@ export default {
   },
   'license': {
     'denied': 'Access Denied: Please purchase a license.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'of {n}',
+    'aria': 'Leaderboard rank {rank} of {n}',
+    'ariaRank': 'Leaderboard rank {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'NEW UNIT!',
+    'tier': 'Tier {n}'
   }
 }

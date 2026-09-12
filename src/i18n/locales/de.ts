@@ -132,10 +132,11 @@ export default {
     'body': 'Deine Armee hat in deiner Abwesenheit weitergekämpft:'
   },
   'battle': {
-    'spellDesc': { 'heal': "Stellt 25% der Gesundheit aller Einheiten wieder her.", 'reviveGuard': "30 Sek. lang wird jede fallende Einheit sofort mit voller Gesundheit wiederbelebt.", 'defender': "Verwandelt deine stärkste Nahkampfeinheit 2 Min. in einen Tank: 2× Gesundheit, 80% weniger Schaden.", 'meteor': "Lässt Meteore auf das Feld regnen und trifft alle Feinde." },
+    'spellDesc': { 'heal': "Stellt 25% der Gesundheit aller Einheiten wieder her.", 'reviveGuard': "30 Sek. lang wird jede fallende Einheit sofort mit voller Gesundheit wiederbelebt.", 'defender': "Verwandelt deine stärkste Nahkampfeinheit 2 Min. in einen Tank: 2× Gesundheit, 80% weniger Schaden.", 'meteor': "Lässt Meteore auf das Feld regnen und trifft alle Feinde.", 'warcry': "8 Sek. lang verursacht deine Armee +60% Schaden und greift 30% schneller an.", 'legionCall': "Beschwört 20 Sek. lang 3 Geisterkrieger eine Stufe unter deiner besten Einheit. Lädt schnell auf, wenn deine Einheiten fallen.", 'executionerMark': "Markiert 10 Sek. lang den zähesten Feind: Er erleidet +75% Schaden und wird unter 12% Gesundheit hingerichtet.", 'soulPact': "Deine stärkste Einheit erhält einen Zwilling — die nächststärkere wird dafür geopfert. Lädt in 3 Minuten wieder auf." },
     'mutationWave': "MUTATION!",
     'overrunSetbackHint': "Diese Wellen sind zu stark für dich — baue deine Armee erst auf leichteren Wellen auf.",
-    'spells': { 'heal': "Heilung", 'reviveGuard': "Wiederbelebungswacht", 'defender': "Verteidiger" },
+    'spells': { 'heal': "Heilung", 'reviveGuard': "Wiederbelebungswacht", 'defender': "Verteidiger", 'warcry': "Kriegsschrei der Legion", 'legionCall': "Ruf der Legion", 'executionerMark': "Mal des Henkers", 'soulPact': "Seelenpakt" },
+    'pactNeedsSacrifice': "Der Seelenpakt braucht eine Einheit niedrigerer Stufe auf dem Feld als Opfer.",
     'bossNames': { 'b0': "Glorp der Verschlinger", 'b1': "König Schlammfaust", 'b2': "Mawzilla", 'b3': "Der Tor-Fresser", 'b4': "Grumblor Prime" },
     'wave': 'Welle {n}',
     'best': 'Rekord {n}',
@@ -182,8 +183,9 @@ export default {
     },
     'codex': {
       'title': 'Einheiten-Kodex',
-      'names': { 't1': 'Magmafunke', 't2': 'Frostwirbel', 't3': 'Felsbrocken', 't4': 'Gletscherwächter', 't5': 'Flutentropfen', 't6': 'Felskoloss', 't7': 'Sternennebel', 't8': 'Leerenschemen', 't9': 'Goldkralle', 't10': 'Phönixherrscher', 't11': 'Obsidian-Kriegsfürst', 't12': "Infernaler Titan", 't13': "Schattenschnitter", 't14': "Magma-Leviathan", 't15': "Kosmischer Aufgestiegener", 't16': "Sturmherrscher", 't17': "Abgrundwächter", 't18': "Geschmolzener Behemoth", 't19': "Astraler Verschlinger", 't20': "Ewige Gottheit" },
+      'names': { 't1': 'Magmafunke', 't2': 'Frostwirbel', 't3': 'Felsbrocken', 't4': 'Gletscherwächter', 't5': 'Flutentropfen', 't6': 'Felskoloss', 't7': 'Sternennebel', 't8': 'Leerenschemen', 't9': 'Goldkralle', 't10': 'Phönixherrscher', 't11': 'Obsidian-Kriegsfürst', 't12': "Infernaler Titan", 't13': "Schattenschnitter", 't14': "Magma-Leviathan", 't15': "Kosmischer Aufgestiegener", 't16': "Sturmherrscher", 't17': "Abgrundwächter", 't18': "Geschmolzener Behemoth", 't19': "Astraler Verschlinger", 't20': "Ewige Gottheit", 't21': "Stahlwächter", 't22': "Quecksilber-Schelm", 't23': "Magnettyrann", 't24': "Bernsteinhüter", 't25': "Dünen-Dschinn", 't26': "Ätzkolben", 't27': "Dornenherz", 't28': "Korallenmonarch", 't29': "Leuchtpilz-Weiser", 't30': "Sturmwolkenzorn", 't31': "Jade-Orakel", 't32': "Runenmonolith", 't33': "Chronowerk", 't34': "Origami-Geist", 't35': "Seifenblasen-Kobold", 't36': "Glitch-Würfel", 't37': "Echoglocke", 't38': "Geisterlaterne", 't39': "Spiegelgeist", 't40': "Rubinherz", 't41': "Frostfeuer-Irrlicht", 't42': "Makelloser Diamant", 't43': "Plasma-Dynamo", 't44': "Kometenherold", 't45': "Polarlicht-Seraph", 't46': "Sonnenkaiser", 't47': "Wunschstern", 't48': "Pulsar-Leuchtfeuer", 't49': "Dunkle Materie", 't50': "Ur-Singularität" },
       'locked': 'Verschmilz zwei Stufe-{n}-Einheiten zum Entdecken!',
+      'effects': { 'none': "Blitzschnelle Schläge — schnell und unerbittlich.", 'burn': "Treffer hinterlassen Schaden, der weiter tickt.", 'knockback': "Wuchtige Hiebe stoßen Feinde zurück.", 'heal': "Jeder Treffer heilt deinen schwächsten Verbündeten.", 'splash': "Jeder Treffer trifft alle Feinde in der Nähe.", 'poison': "Treffer stapeln Schaden über Zeit.", 'chain': "Angriffe springen auf drei weitere Feinde über.", 'frost': "Verlangsamt bei Treffern; ein Puls betäubt Gruppen in der Nähe.", 'midas': "Hohe Krit-Chance und Bonusgold bei jedem Treffer.", 'eruption': "Explodiert beim Aufprall und setzt nahe Feinde in Brand." },
       'abilities': {
         'none': 'Ein glühender Funke — schnell, furchtlos und immer vorneweg.',
         'burn': 'Beißender Frost bleibt — Gegner nehmen nach dem Treffer weiter Schaden.',
@@ -305,5 +307,19 @@ export default {
   },
   'license': {
     'denied': 'Zugriff verweigert: Bitte erwirb eine Lizenz.'
+  },
+  // Global rank tag hung in the arena corner (RankBadge.vue). {n} / {rank} are
+  // pre-formatted integers; `of` renders on its own line under the rank.
+  'leaderboard': {
+    'rank': '#{n}',
+    'of': 'von {n}',
+    'aria': 'Bestenliste: Platz {rank} von {n}',
+    'ariaRank': 'Bestenliste: Platz {rank}'
+  },
+  // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
+  // merge just created for the first time. {n} is the tier number.
+  'tierReveal': {
+    'title': 'NEUE EINHEIT!',
+    'tier': 'Stufe {n}'
   }
 }

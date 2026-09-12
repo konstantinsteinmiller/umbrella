@@ -5,6 +5,7 @@ import FModal from '@/components/molecules/FModal.vue'
 import FButton from '@/components/atoms/FButton.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import useMissions from '@/use/useMissions'
+import { formatBig } from '@/utils/bigNumber'
 import useSounds from '@/use/useSound'
 
 const emit = defineEmits<{ (e: 'coins-awarded', sourceEl: HTMLElement): void }>()
@@ -100,7 +101,7 @@ const onClaim = (index: number): void => {
             div.shrink-0.flex.flex-col.items-end.gap-1
               div.flex.items-center.gap-1
                 IconCoin(class="w-3.5 h-3.5 text-yellow-300")
-                span.text-yellow-200.game-text.font-black(class="text-xs") {{ card.reward }}
+                span.text-yellow-200.game-text.font-black(class="text-xs") {{ formatBig(card.reward) }}
               div.text-center.text-emerald-300.font-black.game-text(v-if="card.claimed" class="text-[10px]") {{ t('missions.done') }}
               FButton(
                 v-else-if="card.claimable"

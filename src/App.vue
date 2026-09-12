@@ -16,7 +16,7 @@ import VConsoleHideButton from '@/components/atoms/VConsoleHideButton.vue'
 import { useCrazyMuteSync } from '@/use/useCrazyMuteSync'
 import { installModalGameplayGate } from '@/use/useModalGameplayGate'
 import { installTutorialPauseGate } from '@/use/useTutorialPauseGate'
-import { installPokiGameplayBracket } from '@/use/usePokiGameplay'
+import { installPortalGameplayBracket } from '@/use/usePortalGameplay'
 import useCheats, { installDebugUnlock } from '@/use/useCheats'
 import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isNative, orientation } from '@/use/useUser'
 import { glitchLicenseStatus } from '@/use/useGlitchLicense'
@@ -24,7 +24,9 @@ import { resolveCapabilities } from '@/platforms/capabilities'
 import { getPlattformText } from '@/platforms/plattformText'
 
 const { t } = useI18n()
-const { initMusic, pauseMusic, continueMusic } = useMusic()
+// Only `initMusic` — pause/continue are the audio orchestrator's job now
+// (see the note above `updateGlobalDimensions`).
+const { initMusic } = useMusic()
 useExtensionGuard()
 const { resourceCache } = useAssets()
 useCrazyMuteSync()
@@ -38,8 +40,8 @@ installTutorialPauseGate()
 // Poki's gameplayStart/Stop bracket, derived from the same pause gate the two
 // installs above feed. Its FIRST start is held until the player touches the
 // viewport (Poki rejects a gameplayStart nobody asked for) and the whole watcher
-// is dead code on non-Poki builds. See `usePokiGameplay.ts`.
-installPokiGameplayBracket()
+// is dead code on non-Poki builds. See `usePortalGameplay.ts`.
+installPortalGameplayBracket()
 // Attach the "cmarc" debug-unlock key listener at app boot (App.vue is eager),
 // so typing it anywhere flips debug mode — the lazy game scene used to be the
 // only importer, which tree-shook the listener out of production builds.
@@ -75,19 +77,16 @@ const onContextMenu = (event: any) => {
   event.preventDefault() // Block right-click context menu
 }
 
-const handleVisibilityChange = async () => {
-  try {
-    if (document.hidden) {
-      pauseMusic()
-      // console.log('App moved to background - Pausing Music')
-    } else {
-      continueMusic()
-      // console.log('App back in focus - Resuming Music')
-    }
-  } catch (error) {
-    // console.log('error: ', error)
-  }
-}
+// NOTE: there is deliberately no `visibilitychange` handler here any more.
+// It used to pause/continue the background music, which is now fully covered
+// by `useGamePauseAudio` — that orchestrator subscribes to the unified pause
+// gate (ad / tab-hidden / platform) and `suspendAllAudio()` pauses every
+// tracked HTMLAudio element, the bg-music element among them, resuming exactly
+// the ones it paused. So this listener was redundant on every build.
+//
+// It also could not stay: the Playgama archive is the YouTube Playables
+// submission, and Playables forbids the Page Visibility API entirely. One
+// owner for that API (`useGamePause`) is what makes the rule enforceable.
 
 const updateGlobalDimensions = () => {
   windowWidth.value = window.innerWidth
@@ -107,13 +106,11 @@ onMounted(() => {
       windowHeight.value = window.innerHeight
     }, 400)
     window.addEventListener('orientationchange', delayedUpdateGlobalDimensions)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
   }
 })
 onUnmounted(() => {
   window.removeEventListener('resize', updateGlobalDimensions)
   window.removeEventListener('orientationchange', delayedUpdateGlobalDimensions)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
   clearInterval(dimensionsInterval.value)
 })
 

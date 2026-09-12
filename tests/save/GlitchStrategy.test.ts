@@ -28,6 +28,11 @@ const base64Encode = (s: string): string => {
   return btoa(bin)
 }
 
+/** SaveManager runs 3 boot-sanity retries spaced 1s apart when the initial
+ *  hydrate did not succeed. With fake timers those sleeps have to be advanced
+ *  by hand or init() never settles. One extra second of slack. */
+const BOOT_SANITY_LADDER_MS = 4_000
+
 const makeFetch = (handlers: Record<string, Handler>) => {
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString()
@@ -293,16 +298,32 @@ describe('GlitchStrategy (isGlitch guard)', () => {
   })
 
   it('degrades to a pure local mirror when list fetch fails', async () => {
-    // Pre-seed local with non-fresh data so SaveManager's boot-time
-    // sanity guard doesn't engage (it only retries when local looks like
-    // fresh defaults — see SaveManager.shouldRunSanityGuard). The point
-    // of THIS test is the local-mirror fallback, not the retry behaviour.
-    window.localStorage.setItem('spinner_campaign_stage', '5')
+    // This test used to pre-seed `spinner_campaign_stage` to keep
+    // SaveManager's boot-time sanity guard from engaging — a key inherited
+    // from the spinner-lineage template that this game does not use (its
+    // stage key is `epic_stage`). It never worked, and it cannot: this
+    // project keeps every gameplay value inside ONE blob
+    // (`merge-idle-war_state`), so the accessor the guard reads through
+    // (`BlobStorage`) has no `epic_stage` entry to find, `localLooksFresh`
+    // is therefore always true here, and the guard always runs.
+    //
+    // Under `vi.useFakeTimers()` its 3 × 1 s `sleep` never resolves on its
+    // own, so `init()` simply never settled and the test timed out — not a
+    // product hang, a timer that nobody advanced. Drive the guard through
+    // its ladder instead of pretending it is not there.
+    //
+    // (That the guard cannot see into the blob is a real finding about
+    // `SaveManager.localLooksFresh` on this project — it means every
+    // non-success hydrate pays 3 extra retries, including a returning
+    // player's. Left alone here: it is shared save code on every platform,
+    // and this test is about the Glitch local-mirror fallback.)
     const fetchImpl = vi.fn(async () => new Response('boom', { status: 500 }))
     const strategy = makeStrategy({ fetchImpl })
     const manager = new SaveManager(strategy)
 
-    await expect(manager.init()).resolves.toBeUndefined()
+    const init = manager.init()
+    await vi.advanceTimersByTimeAsync(BOOT_SANITY_LADDER_MS)
+    await expect(init).resolves.toBeUndefined()
 
     // Local writes still succeed even without a working backend.
     window.localStorage.setItem('spinner_coins', '3')

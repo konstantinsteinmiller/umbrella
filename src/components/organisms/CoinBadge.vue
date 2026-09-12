@@ -3,25 +3,14 @@ import { ref, computed } from 'vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import useEpicConfig from '@/use/useEpicConfig'
 import { isCompactHud } from '@/use/useUser'
+import { formatBig } from '@/utils/bigNumber'
 
 const { coins } = useEpicConfig()
 
-// Abbreviate big wallets: 1435 → "1.4k", 4.5m, 1.2b, 1.3t. One decimal, FLOORED
-// so the badge never shows more than the player actually has; trailing ".0"
-// dropped (2000 → "2k"). Under 1000 shows the exact count.
-const abbreviate = (n: number): string => {
-  const unit = (v: number, suffix: string): string => {
-    const t = Math.floor(v * 10) / 10
-    return (Number.isInteger(t) ? String(t) : t.toFixed(1)) + suffix
-  }
-  const abs = Math.abs(n)
-  if (abs >= 1e12) return unit(n / 1e12, 't')
-  if (abs >= 1e9) return unit(n / 1e9, 'b')
-  if (abs >= 1e6) return unit(n / 1e6, 'm')
-  if (abs >= 1e3) return unit(n / 1e3, 'k')
-  return String(Math.floor(n))
-}
-const display = computed(() => abbreviate(coins.value))
+// Abbreviate big wallets: 1435 → "1.4k", 4.5m, 1.2b, 1.3t, 2.5qa … One
+// decimal, FLOORED so the badge never shows more than the player actually has;
+// trailing ".0" dropped (2000 → "2k"). Under 1000 shows the exact count.
+const display = computed(() => formatBig(coins.value, { decimals: 1, floor: true, trim: true, lower: true }))
 
 // Exposed so siblings (e.g. TreasureChest) can target the badge for fly-to VFX.
 const rootEl = ref<HTMLElement | null>(null)

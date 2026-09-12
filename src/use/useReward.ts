@@ -4,6 +4,7 @@ import { isRewardedReady, showRewardedAd } from '@/use/useAds'
 import useEpicConfig from '@/use/useEpicConfig'
 import { getState, setState } from '@/use/useEpicState'
 import { FIRST_INSTANT_SPAWN_KEY } from '@/keys'
+import { formatBig } from '@/utils/bigNumber'
 
 // ─── Rewarded-placement redemption: rewarded ad OR coin purchase ─────────────
 // The whole game is balanced around the rewarded buffs (Instant Spawn, 2×
@@ -18,9 +19,10 @@ export const REWARD_COIN_COST = 1000
 export const FIRST_INSTANT_SPAWN_COIN_COST = 200
 
 /** Compact coin-cost label so a price fits ALONGSIDE the effect label on the
- *  narrow buff buttons: 1000 → "1k", 1500 → "1.5k", 200 → "200". */
+ *  narrow buff buttons: 1000 → "1k", 1500 → "1.5k", 200 → "200", 1.1M → "1.1m"
+ *  (it used to read "1100k" — the spell prices outgrew the one suffix). */
 export const formatCost = (n: number): string =>
-  n >= 1000 ? `${Number.isInteger(n / 1000) ? n / 1000 : (n / 1000).toFixed(1)}k` : String(n)
+  formatBig(n, { decimals: 1, trim: true, lower: true })
 
 // Reactive mirror of the sticky "first Instant Spawn already bought" flag so
 // `instantSpawnCost` recomputes the moment it flips (getState alone isn't

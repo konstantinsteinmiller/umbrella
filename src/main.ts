@@ -16,6 +16,7 @@ import {
 import { LANGUAGES } from '@/utils/enums'
 import { initAds } from '@/use/useAds'
 import { installGamePauseAudio } from '@/use/useGamePauseAudio'
+import { onGameSuspended, USES_PAGE_VISIBILITY } from '@/use/useGamePause'
 import useUser, { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki } from '@/use/useUser'
 import { isDebug } from '@/use/useMatch.ts'
 import { hasState, reloadEpicState } from '@/use/useEpicState'
@@ -338,19 +339,28 @@ const bootstrap = async () => {
   // is best-effort — the strategy's setItem may not finish before the
   // process is suspended. But it dramatically widens the window where
   // writes complete vs. relying on the natural debounce.
-  const flushOnHide = (): void => {
-    if (document.visibilityState === 'hidden') {
-      void saveManager.flush().catch((e) => {
-        console.warn('[save] visibilitychange flush failed', e)
-      })
-    }
-  }
-  document.addEventListener('visibilitychange', flushOnHide)
-  window.addEventListener('pagehide', () => {
+  // The Playgama build is the exception, and it is not optional: that archive
+  // is also the YouTube Playables submission, and Playables forbids the Page
+  // Visibility API outright ("MUST only use Playables SDK `onPause` and
+  // `onResume`"). `onGameSuspended` is the build-agnostic edge — DOM
+  // visibility where we are allowed to read it, the Bridge's own pause event
+  // where we are not — so the flush is wired once and stays correct on both.
+  // See `USES_PAGE_VISIBILITY` in `useGamePause.ts`.
+  onGameSuspended(() => {
     void saveManager.flush().catch((e) => {
-      console.warn('[save] pagehide flush failed', e)
+      console.warn('[save] suspend flush failed', e)
     })
   })
+  // `pagehide` adds the paths visibility misses — tab close, navigation away,
+  // and iOS Safari unloading the page under memory pressure. It counts as a
+  // "similar web API" for Playables, so it is gated with the rest.
+  if (USES_PAGE_VISIBILITY) {
+    window.addEventListener('pagehide', () => {
+      void saveManager.flush().catch((e) => {
+        console.warn('[save] pagehide flush failed', e)
+      })
+    })
+  }
 
   // NOTE: gates below use `import.meta.env.VITE_APP_*` literals (not the
   // `isGlitch` / `isGameDistribution` constants imported from useUser).

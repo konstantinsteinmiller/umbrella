@@ -10,3 +10,19 @@ declare module 'virtual:public-override-manifest' {
   const paths: string[]
   export default paths
 }
+
+declare module 'virtual:leaderboard-snapshot' {
+  // The leaderboard as baked into this bundle (see `leaderboardSnapshotPlugin`
+  // in vite.config.ts). Builds WITH a live endpoint bake the last real board as
+  // the bottom rung of the offline ladder; builds without one (Poki, Yandex,
+  // Playgama/YouTube) bake the SEEDED board from `data/leaderboard-seed.json`.
+  // `null` when no usable file exists — the game then has no leaderboard.
+  const snapshot: {
+    updatedAt: number
+    total: number
+    entries: { rank: number; name: string; score: number; flair: number }[]
+    /** `[score, howManyPlayersHaveIt]`, ordered score DESC. */
+    dist: [number, number][]
+  } | null
+  export default snapshot
+}

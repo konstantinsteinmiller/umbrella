@@ -15,7 +15,7 @@
 // `commercialBreak` all become no-ops for the rest of the session — the game
 // keeps running and simply stops earning.
 //
-// This project drives the bracket from `usePokiGameplay`, whose watcher fires on
+// This project drives the bracket from `usePortalGameplay`, whose watcher fires on
 // `isGameLive && !isGamePaused` — and `isGamePaused` is a computed over FOUR
 // reactive sources (ad / tab-hidden / platform / modal), watched with
 // `flush: 'sync'` so a stop always precedes an ad request. A modal closing in the

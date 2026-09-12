@@ -271,6 +271,36 @@ describe('buildCsp', () => {
     })
   })
 
+  describe('Playgama build (= the YouTube Playables submission)', () => {
+    it('emits NO policy at all', () => {
+      // A CSP meta tag applies to the whole DOCUMENT, and on Playables that
+      // document is shared with YouTube's own runtime — their SDK and their
+      // telemetry. Any host we forget is a host we silently break for THEM,
+      // with nothing surfaced on our side. `vite.config.ts` skips the tag for
+      // this build too; this is the unit-testable half of the same rule.
+      expect(buildCsp({ VITE_APP_PLAYGAMA: 'true' })).toBe('')
+    })
+
+    it('stays empty even when another flag leaks in from the base .env', () => {
+      expect(buildCsp({
+        VITE_APP_PLAYGAMA: 'true',
+        VITE_APP_GAME_DISTRIBUTION: 'true'
+      })).toBe('')
+    })
+
+    it('still emits a policy when the flag is off', () => {
+      expect(buildCsp({ VITE_APP_PLAYGAMA: 'false' })).not.toBe('')
+    })
+
+    it('no longer names bridge.playgama.com on ANY build', () => {
+      // v2 is bundled from npm; nothing fetches the CDN host any more, so the
+      // string has no business surviving in a shipped policy.
+      for (const env of [{}, { VITE_APP_CRAZY_WEB: 'true' }, { VITE_APP_GAMEPIX: 'true' }]) {
+        expect(buildCsp(env)).not.toContain('bridge.playgama.com')
+      }
+    })
+  })
+
   describe('directive ordering and shape', () => {
     it('emits all 8 standard directives separated by "; "', () => {
       const csp = buildCsp(baseEnv())
@@ -286,6 +316,36 @@ describe('buildCsp', () => {
       for (const directive of csp.split('; ')) {
         expect(directive).toMatch(/^[a-z-]+ 'self'/)
       }
+    })
+  })
+
+  describe('global leaderboard endpoint', () => {
+    const connectSrc = (csp: string): string[] =>
+      csp.match(/connect-src ([^;]+)/)![1]!.split(/\s+/)
+
+    it('folds the Worker ORIGIN into connect-src — never the path', () => {
+      // A CSP source with a path is a path-PREFIX match, so the configured URL
+      // must be reduced to its origin or `/top` could be refused.
+      const csp = buildCsp({ VITE_LEADERBOARD_URL: 'https://board.example.workers.dev/api/' })
+      expect(connectSrc(csp)).toContain('https://board.example.workers.dev')
+      expect(csp).not.toContain('board.example.workers.dev/api')
+    })
+
+    it('adds nothing when the build has no endpoint', () => {
+      expect(buildCsp({ VITE_LEADERBOARD_URL: '' })).not.toContain('workers.dev')
+      expect(buildCsp(baseEnv())).not.toContain('workers.dev')
+    })
+
+    it('never lets a malformed URL take the build down', () => {
+      expect(() => buildCsp({ VITE_LEADERBOARD_URL: 'not a url' })).not.toThrow()
+      expect(buildCsp({ VITE_LEADERBOARD_URL: 'not a url' })).not.toContain('not a url')
+    })
+
+    it('keeps the endpoint off a Yandex policy even if the env var leaked in', () => {
+      // Yandex moderation greps the bundle, CSP tag included, for third-party
+      // storage endpoints — belt and braces with the empty `.env.yandex.local`.
+      const csp = buildCsp({ VITE_APP_YANDEX: 'true', VITE_LEADERBOARD_URL: 'https://board.example.workers.dev' })
+      expect(csp).not.toContain('workers.dev')
     })
   })
 })

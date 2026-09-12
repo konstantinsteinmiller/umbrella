@@ -48,6 +48,16 @@ interface FakeBridgeOpts {
   platformId?: string
 }
 
+/**
+ * Minimal stand-in for the v2 Bridge singleton.
+ *
+ * v2 shape, and the deltas that matter here:
+ *   • events are subscribed on the ROOT object (`bridge.on`), not on
+ *     `bridge.platform` / `bridge.advertisement` as in v1;
+ *   • `on()` returns VOID — you unsubscribe with `off(name, sameCallback)`;
+ *   • `showInterstitial()` / `showRewarded()` return void, so the whole ad
+ *     lifecycle is the state event.
+ */
 const makeFakeBridge = (opts: FakeBridgeOpts = {}) => {
   const handlers = new Map<string, Handler[]>()
   const initCalls: unknown[] = []
@@ -56,24 +66,28 @@ const makeFakeBridge = (opts: FakeBridgeOpts = {}) => {
     language: opts.language ?? 'en',
     isAudioEnabled: opts.isAudioEnabled,
     isPaused: opts.isPaused,
+    sendMessage: () => Promise.resolve()
+  }
+  const bridge = {
+    version: '2.1.0',
+    platform,
+    advertisement: {
+      showInterstitial: () => { /* lifecycle is the state event */ },
+      showRewarded: () => { /* lifecycle is the state event */ }
+    },
+    storage: {},
     on: (name: string, cb: Handler) => {
       const list = handlers.get(name) ?? []
       list.push(cb)
       handlers.set(name, list)
-      return () => { /* unsubscribe */ }
+      // v2 returns void — a test that relied on an unsubscribe function here
+      // would be testing v1.
     },
-    sendMessage: () => { /* noop */ }
-  }
-  const bridge = {
-    platform,
-    advertisement: { on: () => () => { /* noop */ } },
-    storage: {},
-    EVENT_NAME: {
-      PAUSE_STATE_CHANGED: 'pause_state_changed',
-      AUDIO_STATE_CHANGED: 'audio_state_changed',
-      VISIBILITY_STATE_CHANGED: 'visibility_state_changed',
-      INTERSTITIAL_STATE_CHANGED: 'interstitial_state_changed',
-      REWARDED_STATE_CHANGED: 'rewarded_state_changed'
+    off: (name: string, cb?: Handler) => {
+      if (!cb) return handlers.delete(name)
+      const list = handlers.get(name) ?? []
+      const i = list.indexOf(cb)
+      if (i !== -1) list.splice(i, 1)
     },
     initialize: (options?: unknown) => {
       initCalls.push(options)
@@ -81,13 +95,15 @@ const makeFakeBridge = (opts: FakeBridgeOpts = {}) => {
     }
   }
   const emit = (name: string, payload: unknown) => {
-    for (const cb of handlers.get(name) ?? []) cb(payload)
+    for (const cb of [...(handlers.get(name) ?? [])]) cb(payload)
   }
   return { bridge, emit, initCalls }
 }
 
 /** Fresh module graph per test — the plugin caches its init promise and the
- *  pause/audio modules hold module-level singleton state. */
+ *  pause/audio modules hold module-level singleton state. The Bridge arrives
+ *  through `playgamaBridgeLoader` in v2 (npm package, not a CDN global), so
+ *  that module is what gets mocked. */
 const bootPlugin = async (opts: FakeBridgeOpts = {}) => {
   vi.resetModules()
   suspendSpy.mockClear()
@@ -95,7 +111,9 @@ const bootPlugin = async (opts: FakeBridgeOpts = {}) => {
   killOneShotSpy.mockClear()
 
   const fake = makeFakeBridge(opts)
-  ;(window as any).bridge = fake.bridge
+  vi.doMock('@/utils/playgamaBridgeLoader', () => ({
+    loadPlaygamaBridge: async () => fake.bridge
+  }))
 
   const plugin = await import('@/utils/playgamaPlugin')
   const pause = await import('@/use/useGamePause')
@@ -105,7 +123,7 @@ const bootPlugin = async (opts: FakeBridgeOpts = {}) => {
 }
 
 afterEach(() => {
-  delete (window as any).bridge
+  vi.doUnmock('@/utils/playgamaBridgeLoader')
 })
 
 beforeEach(() => {
@@ -238,10 +256,12 @@ describe('Playgama PAUSE — independent inputs, no cross-clobbering', () => {
 
 describe('Playgama bridge init options', () => {
   it('passes allowAnonymousCloudSave so guest players get cloud saves', async () => {
-    // This is the inline fallback the bridge uses when
-    // `playgama-bridge-config.json` 404s. Without the flag the adapter's
-    // `isStorageAvailable('platform_internal')` is false for every
-    // unauthorized player and progress never reaches the remote.
+    // This is the inline fallback the Bridge uses when
+    // `playgama-bridge-config.json` 404s. The option SURVIVED the v2 upgrade
+    // (v2 dropped the per-call storage TYPE argument, not this) — the shipped
+    // 2.1.0 bundle still gates its cloud path on
+    // `allowAnonymousCloudSave === true || player.isAuthorized`, so without
+    // the flag no guest player's progress ever reaches the remote.
     const { initCalls } = await bootPlugin()
 
     expect(initCalls).toHaveLength(1)

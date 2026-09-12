@@ -18,6 +18,15 @@ out
 
 dist-purity-cg
 
+# Art pipeline: originals the slicer displaced when a repaint was filed. Local
+# safety copies only — the art in public/ is the source of truth.
+/art-sheets/painted/replaced/
+
+# Wrangler's local state (the leaderboard Worker's local D1 sqlite, bundles).
+# Ignored for git AND for Tailwind's source scan, which honours .gitignore —
+# otherwise every local D1 write rebuilt the CSS and bounced the dev page.
+.wrangler
+
 node_modules
 .DS_Store
 dist
@@ -70,3 +79,6 @@ __screenshots__/
 /src-tauri/plugins/tauri-plugin-levelplay/ios/Frameworks/
 /src/assets/art/
 /node_modules/
+/art-sheets/
+# Recorded gameplay clips (`pnpm preview:video`) — build artifacts, tens of MB each.
+/preview-videos/
