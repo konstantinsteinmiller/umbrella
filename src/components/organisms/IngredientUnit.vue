@@ -18,11 +18,15 @@ const props = withDefaults(defineProps<{
   merging?: boolean
   /** Disable the idle breathing loop (e.g. for the flying inject ghost). */
   still?: boolean
+  /** Walking out of the grid tile's tunnel: swaps the idle breathe for a
+   *  quicker stride bob. The approach itself (scale + light) is the slot's
+   *  job — see `.unit-emerging` in MergeGrid. */
+  emerging?: boolean
   /** The figure alone — no tier badge, no drop shadow. The art bench renders
    *  references this way: the painter must not repaint the badge, and a
    *  shadow on the magenta ground is exactly what the prompt forbids. */
   bare?: boolean
-}>(), { dragging: false, merging: false, still: false, bare: false })
+}>(), { dragging: false, merging: false, still: false, bare: false, emerging: false })
 
 const ing = computed(() => getIngredient(props.tier))
 
@@ -44,7 +48,7 @@ const shadow = computed(() => (props.bare
 
 <template lang="pug">
   div.ingredient-unit.relative.select-none(
-    :class="[{ 'is-dragging': dragging, 'is-merging': merging, 'is-idle': !still && !dragging }]"
+    :class="[{ 'is-dragging': dragging, 'is-merging': merging, 'is-walking': emerging && !still && !dragging, 'is-idle': !still && !dragging && !emerging }]"
   )
     //- Drop-in bitmap art (keeps the same squish/breathe wrapper animations)
     template(v-if="bitmap")
@@ -177,6 +181,12 @@ const shadow = computed(() => (props.bare
 .is-idle
   animation: ing-breathe 2.6s ease-in-out infinite
 
+// Striding out of the tunnel: a faster, heavier two-step than the idle
+// breathe, with a little shoulder roll. Runs in the unit's own space, so it
+// layers cleanly on top of the slot's perspective scale.
+.is-walking
+  animation: ing-walk 0.46s ease-in-out infinite
+
 .is-dragging
   animation: none
   transform: scale(1.18)
@@ -184,6 +194,20 @@ const shadow = computed(() => (props.bare
 
 .is-merging
   animation: ing-squish 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)
+
+@keyframes ing-walk
+  0%, 100%
+    transform: translateY(0) rotate(-1.8deg)
+  25%
+    transform: translateY(-3.5%) rotate(0deg)
+  50%
+    transform: translateY(0) rotate(1.8deg)
+  75%
+    transform: translateY(-3.5%) rotate(0deg)
+
+@media (prefers-reduced-motion: reduce)
+  .is-walking
+    animation: none
 
 @keyframes ing-breathe
   0%, 100%

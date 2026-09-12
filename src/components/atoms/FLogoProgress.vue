@@ -1,32 +1,51 @@
 <template lang="pug">
-  Transition(name="splash-fade")
-    div.splash-backdrop.no-os-ui(v-if="!backdropHidden" :style="backdropStyle")
+  //- ⚠️ NO `<Transition>` IN THIS COMPONENT — the fades are plain CSS classes
+  //- and `setTimeout` owns every unmount. Vue's transition system schedules the
+  //- `-leave-to` class inside a `requestAnimationFrame` and only unmounts on the
+  //- resulting `transitionend`. A page that receives no animation frames during
+  //- the ~0.5 s splash fade never gets that frame, so the element stays in
+  //- `-leave-from -leave-active` at opacity 1 — and this backdrop is opaque,
+  //- fixed, inset-0, z-150. The result is a featureless dark rectangle covering
+  //- a perfectly healthy, running game, forever: the "black screen" reported
+  //- from screenshot tools and playtest recordings. Frames stop exactly there
+  //- for a background/occluded tab, a hidden or offscreen iframe, and any
+  //- headless capture or session-recording harness that doesn't drive the
+  //- compositor — and the logo (z-200) usually unmounts a frame earlier, which
+  //- is why the stuck frame has no logo on it either.
+  //-
+  //- Timers fire in all of those cases (throttled to ~1 Hz when hidden, but they
+  //- fire), so the splash now always clears — worst case it pops instead of
+  //- fading. Anything added here that hides the game MUST stay timer-driven.
+  div.splash-backdrop.no-os-ui(
+    v-if="!backdropGone"
+    :class="{ 'splash-backdrop--out': backdropHidden }"
+    :style="backdropStyle"
+  )
 
   //- Logo only renders during the loading sequence. Once `done` flips
   //- true (progress = 100% OR the 4s fallback fires), the logo fades out
   //- and unmounts — it deliberately does NOT shrink to the top-left
   //- corner like the previous splash flow.
-  Transition(name="logo-fade")
-    div.no-os-ui(
-      v-if="!done"
-      ref="logoRef"
-      class="fixed z-[200] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-    )
-      div(class="relative flex flex-col items-center")
-        div(:style="sizeStyle")
-          img(
-            :src="logoSrc"
-            alt="merge-idle-war"
-            class="w-full h-full object-contain"
-            draggable="false"
-          )
+  div.no-os-ui.splash-logo(
+    v-if="!logoGone"
+    ref="logoRef"
+    class="fixed z-[200] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+    :class="{ 'splash-logo--out': done }"
+  )
+    div(class="relative flex flex-col items-center")
+      div(:style="sizeStyle")
+        img(
+          :src="logoSrc"
+          alt="merge-idle-war"
+          class="w-full h-full object-contain"
+          draggable="false"
+        )
 
-        //- Loading Text
-        div.absolute.-bottom-8(class="mt-0 flex flex-col items-center gap-1")
-          span(class="percentage-text text-shadow font-mono text-amber-500") {{ Math.round(progress) }}%
+      //- Loading Text
+      div.absolute.-bottom-8(class="mt-0 flex flex-col items-center gap-1")
+        span(class="percentage-text text-shadow font-mono text-amber-500") {{ Math.round(progress) }}%
 
-        Transition(name="hint-fade")
-          div.stuck-hint.mt-4(v-if="showStuckHint") {{ t('loading.tooLong') }}
+      div.stuck-hint.mt-4(v-if="showStuckHint") {{ t('loading.tooLong') }}
 </template>
 
 <script setup lang="ts">
@@ -69,8 +88,31 @@ if (import.meta.env.VITE_APP_GAMEPIX === 'true') {
 
 const done = ref(false)
 const backdropHidden = ref(false)
+// `*Gone` = removed from the DOM. `done` / `backdropHidden` only START the
+// respective fade (a CSS class); a timer one fade-length later does the
+// unmount. See the template header for why this is not a `<Transition>`.
+const logoGone = ref(false)
+const backdropGone = ref(false)
+// Keep in sync with the two `transition-duration`s in the <style> block.
+const LOGO_FADE_MS = 350
+const BACKDROP_FADE_MS = 400
 const showStuckHint = ref(false)
 let stuckHintId: number | null = null
+let logoGoneId: number | null = null
+let backdropGoneId: number | null = null
+
+// Start the fade → unmount one fade-length later. `+ 80 ms` of slack so a
+// frame-starved page still gets the element out even if the CSS transition
+// never visibly ran (it pops instead of fading — always better than a splash
+// that outlives the game).
+watch(done, (isDone) => {
+  if (!isDone || logoGoneId !== null) return
+  logoGoneId = window.setTimeout(() => { logoGone.value = true }, LOGO_FADE_MS + 80)
+})
+watch(backdropHidden, (hidden) => {
+  if (!hidden || backdropGoneId !== null) return
+  backdropGoneId = window.setTimeout(() => { backdropGone.value = true }, BACKDROP_FADE_MS + 80)
+})
 
 const viewportSize = ref(Math.min(window.innerWidth, window.innerHeight))
 const logoRef = ref<HTMLElement | null>(null)
@@ -103,6 +145,8 @@ onUnmounted(() => {
   window.removeEventListener('resize', onResize)
   if (settleFallbackId !== null) clearTimeout(settleFallbackId)
   if (stuckHintId !== null) clearTimeout(stuckHintId)
+  if (logoGoneId !== null) clearTimeout(logoGoneId)
+  if (backdropGoneId !== null) clearTimeout(backdropGoneId)
 })
 
 const centeredSize = computed(() => Math.floor(viewportSize.value * 0.4))
@@ -283,6 +327,10 @@ watch(done, (isDone) => {
   font-size: 1.2rem
   font-weight: bold
 
+// The two fades below are the former `splash-fade` / `logo-fade` <Transition>
+// leaves, re-expressed as state classes. Same durations, same easing, same
+// end state — but the element's removal is a `setTimeout`, not a
+// `transitionend` that a frame-starved page never delivers.
 .splash-backdrop
   position: fixed
   inset: 0
@@ -291,21 +339,19 @@ watch(done, (isDone) => {
   background-repeat: no-repeat
   background-position: center
   background-size: cover
-
-.splash-fade-leave-active
   transition: opacity 0.4s ease-out
-  pointer-events: none
 
-.splash-fade-leave-to
+.splash-backdrop--out
   opacity: 0
-
-.logo-fade-leave-active
-  transition: opacity 0.35s ease-out, transform 0.35s ease-out
   pointer-events: none
 
-.logo-fade-leave-to
+.splash-logo
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out
+
+.splash-logo--out
   opacity: 0
   transform: translate(-50%, -50%) scale(0.85)
+  pointer-events: none
 
 .stuck-hint
   color: rgba(255, 200, 0, 0.85)

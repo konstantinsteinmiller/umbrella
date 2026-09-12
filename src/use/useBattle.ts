@@ -25,7 +25,7 @@ import { getState, setState, flushPersist } from '@/use/useEpicState'
 import { saveDataVersion } from '@/use/useSaveStatus'
 import useEpicConfig from '@/use/useEpicConfig'
 import { isGamePaused } from '@/use/useGamePause'
-import { tickBreakInterstitial } from '@/use/useBreakInterstitial'
+import { playCountdownInterstitial, tickBreakInterstitial } from '@/use/useBreakInterstitial'
 import {
   BATTLE_UPGRADES_KEY, BATTLE_WAVE_KEY, BATTLE_BEST_WAVE_KEY, BATTLE_ARMY_KEY,
   BATTLE_ULT_KEY, PRISM_STATS_KEY, BATTLE_DMG_BUFF_KEY, BATTLE_RUBBER_BAND_KEY,
@@ -855,9 +855,16 @@ const makeFighter = (tier: number, x: number, y: number, spectralUntil = 0): Fig
 }
 
 /** Deploy a merged unit onto the battlefield. Returns false when the army is
- *  at cap (the caller then bounces the drop). */
-export const deployFighter = (tier: number, xNorm?: number, yNorm?: number): boolean => {
-  if (armySize() >= ARMY_CAP) return false
+ *  at cap (the caller then bounces the drop).
+ *
+ *  `ignoreCap` lets a GRANTED unit — a battle-pass tier reward with nowhere
+ *  else to land — join an already-full army rather than evaporate. Player
+ *  drops never pass it: the cap is the whole reason a drop onto a full army
+ *  bounces into a field merge. An over-cap fighter is real in every way while
+ *  it lives; it is only the army RESTORE that trims back to ARMY_CAP, so the
+ *  save can never grow without bound. */
+export const deployFighter = (tier: number, xNorm?: number, yNorm?: number, ignoreCap = false): boolean => {
+  if (!ignoreCap && armySize() >= ARMY_CAP) return false
   const f = makeFighter(tier, xNorm ?? GUARD_X, yNorm ?? guardY(armySize()))
   fighters.value = [...fighters.value, f]
   triggerRef(fighters)
@@ -1860,6 +1867,12 @@ const resetAfterOverrun = (): void => {
     }
   }
   startCountdown()
+  // Same placement as a cleared wave: the retry's countdown is a 3…2…1 for the
+  // next wave like any other. The OVERRUN overlay has already had its full
+  // `OVERRUN_SECS` on screen by now, so this can never open over a result
+  // screen — and a RALLY rewarded ad taken during that window holds
+  // `isAdShowing`, which `isBreakAdDue` refuses on.
+  playCountdownInterstitial()
 }
 
 // ─── RALLY! rewarded revive (retention-roadmap #8) ───────────────────────────
@@ -2316,7 +2329,14 @@ const step = (dt: number): void => {
     case 'cleared':
       phaseTimer -= dt
       stepFighters(dt)
-      if (phaseTimer <= 0) startCountdown()
+      if (phaseTimer <= 0) {
+        startCountdown()
+        // The ONE moment the game opens an interstitial. No-op unless the
+        // cadence is due AND the provider can fill; when it does fire, the ad
+        // flips the pause gate inside this call stack, so the countdown holds
+        // where it is and resumes on close.
+        playCountdownInterstitial()
+      }
       break
     case 'overrun':
       phaseTimer -= dt

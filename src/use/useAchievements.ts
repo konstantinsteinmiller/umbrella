@@ -117,6 +117,17 @@ export interface AchievementView extends AchievementDef {
   claimable: boolean
 }
 
+/** The modal's row order: anything claimable is hoisted to the top, everything
+ *  else keeps its authored order. Because the hoist is keyed on `claimable`
+ *  alone, claiming a row drops it straight back to the position it came from —
+ *  the player never has to re-find a list they just reordered. Pure so the
+ *  contract can be pinned by tests; the view animates the move. */
+export const claimableFirst = (rows: readonly AchievementView[]): AchievementView[] =>
+  rows
+    .map((a, i) => ({ a, i }))
+    .sort((x, y) => Number(y.a.claimable) - Number(x.a.claimable) || x.i - y.i)
+    .map(({ a }) => a)
+
 const useAchievements = () => {
   const { addCoins } = useEpicConfig()
 

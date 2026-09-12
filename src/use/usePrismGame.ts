@@ -143,6 +143,18 @@ export const instantSpawnActive = computed(() => instantSpawnRemainingMs.value >
 export const clicksRequired = computed(() =>
   instantSpawnActive.value || isTutorialOneTap.value ? 1 : CLICKS_PER_SPAWN)
 
+/** The last recruit that stepped out of a tunnel: the slot it landed in plus a
+ *  nonce, so two spawns into the same slot each re-trigger the walk. The grid
+ *  view watches this to play the emerge animation (the unit crawls out of the
+ *  tile's crystal tunnel, tiny, and grows as it reaches the entrance). Purely
+ *  cosmetic — the unit is in `grid` the instant it spawns, so it is draggable
+ *  and mergeable from frame one. */
+export const spawnEvent = ref<{ idx: number; nonce: number } | null>(null)
+let spawnNonce = 0
+const noteSpawn = (idx: number): void => {
+  if (idx >= 0) spawnEvent.value = { idx, nonce: ++spawnNonce }
+}
+
 /** Spawn a recruit into a random empty slot (free — the cost is the tap
  *  metering in `tapSpawn`). The tier comes from the Recruits battle upgrade
  *  (T1 baseline, up to T16 maxed). Returns the slot index or -1. */
@@ -155,6 +167,7 @@ export const spawnIngredient = (): number => {
   bumpMaxTier(t)
   bumpStat('spawns')
   persistGrid()
+  noteSpawn(idx)
   notifyTutorial('spawn')
   return idx
 }
@@ -171,6 +184,7 @@ export const spawnUnitAt = (tier: number): number => {
   setSlot(idx, t)
   bumpMaxTier(t)
   persistGrid()
+  noteSpawn(idx)
   return idx
 }
 
@@ -354,7 +368,7 @@ const usePrismGame = () => ({
   // actions
   tapSpawn, activateInstantSpawn, spawnIngredient, spawnUnitAt, merge, moveSlot, takeFromGrid, bumpMaxTier, noteFieldMerge,
   // events
-  autoAction,
+  autoAction, spawnEvent,
   // lifecycle
   startEngine, stopEngine
 })

@@ -42,11 +42,6 @@ import { installWaveLeaderboard, rankedBest } from '@/use/useWaveLeaderboard'
 import RankBadge from '@/components/atoms/RankBadge.vue'
 import { triggerHappytime } from '@/use/useCrazyGames'
 import { stopGameplayForWaveBreak, resumeGameplayAfterWaveBreak } from '@/use/useCrazyWaveGameplay'
-import {
-  scheduleWaveClearInterstitial,
-  playDeathScreenInterstitial,
-  isDeathAdPlaying
-} from '@/use/useBreakInterstitial'
 
 const props = defineProps<{
   /** Wallet badge element — kill/boss payouts fly coins into it. */
@@ -582,14 +577,10 @@ const onEvent = (e: BattleEvent): void => {
     case 'overrun':
       // Run lost — active gameplay is over until the next wave begins (CG).
       stopGameplayForWaveBreak()
-      // Break-paced interstitial, BEFORE the OVERRUN overlay — never over it.
-      // The call flips `isDeathAdPlaying` synchronously (the overlay's `v-if`
-      // reads it), so the death screen never gets a frame in front of the ad;
-      // it animates in when the ad closes. No-op unless one is actually owed
-      // AND fillable, so a due-less loss shows the overlay immediately as
-      // before. Not awaited: the ordering is enforced by the ref, and this
-      // handler must stay synchronous for the rally hold below.
-      void playDeathScreenInterstitial()
+      // No ad here. The time-paced interstitial fires on the 3…2…1 countdown
+      // ONLY (`useBreakInterstitial`), which on this path is the retry
+      // countdown after the OVERRUN overlay has had its full run — so an
+      // interstitial can never open on top of a result screen.
       playSound('overrun', 0.06)
       triggerShake('big')
       // RALLY! rewarded revive (roadmap #8): hold the restart only when the
@@ -634,12 +625,6 @@ const onEvent = (e: BattleEvent): void => {
       const rank = !leaderboardEnabled && bestWaveRank.value ? ` · #${bestWaveRank.value}` : ''
       showWaveBanner(t('battle.waveCleared', { n: formatBig(e.bonus) }) + rank, 'wave', 1500)
       playSound('wave-cleared', 0.045)
-      // Break-paced interstitial: arms for 1s after the banner so the player
-      // reads their reward first, and only when 121s of active play have
-      // actually elapsed since the last one. No-op on every non-Playgama
-      // build. The sim is frozen for the ad, so the wave break just runs long
-      // and the next wave spawns after it closes.
-      scheduleWaveClearInterstitial()
       if (props.coinTarget && rootRef.value) {
         spawnCoinExplosion({ sourceEl: rootRef.value, targetEl: props.coinTarget, count: 12 })
       }
@@ -1212,14 +1197,13 @@ onUnmounted(() => {
         span.game-text.font-black.uppercase.text-red-300(v-if="newEnemyIncoming" class="text-[10px] sm:text-sm animate-pulse") {{ t('battle.newEnemy') }}
 
     //- ── OVERRUN overlay (+ RALLY! rewarded revive, roadmap #8) ──
-    //- `!isDeathAdPlaying` is the ad-before-result-screen ordering, enforced
-    //- rather than hoped for: the break interstitial flips that ref
-    //- synchronously inside the `overrun` handler, so the overlay never gets a
-    //- frame in front of the ad and fades in once it closes. An interstitial
-    //- ON TOP of a result screen is a documented portal rejection.
+    //- No ad-ordering clause on this `v-if` any more: the only interstitial
+    //- placement is the 3…2…1 countdown (`useBreakInterstitial`), which on this
+    //- path runs AFTER the overlay has had its full `OVERRUN_SECS`. Nothing can
+    //- open over the result screen, so nothing has to be suppressed for it.
     Transition(name="fade")
       div.absolute.inset-0.flex.flex-col.items-center.justify-center.overrun-overlay.pointer-events-none.gap-1(
-        v-if="battle.wavePhase.value === 'overrun' && !isDeathAdPlaying" class="z-[1230]"
+        v-if="battle.wavePhase.value === 'overrun'" class="z-[1230]"
       )
         span.game-text.font-black.uppercase.text-red-400(class="text-2xl sm:text-4xl animate-pulse") {{ t('battle.overrun') }}
         span.game-text.text-white(class="text-xs sm:text-sm opacity-90") {{ t('battle.overrunBody') }}

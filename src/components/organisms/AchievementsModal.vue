@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FModal from '@/components/molecules/FModal.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
-import useAchievements from '@/use/useAchievements'
+import useAchievements, { claimableFirst } from '@/use/useAchievements'
 import useSounds from '@/use/useSound'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -15,6 +15,15 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const { playSound } = useSounds()
 const { list, claim } = useAchievements()
+
+// ─── Claimable first ─────────────────────────────────────────────────────────
+// Collecting rewards used to mean scrolling the whole ladder hunting for the
+// gold buttons. Anything claimable is hoisted to the top instead; everything
+// else keeps its authored order, so the moment a row is claimed it drops back
+// to exactly where it belongs. The `<TransitionGroup>` move below animates the
+// travel, which is what makes the return read as "it went back to its place"
+// rather than the list reshuffling under the player's thumb.
+const ordered = computed(() => claimableFirst(list.value))
 
 const isOpen = computed({
   get: () => props.modelValue,
@@ -36,9 +45,9 @@ const onClaim = (id: string, event: MouseEvent): void => {
   FModal(v-model="isOpen" :title="t('achievements.title')")
     div.flex.flex-col.gap-2.p-2
       p.text-center.text-white.game-text.opacity-80(class="text-xs sm:text-sm") {{ t('achievements.subtitle') }}
-      div.flex.flex-col.gap-2
-        div.flex.items-center.gap-3.rounded-xl.border-2.p-2.text-left(
-          v-for="a in list"
+      TransitionGroup(name="ach" tag="div" class="flex flex-col gap-2")
+        div.ach-row.flex.items-center.gap-3.rounded-xl.border-2.p-2.text-left(
+          v-for="a in ordered"
           :key="a.id"
           class="bg-black/30"
           :class="a.claimable ? 'border-yellow-300' : (a.claimed ? 'border-emerald-400/50' : 'border-white/15')"
@@ -76,6 +85,16 @@ const onClaim = (id: string, event: MouseEvent): void => {
 </template>
 
 <style scoped lang="sass">
-div.rounded-xl
-  transition: all 0.15s ease
+.ach-row
+  transition: border-color 0.15s ease, box-shadow 0.15s ease
+
+// FLIP move for the claimable-first reordering (hoist on complete, slide back
+// down on claim). Declared after `.ach-row` so it owns `transition` while the
+// row is travelling.
+.ach-move
+  transition: transform 0.42s cubic-bezier(0.33, 1.06, 0.58, 1)
+
+@media (prefers-reduced-motion: reduce)
+  .ach-move
+    transition: none
 </style>

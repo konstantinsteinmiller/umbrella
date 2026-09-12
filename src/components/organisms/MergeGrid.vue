@@ -58,8 +58,57 @@ const ghostY = ref(0)
 const ghostSize = ref(64)
 const hoverIndex = ref(-1)
 const mergingIndex = ref(-1)
-const poppingIndex = ref(-1)
 const shake = ref(false)
+
+// ── Tunnel walk-in ──
+// A fresh recruit no longer pops into its slot. It appears deep inside the
+// tile's crystal tunnel — tiny and dark — and walks toward the entrance over
+// EMERGE_MS, growing to full size as it steps into the light (the scale runs
+// about the tunnel's vanishing point, so the perspective is the art's own).
+// Cosmetic ONLY: the unit is in the grid state the instant it spawns, so it can
+// be dragged, merged or deployed from the first frame — fast-merge play must
+// never wait on the walk. Any hand on it (grab, merge, move, deploy) ends the
+// walk immediately so it can't fight an interaction animation.
+// Keep in step with the `unit-emerge` keyframes' duration below: this timer is
+// only what drops the class, the motion itself is the CSS animation.
+const EMERGE_MS = 1500
+/** Slot index → nonce for every unit still walking out of its tunnel. */
+const emerging = ref<Record<number, number>>({})
+let emergeNonce = 0
+const emergeTimers = new Map<number, number>()
+
+const isEmerging = (idx: number): boolean => emerging.value[idx] !== undefined
+
+const beginEmerge = (idx: number): void => {
+  if (idx < 0) return
+  const prev = emergeTimers.get(idx)
+  if (prev !== undefined) clearTimeout(prev)
+  emerging.value = { ...emerging.value, [idx]: ++emergeNonce }
+  emergeTimers.set(idx, window.setTimeout(() => endEmerge(idx), EMERGE_MS))
+}
+
+const endEmerge = (idx: number): void => {
+  const t = emergeTimers.get(idx)
+  if (t !== undefined) { clearTimeout(t); emergeTimers.delete(idx) }
+  if (emerging.value[idx] === undefined) return
+  const next = { ...emerging.value }
+  delete next[idx]
+  emerging.value = next
+}
+
+const clearEmerging = (): void => {
+  for (const t of emergeTimers.values()) clearTimeout(t)
+  emergeTimers.clear()
+  emerging.value = {}
+}
+
+// Every spawn path feeds this — the tap meter, the rewarded instant-spawn buff
+// and the chest / campaign unit drops all land here. SYNC flush: a reward that
+// drops several units in one turn (or a burst of taps handled in one tick)
+// writes `spawnEvent` more than once before the next render, and a queued
+// watcher would coalesce those into the last one — leaving every unit but the
+// last to appear full-size with no walk.
+watch(game.spawnEvent, (e) => { if (e) beginEmerge(e.idx) }, { flush: 'sync' })
 
 let activePointer: number | null = null
 
@@ -88,6 +137,8 @@ const onPointerDown = (e: PointerEvent): void => {
   const idx = Number(el.dataset.slot)
   if (!grid.value[idx]) return
   e.preventDefault()
+  // Lifted mid-walk: the unit is fully formed in the hand, not a speck.
+  endEmerge(idx)
   activePointer = e.pointerId
   try { rootRef.value?.setPointerCapture(e.pointerId) } catch { /* ignore */ }
   dragging.value = true
@@ -138,6 +189,7 @@ const onPointerUp = (e: PointerEvent): void => {
   // 1) Drop into the battle arena → deploy (the scene resolves the outcome).
   if (hitZone(x, y) === 'arena') {
     const tier = grid.value[src] ?? 0
+    endEmerge(src)
     if (tier > 0) emit('deploy', { idx: src, tier, x, y })
     endDrag()
     return
@@ -150,6 +202,8 @@ const onPointerUp = (e: PointerEvent): void => {
       const newTier = game.merge(src, target)
       if (newTier > 0) fireMerge(target, newTier)
     } else if (grid.value[target] === 0) {
+      endEmerge(src)
+      endEmerge(target)
       game.moveSlot(src, target)
       playSound('unit-move', 0.03)
     }
@@ -177,6 +231,9 @@ onUnmounted(removeDragListeners) // never leak a global listener
 
 // ── Merge feedback ──
 const fireMerge = (idx: number, newTier: number): void => {
+  // A merge result is a brand-new unit standing at the entrance, never a
+  // half-emerged one — whatever was walking in this slot is done walking.
+  endEmerge(idx)
   mergingIndex.value = idx
   setTimeout(() => { if (mergingIndex.value === idx) mergingIndex.value = -1 }, 340)
   // A merge that produced a tier the player never had (announced by
@@ -219,10 +276,16 @@ const spawn = (): number => {
     return -1
   }
   const idx = res.idx
-  poppingIndex.value = idx
-  setTimeout(() => { if (poppingIndex.value === idx) poppingIndex.value = -1 }, 360)
+  // The walk-in itself is driven by the `spawnEvent` watcher above; the sparks
+  // fire at the tunnel mouth, where the recruit is about to appear. Gold, in
+  // two tones (a pale core inside the warmer spray), so the burst reads as the
+  // tunnel lighting up rather than as generic white VFX — the recruit itself is
+  // a dark speck for the first few frames, so this IS the spawn's read.
   const r = slotRect(idx)
-  if (r) emitSparkle(r.left + r.width / 2, r.top + r.height / 2, '#ffffff', 7)
+  if (r) {
+    emitSparkle(r.left + r.width / 2, r.top + r.height / 2, '#ffd66b', 8)
+    emitSparkle(r.left + r.width / 2, r.top + r.height / 2, '#fff3c4', 4)
+  }
   playSound('unit-spawn', 0.03, 1.1)
   return idx
 }
@@ -234,7 +297,7 @@ defineExpose({ spawn })
 watch(game.autoAction, (v) => {
   if (!v || !v.action) return
   const a = v.action
-  if (a.type === 'merge') fireMerge(a.to, a.tier)
+  if (a.type === 'merge') { endEmerge(a.from); fireMerge(a.to, a.tier) }
 })
 
 onMounted(() => {
@@ -242,6 +305,7 @@ onMounted(() => {
 })
 onUnmounted(() => {
   game.stopEngine()
+  clearEmerging()
 })
 </script>
 
@@ -262,14 +326,22 @@ onUnmounted(() => {
         :class="{ 'slot-hover': hoverIndex === idx, 'slot-source': dragSource === idx }"
       )
         div.slot-frame.absolute.inset-0(:style="slotFrameStyle")
+        //- Arrival flash: a quarter-second of gold light at the tunnel mouth,
+        //- behind the unit. It says WHERE a recruit is arriving while the
+        //- recruit itself is still a speck too small and too dark to spot.
+        div.spawn-glow(v-if="isEmerging(idx)" :key="'glow' + emerging[idx]")
         Transition(name="unit-pop")
           div.unit-holder.absolute(
             v-if="tier > 0"
             :key="tier + '-' + idx"
-            :class="{ 'unit-pop-anim': poppingIndex === idx, 'unit-revealed': revealIdx === idx && dragSource !== idx }"
+            :class="{ 'unit-emerging': isEmerging(idx) && revealIdx !== idx, 'unit-revealed': revealIdx === idx && dragSource !== idx }"
             :style="{ opacity: dragSource === idx ? 0.25 : 1, animationDelay: revealIdx === idx ? revealAnimationDelay(activeReveal) : undefined }"
           )
-            IngredientUnit(:tier="tier" :merging="mergingIndex === idx")
+            IngredientUnit(
+              :tier="tier"
+              :merging="mergingIndex === idx"
+              :emerging="isEmerging(idx) && revealIdx !== idx"
+            )
 
     //- Floating drag ghost (follows the pointer, fixed to viewport).
     //- `data-drag-src` lets TierRevealFx follow a revealed unit while carried.
@@ -304,8 +376,95 @@ onUnmounted(() => {
 .unit-holder
   inset: 5%
 
-.unit-pop-anim
-  animation: unit-spawn 0.36s cubic-bezier(0.34, 1.56, 0.64, 1)
+// The arrival flash. Centred on the same vanishing point the walk scales about
+// (42 % down the holder, which is 43 % down the slot), so the light blooms from
+// exactly the spot the recruit steps out of. Lives in the SLOT, not the unit
+// holder — inside the holder it would inherit the 0.12 → 1 emerge scale and
+// grow with the unit instead of flashing once. Mounted for the whole walk; the
+// 0.25 s animation ends at opacity 0 and it stays invisible after that.
+.spawn-glow
+  position: absolute
+  left: 50%
+  top: 43%
+  width: 80%
+  aspect-ratio: 1 / 1
+  border-radius: 9999px
+  pointer-events: none
+  background: radial-gradient(circle, rgba(255, 246, 214, 0.95) 0%, rgba(255, 205, 80, 0.6) 34%, rgba(255, 170, 20, 0.18) 56%, rgba(255, 160, 0, 0) 72%)
+  animation: spawn-glow 0.25s ease-out both
+
+@keyframes spawn-glow
+  0%
+    transform: translate(-50%, -50%) scale(0.3)
+    opacity: 0
+  30%
+    opacity: 1
+  100%
+    transform: translate(-50%, -50%) scale(1.15)
+    opacity: 0
+
+@media (prefers-reduced-motion: reduce)
+  .spawn-glow
+    animation-name: spawn-glow-still
+  @keyframes spawn-glow-still
+    0%
+      transform: translate(-50%, -50%)
+      opacity: 0
+    30%
+      opacity: 1
+    100%
+      transform: translate(-50%, -50%)
+      opacity: 0
+
+// Walking out of the tile's crystal tunnel. The whole move is ONE scale, taken
+// about the tunnel's vanishing point (~42 % down the tile, where the art's dark
+// mouth sits) — which is exactly what a figure approaching down a tunnel does,
+// and it drops the unit's feet toward the entrance as it grows without a second
+// translate fighting the child's walk bob. Scale climbs ~35 % per step
+// (constant apparent growth) rather than the literal 1/distance curve, which
+// would hold the unit at a speck for most of the walk and then snap it to
+// full size.
+// Brightness/saturation ramp from tunnel gloom to full light on arrival.
+.unit-emerging
+  transform-origin: 50% 42%
+  animation: unit-emerge 1.5s linear both
+  will-change: transform, filter
+
+@keyframes unit-emerge
+  0%
+    transform: scale(0.12)
+    filter: brightness(0.3) saturate(0.55)
+    opacity: 0
+  6%
+    opacity: 1
+  15%
+    transform: scale(0.18)
+    filter: brightness(0.38) saturate(0.62)
+  30%
+    transform: scale(0.26)
+    filter: brightness(0.46) saturate(0.7)
+  45%
+    transform: scale(0.36)
+    filter: brightness(0.56) saturate(0.78)
+  60%
+    transform: scale(0.49)
+    filter: brightness(0.68) saturate(0.86)
+  75%
+    transform: scale(0.66)
+    filter: brightness(0.82) saturate(0.94)
+  88%
+    transform: scale(0.85)
+    filter: brightness(0.94) saturate(1)
+  96%
+    transform: scale(1.04)
+    filter: brightness(1.08) saturate(1)
+  100%
+    transform: scale(1)
+    filter: brightness(1) saturate(1)
+
+@media (prefers-reduced-motion: reduce)
+  .unit-emerging
+    animation-duration: 0.3s
 
 // New-tier reveal: the unit itself is part of the show. It sinks as the sting
 // winds up, POPS at the bloom (0.35 s = 7 % of 5 s), then floats and glows for
@@ -352,21 +511,22 @@ onUnmounted(() => {
     10%, 90%
       filter: brightness(1.3) drop-shadow(0 0 8px rgba(255, 220, 110, 0.9))
 
-@keyframes unit-spawn
-  0%
-    transform: scale(0.2)
-    opacity: 0
-  70%
-    transform: scale(1.12)
-    opacity: 1
-  100%
-    transform: scale(1)
-
 .unit-pop-enter-active
   transition: transform 0.2s ease, opacity 0.2s ease
 .unit-pop-enter-from
   transform: scale(0.4)
   opacity: 0
+
+// A unit that is merged away or deployed must vanish at once. `<Transition>`
+// measures the OUTGOING element's own styles to decide how long to keep it in
+// the DOM, and a unit caught mid-walk (or mid new-tier reveal) is running a
+// 2 s / 5 s animation — so without this, merging onto a unit that is still
+// walking out of its tunnel left the old tier-1 figure sitting on top of the
+// merge result for the rest of its walk. No leave animation is wanted here
+// anyway: the result's own squish is the feedback.
+.unit-pop-leave-active
+  animation: none !important
+  transition: none !important
 
 .is-shake
   animation: grid-shake 0.36s ease

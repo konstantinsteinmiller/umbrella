@@ -3,9 +3,12 @@
  * "War Campaign" — the free-track battle pass (retention-roadmap #18).
  * Re-skinned from the epicrolla template: XP now ticks off the battler's
  * `bumpStat` events (kills / merges / waves / bosses — see
- * `CAMPAIGN_XP_SOURCES`), and tier rewards go beyond gold: an Instant Spawn
- * buff every 5th tier, a free high-tier unit every 10th. The extras are
- * executed here on claim (the composable stays economy-pure).
+ * `CAMPAIGN_XP_SOURCES`), and tier rewards go beyond gold: a free unit every
+ * 5th tier, drawn from the player's own codex (`bpUnitTier`), so the cards
+ * re-price themselves against the current watermark every time the modal is
+ * opened and a veteran is never handed a relic. The grant is executed here on
+ * claim (the composable stays economy-pure); `grantUnit` below guarantees the
+ * unit finds somewhere to land.
  */
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -75,25 +78,25 @@ const xpSources = computed(() => [
   { xp: CAMPAIGN_XP_SOURCES.boss, label: t('battlePass.perBoss') }
 ])
 
+/** Land a granted unit. The grid first — that is where a reward is most useful,
+ *  because it can still be merged. With the grid packed it goes to the front
+ *  line: into a same-tier fighter if one is out there (a rank-up beats an extra
+ *  body), otherwise as a new fighter even when that puts the army over
+ *  ARMY_CAP. A claimed reward must never evaporate for want of a slot, which
+ *  is also why the claim itself is no longer refused when both are full. */
+const grantUnit = (tier: number): void => {
+  if (game.spawnUnitAt(tier) >= 0) return
+  const twin = battle.fighters.value.find((f) => !f.spectral && f.tier === tier)
+  if (twin && battle.fieldMerge(twin.id, tier)) return
+  battle.deployFighter(tier, undefined, undefined, true)
+}
+
 const onClaim = (stage: number, sourceEl: HTMLElement) => {
-  // A unit reward needs somewhere to LAND — with the grid AND the army both
-  // full it would silently evaporate. Refuse the claim (denied thunk) and
-  // keep the tier claimable until the player makes room.
-  const preview = bpReward(stage)
-  if (preview.unitTier && game.emptySlots.value === 0 && battle.armyFull.value) {
-    playSound('upgrade-denied', 0.03)
-    return
-  }
   const res = claimStage(stage)
   if (!res) return
   emit('coins-awarded', sourceEl)
   playSound('reward-continue', 0.06)
-  // Reward extras: the buff applies instantly; the free unit lands on the
-  // grid (or marches straight to the front when the grid is packed).
-  if (res.instantSpawn) game.activateInstantSpawn()
-  if (res.unitTier && game.spawnUnitAt(res.unitTier) < 0 && !battle.armyFull.value) {
-    battle.deployFighter(res.unitTier)
-  }
+  if (res.unitTier) grantUnit(res.unitTier)
 }
 </script>
 
@@ -165,11 +168,9 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
           @click="card.unlocked && !card.claimed ? onClaim(card.stage, $event.currentTarget) : null"
         )
           span.font-black.game-text.text-white(class="text-[9px] sm:text-[10px]") {{ card.stage }}
-          //- Reward glyph: free unit > instant-spawn buff > gold
+          //- Reward glyph: free unit, else gold
           div(v-if="card.reward.unitTier" class="w-5 h-5 sm:w-6 sm:h-6 my-0.5")
             IngredientUnit(:tier="card.reward.unitTier" :still="true")
-          svg(v-else-if="card.reward.instantSpawn" viewBox="0 0 24 24" class="w-4 h-4 sm:w-5 sm:h-5 my-0.5" fill="#ffe23a" stroke="#7a3000" stroke-width="1.4" stroke-linejoin="round")
-            path(d="M13 2 L5 13 h5 l-1 9 l8 -11 h-5 Z")
           IconCoin(v-else class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 my-0.5")
           span.font-black.game-text.text-yellow-100(class="text-[9px] sm:text-[10px]") +{{ formatBig(card.reward.coins) }}
 </template>

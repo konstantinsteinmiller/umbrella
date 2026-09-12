@@ -2,7 +2,7 @@ import { ref, computed, watch, type Ref } from 'vue'
 import useEpicConfig from '@/use/useEpicConfig'
 import { saveDataVersion, flushSaveNow } from '@/use/useSaveStatus'
 import { getState, setState } from '@/use/useEpicState'
-import { BATTLE_BEST_WAVE_KEY } from '@/keys'
+import { BATTLE_BEST_WAVE_KEY, PRISM_MAX_TIER_KEY } from '@/keys'
 
 /**
  * "War Campaign" — the free-track battle pass (retention-roadmap #18).
@@ -12,10 +12,13 @@ import { BATTLE_BEST_WAVE_KEY } from '@/keys'
  * feeds the pass without extra instrumentation.
  *
  * Tier rewards: gold on a ramp that also scales with the player's best wave
- * (so late claims never feel stale), an Instant Spawn buff every 5th tier,
- * and a free high-tier unit every 10th. Unclaimed tiers stay claimable until
- * tapped. The 30-day season resets from its first XP tick (no server needed).
- * State persists inside the consolidated `merge-idle-war_state` blob.
+ * (so late claims never feel stale), and a free unit every 5th tier drawn from
+ * the player's own codex (see `bpUnitTier`), so it is never a relic. The 5s
+ * used to hand out an Instant Spawn buff instead — two minutes of faster
+ * tapping reads as nothing next to the tier that follows it, so those slots now
+ * pay in units too, one rank below the 10s. Unclaimed tiers stay claimable
+ * until tapped. The 30-day season resets from its first XP tick (no server
+ * needed). State persists inside the consolidated `merge-idle-war_state` blob.
  */
 
 export const BP_TOTAL_STAGES = 30
@@ -99,8 +102,6 @@ const saveState = () => {
 
 export interface CampaignReward {
   coins: number
-  /** Tier grants a free 2-minute Instant Spawn buff. */
-  instantSpawn?: boolean
   /** Tier grants a free unit of this merge tier (dropped onto the grid). */
   unitTier?: number
 }
@@ -114,12 +115,45 @@ export const bpCoinReward = (stage: number): number => {
   return Math.round(raw / 5) * 5
 }
 
-/** Full reward descriptor for a tier: gold always; a buff every 5th tier; a
- *  free high-tier unit every 10th. The claim UI executes the extras. */
+/** The authored unit ladder — tiers 4 / 5 / 6 at stages 10 / 20 / 30. Still the
+ *  floor for a young player, for whom a T4 gift is a real leg up. The 5s never
+ *  had an authored unit (they paid a buff), so they carry no floor: their
+ *  reward is purely "one rank below the 10s". */
+const bpAuthoredUnitTier = (stage: number): number =>
+  stage % 10 === 0 ? Math.min(9, 3 + stage / 10) : 1
+
+/** How far below the codex watermark a unit-bearing stage pays out: the
+ *  player's outright highest unit at the final tier of the pass, his
+ *  second-highest at the other 10s, his third-best on the 5s. */
+const bpUnitRank = (stage: number): number =>
+  (stage >= BP_TOTAL_STAGES ? 0 : stage % 10 === 0 ? 1 : 2)
+
+/** The free unit a unit-bearing tier hands over.
+ *
+ *  The authored ladder alone made this reward a relic: a player deep enough to
+ *  be finishing the pass merges past T6 long before stage 10, so the "free
+ *  high-tier unit" arrived as junk they would have to merge four times over to
+ *  even use. It tracks the player's OWN codex high-water mark
+ *  (`prism_max_tier`, the same number the Unit Codex reads) instead — see
+ *  `bpUnitRank` for which rank each stage pays. The authored ladder stays as a
+ *  floor on the 10s, so an early player still gets the leg up it was written
+ *  for.
+ *
+ *  Read out of the save blob rather than imported from `usePrismGame`: that
+ *  module pulls in `useBattle`, which imports THIS one — the import would
+ *  close a cycle. `getState` reads the reactive blob, so a card rendered from
+ *  this is live and re-renders the moment the watermark moves (which is what
+ *  makes an open modal show the right unit). */
+export const bpUnitTier = (stage: number): number => {
+  const best = Math.max(1, Math.floor(Number(getState(PRISM_MAX_TIER_KEY, 1))) || 1)
+  return Math.max(1, bpAuthoredUnitTier(stage), best - bpUnitRank(stage))
+}
+
+/** Full reward descriptor for a tier: gold always, plus a free unit from the
+ *  player's own codex every 5th tier. The claim UI lands the unit. */
 export const bpReward = (stage: number): CampaignReward => {
   const coins = bpCoinReward(stage)
-  if (stage % 10 === 0) return { coins, unitTier: Math.min(9, 3 + stage / 10) }
-  if (stage % 5 === 0) return { coins, instantSpawn: true }
+  if (stage % 5 === 0) return { coins, unitTier: bpUnitTier(stage) }
   return { coins }
 }
 
