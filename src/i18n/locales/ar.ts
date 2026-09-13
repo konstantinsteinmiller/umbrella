@@ -105,7 +105,7 @@ export default {
     'fever': 'حُمّى!!!',
     'rampage': 'هيجان!',
     'ultimate': 'عاصفة النيازك',
-    'doubleBounty': 'ضاعف غنيمة الزعيم!',
+    'multBounty': 'غنيمة الزعيم ×{mult}!',
     'upgrades': {
       'attack': 'أبواق الحرب',
       'vitality': 'الحيوية',

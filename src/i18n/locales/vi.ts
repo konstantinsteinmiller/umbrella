@@ -151,7 +151,7 @@ export default {
     'fever': 'HƯNG PHẤN!!!',
     'rampage': 'CUỒNG SÁT!',
     'ultimate': 'Bão Thiên Thạch',
-    'doubleBounty': 'Nhân đôi tiền thưởng trùm!',
+    'multBounty': '{mult}× tiền thưởng trùm!',
     'upgrades': {
       'attack': 'Tù Và Chiến Trận',
       'vitality': 'Sinh Lực',

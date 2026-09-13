@@ -151,7 +151,7 @@ export default {
     'fever': 'ЛИХОРАДКА!!!',
     'rampage': 'БУЙСТВО!',
     'ultimate': 'Метеоритный шторм',
-    'doubleBounty': 'Удвойте награду за босса!',
+    'multBounty': '{mult}× награда за босса!',
     'upgrades': {
       'attack': 'Боевые рога',
       'vitality': 'Живучесть',

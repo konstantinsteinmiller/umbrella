@@ -151,7 +151,7 @@ export default {
     'fever': 'KOORTS!!!',
     'rampage': 'RAZERNIJ!',
     'ultimate': 'Meteorenstorm',
-    'doubleBounty': 'Verdubbel de baasbuit!',
+    'multBounty': '{mult}× de baasbuit!',
     'upgrades': {
       'attack': 'Oorlogshoorns',
       'vitality': 'Vitaliteit',

@@ -151,7 +151,7 @@ export default {
     'fever': 'FIÈVRE !!!',
     'rampage': 'CARNAGE !',
     'ultimate': 'Pluie de Météores',
-    'doubleBounty': 'Doublez le butin du boss !',
+    'multBounty': '{mult}× le butin du boss !',
     'upgrades': {
       'attack': 'Cors de Guerre',
       'vitality': 'Vitalité',

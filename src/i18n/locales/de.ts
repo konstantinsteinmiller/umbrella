@@ -151,7 +151,7 @@ export default {
     'fever': 'FIEBER!!!',
     'rampage': 'RASEREI!',
     'ultimate': 'Meteorsturm',
-    'doubleBounty': 'Boss-Beute verdoppeln!',
+    'multBounty': '{mult}× Boss-Beute!',
     'upgrades': {
       'attack': 'Kriegshörner',
       'vitality': 'Vitalität',

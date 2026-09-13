@@ -8,7 +8,7 @@ import { formatBig } from '@/utils/bigNumber'
 
 // ─── Rewarded-placement redemption: rewarded ad OR coin purchase ─────────────
 // The whole game is balanced around the rewarded buffs (Instant Spawn, 2×
-// Damage) and rewards (Rally, double-boss-bounty, …). On builds with no real
+// Damage) and rewards (Rally, 4× boss bounty, …). On builds with no real
 // rewarded ads — the basic launch and the pre-full-release CrazyGames build
 // (`buffsCostCoins`) — the same placements are BOUGHT WITH COINS instead, so
 // the game stays playable/balanced without an ad network.

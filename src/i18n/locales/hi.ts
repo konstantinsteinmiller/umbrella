@@ -105,7 +105,7 @@ export default {
     'fever': 'जुनून!!!',
     'rampage': 'उत्पात!',
     'ultimate': 'उल्का तूफ़ान',
-    'doubleBounty': 'बॉस इनाम दोगुना करें!',
+    'multBounty': 'बॉस इनाम {mult}×!',
     'upgrades': {
       'attack': 'रण भेरी',
       'vitality': 'जीवन शक्ति',

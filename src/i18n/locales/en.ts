@@ -40,7 +40,7 @@ export default {
     'fever': 'FEVER!!!',
     'rampage': 'RAMPAGE!',
     'ultimate': 'Meteor Storm',
-    'doubleBounty': 'Double the boss bounty!',
+    'multBounty': '{mult}× the boss bounty!',
     'nextChest': 'Next: 🎁 wave {n}',
     'newEnemyAt': 'New enemy at wave {n}!',
     'newEnemy': 'New enemy incoming!',

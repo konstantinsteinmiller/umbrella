@@ -4,22 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="new units, rune upgrade design, bigger grid, 4 more skills, merge spotlight">
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/AchievementsModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/AchievementsModal.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattlePass.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattlePass.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/CoinBadge.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/CoinBadge.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/IngredientUnit.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/IngredientUnit.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/MergeGrid.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/MergeGrid.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useAchievements.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAchievements.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useBattle.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBattle.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useBattlePass.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBattlePass.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useBreakInterstitial.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBreakInterstitial.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/usePrismGame.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePrismGame.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/platforms/breakInterstitial.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/breakInterstitial.test.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,7 +86,7 @@
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\grid" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.build:poki">
+  <component name="RunManager" selected="npm.build:playgama">
     <configuration name="art:desk" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
@@ -110,21 +97,21 @@
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="build:playgama" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+    <configuration name="build:crazy-web" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="build:playgama" />
+        <script value="build:crazy-web" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="build:poki-playtest" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+    <configuration name="build:playgama" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="build:poki-playtest" />
+        <script value="build:playgama" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
@@ -152,11 +139,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="npm.build:playgama" />
+        <item itemvalue="npm.build:crazy-web" />
         <item itemvalue="npm.build:poki" />
         <item itemvalue="npm.dev" />
-        <item itemvalue="npm.build:playgama" />
         <item itemvalue="npm.art:desk" />
-        <item itemvalue="npm.build:poki-playtest" />
       </list>
     </recent_temporary>
   </component>
@@ -194,7 +181,7 @@
       <workItem from="1788895235410" duration="7960000" />
       <workItem from="1789075571111" duration="1756000" />
       <workItem from="1789084034398" duration="21707000" />
-      <workItem from="1789216378918" duration="7160000" />
+      <workItem from="1789216378918" duration="10214000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -412,7 +399,15 @@
       <option name="project" value="LOCAL" />
       <updated>1789175224317</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial">
+      <option name="closed" value="true" />
+      <created>1789226099891</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1789226099891</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -481,6 +476,7 @@
     <MESSAGE value="full release changes" />
     <MESSAGE value="qol improvements" />
     <MESSAGE value="new units, rune upgrade design, bigger grid, 4 more skills, merge spotlight" />
-    <option name="LAST_COMMIT_MESSAGE" value="new units, rune upgrade design, bigger grid, 4 more skills, merge spotlight" />
+    <MESSAGE value="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial" />
+    <option name="LAST_COMMIT_MESSAGE" value="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial" />
   </component>
 </project>

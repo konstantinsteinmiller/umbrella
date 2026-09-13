@@ -105,7 +105,7 @@ export default {
     'fever': 'ҚЫЗУ!!!',
     'rampage': 'ДОЛЫЛЫҚ!',
     'ultimate': 'Метеор дауылы',
-    'doubleBounty': 'Босс олжасын екі есе арттырыңыз!',
+    'multBounty': 'Босс олжасы {mult}×!',
     'upgrades': {
       'attack': 'Соғыс кернейлері',
       'vitality': 'Өміршеңдік',

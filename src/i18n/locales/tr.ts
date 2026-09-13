@@ -151,7 +151,7 @@ export default {
     'fever': 'COŞKU!!!',
     'rampage': 'KIYIM!',
     'ultimate': 'Meteor Fırtınası',
-    'doubleBounty': 'Boss ganimetini ikiye katla!',
+    'multBounty': '{mult}× boss ganimeti!',
     'upgrades': {
       'attack': 'Savaş Boruları',
       'vitality': 'Canlılık',

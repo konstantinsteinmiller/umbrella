@@ -151,7 +151,7 @@ export default {
     'fever': 'GORĄCZKA!!!',
     'rampage': 'SZAŁ!',
     'ultimate': 'Deszcz Meteorów',
-    'doubleBounty': 'Podwój łup z bossa!',
+    'multBounty': '{mult}× łupu z bossa!',
     'upgrades': {
       'attack': 'Rogi Wojenne',
       'vitality': 'Witalność',

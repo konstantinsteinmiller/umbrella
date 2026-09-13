@@ -151,7 +151,7 @@ export default {
     'fever': 'JOʻSHQINLIK!!!',
     'rampage': 'QIRGʻIN!',
     'ultimate': 'Meteor boʻroni',
-    'doubleBounty': 'Boss oʻljasini ikki baravar oshiring!',
+    'multBounty': '{mult}× boss oʻljasi!',
     'upgrades': {
       'attack': 'Urush shoxlari',
       'vitality': 'Hayotiylik',

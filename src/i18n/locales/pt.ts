@@ -151,7 +151,7 @@ export default {
     'fever': 'FEBRE!!!',
     'rampage': 'FÚRIA!',
     'ultimate': 'Tempestade de Meteoros',
-    'doubleBounty': 'Dobre o prêmio do chefe!',
+    'multBounty': '{mult}× o prêmio do chefe!',
     'upgrades': {
       'attack': 'Cornetas de Guerra',
       'vitality': 'Vitalidade',

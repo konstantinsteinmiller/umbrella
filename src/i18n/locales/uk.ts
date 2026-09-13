@@ -151,7 +151,7 @@ export default {
     'fever': 'ЛИХОМАНКА!!!',
     'rampage': 'ШАЛЕНСТВО!',
     'ultimate': 'Метеоритний шторм',
-    'doubleBounty': 'Подвойте нагороду за боса!',
+    'multBounty': '{mult}× нагорода за боса!',
     'upgrades': {
       'attack': 'Бойові роги',
       'vitality': 'Живучість',

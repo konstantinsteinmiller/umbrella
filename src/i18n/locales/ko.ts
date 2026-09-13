@@ -151,7 +151,7 @@ export default {
     'fever': '피버!!!',
     'rampage': '광란!',
     'ultimate': '유성 폭풍',
-    'doubleBounty': '보스 현상금 2배!',
+    'multBounty': '보스 현상금 {mult}배!',
     'upgrades': {
       'attack': '전쟁의 뿔피리',
       'vitality': '활력',

@@ -151,7 +151,7 @@ export default {
     'fever': '狂热!!!',
     'rampage': '狂暴！',
     'ultimate': '流星风暴',
-    'doubleBounty': 'Boss赏金翻倍！',
+    'multBounty': 'Boss赏金 {mult}×！',
     'upgrades': {
       'attack': '战争号角',
       'vitality': '活力',

@@ -105,7 +105,7 @@ export default {
     'fever': 'ฟีเวอร์!!!',
     'rampage': 'อาละวาด!',
     'ultimate': 'พายุอุกกาบาต',
-    'doubleBounty': 'คูณรางวัลบอสสองเท่า!',
+    'multBounty': 'รางวัลบอส {mult}×!',
     'upgrades': {
       'attack': 'แตรศึก',
       'vitality': 'พลังชีวิต',

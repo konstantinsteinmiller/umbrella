@@ -151,7 +151,7 @@ export default {
     'fever': 'フィーバー!!!',
     'rampage': '大暴れ!',
     'ultimate': 'メテオストーム',
-    'doubleBounty': 'ボス報酬を2倍に!',
+    'multBounty': 'ボス報酬 {mult}×!',
     'upgrades': {
       'attack': '戦の角笛',
       'vitality': '生命力',

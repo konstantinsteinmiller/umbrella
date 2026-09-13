@@ -11,7 +11,7 @@
  * Fully responsive (portrait / landscape / tablet / desktop) on vw/vh + flex
  * with safe-area insets. This file orchestrates: deploy drops from the grid
  * into the arena (new fighter / field merge / army-full bounce), the rewarded
- * "war chest" and 2×-boss-bounty placements, screenshake, ambient music, and
+ * "war chest" and 4×-boss-bounty placements, screenshake, ambient music, and
  * the Options modal.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
@@ -60,7 +60,7 @@ const { t } = useI18n()
 const game = usePrismGame()
 const battle = useBattle()
 const { addCoins } = useEpicConfig()
-// Double-boss-bounty: rewarded ad, or a coin purchase on coin-mode builds.
+// Boss-bounty multiplier: rewarded ad, or a coin purchase on coin-mode builds.
 const { buffsCostCoins, REWARD_COIN_COST, canRedeem, redeem } = useReward()
 const { playSound } = useSounds()
 const { startBattleMusic, stopBattleMusic } = useMusic()
@@ -328,8 +328,15 @@ const onDeploy = (p: { idx: number; tier: number; x: number; y: number }): void 
   }
 }
 
-// ─── Boss bounty 2× rewarded offer (roadmap #9 — 6 s non-blocking chip) ──────
+// ─── Boss bounty rewarded offer (roadmap #9 — 6 s non-blocking chip) ────────
+// The kill already banked the base bounty, so the reward TOPS IT UP to
+// `BOSS_BOUNTY_AD_MULT` times the normal amount — i.e. it pays out
+// `mult - 1` extra bounties. Both the label and the `+n` on the chip derive
+// from this one constant so the promise can't drift from the payout.
+const BOSS_BOUNTY_AD_MULT = 4
 const bossOffer = ref<number | null>(null)
+/** Coins the offer actually pays on top of the bounty already banked. */
+const bossOfferGrant = computed(() => Math.round((bossOffer.value ?? 0) * (BOSS_BOUNTY_AD_MULT - 1)))
 let bossOfferTimer = 0
 const BOSS_OFFER_MS = 6000
 const onBossKill = (bounty: number, first: boolean): void => {
@@ -354,15 +361,15 @@ const onMilestone = (): void => {
     battle.deployFighter(tier) // grid full → straight to the front line
   }
 }
-const onDoubleBounty = async (): Promise<void> => {
-  const bounty = bossOffer.value
+const onBoostBounty = async (): Promise<void> => {
+  const grant = bossOfferGrant.value
   bossOffer.value = null
   window.clearTimeout(bossOfferTimer)
-  if (!bounty) return
+  if (!grant) return
   const ok = await redeem(REWARD_COIN_COST)
   if (ok) {
-    addCoins(bounty)
-    flyGold(bounty)
+    addCoins(grant)
+    flyGold(grant)
     playSound('coin-pickup', 0.05)
   }
 }
@@ -563,27 +570,30 @@ onUnmounted(() => {
         //- centre sits right at the arena/column border) and covered a corner of the
         //- merge grid for as long as they showed. Here they centre over the battle in
         //- every layout and can never reach the grid.
-        //- ── 2× boss bounty — 6 s non-blocking offer chip (roadmap #9) ─────────
+        //- ── 4× boss bounty — 6 s non-blocking offer chip (roadmap #9) ─────────
         Transition(name="chip")
           div.absolute.left-0.right-0.flex.justify-center.pointer-events-none(
             v-if="bossOffer"
             class="z-[60]"
             :style="{ top: '2.4rem' }"
           )
-            button.boss-chip.pointer-events-auto.cursor-pointer.flex.items-center.gap-2.rounded-xl.border-2.px-3.py-2(
-              class="bg-gradient-to-b from-emerald-400 to-emerald-700 border-emerald-200 active:scale-95 transition-transform"
-              @click="onDoubleBounty"
-            )
-              //- Coin mode shows the price + IconCoin; ad mode the movie icon.
-              template(v-if="buffsCostCoins")
-                IconCoin(class="w-6 h-6 shrink-0 text-yellow-200")
-                span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm leading-none") {{ formatCost(REWARD_COIN_COST) }}
-              IconMovie(v-else class="w-6 h-6 shrink-0")
-              div.flex.flex-col.items-start
-                span.text-white.font-black.uppercase.game-text(class="text-xs sm:text-sm leading-none") {{ t('battle.doubleBounty') }}
-                span.text-emerald-100.font-black.game-text(class="text-[11px] sm:text-sm") +{{ formatBig(bossOffer) }}
-              //- Draining bar mirrors the 6 s window
-              div.boss-chip-timer.absolute.bottom-0.left-1.right-1.rounded-full(class="h-0.5")
+            //- The halo lives on a WRAPPER, not the chip: the chip clips its own
+            //- overflow for the draining bar, which would eat an expanding ring.
+            div.boss-chip-halo.relative.pointer-events-none
+              button.boss-chip.pointer-events-auto.cursor-pointer.flex.items-center.gap-2.rounded-xl.border-2.px-3.py-2.relative(
+                class="bg-gradient-to-b from-emerald-400 to-emerald-700 border-[#ffd23a] active:scale-95 transition-transform"
+                @click="onBoostBounty"
+              )
+                //- Coin mode shows the price + IconCoin; ad mode the movie icon.
+                template(v-if="buffsCostCoins")
+                  IconCoin(class="w-6 h-6 shrink-0 text-yellow-200")
+                  span.text-white.font-black.game-text.tabular-nums(class="text-xs sm:text-sm leading-none") {{ formatCost(REWARD_COIN_COST) }}
+                IconMovie(v-else class="w-6 h-6 shrink-0")
+                div.flex.flex-col.items-start
+                  span.text-white.font-black.uppercase.game-text(class="text-xs sm:text-sm leading-none") {{ t('battle.multBounty', { mult: BOSS_BOUNTY_AD_MULT }) }}
+                  span.boss-chip-gold.font-black.game-text(class="text-[11px] sm:text-sm") +{{ formatBig(bossOfferGrant) }}
+                //- Draining bar mirrors the 6 s window
+                div.boss-chip-timer.absolute.bottom-0.left-1.right-1.rounded-full(class="h-0.5")
 
         //- ── Achievement unlock toast (roadmap #10) ────────────────────────────
         Transition(name="chip")
@@ -962,7 +972,40 @@ onUnmounted(() => {
   .codex-nudge, .codex-nudge .codex-ghost
     animation: none
 
-// ── 2× boss bounty chip (roadmap #9) ──
+// ── 4× boss bounty chip (roadmap #9) ──
+// A player mid-merge is looking at the GRID, not the arena, and a 6 s chip is
+// easy to miss. The gold halo is the peripheral-vision hook: a breathing glow
+// under the chip plus a ring that expands and fades out of it, both in the
+// coin colour so the eye reads "money" before it reads the words.
+.boss-chip-halo
+  border-radius: 0.85rem
+  animation: boss-halo-breathe 1.1s ease-in-out infinite
+  box-shadow: 0 0 12px 2px rgba(255, 205, 0, 0.75), 0 0 30px 8px rgba(255, 170, 0, 0.4)
+
+  // Expanding ring — escapes the chip because the chip clips its own overflow.
+  &::after
+    content: ''
+    position: absolute
+    inset: -2px
+    border-radius: inherit
+    border: 2px solid rgba(255, 214, 74, 0.9)
+    animation: boss-halo-ring 1.4s ease-out infinite
+    pointer-events: none
+
+@keyframes boss-halo-breathe
+  0%, 100%
+    box-shadow: 0 0 12px 2px rgba(255, 205, 0, 0.65), 0 0 26px 6px rgba(255, 170, 0, 0.32)
+  50%
+    box-shadow: 0 0 20px 5px rgba(255, 224, 110, 0.95), 0 0 46px 16px rgba(255, 176, 0, 0.55)
+
+@keyframes boss-halo-ring
+  0%
+    transform: scale(1)
+    opacity: 0.85
+  100%
+    transform: scale(1.28)
+    opacity: 0
+
 .boss-chip
   position: relative
   overflow: hidden
@@ -974,6 +1017,19 @@ onUnmounted(() => {
     transform: scale(1.1)
   100%
     transform: scale(1)
+// The payout line is gold rather than emerald — it is the number the halo is
+// advertising, so it should match the glow.
+.boss-chip-gold
+  color: #ffe27a
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.55)
+// The halo is an attention device, not information: a still gold glow carries
+// the same message without the motion.
+@media (prefers-reduced-motion: reduce)
+  .boss-chip-halo
+    animation: none
+  .boss-chip-halo::after
+    animation: none
+    opacity: 0.6
 .boss-chip-timer
   background: rgba(255, 255, 255, 0.85)
   transform-origin: left center

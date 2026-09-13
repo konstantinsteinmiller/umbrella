@@ -105,7 +105,7 @@ export default {
     'fever': 'DEMAM!!!',
     'rampage': 'MENGAMUK!',
     'ultimate': 'Badai Meteor',
-    'doubleBounty': 'Gandakan hadiah bos!',
+    'multBounty': '{mult}× hadiah bos!',
     'upgrades': {
       'attack': 'Terompet Perang',
       'vitality': 'Vitalitas',

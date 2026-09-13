@@ -151,7 +151,7 @@ export default {
     'fever': '¡FIEBRE!',
     'rampage': '¡MASACRE!',
     'ultimate': 'Lluvia de Meteoros',
-    'doubleBounty': '¡Duplica el botín del jefe!',
+    'multBounty': '¡{mult}× el botín del jefe!',
     'upgrades': {
       'attack': 'Cuernos de Guerra',
       'vitality': 'Vitalidad',

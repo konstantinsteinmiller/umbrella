@@ -151,7 +151,7 @@ export default {
     'fever': 'FEBBRE!!!',
     'rampage': 'FURIA!',
     'ultimate': 'Tempesta di Meteore',
-    'doubleBounty': 'Raddoppia il bottino del boss!',
+    'multBounty': '{mult}× il bottino del boss!',
     'upgrades': {
       'attack': 'Corni di Guerra',
       'vitality': 'Vitalità',
