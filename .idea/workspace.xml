@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial">
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="4x boss ad">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/leaderboard-snapshot.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/leaderboard-snapshot.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wavedash.toml" beforeDir="false" afterPath="$PROJECT_DIR$/wavedash.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,7 +55,7 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/cookie-watch&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/splatix&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -65,6 +66,7 @@
     &quot;npm.build:playgama.executor&quot;: &quot;Run&quot;,
     &quot;npm.build:poki-playtest.executor&quot;: &quot;Run&quot;,
     &quot;npm.build:poki.executor&quot;: &quot;Run&quot;,
+    &quot;npm.build:wavedash.executor&quot;: &quot;Run&quot;,
     &quot;npm.dev.executor&quot;: &quot;Run&quot;,
     &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\konst\\Documents\\__p\\merge-idle-war\\node_modules\\typescript\\lib&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
@@ -86,17 +88,7 @@
       <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\grid" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.build:playgama">
-    <configuration name="art:desk" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="art:desk" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="npm.build:wavedash">
     <configuration name="build:crazy-web" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
@@ -127,6 +119,16 @@
       <envs />
       <method v="2" />
     </configuration>
+    <configuration name="build:wavedash" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="build:wavedash" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
     <configuration name="dev" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
@@ -139,11 +141,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="npm.build:wavedash" />
+        <item itemvalue="npm.dev" />
         <item itemvalue="npm.build:playgama" />
         <item itemvalue="npm.build:crazy-web" />
         <item itemvalue="npm.build:poki" />
-        <item itemvalue="npm.dev" />
-        <item itemvalue="npm.art:desk" />
       </list>
     </recent_temporary>
   </component>
@@ -182,6 +184,9 @@
       <workItem from="1789075571111" duration="1756000" />
       <workItem from="1789084034398" duration="21707000" />
       <workItem from="1789216378918" duration="10214000" />
+      <workItem from="1789279816066" duration="2384000" />
+      <workItem from="1789304256508" duration="2731000" />
+      <workItem from="1789336312458" duration="635000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -407,7 +412,15 @@
       <option name="project" value="LOCAL" />
       <updated>1789226099891</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="4x boss ad">
+      <option name="closed" value="true" />
+      <created>1789283089477</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1789283089477</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -477,6 +490,7 @@
     <MESSAGE value="qol improvements" />
     <MESSAGE value="new units, rune upgrade design, bigger grid, 4 more skills, merge spotlight" />
     <MESSAGE value="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial" />
-    <option name="LAST_COMMIT_MESSAGE" value="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial" />
+    <MESSAGE value="4x boss ad" />
+    <option name="LAST_COMMIT_MESSAGE" value="4x boss ad" />
   </component>
 </project>
