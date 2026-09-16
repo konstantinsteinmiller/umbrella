@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="4x boss ad">
+    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="fix tier 37 unit">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/leaderboard-snapshot.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/leaderboard-snapshot.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/wavedash.toml" beforeDir="false" afterPath="$PROJECT_DIR$/wavedash.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -187,6 +185,8 @@
       <workItem from="1789279816066" duration="2384000" />
       <workItem from="1789304256508" duration="2731000" />
       <workItem from="1789336312458" duration="635000" />
+      <workItem from="1789424503401" duration="617000" />
+      <workItem from="1789571316036" duration="327000" />
     </task>
     <task id="LOCAL-00001" summary="base game setup from epicrolla">
       <option name="closed" value="true" />
@@ -420,7 +420,15 @@
       <option name="project" value="LOCAL" />
       <updated>1789283089477</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="fix tier 37 unit">
+      <option name="closed" value="true" />
+      <created>1789425174954</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1789425174954</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -491,6 +499,7 @@
     <MESSAGE value="new units, rune upgrade design, bigger grid, 4 more skills, merge spotlight" />
     <MESSAGE value="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial" />
     <MESSAGE value="4x boss ad" />
-    <option name="LAST_COMMIT_MESSAGE" value="4x boss ad" />
+    <MESSAGE value="fix tier 37 unit" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix tier 37 unit" />
   </component>
 </project>

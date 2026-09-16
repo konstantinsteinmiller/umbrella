@@ -230,7 +230,7 @@ const removeDragListeners = (): void => {
 onUnmounted(removeDragListeners) // never leak a global listener
 
 // ── Merge feedback ──
-const fireMerge = (idx: number, newTier: number): void => {
+const fireMerge = (idx: number, newTier: number, pop = true): void => {
   // A merge result is a brand-new unit standing at the entrance, never a
   // half-emerged one — whatever was walking in this slot is done walking.
   endEmerge(idx)
@@ -251,7 +251,7 @@ const fireMerge = (idx: number, newTier: number): void => {
     emitConfetti(cx, cy, 10 + Math.min(newTier, 8), 0.9 + newTier * 0.05)
   }
   // Pitch climbs with tier for a satisfying ladder.
-  playSound('merge-pop', 0.04, 0.85 + Math.min(newTier, 10) * 0.05)
+  if (pop) playSound('merge-pop', 0.04, 0.85 + Math.min(newTier, 10) * 0.05)
 }
 
 /** Grid slot of the unit currently being revealed, or -1. */
@@ -294,11 +294,22 @@ defineExpose({ spawn })
 // ── Mirror the automation imp's merges with the same VFX ──
 // Merges are the ONLY thing the imp does — deploying stayed with the player
 // (see `usePrismGame.autoStep`), so there is no auto-deploy flash to mirror.
+// SYNC flush for the same reason as `spawnEvent`: a deep-level imp merges
+// several pairs in one engine tick, and a queued watcher would only see the
+// last. Those land in the same instant, so only the first one pops — stacked
+// one-shots would sum into one loud clip.
+const IMP_POP_GAP_MS = 60
+let lastImpPopAt = 0
 watch(game.autoAction, (v) => {
   if (!v || !v.action) return
   const a = v.action
-  if (a.type === 'merge') { endEmerge(a.from); fireMerge(a.to, a.tier) }
-})
+  if (a.type !== 'merge') return
+  const now = performance.now()
+  const pop = now - lastImpPopAt >= IMP_POP_GAP_MS
+  if (pop) lastImpPopAt = now
+  endEmerge(a.from)
+  fireMerge(a.to, a.tier, pop)
+}, { flush: 'sync' })
 
 onMounted(() => {
   game.startEngine()

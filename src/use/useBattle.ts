@@ -184,12 +184,17 @@ const OVERRUN_WAVE_SETBACK = 2
 const MAX_FALL_FROM_BEST = 10
 /** Milestone chest cadence (retention-roadmap #4): every 10th wave. */
 export const CHEST_EVERY_WAVES = 10
-export const UPGRADE_MAX_LEVEL = 25
-// Attack & Vitality get a much higher ceiling than Bounty/Automation: they're the
-// power upgrades that must keep scaling through the late game (their gentler cost
-// curve means income keeps funding them). The economy caps effective level long
-// before 100 — it's headroom, not an expected grind target.
-export const ATKVIT_MAX_LEVEL = 100
+// War Horns, Vitality, Bounty and the Imp have NO level cap. These are the levels
+// their old caps sat at, and where their "deep ranks" begin: prices and effects
+// up to here are exactly what they always were; past here the price ramps
+// (`DEEP_COST_RAMP`) and the effect compounds (`progressive`, `impCadenceMs`).
+// Bounty/Imp's curve is steeper, so a player reaches their seam ~150 waves before
+// Attack/Vitality's (wave ~120-145 vs ~280).
+export const UPGRADE_DEEP_FROM = 25
+export const ATKVIT_DEEP_FROM = 100
+/** Tamper bound for a saved level, not a gameplay cap: every price is `Infinity`
+ *  well before it (see `DEEP_COST_RAMP`), and it keeps every effect finite. */
+const UPGRADE_LEVEL_SANITY = 1_000
 
 // ─── Entities ────────────────────────────────────────────────────────────────
 export interface Fighter {
@@ -349,17 +354,51 @@ export type BattleUpgrades = Record<BattleUpgradeId, number>
  *  T50 still climb and extrapolate their stats as before. */
 export const RECRUIT_MAX_LEVEL = 49
 
-export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth: number; max: number }> = {
-  attack: { base: 60, growth: 1.33, max: ATKVIT_MAX_LEVEL },
-  vitality: { base: 55, growth: 1.32, max: ATKVIT_MAX_LEVEL },
-  bounty: { base: 80, growth: 1.6, max: UPGRADE_MAX_LEVEL },
-  automation: { base: 130, growth: 1.72, max: UPGRADE_MAX_LEVEL },
+/** `deepFrom`: the level the deep-rank price ramp starts at. `max`: `Infinity`
+ *  for every upgrade but Recruits. */
+export const BATTLE_UPGRADE_DEFS: Record<BattleUpgradeId, { base: number; growth: number; deepFrom: number; max: number }> = {
+  attack: { base: 60, growth: 1.33, deepFrom: ATKVIT_DEEP_FROM, max: Infinity },
+  vitality: { base: 55, growth: 1.32, deepFrom: ATKVIT_DEEP_FROM, max: Infinity },
+  bounty: { base: 80, growth: 1.6, deepFrom: UPGRADE_DEEP_FROM, max: Infinity },
+  automation: { base: 130, growth: 1.72, deepFrom: UPGRADE_DEEP_FROM, max: Infinity },
   // Recruits: each level raises the Spawn button's base tier by 1 (T1 → T50).
   // One level ≈ doubles the whole grid's merge throughput (a T2 spawn = two
   // T1 spawns pre-merged) ≈ 4–5 waves of enemy scaling — priced as milestone
-  // purchases on the hand-tuned RECRUIT_COSTS ladder below (base/growth here
-  // are unused for this id; `upgradeCost` special-cases it).
-  recruit: { base: 2000, growth: 1, max: RECRUIT_MAX_LEVEL }
+  // purchases on the hand-tuned RECRUIT_COSTS ladder below (base/growth/deepFrom
+  // here are unused for this id; `upgradeCost` special-cases it).
+  recruit: { base: 2000, growth: 1, deepFrom: RECRUIT_MAX_LEVEL, max: RECRUIT_MAX_LEVEL }
+}
+
+/**
+ * Deep-rank price ramp. Up to `deepFrom` a level costs `base × growth^level`,
+ * as it always has. Past it, every price step is 1% steeper than the one
+ * before, so the price of the n-th level past the seam carries an extra
+ * `1.01^(n(n+1)/2)`: close to exponential at first, and steeper for good.
+ *
+ * Why a ramp and not the plain curve: the caps were hit because the plain
+ * curve is far cheaper than late-game income (Bounty's level 25 is 10M at a
+ * wave that pays Qi). Continued unchanged, a veteran's saved coins would buy
+ * ~55 Bounty levels on the spot, and in the long run levels would keep pace
+ * with the wave economy forever. With the ramp (simulated, 10 waves of income
+ * per level): 3.5Qi saved buys +39 Bounty levels (≈2.8× coins) OR +23 War Horns
+ * levels (≈1.37× damage); a player on wave 300 sits near War Horns 118 /
+ * Bounty 61, on wave 500 near 152 / 84. Always another level worth buying,
+ * never a runaway.
+ */
+const DEEP_COST_RAMP = 1.01
+
+/**
+ * An upgrade's effect multiplier: `1 + a·lvl + b·lvl²` up to `seam`, then
+ * compounding. Each level past the seam multiplies the effect by the relative
+ * step the curve was taking AT the seam, so value and slope both carry over
+ * unchanged and a deep level is always worth what the last capped one was:
+ * War Horns +1.38%, Vitality +1.4%, Bounty +2.67% per level.
+ */
+const progressive = (lvl: number, a: number, b: number, seam: number): number => {
+  if (lvl <= seam) return 1 + lvl * a + lvl * lvl * b
+  const atSeam = 1 + seam * a + seam * seam * b
+  const slope = a + 2 * seam * b
+  return atSeam * Math.pow(1 + slope / atSeam, lvl - seam)
 }
 
 /** Hand-tuned Recruits prices. Levels 1–15 continue a ~×3.3 step so each level
@@ -406,10 +445,10 @@ const sanitizeUpgrades = (u: unknown): BattleUpgrades => {
     return Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : 0
   }
   return {
-    attack: clamp(o.attack, ATKVIT_MAX_LEVEL),
-    vitality: clamp(o.vitality, ATKVIT_MAX_LEVEL),
-    bounty: clamp(o.bounty, UPGRADE_MAX_LEVEL),
-    automation: clamp(o.automation, UPGRADE_MAX_LEVEL),
+    attack: clamp(o.attack, UPGRADE_LEVEL_SANITY),
+    vitality: clamp(o.vitality, UPGRADE_LEVEL_SANITY),
+    bounty: clamp(o.bounty, UPGRADE_LEVEL_SANITY),
+    automation: clamp(o.automation, UPGRADE_LEVEL_SANITY),
     recruit: clamp(o.recruit, RECRUIT_MAX_LEVEL)
   }
 }
@@ -552,13 +591,12 @@ const activateRubberBand = (): void => {
 const rubberBandMult = (): number => (rubberBandUntil.value > Date.now() ? RUBBER_BAND_MULT : 1)
 
 // Attack & Vitality scale PROGRESSIVELY — a quadratic term makes each later level
-// worth more than the last (≈2× the effect by the cap), so continued investment
+// worth more than the last (≈2× the effect by level 100), so continued investment
 // keeps pace with the enemy curve deep into the run instead of flat-lining. Base
-// per-level rate is unchanged, so early-game feel is the same.
-const atkUpgradeMult = (): number => {
-  const lvl = battleUpgrades.value.attack
-  return 1 + lvl * 0.06 + lvl * lvl * 0.0006
-}
+// per-level rate is unchanged, so early-game feel is the same. Past level 100
+// they compound instead (see `progressive`).
+const atkUpgradeMult = (): number =>
+  progressive(battleUpgrades.value.attack, 0.06, 0.0006, ATKVIT_DEEP_FROM)
 const dmgBuffMult = (): number => (dmgBuffUntil.value > Date.now() ? 2 : 1)
 /** Every hit's damage multiplier: upgrades × (the 2× ad buff + Warcry's +60%).
  *  Warcry ADDS to the buff term rather than multiplying it — see WARCRY_*. */
@@ -567,10 +605,9 @@ const atkMult = (): number =>
 /** The same without Warcry — what the challenge valuation reads (see
  *  `playerPower`): an 8-second burst must not buy beefier spawns. */
 const sustainedAtkMult = (): number => atkUpgradeMult() * dmgBuffMult()
-const hpMult = (): number => {
-  const lvl = battleUpgrades.value.vitality
-  return (1 + lvl * 0.07 + lvl * lvl * 0.0007) * armyCatchUpHpMult()
-}
+const vitUpgradeMult = (): number =>
+  progressive(battleUpgrades.value.vitality, 0.07, 0.0007, ATKVIT_DEEP_FROM)
+const hpMult = (): number => vitUpgradeMult() * armyCatchUpHpMult()
 
 /**
  * Recompute every standing fighter's `maxHp` from the current multipliers and
@@ -598,8 +635,15 @@ export const GOLD_RUSH_MULT = 1.5
 
 /** The permanent, earned part of coin income: the Bounty upgrade alone. Kept
  *  separate from the temporary boosts so those can be combined by MAX rather
- *  than by product — see `killBoostMult`. */
-const bountyUpgradeMult = (): number => 1 + battleUpgrades.value.bounty * 0.08
+ *  than by product — see `killBoostMult`. +8% a level up to 25 (3×), then
+ *  +2.67% compounding per level (see `progressive`). */
+const bountyUpgradeMult = (): number =>
+  progressive(battleUpgrades.value.bounty, 0.08, 0, UPGRADE_DEEP_FROM)
+
+/** The permanent, upgrade-only part of each multiplier (no buffs, no catch-up).
+ *  Read-only, so the deep-rank curve is observable without driving combat. */
+export const upgradeEffectMult = (id: 'attack' | 'vitality' | 'bounty'): number =>
+  id === 'attack' ? atkUpgradeMult() : id === 'vitality' ? vitUpgradeMult() : bountyUpgradeMult()
 
 /**
  * The temporary KILL-BOUNTY boosts, combined by taking the STRONGEST —
@@ -641,10 +685,18 @@ export const topFieldTier = computed(() => {
  *  tier. It used to be capped at T11 by a constant from the days T11 was the
  *  top of the ladder, which made every late-game chest unit worthless. */
 export const chestUnitTier = computed(() => Math.max(recruitTier.value, topFieldTier.value - 1))
+/** The shallow Imp curve bottoms out here (from level ~23). */
+const IMP_SHALLOW_FLOOR_MS = 700
+/** Past level 25 each Imp level merges 4% faster, with no floor: once the
+ *  cadence drops under the engine's 120 ms tick, the engine takes every beat
+ *  owed per tick (see `usePrismGame.tick`). */
+const IMP_DEEP_STEP = 0.96
 /** Imp cadence in ms for `usePrismGame`'s automation loop (0 ⇒ disabled). */
 export const impCadenceMs = computed(() => {
   const lvl = battleUpgrades.value.automation
-  return lvl <= 0 ? 0 : Math.max(700, 4200 / (1 + lvl * 0.22))
+  if (lvl <= 0) return 0
+  if (lvl <= UPGRADE_DEEP_FROM) return Math.max(IMP_SHALLOW_FLOOR_MS, 4200 / (1 + lvl * 0.22))
+  return IMP_SHALLOW_FLOOR_MS * Math.pow(IMP_DEEP_STEP, lvl - UPGRADE_DEEP_FROM)
 })
 
 const { coins: gold, addCoins, spendCoins } = useEpicConfig()
@@ -657,7 +709,11 @@ export const upgradeCost = (id: BattleUpgradeId): number => {
     return RECRUIT_COSTS[Math.min(battleUpgrades.value.recruit, RECRUIT_COSTS.length - 1)]!
   }
   const def = BATTLE_UPGRADE_DEFS[id]
-  return Math.max(1, Math.round(def.base * Math.pow(def.growth, battleUpgrades.value[id])))
+  const lvl = battleUpgrades.value[id]
+  const past = Math.max(0, lvl - def.deepFrom)
+  return Math.max(1, Math.round(
+    def.base * Math.pow(def.growth, lvl) * Math.pow(DEEP_COST_RAMP, (past * (past + 1)) / 2)
+  ))
 }
 export const canBuyUpgrade = (id: BattleUpgradeId): boolean =>
   !isUpgradeMaxed(id) && gold.value >= upgradeCost(id)

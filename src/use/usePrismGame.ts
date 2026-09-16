@@ -317,6 +317,8 @@ export const autoAction = ref<{ nonce: number; action: AutoAction } | null>(null
 let autoNonce = 0
 
 // ─── Engine loop ─────────────────────────────────────────────────────────────
+/** Engine loop interval. A deep-level imp can outpace it (several merges per tick). */
+const ENGINE_TICK_MS = 120
 let engineTimer: ReturnType<typeof setInterval> | null = null
 let engineRefs = 0
 
@@ -337,10 +339,22 @@ const tick = (): void => {
   // while paused, so the imp takes its next action right after the resume.
   if (isGamePaused.value) return
   const cadence = impCadenceMs.value
-  if (cadence > 0 && now - lastAutoAt >= cadence) {
-    lastAutoAt = now
+  if (cadence <= 0) return
+  // Beats are counted from the last beat, not from the tick that ran it: deep
+  // Imp levels (see `impCadenceMs`) run cadences at and under ENGINE_TICK_MS,
+  // and stamping `now` would round a 130 ms cadence up to 240 ms. A backlog
+  // (a pause, a hitch) is never banked, though — at most one beat is owed, so
+  // the imp still acts right after a resume and then keeps its normal pace.
+  if (now - lastAutoAt > cadence + ENGINE_TICK_MS) lastAutoAt = now - cadence
+  for (let beats = 0; now - lastAutoAt >= cadence && beats < GRID_SIZE; beats++) {
+    lastAutoAt += cadence
     const action = autoStep()
-    if (action) autoAction.value = { nonce: ++autoNonce, action }
+    if (!action) {
+      // Nothing to merge: idle one full cadence from here.
+      lastAutoAt = now
+      break
+    }
+    autoAction.value = { nonce: ++autoNonce, action }
   }
 }
 
@@ -348,7 +362,7 @@ export const startEngine = (): void => {
   engineRefs++
   if (engineTimer == null) {
     lastAutoAt = Date.now()
-    engineTimer = setInterval(tick, 120)
+    engineTimer = setInterval(tick, ENGINE_TICK_MS)
   }
 }
 export const stopEngine = (): void => {
