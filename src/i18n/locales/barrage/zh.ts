@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}，已选择',
     selectAria: '选择{name}',
-    buyAria: '花{cost}金币购买{name}'
+    buyAria: '花{cost}金币购买{name}',
+    adProgress: '{n}/{max}',
+    adAria: '观看广告解锁{name}',
+    adProgressAria: '为{name}观看广告（已看{n}/{max}）'
   },
   supply: {
     ready: '宝箱准备好了——点一下打开！'

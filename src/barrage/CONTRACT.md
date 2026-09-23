@@ -161,6 +161,10 @@ ids (`RETIRED_SKIN_PRICES`) are refunded at their price once (`eb_collections.re
 - Rewarded **2× boss chest**: the boss chest result modal offers "2×" — the ad runs BEFORE the doubled
   payout screen (ad-before-result rule); declining pays 1× immediately.
 - Rewarded **+5 balls** (button in the aim HUD; once per checkpoint segment).
+- Rewarded **ball-skin unlock**: every locked skin in the Collection offers a movie-icon pill beside its
+  coin price — common 1 ad, rare 2, epic 3, legendary 5 (`SKIN_ADS_BY_RARITY`); the count is kept per skin
+  (`eb_collections.adViews`, max-merged on hydrate) and the last ad unlocks + equips it. Ad FIRST: the
+  count moves only on a granted reward. Not on coin-mode builds (the coin price already is the way in).
 - Interstitials ONLY on checkpoint restarts, never the first two restarts of a session, ≥ 3 min apart.
 - All rewarded offers are hidden when the provider is not ready (rewarded readiness gating); coin-mode
   builds price them in coins (existing `useReward` handles both).

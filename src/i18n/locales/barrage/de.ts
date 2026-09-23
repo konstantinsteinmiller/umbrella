@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, ausgewählt',
     selectAria: '{name} auswählen',
-    buyAria: '{name} für {cost} Münzen kaufen'
+    buyAria: '{name} für {cost} Münzen kaufen',
+    adProgress: '{n}/{max}',
+    adAria: 'Werbung ansehen, um {name} freizuschalten',
+    adProgressAria: 'Werbung ansehen für {name} ({n} von {max} gesehen)'
   },
   supply: {
     ready: 'Schatztruhe bereit – tippe zum Öffnen!'

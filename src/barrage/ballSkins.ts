@@ -77,6 +77,23 @@ export const BALL_SKINS: BallSkinDef[] = [
 export const DEFAULT_BALL_SKIN: BallSkinId = 'orb'
 
 /**
+ * Rewarded ads that unlock a skin — the alternative to its coin price, on every
+ * build with real rewarded ads (never on coin-mode builds, which have none).
+ * Scaled by rarity so a legendary stays a goal rather than one 30 s video;
+ * progress is kept per skin, so the ads can be watched across sessions.
+ */
+export const SKIN_ADS_BY_RARITY: Readonly<Record<BallSkinRarity, number>> = {
+  common: 1,
+  rare: 2,
+  epic: 3,
+  legendary: 5
+}
+
+/** Rewarded ads needed to unlock `def` (0 for a skin owned from the start). */
+export const skinAdsNeeded = (def: BallSkinDef): number =>
+  def.price > 0 ? SKIN_ADS_BY_RARITY[def.rarity] : 0
+
+/**
  * Skins of the first catalogue that no longer exist, with what they cost. A
  * save that owns one is refunded that price once (`useCollections`) — a
  * cosmetic being retired must never cost a player what they paid for it.

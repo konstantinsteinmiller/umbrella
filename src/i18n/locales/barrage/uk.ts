@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, обрано',
     selectAria: 'Обрати: {name}',
-    buyAria: 'Купити {name} за {cost} монет'
+    buyAria: 'Купити {name} за {cost} монет',
+    adProgress: '{n}/{max}',
+    adAria: 'Перегляньте рекламу, щоб відкрити {name}',
+    adProgressAria: 'Перегляньте рекламу для {name} (переглянуто {n} з {max})'
   },
   supply: {
     ready: 'Скриня зі скарбами готова — натисни, щоб відкрити!'

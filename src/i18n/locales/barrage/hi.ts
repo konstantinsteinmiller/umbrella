@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, चुना गया',
     selectAria: '{name} चुनें',
-    buyAria: '{cost} सिक्कों में {name} खरीदें'
+    buyAria: '{cost} सिक्कों में {name} खरीदें',
+    adProgress: '{n}/{max}',
+    adAria: '{name} अनलॉक करने के लिए विज्ञापन देखें',
+    adProgressAria: '{name} के लिए विज्ञापन देखें ({max} में से {n} देखे गए)'
   },
   supply: {
     ready: 'खज़ाने का संदूक तैयार — खोलने के लिए टैप करें!'

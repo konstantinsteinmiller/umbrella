@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, seçili',
     selectAria: '{name} seç',
-    buyAria: '{name}, {cost} paraya satın al'
+    buyAria: '{name}, {cost} paraya satın al',
+    adProgress: '{n}/{max}',
+    adAria: '{name} kilidini açmak için reklam izle',
+    adProgressAria: '{name} için reklam izle ({max} reklamdan {n} izlendi)'
   },
   supply: {
     ready: 'Hazine sandığı hazır — açmak için dokun!'

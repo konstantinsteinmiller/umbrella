@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, wybrano',
     selectAria: 'Wybierz: {name}',
-    buyAria: 'Kup {name} za {cost} monet'
+    buyAria: 'Kup {name} za {cost} monet',
+    adProgress: '{n}/{max}',
+    adAria: 'Obejrzyj reklamę, aby odblokować {name}',
+    adProgressAria: 'Obejrzyj reklamę dla {name} (obejrzano {n} z {max})'
   },
   supply: {
     ready: 'Skrzynia skarbów gotowa — dotknij, aby otworzyć!'

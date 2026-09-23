@@ -163,7 +163,14 @@ export interface BallSkinView {
   affordable: boolean
   selected: boolean
   isNew: boolean
+  /** (STATE, additive) Rewarded ads that unlock it instead of the coin price (0 = owned from the start). */
+  adsNeeded: number
+  /** (STATE, additive) Rewarded ads already watched towards it (kept across sessions). */
+  adsWatched: number
 }
+
+/** (STATE, additive) Outcome of one rewarded ad towards a skin. */
+export type SkinAdResult = 'unlocked' | 'progress' | 'none'
 
 export interface UseCollections {
   launchers: ComputedRef<LauncherView[]>
@@ -174,6 +181,12 @@ export interface UseCollections {
   skins: ComputedRef<BallSkinView[]>
   selectedSkin: Ref<BallSkinId>
   buySkin(id: BallSkinId): boolean
+  /** (STATE, additive) A rewarded ad can unlock skins right now (readiness
+   *  gating; always false on coin-mode builds, which have no rewarded ads). */
+  skinAdReady: ComputedRef<boolean>
+  /** (STATE, additive) Play one rewarded ad towards skin `id`; the last one
+   *  needed unlocks and equips it. 'none' = no ad granted (no fill, skipped, busy). */
+  watchSkinAd(id: BallSkinId): Promise<SkinAdResult>
   selectSkin(id: BallSkinId): void
   markSkinsSeen(): void
   /** (STATE, additive) Clear the launcher NEW badges (call when the launcher list opens). */

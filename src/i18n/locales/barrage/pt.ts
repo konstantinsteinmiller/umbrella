@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, escolhido',
     selectAria: 'Escolher {name}',
-    buyAria: 'Comprar {name} por {cost} moedas'
+    buyAria: 'Comprar {name} por {cost} moedas',
+    adProgress: '{n}/{max}',
+    adAria: 'Assista a um anúncio para desbloquear {name}',
+    adProgressAria: 'Assista a um anúncio para {name} ({n} de {max} assistidos)'
   },
   supply: {
     ready: 'Baú do tesouro pronto — toque para abrir!'

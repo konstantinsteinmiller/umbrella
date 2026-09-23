@@ -172,7 +172,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, selected',
     selectAria: 'Select {name}',
-    buyAria: 'Buy {name} for {cost} coins'
+    buyAria: 'Buy {name} for {cost} coins',
+    adProgress: '{n}/{max}',
+    adAria: 'Watch an ad to unlock {name}',
+    adProgressAria: 'Watch an ad for {name} ({n} of {max} watched)'
   },
   // The treasure chest: a small gift after 3 min, a big one after 10 (lines: barrageMeta.supply.*).
   supply: {

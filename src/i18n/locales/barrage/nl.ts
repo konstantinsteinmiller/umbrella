@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, gekozen',
     selectAria: '{name} kiezen',
-    buyAria: '{name} kopen voor {cost} munten'
+    buyAria: '{name} kopen voor {cost} munten',
+    adProgress: '{n}/{max}',
+    adAria: 'Bekijk een advertentie om {name} te ontgrendelen',
+    adProgressAria: 'Bekijk een advertentie voor {name} ({n} van {max} bekeken)'
   },
   supply: {
     ready: 'Schatkist klaar — tik om te openen!'

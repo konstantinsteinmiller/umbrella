@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, tanlangan',
     selectAria: '{name}ni tanlash',
-    buyAria: '{name}ni {cost} tangaga sotib olish'
+    buyAria: '{name}ni {cost} tangaga sotib olish',
+    adProgress: '{n}/{max}',
+    adAria: '{name}ni ochish uchun reklama ko‘ring',
+    adProgressAria: '{name} uchun reklama ko‘ring ({max} tadan {n} tasi ko‘rildi)'
   },
   supply: {
     ready: 'Xazina sandig‘i tayyor — ochish uchun bos!'

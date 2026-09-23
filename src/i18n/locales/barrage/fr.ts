@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, choisi',
     selectAria: 'Choisir {name}',
-    buyAria: 'Acheter {name} pour {cost} pièces'
+    buyAria: 'Acheter {name} pour {cost} pièces',
+    adProgress: '{n}/{max}',
+    adAria: 'Regarder une pub pour débloquer {name}',
+    adProgressAria: 'Regarder une pub pour {name} ({n} sur {max} vues)'
   },
   supply: {
     ready: 'Coffre au trésor prêt — touche pour l’ouvrir !'

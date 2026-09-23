@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, scelto',
     selectAria: 'Scegli {name}',
-    buyAria: 'Compra {name} per {cost} monete'
+    buyAria: 'Compra {name} per {cost} monete',
+    adProgress: '{n}/{max}',
+    adAria: 'Guarda una pubblicità per sbloccare {name}',
+    adProgressAria: 'Guarda una pubblicità per {name} ({n} di {max} viste)'
   },
   supply: {
     ready: 'Forziere pronto: tocca per aprirlo!'

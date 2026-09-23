@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, таңдалды',
     selectAria: '{name} таңдау',
-    buyAria: '{name} — {cost} тиынға сатып алу'
+    buyAria: '{name} — {cost} тиынға сатып алу',
+    adProgress: '{n}/{max}',
+    adAria: '{name} ашу үшін жарнама көріңіз',
+    adProgressAria: '{name} үшін жарнама көріңіз ({max} ішінен {n} көрілді)'
   },
   supply: {
     ready: 'Қазына сандығы дайын — ашу үшін түрт!'

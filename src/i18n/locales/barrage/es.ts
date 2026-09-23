@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, elegido',
     selectAria: 'Elegir {name}',
-    buyAria: 'Comprar {name} por {cost} monedas'
+    buyAria: 'Comprar {name} por {cost} monedas',
+    adProgress: '{n}/{max}',
+    adAria: 'Mira un anuncio para desbloquear {name}',
+    adProgressAria: 'Mira un anuncio para {name} ({n} de {max} vistos)'
   },
   supply: {
     ready: '¡Cofre del tesoro listo: toca para abrirlo!'

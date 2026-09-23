@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}، مُختار',
     selectAria: 'اختر {name}',
-    buyAria: 'اشترِ {name} مقابل {cost} عملة'
+    buyAria: 'اشترِ {name} مقابل {cost} عملة',
+    adProgress: '{n}/{max}',
+    adAria: 'شاهد إعلانًا لفتح {name}',
+    adProgressAria: 'شاهد إعلانًا من أجل {name} (تمت مشاهدة {n} من {max})'
   },
   supply: {
     ready: 'صندوق الكنز جاهز — اضغط لفتحه!'

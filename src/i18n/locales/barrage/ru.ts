@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, выбрано',
     selectAria: 'Выбрать: {name}',
-    buyAria: 'Купить {name} за {cost} монет'
+    buyAria: 'Купить {name} за {cost} монет',
+    adProgress: '{n}/{max}',
+    adAria: 'Посмотрите рекламу, чтобы открыть {name}',
+    adProgressAria: 'Посмотрите рекламу для {name} (просмотрено {n} из {max})'
   },
   supply: {
     ready: 'Сундук с сокровищами готов — нажми, чтобы открыть!'

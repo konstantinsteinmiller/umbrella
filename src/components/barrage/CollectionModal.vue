@@ -9,7 +9,10 @@
  *   Ball Skins — elemental shells (stone, tide, frost, lava, gold…) framed by
  *               rarity. Each card is the real bake from the renderer, around
  *               the face of the player's best tier: what they see is exactly
- *               what will fly, on the balls they actually make.
+ *               what will fly, on the balls they actually make. Every locked
+ *               skin also offers a "watch ad" pill (movie icon, n/N for the
+ *               multi-ad rarities) as the alternative to its coin price —
+ *               only while a rewarded ad can fill, never on coin-mode builds.
  *
  * NEW badges: opening a tab marks its items seen at once (STATE's
  * `markLaunchersSeen` / `markSkinsSeen`), but the set that WAS new is snapshotted
@@ -20,6 +23,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FModal from '@/components/molecules/FModal.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
+import IconMovie from '@/components/icons/IconMovie.vue'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import useCollections from '@/barrage/state/useCollections'
 import type { BallSkinView, LauncherView } from '@/barrage/state/contract'
@@ -28,6 +32,7 @@ import { fighterSrc, ballColors, FIGHTER_ART_MAX } from '@/barrage/art'
 import { ballPreview } from '@/barrage/render/balls'
 import { maxBallTier } from '@/barrage/state/progress'
 import useSounds from '@/use/useSound'
+import { buffsCostCoins } from '@/use/useUser'
 import { fmtCoins } from '@/components/barrage/barrageUi'
 import { emitSparkle } from '@/use/usePrismParticles'
 
@@ -105,11 +110,11 @@ const tierName = (tier: number): string => {
 const newLaunchers = computed(() => col.launchers.value.some(launcherIsNew))
 const newSkins = computed(() => col.skins.value.some(skinIsNew))
 
-const sparkle = (ev: MouseEvent, color: string): void => {
-  const el = ev.currentTarget as HTMLElement | null
+const sparkleAt = (el: HTMLElement | null, color: string): void => {
   const r = el?.getBoundingClientRect()
   if (r) emitSparkle(r.left + r.width / 2, r.top + r.height / 2, color, 14)
 }
+const sparkle = (ev: MouseEvent, color: string): void => sparkleAt(ev.currentTarget as HTMLElement | null, color)
 
 const onLauncher = (l: LauncherView, ev: MouseEvent): void => {
   if (l.selected || !l.seen) return
@@ -141,6 +146,39 @@ const onSkin = (s: BallSkinView, ev: MouseEvent): void => {
   } else {
     playSound('upgrade-denied', 0.015)
   }
+}
+
+// ── Rewarded-ad unlock (the alternative to the coin price) ──
+const adBusy = ref(false)
+/** The pill stays up with its progress while no ad can fill (disabled), but only
+ *  on builds that have rewarded ads at all. */
+const showSkinAd = (s: BallSkinView): boolean =>
+  !buffsCostCoins && !s.owned && s.adsNeeded > 0 && (col.skinAdReady.value || s.adsWatched > 0)
+
+const onSkinAd = async (s: BallSkinView, ev: MouseEvent): Promise<void> => {
+  if (adBusy.value || !col.skinAdReady.value) return
+  // `currentTarget` is gone once the handler awaits — keep the cell for the burst.
+  const cell = (ev.currentTarget as HTMLElement | null)?.parentElement ?? null
+  adBusy.value = true
+  try {
+    const result = await col.watchSkinAd(s.id)
+    if (result === 'unlocked') {
+      playSound('upgrade-buy', 0.06)
+      sparkleAt(cell, '#ffe27a')
+    } else if (result === 'progress') {
+      playSound('reward-continue', 0.06)
+      sparkleAt(cell, '#8dffa6')
+    }
+  } finally {
+    adBusy.value = false
+  }
+}
+
+const skinAdAria = (s: BallSkinView): string => {
+  const name = t(`barrageMeta.collections.skinNames.${s.id}`)
+  return s.adsNeeded > 1
+    ? t('barrage.collection.adProgressAria', { name, n: s.adsWatched, max: s.adsNeeded })
+    : t('barrage.collection.adAria', { name })
 }
 
 const launcherAria = (l: LauncherView): string => {
@@ -213,30 +251,44 @@ const skinAria = (s: BallSkinView): string => {
               span(:class="l.affordable ? 'text-yellow-200' : 'text-red-300'") {{ fmtCoins(l.price) }}
 
       //- ── Ball skins ──
+      //- Each cell: the card (select / buy with coins) and, under a locked one,
+      //- the rewarded-ad pill — a sibling, never nested inside the card button.
       div.col-grid(v-else)
-        button.col-card(
+        div.col-cell(
           v-for="s in col.skins.value"
           :key="s.id"
-          type="button"
-          :class="['rarity--' + rarityOf(s.id), { 'is-selected': s.selected, 'is-owned': s.owned }]"
-          :aria-label="skinAria(s)"
-          :aria-disabled="!s.owned && !s.affordable ? 'true' : undefined"
-          @click="onSkin(s, $event)"
         )
-          span.col-card__new.game-text(v-if="skinIsNew(s)") {{ t('barrageMeta.collections.new') }}
-          span.col-card__art.col-card__art--skin
-            img(v-if="previews[s.id]" :src="previews[s.id]" alt="" draggable="false")
-          span.col-card__name.game-text {{ t('barrageMeta.collections.skinNames.' + s.id) }}
-          span.col-card__rarity.game-text {{ t('barrageMeta.collections.rarity.' + rarityOf(s.id)) }}
-          span.col-card__foot.game-text
-            template(v-if="s.selected")
-              BarrageGlyph.w-3_5.h-3_5.text-emerald-300(name="check")
-              span.text-emerald-300 {{ t('barrageMeta.collections.equipped') }}
-            template(v-else-if="s.owned")
-              span.text-sky-200 {{ t('barrageMeta.collections.equip') }}
-            template(v-else)
-              IconCoin.w-3_5.h-3_5
-              span(:class="s.affordable ? 'text-yellow-200' : 'text-red-300'") {{ fmtCoins(s.price) }}
+          button.col-card(
+            type="button"
+            :class="['rarity--' + rarityOf(s.id), { 'is-selected': s.selected, 'is-owned': s.owned }]"
+            :aria-label="skinAria(s)"
+            :aria-disabled="!s.owned && !s.affordable ? 'true' : undefined"
+            @click="onSkin(s, $event)"
+          )
+            span.col-card__new.game-text(v-if="skinIsNew(s)") {{ t('barrageMeta.collections.new') }}
+            span.col-card__art.col-card__art--skin
+              img(v-if="previews[s.id]" :src="previews[s.id]" alt="" draggable="false")
+            span.col-card__name.game-text {{ t('barrageMeta.collections.skinNames.' + s.id) }}
+            span.col-card__rarity.game-text {{ t('barrageMeta.collections.rarity.' + rarityOf(s.id)) }}
+            span.col-card__foot.game-text
+              template(v-if="s.selected")
+                BarrageGlyph.w-3_5.h-3_5.text-emerald-300(name="check")
+                span.text-emerald-300 {{ t('barrageMeta.collections.equipped') }}
+              template(v-else-if="s.owned")
+                span.text-sky-200 {{ t('barrageMeta.collections.equip') }}
+              template(v-else)
+                IconCoin.w-3_5.h-3_5
+                span(:class="s.affordable ? 'text-yellow-200' : 'text-red-300'") {{ fmtCoins(s.price) }}
+          button.col-ad(
+            v-if="showSkinAd(s)"
+            type="button"
+            :disabled="adBusy || !col.skinAdReady.value"
+            :aria-label="skinAdAria(s)"
+            :title="skinAdAria(s)"
+            @click="onSkinAd(s, $event)"
+          )
+            IconMovie.w-6.h-6.shrink-0
+            span.col-ad__count.game-text(v-if="s.adsNeeded > 1") {{ t('barrage.collection.adProgress', { n: s.adsWatched, max: s.adsNeeded }) }}
 </template>
 
 <style scoped lang="sass">
@@ -274,6 +326,42 @@ const skinAria = (s: BallSkinView): string => {
   display: grid
   grid-template-columns: repeat(auto-fill, minmax(88px, 1fr))
   gap: 8px
+
+.col-cell
+  display: flex
+  flex-direction: column
+  gap: 4px
+  min-width: 0
+  // An owned card stretches to its row: the cards line up with the ones above a pill.
+  > .col-card
+    flex: 1
+
+// The rewarded-ad alternative under a locked skin (same green as every ad offer).
+.col-ad
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 4px
+  min-height: 32px
+  padding: 2px 8px
+  border-radius: 10px
+  border: 2px solid #0f1a30
+  background: linear-gradient(180deg, #4fd16a, #27a03f)
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 3px 0 #1c6b2a
+  cursor: pointer
+  touch-action: manipulation
+  transition: transform 0.08s ease
+  &:active
+    transform: translateY(2px)
+  &:disabled
+    filter: grayscale(0.7) brightness(0.8)
+    cursor: default
+.col-ad__count
+  font-size: 12px
+  font-weight: 900
+  line-height: 1
+  color: #fff
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.55)
 
 .col-card
   --rim: rgba(255, 255, 255, 0.25)

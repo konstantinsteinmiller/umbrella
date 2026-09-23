@@ -10,6 +10,10 @@
  *   • Ball skins — the catalogue in `ballSkins.ts`; `orb` is owned from the start.
  *     A skin that was retired from the catalogue is paid back at what it cost,
  *     once (`refunded` remembers which), and an equipped one falls back to orb.
+ *     Every skin can ALSO be unlocked with rewarded ads instead of coins
+ *     (`SKIN_ADS_BY_RARITY`); `adViews` keeps the count per skin so the ads can
+ *     be watched across sessions. Readiness-gated, and absent on coin-mode
+ *     builds (no rewarded ads there).
  *
  * NEW badges: a launcher is new from the moment its tier is discovered until the
  * player opens the launcher list; a skin is new from the moment it becomes
@@ -20,11 +24,13 @@ import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { getState, setState } from '@/use/useEpicState'
 import { flushSaveNow, saveDataVersion } from '@/use/useSaveStatus'
 import useEpicConfig from '@/use/useEpicConfig'
-import { BALL_SKINS, DEFAULT_BALL_SKIN, RETIRED_SKIN_PRICES, type BallSkinId } from '../ballSkins'
+import { buffsCostCoins } from '@/use/useUser'
+import { isRewardedReady, showRewardedAd } from '@/use/useAds'
+import { BALL_SKINS, DEFAULT_BALL_SKIN, RETIRED_SKIN_PRICES, skinAdsNeeded, type BallSkinId } from '../ballSkins'
 import { FIGHTER_ART_MAX } from '../art'
 import { EB_COLLECTIONS_KEY } from '../keys'
 import { maxBallTier } from './progress'
-import type { BallSkinView, LauncherView, UseCollections } from './contract'
+import type { BallSkinView, LauncherView, SkinAdResult, UseCollections } from './contract'
 
 export const LAUNCHER_COUNT = FIGHTER_ART_MAX
 
@@ -53,6 +59,8 @@ interface CollectionsState {
   seenLaunchers: number[]
   /** Retired skins this save owned and has been paid back for. */
   refunded: string[]
+  /** Rewarded ads watched towards each not-yet-owned skin. */
+  adViews: Partial<Record<BallSkinId, number>>
 }
 
 const SKIN_IDS: ReadonlySet<string> = new Set(BALL_SKINS.map((s) => s.id))
@@ -60,6 +68,25 @@ const isSkinId = (v: unknown): v is BallSkinId => typeof v === 'string' && SKIN_
 const isRetired = (v: unknown): v is string => typeof v === 'string' && Object.prototype.hasOwnProperty.call(RETIRED_SKIN_PRICES, v)
 const isLauncherTier = (v: unknown): v is number =>
   typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= LAUNCHER_COUNT
+
+const readAdViews = (v: unknown): Partial<Record<BallSkinId, number>> => {
+  const out: Partial<Record<BallSkinId, number>> = {}
+  if (!v || typeof v !== 'object') return out
+  for (const [id, n] of Object.entries(v)) {
+    if (isSkinId(id) && typeof n === 'number' && Number.isInteger(n) && n > 0) out[id] = n
+  }
+  return out
+}
+
+/** Per skin, the higher count: an ad watched on either device stays watched. */
+const mergeAdViews = (
+  a: Partial<Record<BallSkinId, number>>,
+  b: Partial<Record<BallSkinId, number>>
+): Partial<Record<BallSkinId, number>> => {
+  const out = { ...a }
+  for (const [id, n] of Object.entries(b) as [BallSkinId, number][]) out[id] = Math.max(out[id] ?? 0, n)
+  return out
+}
 
 const read = (): CollectionsState => {
   const raw = getState<Partial<CollectionsState> | null>(EB_COLLECTIONS_KEY, null) ?? {}
@@ -74,7 +101,8 @@ const read = (): CollectionsState => {
     selectedSkin,
     seenSkins: Array.isArray(raw.seenSkins) ? raw.seenSkins.filter(isSkinId) : [],
     seenLaunchers: Array.isArray(raw.seenLaunchers) ? raw.seenLaunchers.filter(isLauncherTier) : [],
-    refunded: Array.isArray(raw.refunded) ? raw.refunded.filter(isRetired) : []
+    refunded: Array.isArray(raw.refunded) ? raw.refunded.filter(isRetired) : [],
+    adViews: readAdViews(raw.adViews)
   }
 }
 
@@ -110,7 +138,8 @@ watch(saveDataVersion, () => {
     selectedSkin: saved.selectedSkin,
     seenSkins: [...new Set([...state.value.seenSkins, ...saved.seenSkins])],
     seenLaunchers: [...new Set([...state.value.seenLaunchers, ...saved.seenLaunchers])],
-    refunded: saved.refunded
+    refunded: saved.refunded,
+    adViews: mergeAdViews(state.value.adViews, saved.adViews)
   }
   selectedLauncher.value = saved.selectedLauncher
   selectedSkin.value = saved.selectedSkin
@@ -161,13 +190,16 @@ const skins: ComputedRef<BallSkinView[]> = computed(() => {
   return BALL_SKINS.map((def): BallSkinView => {
     const isOwned = owned.has(def.id)
     const affordable = !isOwned && coins.value >= def.price
+    const adsNeeded = skinAdsNeeded(def)
     return {
       id: def.id,
       owned: isOwned,
       price: def.price,
       affordable,
       selected: selectedSkin.value === def.id,
-      isNew: affordable && !seen.has(def.id)
+      isNew: affordable && !seen.has(def.id),
+      adsNeeded,
+      adsWatched: Math.min(adsNeeded, state.value.adViews[def.id] ?? 0)
     }
   })
 })
@@ -203,6 +235,43 @@ const buySkin = (id: BallSkinId): boolean => {
   return true
 }
 
+/** Coin-mode builds have no rewarded ads: the coin price is the only way in. */
+const skinAdReady = computed(() => !buffsCostCoins && isRewardedReady.value)
+let adBusy = false
+
+/**
+ * One rewarded ad towards skin `id` — ad FIRST, the count moves only once the
+ * reward is granted. The last ad needed unlocks and equips the skin. The count
+ * is flushed at once: a watched ad is the player's effort and must survive a
+ * closed tab. (`showRewardedAd` caps its own wait, so this can never wedge.)
+ */
+const watchSkinAd = async (id: BallSkinId): Promise<SkinAdResult> => {
+  const def = BALL_SKINS.find((s) => s.id === id)
+  if (!def || adBusy || !skinAdReady.value || state.value.skins.includes(id)) return 'none'
+  const needed = skinAdsNeeded(def)
+  if (needed <= 0) return 'none'
+  adBusy = true
+  try {
+    if (!(await showRewardedAd())) return 'none'
+    // A hydrate may have landed the skin while the ad ran.
+    if (state.value.skins.includes(id)) return 'none'
+    const watched = Math.min(needed, (state.value.adViews[id] ?? 0) + 1)
+    if (watched >= needed) {
+      const adViews = { ...state.value.adViews }
+      delete adViews[id]
+      state.value = { ...state.value, skins: [...state.value.skins, id], adViews }
+      selectedSkin.value = id
+    } else {
+      state.value = { ...state.value, adViews: { ...state.value.adViews, [id]: watched } }
+    }
+    persist()
+    void flushSaveNow()
+    return watched >= needed ? 'unlocked' : 'progress'
+  } finally {
+    adBusy = false
+  }
+}
+
 const selectSkin = (id: BallSkinId): void => {
   if (!state.value.skins.includes(id)) return
   selectedSkin.value = id
@@ -231,6 +300,8 @@ const api: UseCollections = {
   skins,
   selectedSkin,
   buySkin,
+  skinAdReady,
+  watchSkinAd,
   selectSkin,
   markSkinsSeen,
   markLaunchersSeen,

@@ -264,7 +264,10 @@ export default {
     unknown: '???',
     selectedAria: '{name}, đã chọn',
     selectAria: 'Chọn {name}',
-    buyAria: 'Mua {name} với {cost} xu'
+    buyAria: 'Mua {name} với {cost} xu',
+    adProgress: '{n}/{max}',
+    adAria: 'Xem quảng cáo để mở khóa {name}',
+    adProgressAria: 'Xem quảng cáo cho {name} (đã xem {n}/{max})'
   },
   supply: {
     ready: 'Rương kho báu đã sẵn sàng — chạm để mở!'
