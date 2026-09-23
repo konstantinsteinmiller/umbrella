@@ -1,11 +1,9 @@
-import { onMounted, onUnmounted, ref, nextTick } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import useEpicConfig from '@/use/useEpicConfig'
-import useEpicGame from '@/use/useEpicGame'
 import { setState } from '@/use/useEpicState'
 import { toggleDebug } from '@/use/useMatch'
-import { ultCharge, ultMax, healCharge, reviveCharge, defenderCharge, spellMax, cheatJumpToWave } from '@/use/useBattle'
-import { STAGE_KEY } from '@/keys'
-import { requestFlyingChestSpawn } from '@/use/useFlyingChestCue'
+import { EB_SUPPLY_KEY } from '@/barrage/keys'
+import type { SkillId } from '@/barrage/engine/types'
 
 // `cheat` stays a top-level localStorage flag — it's an explicit dev toggle
 // that gates the whole keyboard-shortcut module, so we don't want it living
@@ -20,7 +18,7 @@ const setCheat = (on: boolean): void => {
   console.warn(`[CHEAT] cheats ${on ? 'ENABLED' : 'disabled'}.`)
 }
 /** Flip the cheat-shortcut module on/off (persisted). Bound to the `cmarc`
- *  sequence below so a tester can enable the +coins / stage-jump keys live,
+ *  sequence below so a tester can enable the +coins / row-jump keys live,
  *  no reload needed (the keydown handler gates on `isCheat` at press time). */
 export const toggleCheat = (): void => setCheat(!isCheat.value)
 
@@ -70,76 +68,93 @@ export const installDebugUnlock = (): void => {
 // this bare side-effect can be tree-shaken — still attach the listener at boot.
 installDebugUnlock()
 
+// ─── Barrage cheats ──────────────────────────────────────────────────────────
+// The run owner is imported LAZILY: this module is loaded by App.vue on every
+// build, and a static import would drag the whole barrage engine into the entry
+// chunk just to serve a dev shortcut. The first cheat press pays the import.
+type BarrageCheats = typeof import('@/barrage/state/useBarrage')['barrageCheats']
+const withBarrage = (fn: (c: BarrageCheats) => void): void => {
+  void import('@/barrage/state/useBarrage').then((m) => {
+    m.default() // make sure the singleton (and its engine) exists
+    fn(m.barrageCheats)
+  })
+}
+
+const barrageActions = {
+  jumpToRow: (row: number): void => withBarrage((c) => {
+    c.jumpToRow(row)
+    console.warn(`[CHEAT] Jumped to row ${row}.`)
+  }),
+  nextBoss: (): void => withBarrage((c) => {
+    c.jumpToNextBoss()
+    console.warn('[CHEAT] Next row is the boss.')
+  }),
+  fillTray: (tier: number): void => withBarrage((c) => {
+    console.warn(c.fillTray(tier)
+      ? `[CHEAT] Tray filled with tier ${tier}.`
+      : '[CHEAT] Fill tray only works while aiming.')
+  }),
+  forceChest: (): void => withBarrage((c) => {
+    console.warn(c.forceChest()
+      ? '[CHEAT] Flying chest incoming.'
+      : '[CHEAT] Force chest only works while aiming.')
+  }),
+  forceBreach: (): void => withBarrage((c) => {
+    console.warn(c.forceBreach()
+      ? '[CHEAT] Every monster is at the floor — fire once to breach.'
+      : '[CHEAT] Force breach only works while aiming.')
+  }),
+  grantBalls: (tier: number, n = 1): void => withBarrage((c) => c.grantBalls(tier, n)),
+  grantSkill: (skill: SkillId): void => withBarrage((c) => c.grantSkillCharge(skill)),
+  supplyReady: (): void => {
+    setState(EB_SUPPLY_KEY, 0)
+    console.warn('[CHEAT] Supply drop is ready.')
+  }
+}
+
+/** Console access for testers (`__barrage.jumpToRow(57)` …) — every call is
+ *  refused unless cheats were switched on with the `cmarc` sequence. */
+const installConsoleCheats = (): void => {
+  if (typeof window === 'undefined') return
+  const gated = Object.fromEntries(Object.entries(barrageActions).map(([k, fn]) => [k, (...args: unknown[]) => {
+    if (!isCheat.value) {
+      console.warn('[CHEAT] cheats are off — type "cmarc" first.')
+      return
+    }
+    ;(fn as (...a: unknown[]) => void)(...args)
+  }]))
+  ;(window as unknown as Record<string, unknown>).__barrage = gated
+}
+
 const useCheats = () => {
   // NOTE: no early return on `isCheat` — the listeners install for the app
   // lifetime and gate live inside `handleKeyDown`, so typing `cmarc` enables the
   // shortcuts immediately (previously they only armed on the next reload).
   const { addCoins } = useEpicConfig()
-  const { spawnTestItemBoxes, spawnTestCratePile, resetForStage } = useEpicGame()
-
-  // merge-idle-war has open-ended stages (tilesToClear scales with stage), so just
-  // write the stage into the save blob. `useEpicProgress` watches the blob and
-  // refreshes its `stage` ref — but that refresh is a reactive effect that flushes
-  // on the next tick, so we `nextTick` before `resetForStage()` (which reads
-  // `progress.stage`). That regenerates the field at the new stage IMMEDIATELY
-  // (the old behaviour only applied on the next run, so the cheat looked dead).
-  const setStage = (stageId: number) => {
-    if (stageId < 1) {
-      console.warn(`[CHEAT] Invalid stage ${stageId}. Must be >= 1.`)
-      return
-    }
-    setState(STAGE_KEY, stageId)
-    void nextTick(() => {
-      resetForStage()
-      console.warn(`[CHEAT] Stage set to ${stageId} (applied now).`)
-    })
-  }
 
   const cheatsMap: Record<string, () => void> = {
-    'ctrl+shift+1': () => setStage(1),
-    'ctrl+shift+2': () => setStage(2),
-    'ctrl+shift+3': () => setStage(3),
-    'ctrl+shift+4': () => setStage(4),
-    'ctrl+shift+5': () => setStage(5),
-    'ctrl+shift+6': () => setStage(6),
-    'ctrl+shift+7': () => setStage(7),
-    'ctrl+shift+8': () => setStage(8),
-    'ctrl+shift+9': () => setStage(9),
-    'ctrl+shift+alt+0': () => setStage(10),
-    // Jump straight to the slime-tower boss (wave 5) to test its companion spawns.
-    'ctrl+shift+alt+1': () => { cheatJumpToWave(5); console.warn('[CHEAT] Jumped to the slime-tower boss (wave 5).') },
-    'ctrl+shift+alt+2': () => setStage(12),
-    'ctrl+shift+alt+3': () => setStage(13),
-    'ctrl+shift+alt+4': () => setStage(14),
+    // Rows: ctrl+shift+1…9 → the row just before boss 1…9 (rows 9, 19, … 89).
+    ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [
+      `ctrl+shift+${i + 1}`, () => barrageActions.jumpToRow((i + 1) * 10 - 1)
+    ])),
+    // Tray: ctrl+shift+alt+1…9 → fill the tray with tier 1…9 balls.
+    ...Object.fromEntries(Array.from({ length: 9 }, (_, i) => [
+      `ctrl+shift+alt+${i + 1}`, () => barrageActions.fillTray(i + 1)
+    ])),
+    'ctrl+shift+alt+b': () => barrageActions.nextBoss(),
     'ctrl+shift+alt+k': () => { addCoins(20_000); console.warn('[CHEAT] +20,000 coins.') },
-    // Fully charge every arena spell (Meteor + Heal + Revive Guard).
+    'ctrl+shift+alt+m': () => { addCoins(1_000_000); console.warn('[CHEAT] +1,000,000 coins.') },
+    // Launch the flying chest right now instead of waiting out its timer.
+    'ctrl+shift+alt+c': () => barrageActions.forceChest(),
+    // Put every monster on the floor line so the next march breaches.
+    'ctrl+shift+alt+x': () => barrageActions.forceBreach(),
+    // +1 Shield and +1 Revive for the endless run.
     'ctrl+shift+alt+r': () => {
-      ultCharge.value = ultMax
-      healCharge.value = spellMax
-      reviveCharge.value = spellMax
-      defenderCharge.value = spellMax
-      console.warn('[CHEAT] All spells fully charged.')
+      barrageActions.grantSkill('shield')
+      barrageActions.grantSkill('revive')
+      console.warn('[CHEAT] +1 shield, +1 revive.')
     },
-    // Jump to the stage-10 difficulty test level (the old, dense "stage 1").
-    'ctrl+shift+alt+t': () => setStage(10),
-    // Spawn a normal item box 1 tile ahead + a GOLDEN box 4 tiles ahead on the
-    // ball's path — for testing the Racer dash (golden = 40-tile dash).
-    'ctrl+shift+alt+i': () => {
-      spawnTestItemBoxes()
-      console.warn('[CHEAT] Spawned 1 item box + 1 golden box ahead.')
-    },
-    // Spawn a 2×2 crate-pile a few tiles ahead — to eyeball the new cluster.
-    'ctrl+shift+alt+c': () => {
-      spawnTestCratePile()
-      console.warn('[CHEAT] Spawned a 2×2 crate-pile ahead.')
-    },
-    // Launch a flying chest right now instead of waiting out its 110s timer —
-    // for testing the chest itself and the 3× coin-income rewarded offer it
-    // rolls on every 2nd open. No-op while a chest is already in flight.
-    'ctrl+shift+alt+f': () => {
-      requestFlyingChestSpawn()
-      console.warn('[CHEAT] Flying chest launched.')
-    }
+    'ctrl+shift+alt+s': () => barrageActions.supplyReady()
   }
 
   const heldKeys = new Set<string>()
@@ -183,6 +198,7 @@ const useCheats = () => {
   }
 
   onMounted(() => {
+    installConsoleCheats()
     window.addEventListener('keydown', handleKeyDown, { passive: false })
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('blur', handleBlur)

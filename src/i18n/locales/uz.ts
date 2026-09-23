@@ -1,4 +1,9 @@
+import barrage from './barrage/uz'
+import barrageMeta from './barrageMeta/uz'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'Yig\'uvchi', 'desc': 'Jami 250 ta buyum qutisini oling.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'Bekor qilish',
   'close': 'Yopish',
   'ok': 'Ok',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'YANGI BIRLIK!',
+    'title': 'YANGI TO‘P!',
     'tier': '{n}-daraja'
   }
 }

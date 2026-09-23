@@ -1,4 +1,9 @@
+import barrage from './barrage/kk'
+import barrageMeta from './barrageMeta/kk'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'Жинаушы', 'desc': 'Барлығы 250 зат жәшігін алыңыз.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'Бас тарту',
   'close': 'Жабу',
   'ok': 'Жарайды',
@@ -238,7 +243,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'ЖАҢА БІРЛІК!',
+    'title': 'ЖАҢА ДОП!',
     'tier': '{n}-деңгей'
   }
 }

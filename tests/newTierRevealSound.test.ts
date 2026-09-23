@@ -4,10 +4,11 @@ import { resolve } from 'node:path'
 
 // The new-tier reveal SFX (`scripts/sfx/render-new-tier-reveal.mjs`).
 //
-// It is the one one-shot the quiet-first-session rule lets through: the
-// tutorial's own merge (T1+T1 → T2) and field merge (→ T3) are the player's
-// first two discoveries, and a silent reveal there would teach the opposite of
-// what the moment is for.
+// The first-session tutorial's own merge (T1+T1 → T2, a tray overflow) is the
+// player's first discovery; a silent reveal there would teach the opposite of
+// what the moment is for. Barrage also dropped MIW's quiet-first-session rule:
+// every beat of its FTUE is a volley, and a volley without hit sounds reads as
+// broken.
 
 beforeEach(() => {
   vi.resetModules()
@@ -42,12 +43,12 @@ describe('the new-tier reveal SFX', () => {
     expect(SFX_FALLBACKS['new-tier-reveal']).toBeUndefined()
   })
 
-  it('is heard during the tutorial, where the first two discoveries happen', async () => {
+  it('is heard during the tutorial, where the first discovery happens', async () => {
     const { playSound } = await sounds({ inTutorial: true })
     expect(playSound('new-tier-reveal', 0.07)).not.toBeNull()
-    // …while the quiet-first-session rule still holds for everything else.
-    expect(playSound('merge-pop', 0.05)).toBeNull()
-    expect(playSound('field-merge', 0.05)).toBeNull()
+    // …and so is the volley that earns it: the FTUE is played, not read.
+    expect(playSound('merge-pop', 0.05)).not.toBeNull()
+    expect(playSound('clash-1', 0.05)).not.toBeNull()
   })
 
   it('plays normally once the tutorial is done', async () => {

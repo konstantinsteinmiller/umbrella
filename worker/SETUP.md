@@ -1,29 +1,36 @@
 # Leaderboard setup, start to finish
 
-## Current deployment (2026-09-11)
+## Current deployment (2026-09-23)
 
 | | |
 |---|---|
-| URL | `https://merge-idle-war-leaderboard.rodent-race.workers.dev` |
+| URL | `https://elemental-barrage-leaderboard.rodent-race.workers.dev` |
 | Cloudflare account | `rodent.race.app@gmail.com` (the one `wrangler` was logged into) — NOT the `hyperg8` account that hosts the survivalist / tower-siege boards |
-| D1 database | `merge-idle-war-leaderboard`, id `9fbbce39-3226-492e-a931-82d3e9822e87` (region EEUR) |
+| D1 database | `elemental-barrage-leaderboard` · `6187430c-b73f-4a18-9434-0f540c79a820` · region EEUR · tables created 2026-09-23 |
+| Worker version | `977e047d-5a1a-47ee-bac0-54a248f33e0a` (wrangler 3.114) |
 | `SCORE_SECRET` | not set (optional, see below) |
-| `score` / `flair` | best wave reached / highest unit tier |
+| `score` / `flair` | best ROW reached (the depth) / highest ball tier ever merged |
 
-Steps 1–6 below are DONE for that deployment; the game side (step 7) is wired
-through `.env`. To move it to another account: `npx wrangler login` as that
-account, run steps 3–5 again, then change the URL in `.env` and
+Steps 1–6 below are DONE for that deployment (smoke-tested: `/top` answers an
+empty board, an implausible POST is refused with 422, the CORS preflight is
+204). The game side (step 7) is wired through `.env`; the Poki / Yandex /
+Playgama builds keep `VITE_LEADERBOARD_URL` empty and bake the SEEDED board.
+`pnpm leaderboard:snapshot` refuses an empty board, so the baked live snapshot
+only appears once real players have posted — until then a live build's badge
+rides the live fetch alone. To move it to another account: `npx wrangler login`
+as that account, run steps 3–5 again, then change the URL in `.env` and
 `DEFAULT_SOURCE` in `scripts/leaderboard-snapshot.mjs`.
 
-In this game the rank is not on a result screen: it hangs as a small tag in the
-arena's top-right corner (`src/components/atoms/RankBadge.vue`), reported from
-`src/use/useWaveLeaderboard.ts` on boot, on every new best wave (throttled to one
-write per 3 min) and on an overrun / the tab going away.
+In this game the rank is a runic plaque centred on the board's top edge
+(`src/components/atoms/RankBadge.vue`, framed by `RuneFrame` like the upgrade
+chips), shown on every device from the first second. It is reported from
+`src/use/useWaveLeaderboard.ts` on boot, on every new best row (throttled to
+one write per 3 min) and on a breach / the tab going away.
 
 ---
 
 Every command below is run in PowerShell on Windows, from the repo root unless
-it says otherwise. `merge-idle-war` is this game's slug — substitute it everywhere.
+it says otherwise. `elemental-barrage` is this game's slug — substitute it everywhere.
 
 Nothing here touches the game's behaviour until step 7: until
 `VITE_LEADERBOARD_URL` is set, the client treats the board as "feature off" and
@@ -59,7 +66,7 @@ npx wrangler whoami
 ## 3. Create the database
 
 ```powershell
-npx wrangler d1 create merge-idle-war-leaderboard
+npx wrangler d1 create elemental-barrage-leaderboard
 ```
 
 It prints a block like this:
@@ -67,7 +74,7 @@ It prints a block like this:
 ```toml
 [[d1_databases]]
 binding = "DB"
-database_name = "merge-idle-war-leaderboard"
+database_name = "elemental-barrage-leaderboard"
 database_id = "0f2c9a51-....-............"
 ```
 
@@ -85,7 +92,7 @@ local emulator). Wrangler asks before touching remote data — answer `y`. You
 should see two `CREATE TABLE` statements and one `CREATE INDEX` execute.
 
 Verify from the dashboard if you like: **Storage & Databases → D1 →
-merge-idle-war-leaderboard → Tables** should now list `scores` and `board_cache`.
+elemental-barrage-leaderboard → Tables** should now list `scores` and `board_cache`.
 
 ## 5. Deploy
 
@@ -97,8 +104,8 @@ On a brand-new account this asks you to register a `workers.dev` subdomain
 first — pick anything, it becomes part of the URL. When it finishes it prints:
 
 ```
-Published merge-idle-war-leaderboard
-  https://merge-idle-war-leaderboard.<your-subdomain>.workers.dev
+Published elemental-barrage-leaderboard
+  https://elemental-barrage-leaderboard.<your-subdomain>.workers.dev
 ```
 
 **That URL is what the game needs.** Keep it.
@@ -106,7 +113,7 @@ Published merge-idle-war-leaderboard
 ## 6. Check it is alive
 
 ```powershell
-$BOARD = 'https://merge-idle-war-leaderboard.<your-subdomain>.workers.dev'
+$BOARD = 'https://elemental-barrage-leaderboard.<your-subdomain>.workers.dev'
 
 # The board — empty at this point, which is the correct answer.
 Invoke-RestMethod "$BOARD/top"
@@ -133,11 +140,11 @@ Invoke-RestMethod -Method Post -ContentType 'application/json' -Body $bad "$BOAR
 Delete the test row when you are done:
 
 ```powershell
-npx wrangler d1 execute merge-idle-war-leaderboard --remote `
+npx wrangler d1 execute elemental-barrage-leaderboard --remote `
   --command "DELETE FROM scores WHERE id = 'testplayer01'"
 # The cached blob still holds the old table until BOARD_TTL_MS expires and a
 # read rebuilds it (writes no longer rebuild) — clear it to see the change now:
-npx wrangler d1 execute merge-idle-war-leaderboard --remote --command "DELETE FROM board_cache"
+npx wrangler d1 execute elemental-barrage-leaderboard --remote --command "DELETE FROM board_cache"
 ```
 
 ## 7. Point the game at it
@@ -145,7 +152,7 @@ npx wrangler d1 execute merge-idle-war-leaderboard --remote --command "DELETE FR
 In the repo root, edit `.env`:
 
 ```
-VITE_LEADERBOARD_URL=https://merge-idle-war-leaderboard.<your-subdomain>.workers.dev
+VITE_LEADERBOARD_URL=https://elemental-barrage-leaderboard.<your-subdomain>.workers.dev
 VITE_LEADERBOARD_SECRET=
 ```
 
@@ -233,14 +240,14 @@ Then `npm run deploy` again.
 ## Watching it in production
 
 * **Live logs:** `npx wrangler tail` (from `worker/`), or the dashboard under
-  **Workers & Pages → merge-idle-war-leaderboard → Logs**.
+  **Workers & Pages → elemental-barrage-leaderboard → Logs**.
 * **Quota use:** same page, **Metrics**. Watch requests/day (100 k) and D1 rows
   **written**/day (100 k). Reads are effectively free under this design: a view
   costs one row or zero, and a submission three. The fixed ceiling is the two
   materialised rebuilds — the board every `BOARD_TTL_MS` and the histogram every
   `DIST_TTL_MS` — which together are a low tens of thousands of rows a day
   whatever the traffic does.
-* **The data:** **Storage & Databases → D1 → merge-idle-war-leaderboard → Console**
+* **The data:** **Storage & Databases → D1 → elemental-barrage-leaderboard → Console**
   runs SQL straight from the browser, e.g.
   `SELECT * FROM scores ORDER BY score DESC LIMIT 20;`
 
@@ -252,9 +259,9 @@ the current build repopulate. The rows cannot be merged reliably.
 
 ```powershell
 cd worker
-npx wrangler d1 execute merge-idle-war-leaderboard --remote --command "DELETE FROM scores"
+npx wrangler d1 execute elemental-barrage-leaderboard --remote --command "DELETE FROM scores"
 # The materialised top-N is a separate row and does not clear itself.
-npx wrangler d1 execute merge-idle-war-leaderboard --remote --command "DELETE FROM board_cache"
+npx wrangler d1 execute elemental-barrage-leaderboard --remote --command "DELETE FROM board_cache"
 ```
 
 ## The histogram on `/top`, and the baked board

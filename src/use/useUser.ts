@@ -147,9 +147,9 @@ export const version: string = APP_VERSION
 // Replaces the old `useUserDb` IndexedDB layer. CG QA flagged the
 // `user_db` / `user_os` store as "data saved locally" — and it was
 // holding a pile of CardQuest relics (userHand, userCollection,
-// userCampaign, userQuestCards, etc.) that merge-idle-war never reads.
+// userCampaign, userQuestCards, etc.) that elemental-barrage never reads.
 //
-// merge-idle-war only persists FOUR user settings:
+// elemental-barrage only persists FOUR user settings:
 //   • difficulty / sound volume / music volume / locale
 //
 // They live in localStorage under the keys below. On a CrazyGames build
@@ -165,8 +165,10 @@ export const LANGUAGE_KEY = 'spinner_user_language'
 // Imported rather than redeclared so there is exactly one definition.
 
 export const DIFFICULTY_KEY = 'spinner_user_difficulty'
-// Which background-music track plays during a run. 'battle' (Battle Theme,
-// battle-theme.ogg) is the default; 'cozy' maps to bg-cozy.ogg (Cozy Harmony).
+// Which background-music track plays during a run. 'cozy' (Cozy Harmony /
+// "Gemütliche Harmonie", bg-cozy.ogg) is the default; 'battle' maps to
+// battle-theme.ogg (Battle Theme). A player who has a track in their save keeps
+// it — the default only picks the first session's music.
 export const MUSIC_TRACK_KEY = 'spinner_user_music_track'
 
 // Background-music track id → audio filename (under public/audio/music/).
@@ -175,7 +177,7 @@ export const MUSIC_TRACK_FILES: Record<MusicTrack, string> = {
   battle: 'battle-theme.ogg',
   cozy: 'bg-cozy.ogg'
 }
-export const DEFAULT_MUSIC_TRACK: MusicTrack = 'battle'
+export const DEFAULT_MUSIC_TRACK: MusicTrack = 'cozy'
 // Legacy saves may still hold the retired 'trance' id — coerce any unknown
 // value back to the default so the resolver never lands on a missing file.
 export const normalizeMusicTrack = (v: string): MusicTrack =>
@@ -205,7 +207,7 @@ const userLanguage: Ref<string> = ref(readString(LANGUAGE_KEY, 'en'))
 // Difficulty defaults to MEDIUM; Easy slows travel speed −20%, Hard +10%
 // (applied in useEpicGame's per-frame speed calc via `difficultySpeedFactor`).
 const userDifficulty: Ref<Difficulties> = ref(readString<Difficulties>(DIFFICULTY_KEY, DIFFICULTY.MEDIUM))
-// Background-music track — defaults to 'battle' (Battle Theme).
+// Background-music track — defaults to 'cozy' (Cozy Harmony).
 const userMusicTrack: Ref<MusicTrack> = ref(normalizeMusicTrack(readString<string>(MUSIC_TRACK_KEY, DEFAULT_MUSIC_TRACK)))
 
 // Re-read on hydrate-success bump. Module init reads these synchronously

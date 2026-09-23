@@ -1,4 +1,9 @@
+import barrage from './barrage/zh'
+import barrageMeta from './barrageMeta/zh'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': '观看', 'revive': '复活', 'secondChance': '第二次机会', 'doubleCoins': '2× 金币', 'plusCoins': '+{n} 金币'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': '囤积者', 'desc': '累计获取 250 个道具箱。' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': '取消',
   'close': '关闭',
   'ok': '确定',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': '新单位！',
+    'title': '新球！',
     'tier': '{n}级'
   }
 }

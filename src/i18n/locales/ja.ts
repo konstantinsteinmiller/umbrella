@@ -1,4 +1,9 @@
+import barrage from './barrage/ja'
+import barrageMeta from './barrageMeta/ja'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': '収集家', 'desc': '合計250個のアイテムボックスを取る。' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'キャンセル',
   'close': '閉じる',
   'ok': 'OK',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': '新ユニット!',
+    'title': '新しいボール!',
     'tier': 'ティア{n}'
   }
 }

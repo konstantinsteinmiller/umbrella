@@ -21,7 +21,7 @@ import type { BoardSnapshot } from '@/use/leaderboardSnapshot'
  */
 
 const ENDPOINT = 'https://board.example.test'
-const CACHE_KEY = 'merge-idle-war_board_cache'
+const CACHE_KEY = 'elemental-barrage_board_cache'
 
 const reply = (body: unknown, ok = true): Response =>
   ({ ok, status: ok ? 200 : 500, json: async () => body }) as unknown as Response
@@ -387,7 +387,7 @@ describe('a board never publishes fewer players than rows', () => {
 
 describe('the cache is a per-device cache, not player data', () => {
   it('stays out of the cloud save', async () => {
-    // `isPayloadKey` uploads `merge-idle-war_state` and any `epic_` / `spinner_`
+    // `isPayloadKey` uploads `elemental-barrage_state` and any `epic_` / `spinner_`
     // / `ca_` key. The board cache is ~6 kB of PUBLIC data, identical for every
     // player, and syncing it would pay for the same hundred rows once per player
     // on every save — against Poki's 1 MB ceiling — to protect a device that has
@@ -412,7 +412,7 @@ describe('the cache is a per-device cache, not player data', () => {
     // the payload set so that a hydrate carrying an OLDER blob — one with no id
     // in it — cannot wipe it and make the player mint a second row.
     const { isPayloadKey } = await import('@/utils/save/SaveMergePolicy')
-    expect(isPayloadKey('merge-idle-war_uid')).toBe(false)
-    expect(isPayloadKey('merge-idle-war_name')).toBe(false)
+    expect(isPayloadKey('elemental-barrage_uid')).toBe(false)
+    expect(isPayloadKey('elemental-barrage_name')).toBe(false)
   })
 })

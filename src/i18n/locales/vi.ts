@@ -1,4 +1,9 @@
+import barrage from './barrage/vi'
+import barrageMeta from './barrageMeta/vi'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'Kẻ tích trữ', 'desc': 'Lấy tổng cộng 250 hộp vật phẩm.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'Hủy',
   'close': 'Đóng',
   'ok': 'Đồng ý',
@@ -323,7 +328,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'ĐƠN VỊ MỚI!',
+    'title': 'BÓNG MỚI!',
     'tier': 'Bậc {n}'
   }
 }

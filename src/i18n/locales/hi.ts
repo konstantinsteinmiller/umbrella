@@ -1,4 +1,9 @@
+import barrage from './barrage/hi'
+import barrageMeta from './barrageMeta/hi'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'देखें', 'revive': 'पुनर्जीवित', 'secondChance': 'दूसरा मौका', 'doubleCoins': '2× सिक्के', 'plusCoins': '+{n} सिक्के'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'जमाखोर', 'desc': 'कुल 250 आइटम बक्से पकड़ें।' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'रद्द करें',
   'close': 'बंद करें',
   'ok': 'ठीक है',
@@ -238,7 +243,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'नई यूनिट!',
+    'title': 'नई गेंद!',
     'tier': 'स्तर {n}'
   }
 }

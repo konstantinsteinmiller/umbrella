@@ -44,7 +44,7 @@ import { fileURLToPath } from 'node:url'
  * Deliberately NOT read from `VITE_LEADERBOARD_URL`: the builds that need this
  * are precisely the builds that set that variable to empty.
  */
-export const DEFAULT_SOURCE = 'https://merge-idle-war-leaderboard.rodent-race.workers.dev'
+export const DEFAULT_SOURCE = 'https://elemental-barrage-leaderboard.rodent-race.workers.dev'
 
 export const SNAPSHOT_FILE = resolve(
   fileURLToPath(new URL('../data/leaderboard-snapshot.json', import.meta.url))

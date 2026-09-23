@@ -36,7 +36,7 @@
       div(:style="sizeStyle")
         img(
           :src="logoSrc"
-          alt="merge-idle-war"
+          alt="elemental-barrage"
           class="w-full h-full object-contain"
           draggable="false"
         )
@@ -60,12 +60,16 @@ const { t } = useI18n()
 
 const logoSrc = prependBaseUrl('images/logo/logo_256x256.webp')
 
-// Full-screen arena backdrop behind the loading logo. Bound inline (not a CSS
-// url) so it goes through `prependBaseUrl` and resolves on base-path builds
-// (e.g. GitHub Pages `/merge-idle-war/`). The `.splash-backdrop` colour stays
+// Full-screen sky behind the loading logo — the scene painting GameScene draws
+// behind the board, picked by the same side-by-side rule (see the media query
+// in the <style> block), so the splash fades into an identical backdrop. Both
+// URLs are bound inline (not CSS urls) so they go through `prependBaseUrl` and
+// resolve on base-path builds (e.g. GitHub Pages `/elemental-barrage/`); only
+// the one the media query picks is fetched. The `.splash-backdrop` colour stays
 // as the fallback and shows through until the bitmap decodes.
 const backdropStyle = {
-  backgroundImage: `url(${prependBaseUrl('images/arena/scene-bg.webp')})`
+  '--splash-portrait': `url(${prependBaseUrl('images/backdrops/scene-portrait.webp')})`,
+  '--splash-landscape': `url(${prependBaseUrl('images/backdrops/scene-landscape.webp')})`
 }
 
 const { loadingProgress, preloadAssets } = useAssets()
@@ -335,11 +339,15 @@ watch(done, (isDone) => {
   position: fixed
   inset: 0
   z-index: 150
-  background-color: #0d2a18
+  background-color: #070a14
+  background-image: var(--splash-portrait)
   background-repeat: no-repeat
   background-position: center
   background-size: cover
   transition: opacity 0.4s ease-out
+  // GameScene's `sideBySide` (≥ 1.15 wide, or a phone held landscape) → the landscape sky.
+  @media (min-aspect-ratio: 23/20), (orientation: landscape) and (pointer: coarse) and (min-width: 501px)
+    background-image: var(--splash-landscape)
 
 .splash-backdrop--out
   opacity: 0

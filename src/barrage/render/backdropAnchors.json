@@ -1,0 +1,26 @@
+{
+  "board-field": {
+    "w": 768,
+    "h": 1376,
+    "threshold": 979,
+    "edge": 1135,
+    "runeL": 45,
+    "runeR": 724
+  },
+  "board-field-corrupted": {
+    "w": 768,
+    "h": 1376,
+    "threshold": 993,
+    "edge": 1267,
+    "runeL": 54,
+    "runeR": 712
+  },
+  "board-field-void": {
+    "w": 768,
+    "h": 1376,
+    "threshold": 946,
+    "edge": 1114,
+    "runeL": 84,
+    "runeR": 682
+  }
+}

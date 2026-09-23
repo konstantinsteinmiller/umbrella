@@ -1,5 +1,5 @@
 /**
- * ─── Driving Merge Idle War ─────────────────────────────────────────────────
+ * ─── Driving Elemental Barrage ─────────────────────────────────────────────────
  *
  * Everything game-specific the scenarios share, so each scenario reads as a
  * beat sheet. The game side is `window.__video` (src/dev/videoSeam.ts, DEV
@@ -51,7 +51,7 @@ export const saveFixture = (over = {}) => ({
   ...over
 })
 
-const STATE_KEY = 'merge-idle-war_state'
+const STATE_KEY = 'elemental-barrage_state'
 
 /** Written into the page BEFORE any script runs, so the game boots into it. */
 const seedSaveScript = (save) => `

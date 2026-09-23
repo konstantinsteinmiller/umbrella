@@ -1,29 +1,30 @@
 import { computed, watch, type ComputedRef } from 'vue'
-import { bestWave, wavePhase } from '@/use/useBattle'
-import { maxTier } from '@/use/usePrismGame'
+import { bestRow, maxBallTier, runEndSeq } from '@/barrage/state/progress'
 import { onGameSuspended } from '@/use/useGamePause'
 import { crazyPlayerName } from '@/use/useCrazyGames'
 import { leaderboardEnabled, reportRun } from '@/use/useLeaderboard'
 import { setSdkNameSource } from '@/use/usePlayerIdentity'
 
 /**
- * ─── Merge Legion ⇄ the global board ────────────────────────────────────────
+ * ─── Elemental Barrage ⇄ the global board ───────────────────────────────────
  *
  * The game-side half of the leaderboard: WHICH number is ranked, and WHEN it is
- * reported. `useLeaderboard` knows nothing about waves; this file knows nothing
- * about HTTP.
+ * reported. `useLeaderboard` knows nothing about rows; this file knows nothing
+ * about HTTP. (The file keeps its historical name so the build wiring that
+ * imports it does not have to move.)
  *
- * An endless idle battler has no result screen and no run that ends, so the
+ * The ranked number is the deepest ENDLESS row (daily boards are their own
+ * thing); the flair / tie-break is the highest ball tier ever made. A run has a
+ * clear end (the breach), but a player can also just walk away mid-run, so the
  * reference game's "call `reportRun` at the end of every run" becomes three
- * edges instead:
+ * edges:
  *
- *   • a NEW BEST WAVE      → report (throttled inside `reportRun` to one write
+ *   • a NEW BEST ROW       → report (throttled inside `reportRun` to one write
  *                            per 3 min; every post carries the current best, so
  *                            a skipped one loses nothing)
- *   • an OVERRUN, or the   → report with `force` — the nearest thing this game
- *     game going away        has to a run's end, so the best a player stopped on
- *                            is the one the board gets even if the throttle had
- *                            been holding it
+ *   • a RUN ENDS (breach,  → report with `force` — the best a player stopped on
+ *     daily over), or the    is the one the board gets even if the throttle had
+ *     game going away        been holding it
  *   • BOOT                 → report once, so a best the last session's throttle
  *                            held back lands now, and the badge has a board
  *
@@ -32,24 +33,24 @@ import { setSdkNameSource } from '@/use/usePlayerIdentity'
  */
 
 /**
- * The number the board ranks: the best wave, but only once at least one wave
- * has been cleared (`bestWave` starts at 1 for a player who has cleared none).
+ * The number the board ranks: the best row, but only once the player has
+ * survived a turn (`bestRow` is 1 the moment the first row spawns).
  *
  * `0` means "not on the board yet" — `rankFor(0)` is 0, the badge hides, and
  * nothing is posted. Without the floor every player who opened the game for a
- * second would be posted as a wave-1 row and greeted, mid-tutorial, with a rank
- * near the bottom of the board.
+ * second would be posted as a row-1 entry and greeted, mid-tutorial, with a
+ * rank near the bottom of the board.
  */
 export const rankedBest: ComputedRef<number> = computed(() =>
-  bestWave.value >= 2 ? bestWave.value : 0)
+  bestRow.value >= 2 ? bestRow.value : 0)
 
 let installed = false
 
 /**
- * Wire the three reporting edges. Idempotent; called from the arena's mount,
- * which runs after the save hydrate (so `bestWave` is already the player's).
- * A cloud hydrate that lands later still reaches the board: it raises
- * `bestWave`, and the watcher reports it.
+ * Wire the three reporting edges. Idempotent; call from the game scene's mount,
+ * which runs after the save hydrate (so `bestRow` is already the player's). A
+ * cloud hydrate that lands later still reaches the board: it raises `bestRow`,
+ * and the watcher reports it.
  */
 export const installWaveLeaderboard = (): void => {
   if (installed || !leaderboardEnabled) return
@@ -66,11 +67,14 @@ export const installWaveLeaderboard = (): void => {
     if (best <= 0) return
     // Never awaited: the board is a decoration, and a captive-portal wifi page
     // must not hold anything in the game hostage for the 6 s timeout.
-    void reportRun(best, maxTier.value, { force })
+    void reportRun(best, maxBallTier.value, { force })
   }
 
   report(false)
   watch(rankedBest, () => report(false))
-  watch(wavePhase, (phase) => { if (phase === 'overrun') report(true) })
+  watch(runEndSeq, () => report(true))
   onGameSuspended(() => report(true))
 }
+
+/** Barrage-named alias — same install. */
+export const installBarrageLeaderboard = installWaveLeaderboard

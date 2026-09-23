@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ─── "NEW UNIT!" — the stage for a new-tier discovery ───────────────────────
+ * ─── "NEW BALL!" — the stage for a new-tier discovery ───────────────────────
  *
  * Mounted once in GameScene, teleported to <body>, and following whichever unit
  * `useTierReveal` names (a grid slot, the drag ghost while that unit is carried,
@@ -35,10 +35,10 @@ import {
 import { getIngredient } from '@/game/ingredients'
 import { emitConfetti, emitSparkle } from '@/use/usePrismParticles'
 import { tutorialActive } from '@/use/useTutorial'
-import usePrismGame from '@/use/usePrismGame'
+import useBarrage from '@/barrage/state/useBarrage'
 
 const { t, te } = useI18n()
-const game = usePrismGame()
+const barrage = useBarrage()
 
 const reveal = computed<TierReveal | null>(() => activeReveal.value)
 
@@ -73,9 +73,10 @@ const targetEl = (r: TierReveal): HTMLElement | null => {
   return document.querySelector<HTMLElement>(`[data-fighter-id="${r.target.fighterId}"] .unit-body`)
 }
 
-/** The revealed grid unit is still in its slot (or being carried from it). */
+/** The revealed ball still sits in its tray slot — a later merge that consumes
+ *  it (or re-sorts the tray) ends the moment instead of spotlighting a stranger. */
 const gridUnitAlive = (r: TierReveal): boolean =>
-  r.target.kind !== 'grid' || game.grid.value[r.target.idx] === r.tier
+  r.target.kind !== 'grid' || barrage.tray.value[r.target.idx] === r.tier
 
 let raf = 0
 let misses = 0
@@ -250,7 +251,7 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
         div.trf-layer.trf-implode
         div.trf-layer.trf-flash
         div.trf-layer.trf-shock
-        //- "NEW UNIT!" + name + tier.
+        //- "NEW BALL!" + name + tier.
         div.trf-label(ref="labelEl" :class="labelBelow ? 'is-below' : 'is-above'")
           div.trf-label__pop
             div.trf-label__title.game-text {{ t('tierReveal.title') }}

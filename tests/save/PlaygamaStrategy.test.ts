@@ -47,7 +47,7 @@ vi.mock('@/utils/playgamaPlugin', async () => {
   }
 })
 
-const STATE_KEY = 'merge-idle-war_state'
+const STATE_KEY = 'elemental-barrage_state'
 const WAVE_FIELD = 'battle_wave'
 const BEST_WAVE_FIELD = 'battle_best_wave'
 const STAGE_FIELD = 'epic_stage'

@@ -1,12 +1,13 @@
-name = "merge-idle-war-leaderboard"
+name = "elemental-barrage-leaderboard"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "merge-idle-war-leaderboard"
-# The id `wrangler d1 create merge-idle-war-leaderboard` printed (2026-09-11).
-database_id = "9fbbce39-3226-492e-a931-82d3e9822e87"
+database_name = "elemental-barrage-leaderboard"
+# Elemental Barrage's own database (created 2026-09-23, region EEUR) — never
+# point this at another game's board, the scores would mix.
+database_id = "6187430c-b73f-4a18-9434-0f540c79a820"
 
 [vars]
 # Empty = allow any origin. Every portal build serves the game from a different

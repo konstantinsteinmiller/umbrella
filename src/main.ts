@@ -53,7 +53,7 @@ const bootstrap = async () => {
   // `setVConsoleMounter` so vConsole stays out of the main chunk
   // and off the hot path.
   //
-  // Why this matters: merge-idle-war's main bundle ballooned by ~250KB
+  // Why this matters: elemental-barrage's main bundle ballooned by ~250KB
   // gzipped when vConsole was statically imported. CrazyGames flagged
   // the regression. Putting the dynamic-import here fixes it without
   // breaking the trigger paths.
@@ -73,7 +73,7 @@ const bootstrap = async () => {
     import.meta.env.VITE_APP_NATIVE === 'true'
     || import.meta.env.VITE_APP_INCLUDE_VCONSOLE === 'true'
   ) {
-    // vConsole removed from this project (was a merge-idle-war native-build
+    // vConsole removed from this project (was a elemental-barrage native-build
     // dependency). To restore on-device debugging, reintroduce the
     // `vconsole` package and wire it back to `setVConsoleMounter`.
     bootstrapVConsoleFromUrl()
@@ -293,11 +293,11 @@ const bootstrap = async () => {
       get strategyName() { return saveManager.strategyName },
       /** In-memory game state, read through the SaveManager proxy. */
       snapshot: () => {
-        try { return JSON.parse(window.localStorage.getItem('merge-idle-war_state') ?? 'null') }
+        try { return JSON.parse(window.localStorage.getItem('elemental-barrage_state') ?? 'null') }
         catch { return null }
       },
       /** The durable cloud row, read straight from the bridge. Async. */
-      cloudRaw: async (key = 'merge-idle-war_state') => {
+      cloudRaw: async (key = 'elemental-barrage_state') => {
         const storage = (window as any).bridge?.storage
         if (!storage?.get) return null
         // `tryParseJson=false` — the bridge parses by default (see

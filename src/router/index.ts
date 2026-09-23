@@ -105,7 +105,8 @@ const history: RouterHistory = isPortalBuild
 const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
   ? [
       { path: '/art-sheets', name: 'art-sheets', component: () => import('@/views/ArtSheets.vue') },
-      { path: '/playground', name: 'playground', component: () => import('@/views/Playground.vue') }
+      { path: '/playground', name: 'playground', component: () => import('@/views/Playground.vue') },
+      { path: '/barrage-lab', name: 'barrage-lab', component: () => import('@/views/BarrageLab.vue') }
     ]
   : []
 

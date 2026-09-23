@@ -100,49 +100,6 @@ describe('the elemental tiers', () => {
 
 })
 
-describe('chest unit rewards scale with the strongest fighter on the field', () => {
-  const load = async () => {
-    const { vi } = await import('vitest')
-    vi.resetModules()
-    window.localStorage.clear()
-    return await import('@/use/useBattle')
-  }
-
-  it('drop one tier below the best real fighter — no tier-11 cap', async () => {
-    const b = await load()
-    b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: 20 } // spawn tier 21
-    b.fighters.value = []
-    for (const t of [34, 30, 28]) b.deployFighter(t)
-    expect(b.topFieldTier.value).toBe(34)
-    expect(b.chestUnitTier.value).toBe(33)
-  })
-
-  it('never drop below the Spawn tier, and ignore spectral warriors', async () => {
-    const b = await load()
-    b.battleUpgrades.value = { ...b.battleUpgrades.value, recruit: 9 } // spawn tier 10
-    b.fighters.value = []
-    expect(b.chestUnitTier.value).toBe(10) // empty field → the Spawn tier
-    b.deployFighter(6)
-    expect(b.chestUnitTier.value).toBe(10) // weaker army than the spawns → still 10
-    b.deployFighter(15)
-    b.legionUnlocked.value = true
-    b.legionCharge.value = b.spellMax
-    b.wavePhase.value = 'fighting'
-    b.fireLegion() // three T14 ghosts — not the army
-    expect(b.chestUnitTier.value).toBe(14)
-  })
-
-  it('the grid takes a reward of any tier', async () => {
-    const { vi } = await import('vitest')
-    vi.resetModules()
-    window.localStorage.clear()
-    const g = await import('@/use/usePrismGame')
-    const idx = g.spawnUnitAt(42)
-    expect(idx).toBeGreaterThanOrEqual(0)
-    expect(g.default().grid.value[idx]).toBe(42)
-  })
-})
-
 describe('the elemental drawings', () => {
   it('exist for exactly tiers 21-50', () => {
     expect(ELEMENTAL_ART_TIERS()).toEqual(Array.from({ length: 30 }, (_, i) => 21 + i))

@@ -41,66 +41,78 @@ export const SEED_FILE = resolve(
 const TOTAL = 15_876
 
 /**
- * The two players at the very top, placed by hand: the best reached wave 292,
- * the runner-up wave 245. Real tops of a board are outliers — far past where
+ * The two players at the very top, placed by hand: the best reached row 214,
+ * the runner-up row 181. Real tops of a board are outliers — far past where
  * any smooth curve would put them — so they are stated, not interpolated. The
  * curve below models the other `TOTAL - TOP.length` players, and its own best
  * must stay below the runner-up (asserted in `buildSeed`).
  */
-const TOP = [292, 245]
+const TOP = [214, 181]
 
 /** When this curve was stated. Fixed, so the file is reproducible. */
-const STATED_AT = Date.UTC(2026, 8, 11)
+const STATED_AT = Date.UTC(2026, 8, 23)
 
 /**
  * The retention curve for everyone below the top two:
- * `best wave → fraction whose best is ≥ it`.
+ * `best row → fraction whose best is ≥ it`.
  *
- * The population is the one the live board holds — players who cleared at
- * least one wave (the client posts nothing before that), so it starts at 2.
+ * Elemental Barrage's score is the deepest ROW reached (one row per turn,
+ * ~7 s a turn). The population is the one the live board holds — players who
+ * got past the first row (the client posts nothing before that), so it starts
+ * at 2. Anchored on the balance sim (`scripts/barrage-sim.mjs`): a
+ * random-angle bot first breaches around row 17, a best-of-8 bot reaches the
+ * row-30 boss at ~3.5 min and plateaus at rows 45–70 by ~25 min.
  *
- *     waves   2-3   ~11 %   "some few" — cleared the tutorial wave, left
- *     waves   4-6   ~24 %   the quit PEAK, at the first boss (wave 5)
- *     waves  7-12   ~26 %   most casual sessions end around the first
- *                           milestone chest; the median best is ~wave 10
- *     waves 13-25    18 %   mutations from 12, new archetypes
- *     waves 26-50    12 %
- *     waves 51-100  6.5 %   the committed idlers
- *     waves 101-175 2.2 %
- *     waves 176+    0.3 %   into the rubber-band wall past 175 — the curve's
- *                           own best lands in the high 220s, below the top two
+ *     rows   2-9   ~22 %   left during the FTUE, before the first boss — the
+ *                           per-row drop-off RISES into it (1.0 % → 3.1 %)
+ *     row   10       5.3 %  the quit PEAK: the Slime Tower, the first real wall
+ *     rows  11-19   ~29 %   the first breach and checkpoint restart
+ *     rows  20-39   ~23 %   most casual sessions end around the row-30 boss
+ *     rows  40-69    12 %   corrupted elites from row 40
+ *     rows  70-119    7 %   the committed aimers
+ *     rows 120+       2 %   high-row softening keeps it a slope; the curve is
+ *                           tapered to nothing by row 178, below the top two
  *
- * The early anchors are one wave apart on purpose: they ramp the per-wave
- * drop-off 4.5 % → 6.5 % → 9 % → 11 % into the boss, so the quit histogram
- * RISES into its peak instead of stepping up to it. Between anchors the curve
- * is a monotone cubic through log(S) — continuous in slope, so the drop-off
- * rate (and with it the histogram) has no kinks at the anchors, which is what
- * made the piecewise log-linear version read as generated once plotted. Past
- * wave ~100 the rate climbs again (2.5 % → ~16 % by 226) — the wall.
+ * The anchors are samples of one smooth quit histogram — linear rise into the
+ * row-10 peak, then `4·(1 + (row−10)/16)^−2`, tapered past 130 — sampled
+ * densely around the peak so the monotone cubic through log(S) cannot put a
+ * kink in the drop-off rate there.
  */
 const SURVIVAL = [
   [2, 1],
-  [3, 0.955],
-  [4, 0.893],
-  [5, 0.8125],
-  [6, 0.7231],
-  [7, 0.6508],
-  [8, 0.5922],
-  [10, 0.494],
-  [13, 0.39],
-  [18, 0.29],
-  [26, 0.21],
-  [36, 0.14],
-  [51, 0.09],
-  [71, 0.052],
-  [101, 0.025],
-  [131, 0.0115],
-  [156, 0.0055],
-  [176, 0.003],
-  [196, 0.0012],
-  [211, 0.0004],
-  [226, 0.00006],
-  [240, 0.000003]
+  [3, 0.9868],
+  [4, 0.9697],
+  [5, 0.9485],
+  [6, 0.9235],
+  [7, 0.8945],
+  [8, 0.8615],
+  [9, 0.8245],
+  [10, 0.7836],
+  [11, 0.7309],
+  [12, 0.6841],
+  [13, 0.6424],
+  [14, 0.605],
+  [16, 0.5406],
+  [18, 0.4872],
+  [20, 0.4421],
+  [23, 0.3863],
+  [26, 0.3412],
+  [30, 0.2929],
+  [35, 0.2459],
+  [40, 0.2093],
+  [50, 0.1558],
+  [60, 0.1186],
+  [70, 0.09132],
+  [85, 0.06166],
+  [100, 0.04044],
+  [115, 0.0245],
+  [130, 0.01209],
+  [140, 0.006163],
+  [150, 0.002684],
+  [160, 0.0008739],
+  [168, 0.0002255],
+  [174, 0.00003909],
+  [178, 0.000003]
 ]
 
 // ─── Monotone cubic interpolation of log(S) (Fritsch–Carlson) ───────────────
@@ -132,14 +144,14 @@ const tangents = (() => {
   return m
 })()
 
-/** Fraction of the curve's players whose best wave is at least `wave`. */
-export const survival = (wave) => {
-  if (wave <= xs[0]) return 1
-  if (wave >= xs[N - 1]) return 0
+/** Fraction of the curve's players whose best row is at least `row`. */
+export const survival = (row) => {
+  if (row <= xs[0]) return 1
+  if (row >= xs[N - 1]) return 0
   let i = 0
-  while (wave > xs[i + 1]) i++
+  while (row > xs[i + 1]) i++
   const h = xs[i + 1] - xs[i]
-  const t = (wave - xs[i]) / h
+  const t = (row - xs[i]) / h
   const h00 = 2 * t ** 3 - 3 * t ** 2 + 1
   const h10 = t ** 3 - 2 * t ** 2 + t
   const h01 = -2 * t ** 3 + 3 * t ** 2
@@ -152,17 +164,17 @@ export const survival = (wave) => {
 export const buildSeed = () => {
   const rest = TOTAL - TOP.length
 
-  // Per-wave counts from the ROUNDED CUMULATIVE curve, not rounded per wave.
+  // Per-row counts from the ROUNDED CUMULATIVE curve, not rounded per row.
   // `n(w) = round(rest·S(w)) − round(rest·S(w+1))` telescopes to exactly
   // `rest` players in total, and — the reason for it — places the sparse deep
-  // tail at its true quantiles. Rounding each wave on its own rounds every
-  // wave that expects 0.2 players down to nobody, which quietly shaved the top
+  // tail at its true quantiles. Rounding each row on its own rounds every
+  // row that expects 0.2 players down to nobody, which quietly shaved the top
   // of the old board off.
   const cumulative = (w) => Math.round(rest * survival(w))
   const counts = []
-  for (let wave = xs[0]; wave <= xs[N - 1]; wave++) {
-    const n = cumulative(wave) - cumulative(wave + 1)
-    if (n > 0) counts.push([wave, n])
+  for (let row = xs[0]; row <= xs[N - 1]; row++) {
+    const n = cumulative(row) - cumulative(row + 1)
+    if (n > 0) counts.push([row, n])
   }
 
   const curveBest = counts.reduce((best, [w]) => Math.max(best, w), 0)
@@ -195,16 +207,15 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
   const above = (x) => seed.dist.filter(([s]) => s > x).reduce((a, [, n]) => a + n, 0)
   const pct = (n) => `${((100 * n) / seed.total).toFixed(1)}%`.padStart(6)
   const row = (label, n) => console.log(`[seed]   ${label.padEnd(12)} ${String(n).padStart(6)} ${pct(n)}`)
-  console.log(`[seed] ${seed.total} players, top waves ${seed.dist.slice(0, 5).map(([w]) => w).join(', ')}`)
-  row('wave 2-3', band(2, 3))
-  row('wave 4-6', band(4, 6))
-  row('wave 7-12', band(7, 12))
-  row('wave 13-25', band(13, 25))
-  row('wave 26-50', band(26, 50))
-  row('wave 51-100', band(51, 100))
-  row('wave 101-175', band(101, 175))
-  row('past 175', above(175))
-  for (const w of [5, 10, 25, 50, 100, 150, 200]) {
+  console.log(`[seed] ${seed.total} players, top rows ${seed.dist.slice(0, 5).map(([w]) => w).join(', ')}`)
+  row('row 2-9', band(2, 9))
+  row('row 10', band(10, 10))
+  row('row 11-19', band(11, 19))
+  row('row 20-39', band(20, 39))
+  row('row 40-69', band(40, 69))
+  row('row 70-119', band(70, 119))
+  row('past 119', above(119))
+  for (const w of [10, 20, 30, 50, 100, 150]) {
     console.log(`[seed]   a best of ${String(w).padStart(3)} ranks #${above(w) + 1} of ${seed.total}`)
   }
   console.log(`[seed] wrote ${SEED_FILE}`)

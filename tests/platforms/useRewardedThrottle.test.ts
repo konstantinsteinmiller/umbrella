@@ -77,16 +77,16 @@ describe('useRewardedThrottle', () => {
     expect(mod.isRewardedThrottled.value).toBe(false)
   })
 
-  it('persists history inside the merge-idle-war_state blob under the internal-key field', async () => {
+  it('persists history inside the elemental-barrage_state blob under the internal-key field', async () => {
     const mod = await importThrottle()
     mod.recordRewardedGranted(123_456)
     // The blob write is debounced (it rides the single-blob persist debounce),
     // so advance past it before asserting the on-disk contents.
     vi.advanceTimersByTime(300)
     // Single-blob storage: nothing lives at the bare key any more — the
-    // history is a sub-field of `merge-idle-war_state`.
+    // history is a sub-field of `elemental-barrage_state`.
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
-    const blob = JSON.parse(window.localStorage.getItem('merge-idle-war_state') || '{}')
+    const blob = JSON.parse(window.localStorage.getItem('elemental-barrage_state') || '{}')
     expect(blob[STORAGE_KEY]).toEqual([123_456])
   })
 
@@ -98,7 +98,7 @@ describe('useRewardedThrottle', () => {
     const seed = Array.from({ length: MAX_REWARDED - 2 }, (_, i) => now - 1000 + i * 100)
     // Single-blob model: the throttle reads its history as a field of the
     // consolidated blob, so seed it there (not at the bare key).
-    window.localStorage.setItem('merge-idle-war_state', JSON.stringify({ [STORAGE_KEY]: seed }))
+    window.localStorage.setItem('elemental-barrage_state', JSON.stringify({ [STORAGE_KEY]: seed }))
     const mod = await importThrottle()
     expect(mod.isRewardedThrottled.value).toBe(false)
     mod.recordRewardedGranted()

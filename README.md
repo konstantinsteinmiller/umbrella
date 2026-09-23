@@ -1,25 +1,22 @@
-# Merge Idle War
+# Elemental Barrage
 
-Merge elemental units into a 15-tier army and crush endless enemy waves. Combos, fever gold rushes, meteor storms — the war never stops!
+A mobile-first casual volley shooter: monsters march down a 7-column board, you drag back and release a
+barrage of elemental balls, and when the ball tray overflows, twin balls merge into mightier elementals.
+A boss every 10 rows sets a checkpoint — a breach is never a game over.
 
+Built on the Merge Idle War stack and art (50 elemental portraits, walkers, bosses, VFX, SFX) and its
+multi-portal build matrix (CrazyGames, Poki, Playgama, GamePix, GameMonetize, Yandex, itch, Glitch, …).
 
-It features a github pages deployed CI cd pipeline and a windows build + demo build.
+- Design: [`src/barrage/CONTRACT.md`](src/barrage/CONTRACT.md) (rules, economy, FTUE, monetization) and
+  concept B in [`non-strategy-concepts.md`](non-strategy-concepts.md).
+- Code: `src/barrage/engine` (deterministic rules + physics), `src/barrage/render` (canvas board),
+  `src/barrage/state` (run state, economy, meta), `src/components/barrage` (HUD, tray, modals).
 
-WIP: [playable demo](https://konstantinsteinmiller.github.io/merge-idle-war/)
+```sh
+pnpm install
+pnpm dev            # http://localhost:5173
+pnpm test
+pnpm build:poki     # or build:crazy-web, build:playgama, build:gamepix, …
+```
 
-![merge-idle-war Gameplay](https://github.com/konstantinsteinmiller/merge-idle-war/blob/main/src/assets/documentation/gameplay.webp)
-
-
-- [ ] Leaderboard
-- [ ] Complex bosses
-  - [x] Slime boss spawns additional slimes, up to 5 companion slimes
-  - [ ] Orc boss does aoe damage (circular stone slam (vfx needed) every 5s and a 1s charge up)
-  - [ ] Fire dragon boss does damage over time and has a (every 20s) cone fire breath attack
-  - [ ] 
-- [ ] Full skill system
-  - [ ] Unlock Skills with coins
-    - [x] Heal 25% of all units on the battlefield, 1% charge per killed monster (200k coins)
-    - [ ] 20 bounces chain lightning on enemy units on the battlefield (200k coins)
-    - [x] Create Tank unit(highest tier melee unit) on the battlefield, 1% charge per killed monster (150k coins)
-    - [x] revive all units on the battlefield automatically for 30 seconds, 1% charge per killed monster (200k coins)
-    - [ ] 2x def buff for 2 minutes for all units on the battlefield (500k coins)
+Saves live in one localStorage blob, `elemental-barrage_state` (mirrored to each portal's cloud save).

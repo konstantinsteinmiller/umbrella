@@ -15,7 +15,6 @@ import AdsBlockedModal from '@/components/atoms/AdsBlockedModal.vue'
 import VConsoleHideButton from '@/components/atoms/VConsoleHideButton.vue'
 import { useCrazyMuteSync } from '@/use/useCrazyMuteSync'
 import { installModalGameplayGate } from '@/use/useModalGameplayGate'
-import { installTutorialPauseGate } from '@/use/useTutorialPauseGate'
 import { installPortalGameplayBracket } from '@/use/usePortalGameplay'
 import useCheats, { installDebugUnlock } from '@/use/useCheats'
 import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isNative, orientation } from '@/use/useUser'
@@ -33,12 +32,8 @@ useCrazyMuteSync()
 // Freeze the sim while any menu is open and resume on close (every build);
 // additionally fires CG gameplayStop/Start on the CrazyGames full release.
 installModalGameplayGate()
-// Hold the battle sim while the first-session coach-marks run, so wave 1 can't
-// overrun the gate before the player has ever deployed a fighter. Releases on
-// their first deploy.
-installTutorialPauseGate()
-// Poki's gameplayStart/Stop bracket, derived from the same pause gate the two
-// installs above feed. Its FIRST start is held until the player touches the
+// Poki's gameplayStart/Stop bracket, derived from the same pause gate the
+// install above feeds. Its FIRST start is held until the player touches the
 // viewport (Poki rejects a gameplayStart nobody asked for) and the whole watcher
 // is dead code on non-Poki builds. See `usePortalGameplay.ts`.
 installPortalGameplayBracket()

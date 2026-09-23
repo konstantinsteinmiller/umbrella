@@ -24,12 +24,12 @@ const DEFAULTS = {
   indexFile: 'art-sheets/sheet-index.json',
   // Where the slicer's `target` paths are relative to.
   outDir: 'public',
-  // merge-idle-war: the slicer lives in scripts/art/.
+  // elemental-barrage: the slicer lives in scripts/art/.
   slice: ['node', 'scripts/art/slice-sheets.mjs', '{painting}'],
   compressRoot: 'public',
   // --fresh: the slicer has just written NEW originals over files that may
   // have backups from an earlier cut — see processFile in the compressor.
-  // merge-idle-war has no compressor installed (compress-images-pipeline not
+  // elemental-barrage has no compressor installed (compress-images-pipeline not
   // set up), so the compress step is OFF: the slicer's WebP q0.92 ships as is.
   // Install that skill, then set this back to its argv — it MUST keep
   // `--fresh --only {files}`, or a re-sliced sprite is compressed from its

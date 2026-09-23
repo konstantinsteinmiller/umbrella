@@ -1,4 +1,9 @@
+import barrage from './barrage/de'
+import barrageMeta from './barrageMeta/de'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'Ansehen', 'revive': 'Wiederbeleben', 'secondChance': 'Zweite Chance', 'doubleCoins': '2× Münzen', 'plusCoins': '+{n} Münzen'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'Hamsterer', 'desc': 'Schnapp dir insgesamt 250 Item-Boxen.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'Abbrechen',
   'close': 'Schließen',
   'ok': 'Ok',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'NEUE EINHEIT!',
+    'title': 'NEUE KUGEL!',
     'tier': 'Stufe {n}'
   }
 }

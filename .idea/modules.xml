@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/merge-idle-war.iml" filepath="$PROJECT_DIR$/.idea/merge-idle-war.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/elemental-barrage.iml" filepath="$PROJECT_DIR$/.idea/elemental-barrage.iml" />
     </modules>
   </component>
 </project>

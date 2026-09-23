@@ -10,6 +10,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
  * a flip must change what `artSrc` answers, and nothing else is cached.
  */
 
+/** Every src an Image was given, in order — what the page would have fetched. */
+const requested: string[] = []
+
 /** An Image that "decodes" the instant it is given a src. */
 class InstantImage {
   naturalWidth = 0
@@ -18,17 +21,19 @@ class InstantImage {
   get src(): string { return this._src }
   set src(v: string) {
     this._src = v
+    requested.push(v)
     this.naturalWidth = 256
     queueMicrotask(() => this.onload?.())
   }
 }
 
-const load = async (env: Record<string, string> = {}) => {
+const load = async (env: Record<string, string> = {}, shipped: string[] = ['images/units/fighter-1.webp']) => {
   vi.resetModules()
+  requested.length = 0
   for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v)
   vi.stubGlobal('Image', InstantImage)
   vi.doMock('@/use/usePublicManifest', () => ({
-    publicAssetExists: (p: string) => p === 'images/units/fighter-1.webp'
+    publicAssetExists: (p: string) => shipped.includes(p)
   }))
   vi.doMock('@/use/useAssets', () => ({ resourceCache: { images: new Map() } }))
   const m = await import('@/use/useArtOverrides')
@@ -66,6 +71,24 @@ describe('the art flag', () => {
     const m = await load({ VITE_ENABLE_ART_OVERRIDES: 'false' })
     expect(m.artOverridesEnabled.value).toBe(false)
     expect(m.artSrc('fighter-1')).toBeNull()
+  })
+
+  it('leaves the MIW arena set out of the boot probe and fetches a slot on its first read', async () => {
+    const m = await load({}, ['images/units/fighter-1.webp', 'images/arena/scene-bg.webp', 'images/arena/gate.webp'])
+    expect(requested.some((s) => s.includes('images/arena/')), 'boot probe fetched arena art').toBe(false)
+    expect(m.artSrc('scene-bg')).toBeNull() // first read starts the probe…
+    await Promise.resolve()
+    expect(m.artSrc('scene-bg')).toMatch(/images\/arena\/scene-bg\.webp$/) // …and the answer arrives
+    m.artSrc('scene-bg')
+    expect(requested.filter((s) => s.includes('scene-bg'))).toHaveLength(1)
+    expect(requested.some((s) => s.includes('gate')), 'an unread on-demand slot was fetched').toBe(false)
+  })
+
+  it('never fetches an on-demand slot while the art is off', async () => {
+    const m = await load({}, ['images/arena/scene-bg.webp'])
+    m.setArtOverrides(false)
+    expect(m.artSrc('scene-bg')).toBeNull()
+    expect(requested).toHaveLength(0)
   })
 
   it('re-probes cache-busted, so a re-sliced file of the same name is refetched', async () => {

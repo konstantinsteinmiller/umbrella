@@ -68,9 +68,17 @@ export const setArtOverrides = (on: boolean): void => {
   artOverridesEnabled.value = on
 }
 
-/** Reactive: the override bitmap's URL, or `null` → render the vector fallback. */
-export const artSrc = (key: ArtKey): string | null =>
-  artOverridesEnabled.value ? (resolved[key] ?? null) : null
+/**
+ * Slots fetched only the first time something READS them (with the flag on),
+ * never by the boot probe: Merge Idle War's arena set. This game only falls
+ * back to `scene-bg` (behind GameScene, when the painted sky of
+ * `barrage/render/backdropArt.ts` is missing) and shows the rest on the dev
+ * /playground — probing them eagerly downloaded ~120 KB per load that nothing
+ * drew.
+ */
+const ON_DEMAND: ReadonlySet<ArtKey> = new Set<ArtKey>(['arena-bg', 'scene-bg', 'gate', 'arena-portal'])
+/** On-demand slots something has asked for — a refresh re-probes these too. */
+const demanded = new Set<ArtKey>()
 
 /** Cache-buster generation — bumped by `refreshArtOverrides` so a re-sliced
  *  file with the SAME name is not served back from the browser cache. */
@@ -89,20 +97,35 @@ const probeOne = (key: ArtKey, ext: 'webp' | 'png'): void => {
   img.src = src
 }
 
+const probeKey = (key: ArtKey): void => {
+  const base = ART_PATHS[key]
+  if (publicAssetExists(`${base}.webp`)) probeOne(key, 'webp')
+  else if (publicAssetExists(`${base}.png`)) probeOne(key, 'png')
+  // else: unfilled slot → component keeps its vector fallback, no request.
+}
+
 const probeAll = (): void => {
-  for (const key of ART_KEYS) {
-    const base = ART_PATHS[key]
-    if (publicAssetExists(`${base}.webp`)) probeOne(key, 'webp')
-    else if (publicAssetExists(`${base}.png`)) probeOne(key, 'png')
-    // else: unfilled slot → component keeps its vector fallback, no request.
+  for (const key of ART_KEYS) if (!ON_DEMAND.has(key) || demanded.has(key)) probeKey(key)
+}
+
+/** Reactive: the override bitmap's URL, or `null` → render the vector fallback.
+ *  The first read of an on-demand slot starts its probe; the answer arrives
+ *  reactively like any other. */
+export const artSrc = (key: ArtKey): string | null => {
+  if (!artOverridesEnabled.value) return null
+  if (ON_DEMAND.has(key) && !demanded.has(key) && typeof window !== 'undefined') {
+    demanded.add(key)
+    probeKey(key)
   }
+  return resolved[key] ?? null
 }
 
 let probeStarted = false
 /** Fire-and-forget probe of every override slot that ACTUALLY shipped (per the
- *  build-time manifest — an unfilled slot is never requested, so no 404). Only
- *  the format present is fetched; `.webp` wins when both exist. Idempotent;
- *  kicked off in parallel with the hot-path preload. */
+ *  build-time manifest — an unfilled slot is never requested, so no 404),
+ *  except the ON_DEMAND ones nothing has read yet. Only the format present is
+ *  fetched; `.webp` wins when both exist. Idempotent; kicked off in parallel
+ *  with the hot-path preload. */
 export const probeArtOverrides = (): void => {
   if (probeStarted || typeof window === 'undefined') return
   probeStarted = true

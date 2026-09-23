@@ -7,7 +7,7 @@ Registration check: does a painted return sit where the drawing it replaces sat?
     pnpm art:measure strips public/images/attacks/animations --grid 3x3   # per-frame coverage of the 3x3 VFX sheets
     python scripts/art/measure-art.py pairs <dir>           # (template) singles vs single-<id>.png references
 
-merge-idle-war: `cells` reads the per-drawable `walks` entries of this
+elemental-barrage: `cells` reads the per-drawable `walks` entries of this
 project's index (a sprite is a one-panel walk; a 3x3 VFX sheet is a
 nine-panel one) as well as the template's lattice `sheets`.
 
@@ -122,7 +122,7 @@ def cmd_cells(args):
             r = (fit['w'], fit['h'], fit['cx'], fit['cy'])
             worst, _off, note = judge(r, p)
             rows.append((cell['id'], (r, p), worst, note))
-    # merge-idle-war: every drawable is a `walk` — measure the written file per
+    # elemental-barrage: every drawable is a `walk` — measure the written file per
     # frame and take the union, the same box the bench measured on the reference.
     for walk in index.get('walks', []):
         if args.sheet and walk['id'] != args.sheet:

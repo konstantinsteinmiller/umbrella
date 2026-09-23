@@ -12,9 +12,10 @@ import { buildSeed } from '../../scripts/leaderboard-seed.mjs'
  *
  * Poki, Yandex and Playgama (the YouTube Playables archive) cannot post a
  * score, so their baked board is the whole board for the life of the build and
- * nobody playing it will ever join it. It is generated from a best-wave
- * retention curve plus two hand-placed top players, rather than copied from the
- * live board, because a live board is a survivorship sample frozen on build day.
+ * nobody playing it will ever join it. It is generated from a best-row
+ * retention curve plus two hand-placed top players, rather than copied from
+ * the live board, because a live board is a survivorship sample frozen on
+ * build day.
  *
  * The curve is a design decision with numbers in it, so the numbers are pinned
  * here. Regenerate with `pnpm leaderboard:seed` after changing it, and expect
@@ -38,7 +39,7 @@ const band = (lo: number, hi: number): number =>
 const share = (n: number): number => n / seed.total
 const above = (x: number): number =>
   seed.dist.filter(([s]) => s > x).reduce((a, [, n]) => a + n, 0)
-const at = (wave: number): number => seed.dist.find(([s]) => s === wave)?.[1] ?? 0
+const at = (row: number): number => seed.dist.find(([s]) => s === row)?.[1] ?? 0
 
 describe('the seeded board matches the population it claims', () => {
   it('says out loud that it is modelled', () => {
@@ -65,54 +66,51 @@ describe('the seeded board matches the population it claims', () => {
     expect(seed.dist.reduce((a, [, n]) => a + n, 0)).toBe(15_876)
   })
 
-  it('has the stated top two — wave 292, then wave 245 — each alone', () => {
-    expect(seed.dist[0]).toEqual([292, 1])
-    expect(seed.dist[1]).toEqual([245, 1])
+  it('has the stated top two — row 214, then row 181 — each alone', () => {
+    expect(seed.dist[0]).toEqual([214, 1])
+    expect(seed.dist[1]).toEqual([181, 1])
     // …and the curve's own best stays a believable step below the runner-up.
     const third = seed.dist[2]![0]
-    expect(third).toBeLessThan(245)
-    expect(third).toBeGreaterThan(210)
+    expect(third).toBeLessThan(181)
+    expect(third).toBeGreaterThan(160)
   })
 
   it('puts the mass where the curve says players stop', () => {
     // Half a point per band: tight enough to catch a reshaped curve.
-    expect(share(band(2, 3))).toBeCloseTo(0.107, 2)    // "some few"
-    expect(share(band(4, 6))).toBeCloseTo(0.242, 2)    // the first-boss wall
-    expect(share(band(7, 12))).toBeCloseTo(0.261, 2)
-    expect(share(band(13, 25))).toBeCloseTo(0.18, 2)
-    expect(share(band(26, 50))).toBeCloseTo(0.12, 2)
-    expect(share(band(51, 100))).toBeCloseTo(0.065, 2)
-    expect(share(band(101, 175))).toBeCloseTo(0.022, 2)
-    expect(share(above(175))).toBeCloseTo(0.003, 2)
+    expect(share(band(2, 9))).toBeCloseTo(0.216, 2)    // left during the FTUE
+    expect(share(band(10, 10))).toBeCloseTo(0.053, 2)  // the first boss
+    expect(share(band(11, 19))).toBeCloseTo(0.289, 2)
+    expect(share(band(20, 39))).toBeCloseTo(0.233, 2)
+    expect(share(band(40, 69))).toBeCloseTo(0.118, 2)
+    expect(share(band(70, 119))).toBeCloseTo(0.071, 2)
+    expect(share(above(119))).toBeCloseTo(0.02, 2)
   })
 
-  it('rises into its quit peak at the first boss, wave 5', () => {
-    // Players who cleared the tutorial wave rarely stop on the very next one;
-    // the first real wall is the boss. So the quit histogram climbs into wave 5
-    // rather than starting at its highest point.
-    expect(at(2)).toBeLessThan(at(3))
-    expect(at(3)).toBeLessThan(at(4))
-    expect(at(4)).toBeLessThan(at(5))
-    const byWave = [...seed.dist].sort((a, b) => a[0] - b[0])
-    const peak = byWave.reduce((p, c) => (c[1] > p[1] ? c : p))
-    expect(peak[0]).toBe(5)
+  it('rises into its quit peak at the first boss, row 10', () => {
+    // A player who got past row 1 rarely stops on the very next turn; the
+    // first real wall is the Slime Tower. So the quit histogram climbs into
+    // row 10 rather than starting at its highest point.
+    for (let r = 2; r < 10; r++) expect(at(r)).toBeLessThan(at(r + 1))
+    const byRow = [...seed.dist].sort((a, b) => a[0] - b[0])
+    const peak = byRow.reduce((p, c) => (c[1] > p[1] ? c : p))
+    expect(peak[0]).toBe(10)
   })
 
   it('falls away without a kink once past the peak', () => {
     // A rise past the peak is the tell that the interpolation broke between two
     // anchors (a step in the drop-off rate is a step here) — allowed only as
     // integer rounding out in the tail, where buckets hold a handful of players.
-    const byWave = [...seed.dist].sort((a, b) => a[0] - b[0]).filter(([w]) => w >= 5 && w < 245)
-    for (let i = 1; i < byWave.length; i++) {
-      const [wave, n] = byWave[i]!
-      const prev = byWave[i - 1]![1]
-      expect(n, `wave ${wave} kept more players than the wave before it`)
+    const byRow = [...seed.dist].sort((a, b) => a[0] - b[0]).filter(([w]) => w >= 10 && w < 181)
+    for (let i = 1; i < byRow.length; i++) {
+      const [row, n] = byRow[i]!
+      const prev = byRow[i - 1]![1]
+      expect(n, `row ${row} kept more players than the row before it`)
         .toBeLessThanOrEqual(Math.max(prev * 1.02, prev + 1))
     }
   })
 
-  it('holds the same population the live board does — best wave 2 and up', () => {
-    // The client never posts before a wave is cleared.
+  it('holds the same population the live board does — best row 2 and up', () => {
+    // The client never posts a best row below 2.
     for (const [score, n] of seed.dist) {
       expect(score).toBeGreaterThanOrEqual(2)
       expect(n).toBeGreaterThan(0)

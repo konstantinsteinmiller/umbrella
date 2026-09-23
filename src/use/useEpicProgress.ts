@@ -10,7 +10,7 @@ import useEpicConfig from '@/use/useEpicConfig'
 // to 55, after which every subsequent stage adds +10 tiles (65, 75, …).
 // Reaching the target = a win; the player advances to the next stage on their
 // next run. Stage, best score, lifetime games and max-stage all live as fields
-// inside the single `merge-idle-war_state` blob.
+// inside the single `elemental-barrage_state` blob.
 
 const GAMES_PLAYED_KEY = 'epic_games_played'
 const MAX_STAGE_KEY = 'epic_max_stage'

@@ -12,7 +12,7 @@
  *   • Coordinates are CSS pixels; the canvas component handles the DPR transform.
  */
 
-export type ParticleType = 'confetti' | 'spark' | 'bubble' | 'splash' | 'ring'
+export type ParticleType = 'confetti' | 'spark' | 'bubble' | 'splash' | 'ring' | 'coin'
 
 interface Particle {
   active: boolean
@@ -27,6 +27,12 @@ interface Particle {
   color: string
   wobble: number
   wobbleAmp: number
+  // Coin flight (Elemental Barrage board → wallet): quadratic Bézier start →
+  // control → target, held for `delay` ms first so a burst fans out in turn.
+  x0: number; y0: number
+  cx: number; cy: number
+  tx: number; ty: number
+  delay: number
 }
 
 const MAX = 300
@@ -35,7 +41,8 @@ for (let i = 0; i < MAX; i++) {
   pool.push({
     active: false, type: 'spark', x: 0, y: 0, vx: 0, vy: 0,
     life: 0, maxLife: 1, size: 1, rot: 0, spin: 0, gravity: 0, drag: 1,
-    color: '#fff', wobble: 0, wobbleAmp: 0
+    color: '#fff', wobble: 0, wobbleAmp: 0,
+    x0: 0, y0: 0, cx: 0, cy: 0, tx: 0, ty: 0, delay: 0
   })
 }
 let cursor = 0
@@ -50,6 +57,7 @@ const acquire = (): Particle | null => {
     const slot = pool[idx]!
     if (!slot.active) {
       cursor = (idx + 1) % MAX
+      slot.delay = 0
       return slot
     }
   }
@@ -139,12 +147,62 @@ export const emitBubble = (x: number, y: number, color: string): void => {
   p.wobble = rand(0, Math.PI * 2); p.wobbleAmp = rand(0.2, 0.8)
 }
 
+// ─── Coin flight (additive: Elemental Barrage) ───────────────────────────────
+let coinImage: HTMLImageElement | HTMLCanvasElement | null = null
+/** The bitmap coin flights draw (a gold disc is drawn until it has loaded). */
+export const setCoinFlightImage = (img: HTMLImageElement | HTMLCanvasElement | null): void => {
+  coinImage = img
+}
+
+/**
+ * `count` coins burst out of (x, y) and home in on (tx, ty) — the wallet badge.
+ * Client px, like every emitter here. Staggered so a burst reads as a stream.
+ */
+export const emitCoinFlight = (x: number, y: number, tx: number, ty: number, count = 4, size = 16): void => {
+  for (let i = 0; i < count; i++) {
+    const p = acquire()
+    if (!p) return
+    const a = rand(0, Math.PI * 2)
+    const burst = rand(28, 70)
+    p.active = true; p.type = 'coin'
+    p.x0 = x + Math.cos(a) * 4; p.y0 = y + Math.sin(a) * 4
+    p.x = p.x0; p.y = p.y0
+    // Control point: thrown outward (and a little up) before the pull home.
+    p.cx = x + Math.cos(a) * burst; p.cy = y + Math.sin(a) * burst - rand(20, 60)
+    p.tx = tx; p.ty = ty
+    p.vx = 0; p.vy = 0
+    p.delay = i * rand(28, 55)
+    p.maxLife = p.life = rand(620, 820)
+    p.size = size * rand(0.85, 1.1)
+    p.rot = rand(0, Math.PI * 2); p.spin = rand(0.18, 0.32)
+    p.gravity = 0; p.drag = 1
+    p.color = '#ffd23c'
+    p.wobble = 0; p.wobbleAmp = 0
+  }
+}
+
 /** Advance every active particle by `dt` ms. */
 export const updateParticles = (dt: number): void => {
   const f = dt / 16.6667 // normalise to 60fps steps
   for (let i = 0; i < MAX; i++) {
     const p = pool[i]!
     if (!p.active) continue
+    if (p.type === 'coin') {
+      if (p.delay > 0) { p.delay -= dt; continue }
+      p.life -= dt
+      if (p.life <= 0) {
+        p.active = false
+        emitSparkle(p.tx, p.ty, '#ffe27a', 2)
+        continue
+      }
+      const q = 1 - p.life / p.maxLife
+      const e = q * q * (1.6 - 0.6 * q) // slow launch, fast arrival
+      const u = 1 - e
+      p.x = u * u * p.x0 + 2 * u * e * p.cx + e * e * p.tx
+      p.y = u * u * p.y0 + 2 * u * e * p.cy + e * e * p.ty
+      p.rot += p.spin * f
+      continue
+    }
     p.life -= dt
     if (p.life <= 0) { p.active = false; continue }
     p.vy += p.gravity * f
@@ -166,8 +224,9 @@ export const drawParticles = (ctx: CanvasRenderingContext2D): void => {
   for (let i = 0; i < MAX; i++) {
     const p = pool[i]!
     if (!p.active) continue
+    if (p.type === 'coin' && p.delay > 0) continue
     const t = p.life / p.maxLife // 1 → 0
-    ctx.globalAlpha = Math.max(0, Math.min(1, t < 0.3 ? t / 0.3 : 1))
+    ctx.globalAlpha = p.type === 'coin' ? 1 : Math.max(0, Math.min(1, t < 0.3 ? t / 0.3 : 1))
     switch (p.type) {
       case 'confetti': {
         ctx.save()
@@ -207,6 +266,25 @@ export const drawParticles = (ctx: CanvasRenderingContext2D): void => {
         ctx.beginPath()
         ctx.arc(p.x - p.size * 0.3, p.y - p.size * 0.3, p.size * 0.25, 0, Math.PI * 2)
         ctx.fill()
+        break
+      }
+      case 'coin': {
+        // A spinning coin: squash X by |cos| for the flip, shrink into the wallet.
+        const s = p.size * (0.7 + 0.3 * Math.min(1, t * 3))
+        const sx = Math.max(0.2, Math.abs(Math.cos(p.rot)))
+        const img = coinImage
+        const ready = img !== null && (!(img instanceof HTMLImageElement) || (img.complete && img.naturalWidth > 0))
+        if (ready) {
+          ctx.drawImage(img, p.x - (s * sx) / 2, p.y - s / 2, s * sx, s)
+        } else {
+          ctx.fillStyle = '#ffd23c'
+          ctx.beginPath()
+          ctx.ellipse(p.x, p.y, (s * sx) / 2, s / 2, 0, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.strokeStyle = '#b8860b'
+          ctx.lineWidth = 1.5
+          ctx.stroke()
+        }
         break
       }
       case 'ring': {

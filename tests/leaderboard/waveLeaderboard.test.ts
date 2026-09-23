@@ -3,12 +3,12 @@ import { nextTick } from 'vue'
 import { SUBMITTED_SCORE_KEY } from '@/keys'
 
 /**
- * ─── Merge Legion ⇄ the global board ────────────────────────────────────────
+ * ─── Elemental Barrage ⇄ the global board ───────────────────────────────────
  *
  * `useLeaderboard` is pinned by its own suites; this one pins the GAME side:
- * which number is ranked (the best wave, floored at "one wave cleared") and the
- * three edges that report it in a game with no result screen — boot, a new
- * best, and an overrun.
+ * which number is ranked (the best endless row, floored at "one turn
+ * survived"), the flair (the highest ball tier), and the three edges that
+ * report it — boot, a new best, and a run ending (breach / daily over).
  */
 
 const ENDPOINT = 'https://board.example.test'
@@ -39,12 +39,11 @@ const load = async (url = ENDPOINT) => {
   }))
   vi.resetModules()
   const state = await import('@/use/useEpicState')
-  const battle = await import('@/use/useBattle')
-  const prism = await import('@/use/usePrismGame')
+  const progress = await import('@/barrage/state/progress')
   const wave = await import('@/use/useWaveLeaderboard')
   const lb = await import('@/use/useLeaderboard')
   lastState = state
-  return { state, battle, prism, wave, lb }
+  return { state, progress, wave, lb }
 }
 
 /** The save module the last case loaded — flushed in `afterEach` so its
@@ -68,20 +67,20 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('the ranked number is the best wave, once a wave is cleared', () => {
-  it('ranks nothing at best wave 1 — a player who has cleared no wave', async () => {
-    const { battle, wave } = await load()
-    battle.bestWave.value = 1
+describe('the ranked number is the best row, once a turn is survived', () => {
+  it('ranks nothing at best row 1 — a player who has not survived a turn', async () => {
+    const { progress, wave } = await load()
+    progress.bestRow.value = 1
     expect(wave.rankedBest.value).toBe(0)
-    battle.bestWave.value = 2
+    progress.bestRow.value = 2
     expect(wave.rankedBest.value).toBe(2)
-    battle.bestWave.value = 57
+    progress.bestRow.value = 57
     expect(wave.rankedBest.value).toBe(57)
   })
 
-  it('posts nothing, and reads nothing, for a player who has cleared no wave', async () => {
-    const { battle, wave } = await load()
-    battle.bestWave.value = 1
+  it('posts nothing, and reads nothing, for a player who has not survived a turn', async () => {
+    const { progress, wave } = await load()
+    progress.bestRow.value = 1
     wave.installWaveLeaderboard()
     await settle()
     expect(sent).toHaveLength(0)
@@ -90,9 +89,9 @@ describe('the ranked number is the best wave, once a wave is cleared', () => {
 
 describe('the reporting edges', () => {
   it('reports at boot, so a best the last session throttled still lands', async () => {
-    const { battle, prism, wave, state } = await load()
-    battle.bestWave.value = 12
-    prism.maxTier.value = 7
+    const { progress, wave, state } = await load()
+    progress.bestRow.value = 12
+    progress.maxBallTier.value = 7
     wave.installWaveLeaderboard()
     await settle()
 
@@ -101,58 +100,58 @@ describe('the reporting edges', () => {
     expect(state.getState(SUBMITTED_SCORE_KEY, 0)).toBe(12)
   })
 
-  it('reports a new best wave, carrying the highest tier as the tie-break', async () => {
-    const { battle, prism, wave } = await load()
-    battle.bestWave.value = 1
-    prism.maxTier.value = 4
+  it('reports a new best row, carrying the highest ball tier as the tie-break', async () => {
+    const { progress, wave } = await load()
+    progress.bestRow.value = 1
+    progress.maxBallTier.value = 4
     wave.installWaveLeaderboard()
     await settle()
 
-    battle.bestWave.value = 2   // wave 1 cleared
+    progress.noteBestRow(2)
     await settle()
     expect(posts()).toHaveLength(1)
     expect(posts()[0]!.body).toMatchObject({ score: 2, flair: 4 })
   })
 
-  it('coalesces a climb, then lets an overrun post the best it stopped on', async () => {
-    const { battle, wave } = await load()
-    battle.bestWave.value = 1
+  it('coalesces a climb, then lets a breach post the best it stopped on', async () => {
+    const { progress, wave } = await load()
+    progress.bestRow.value = 1
     wave.installWaveLeaderboard()
     await settle()
 
-    for (let w = 2; w <= 9; w++) {
-      battle.bestWave.value = w
+    for (let r = 2; r <= 9; r++) {
+      progress.noteBestRow(r)
       await settle()
     }
     // The first record went out; the rest were held by the write throttle.
     expect(posts()).toHaveLength(1)
     expect(posts()[0]!.body!.score).toBe(2)
 
-    battle.wavePhase.value = 'overrun'
+    progress.runEndSeq.value++
     await settle()
     expect(posts()).toHaveLength(2)
     expect(posts()[1]!.body!.score).toBe(9)
   })
 
-  it('costs nothing on an overrun when the board already has the best', async () => {
-    const { battle, wave } = await load()
-    battle.bestWave.value = 30
+  it('costs nothing on a run end when the board already has the best', async () => {
+    const { progress, wave } = await load()
+    progress.bestRow.value = 30
     wave.installWaveLeaderboard()
     await settle()
     expect(sent).toHaveLength(1)
 
-    battle.wavePhase.value = 'overrun'
+    progress.runEndSeq.value++
     await settle()
     expect(sent).toHaveLength(1)
   })
 
-  it('installs once, however often the arena remounts', async () => {
-    const { battle, wave } = await load()
-    battle.bestWave.value = 1
+  it('installs once, however often the scene remounts', async () => {
+    const { progress, wave } = await load()
+    progress.bestRow.value = 1
     wave.installWaveLeaderboard()
     wave.installWaveLeaderboard()
     await settle()
-    battle.bestWave.value = 5
+    progress.noteBestRow(5)
     await settle()
     expect(posts()).toHaveLength(1)
   })
@@ -160,13 +159,13 @@ describe('the reporting edges', () => {
 
 describe('a build with no board', () => {
   it('installs nothing and touches no network', async () => {
-    const { battle, wave, lb } = await load('')
+    const { progress, wave, lb } = await load('')
     expect(lb.leaderboardEnabled).toBe(false)
-    battle.bestWave.value = 40
+    progress.bestRow.value = 40
     wave.installWaveLeaderboard()
     await settle()
-    battle.bestWave.value = 41
-    battle.wavePhase.value = 'overrun'
+    progress.noteBestRow(41)
+    progress.runEndSeq.value++
     await settle()
     expect(sent).toHaveLength(0)
   })

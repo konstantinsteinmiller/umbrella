@@ -35,7 +35,8 @@ import { isGamepix } from '@/use/useUser'
 import { isDebug } from '@/use/useMatch'
 import { isPlatformPaused, isVisibilityHidden, pauseGame, resumeGame } from '@/use/useGamePause'
 import { setPlatformAudioMuted } from '@/use/useGamePauseAudio'
-import { gamesPlayedTotal, maxStageReached } from '@/use/useEpicProgress'
+import { bestRow } from '@/barrage/state/progress'
+import { BOSS_EVERY } from '@/barrage/engine/types'
 
 declare global {
   interface Window {
@@ -438,9 +439,13 @@ const installScoreLevelWatchers = (): void => {
   if (scoreWatchersInstalled) return
   scoreWatchersInstalled = true
 
+  // Elemental Barrage: score = the deepest endless row (the same number the
+  // leaderboards rank), level = the boss zone that row sits in (zone 1 = rows
+  // 1-10, zone 2 = rows 11-20, …). Read from the engine-free progress module so
+  // this boot-path plugin never pulls the game engine into the entry chunk.
   // Boot value flushed immediately so the toolkit's debug panel lights
   // up at boot even before the first in-game change.
-  let pendingScore = gamesPlayedTotal.value
+  let pendingScore = bestRow.value
   let scoreTimer: ReturnType<typeof setTimeout> | null = null
   const flushScore = (): void => {
     scoreTimer = null
@@ -448,16 +453,17 @@ const installScoreLevelWatchers = (): void => {
   }
   gamePixUpdateScore(pendingScore)
 
-  // Trailing-edge debounce: some game state changes many times per
-  // second (cascading drops, frame-rate-coupled counters). Spamming
-  // `updateScore` wastes the SDK's input-validation budget and the
-  // toolkit panel flickers. 1500 ms is the sweet spot.
-  watch(gamesPlayedTotal, (next) => {
+  // Trailing-edge debounce: a record run raises the best row every turn, and a
+  // cloud hydrate can move it too. Spamming `updateScore` wastes the SDK's
+  // input-validation budget and the toolkit panel flickers. 1500 ms is the
+  // sweet spot.
+  watch(bestRow, (next) => {
     pendingScore = next
     if (scoreTimer === null) scoreTimer = setTimeout(flushScore, SCORE_DEBOUNCE_MS)
   })
 
-  watch(maxStageReached, (stage) => gamePixUpdateLevel(stage), { immediate: true })
+  const zoneOf = (row: number): number => Math.floor(Math.max(0, row - 1) / BOSS_EVERY) + 1
+  watch(() => zoneOf(bestRow.value), (zone) => gamePixUpdateLevel(zone), { immediate: true })
 }
 
 // ─── Ad show wrappers ─────────────────────────────────────────────────────

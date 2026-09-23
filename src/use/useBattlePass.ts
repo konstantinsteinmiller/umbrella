@@ -2,35 +2,36 @@ import { ref, computed, watch, type Ref } from 'vue'
 import useEpicConfig from '@/use/useEpicConfig'
 import { saveDataVersion, flushSaveNow } from '@/use/useSaveStatus'
 import { getState, setState } from '@/use/useEpicState'
-import { BATTLE_BEST_WAVE_KEY, PRISM_MAX_TIER_KEY } from '@/keys'
+import { killCoins } from '@/barrage/engine/economy'
+import { bestRow, maxBallTier, oweBall } from '@/barrage/state/progress'
 
 /**
- * "War Campaign" — the free-track battle pass (retention-roadmap #18).
- * 30 reward tiers, 100 XP per tier. Campaign XP ticks off the battler's
- * existing `bumpStat` calls in `useBattle` (kills / merges / field merges /
- * wave clears / boss kills — see `CAMPAIGN_XP_SOURCES`), so every subsystem
- * feeds the pass without extra instrumentation.
+ * The free-track battle pass (retention-roadmap #18), re-pointed at Elemental
+ * Barrage. 30 reward tiers, 100 XP per tier. XP ticks off the barrage run —
+ * `useBarrage` awards `BARRAGE_XP_SOURCES` per kill / merge / row reached /
+ * boss — so the pass moves on every turn without extra instrumentation.
  *
- * Tier rewards: gold on a ramp that also scales with the player's best wave
- * (so late claims never feel stale), and a free unit every 5th tier drawn from
- * the player's own codex (see `bpUnitTier`), so it is never a relic. The 5s
- * used to hand out an Instant Spawn buff instead — two minutes of faster
- * tapping reads as nothing next to the tier that follows it, so those slots now
- * pay in units too, one rank below the 10s. Unclaimed tiers stay claimable
- * until tapped. The 30-day season resets from its first XP tick (no server
- * needed). State persists inside the consolidated `merge-idle-war_state` blob.
+ * Tier rewards: coins on a ramp priced in "kills at the player's best row" (so a
+ * late claim is never pocket change), and a free BALL every 5th tier drawn from
+ * the player's own ball ladder (see `bpBallTier`), dropped into the endless
+ * run's tray. Unclaimed tiers stay claimable until tapped. The 30-day season
+ * resets from its first XP tick (no server needed). State persists inside the
+ * consolidated `elemental-barrage_state` blob.
  */
 
 export const BP_TOTAL_STAGES = 30
 export const BP_XP_PER_STAGE = 100
 export const BP_SEASON_DAYS = 30
 
-// Campaign XP per battler event — single source of truth; `useBattle.bumpStat`
-// applies these and the modal's "how to earn" explainer displays them.
-// BALANCE (2026-07-04): halved from the launch values (kill 1 / merge 2 /
-// fieldMerge 4 / wave 15 / boss 30) — the pass was paying out gold too fast,
-// with the wave/boss ticks doing most of the inflating. Kill stays at the
-// 1-XP floor (fractions would render as "37.5 / 100 XP").
+/** XP per barrage event — single source of truth: `useBarrage` applies these
+ *  and the pass modal's "how to earn" explainer displays them. A row is a turn
+ *  survived; a boss is a checkpoint. */
+export const BARRAGE_XP_SOURCES = {
+  kill: 1, merge: 2, row: 1, boss: 15
+} as const
+
+/** @deprecated Merge Idle War's battler XP table — still read by the legacy
+ *  `useBattle` module until it is deleted. Barrage code uses `BARRAGE_XP_SOURCES`. */
 export const CAMPAIGN_XP_SOURCES = {
   kill: 1, merge: 1, fieldMerge: 2, wave: 7, boss: 15
 } as const
@@ -102,58 +103,44 @@ const saveState = () => {
 
 export interface CampaignReward {
   coins: number
-  /** Tier grants a free unit of this merge tier (dropped onto the grid). */
-  unitTier?: number
+  /** Tier grants a free ball of this tier (added to the endless run's tray). */
+  ballTier?: number
 }
 
+/**
+ * Coins for a tier: a ramp from 14 to 130 "kills" of the player's best row.
+ * Priced in kills rather than flat coins because barrage income grows ~7% a
+ * row — a flat ramp would be a windfall at row 5 and pocket change at row 80.
+ */
 export const bpCoinReward = (stage: number): number => {
-  // Gold ramp across the 30 tiers, scaled by best wave so a claim always
-  // feels relevant to the player's current economy.
   const clamped = Math.max(1, Math.min(BP_TOTAL_STAGES, stage))
-  const bestWave = Math.max(1, Math.floor(Number(getState(BATTLE_BEST_WAVE_KEY, 1))) || 1)
-  const raw = (30 + (clamped - 1) * 18) * (1 + (bestWave - 1) * 0.08)
-  return Math.round(raw / 5) * 5
+  const best = Math.max(1, Math.floor(Number(bestRow.value)) || 1)
+  const raw = (10 + clamped * 4) * killCoins(best, 'slime', false)
+  return Math.max(5, Math.round(raw / 5) * 5)
 }
 
-/** The authored unit ladder — tiers 4 / 5 / 6 at stages 10 / 20 / 30. Still the
- *  floor for a young player, for whom a T4 gift is a real leg up. The 5s never
- *  had an authored unit (they paid a buff), so they carry no floor: their
- *  reward is purely "one rank below the 10s". */
-const bpAuthoredUnitTier = (stage: number): number =>
-  stage % 10 === 0 ? Math.min(9, 3 + stage / 10) : 1
-
-/** How far below the codex watermark a unit-bearing stage pays out: the
- *  player's outright highest unit at the final tier of the pass, his
- *  second-highest at the other 10s, his third-best on the 5s. */
-const bpUnitRank = (stage: number): number =>
+/** How far below the ball watermark a ball-bearing stage pays out: the player's
+ *  outright highest tier at the final tier of the pass, second-highest at the
+ *  other 10s, third-best on the 5s. */
+const bpBallRank = (stage: number): number =>
   (stage >= BP_TOTAL_STAGES ? 0 : stage % 10 === 0 ? 1 : 2)
 
-/** The free unit a unit-bearing tier hands over.
- *
- *  The authored ladder alone made this reward a relic: a player deep enough to
- *  be finishing the pass merges past T6 long before stage 10, so the "free
- *  high-tier unit" arrived as junk they would have to merge four times over to
- *  even use. It tracks the player's OWN codex high-water mark
- *  (`prism_max_tier`, the same number the Unit Codex reads) instead — see
- *  `bpUnitRank` for which rank each stage pays. The authored ladder stays as a
- *  floor on the 10s, so an early player still gets the leg up it was written
- *  for.
- *
- *  Read out of the save blob rather than imported from `usePrismGame`: that
- *  module pulls in `useBattle`, which imports THIS one — the import would
- *  close a cycle. `getState` reads the reactive blob, so a card rendered from
- *  this is live and re-renders the moment the watermark moves (which is what
- *  makes an open modal show the right unit). */
-export const bpUnitTier = (stage: number): number => {
-  const best = Math.max(1, Math.floor(Number(getState(PRISM_MAX_TIER_KEY, 1))) || 1)
-  return Math.max(1, bpAuthoredUnitTier(stage), best - bpUnitRank(stage))
+/**
+ * The free ball a ball-bearing tier hands over — tracked off the player's OWN
+ * highest ball tier (`maxBallTier`), so it is never a relic, and never ABOVE it:
+ * a gifted ball past the watermark would skip the tier-reveal moment the player
+ * is merging towards. Read live, so an open modal re-prices as the tray climbs.
+ */
+export const bpBallTier = (stage: number): number => {
+  const best = Math.max(1, Math.floor(Number(maxBallTier.value)) || 1)
+  return Math.max(1, best - bpBallRank(stage))
 }
 
-/** Full reward descriptor for a tier: gold always, plus a free unit from the
- *  player's own codex every 5th tier. The claim UI lands the unit. */
+/** Full reward descriptor for a tier: coins always, plus a free ball every 5th
+ *  tier. The claim delivers both. */
 export const bpReward = (stage: number): CampaignReward => {
   const coins = bpCoinReward(stage)
-  if (stage % 5 === 0) return { coins, unitTier: bpUnitTier(stage) }
+  if (stage % 5 === 0) return { coins, ballTier: bpBallTier(stage) }
   return { coins }
 }
 
@@ -183,7 +170,7 @@ const addXp = (amount: number) => {
 
 const awardCampaignWin = () => addXp(BP_XP_CAMPAIGN_WIN)
 const awardAttempt = () => addXp(BP_XP_ATTEMPT)
-/** Grant an arbitrary XP amount (e.g. a daily-mission claim). Guards NaN. */
+/** Grant an arbitrary XP amount (barrage events, a daily-mission claim). Guards NaN. */
 const awardXp = (amount: number) => addXp(Number(amount) || 0)
 
 export interface ClaimResult extends CampaignReward {
@@ -197,6 +184,10 @@ const claimStage = (stage: number): ClaimResult | null => {
   const reward = bpReward(stage)
   const coins = reward.coins
   addCoins(coins)
+  // The ball is OWED to the endless run rather than pushed into it here: the
+  // pass can be claimed mid-volley or from the daily board, and the debt is
+  // saved, so it lands on the next endless turn even across a reload.
+  if (reward.ballTier) oweBall(reward.ballTier)
   state.value.claimedStages = [...state.value.claimedStages, stage]
   saveState()
   // Discrete reward claim — flush immediately so the claim (and its coins)

@@ -1,135 +1,164 @@
 /**
- * useTutorial — the guided first-session FTUE (retention-roadmap #1).
+ * useTutorial — Elemental Barrage's first-session FTUE (CONTRACT §7).
  *
- * Four coach-mark steps driven by the REAL game events (no scripted fake
- * state): spawn two sparks → merge them → deploy the fighter → field-merge
- * a same-tier unit onto it. `usePrismGame` / `useBattle` call
- * `notifyTutorial()` at the authoritative mutation points; the spotlight
- * overlay (`TutorialOverlay.vue`) just renders `tutorialStep`.
+ * Four beats, each advanced by the REAL engine event that proves the player
+ * did it (no scripted fake state — the engine's `config.ftue` board supplies
+ * the easy slimes and the in-line "+1" pickups):
  *
- * While the tutorial runs the Spawn button is 1-tap (the 4-tap meter is NOT
- * self-explanatory without a nudge — the meter friction starts after the
- * player has internalised the loop).
+ *   aim     → the first shot                 (engine `fire`)
+ *   pickup  → a "+1" ball bubble collected   (engine `pickup`, kind ball)
+ *   merge   → the tray overflowed and merged (engine `trayMerge`)
+ *   upgrade → the free "Tray Capacity 3" (or the glowing upgrade) bought
+ *   done
  *
- * Progress persists as a step index in the state blob
- * (`prism_tutorial_step`); veterans (best wave > 1 from a previous session)
- * skip the whole thing.
+ * Events AHEAD of the current beat advance past it (a lucky first volley that
+ * already collects a pickup has taught the pickup), never behind it.
  *
- * This module must stay leaf-level (only keys + state imports) — it is
- * imported by both `usePrismGame` and `useBattle`.
+ * Progress persists as a step index in the state blob (`eb_tutorial_step`);
+ * veterans — a best row past 1 and no tutorial progress on record — skip it.
+ *
+ * This module must stay leaf-level (state-blob imports only): the wiring to the
+ * live run arrives through `installBarrageTutorial`, called by GameScene.
  */
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 import { getState, setState, flushPersist, prismState } from '@/use/useEpicState'
 import { saveDataVersion } from '@/use/useSaveStatus'
-import { PRISM_TUTORIAL_KEY, BATTLE_BEST_WAVE_KEY } from '@/keys'
+import type { EngineListener } from '@/barrage/engine/types'
+import { EB_TUTORIAL_STEP_KEY } from '@/barrage/keys'
 
-export type TutorialStep = 'spawn' | 'merge' | 'deploy' | 'fieldMerge' | 'done'
-const STEP_ORDER: TutorialStep[] = ['spawn', 'merge', 'deploy', 'fieldMerge', 'done']
+export type TutorialStep = 'aim' | 'pickup' | 'merge' | 'upgrade' | 'done'
+const STEP_ORDER: TutorialStep[] = ['aim', 'pickup', 'merge', 'upgrade', 'done']
 export const TUTORIAL_STEP_COUNT = STEP_ORDER.length - 1
 
-/** Sparks the player must spawn before the merge step makes sense. */
-const SPAWNS_NEEDED = 2
+/** Inside the `elemental-barrage_state` blob, beside the state layer's `eb_*` keys. */
+const TUTORIAL_KEY = EB_TUTORIAL_STEP_KEY
 
-const readStep = (): TutorialStep => {
-  // Veterans skip entirely — they've already fought past wave 1. Only a player
-  // who never STARTED the coach-marks counts as one: the battle runs during the
-  // field-merge step, so a first-timer routinely clears wave 1 there, and this
-  // check (re-run on every blob change) used to end the tutorial mid-step.
-  const bestWave = Math.floor(Number(getState(BATTLE_BEST_WAVE_KEY, 1))) || 1
-  const saved = Math.floor(Number(getState(PRISM_TUTORIAL_KEY, 0))) || 0
-  if (bestWave > 1 && saved === 0) return 'done'
-  return STEP_ORDER[Math.max(0, Math.min(STEP_ORDER.length - 1, saved))]!
-}
+const savedIndex = (): number => Math.floor(Number(getState(TUTORIAL_KEY, 0))) || 0
+const stepAt = (i: number): TutorialStep => STEP_ORDER[Math.max(0, Math.min(STEP_ORDER.length - 1, i))]!
+const indexOf = (s: TutorialStep): number => STEP_ORDER.indexOf(s)
 
-export const tutorialStep = ref<TutorialStep>(readStep())
-
-/** Write the current step index into the blob when it differs from what is
- *  stored. Load-bearing for the VETERAN SKIP: `readStep` resolves to 'done'
- *  from `battle_best_wave` alone, which used to leave `prism_tutorial_step`
- *  absent from `merge-idle-war_state` (and therefore the cloud mirror) — so
- *  any boot that read the blob before hydration, or hydrated an older cloud
- *  snapshot, restarted the coach-marks. Persisting the resolved 'done' makes
- *  completion durable everywhere the blob travels. */
-const persistResolvedStep = (): void => {
-  const idx = STEP_ORDER.indexOf(tutorialStep.value)
-  const saved = Math.floor(Number(getState(PRISM_TUTORIAL_KEY, 0))) || 0
-  if (saved !== idx) setState(PRISM_TUTORIAL_KEY, idx)
-}
-if (tutorialStep.value === 'done') persistResolvedStep()
-
-// Re-derive when the save subsystem swaps the blob under us (cloud/local
-// hydration lands AFTER module init). Only ever move FORWARD — a veteran's
-// hydrated progress must dismiss a stale overlay, but hydration must never
-// yank a player back into an earlier step mid-session. The resolved step is
-// re-persisted so a hydrated older snapshot (missing the field) gets the
-// completion written back and pushed to the cloud on the next flush.
-const rehydrate = (): void => {
-  const fresh = readStep()
-  if (STEP_ORDER.indexOf(fresh) > STEP_ORDER.indexOf(tutorialStep.value)) {
-    tutorialStep.value = fresh
-  }
-  if (tutorialStep.value === 'done') persistResolvedStep()
-}
-watch(saveDataVersion, rehydrate)
-watch(prismState, rehydrate, { deep: false })
+export const tutorialStep = ref<TutorialStep>(stepAt(savedIndex()))
 export const tutorialActive = computed(() => tutorialStep.value !== 'done')
 
-/** True while the coach-marks must HOLD the battle simulation frozen.
- *
- *  The tutorial walks a first-timer through spawn → merge → deploy at their own
- *  reading pace, but the battle clock used to keep running underneath it: wave 1
- *  spawned, walked past an empty guard line and could overrun the gate before
- *  the player had ever placed a fighter — i.e. you could LOSE the run inside the
- *  tutorial. So every step up to and including 'deploy' holds the sim.
- *
- *  The hold drops the instant the first fighter lands in the arena ('fieldMerge'
- *  onwards): the player now has a defender, and the field-merge step needs a
- *  live fighter to merge onto anyway — teaching it against a real wave is the
- *  point. `useTutorialPauseGate` bridges this to the universal pause gate. */
-export const tutorialHoldsBattle = computed(
-  () => STEP_ORDER.indexOf(tutorialStep.value) < STEP_ORDER.indexOf('fieldMerge'))
+// The FTUE never holds the simulation. MIW's coach-marks froze a real-time
+// battle so a first-timer couldn't lose while reading; Barrage is turn-based —
+// nothing marches until the player fires — and every beat here IS a shot, so
+// a held board would freeze the very volley being taught.
 
-/** 1-based index of the current step for the "1/4" progress label. */
+/** 1-based index of the current beat for the progress pips. */
 export const tutorialStepIndex = computed(() =>
-  Math.min(TUTORIAL_STEP_COUNT, STEP_ORDER.indexOf(tutorialStep.value) + 1))
-/** One-tap spawns for the whole onboarding session. */
-export const isTutorialOneTap = computed(() => tutorialActive.value)
+  Math.min(TUTORIAL_STEP_COUNT, indexOf(tutorialStep.value) + 1))
 
-/** What the textless coach-mark overlay is animating right now: 'spawn' (a hand
- *  pressing SPAWN) or one of the drag previews — or null. Written only by
- *  `TutorialOverlay`; the Spawn button reads it to press itself down in time
- *  with the hand. */
-export type TutorialPreview = 'spawn' | 'merge' | 'deploy' | 'fieldMerge'
+/** What the coach overlay is acting out right now — written only by
+ *  `TutorialOverlay`; a target may read it to animate in step with the hand. */
+export type TutorialPreview = 'aim' | 'press'
 export const tutorialPreview = ref<TutorialPreview | null>(null)
 
-let spawnsSeen = 0
-
 const advanceTo = (step: TutorialStep): void => {
+  if (indexOf(step) <= indexOf(tutorialStep.value)) return
   tutorialStep.value = step
-  setState(PRISM_TUTORIAL_KEY, STEP_ORDER.indexOf(step))
+  setState(TUTORIAL_KEY, indexOf(step))
   if (step === 'done') flushPersist() // graduation is real progress
 }
 
-export type TutorialEvent = 'spawn' | 'merge' | 'deploy' | 'fieldMerge'
+/** Barrage FTUE signals. */
+export type BarrageTutorialEvent =
+  | { kind: 'fired' }
+  | { kind: 'ballPickup' }
+  | { kind: 'merge' }
+  | { kind: 'upgrade' }
+  | { kind: 'skip' }
 
-/** Called from the authoritative game mutations. Off-step events are ignored
- *  (e.g. extra merges while building the field-merge unit). */
-export const notifyTutorial = (event: TutorialEvent): void => {
+export const notifyTutorial = (event: BarrageTutorialEvent): void => {
   if (!tutorialActive.value) return
   const step = tutorialStep.value
-  if (step === 'spawn' && event === 'spawn') {
-    spawnsSeen += 1
-    if (spawnsSeen >= SPAWNS_NEEDED) advanceTo('merge')
-  } else if (step === 'merge' && event === 'merge') {
-    advanceTo('deploy')
-  } else if (step === 'deploy' && event === 'deploy') {
-    advanceTo('fieldMerge')
-  } else if (step === 'fieldMerge' && event === 'fieldMerge') {
-    advanceTo('done')
+  switch (event.kind) {
+    case 'fired':
+      if (step === 'aim') advanceTo('pickup')
+      break
+    case 'ballPickup':
+      if (step === 'aim' || step === 'pickup') advanceTo('merge')
+      break
+    case 'merge':
+      advanceTo('upgrade')
+      break
+    case 'upgrade':
+      if (step === 'upgrade') advanceTo('done')
+      break
+    case 'skip':
+      advanceTo('done')
+      break
   }
 }
 
-// ⚠️ DEV-ONLY: skip the intro tutorial for promo capture (window.__skipTut()).
+// Cloud / local hydration lands after module init: only ever move FORWARD —
+// a hydrated veteran must lose a stale overlay, but a mid-session hydrate must
+// never yank a player back into an earlier beat.
+const rehydrate = (): void => {
+  const fresh = stepAt(savedIndex())
+  if (indexOf(fresh) > indexOf(tutorialStep.value)) tutorialStep.value = fresh
+}
+watch(saveDataVersion, rehydrate)
+watch(prismState, rehydrate, { deep: false })
+
+export interface TutorialWiring {
+  /** Best row ever reached — the veteran signal. */
+  bestRow: Ref<number>
+  /** Subscribe to engine events across engine swaps (`useBarrage().onEngineEvent`). */
+  onEngineEvent(cb: EngineListener): () => void
+  /** Something upgrade-shaped the hand could press right now (free offer or a glowing chip). */
+  upgradeTarget: Ref<boolean>
+}
+
+/**
+ * Wire the FTUE to the live run. Returns the teardown. GameScene calls it on
+ * mount — after the state layer exists, which is why it is not done at import.
+ */
+export const installBarrageTutorial = (w: TutorialWiring): (() => void) => {
+  const offs: (() => void)[] = []
+
+  // Veteran skip: only a player who never STARTED the beats counts — a
+  // first-timer passes row 1 on their very first shot, which already moved
+  // the step past 'aim'.
+  const checkVeteran = (): void => {
+    if (tutorialStep.value === 'aim' && savedIndex() === 0 && w.bestRow.value > 1) advanceTo('done')
+  }
+  checkVeteran()
+  offs.push(watch(w.bestRow, checkVeteran))
+
+  // A player who keeps shooting past the upgrade beat has chosen to: two
+  // ignored volleys and it graduates (the FREE chip keeps glowing on its own),
+  // instead of dimming the board at every aim for the rest of the session.
+  let volleysInUpgrade = 0
+  offs.push(w.onEngineEvent((e) => {
+    if (!tutorialActive.value) return
+    if (e.type === 'fire' && tutorialStep.value === 'upgrade' && ++volleysInUpgrade >= 2) {
+      notifyTutorial({ kind: 'skip' })
+      return
+    }
+    if (e.type === 'fire') notifyTutorial({ kind: 'fired' })
+    else if (e.type === 'pickup' && e.kind === 'ball') notifyTutorial({ kind: 'ballPickup' })
+    else if (e.type === 'trayMerge') notifyTutorial({ kind: 'merge' })
+  }))
+
+  // The upgrade beat needs something to press. With nothing on offer (the state
+  // layer gave no free chip and nothing is affordable) it graduates instead of
+  // pointing at a dead chip.
+  let idleTimer = 0
+  offs.push(watch([tutorialStep, w.upgradeTarget], ([step, target]) => {
+    window.clearTimeout(idleTimer)
+    if (step === 'upgrade' && !target) {
+      idleTimer = window.setTimeout(() => {
+        if (tutorialStep.value === 'upgrade' && !w.upgradeTarget.value) advanceTo('done')
+      }, 1500)
+    }
+  }, { immediate: true }))
+  offs.push(() => window.clearTimeout(idleTimer))
+
+  return () => { for (const off of offs) off() }
+}
+
+// ⚠️ DEV-ONLY: skip the FTUE for promo capture (window.__skipTut()).
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   ;(window as unknown as Record<string, unknown>).__skipTut = (): void => { advanceTo('done') }
 }

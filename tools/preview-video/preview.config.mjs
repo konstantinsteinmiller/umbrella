@@ -1,5 +1,5 @@
 /**
- * ─── Merge Idle War — preview-video configuration ───────────────────────────
+ * ─── Elemental Barrage — preview-video configuration ───────────────────────────
  *
  *   pnpm preview:video                          # every format, every scenario
  *   pnpm preview:video --formats 30s            # the 30 s 1080p pair only
@@ -16,7 +16,7 @@
 
 export default {
   // The port-ownership check: the served <title> must contain this.
-  title: 'merge-idle-war',
+  title: 'elemental-barrage',
 
   // The DEV server, not a production build: `window.__video` (src/dev/videoSeam.ts),
   // `__arenaCast`, `__skills` and the `?clean=1` flag are all `import.meta.env.DEV`

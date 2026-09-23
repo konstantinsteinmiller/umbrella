@@ -1,14 +1,12 @@
 <script setup lang="ts">
 /**
- * "War Campaign" — the free-track battle pass (retention-roadmap #18).
- * Re-skinned from the epicrolla template: XP now ticks off the battler's
- * `bumpStat` events (kills / merges / waves / bosses — see
- * `CAMPAIGN_XP_SOURCES`), and tier rewards go beyond gold: a free unit every
- * 5th tier, drawn from the player's own codex (`bpUnitTier`), so the cards
- * re-price themselves against the current watermark every time the modal is
- * opened and a veteran is never handed a relic. The grant is executed here on
- * claim (the composable stays economy-pure); `grantUnit` below guarantees the
- * unit finds somewhere to land.
+ * The free-track battle pass (retention-roadmap #18), re-pointed at Elemental
+ * Barrage: XP ticks off the barrage run (kills / merges / rows / bosses — see
+ * `BARRAGE_XP_SOURCES`), and every 5th tier pays a free BALL drawn from the
+ * player's own ball ladder (`bpBallTier`), so the cards re-price themselves
+ * against the current watermark every time the modal opens and a veteran is
+ * never handed a relic. The claim itself delivers the ball — it is owed to the
+ * endless run and lands in its tray on the next turn.
  */
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -18,11 +16,9 @@ import IngredientUnit from '@/components/organisms/IngredientUnit.vue'
 import useBattlePass, {
   BP_TOTAL_STAGES,
   BP_XP_PER_STAGE,
-  CAMPAIGN_XP_SOURCES,
+  BARRAGE_XP_SOURCES,
   bpReward
 } from '@/use/useBattlePass'
-import usePrismGame from '@/use/usePrismGame'
-import useBattle from '@/use/useBattle'
 import { formatBig } from '@/utils/bigNumber'
 import useSounds from '@/use/useSound.ts'
 
@@ -44,8 +40,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { playSound } = useSounds()
-const game = usePrismGame()
-const battle = useBattle()
 
 const isModalOpen = ref(false)
 const bpBtnRef = ref<HTMLElement | null>(null)
@@ -72,31 +66,17 @@ const stageCards = computed(() =>
 )
 
 const xpSources = computed(() => [
-  { xp: CAMPAIGN_XP_SOURCES.kill, label: t('battlePass.perKill') },
-  { xp: CAMPAIGN_XP_SOURCES.merge, label: t('battlePass.perMerge') },
-  { xp: CAMPAIGN_XP_SOURCES.wave, label: t('battlePass.perWave') },
-  { xp: CAMPAIGN_XP_SOURCES.boss, label: t('battlePass.perBoss') }
+  { xp: BARRAGE_XP_SOURCES.kill, label: t('barrageMeta.pass.perKill') },
+  { xp: BARRAGE_XP_SOURCES.merge, label: t('barrageMeta.pass.perMerge') },
+  { xp: BARRAGE_XP_SOURCES.row, label: t('barrageMeta.pass.perRow') },
+  { xp: BARRAGE_XP_SOURCES.boss, label: t('barrageMeta.pass.perBoss') }
 ])
-
-/** Land a granted unit. The grid first — that is where a reward is most useful,
- *  because it can still be merged. With the grid packed it goes to the front
- *  line: into a same-tier fighter if one is out there (a rank-up beats an extra
- *  body), otherwise as a new fighter even when that puts the army over
- *  ARMY_CAP. A claimed reward must never evaporate for want of a slot, which
- *  is also why the claim itself is no longer refused when both are full. */
-const grantUnit = (tier: number): void => {
-  if (game.spawnUnitAt(tier) >= 0) return
-  const twin = battle.fighters.value.find((f) => !f.spectral && f.tier === tier)
-  if (twin && battle.fieldMerge(twin.id, tier)) return
-  battle.deployFighter(tier, undefined, undefined, true)
-}
 
 const onClaim = (stage: number, sourceEl: HTMLElement) => {
   const res = claimStage(stage)
   if (!res) return
   emit('coins-awarded', sourceEl)
   playSound('reward-continue', 0.06)
-  if (res.unitTier) grantUnit(res.unitTier)
 }
 </script>
 
@@ -105,7 +85,7 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
     ref="bpBtnRef"
     class="cursor-pointer pointer-events-auto active:scale-95 transition-transform"
     :class="{ 'pulse-claim': hasUnclaimedReward }"
-    :aria-label="t('battlePass.title')"
+    :aria-label="t('barrageMeta.pass.title')"
     @click="isModalOpen = true"
   )
     div.relative
@@ -129,13 +109,13 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
 
   FModal(
     v-model="isModalOpen"
-    :title="t('battlePass.title')"
+    :title="t('barrageMeta.pass.title')"
   )
     div.flex.flex-col.gap-3.p-3
-      div.text-center.text-white.game-text(v-if="!isMaxed" class="text-xs sm:text-sm")
-        span {{ t('battlePass.progress', { current: unlockedStages, total: BP_TOTAL_STAGES }) }}
-        span.opacity-70(v-if="daysUntilReset !== null") {{ ' · ' + t('battlePass.daysLeft', { n: daysUntilReset }) }}
-      div.text-center.text-yellow-300.game-text.font-black(v-else class="text-base") {{ t('battlePass.maxed') }}
+      div.flex.justify-center.gap-2.text-center.text-white.game-text(v-if="!isMaxed" class="text-xs sm:text-sm")
+        span {{ t('barrageMeta.pass.progress', { current: unlockedStages, total: BP_TOTAL_STAGES }) }}
+        span.opacity-70(v-if="daysUntilReset !== null") {{ t('barrageMeta.pass.daysLeft', { n: daysUntilReset }) }}
+      div.text-center.text-yellow-300.game-text.font-black(v-else class="text-base") {{ t('barrageMeta.pass.maxed') }}
 
       //- Progress bar with the inline xp count.
       div(v-if="!isMaxed" class="flex flex-col gap-1")
@@ -144,19 +124,19 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
             :style="{ width: progressFraction * 100 + '%' }"
           )
         div.flex.justify-center.text-white.game-text.opacity-70(class="text-[10px] sm:text-xs")
-          span {{ t('battlePass.xpProgress', { current: currentXp, total: BP_XP_PER_STAGE }) }}
+          span {{ t('barrageMeta.pass.xpProgress', { current: currentXp, total: BP_XP_PER_STAGE }) }}
 
-      //- "How to earn XP" explainer — mirrors CAMPAIGN_XP_SOURCES so the
+      //- "How to earn XP" explainer — mirrors BARRAGE_XP_SOURCES so the
       //- player always sees why the bar is moving (or not).
       div.flex.flex-col.gap-1.rounded-lg.border.p-2(class="bg-black/30 border-white/15")
         div.text-center.font-black.uppercase.tracking-wider.text-yellow-200.game-text(class="text-[10px] sm:text-xs")
-          | {{ t('battlePass.howToEarn') }}
+          | {{ t('barrageMeta.pass.howToEarn') }}
         div.flex.justify-around.gap-1.text-white.game-text(class="text-[10px] sm:text-xs")
           div.flex.flex-col.items-center(v-for="s in xpSources" :key="s.label")
-            span.font-black.text-cyan-200 +{{ s.xp }} XP
+            span.font-black.text-cyan-200 {{ t('barrageMeta.pass.xpAmount', { n: s.xp }) }}
             span.opacity-80 {{ s.label }}
         div.text-center.text-white.game-text.opacity-70(class="text-[9px] sm:text-[10px]")
-          | {{ t('battlePass.unlockHint', { n: BP_XP_PER_STAGE }) }}
+          | {{ t('barrageMeta.pass.unlockHint', { n: BP_XP_PER_STAGE }) }}
 
       //- Tier cards
       div.grid.gap-1.bp-stage-grid
@@ -168,9 +148,14 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
           @click="card.unlocked && !card.claimed ? onClaim(card.stage, $event.currentTarget) : null"
         )
           span.font-black.game-text.text-white(class="text-[9px] sm:text-[10px]") {{ card.stage }}
-          //- Reward glyph: free unit, else gold
-          div(v-if="card.reward.unitTier" class="w-5 h-5 sm:w-6 sm:h-6 my-0.5")
-            IngredientUnit(:tier="card.reward.unitTier" :still="true")
+          //- Reward glyph: a free ball (the tier's portrait in a round orb), else gold
+          div.bp-ball(
+            v-if="card.reward.ballTier"
+            class="w-5 h-5 sm:w-6 sm:h-6 my-0.5"
+            role="img"
+            :aria-label="t('barrageMeta.pass.ballReward', { tier: card.reward.ballTier })"
+          )
+            IngredientUnit(:tier="card.reward.ballTier" :still="true")
           IconCoin(v-else class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 my-0.5")
           span.font-black.game-text.text-yellow-100(class="text-[9px] sm:text-[10px]") +{{ formatBig(card.reward.coins) }}
 </template>
@@ -187,6 +172,12 @@ const onClaim = (stage: number, sourceEl: HTMLElement) => {
 
 .bp-stage-grid
   grid-template-columns: repeat(6, minmax(0, 1fr))
+
+// Balls, not units: the portrait sits inside a glass-orb rim.
+.bp-ball
+  border-radius: 9999px
+  overflow: hidden
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.7), 0 0 4px rgba(120, 200, 255, 0.6)
 
 @media (min-width: 640px)
   .bp-stage-grid

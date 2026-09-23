@@ -1,11 +1,16 @@
 <script setup lang="ts">
 /**
- * ─── "#1,130 of 2,345" — the global rank, hanging in the arena corner ───────
+ * ─── "#1,130 of 2,345" — the global rank, a runic plaque over the board ─────
  *
- * The whole leaderboard, reduced to one small tag hung from the arena's top
- * edge (top-right, every layout). There is no list and no modal: the placing
- * and the population are the part players read, and "of 2,345" is what makes
- * the placing mean something.
+ * The whole leaderboard, reduced to one plaque centred on the board's top rim,
+ * on every device and layout — the game is competitive, and the placing is
+ * the one number a player keeps glancing at. There is no list and no modal:
+ * the placing and the population are the part players read, and "of 2,345" is
+ * what makes the placing mean something.
+ *
+ * Dressed like the upgrade chips (same navy body, accent crown, dark outline,
+ * base plate and `RuneFrame` border, here in gold and inscribed "global rank"),
+ * so it reads as part of the same carved HUD rather than a web widget.
  *
  * THREE STATES, and only one of them is a number:
  *
@@ -21,8 +26,10 @@
  * `score` is a PROP (the same number `reportRun` gets — `rankedBest` from
  * `useWaveLeaderboard`), so this component knows nothing about waves.
  */
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import RuneFrame from '@/components/atoms/RuneFrame.vue'
+import { runeZoneFor } from '@/game/runes'
 import {
   leaderboardEnabled, leaderboardFailed, playerTotal, rankFor
 } from '@/use/useLeaderboard'
@@ -92,70 +99,103 @@ watch(rank, (next, prev) => {
   })
 })
 onUnmounted(() => window.clearTimeout(glintTimer))
+
+// ── The rune band needs the plaque's real height (like the chips) ──
+const plaqueEl = ref<HTMLElement | null>(null)
+const plaqueH = ref(0)
+let ro: ResizeObserver | null = null
+const observe = (el: HTMLElement | null): void => {
+  ro?.disconnect()
+  ro = null
+  if (!el || typeof ResizeObserver === 'undefined') return
+  ro = new ResizeObserver(() => { plaqueH.value = el.offsetHeight })
+  ro.observe(el)
+  plaqueH.value = el.offsetHeight
+}
+watch(plaqueEl, observe)
+onMounted(() => observe(plaqueEl.value))
+onUnmounted(() => { ro?.disconnect(); ro = null })
+/** Runes only where they can be whole and legible (a short landscape phone
+ *  keeps the plaque, without the inscription). */
+const runes = computed(() => plaqueH.value >= 30)
+const runeZone = computed(() => (runes.value ? `${runeZoneFor(plaqueH.value).toFixed(1)}px` : '3px'))
 </script>
 
 <template lang="pug">
   Transition(name="rank-hang" appear)
     div.rank-badge(
       v-if="rank > 0 || waiting"
+      ref="plaqueEl"
       :class="{ 'rank-badge--glint': glint }"
+      :style="{ '--rune-zone': runeZone }"
       role="img"
       :aria-label="rank > 0 ? ariaLabel : undefined"
       :aria-hidden="rank > 0 ? undefined : 'true'"
     )
+      RuneFrame(v-if="runes" inscription="global rank" state="ready")
       div.rank-badge__row
         //- Inline so it inherits nothing it should not and costs no request.
         svg.rank-badge__icon(viewBox="0 0 24 24" fill="currentColor" aria-hidden="true")
           path(d="M6 3h12v2h3v3a5 5 0 0 1-4.6 5A6 6 0 0 1 13 16.9V19h3.5v2h-9v-2H11v-2.1a6 6 0 0 1-3.4-3.9A5 5 0 0 1 3 8V5h3V3Zm0 4H5v1a3 3 0 0 0 1.6 2.7A8 8 0 0 1 6 8V7Zm12 0v1a8 8 0 0 1-.6 2.7A3 3 0 0 0 19 8V7h-1Z")
         span.rank-badge__rank.game-text {{ rank > 0 ? rankText : '…' }}
-      span.rank-badge__of.game-text(v-if="showTotal") {{ ofText }}
+        span.rank-badge__of.game-text(v-if="showTotal") {{ ofText }}
 </template>
 
 <style scoped lang="sass">
-// A tag hung from the arena's top edge: flush top, rounded bottom, a gold rim
-// on the three sides that show. Sized off the ARENA (it is a `container-type:
-// size` box, so `cqmin` is its shorter side), clamped so it never drops below
-// readable on a phone or grows past a HUD chip on a desktop.
+// The upgrade chips' runic plaque (UpgradeBar `.chip`), in gold: accent crown
+// over deep navy, a near-black outline, an accent rim, a solid base plate — and
+// the RuneFrame border, lit. One line — trophy, placing, population — so it
+// stays short enough to sit on the board's rim above the middle columns.
 .rank-badge
+  --accent: #ffd23a
+  --tint: color-mix(in srgb, var(--accent) 24%, #19233f)
+  --plate: color-mix(in srgb, var(--accent) 42%, #03050c)
+  position: relative
+  overflow: hidden
   display: flex
-  flex-direction: column
   align-items: center
-  gap: 0.1em
-  padding: 0.2em 0.55em 0.3em
-  border: 1.5px solid rgba(255, 210, 58, 0.8)
-  border-top: 0
-  border-radius: 0 0 0.7em 0.7em
-  background: linear-gradient(180deg, rgba(8, 13, 28, 0.94) 0%, rgba(22, 34, 64, 0.9) 100%)
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 10px rgba(255, 210, 58, 0.14)
-  font-size: clamp(11px, 3.3cqmin, 16px)
+  justify-content: center
+  min-height: 30px
+  padding: var(--rune-zone) 0.95em
+  border-radius: 0.75rem
+  border: 2px solid #060a16
+  background: radial-gradient(130% 85% at 50% -14%, color-mix(in srgb, var(--accent) 34%, transparent) 0%, transparent 62%), linear-gradient(180deg, var(--tint) 0%, #0f1631 56%, #080c1d 100%)
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 -2px 0 rgba(0, 0, 0, 0.45), 0 3px 0 var(--plate), 0 0 12px -3px var(--accent)
+  font-size: clamp(12px, 3.6vmin, 18px)
   line-height: 1
   white-space: nowrap
   pointer-events: none
   transform-origin: 50% 0
+  > :not(.rune-frame)
+    position: relative
+    z-index: 1
 
 .rank-badge__row
   display: flex
-  align-items: center
-  gap: 0.25em
+  align-items: baseline
+  gap: 0.3em
 
 .rank-badge__icon
   flex: 0 0 auto
-  width: 1.05em
-  height: 1.05em
+  align-self: center
+  width: 1.1em
+  height: 1.1em
   color: #ffd23a
-  filter: drop-shadow(1px 1px 0 #000)
+  filter: drop-shadow(1px 1px 0 #000) drop-shadow(0 0 3px rgba(255, 210, 58, 0.6))
 
 .rank-badge__rank
   color: #fff
   font-weight: 900
   font-variant-numeric: tabular-nums
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000
 
 .rank-badge__of
-  color: #b9cbe8
+  color: #ffe6a0
   font-weight: 900
-  font-size: max(8px, 0.68em)
+  font-size: max(9px, 0.72em)
   font-variant-numeric: tabular-nums
   text-transform: uppercase
+  text-shadow: 1px 1px 0 #000
 
 // Placing improved: a quick gold flash + nudge, then back to rest.
 .rank-badge--glint
@@ -163,20 +203,24 @@ onUnmounted(() => window.clearTimeout(glintTimer))
 @keyframes rank-badge-glint
   0%
     transform: scale(1)
-    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 10px rgba(255, 210, 58, 0.14)
+    filter: brightness(1)
   25%
-    transform: scale(1.14)
-    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 18px rgba(255, 210, 58, 0.85)
+    transform: scale(1.12)
+    filter: brightness(1.35) drop-shadow(0 0 10px rgba(255, 210, 58, 0.9))
   100%
     transform: scale(1)
-    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 10px rgba(255, 210, 58, 0.14)
+    filter: brightness(1)
 
-// First appearance: drops down from behind the arena's top edge.
+// First appearance: drops onto the rim from above.
 .rank-hang-enter-active
   transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease
 .rank-hang-leave-active
   transition: transform 0.25s ease-in, opacity 0.25s ease-in
 .rank-hang-enter-from, .rank-hang-leave-to
-  transform: translateY(-110%)
+  transform: translateY(-60%)
   opacity: 0
+
+@media (prefers-reduced-motion: reduce)
+  .rank-badge--glint
+    animation: none
 </style>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AchievementsModal from '@/components/organisms/AchievementsModal.vue'
 import useAchievements from '@/use/useAchievements'
 
@@ -7,6 +8,7 @@ const emit = defineEmits<{
   (e: 'coins-awarded', sourceEl: HTMLElement): void
 }>()
 
+const { t } = useI18n()
 const { pendingCount, hasUnclaimed } = useAchievements()
 const isModalOpen = ref(false)
 </script>
@@ -15,6 +17,7 @@ const isModalOpen = ref(false)
   button.achievements-btn(
     class="cursor-pointer pointer-events-auto active:scale-95 transition-transform"
     :class="{ 'pulse-claim': hasUnclaimed }"
+    :aria-label="t('barrageMeta.achievements.title')"
     @click="isModalOpen = true"
   )
     div.relative

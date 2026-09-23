@@ -1,12 +1,26 @@
 {
-  "name": "merge-idle-war",
-  "short_name": "merge-idle-war",
+  "name": "elemental-barrage",
+  "short_name": "elemental-barrage",
   "display": "standalone",
-  "display_override": ["fullscreen", "standalone"],
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
   "orientation": "portrait",
   "start_url": "./",
   "scope": "./",
-  "theme_color": "#0d2a18",
-  "background_color": "#0d2a18",
-  "icons": []
+  "theme_color": "#070a14",
+  "background_color": "#070a14",
+  "icons": [
+    {
+      "src": "images/logo/logo_192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "images/logo/logo_512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }

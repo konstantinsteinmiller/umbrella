@@ -1,0 +1,105 @@
+// Barrage's first-session FTUE (`useTutorial.ts`, CONTRACT §7): four beats, each
+// advanced only by the engine event that proves the player did it.
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick, ref } from 'vue'
+import type { EngineEvent, EngineListener } from '@/barrage/engine/types'
+
+const STATE_KEY = 'elemental-barrage_state'
+
+const boot = async (state: Record<string, unknown> = {}, bestRow = 1) => {
+  vi.resetModules()
+  window.localStorage.clear()
+  if (Object.keys(state).length > 0) window.localStorage.setItem(STATE_KEY, JSON.stringify(state))
+  const tut = await import('@/use/useTutorial')
+  const listeners: EngineListener[] = []
+  const wiring = {
+    bestRow: ref(bestRow),
+    upgradeTarget: ref(true),
+    onEngineEvent: (cb: EngineListener) => {
+      listeners.push(cb)
+      return () => { listeners.splice(listeners.indexOf(cb), 1) }
+    }
+  }
+  const off = tut.installBarrageTutorial(wiring)
+  const emit = (e: EngineEvent) => { for (const l of [...listeners]) l(e) }
+  return { tut, wiring, emit, off }
+}
+
+const FIRE: EngineEvent = { type: 'fire', angle: Math.PI / 2, balls: 1 }
+const BALL: EngineEvent = { type: 'pickup', pickupId: 1, kind: 'ball', x: 3.5, y: 5 }
+const MERGE: EngineEvent = { type: 'trayMerge', fromTier: 1, toTier: 2 }
+
+describe('the first-session beats', () => {
+  beforeEach(() => { window.localStorage.clear() })
+
+  it('walks aim → pickup → merge → upgrade → done on real engine events', async () => {
+    const { tut, emit } = await boot()
+    expect(tut.tutorialStep.value).toBe('aim')
+    emit(FIRE)
+    expect(tut.tutorialStep.value).toBe('pickup')
+    emit(BALL)
+    expect(tut.tutorialStep.value).toBe('merge')
+    emit(MERGE)
+    expect(tut.tutorialStep.value).toBe('upgrade')
+    tut.notifyTutorial({ kind: 'upgrade' })
+    expect(tut.tutorialStep.value).toBe('done')
+    expect(tut.tutorialActive.value).toBe(false)
+  })
+
+  it('a lucky first volley that already collects a "+1" skips the pickup beat', async () => {
+    const { tut, emit } = await boot()
+    emit(BALL)
+    expect(tut.tutorialStep.value).toBe('merge')
+  })
+
+  it('never moves backwards', async () => {
+    const { tut, emit } = await boot()
+    emit(MERGE)
+    expect(tut.tutorialStep.value).toBe('upgrade')
+    emit(FIRE) // the first ignored volley in the upgrade beat
+    emit(BALL)
+    expect(tut.tutorialStep.value).toBe('upgrade')
+  })
+
+  it('graduates after two volleys that ignore the upgrade beat', async () => {
+    const { tut, emit } = await boot()
+    emit(MERGE)
+    emit(FIRE)
+    expect(tut.tutorialStep.value).toBe('upgrade')
+    emit(FIRE)
+    expect(tut.tutorialStep.value).toBe('done')
+  })
+
+  it('persists the beat, so a reload resumes the same coach mark', async () => {
+    const first = await boot()
+    first.emit(FIRE)
+    const { flushPersist } = await import('@/use/useEpicState')
+    flushPersist()
+    const blob = JSON.parse(window.localStorage.getItem(STATE_KEY) ?? '{}')
+    const again = await boot(blob)
+    expect(again.tut.tutorialStep.value).toBe('pickup')
+  })
+})
+
+describe('veterans', () => {
+  it('skip it when they never started the beats', async () => {
+    const { tut } = await boot({}, 12)
+    expect(tut.tutorialStep.value).toBe('done')
+  })
+
+  it('a first-timer passing row 1 on the first shot is NOT mistaken for one', async () => {
+    const { tut, wiring, emit } = await boot()
+    emit(FIRE)
+    wiring.bestRow.value = 2
+    await nextTick()
+    expect(tut.tutorialStep.value).toBe('pickup')
+  })
+
+  it('a cloud hydrate revealing a veteran ends a stale overlay', async () => {
+    const { tut, wiring } = await boot()
+    expect(tut.tutorialStep.value).toBe('aim')
+    wiring.bestRow.value = 40
+    await nextTick()
+    expect(tut.tutorialStep.value).toBe('done')
+  })
+})

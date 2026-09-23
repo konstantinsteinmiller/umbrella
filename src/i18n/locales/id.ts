@@ -1,4 +1,9 @@
+import barrage from './barrage/id'
+import barrageMeta from './barrageMeta/id'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'Penimbun', 'desc': 'Ambil total 250 kotak item.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'Batal',
   'close': 'Tutup',
   'ok': 'Ok',
@@ -238,7 +243,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'UNIT BARU!',
+    'title': 'BOLA BARU!',
     'tier': 'Tingkat {n}'
   }
 }

@@ -28,7 +28,7 @@ const { getStateMock, removeStateMock } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/use/useEpicState', () => ({
-  STATE_KEY: 'merge-idle-war_state',
+  STATE_KEY: 'elemental-barrage_state',
   getState: getStateMock,
   hasState: (k: string) => getStateMock(k) != null,
   removeState: removeStateMock

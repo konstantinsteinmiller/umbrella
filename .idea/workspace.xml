@@ -4,8 +4,374 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="fix tier 37 unit">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
+      <change afterPath="$PROJECT_DIR$/public/enemies/carfuncle_256x256.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/enemies/cyclops_256x256.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/enemies/imp_256x256.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/enemies/trent_256x256.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env.playgama" beforeDir="false" afterPath="$PROJECT_DIR$/.env.playgama" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/merge-idle-war.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GDD.md" beforeDir="false" afterPath="$PROJECT_DIR$/GDD.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/art-todo.md" beforeDir="false" afterPath="$PROJECT_DIR$/art-todo.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/leaderboard-seed.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/leaderboard-seed.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/leaderboard-snapshot.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/description.md" beforeDir="false" afterPath="$PROJECT_DIR$/description.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/App-CICUswee.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/App-DbyZdcVA.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/GameScene-DiSMqKqu.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/GameScene-EWoZklKd.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/PokiStrategy-DOsPs9Aq.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/angrybirds-regular-BMn6T-CE.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/ar-BtktxccB.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/de-MtFNbZtR.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/en-aZZECr00.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/es-B6nfJwEk.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/fr-VzqCcrHZ.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/hi-WMJEFlpz.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/id-B7r_Uqz6.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/index-2DMqp-Jv.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/index-U-4qOGNr.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/it-BSih2_bd.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/ja-kKUF8v2F.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/kk-DdeXbaXA.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/ko-g5XkrpJo.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/nl-sSNRqLc8.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/pl-BbeUITwM.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/playgamaPlugin-Ds0mwnQG.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/pt-Bgsm0-KX.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/ru-DBPYYOcX.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/th-5sgmWXUb.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/tr-B2HmGSjC.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/uk-DNep089U.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/useArtOverrides-shDnrsZw.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/useCrazyGames.stub-ChENhAyJ.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/useCrazyMuteSync-CrLD5gJT.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/useSoundPreload-YfMELHiG.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/uz-Y_B1pL6i.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/vi-BKFzGn91.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/assets/zh-D1wYxFmO.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/music/battle-theme.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/music/bg-cozy.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/anchor-swap.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/army-full.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/barricade.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/boss-death.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/boss-incoming.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/celebration-1.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/celebration-2.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/celebration-3.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/chainsaw-break.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/clash-1.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/clash-2.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/clash-3.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/clash-4.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/clash-5.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/coin-pickup.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/combo-tick.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/crystal-cut.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/dodge.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/enemy-death.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/explosion-1.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/fever-start.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/field-merge.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/fighter-death.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/flesh-hit-1.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/flesh-hit-2.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/gate-hit.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/gravity.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/grid-full.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/happy.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/instant-spawn.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/level-up.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/lose.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/merge-pop.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/meteor-impact.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/modal-open.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/new-tier-reveal.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/obstacle-hit.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/overrun.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/plastic-torn-1.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/plastic-torn-2.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/reward-continue.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/shrapnel.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/skill-execute.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/skill-legion-call.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/skill-mark.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/skill-soul-pact.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/skill-warcry.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/stone-cut.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/ult-ready.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/unit-shot-1.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/unit-shot-2.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/unit-shot-3.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/unit-spawn.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/upgrade-buy.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/water-splash.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/win.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/audio/sfx/wood-cut.ogg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/bosses/fire-dragon_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/bosses/orc_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/bosses/silver-dragon_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/bosses/slime-tower_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/bosses/troll_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/bosses/worm_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/caterpillar_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/centaur_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/dryad_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/goblin_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/ogre_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/enemies/slime2_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/favicon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/arena/arena-bg.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/arena/gate.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/arena/portal.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/arena/scene-bg.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/cosmic-projectile-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/cosmic-splitter-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/fire-projectile-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/fire-splitter-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/ice-splitter-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/shadow-splitter-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/stone-splitter-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/wind-impact-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/animations/wind-projectile-vfx-9-frames_384x384.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/executioners-mark_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/fire-projectile_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/heal_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/ice-projectile_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/legion-call_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/meteor_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/revive_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/shadow-projectile_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/shield-crest_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/soul-pact_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/stone-projectile_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/attacks/warcry_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/grid/slot-frame.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/icons/chest_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/icons/difficulty-icon_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/icons/gears_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/icons/movie_128x96.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/icons/settings-icon_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/icons/sound-icon_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/icons/trophy_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/logo/logo_192x192.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/logo/logo_256x256.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/logo/logo_512x512.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/props/coin_128x128.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/props/flying-chest_347x347.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/props/wings_260x108.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-1.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-10.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-11.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-12.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-13.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-14.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-15.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-16.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-17.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-18.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-19.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-2.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-20.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-21.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-22.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-23.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-24.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-25.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-26.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-27.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-28.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-29.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-3.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-30.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-31.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-32.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-33.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-34.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-35.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-36.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-37.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-38.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-39.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-4.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-40.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-41.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-42.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-43.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-44.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-45.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-46.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-47.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-48.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-49.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-5.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-50.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-6.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-7.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-8.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/images/units/fighter-9.webp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/js/storage-shim.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist-poki/manifest.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/implementation-plan.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/fail-10s-landscape-1280x720.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/fail-10s-landscape-1280x720.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/fail-10s-portrait-720x1280.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/fail-10s-portrait-720x1280.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/fail-30s-landscape-1920x1080.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/fail-30s-landscape-1920x1080.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/fail-30s-portrait-1080x1920.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/fail-30s-portrait-1080x1920.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/success-10s-landscape-1280x720.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/success-10s-landscape-1280x720.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/success-10s-portrait-720x1280.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/success-10s-portrait-720x1280.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/success-30s-landscape-1920x1080.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/success-30s-landscape-1920x1080.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/success-30s-portrait-1080x1920.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/preview-videos-ui/success-30s-portrait-1080x1920.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/favicon.ico" beforeDir="false" afterPath="$PROJECT_DIR$/public/favicon.ico" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/images/logo/logo_192x192.png" beforeDir="false" afterPath="$PROJECT_DIR$/public/images/logo/logo_192x192.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/images/logo/logo_256x256.webp" beforeDir="false" afterPath="$PROJECT_DIR$/public/images/logo/logo_256x256.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/images/logo/logo_512x512.png" beforeDir="false" afterPath="$PROJECT_DIR$/public/images/logo/logo_512x512.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/public/manifest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/retention-roadmap.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/art/art-desk/config.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/art-desk/config.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/art/art-prompts.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/art-prompts.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/art/measure-art.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/measure-art.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/art/slice-sheets.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/slice-sheets.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/leaderboard-seed.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/leaderboard-seed.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/leaderboard-snapshot.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/leaderboard-snapshot.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sound-todo.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/App.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/css/index.sass" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/css/index.sass" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/StageBadge.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/AdsBlockedModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/AdsBlockedModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/CoinBuffOffer.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/CoinBuffTimer.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/DamageBuffAdButton.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/InstantSpawnAdButton.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/PowerupBanner.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/RankBadge.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/RankBadge.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/ScoreBadge.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/AchievementsButton.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/AchievementsButton.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/AchievementsModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/AchievementsModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/AdRewardButton.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattleArena.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/BattlePass.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/BattlePass.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/EpicUpgradesModal.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/FlyingChest.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/MergeGrid.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/MissionsModal.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/OptionsModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/OptionsModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/SkinModal.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/TierRevealFx.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/TierRevealFx.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/TreasureChest.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/TutorialOverlay.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/TutorialOverlay.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/UnitCodexModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/UnitCodexModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/UpgradePanel.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/WelcomeBackModal.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/dev/videoSeam.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game/ingredients.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/game/ingredients.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/keys.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/keys.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/platforms/leaderboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/platforms/leaderboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/router/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/router/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useAchievements.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAchievements.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useAds.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAds.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useArtOverrides.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useArtOverrides.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useAssets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAssets.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useBattle.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useBattlePass.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBattlePass.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useCheats.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCheats.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useDropZones.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useEpicArt.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useEpicGame.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useEpicProgress.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useEpicProgress.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useEpicSkins.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useEpicState.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useEpicState.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useFlyingChestCue.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useLeaderboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useLeaderboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useMissions.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useOfflineEarnings.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/usePlayerIdentity.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePlayerIdentity.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/usePowerups.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/usePrismGame.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/usePrismParticles.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/usePrismParticles.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useSound.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useSound.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useTutorial.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useTutorial.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useTutorialPauseGate.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useUser.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useUser.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useVConsole.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useVConsole.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useWaveLeaderboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useWaveLeaderboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/gamepixPlugin.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/gamepixPlugin.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/save/PokiStrategy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/save/PokiStrategy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/save/SaveMergePolicy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/save/SaveMergePolicy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/achievementsOrder.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/achievementsOrder.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/arenaSkills.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/art/artOverridesFlag.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/art/artOverridesFlag.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/battlePassUnitReward.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/coinBuff.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/deepWaveCatchUp.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/elementalTiers.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/elementalTiers.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/firstSessionAssists.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/impNoAutoDeploy.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/leaderboard/leaderboardOffline.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/leaderboard/leaderboardOffline.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/leaderboard/leaderboardSeed.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/leaderboard/leaderboardSeed.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/leaderboard/waveLeaderboard.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/leaderboard/waveLeaderboard.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/newTierRevealSound.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/newTierRevealSound.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/portalLocale.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/portalLocale.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/useRewardedThrottle.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/useRewardedThrottle.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/useTutorialPauseGate.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/save/EpicStateCloudHydrate.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/save/EpicStateCloudHydrate.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/save/FlushSaveNow.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/save/FlushSaveNow.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/save/GamePixStrategy.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/save/GamePixStrategy.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/save/GlitchStrategy.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/save/GlitchStrategy.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/save/PlaygamaStrategy.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/save/PlaygamaStrategy.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/tierReveal.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/uncappedUpgrades.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/useEpicProgress.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/useEpicProgress.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/usePowerups.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/videoSeam.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/preview-video/CONTRACT.md" beforeDir="false" afterPath="$PROJECT_DIR$/tools/preview-video/CONTRACT.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/preview-video/preview.config.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/tools/preview-video/preview.config.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/preview-video/scenarios/_drive.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/tools/preview-video/scenarios/_drive.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/worker/SETUP.md" beforeDir="false" afterPath="$PROJECT_DIR$/worker/SETUP.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/worker/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/worker/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/worker/src/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/worker/src/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/worker/wrangler.toml" beforeDir="false" afterPath="$PROJECT_DIR$/worker/wrangler.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,16 +387,6 @@
     &quot;assignee&quot;: &quot;konstantinsteinmiller&quot;
   }
 }</component>
-  <component name="GitRewordedCommitMessages">
-    <option name="commitMessagesMapping">
-      <RewordedCommitMessageMapping>
-        <option name="originalMessage" value="base game setup from epicrolla" />
-        <option name="rewordedMessage" value="base game setup from epicrolla" />
-      </RewordedCommitMessageMapping>
-    </option>
-    <option name="currentCommit" value="1" />
-    <option name="onto" value="ae3468dc62b6b401155d6f233b8fa5fb42567ba9" />
-  </component>
   <component name="GithubPullRequestsUISettings">{
   &quot;selectedUrlAndAccountId&quot;: {
     &quot;url&quot;: &quot;https://github.com/konstantinsteinmiller/merge-idle-war.git&quot;,
@@ -38,90 +394,40 @@
   }
 }</component>
   <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 4
+  &quot;associatedIndex&quot;: 0
 }</component>
-  <component name="ProjectId" id="3Fs3EuflibU4R3F85dYaI95WSQo" />
-  <component name="ProjectLevelVcsManager">
-    <ConfirmationsSetting value="2" id="Add" />
-  </component>
+  <component name="ProjectId" id="3JjDa7knVUycgNIPy1aMAQhDpPW" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/splatix&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
-    &quot;npm.art:desk.executor&quot;: &quot;Run&quot;,
-    &quot;npm.build:crazy-web.executor&quot;: &quot;Run&quot;,
-    &quot;npm.build:playgama.executor&quot;: &quot;Run&quot;,
-    &quot;npm.build:poki-playtest.executor&quot;: &quot;Run&quot;,
-    &quot;npm.build:poki.executor&quot;: &quot;Run&quot;,
-    &quot;npm.build:wavedash.executor&quot;: &quot;Run&quot;,
-    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;C:\\Users\\konst\\Documents\\__p\\merge-idle-war\\node_modules\\typescript\\lib&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/konst/Documents/__p/elemental-barrage/public/enemies",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "pnpm",
+    "npm.build:poki.executor": "Run",
+    "npm.dev.executor": "Run",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\units" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\attacks" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\props" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\icons" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\logo" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\src\assets\audio" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\attacks" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\enemies\bosses" />
-      <recent name="C:\Users\konst\Documents\__p\merge-idle-war\public\images\grid" />
+      <recent name="C:\Users\konst\Documents\__p\elemental-barrage\public\enemies" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.build:wavedash">
-    <configuration name="build:crazy-web" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="build:crazy-web" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
-    <configuration name="build:playgama" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="build:playgama" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
+  <component name="RunManager" selected="npm.dev">
     <configuration name="build:poki" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
         <script value="build:poki" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
-    <configuration name="build:wavedash" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="build:wavedash" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
@@ -139,10 +445,7 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.build:wavedash" />
         <item itemvalue="npm.dev" />
-        <item itemvalue="npm.build:playgama" />
-        <item itemvalue="npm.build:crazy-web" />
         <item itemvalue="npm.build:poki" />
       </list>
     </recent_temporary>
@@ -150,356 +453,17 @@
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="7c49c72a-b542-41c1-b3b1-e6212a19baae" name="Changes" comment="" />
-      <created>1782849840320</created>
+      <changelist id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="" />
+      <created>1790165645764</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1782849840320</updated>
-      <workItem from="1782849841428" duration="6373000" />
-      <workItem from="1783008008248" duration="1662000" />
-      <workItem from="1783010464115" duration="2313000" />
-      <workItem from="1783084479166" duration="138000" />
-      <workItem from="1783084667113" duration="5029000" />
-      <workItem from="1783090146748" duration="14108000" />
-      <workItem from="1783174841876" duration="44152000" />
-      <workItem from="1783431359086" duration="58382000" />
-      <workItem from="1784223205300" duration="1281000" />
-      <workItem from="1784393820517" duration="319000" />
-      <workItem from="1784492245294" duration="6000" />
-      <workItem from="1784646204925" duration="3770000" />
-      <workItem from="1785160828434" duration="732000" />
-      <workItem from="1785166586243" duration="12819000" />
-      <workItem from="1785330622462" duration="6822000" />
-      <workItem from="1785587745075" duration="157000" />
-      <workItem from="1785594131223" duration="3106000" />
-      <workItem from="1785757516743" duration="2406000" />
-      <workItem from="1785963440809" duration="1662000" />
-      <workItem from="1787492042946" duration="9131000" />
-      <workItem from="1788041156426" duration="12000" />
-      <workItem from="1788176216252" duration="75000" />
-      <workItem from="1788785529268" duration="302000" />
-      <workItem from="1788895235410" duration="7960000" />
-      <workItem from="1789075571111" duration="1756000" />
-      <workItem from="1789084034398" duration="21707000" />
-      <workItem from="1789216378918" duration="10214000" />
-      <workItem from="1789279816066" duration="2384000" />
-      <workItem from="1789304256508" duration="2731000" />
-      <workItem from="1789336312458" duration="635000" />
-      <workItem from="1789424503401" duration="617000" />
-      <workItem from="1789571316036" duration="327000" />
+      <updated>1790165645764</updated>
+      <workItem from="1790165647095" duration="2583000" />
+      <workItem from="1790169209346" duration="17271000" />
     </task>
-    <task id="LOCAL-00001" summary="base game setup from epicrolla">
-      <option name="closed" value="true" />
-      <created>1782849896803</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1782849896803</updated>
-    </task>
-    <task id="LOCAL-00002" summary="base game setup from epicrolla">
-      <option name="closed" value="true" />
-      <created>1782849901596</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1782849901596</updated>
-    </task>
-    <task id="LOCAL-00003" summary="base game setup from epicrolla">
-      <option name="closed" value="true" />
-      <created>1782850116190</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1782850116190</updated>
-    </task>
-    <task id="LOCAL-00004" summary="base game setup from epicrolla">
-      <option name="closed" value="true" />
-      <created>1782850216531</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1782850216531</updated>
-    </task>
-    <task id="LOCAL-00005" summary="potion brew base game">
-      <option name="closed" value="true" />
-      <created>1783005300750</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1783005300750</updated>
-    </task>
-    <task id="LOCAL-00006" summary="idle battler base">
-      <option name="closed" value="true" />
-      <created>1783084782116</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1783084782116</updated>
-    </task>
-    <task id="LOCAL-00007" summary="added ads">
-      <option name="closed" value="true" />
-      <created>1783090202001</created>
-      <option name="number" value="00007" />
-      <option name="presentableId" value="LOCAL-00007" />
-      <option name="project" value="LOCAL" />
-      <updated>1783090202001</updated>
-    </task>
-    <task id="LOCAL-00008" summary="added player unit images">
-      <option name="closed" value="true" />
-      <created>1783197827101</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1783197827101</updated>
-    </task>
-    <task id="LOCAL-00009" summary="added enemy units, added bosses, bg images, remaining art.">
-      <option name="closed" value="true" />
-      <created>1783357425485</created>
-      <option name="number" value="00009" />
-      <option name="presentableId" value="LOCAL-00009" />
-      <option name="project" value="LOCAL" />
-      <updated>1783357425485</updated>
-    </task>
-    <task id="LOCAL-00010" summary="CG gameplay start and sound stop">
-      <option name="closed" value="true" />
-      <created>1783360088121</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1783360088121</updated>
-    </task>
-    <task id="LOCAL-00011" summary="added sounds&#10;hot path opimization">
-      <option name="closed" value="true" />
-      <created>1783438950278</created>
-      <option name="number" value="00011" />
-      <option name="presentableId" value="LOCAL-00011" />
-      <option name="project" value="LOCAL" />
-      <updated>1783438950279</updated>
-    </task>
-    <task id="LOCAL-00012" summary="coin fallback for ads">
-      <option name="closed" value="true" />
-      <created>1783457446061</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1783457446061</updated>
-    </task>
-    <task id="LOCAL-00013" summary="tier merge update">
-      <option name="closed" value="true" />
-      <created>1783460413257</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1783460413257</updated>
-    </task>
-    <task id="LOCAL-00014" summary="removed old images">
-      <option name="closed" value="true" />
-      <created>1783461016495</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1783461016495</updated>
-    </task>
-    <task id="LOCAL-00015" summary="hot path opimization, removed Epicrolla art&#10;translation finishes - boss names">
-      <option name="closed" value="true" />
-      <created>1783514672924</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1783514672924</updated>
-    </task>
-    <task id="LOCAL-00016" summary="added 3 new spells&#10;mutation waves">
-      <option name="closed" value="true" />
-      <created>1783630210974</created>
-      <option name="number" value="00016" />
-      <option name="presentableId" value="LOCAL-00016" />
-      <option name="project" value="LOCAL" />
-      <updated>1783630210974</updated>
-    </task>
-    <task id="LOCAL-00017" summary="updates qal">
-      <option name="closed" value="true" />
-      <created>1783873685954</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1783873685954</updated>
-    </task>
-    <task id="LOCAL-00018" summary="add fighter 16-20 and spell notifications explaining spell effects.">
-      <option name="closed" value="true" />
-      <created>1783947977070</created>
-      <option name="number" value="00018" />
-      <option name="presentableId" value="LOCAL-00018" />
-      <option name="project" value="LOCAL" />
-      <updated>1783947977070</updated>
-    </task>
-    <task id="LOCAL-00019" summary="add fighter 16-20 and spell notifications explaining spell effects.">
-      <option name="closed" value="true" />
-      <created>1783948858325</created>
-      <option name="number" value="00019" />
-      <option name="presentableId" value="LOCAL-00019" />
-      <option name="project" value="LOCAL" />
-      <updated>1783948858325</updated>
-    </task>
-    <task id="LOCAL-00020" summary="add fighter 16-20 and spell notifications explaining spell effects.">
-      <option name="closed" value="true" />
-      <created>1785170457081</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
-      <option name="project" value="LOCAL" />
-      <updated>1785170457081</updated>
-    </task>
-    <task id="LOCAL-00021" summary="full release preparation">
-      <option name="closed" value="true" />
-      <created>1785172069133</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
-      <option name="project" value="LOCAL" />
-      <updated>1785172069133</updated>
-    </task>
-    <task id="LOCAL-00022" summary="ultra small viewport adoption">
-      <option name="closed" value="true" />
-      <created>1785174463841</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
-      <option name="project" value="LOCAL" />
-      <updated>1785174463841</updated>
-    </task>
-    <task id="LOCAL-00023" summary="rubber banding 175+, 3x coin buff">
-      <option name="closed" value="true" />
-      <created>1785181673195</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1785181673195</updated>
-    </task>
-    <task id="LOCAL-00024" summary="rubber banding 175+, 3x coin buff">
-      <option name="closed" value="true" />
-      <created>1785184902220</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1785184902220</updated>
-    </task>
-    <task id="LOCAL-00025" summary="full release changes">
-      <option name="closed" value="true" />
-      <created>1785410015958</created>
-      <option name="number" value="00025" />
-      <option name="presentableId" value="LOCAL-00025" />
-      <option name="project" value="LOCAL" />
-      <updated>1785410015958</updated>
-    </task>
-    <task id="LOCAL-00026" summary="qol improvements">
-      <option name="closed" value="true" />
-      <created>1788785638624</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
-      <option name="project" value="LOCAL" />
-      <updated>1788785638624</updated>
-    </task>
-    <task id="LOCAL-00027" summary="new units, rune upgrade design, bigger grid, 4 more skills, merge spotlight">
-      <option name="closed" value="true" />
-      <created>1789175224317</created>
-      <option name="number" value="00027" />
-      <option name="presentableId" value="LOCAL-00027" />
-      <option name="project" value="LOCAL" />
-      <updated>1789175224317</updated>
-    </task>
-    <task id="LOCAL-00028" summary="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial">
-      <option name="closed" value="true" />
-      <created>1789226099891</created>
-      <option name="number" value="00028" />
-      <option name="presentableId" value="LOCAL-00028" />
-      <option name="project" value="LOCAL" />
-      <updated>1789226099891</updated>
-    </task>
-    <task id="LOCAL-00029" summary="4x boss ad">
-      <option name="closed" value="true" />
-      <created>1789283089477</created>
-      <option name="number" value="00029" />
-      <option name="presentableId" value="LOCAL-00029" />
-      <option name="project" value="LOCAL" />
-      <updated>1789283089477</updated>
-    </task>
-    <task id="LOCAL-00030" summary="fix tier 37 unit">
-      <option name="closed" value="true" />
-      <created>1789425174954</created>
-      <option name="number" value="00030" />
-      <option name="presentableId" value="LOCAL-00030" />
-      <option name="project" value="LOCAL" />
-      <updated>1789425174954</updated>
-    </task>
-    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
-  </component>
-  <component name="Vcs.Log.Tabs.Properties">
-    <option name="OPEN_GENERIC_TABS">
-      <map>
-        <entry key="a2a1c300-7b76-4b60-8c9a-df51ccc22643" value="TOOL_WINDOW" />
-      </map>
-    </option>
-    <option name="TAB_STATES">
-      <map>
-        <entry key="MAIN">
-          <value>
-            <State />
-          </value>
-        </entry>
-        <entry key="a2a1c300-7b76-4b60-8c9a-df51ccc22643">
-          <value>
-            <State>
-              <option name="FILTERS">
-                <map>
-                  <entry key="branch">
-                    <value>
-                      <list>
-                        <option value="HEAD" />
-                      </list>
-                    </value>
-                  </entry>
-                  <entry key="structure">
-                    <value>
-                      <list>
-                        <option value="dir:C:/Users/konst/Documents/__p/merge-idle-war/src/assets/promotion" />
-                      </list>
-                    </value>
-                  </entry>
-                </map>
-              </option>
-              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
-            </State>
-          </value>
-        </entry>
-      </map>
-    </option>
-  </component>
-  <component name="VcsManagerConfiguration">
-    <MESSAGE value="base game setup from epicrolla" />
-    <MESSAGE value="potion brew base game" />
-    <MESSAGE value="idle battler base" />
-    <MESSAGE value="added ads" />
-    <MESSAGE value="added player unit images" />
-    <MESSAGE value="added enemy units, added bosses, bg images, remaining art." />
-    <MESSAGE value="CG gameplay start and sound stop" />
-    <MESSAGE value="added sounds&#10;hot path opimization" />
-    <MESSAGE value="coin fallback for ads" />
-    <MESSAGE value="tier merge update" />
-    <MESSAGE value="removed old images" />
-    <MESSAGE value="hot path opimization, removed Epicrolla art&#10;translation finishes - boss names" />
-    <MESSAGE value="added 3 new spells&#10;mutation waves" />
-    <MESSAGE value="updates qal" />
-    <MESSAGE value="add fighter 16-20 and spell notifications explaining spell effects." />
-    <MESSAGE value="full release preparation" />
-    <MESSAGE value="ultra small viewport adoption" />
-    <MESSAGE value="rubber banding 175+, 3x coin buff" />
-    <MESSAGE value="full release changes" />
-    <MESSAGE value="qol improvements" />
-    <MESSAGE value="new units, rune upgrade design, bigger grid, 4 more skills, merge spotlight" />
-    <MESSAGE value="qol BattlePass Achievements, spawn improvements, interstitial ads, debug insterstitial" />
-    <MESSAGE value="4x boss ad" />
-    <MESSAGE value="fix tier 37 unit" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix tier 37 unit" />
   </component>
 </project>

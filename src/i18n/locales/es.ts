@@ -1,4 +1,9 @@
+import barrage from './barrage/es'
+import barrageMeta from './barrageMeta/es'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'Ver', 'revive': 'Revivir', 'secondChance': 'Segunda oportunidad', 'doubleCoins': '2× monedas', 'plusCoins': '+{n} monedas'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'Acaparador', 'desc': 'Consigue 250 cajas de objetos en total.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'Cancelar',
   'close': 'Cerrar',
   'ok': 'Ok',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': '¡NUEVA UNIDAD!',
+    'title': '¡NUEVA BOLA!',
     'tier': 'Nivel {n}'
   }
 }

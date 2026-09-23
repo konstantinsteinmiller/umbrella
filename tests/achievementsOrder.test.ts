@@ -30,20 +30,20 @@ describe('claimable-first ordering', () => {
   })
 
   it('hoists every claimable row to the top', () => {
-    const rows = claimableFirst(board(['boss1', 'waves100', 'kills1k']))
-    expect(ids(rows).slice(0, 3)).toEqual(['kills1k', 'boss1', 'waves100'])
+    const rows = claimableFirst(board(['boss1', 'combo50', 'kills1k']))
+    expect(ids(rows).slice(0, 3)).toEqual(['kills1k', 'boss1', 'combo50'])
   })
 
   it('keeps the authored order within each group', () => {
-    const rows = ids(claimableFirst(board(['waves100', 'kills1k'])))
+    const rows = ids(claimableFirst(board(['combo50', 'kills1k'])))
     // Claimable block, in authored order…
-    expect(rows.slice(0, 2)).toEqual(['kills1k', 'waves100'])
+    expect(rows.slice(0, 2)).toEqual(['kills1k', 'combo50'])
     // …and the rest untouched behind it.
-    expect(rows.slice(2)).toEqual(authored.filter((id) => id !== 'kills1k' && id !== 'waves100'))
+    expect(rows.slice(2)).toEqual(authored.filter((id) => id !== 'kills1k' && id !== 'combo50'))
   })
 
   it('never hoists an already-claimed row', () => {
-    const rows = ids(claimableFirst(board(['boss1'], ['kills100', 'merges50'])))
+    const rows = ids(claimableFirst(board(['boss1'], ['kills100', 'merges10'])))
     expect(rows[0]).toBe('boss1')
     // A claimed row is just another non-claimable row: it stays put, in the
     // authored order, behind the one thing that is actually collectable.
@@ -51,11 +51,11 @@ describe('claimable-first ordering', () => {
   })
 
   it('drops a claimed row back to exactly where it started', () => {
-    const before = claimableFirst(board(['kills1k', 'wave10', 'boss1']))
+    const before = claimableFirst(board(['kills1k', 'row10', 'boss1']))
     expect(ids(before)[0]).toBe('kills1k')
     // The player claims the top row: it stops being claimable, nothing else moves.
-    const after = ids(claimableFirst(board(['wave10', 'boss1'], ['kills1k'])))
-    expect(after.slice(0, 2)).toEqual(['wave10', 'boss1'])
+    const after = ids(claimableFirst(board(['row10', 'boss1'], ['kills1k'])))
+    expect(after.slice(0, 2)).toEqual(['row10', 'boss1'])
     // Back among the unclaimable rows, in its authored slot: behind kills100,
     // ahead of kills10k — exactly where it sat before it completed.
     expect(after.indexOf('kills100')).toBeLessThan(after.indexOf('kills1k'))
@@ -63,7 +63,7 @@ describe('claimable-first ordering', () => {
   })
 
   it('does not mutate the list it is given', () => {
-    const rows = board(['waves500'])
+    const rows = board(['fevers25'])
     const snapshot = ids(rows)
     claimableFirst(rows)
     expect(ids(rows)).toEqual(snapshot)

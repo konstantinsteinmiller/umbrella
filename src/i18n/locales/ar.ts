@@ -1,4 +1,9 @@
+import barrage from './barrage/ar'
+import barrageMeta from './barrageMeta/ar'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'المكتنز', 'desc': 'احصل على 250 صندوق عناصر إجمالاً.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'إلغاء',
   'close': 'إغلاق',
   'ok': 'موافق',
@@ -238,7 +243,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'وحدة جديدة!',
+    'title': 'كرة جديدة!',
     'tier': 'المستوى {n}'
   }
 }

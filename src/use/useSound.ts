@@ -4,7 +4,6 @@ import { getAudioContext, loadAudioBuffer, resourceCache, registerHtmlAudio, unr
 import { isAudioPaused } from '@/use/useGamePause'
 import { isPlatformAudioMuted } from '@/use/useGamePauseAudio'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
-import { tutorialActive } from '@/use/useTutorial'
 import { publicAssetExists } from '@/use/usePublicManifest'
 
 import { ref, onMounted, watch, onUnmounted } from 'vue'
@@ -65,15 +64,6 @@ export const SFX_FALLBACKS: Record<string, string> = {
   'rally-revive': 'celebration-1',
   'damage-buff': 'dodge'
 }
-
-/**
- * One-shots that still play while the FTUE coach-marks run (see the quiet-first-
- * session rule in `playSound`). Only the new-tier reveal: the tutorial's own
- * merge (T1+T1 → T2) and field merge (→ T3) are the player's first two
- * discoveries — the exact moments the reveal exists for. It is bespoke and rare
- * (once per tier, ever), not the placeholder noise that rule keeps out.
- */
-const TUTORIAL_AUDIBLE_SFX: ReadonlySet<string> = new Set(['new-tier-reveal'])
 
 const availableSfxOverrides = new Set<string>()
 let sfxProbeStarted = false
@@ -206,8 +196,8 @@ export const useMusic = () => {
     loadAndPlayTrack()
   })
 
-  // Resolve the active track's filename. 'battle' (Battle Theme) is the
-  // default; 'cozy' (Cozy Harmony) is the only alternative. A stray legacy id
+  // Resolve the active track's filename. 'cozy' (Cozy Harmony) is the
+  // default; 'battle' (Battle Theme) is the only alternative. A stray legacy id
   // was already normalized in useUser, but keep a default fallback for safety.
   const currentTrackFile = (): string =>
     MUSIC_TRACK_FILES[userMusicTrack.value] ?? MUSIC_TRACK_FILES[DEFAULT_MUSIC_TRACK]
@@ -542,11 +532,9 @@ const useSounds = () => {
     // under the ad — refuse to start any one-shot at all. This is the
     // "pause all sounds during ads" guarantee QA asked for.
     if (isAudioSuspended()) return null
-    // Quiet first session: no one-shot SFX while the FTUE coach-marks run —
-    // the placeholder sounds spamming under the tutorial reads as noise, not
-    // juice. Music is untouched; SFX come alive on the tutorial's last step.
-    // The new-tier reveal is the one exception (`TUTORIAL_AUDIBLE_SFX`).
-    if (tutorialActive.value && !TUTORIAL_AUDIBLE_SFX.has(effect)) return null
+    // No FTUE gate (MIW muted one-shots while its coach-marks ran): in Barrage
+    // every tutorial beat IS a shot, and the hit / pickup / merge sounds are
+    // the feedback that teaches it — a silent first volley reads as broken.
 
     const src = prependBaseUrl(`audio/sfx/${resolveSfx(effect)}.ogg`)
 

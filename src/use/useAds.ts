@@ -146,7 +146,7 @@ export const showRewardedAd = async (): Promise<boolean> => {
   dlog(`${TAG} ▶ rewarded START (provider=${provider.name})`)
   isAdShowing.value = true
   try {
-    const granted = await provider.showRewardedAd()
+    const granted = await settleWithin(provider.showRewardedAd(), false, 'rewarded')
     if (granted) {
       recordRewardedGranted()
     } else if (provider.isAdsBlocked.value && !provider.ownsAdBlockUi) {
@@ -186,6 +186,26 @@ export const showRewardedAd = async (): Promise<boolean> => {
  */
 const AUDIO_DRAIN_MS = 200
 
+/**
+ * Ceiling on any provider show call. Every provider resolves from SDK
+ * callbacks, and a callback that never fires (Edge's default Tracking
+ * Prevention, an ad blocker, a dead ad CDN) is a promise that never settles —
+ * `try/catch` cannot help, so `finally` would never drop `isAdShowing` and the
+ * game would stay paused and silent for the rest of the session. No honest
+ * ad (a 30 s rewarded video plus its end card) runs this long.
+ */
+const AD_SETTLE_CAP_MS = 90_000
+const settleWithin = <T>(p: Promise<T>, fallback: T, what: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  const cap = new Promise<T>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`${TAG} ✖ ${what} never settled in ${AD_SETTLE_CAP_MS / 1000}s — releasing the game`)
+      resolve(fallback)
+    }, AD_SETTLE_CAP_MS)
+  })
+  return Promise.race([p, cap]).finally(() => { if (timer !== null) clearTimeout(timer) })
+}
+
 export const showMidgameAd = async (): Promise<void> => {
   // Nothing may run in front of this: `isAdShowing` has to flip SYNCHRONOUSLY
   // (even a bare `await` on an immediately-returning callee yields a microtask),
@@ -216,7 +236,7 @@ export const showMidgameAd = async (): Promise<void> => {
       killAudioForAd()
       await new Promise<void>((resolve) => setTimeout(resolve, AUDIO_DRAIN_MS))
       dlog(`${TAG} ▶ interstitial START (provider=${provider.name}, mute-on-open)`)
-      await provider.showMidgameAd(killAudioForAd)
+      await settleWithin(provider.showMidgameAd(killAudioForAd), undefined, 'interstitial')
     } else {
       // Default: kill audio BEFORE the SDK shows. GamePix-style SDKs resolve
       // `interstitialAd()` before the ad visually closes, so up front is the
@@ -226,7 +246,7 @@ export const showMidgameAd = async (): Promise<void> => {
       killAudioForAd()
       await new Promise<void>((resolve) => setTimeout(resolve, AUDIO_DRAIN_MS))
       dlog(`${TAG} ▶ interstitial START (provider=${provider.name})`)
-      await provider.showMidgameAd()
+      await settleWithin(provider.showMidgameAd(), undefined, 'interstitial')
     }
     dlog(`${TAG} ⏹ interstitial END (provider=${provider.name})`)
   } catch (e) {

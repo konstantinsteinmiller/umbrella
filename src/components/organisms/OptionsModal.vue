@@ -75,9 +75,10 @@ const difficultyList = computed(() => [
 const difficultyHint = computed(() => t('options.difficultyHints.' + userDifficulty.value))
 
 // Background-music track picker — Trance Tunnel (default) vs Cozy Harmony.
+// The default track first.
 const musicTrackList = computed(() => [
-  { value: 'battle', label: t('options.musicTracks.battle') },
-  { value: 'cozy', label: t('options.musicTracks.cozy') }
+  { value: 'cozy', label: t('options.musicTracks.cozy') },
+  { value: 'battle', label: t('options.musicTracks.battle') }
 ])
 </script>
 

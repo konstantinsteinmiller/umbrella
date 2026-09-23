@@ -1,4 +1,9 @@
+import barrage from './barrage/tr'
+import barrageMeta from './barrageMeta/tr'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'İstifçi', 'desc': 'Toplam 250 eşya kutusu yakala.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'İptal',
   'close': 'Kapat',
   'ok': 'Tamam',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'YENİ BİRİM!',
+    'title': 'YENİ TOP!',
     'tier': 'Seviye {n}'
   }
 }

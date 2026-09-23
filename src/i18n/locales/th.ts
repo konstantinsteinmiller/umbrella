@@ -1,4 +1,9 @@
+import barrage from './barrage/th'
+import barrageMeta from './barrageMeta/th'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'ดู', 'revive': 'ชุบชีวิต', 'secondChance': 'โอกาสที่สอง', 'doubleCoins': '2× เหรียญ', 'plusCoins': '+{n} เหรียญ'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'นักกักตุน', 'desc': 'เก็บกล่องไอเทมรวม 250 กล่อง' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'ยกเลิก',
   'close': 'ปิด',
   'ok': 'ตกลง',
@@ -238,7 +243,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'ยูนิตใหม่!',
+    'title': 'ลูกบอลใหม่!',
     'tier': 'ระดับ {n}'
   }
 }

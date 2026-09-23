@@ -3,63 +3,81 @@ import { getState, setState, prismState } from '@/use/useEpicState'
 import { saveDataVersion, flushSaveNow } from '@/use/useSaveStatus'
 import { ACHIEVEMENTS_KEY } from '@/keys'
 import useEpicConfig from '@/use/useEpicConfig'
-import { stats, bestWave } from '@/use/useBattle'
-import { maxTier } from '@/use/usePrismGame'
+import { killCoins } from '@/barrage/engine/economy'
+import { bestRow, maxBallTier, stats } from '@/barrage/state/progress'
 
-// ─── Battler achievements (retention-roadmap #10) ───────────────────────────
+// ─── Barrage achievements (retention-roadmap #10) ───────────────────────────
 //
-// ~20 lifetime milestones keyed off the counters the battler ALREADY tracks
-// (`prism_stats` via useBattle.stats, plus the best-wave and max-tier
-// watermarks) — no extra instrumentation. Each grants a one-time gold payout
-// on claim in the AchievementsModal; completing one mid-battle fires a toast
-// (`achievementToast`, rendered by the scene). Claim state lives in the
-// single `merge-idle-war_state` blob under `ACHIEVEMENTS_KEY`: { claimed: string[] }.
+// Lifetime milestones keyed off the counters the barrage state layer ALREADY
+// keeps (`eb_stats` via `progress.stats`, plus the best-row and max-ball-tier
+// watermarks) — no extra instrumentation. Each grants a one-time coin payout on
+// claim in the AchievementsModal; completing one mid-run fires a toast
+// (`achievementToast`, rendered by the scene). Claim state lives in the single
+// `elemental-barrage_state` blob under `ACHIEVEMENTS_KEY`: { claimed: string[] }.
+//
+// Names: `barrageMeta.achievements.items.<id>`; descriptions are one template
+// per metric (`barrageMeta.achievements.desc.<metric>`, `{n}` = the target), so
+// a new rung never needs 21 new translations.
 
 export type AchievementMetric =
-  | 'kills' | 'waves' | 'bossKills' | 'merges' | 'fieldMerges' | 'bestCombo'
-  | 'maxTier' | 'bestWave'
+  | 'kills' | 'bossKills' | 'bestRow' | 'merges' | 'maxBallTier' | 'bestCombo' | 'fevers'
 
 export interface AchievementDef {
   id: string
   metric: AchievementMetric
   /** Goal value for `metric`. */
   target: number
-  /** Gold granted on claim — scaled to difficulty. */
+  /** Coins granted on claim — scaled to difficulty. */
   reward: number
 }
 
-// Ordered roughly easy → hard within each family. Rewards are modest and
-// back-loaded (the gold curve pays ~6·1.09^wave per kill, so late capstones
-// can afford fat payouts without becoming a faucet).
+/** Two significant digits past 100 — 1,487 reads as 1,500. */
+const nice = (v: number): number => {
+  if (v < 100) return Math.max(1, Math.round(v))
+  const mag = Math.pow(10, Math.floor(Math.log10(v)) - 1)
+  return Math.round(v / mag) * mag
+}
+
+/**
+ * A reward priced as "`kills` kills at the depth where this milestone usually
+ * lands". Derived from ENGINE's live coin curve (`economy.killCoins`) rather
+ * than hard-coded, so a balance retune moves every payout with it — a fixed
+ * number that was generous at one coin growth rate is a faucet (or an insult)
+ * at the next.
+ */
+const worth = (kills: number, atRow: number): number => nice(kills * killCoins(atRow, 'slime', false))
+
+// Ordered roughly easy → hard within each family.
 export const ACHIEVEMENTS: ReadonlyArray<AchievementDef> = [
   // Lifetime kills.
-  { id: 'kills100', metric: 'kills', target: 100, reward: 150 },
-  { id: 'kills1k', metric: 'kills', target: 1000, reward: 600 },
-  { id: 'kills10k', metric: 'kills', target: 10000, reward: 3000 },
-  // Best wave reached.
-  { id: 'wave10', metric: 'bestWave', target: 10, reward: 200 },
-  { id: 'wave25', metric: 'bestWave', target: 25, reward: 1000 },
-  { id: 'wave50', metric: 'bestWave', target: 50, reward: 5000 },
-  // Boss kills.
-  { id: 'boss1', metric: 'bossKills', target: 1, reward: 150 },
-  { id: 'boss10', metric: 'bossKills', target: 10, reward: 800 },
-  { id: 'boss50', metric: 'bossKills', target: 50, reward: 4000 },
-  // Grid merges.
-  { id: 'merges50', metric: 'merges', target: 50, reward: 150 },
-  { id: 'merges500', metric: 'merges', target: 500, reward: 1000 },
-  // Discovery ladder (highest tier ever created).
-  { id: 'tier5', metric: 'maxTier', target: 5, reward: 250 },
-  { id: 'tier8', metric: 'maxTier', target: 8, reward: 1500 },
-  { id: 'tier10', metric: 'maxTier', target: 10, reward: 6000 },
-  // Field merges (in-arena).
-  { id: 'fieldMerge1', metric: 'fieldMerges', target: 1, reward: 100 },
-  { id: 'fieldMerges25', metric: 'fieldMerges', target: 25, reward: 600 },
-  // Kill-combo watermark.
-  { id: 'combo10', metric: 'bestCombo', target: 10, reward: 200 },
-  { id: 'combo25', metric: 'bestCombo', target: 25, reward: 1200 },
-  // Lifetime waves cleared.
-  { id: 'waves100', metric: 'waves', target: 100, reward: 800 },
-  { id: 'waves500', metric: 'waves', target: 500, reward: 4000 }
+  { id: 'kills100', metric: 'kills', target: 100, reward: worth(40, 12) },
+  { id: 'kills1k', metric: 'kills', target: 1000, reward: worth(50, 35) },
+  { id: 'kills10k', metric: 'kills', target: 10000, reward: worth(60, 80) },
+  // Deepest row reached (endless).
+  { id: 'row10', metric: 'bestRow', target: 10, reward: worth(30, 10) },
+  { id: 'row30', metric: 'bestRow', target: 30, reward: worth(40, 30) },
+  { id: 'row60', metric: 'bestRow', target: 60, reward: worth(50, 60) },
+  { id: 'row100', metric: 'bestRow', target: 100, reward: worth(60, 100) },
+  // Boss kills (checkpoints).
+  { id: 'boss1', metric: 'bossKills', target: 1, reward: worth(40, 10) },
+  { id: 'boss10', metric: 'bossKills', target: 10, reward: worth(60, 50) },
+  { id: 'boss50', metric: 'bossKills', target: 50, reward: worth(80, 120) },
+  // Tray merges.
+  { id: 'merges10', metric: 'merges', target: 10, reward: worth(25, 5) },
+  { id: 'merges100', metric: 'merges', target: 100, reward: worth(40, 40) },
+  { id: 'merges500', metric: 'merges', target: 500, reward: worth(60, 90) },
+  // Discovery ladder (highest ball tier ever created).
+  { id: 'tier3', metric: 'maxBallTier', target: 3, reward: worth(25, 4) },
+  { id: 'tier5', metric: 'maxBallTier', target: 5, reward: worth(40, 20) },
+  { id: 'tier7', metric: 'maxBallTier', target: 7, reward: worth(50, 45) },
+  { id: 'tier9', metric: 'maxBallTier', target: 9, reward: worth(70, 80) },
+  // Most hits in a single volley.
+  { id: 'combo25', metric: 'bestCombo', target: 25, reward: worth(30, 15) },
+  { id: 'combo50', metric: 'bestCombo', target: 50, reward: worth(40, 30) },
+  { id: 'combo150', metric: 'bestCombo', target: 150, reward: worth(60, 70) },
+  // FEVER volleys.
+  { id: 'fever1', metric: 'fevers', target: 1, reward: worth(40, 25) },
+  { id: 'fevers25', metric: 'fevers', target: 25, reward: worth(60, 70) }
 ] as const
 
 interface AchievementState { claimed: string[] }
@@ -68,7 +86,7 @@ const loadState = (): AchievementState => {
   const v = getState<Partial<AchievementState> | null>(ACHIEVEMENTS_KEY, null)
   const validIds = new Set(ACHIEVEMENTS.map((a) => a.id))
   const claimed = Array.isArray(v?.claimed)
-    ? v!.claimed.filter((id): id is string => typeof id === 'string' && validIds.has(id))
+    ? v.claimed.filter((id): id is string => typeof id === 'string' && validIds.has(id))
     : []
   return { claimed }
 }
@@ -86,8 +104,8 @@ const persist = (): void => {
 
 /** Live lifetime value backing a given metric. */
 const metricValue = (metric: AchievementMetric): number => {
-  if (metric === 'maxTier') return maxTier.value
-  if (metric === 'bestWave') return bestWave.value
+  if (metric === 'maxBallTier') return maxBallTier.value
+  if (metric === 'bestRow') return bestRow.value
   return stats.value[metric] ?? 0
 }
 
@@ -100,7 +118,12 @@ let toastNonce = 0
 const announced = new Set<string>(
   ACHIEVEMENTS.filter((a) => metricValue(a.metric) >= a.target).map((a) => a.id)
 )
-watch([stats, bestWave, maxTier], () => {
+// A cloud hydrate raising the counters is not an achievement the player just
+// earned — re-seed silently so it can't fire a burst of stale toasts.
+watch(saveDataVersion, () => {
+  for (const a of ACHIEVEMENTS) if (metricValue(a.metric) >= a.target) announced.add(a.id)
+}, { flush: 'sync' })
+watch([stats, bestRow, maxBallTier], () => {
   for (const a of ACHIEVEMENTS) {
     if (announced.has(a.id)) continue
     if (metricValue(a.metric) >= a.target) {
@@ -143,7 +166,7 @@ const useAchievements = () => {
   const pendingCount = computed(() => list.value.filter((a) => a.claimable).length)
   const hasUnclaimed = computed(() => pendingCount.value > 0)
 
-  /** Claim a completed achievement's gold. Returns the amount, or 0 if it
+  /** Claim a completed achievement's coins. Returns the amount, or 0 if it
    *  wasn't claimable. */
   const claim = (id: string): number => {
     const a = ACHIEVEMENTS.find((x) => x.id === id)

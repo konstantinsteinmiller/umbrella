@@ -1,4 +1,9 @@
+import barrage from './barrage/it'
+import barrageMeta from './barrageMeta/it'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'Guarda', 'revive': 'Rinasci', 'secondChance': 'Seconda chance', 'doubleCoins': '2× monete', 'plusCoins': '+{n} monete'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'Accumulatore', 'desc': 'Afferra 250 casse oggetto in totale.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'Annulla',
   'close': 'Chiudi',
   'ok': 'Ok',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'NUOVA UNITÀ!',
+    'title': 'NUOVA SFERA!',
     'tier': 'Livello {n}'
   }
 }

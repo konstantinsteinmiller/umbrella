@@ -92,7 +92,7 @@ export const setI18nLocale = async (
 }
 
 /** Where the player's explicit in-game language choice lives (a field inside
- *  the single `merge-idle-war_state` blob, not a bare localStorage key). */
+ *  the single `elemental-barrage_state` blob, not a bare localStorage key). */
 const LANGUAGE_KEY = 'spinner_user_language'
 
 /**

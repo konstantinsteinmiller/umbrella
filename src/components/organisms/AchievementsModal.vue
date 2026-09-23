@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import FModal from '@/components/molecules/FModal.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import useAchievements, { claimableFirst } from '@/use/useAchievements'
+import { formatBig } from '@/utils/bigNumber'
 import useSounds from '@/use/useSound'
 
 const props = defineProps<{ modelValue: boolean }>()
@@ -42,9 +43,9 @@ const onClaim = (id: string, event: MouseEvent): void => {
 </script>
 
 <template lang="pug">
-  FModal(v-model="isOpen" :title="t('achievements.title')")
+  FModal(v-model="isOpen" :title="t('barrageMeta.achievements.title')")
     div.flex.flex-col.gap-2.p-2
-      p.text-center.text-white.game-text.opacity-80(class="text-xs sm:text-sm") {{ t('achievements.subtitle') }}
+      p.text-center.text-white.game-text.opacity-80(class="text-xs sm:text-sm") {{ t('barrageMeta.achievements.subtitle') }}
       TransitionGroup(name="ach" tag="div" class="flex flex-col gap-2")
         div.ach-row.flex.items-center.gap-3.rounded-xl.border-2.p-2.text-left(
           v-for="a in ordered"
@@ -63,25 +64,25 @@ const onClaim = (id: string, event: MouseEvent): void => {
               path(d="M12 12 v4")
               path(d="M9 20 h6 l-1 -4 h-4 Z")
           div.flex-1.min-w-0
-            div.font-black.game-text.text-white(class="text-sm sm:text-base") {{ t('achievements.items.' + a.id + '.name') }}
-            div.text-white.game-text.opacity-70.leading-tight(class="text-[10px] sm:text-xs") {{ t('achievements.items.' + a.id + '.desc') }}
+            div.font-black.game-text.text-white(class="text-sm sm:text-base") {{ t('barrageMeta.achievements.items.' + a.id) }}
+            div.text-white.game-text.opacity-70.leading-tight(class="text-[10px] sm:text-xs") {{ t('barrageMeta.achievements.desc.' + a.metric, { n: formatBig(a.target) }) }}
             div.mt-1.relative.h-2.rounded-full.overflow-hidden.border(class="bg-black/40 border-white/20")
               div.h-full.bg-gradient-to-r.from-yellow-300.to-amber-500.transition-all(
                 :style="{ width: Math.min(100, (a.current / a.target) * 100) + '%' }"
               )
-            div.text-white.game-text.opacity-60(class="text-[9px] sm:text-[10px] mt-0.5") {{ t('achievements.progress', { c: Math.min(a.current, a.target), t: a.target }) }}
+            div.text-white.game-text.opacity-60(class="text-[9px] sm:text-[10px] mt-0.5") {{ t('barrageMeta.achievements.progress', { c: formatBig(Math.min(a.current, a.target)), t: formatBig(a.target) }) }}
           div.shrink-0.flex.flex-col.items-end.gap-1
-            div.text-center.text-emerald-300.font-black.game-text(v-if="a.claimed" class="text-[10px] sm:text-xs") {{ t('achievements.claimed') }}
+            div.text-center.text-emerald-300.font-black.game-text(v-if="a.claimed" class="text-[10px] sm:text-xs") {{ t('barrageMeta.achievements.claimed') }}
             button.cursor-pointer.transition-transform.flex.items-center.justify-center.gap-1.rounded-lg.border-2.px-3(
               v-else-if="a.claimable"
               class="py-1.5 active:scale-95 hover:scale-[103%] bg-gradient-to-b from-[#ffcd00] to-[#f7a000] border-[#0f1a30]"
               @click="onClaim(a.id, $event)"
             )
               IconCoin(class="w-4 h-4 text-yellow-100")
-              span.font-black.game-text.text-white(class="text-xs") {{ t('achievements.claim') }}
+              span.font-black.game-text.text-white(class="text-xs") {{ t('barrageMeta.achievements.claim') }}
             div.flex.items-center.gap-1.opacity-70(v-else)
               IconCoin(class="w-4 h-4 text-yellow-300")
-              span.font-black.game-text.text-yellow-100(class="text-xs") +{{ a.reward }}
+              span.font-black.game-text.text-yellow-100(class="text-xs") +{{ formatBig(a.reward) }}
 </template>
 
 <style scoped lang="sass">

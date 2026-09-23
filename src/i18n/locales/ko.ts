@@ -1,4 +1,9 @@
+import barrage from './barrage/ko'
+import barrageMeta from './barrageMeta/ko'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': '수집광', 'desc': '총 250개의 아이템 상자를 획득하세요.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': '취소',
   'close': '닫기',
   'ok': '확인',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': '새 유닛!',
+    'title': '새 공!',
     'tier': '티어 {n}'
   }
 }

@@ -1,4 +1,9 @@
+import barrage from './barrage/uk'
+import barrageMeta from './barrageMeta/uk'
+
 export default {
+  barrage,
+  barrageMeta,
   'ads': {
     'watch': 'Дивитися', 'revive': 'Відродити', 'secondChance': 'Другий шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'
   },
@@ -43,7 +48,7 @@ export default {
       'items250': { 'name': 'Накопичувач', 'desc': 'Зберіть загалом 250 скринь з предметами.' }
     }
   },
-  'gameName': 'Merge Legion',
+  'gameName': 'Elemental Barrage',
   'cancel': 'Скасувати',
   'close': 'Закрити',
   'ok': 'Ок',
@@ -319,7 +324,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'НОВИЙ ЮНІТ!',
+    'title': 'НОВА КУЛЯ!',
     'tier': 'Рівень {n}'
   }
 }

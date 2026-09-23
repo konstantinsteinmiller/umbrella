@@ -2,8 +2,12 @@
 // new player-facing string gets a key here first; the per-language files in
 // this folder mirror the shape. Vite ships each non-English locale as its own
 // lazy chunk (see `src/i18n/index.ts`).
+import barrage from './barrage/en'
+import barrageMeta from './barrageMeta/en'
 export default {
-  'gameName': 'Merge Legion',
+  barrage,
+  barrageMeta,
+  'gameName': 'Elemental Barrage',
   // ─── Merge Legion UI chrome (source locale; en is the runtime fallback for
   // every other locale via vue-i18n `fallbackLocale`). Unit & boss
   // proper-nouns live in the data files — full content localisation is a
@@ -339,7 +343,7 @@ export default {
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.
   'tierReveal': {
-    'title': 'NEW UNIT!',
+    'title': 'NEW BALL!',
     'tier': 'Tier {n}'
   }
 }

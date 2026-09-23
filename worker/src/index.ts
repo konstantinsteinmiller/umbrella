@@ -1,5 +1,5 @@
 /**
- * ─── Merge Idle War leaderboard ─────────────────────────────────────────────
+ * ─── Elemental Barrage leaderboard ─────────────────────────────────────────────
  *
  * A Cloudflare Worker over one D1 table. Two routes:
  *

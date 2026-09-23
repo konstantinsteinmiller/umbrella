@@ -303,7 +303,7 @@ describe('GlitchStrategy (isGlitch guard)', () => {
     // from the spinner-lineage template that this game does not use (its
     // stage key is `epic_stage`). It never worked, and it cannot: this
     // project keeps every gameplay value inside ONE blob
-    // (`merge-idle-war_state`), so the accessor the guard reads through
+    // (`elemental-barrage_state`), so the accessor the guard reads through
     // (`BlobStorage`) has no `epic_stage` entry to find, `localLooksFresh`
     // is therefore always true here, and the guard always runs.
     //
