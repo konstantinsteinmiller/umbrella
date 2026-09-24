@@ -14,6 +14,13 @@
  *
  * A forced choice: the modal is driven by the state layer's offer, so the
  * backdrop / ✕ can't dismiss it into a frozen board.
+ *
+ * Above the ways back, a three-number recap of the run (row reached, kills,
+ * coins earned) — run 2: "OVERRUN, and no summary of what I just did". The
+ * numbers come from the state layer's `breach.recap` (optional: no recap, no
+ * row of zeros). The coins are what the run EARNED — a gain ("+78", "earned
+ * this run"), never a balance: run 3 read "78 coins" beside the wallet's 126
+ * as a bug.
  */
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -24,6 +31,7 @@ import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import useBarrage from '@/barrage/state/useBarrage'
 import useReward, { formatCost } from '@/use/useReward'
 import { skillSrc } from '@/barrage/art'
+import { fmtCoins } from '@/components/barrage/barrageUi'
 
 const { t } = useI18n()
 const barrage = useBarrage()
@@ -52,6 +60,23 @@ const onDailyBack = (): Promise<void> => run(() => barrage.exitDaily())
 /** The fresh board after a restart starts one row past the checkpoint. */
 const restartRow = computed(() => (breach.value?.checkpointRow ?? barrage.checkpointRow.value) + 1)
 const reachedRow = computed(() => breach.value?.row ?? barrage.row.value)
+// ─── Run recap ───────────────────────────────────────────────────────────────
+interface Recap { row: number; kills: number; coins: number }
+const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : null)
+/** Optional in the contract (an older save's breach has none): no recap, no
+ *  row of zeros — and a malformed number drops the whole row. */
+const recap = computed<Recap | null>(() => {
+  const r = breach.value?.recap
+  if (!r) return null
+  const row = num(r.row)
+  const kills = num(r.kills)
+  const coins = num(r.coins)
+  return row === null || kills === null || coins === null ? null : { row, kills, coins }
+})
+const recapAria = computed(() => recap.value
+  ? t('barrage.breach.recapAria', { row: recap.value.row, kills: fmtCoins(recap.value.kills), coins: fmtCoins(recap.value.coins) })
+  : '')
+
 const meteorAria = computed(() => buffsCostCoins
   ? t('barrage.breach.meteorCoinAria', { cost: formatCost(REWARD_COIN_COST) })
   : t('barrage.breach.meteorAdAria'))
@@ -67,6 +92,20 @@ const meteorAria = computed(() => buffsCostCoins
       //- ── Endless: the three ways back ──
       template(v-if="!isDaily && breach")
         p.game-text.text-white.text-center(class="text-sm sm:text-base") {{ t('barrage.breach.body', { n: reachedRow }) }}
+        //- What this run did: row · kills · coins.
+        div.breach-recap.flex.justify-center.w-full.gap-2(v-if="recap" class="max-w-sm" role="group" :aria-label="recapAria")
+          div.recap-tile.recap-tile--row(aria-hidden="true")
+            BarrageGlyph.recap-icon(name="flag")
+            span.recap-n.game-text.tabular-nums {{ recap.row }}
+            span.recap-label.game-text {{ t('barrage.breach.recapRow') }}
+          div.recap-tile.recap-tile--kills(aria-hidden="true")
+            BarrageGlyph.recap-icon(name="skull")
+            span.recap-n.game-text.tabular-nums {{ fmtCoins(recap.kills) }}
+            span.recap-label.game-text {{ t('barrage.breach.recapKills') }}
+          div.recap-tile.recap-tile--coins(aria-hidden="true")
+            IconCoin.recap-icon
+            span.recap-n.game-text.tabular-nums {{ t('barrage.hud.coinGain', { n: fmtCoins(recap.coins) }) }}
+            span.recap-label.game-text {{ t('barrage.breach.recapEarned') }}
         div.flex.flex-col.w-full.gap-2(class="max-w-sm")
           button.breach-btn.breach-btn--meteor(
             v-if="breach.meteorAvailable"
@@ -188,6 +227,50 @@ const meteorAria = computed(() => buffsCostCoins
   padding: 3px 8px
   border-radius: 999px
   background: rgba(0, 0, 0, 0.3)
+// The run recap: three small plaques, number first.
+.recap-tile
+  flex: 1 1 0
+  min-width: 0
+  display: flex
+  flex-direction: column
+  align-items: center
+  gap: 1px
+  padding: 6px 4px 5px
+  border-radius: 12px
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.25))
+  border: 2px solid #0f1a30
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12)
+.recap-icon
+  width: 20px
+  height: 20px
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.6))
+.recap-tile--row .recap-icon
+  color: #ffb07a
+.recap-tile--kills .recap-icon
+  color: #e6ecff
+.recap-n
+  color: #fff
+  font-weight: 900
+  font-size: 20px
+  line-height: 1.05
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6)
+.recap-tile--coins .recap-n
+  color: #ffe27a
+// Up to two lines: "earned this run" runs long in some languages.
+.recap-label
+  max-width: 100%
+  overflow: hidden
+  display: -webkit-box
+  -webkit-box-orient: vertical
+  -webkit-line-clamp: 2
+  line-clamp: 2
+  text-align: center
+  line-height: 1.15
+  font-size: 10px
+  font-weight: 800
+  text-transform: uppercase
+  letter-spacing: 0.04em
+  opacity: 0.8
 .daily-new
   color: #8dffa6
   font-size: 14px

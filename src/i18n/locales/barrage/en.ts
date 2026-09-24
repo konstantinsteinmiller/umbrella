@@ -12,7 +12,8 @@ export default {
     todayBest: 'Today {n}',
     shields: 'Shield charges: {n}',
     revives: 'Revive charges: {n}',
-    warcry: 'Warcry armed: your next volley deals double damage'
+    warcry: 'Warcry armed: your next volley deals double damage',
+    coinGain: '+{n}'
   },
   // The ball tray under the board.
   tray: {
@@ -46,7 +47,9 @@ export default {
     free: 'Free',
     aria: '{name}: {desc} Cost: {cost} coins.',
     ariaMaxed: '{name}: {desc} Fully upgraded.',
-    ariaFree: '{name}: {desc} Free!'
+    ariaFree: '{name}: {desc} Free!',
+    denied: 'Not enough coins: you need {cost}.',
+    need: 'Need {n} more'
   },
   // The contextual control under the board.
   turn: {
@@ -136,7 +139,11 @@ export default {
     free: 'Free',
     restart: 'Restart at row {n}',
     restartDesc: 'Keep all your coins',
-    onceHint: 'Meteor Storm works once per checkpoint.'
+    onceHint: 'Meteor Storm works once per checkpoint.',
+    recapRow: 'Row',
+    recapKills: 'Kills',
+    recapEarned: 'Earned this run',
+    recapAria: 'This run: row {row}, {kills} kills, {coins} coins earned'
   },
   // Boss chest after a boss kill.
   chest: {
@@ -179,7 +186,8 @@ export default {
   },
   // The treasure chest: a small gift after 3 min, a big one after 10 (lines: barrageMeta.supply.*).
   supply: {
-    ready: 'Treasure chest ready — tap to open!'
+    ready: 'Treasure chest ready — tap to open!',
+    filling: '{name}: +{n} coins in {time}'
   },
   // Ball codex (every tier of the ladder).
   codex: {
@@ -190,7 +198,7 @@ export default {
   },
   // First-session coach marks (screen-reader text; the screen shows a hand).
   tutorial: {
-    aim: 'Drag back and release to shoot!',
+    aim: 'Drag toward the monsters and let go to shoot!',
     pickup: 'Shoot through a +1 bubble to collect a ball!',
     merge: 'Collect another ball: a full tray merges twins into a stronger ball!',
     upgrade: 'Tap the free upgrade to hold more balls!'
@@ -201,7 +209,16 @@ export default {
     tray: 'Your tray is full: a +1 only adds a shot while there is a free slot. Upgrade Tray Capacity to shoot more balls!',
     combo: 'Aim through a gap: balls bouncing behind the monsters rack up huge combos!',
     trayIntro: 'This tray holds your balls: each one is a shot. A +1 fills an empty slot, and a full tray merges two twins into a stronger ball.',
-    upgrade: 'Tap the glowing upgrade: it makes your balls, your tray or your coins better.'
+    upgrade: 'Tap the glowing upgrade: it makes your balls, your tray or your coins better.',
+    bank: 'Aim at an angle: a ball that bounces off the wall can hit several monsters in one shot!',
+    funnel: 'You can afford {name} now — tap it and every ball hits harder!',
+    overrun: 'If a monster crosses the line, you are overrun — hit the ones marked 1 first!'
+  },
+  // The merge lightbox (sr-only; the screen acts the merge out).
+  merge: {
+    sr: 'Two tier {from} balls merged into one tier {to} ball! Every ball in your tray is one shot.',
+    discovery: 'New ball: {name}. Ability: {ability} — {desc}',
+    skipAria: 'Skip the merge'
   },
   // Earned HUD features (sr-only: the screen flies the button in).
   unlock: {

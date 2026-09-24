@@ -5,20 +5,26 @@
  *   aim    → rewarded "+5 balls" (movie icon, or its coin price on coin-mode
  *            builds) — ONLY while `bonusBallsAvailable` (rewarded readiness
  *            gating: never a dead button).
- *   volley → RECALL (end a slow volley now) + the auto fast-forward ×2/×3 pill.
+ *   volley → SKIP (recall: end a slow volley now) + the auto fast-forward
+ *            ×2/×3 pill.
  *
  * Slow volleys are the genre's classic late-game tedium; recall is the escape
  * hatch, so it is big, central and thumb-reachable — never tucked in a corner.
+ * But it only appears once a volley has run RECALL_AFTER_S, and never during
+ * the FTUE (`recallVisible`): shown at every volley it read as the button
+ * that "confirms" a shot, and first-timers cut every volley short with it.
  */
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBarrage from '@/barrage/state/useBarrage'
 import useReward, { formatCost } from '@/use/useReward'
 import useSounds from '@/use/useSound'
 import { isCompactHud, isRoomyHud } from '@/use/useUser'
+import { tutorialActive } from '@/use/useTutorial'
 import IconMovie from '@/components/icons/IconMovie.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
+import { recallVisible } from '@/components/barrage/barrageUi'
 
 /** CONTRACT §8: the rewarded bonus is "+5 balls". */
 const BONUS_BALLS = 5
@@ -33,8 +39,26 @@ const inVolley = computed(() => phase.value === 'volley')
 const busy = ref(false)
 
 const showBonus = computed(() => phase.value === 'aim' && barrage.bonusBallsAvailable.value)
-const showRecall = computed(() => phase.value === 'volley' || phase.value === 'resolve' || phase.value === 'advance')
 const speed = computed(() => barrage.speedMul.value)
+
+// How long the running volley has lasted, from the engine's own clock: it
+// stands still while the game is paused (an ad, a hidden tab), so a paused
+// volley never "runs long" and grows a skip button behind the ad.
+const volleySeconds = ref(0)
+let volleyPoll = 0
+const readVolleyClock = (): void => {
+  const s = barrage.engine.value.state
+  volleySeconds.value = s.phase === 'volley' ? s.phaseTime : 0
+}
+watch(phase, (p) => {
+  window.clearInterval(volleyPoll)
+  volleySeconds.value = 0
+  if (p === 'volley') volleyPoll = window.setInterval(readVolleyClock, 200)
+}, { immediate: true })
+onUnmounted(() => window.clearInterval(volleyPoll))
+
+const showRecall = computed(() => recallVisible(phase.value, volleySeconds.value, tutorialActive.value))
+const showVolleyRow = computed(() => showRecall.value || (inVolley.value && speed.value > 1))
 
 const onRecall = (): void => {
   if (!inVolley.value) return
@@ -81,18 +105,19 @@ const labelClass = computed(() => isCompactHud.value ? 'text-sm' : isRoomyHud.va
         IconMovie.w-6.h-6.shrink-0(v-else)
         span.game-text.font-black.text-white.leading-none.whitespace-nowrap(:class="labelClass") {{ t('barrage.turn.bonus', { n: BONUS_BALLS }) }}
         span.turn-ball.w-4.h-4.shrink-0(aria-hidden="true")
-      //- ── Volley: recall + fast-forward ──
-      div.flex.items-center.gap-1_5(v-else-if="showRecall" key="volley")
-        button.turn-btn.turn-btn--recall.relative.flex.items-center.justify-center.rounded-xl.border-2.cursor-pointer(
-          type="button"
-          class="border-[#0f1a30] active:scale-95 transition-transform min-w-12 px-3 gap-1"
-          :class="[btnH, { 'opacity-50 grayscale': !inVolley }]"
-          :aria-label="t('barrage.turn.recall')"
-          :title="t('barrage.turn.recall')"
-          :aria-disabled="!inVolley ? 'true' : undefined"
-          @click="onRecall"
-        )
-          BarrageGlyph.w-6.h-6.text-white(name="recall")
+      //- ── Volley: skip (recall) once it runs long + fast-forward ──
+      div.flex.items-center.gap-1_5(v-else-if="showVolleyRow" key="volley")
+        Transition(name="turn-pop")
+          button.turn-btn.turn-btn--recall.relative.flex.items-center.justify-center.rounded-xl.border-2.cursor-pointer(
+            v-if="showRecall"
+            type="button"
+            class="border-[#0f1a30] active:scale-95 transition-transform min-w-12 px-3 gap-1"
+            :class="btnH"
+            :aria-label="t('barrage.turn.recall')"
+            :title="t('barrage.turn.recall')"
+            @click="onRecall"
+          )
+            BarrageGlyph.w-6.h-6.text-white(name="skip")
         Transition(name="turn-pop")
           span.speed-pill.flex.items-center.rounded-full.px-2.py-1.game-text.font-black.text-white(
             v-if="speed > 1"

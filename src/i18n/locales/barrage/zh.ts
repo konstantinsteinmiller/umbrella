@@ -9,7 +9,8 @@ export default {
     todayBest: '今日{n}',
     shields: '护盾次数：{n}',
     revives: '复活次数：{n}',
-    warcry: '战吼就绪：下一轮齐射伤害翻倍'
+    warcry: '战吼就绪：下一轮齐射伤害翻倍',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: '免费',
     aria: '{name}：{desc} 价格：{cost}金币。',
     ariaMaxed: '{name}：{desc} 已满级。',
-    ariaFree: '{name}：{desc} 免费！'
+    ariaFree: '{name}：{desc} 免费！',
+    denied: '金币不足：需要 {cost}。',
+    need: '还差{n}'
   },
   turn: {
     bonus: '+{n}个球',
@@ -231,7 +234,11 @@ export default {
     free: '免费',
     restart: '从第{n}行重新开始',
     restartDesc: '保留你所有的金币',
-    onceHint: '每个检查点只能使用一次流星风暴。'
+    onceHint: '每个检查点只能使用一次流星风暴。',
+    recapRow: '行',
+    recapKills: '击败',
+    recapEarned: '本局获得',
+    recapAria: '本局：第{row}行，击败{kills}，获得金币{coins}'
   },
   chest: {
     title: '击败首领！',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: '为{name}观看广告（已看{n}/{max}）'
   },
   supply: {
-    ready: '宝箱准备好了——点一下打开！'
+    ready: '宝箱准备好了——点一下打开！',
+    filling: '{name}：{time}后 +{n} 金币'
   },
   codex: {
     title: '弹球图鉴',
@@ -279,7 +287,7 @@ export default {
     locked: '合成两个{n}级球来发现它！'
   },
   tutorial: {
-    aim: '向后拖动再松开来发射！',
+    aim: '朝怪物方向拖动，松开即可发射！',
     pickup: '射穿+1泡泡来收集一个球！',
     merge: '再收集一个球：球槽满了，双胞胎就会合成更强的球！',
     upgrade: '点击免费升级来容纳更多的球！'
@@ -289,7 +297,15 @@ export default {
     tray: '球槽满了：只有还有空位时，+1 才会多一发。升级球槽容量，发射更多的球！',
     combo: '瞄准空隙：在怪物后方弹跳的球能打出超大连击！',
     trayIntro: '球槽里装着你的球：每个球就是一发。+1 会填满一个空位，球槽满了时，两颗双胞胎会合成一颗更强的球。',
-    upgrade: '点一下发光的升级：它会让你的球、球槽或金币变得更好。'
+    upgrade: '点一下发光的升级：它会让你的球、球槽或金币变得更好。',
+    bank: '斜着瞄准：弹墙的球一发就能击中好几只怪物！',
+    funnel: '现在买得起{name}了——点一下，每个球都会打得更狠！',
+    overrun: '怪物一旦越过这条线，防线就会失守——先打标着 1 的怪物！'
+  },
+  merge: {
+    sr: '两个{from}级球合成了一个{to}级球！球槽里的每个球就是一发射击。',
+    discovery: '新球：{name}。能力：{ability}——{desc}',
+    skipAria: '跳过合成'
   },
   unlock: {
     announce: '已解锁：{name}！'

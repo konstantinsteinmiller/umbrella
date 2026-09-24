@@ -9,7 +9,8 @@ export default {
     todayBest: 'Auj. {n}',
     shields: 'Charges de bouclier : {n}',
     revives: 'Charges de résurrection : {n}',
-    warcry: 'Cri de guerre prêt : ta prochaine salve inflige des dégâts doublés'
+    warcry: 'Cri de guerre prêt : ta prochaine salve inflige des dégâts doublés',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Gratuit',
     aria: '{name} : {desc} Coût : {cost} pièces.',
     ariaMaxed: '{name} : {desc} Au maximum.',
-    ariaFree: '{name} : {desc} Gratuit !'
+    ariaFree: '{name} : {desc} Gratuit !',
+    denied: 'Pas assez de pièces : il t’en faut {cost}.',
+    need: 'Il manque {n}'
   },
   turn: {
     bonus: '+{n} balles',
@@ -231,7 +234,11 @@ export default {
     free: 'Gratuit',
     restart: 'Reprendre à la rangée {n}',
     restartDesc: 'Tu gardes toutes tes pièces',
-    onceHint: 'La Pluie de météores marche une fois par point de contrôle.'
+    onceHint: 'La Pluie de météores marche une fois par point de contrôle.',
+    recapRow: 'Rangée',
+    recapKills: 'Vaincus',
+    recapEarned: 'Gagnées cette partie',
+    recapAria: 'Cette partie : rangée {row}, {kills} vaincus, {coins} pièces gagnées'
   },
   chest: {
     title: 'Boss vaincu !',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: 'Regarder une pub pour {name} ({n} sur {max} vues)'
   },
   supply: {
-    ready: 'Coffre au trésor prêt — touche pour l’ouvrir !'
+    ready: 'Coffre au trésor prêt — touche pour l’ouvrir !',
+    filling: '{name} : +{n} pièces dans {time}'
   },
   codex: {
     title: 'Codex des balles',
@@ -279,7 +287,7 @@ export default {
     locked: 'Fusionne deux balles de niveau {n} pour la découvrir !'
   },
   tutorial: {
-    aim: 'Tire vers l’arrière et relâche pour tirer !',
+    aim: 'Fais glisser vers les monstres et relâche pour tirer !',
     pickup: 'Tire à travers une bulle +1 pour récupérer une balle !',
     merge: 'Récupère une autre balle : une réserve pleine fusionne les jumelles en une balle plus forte !',
     upgrade: 'Touche l\'amélioration gratuite pour garder plus de balles !'
@@ -289,7 +297,15 @@ export default {
     tray: 'Ta réserve est pleine : un +1 n’ajoute un tir que s’il reste une place libre. Améliore la capacité de réserve pour tirer plus de balles !',
     combo: 'Vise à travers une brèche : les balles qui rebondissent derrière les monstres font d’énormes combos !',
     trayIntro: 'Cette réserve contient tes balles : chacune est un tir. Un +1 remplit une place libre, et une réserve pleine fusionne deux jumelles en une balle plus forte.',
-    upgrade: 'Touche l’amélioration qui brille : elle rend tes balles, ta réserve ou tes pièces meilleures.'
+    upgrade: 'Touche l’amélioration qui brille : elle rend tes balles, ta réserve ou tes pièces meilleures.',
+    bank: 'Vise en biais : une balle qui rebondit sur le mur peut toucher plusieurs monstres d’un seul tir !',
+    funnel: 'Tu peux maintenant acheter {name} : touche-le et chaque balle frappera plus fort !',
+    overrun: 'Si un monstre franchit la ligne, tu es submergé — frappe d’abord ceux marqués 1 !'
+  },
+  merge: {
+    sr: 'Deux balles de niveau {from} ont fusionné en une balle de niveau {to} ! Chaque balle de ta réserve est un tir.',
+    discovery: 'Nouvelle balle : {name}. Capacité : {ability} — {desc}',
+    skipAria: 'Passer la fusion'
   },
   unlock: {
     announce: 'Débloqué : {name} !'

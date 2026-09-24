@@ -8,9 +8,15 @@
  * "Tray Capacity 3" is on offer, that chip is the only thing glowing and it
  * says FREE instead of a price.
  *
- * Unaffordable chips stay tappable (aria-disabled, not disabled): the tap
- * plays the denied sound and shakes, which is the only feedback a phone
- * player gets for "not yet" — a disabled button swallows the tap silently.
+ * Every OTHER chip the player can afford wears a small gold glow of its own
+ * (`chip--afford`) — quieter than the one glowing chip, but enough that 115–284
+ * unspent coins (play-test run 2) never sit beside chips that look inert.
+ *
+ * Unaffordable chips stay tappable (aria-disabled, not disabled). Their price
+ * is a neutral grey, so red can MEAN "denied": the tap shakes the chip, flashes
+ * its price red, pops a "need N more" callout above it, pulses the wallet,
+ * gives the screen a small shake and plays the denied sound. (Run 2: the old
+ * denial reached only the screen reader — the price was already red.)
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -19,10 +25,13 @@ import type { UpgradeId, UpgradeView } from '@/barrage/state/contract'
 import useSounds from '@/use/useSound'
 import { notifyTutorial, tutorialStep } from '@/use/useTutorial'
 import { isCompactHud, isRoomyHud, isUltraCompactHud } from '@/use/useUser'
+import useScreenshake from '@/use/useScreenshake'
+import useEpicConfig from '@/use/useEpicConfig'
+import { chipPulse } from '@/use/useCoach'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import RuneFrame from '@/components/atoms/RuneFrame.vue'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
-import { fmtCoins, upgradeValueKey, upgradeValueNumber } from '@/components/barrage/barrageUi'
+import { fmtCoins, pulseWallet, readyGlow, UPGRADE_INSCRIPTION, upgradeValueKey, upgradeValueNumber } from '@/components/barrage/barrageUi'
 import { runeZoneFor } from '@/game/runes'
 import { emitSparkle } from '@/use/usePrismParticles'
 
@@ -35,14 +44,15 @@ const props = withDefaults(defineProps<{
 const { t, locale } = useI18n()
 const upgrades = useBarrageUpgrades()
 const { playSound } = useSounds()
+const { triggerShake } = useScreenshake()
+const { coins } = useEpicConfig()
+const reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 const ACCENT: Record<UpgradeId, string> = {
   damage: '#ff6a2a', capacity: '#5fb0ff', speed: '#36d399', luck: '#7ee05a', bounty: '#ffd23c'
 }
 /** What each chip's rune border spells (ornament, never read). */
-const INSCRIPTION: Record<UpgradeId, string> = {
-  damage: 'ball damage', capacity: 'tray capacity', speed: 'launch speed', luck: 'pickup luck', bounty: 'coin bounty'
-}
+const INSCRIPTION = UPGRADE_INSCRIPTION
 
 const freeOffer = computed(() => upgrades.freeCapacityOffer.value)
 
@@ -51,6 +61,8 @@ interface Chip {
   id: UpgradeId
   free: boolean
   glow: boolean
+  /** Affordable, and not the one glowing chip: the quiet gold glow. */
+  afford: boolean
   state: 'ready' | 'locked' | 'maxed'
   value: string
   next: string | null
@@ -60,12 +72,14 @@ const fmtValue = (id: UpgradeId, v: number): string => t(upgradeValueKey(id), { 
 
 const chips = computed<Chip[]>(() => upgrades.list.value.map((view) => {
   const free = freeOffer.value && view.id === 'capacity'
+  // The free FTUE offer is THE obvious next thing — nothing else glows beside it.
+  const glow = free || (!freeOffer.value && view.glowing)
   return {
     view,
     id: view.id,
     free,
-    // The free FTUE offer is THE obvious next thing — nothing else glows beside it.
-    glow: free || (!freeOffer.value && view.glowing),
+    glow,
+    afford: readyGlow({ affordable: view.affordable, maxed: view.maxed, glow, free, freeOffer: freeOffer.value }),
     state: view.maxed ? 'maxed' : (free || view.affordable) ? 'ready' : 'locked',
     value: fmtValue(view.id, view.value),
     next: view.nextValue === null || view.maxed ? null : fmtValue(view.id, view.nextValue)
@@ -73,6 +87,18 @@ const chips = computed<Chip[]>(() => upgrades.list.value.map((view) => {
 }))
 
 const name = (id: UpgradeId): string => t(`barrage.upgrades.${id}.short`)
+
+// ─── One-shot pulse (the coach: coins to spend and no purchase in a while) ───
+const pulseId = ref<UpgradeId | null>(null)
+let pulseTimer = 0
+const PULSE_MS = 1400
+watch(chipPulse, (p) => {
+  if (!p) return
+  pulseId.value = null
+  requestAnimationFrame(() => { pulseId.value = p.id })
+  window.clearTimeout(pulseTimer)
+  pulseTimer = window.setTimeout(() => { pulseId.value = null }, PULSE_MS)
+})
 const ariaFor = (c: Chip): string => {
   const base = { name: t(`barrage.upgrades.${c.id}.name`), desc: t(`barrage.upgrades.${c.id}.desc`) }
   if (c.view.maxed) return t('barrage.upgrades.ariaMaxed', base)
@@ -84,8 +110,19 @@ const titleFor = (c: Chip): string => `${t(`barrage.upgrades.${c.id}.name`)} —
 // ─── Buying ──────────────────────────────────────────────────────────────────
 const flareId = ref<UpgradeId | null>(null)
 const shakeId = ref<UpgradeId | null>(null)
+/** The sr-only "not enough coins" line (the screen shows the callout). */
+const deniedText = ref('')
 let flareTimer = 0
 let shakeTimer = 0
+let needTimer = 0
+/** How long the denial shows (shake + red price), ms. */
+const DENIED_MS = 650
+/** How long the "need N more" callout stays up, ms. */
+const NEED_MS = 1200
+/** The visible callout over a refused chip (teleported: the chip and the
+ *  control deck both clip their overflow). */
+const need = ref<{ seq: number; text: string; x: number; y: number } | null>(null)
+let needSeq = 0
 
 const flare = (id: UpgradeId, el: HTMLElement | null): void => {
   flareId.value = null
@@ -111,11 +148,33 @@ const onChip = (c: Chip, ev: MouseEvent): void => {
     notifyTutorial({ kind: 'upgrade' })
     return
   }
-  playSound('upgrade-denied', 0.015)
+  deny(c, el)
+}
+
+const deny = (c: Chip, el: HTMLElement | null): void => {
+  // A short dull thunk, pitched down so it never sounds like the buy chime.
+  playSound('upgrade-denied', 0.05, 0.8)
+  // Off for a frame, then on: a second tap mid-shake restarts the animation.
   shakeId.value = null
   requestAnimationFrame(() => { shakeId.value = c.id })
   window.clearTimeout(shakeTimer)
-  shakeTimer = window.setTimeout(() => { shakeId.value = null }, 400)
+  shakeTimer = window.setTimeout(() => { shakeId.value = null }, DENIED_MS)
+  if (c.view.maxed) {
+    deniedText.value = ''
+    return
+  }
+  deniedText.value = t('barrage.upgrades.denied', { cost: fmtCoins(c.view.cost) })
+  // What is short, where the eye already is — and at the wallet it comes from.
+  const r = el?.getBoundingClientRect()
+  if (r && r.width > 0) {
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 0
+    const x = Math.min(Math.max(r.left + r.width / 2, 56), Math.max(56, vw - 56))
+    need.value = { seq: ++needSeq, text: t('barrage.upgrades.need', { n: fmtCoins(Math.max(1, c.view.cost - coins.value)) }), x, y: r.top - 4 }
+    window.clearTimeout(needTimer)
+    needTimer = window.setTimeout(() => { need.value = null }, NEED_MS)
+  }
+  pulseWallet()
+  if (!reducedMotion) triggerShake('small')
 }
 
 // ─── Sizing ──────────────────────────────────────────────────────────────────
@@ -139,6 +198,8 @@ onUnmounted(() => {
   ro?.disconnect()
   window.clearTimeout(flareTimer)
   window.clearTimeout(shakeTimer)
+  window.clearTimeout(needTimer)
+  window.clearTimeout(pulseTimer)
 })
 
 const rowsOf = computed(() => Math.max(1, Math.ceil(5 / Math.max(1, props.cols))))
@@ -196,7 +257,7 @@ onMounted(() => { void nextTick(fitLabels) })
       v-for="c in chips"
       :key="c.id"
       type="button"
-      :class="['chip--' + c.state, { 'chip--glow': c.glow, 'chip--free': c.free, 'chip--compact': isCompactHud, 'chip--flare': flareId === c.id, 'chip--shake': shakeId === c.id, 'chip--tut': tutTarget && c.glow, 'flex-1': cols >= 5 }]"
+      :class="['chip--' + c.state, { 'chip--glow': c.glow, 'chip--afford': c.afford, 'chip--pulse': pulseId === c.id, 'chip--free': c.free, 'chip--compact': isCompactHud, 'chip--flare': flareId === c.id, 'chip--shake': shakeId === c.id, 'chip--tut': tutTarget && c.glow, 'flex-1': cols >= 5 }]"
       :style="{ '--accent': ACCENT[c.id], '--rune-zone': runeZone, flexBasis: chipBasis, height: cols < 5 ? chipH + 'px' : undefined }"
       :aria-disabled="c.state === 'locked' || c.view.maxed ? 'true' : undefined"
       :aria-label="ariaFor(c)"
@@ -224,8 +285,19 @@ onMounted(() => { void nextTick(fitLabels) })
         template(v-else)
           IconCoin.chip-coin.shrink-0(:class="coinClass")
           span.chip-cost.game-text.font-black.leading-none.tabular-nums(
-            :class="[c.view.affordable ? 'chip-cost--ok' : 'chip-cost--short', costClass]"
+            :class="[c.view.affordable ? 'chip-cost--ok' : 'chip-cost--short', { 'chip-cost--denied': shakeId === c.id }, costClass]"
           ) {{ fmtCoins(c.view.cost) }}
+    div.sr-only(aria-live="assertive") {{ deniedText }}
+    Teleport(to="body")
+      Transition(name="chip-need")
+        div.chip-need.fixed.flex.items-center.pointer-events-none(
+          v-if="need"
+          :key="need.seq"
+          :style="{ left: need.x + 'px', top: need.y + 'px' }"
+          aria-hidden="true"
+        )
+          IconCoin.chip-need__coin.shrink-0
+          span.game-text.font-black.whitespace-nowrap {{ need.text }}
 </template>
 
 <style scoped lang="sass">
@@ -302,15 +374,92 @@ onMounted(() => { void nextTick(fitLabels) })
 .chip--flare
   filter: brightness(1.6)
   transition: filter 0.5s ease-out
+// "Not yet": a hard head-shake, big enough to see under a thumb.
 .chip--shake
-  animation: chip-shake 0.36s ease-in-out
+  animation: chip-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97)
 @keyframes chip-shake
   0%, 100%
     translate: 0 0
-  20%, 60%
-    translate: -3px 0
-  40%, 80%
-    translate: 3px 0
+    rotate: 0deg
+  15%, 55%
+    translate: -6px 0
+    rotate: -2deg
+  35%, 75%
+    translate: 6px 0
+    rotate: 2deg
+  90%
+    translate: -2px 0
+    rotate: 0deg
+// Every other affordable chip: a small gold glow of its own — a thin inner
+// ring that breathes slowly. Quieter than `chip--glow` (no bob, half the
+// ring, a third the speed), so the ONE obvious upgrade still stands out.
+.chip::after
+  content: ''
+  position: absolute
+  inset: 0
+  z-index: 2
+  pointer-events: none
+  border-radius: inherit
+  opacity: 0
+.chip--afford::after
+  box-shadow: inset 0 0 0 1.5px rgba(255, 214, 74, 0.7), inset 0 0 9px rgba(255, 200, 60, 0.35)
+  animation: chip-afford 2.6s ease-in-out infinite alternate
+@keyframes chip-afford
+  from
+    opacity: 0.45
+  to
+    opacity: 1
+
+// The coach's nudge: coins to spend, nothing bought in a while — the glowing
+// chip jumps twice and flashes gold.
+.chip--pulse
+  animation: chip-glow 1.1s ease-in-out infinite alternate, chip-pulse 1.4s ease-out
+@keyframes chip-pulse
+  0%, 50%, 100%
+    scale: 1
+    filter: brightness(1)
+  15%, 65%
+    scale: 1.1
+    filter: brightness(1.45)
+
+// "Need N more": a small dark pill over the refused chip.
+.chip-need
+  z-index: 72
+  gap: 3px
+  translate: -50% -100%
+  padding: 3px 8px 3px 5px
+  border-radius: 999px
+  background: linear-gradient(180deg, #3a0f14, #1d070b)
+  border: 1.5px solid #ff5a5a
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55), 0 0 10px rgba(255, 60, 60, 0.45)
+  color: #ffdede
+  font-size: 12px
+  line-height: 1
+  text-shadow: 0 1px 0 #000
+.chip-need__coin
+  width: 14px
+  height: 14px
+.chip-need-enter-active
+  transition: opacity 0.12s ease-out, transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)
+.chip-need-leave-active
+  transition: opacity 0.25s ease-in, transform 0.25s ease-in
+.chip-need-enter-from
+  opacity: 0
+  transform: translateY(6px) scale(0.8)
+.chip-need-leave-to
+  opacity: 0
+  transform: translateY(-6px)
+
+// …and the price it is short of flashes red.
+.chip-cost--denied
+  animation: chip-cost-denied 0.65s ease-out
+@keyframes chip-cost-denied
+  0%, 60%
+    color: #ff3b3b
+    scale: 1.3
+    text-shadow: 0 0 6px rgba(255, 40, 40, 0.95), 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000
+  100%
+    scale: 1
 
 // The coach hand presses this chip in the FTUE's upgrade beat — in step with
 // UpgradeDemo's 3.8 s loop (its hand is down from 13 % to 20 %).
@@ -338,8 +487,9 @@ onMounted(() => { void nextTick(fitLabels) })
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.95)) drop-shadow(0 0 1px rgba(0, 0, 0, 0.95))
 .chip-cost--ok
   color: #ffe98a
+// Not affordable yet: neutral grey — red is kept for "denied".
 .chip-cost--short
-  color: #ff9a9a
+  color: #b4bccb
 .chip-coin
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.9))
 .chip-maxed
@@ -349,8 +499,13 @@ onMounted(() => { void nextTick(fitLabels) })
   letter-spacing: 0.04em
 
 @media (prefers-reduced-motion: reduce)
-  .chip--glow, .chip--tut, .chip--shake
+  .chip--glow, .chip--tut, .chip--shake, .chip--pulse, .chip--afford::after
     animation: none
+  .chip--afford::after
+    opacity: 1
+  // Reduced motion keeps the red price (a colour change, not motion).
+  .chip-cost--denied
+    color: #ff3b3b
   .chip--glow
     box-shadow: inset 0 0 0 2px rgba(255, 230, 120, 1), 0 3px 0 var(--plate)
 </style>

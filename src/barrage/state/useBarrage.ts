@@ -40,7 +40,7 @@ import { announceNewTier } from '@/use/useTierReveal'
 import useBattlePass, { BARRAGE_XP_SOURCES } from '@/use/useBattlePass'
 import { submitBestRow } from '@/platforms/leaderboard'
 import { createEngine, createEngineAtRow, restoreEngine } from '../engine/engine'
-import { configFromUpgrades, DAILY_CONFIG, defaultConfig } from '../engine/economy'
+import { ASSIST_PAID, assistForPaidLevels, configFromUpgrades, DAILY_CONFIG, defaultConfig, UPGRADE_IDS } from '../engine/economy'
 import {
   ROWS,
   type EngineConfig, type EngineEvent, type EngineListener, type IBarrageEngine, type Phase,
@@ -50,11 +50,11 @@ import { EB_RUN_KEY } from '../keys'
 import {
   bestRow, bumpStats, checkpoint, ftue, isFtueActive, maxBallTier, mode, noteBallTier, noteBestRow,
   patchFtue, patchSegment, pending, persistStats, runEndSeq, sanitizeTray, segment, setCheckpoint,
-  setPending, stats
+  setPending, stats, toCount
 } from './progress'
 import { upgradeLevels } from './upgradeLevels'
 import { recordDailyAttempt, recordDailyRow, dailyRecord, todaySeed } from './useDailyBarrage'
-import type { BossChestOffer, BossHud, BreachOffer, DailyResult, UseBarrage } from './contract'
+import type { BossChestOffer, BossHud, BreachOffer, DailyResult, RunRecap, UseBarrage } from './contract'
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 /** Rewarded "+N balls". */
@@ -77,6 +77,11 @@ export const AD_AWAIT_CAP_MS = 60 * 1000
  *  that an interstitial whose SDK never answers (a tracking blocker) costs the
  *  player a few seconds on the breach screen, not a minute. */
 export const RESTART_AD_WAIT_MS = 6 * 1000
+/** The engine's safety net (`config.assist`) stays at full strength while the
+ *  player owns fewer than this many PAID upgrade levels (playtest run 2: no
+ *  blind tester bought one, and 3 of 4 were overrun at rows 15–19 on flat
+ *  power), then fades per paid level — see `assistForPaidLevels` (economy). */
+export const ASSIST_UNTIL_PAID = ASSIST_PAID.fullBelow
 
 /** `p`, or `fallback` once the cap elapses — whichever comes first. */
 const capped = <T>(p: Promise<T>, fallback: T, ms = AD_AWAIT_CAP_MS): Promise<T> => {
@@ -108,6 +113,19 @@ interface RunRecord {
    *  resurrect the pre-breach turn as a free retry — it restarts at the
    *  checkpoint instead, exactly as the restart button would. */
   breached?: boolean
+  /** The run's loss-recap tally so far (absent in older saves = 0 / 0). */
+  tally?: RunTally
+}
+
+/** Kills made and coins earned since the run started (the breach recap). */
+interface RunTally {
+  kills: number
+  coins: number
+}
+
+const readTally = (raw: unknown): RunTally => {
+  const t = (raw ?? {}) as Partial<Record<keyof RunTally, unknown>>
+  return { kills: toCount(t.kills), coins: toCount(t.coins) }
 }
 
 const readRunRecord = (): RunRecord | null => {
@@ -116,7 +134,7 @@ const readRunRecord = (): RunRecord | null => {
   const snap = raw.snap
   if (!snap || snap.v !== 1 || !snap.config || !Array.isArray(snap.monsters) || !Array.isArray(snap.tray)) return null
   if (snap.config.mode !== 'endless') return null
-  return { v: 1, snap, stamp: raw.stamp, breached: raw.breached === true }
+  return { v: 1, snap, stamp: raw.stamp, breached: raw.breached === true, tally: readTally(raw.tally) }
 }
 
 const sessionId = Math.random().toString(36).slice(2, 8)
@@ -147,7 +165,10 @@ const engineGen = ref(0)
 const checkpointRow = computed(() => checkpoint.value.row)
 
 /** Raw offers; the public refs below add the LIVE readiness gates. */
-const breachRaw: Ref<{ row: number } | null> = ref(null)
+const breachRaw: Ref<{ row: number; recap: RunRecap } | null> = ref(null)
+/** The endless run's recap tally (see RunRecord.tally). Plain module state: it
+ *  is read once, at the breach, and saved with every run snapshot. */
+let tally: RunTally = { kills: 0, coins: 0 }
 const chestRaw: Ref<Omit<BossChestOffer, 'doubleAvailable'> | null> = ref(null)
 /** A boss died this volley; its chest is presented once the volley settles
  *  (next 'aim', or the breach if the same turn ends in one) — a modal thrown
@@ -190,7 +211,23 @@ const nextFrame = (cb: () => void): void => {
 // ─── Config ──────────────────────────────────────────────────────────────────
 const randomSeed = (): number => Math.floor(Math.random() * 0x7fffffff) >>> 0
 
-const endlessTuning = (): Partial<EngineConfig> => ({ ...configFromUpgrades(upgradeLevels.value), ftue: isFtueActive() })
+/** Upgrade levels the player PAID for — the FTUE's free Tray Capacity level is
+ *  a gift, not a purchase (a player who bought that level with coins before
+ *  claiming the gift never gets the gift, so it counts as paid). */
+export const paidUpgradeLevels = computed(() => {
+  let n = 0
+  for (const id of UPGRADE_IDS) n += upgradeLevels.value[id]
+  return Math.max(0, n - (ftue.value.freeCapacity ? 1 : 0))
+})
+
+/** The safety net for the endless run: full (1) below ASSIST_UNTIL_PAID paid
+ *  levels, then a small step down per paid level to 0 (playtest run 3: the
+ *  old on/off switch made monsters jump ~25% at the 2nd purchase — no single
+ *  purchase may make monsters jump). Levels are never sold, so it only fades. */
+const assistLevel = computed(() => assistForPaidLevels(paidUpgradeLevels.value))
+
+const endlessTuning = (): Partial<EngineConfig> =>
+  ({ ...configFromUpgrades(upgradeLevels.value), ftue: isFtueActive(), assist: assistLevel.value })
 
 const endlessConfig = (): EngineConfig =>
   defaultConfig({ ...endlessTuning(), mode: 'endless', seed: randomSeed() })
@@ -251,7 +288,7 @@ const writeRun = (snap: RunSnapshot, breached = false): void => {
   const stamp = `${sessionId}-${++stampSeq}`
   lastStamp = stamp
   writtenStamps.add(stamp)
-  const rec: RunRecord = { v: 1, snap, stamp }
+  const rec: RunRecord = { v: 1, snap, stamp, tally: { ...tally } }
   if (breached) rec.breached = true
   setState(EB_RUN_KEY, rec)
 }
@@ -315,6 +352,9 @@ const preCheckpointTray = (): number[] => {
  *  player had built; after it, `checkpointRow + 1` with the checkpoint tray. */
 const buildCheckpointRun = (): IBarrageEngine => {
   const cp = checkpoint.value
+  // Every caller starts a new run on this board (restart, fresh start, a
+  // hydrated save with no run in it): the loss recap counts from here.
+  tally = { kills: 0, coins: 0 }
   if (cp.row <= 0) {
     const kept = preCheckpointTray()
     // A lone tier-1 ball is exactly `createEngine`'s own start; anything more
@@ -335,6 +375,7 @@ const restoreSavedRun = (rec: RunRecord | null = readRunRecord()): IBarrageEngin
     e.setConfig(endlessTuning())
     lastStamp = rec.stamp
     writtenStamps.add(rec.stamp)
+    tally = readTally(rec.tally)
     return e
   } catch (err) {
     console.warn('[barrage] saved run could not be restored — starting at the checkpoint', err)
@@ -484,7 +525,8 @@ const onBreach = (): void => {
     recordDailyRow(eng().state.row)
     dailyResult.value = { row: eng().state.row, best: dailyRecord.value.best, newBest: dailyNewBest }
   } else {
-    breachRaw.value = { row: eng().state.row }
+    const at = eng().state.row
+    breachRaw.value = { row: at, recap: { row: at, kills: tally.kills, coins: tally.coins } }
     persistBreach()
     submitBestRow(bestRow.value)
   }
@@ -523,11 +565,15 @@ const onEvent = (e: EngineEvent): void => {
     case 'kill':
       bumpStats({ kills: 1 })
       pendingXp += BARRAGE_XP_SOURCES.kill
+      if (mode.value === 'endless') tally.kills++
       break
     case 'coins':
       // The boss bounty is paid by the boss chest (1× or rewarded 2×); if the
       // engine ever reports it as a coin event too it must not pay twice.
-      if (e.source !== 'boss' && e.amount > 0) addCoins(e.amount)
+      if (e.source !== 'boss' && e.amount > 0) {
+        addCoins(e.amount)
+        if (mode.value === 'endless') tally.coins += e.amount
+      }
       break
     case 'pickup':
       bumpStats({ pickups: 1 })
@@ -604,7 +650,8 @@ const breach = computed<BreachOffer | null>(() => {
     reviveAvailable: revives.value > 0,
     isDaily: false,
     checkpointRow: checkpoint.value.row,
-    row: b.row
+    row: b.row,
+    recap: { ...b.recap }
   }
 })
 
@@ -714,6 +761,7 @@ const claimBossChest = async (double: boolean): Promise<number> => {
     if (double && offer.doubleAvailable && (await capped(redeem(REWARD_COIN_COST), false))) mult = 2
     const coins = offer.bounty * mult
     addCoins(coins)
+    if (mode.value === 'endless') tally.coins += coins
     chestRaw.value = null
     void flushSaveNow()
     return coins
@@ -794,6 +842,12 @@ const installWatchers = (): void => {
     if (mode.value !== 'endless' || !engineRef) return
     eng().setConfig(configFromUpgrades(upgradeLevels.value))
     syncTray()
+  }, { flush: 'sync' })
+  // The safety net fades with every paid level from the 2nd on (engine: rows
+  // spawned from then on read the new value; monsters already out keep their HP).
+  watch(assistLevel, (assist) => {
+    if (mode.value !== 'endless' || !engineRef) return
+    eng().setConfig({ assist })
   }, { flush: 'sync' })
   // Owed rewards land as soon as the run can take them.
   watch(pending, () => { if (phase.value === 'aim') deliverPending() })

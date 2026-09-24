@@ -4,13 +4,40 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- gameplay stop change">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game-implementation-plan.md" beforeDir="false" afterPath="$PROJECT_DIR$/game-implementation-plan.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/barrage-sim.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/barrage-sim.mjs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/barrage/CONTRACT.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/CONTRACT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/barrage/ballSkins.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/ballSkins.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/engine/economy.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/engine/economy.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/engine/engine.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/engine/engine.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/engine/monsters.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/engine/monsters.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/engine/shotFinder.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/engine/shotFinder.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/engine/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/engine/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/keys.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/keys.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/render/BoardRenderer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/render/BoardRenderer.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/render/aim.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/render/aim.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/render/vfx.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/render/vfx.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/barrage/state/contract.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/state/contract.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/barrage/state/useCollections.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/state/useCollections.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/barrage/CollectionModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/CollectionModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/state/useBarrage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/state/useBarrage.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/BallTray.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/BallTray.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/BarrageBanners.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/BarrageBanners.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/BarrageBoard.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/BarrageBoard.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/BarrageGlyph.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/BarrageGlyph.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/BossBar.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/BossBar.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/BreachModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/BreachModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/FeatureSlot.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/FeatureSlot.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/SupplyDropButton.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/SupplyDropButton.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/TurnControls.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/TurnControls.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/UpgradeBar.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/UpgradeBar.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/barrageUi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/barrageUi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/coach/CoachOverlay.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/coach/CoachOverlay.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/coach/SlingshotDemo.vue" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/coach/UpgradeDemo.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/coach/UpgradeDemo.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/CoinBadge.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/CoinBadge.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/TutorialOverlay.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/TutorialOverlay.vue" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ar.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/de.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/en.ts" afterDir="false" />
@@ -32,6 +59,17 @@
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/uz.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/vi.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/zh.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useCoach.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCoach.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/views/BarrageLab.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/BarrageLab.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/engine/abilities.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/engine/abilities.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/engine/boss.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/engine/boss.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/engine/turnflow.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/engine/turnflow.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/render/aim.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/render/aim.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/state/fakeEngine.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/state/fakeEngine.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/state/useBarrage.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/state/useBarrage.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/ui/coach.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/ui/coach.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/vite.config.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,12 +85,12 @@
     &quot;assignee&quot;: &quot;konstantinsteinmiller&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/konstantinsteinmiller/elemental-barrage.git",
-    "accountId": "5a39b842-cbd1-44a3-833a-a2b769bec25c"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/konstantinsteinmiller/elemental-barrage.git&quot;,
+    &quot;accountId&quot;: &quot;5a39b842-cbd1-44a3-833a-a2b769bec25c&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
 }</component>
@@ -61,22 +99,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/konst/Documents/__p/elemental-barrage/public/enemies",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "pnpm",
-    "npm.build:poki.executor": "Run",
-    "npm.dev.executor": "Run",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/elemental-barrage/public/enemies&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;npm.build:poki.executor&quot;: &quot;Run&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage\public\enemies" />
@@ -119,7 +157,7 @@
       <option name="presentableId" value="Default" />
       <updated>1790165645764</updated>
       <workItem from="1790165647095" duration="2583000" />
-      <workItem from="1790169209346" duration="18554000" />
+      <workItem from="1790169209346" duration="24863000" />
     </task>
     <task id="LOCAL-00001" summary="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
       <option name="closed" value="true" />
@@ -129,7 +167,15 @@
       <option name="project" value="LOCAL" />
       <updated>1790197331345</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="- gameplay stop change">
+      <option name="closed" value="true" />
+      <created>1790198930863</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1790198930863</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -137,6 +183,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies" />
-    <option name="LAST_COMMIT_MESSAGE" value="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies" />
+    <MESSAGE value="- gameplay stop change" />
+    <option name="LAST_COMMIT_MESSAGE" value="- gameplay stop change" />
   </component>
 </project>

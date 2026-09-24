@@ -60,6 +60,11 @@ const current = ref<Shown | null>(null)
 const queue: Banner[] = []
 let seq = 0
 let bannerTimer = 0
+/** The boss's death blast (engine `bossBlast`: the bottom two rows go up, that
+ *  turn's march is skipped) plays right after the kill; the CHECKPOINT banner
+ *  waits for it instead of covering it. */
+const BOSS_BLAST_MS = 650
+let bossBannerTimer = 0
 
 const next = (): void => {
   window.clearTimeout(bannerTimer)
@@ -125,12 +130,16 @@ const onEvent = (e: EngineEvent): void => {
       if (kind) announce(`${t('barrage.banners.enraged', { name: t('barrage.bosses.' + kind) })} ${t('barrage.banners.enragedSub')}`)
       break
     }
-    case 'bossDefeated':
-      // The instant celebration. The chest modal waits for the volley to settle
-      // (STATE presents it at the next 'aim'), so the kill itself gets its moment
-      // here — and in the endless mode it IS the checkpoint moment.
-      push({ kind: 'bossDown', bossKind: e.bossKind, row: e.row, checkpoint: barrage.mode.value !== 'daily' })
+    case 'bossDefeated': {
+      // The celebration. The chest modal waits for the volley to settle (STATE
+      // presents it at the next 'aim'), so the kill itself gets its moment here
+      // — and in the endless mode it IS the checkpoint moment. It lands once
+      // the death blast has played (BOSS_BLAST_MS), not over it.
+      const banner: Banner = { kind: 'bossDown', bossKind: e.bossKind, row: e.row, checkpoint: barrage.mode.value !== 'daily' }
+      window.clearTimeout(bossBannerTimer)
+      bossBannerTimer = window.setTimeout(() => push(banner), BOSS_BLAST_MS)
       break
+    }
     case 'fever':
       push({ kind: 'fever' })
       break
@@ -162,6 +171,7 @@ onMounted(() => { off = barrage.onEngineEvent(onEvent) })
 onUnmounted(() => {
   off?.()
   window.clearTimeout(bannerTimer)
+  window.clearTimeout(bossBannerTimer)
   window.clearTimeout(comboTimer)
   window.clearTimeout(announceTimer)
 })
@@ -170,6 +180,7 @@ onUnmounted(() => {
 watch(() => barrage.engineGen.value, () => {
   queue.length = 0
   window.clearTimeout(bannerTimer)
+  window.clearTimeout(bossBannerTimer)
   current.value = null
 })
 

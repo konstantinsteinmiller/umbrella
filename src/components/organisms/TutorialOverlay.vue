@@ -5,15 +5,17 @@
  * Play-testers skim instruction bubbles, so every beat is SHOWN: the step's
  * sentence lives on only in a screen-reader live region.
  *
- *   'aim'   — SlingshotDemo: a ghost hand grabs the UNIT, drags it back and a
- *             stretch arrow grows out of it in the pull direction while the
- *             real aim path (`engine.aimPreview`) grows forward; release, and a
- *             ghost ball flies the first leg. Looping. (Play-test: the old hand
- *             grabbed empty board above the unit and slid TOWARD it, which read
- *             as "drag to the unit", and a stranger pointed at the monsters.)
- *             It aims at what the current beat wants hit: the nearest "+1"
- *             bubble on the pickup/merge beats, the monster over the launcher
- *             otherwise.
+ *   'aim'   — FingerDemo: a ghost hand lands mid-board above the unit, drags
+ *             TOWARD what the beat wants hit while a dashed ghost line grows
+ *             under it from the unit; release, and a ghost ball flies the real
+ *             path (`engine.aimPreview`) and fades. Looping, with an empty beat
+ *             between loops. The board aims at a finger above the unit, so
+ *             this is the gesture every blind play-tester tried first. (The
+ *             slingshot demo before it pulled the hand DOWN onto the tray,
+ *             where a still frame read "tap this card".) It aims at the
+ *             nearest "+1" bubble on the pickup/merge beats, the monster over
+ *             the launcher otherwise — and steps aside on turn 2–3 when the
+ *             coach has an angled bank shot to show (useCoach, `bank`).
  *   'press' — UpgradeDemo on the free / glowing upgrade chip: the hand
  *             presses it, a spark flies to what it changes (the free Tray
  *             Capacity: a new socket in the tray) and the effect plays there.
@@ -22,7 +24,15 @@
  * The overlay is pointer-events: none throughout — the player drives the real
  * board underneath — and it gets out of the way the instant a finger is on the
  * board (`playerAiming`), a volley is running, a modal is open, or a tier
- * reveal owns the moment.
+ * reveal or the merge lightbox owns the moment — and while the coach plays
+ * the lose rule (`overrun`: a first-timer can reach the line before the FTUE
+ * is over, and that rule comes before every other lesson).
+ *
+ * The aim hand follows the coach's 20-second rule (`shotDemoDue`): after the
+ * first shot it stays away until no shot has been fired for 20 s. Its very
+ * first appearance skips the fade, so the first frame of the game already
+ * shows the hand (run 2: a still frame of the fading-in demo read as a
+ * "joystick circle").
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -36,7 +46,9 @@ import { isAnyModalOpen } from '@/use/useModalState'
 import { activeReveal } from '@/use/useTierReveal'
 import { boardApi, playerAiming } from '@/components/barrage/barrageUi'
 import { isCompactHud } from '@/use/useUser'
-import SlingshotDemo from '@/components/barrage/coach/SlingshotDemo.vue'
+import { coachLesson, shotDemoDue } from '@/use/useCoach'
+import { mergeBox } from '@/components/barrage/mergeLightbox'
+import FingerDemo from '@/components/barrage/coach/FingerDemo.vue'
 import UpgradeDemo from '@/components/barrage/coach/UpgradeDemo.vue'
 import type { UpgradeId } from '@/barrage/engine/types'
 
@@ -56,6 +68,8 @@ type Plan =
     dir: Point
     path: Point[]
     cell: number
+    /** The board's client rect — the demo never leaves it. */
+    bounds: Hole | null
   }
   | {
     kind: 'press'
@@ -117,7 +131,9 @@ const aimPlan = (): Plan | null => {
   // Screen direction of the shot (y grows down in both spaces).
   const dir = { x: Math.cos(angle), y: -Math.sin(angle) }
   if (path.length < 2) path = [L, { x: L.x + dir.x * cell * 6, y: L.y + dir.y * cell * 6 }]
-  return { kind: 'aim', launcher: L, dir, path, cell }
+  const r = board.boardClientRect()
+  const bounds = r ? { left: r.left, top: r.top, width: r.width, height: r.height } : null
+  return { kind: 'aim', launcher: L, dir, path, cell, bounds }
 }
 
 const holeOf = (r: { left: number; top: number; width: number; height: number }, pad = HOLE_PAD): Hole =>
@@ -171,7 +187,16 @@ const decide = (): Plan | null => {
 }
 
 const plan = ref<Plan | null>(null)
-const hidden = computed(() => playerAiming.value || isAnyModalOpen.value || !!activeReveal.value)
+/** The coach's early bank shot owns the aim beat it lands on (one hand at a
+ *  time; that shot teaches the angle, this one only "shoot"). */
+const coachHasShot = computed(() => {
+  const l = coachLesson.value
+  return l?.id === 'combo' && !!l.bank
+})
+const hidden = computed(() =>
+  playerAiming.value || isAnyModalOpen.value || !!activeReveal.value || !!mergeBox.value
+  || coachLesson.value?.id === 'overrun'
+  || (plan.value?.kind === 'aim' && (coachHasShot.value || !shotDemoDue.value)))
 const visible = computed(() => tutorialActive.value && !!plan.value && !hidden.value)
 
 const measure = (): void => {
@@ -183,6 +208,10 @@ const measure = (): void => {
 watch([visible, () => plan.value?.kind], () => {
   tutorialPreview.value = visible.value && plan.value ? plan.value.kind : null
 }, { immediate: true })
+
+/** No fade-in for the overlay's first appearance (see the header). */
+const shownOnce = ref(false)
+watch(visible, (v) => { if (v) window.setTimeout(() => { shownOnce.value = true }, 0) }, { immediate: true })
 
 // ─── Template geometry ───────────────────────────────────────────────────────
 const NONE: Record<string, string> = {}
@@ -222,7 +251,7 @@ onUnmounted(() => {
   Teleport(to="body")
     //- The beat's sentence, for screen readers only — the screen SHOWS it.
     div.sr-only(v-if="tutorialActive" aria-live="polite") {{ label }}
-    Transition(name="fade")
+    Transition(name="fade" :css="shownOnce")
       div.fixed.inset-0.pointer-events-none(v-if="visible && plan" class="z-[70]" aria-hidden="true")
         //- ── PRESS: dim with a window over the chip and one over its effect ──
         template(v-if="press")
@@ -235,13 +264,14 @@ onUnmounted(() => {
           div.tut-hole.absolute.rounded-2xl(:style="{ left: press.holes[0].left + 'px', top: press.holes[0].top + 'px', width: press.holes[0].width + 'px', height: press.holes[0].height + 'px' }")
           UpgradeDemo(:id="press.id" :ring="false")
 
-        //- ── AIM: grab the unit, pull back (the arrow stretches), release ──
-        SlingshotDemo(
+        //- ── AIM: a finger drags toward the target inside the board, release ──
+        FingerDemo(
           v-else-if="aim"
           :launcher="aim.launcher"
           :dir="aim.dir"
           :path="aim.path"
           :cell="aim.cell"
+          :bounds="aim.bounds"
         )
 
         //- Progress: one pip per beat, done ones lit — always at the board's top centre.

@@ -9,7 +9,8 @@ export default {
     todayBest: 'Bugun {n}',
     shields: 'Qalqon zaryadi: {n}',
     revives: 'Tirilish zaryadi: {n}',
-    warcry: 'Jang hayqirig‘i tayyor: keyingi zarba ikki barobar zarar beradi'
+    warcry: 'Jang hayqirig‘i tayyor: keyingi zarba ikki barobar zarar beradi',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Bepul',
     aria: '{name}: {desc} Narxi: {cost} tanga.',
     ariaMaxed: '{name}: {desc} To‘liq yaxshilangan.',
-    ariaFree: '{name}: {desc} Bepul!'
+    ariaFree: '{name}: {desc} Bepul!',
+    denied: 'Tangalar yetarli emas: {cost} kerak.',
+    need: 'Yana {n} kerak'
   },
   turn: {
     bonus: '+{n} to‘p',
@@ -231,7 +234,11 @@ export default {
     free: 'Bepul',
     restart: '{n}-qatordan qayta boshlash',
     restartDesc: 'Barcha tangalaringiz saqlanadi',
-    onceHint: 'Meteor bo‘roni har nazorat nuqtasida bir marta.'
+    onceHint: 'Meteor bo‘roni har nazorat nuqtasida bir marta.',
+    recapRow: 'Qator',
+    recapKills: 'Yengilgan',
+    recapEarned: 'Bu o‘yinda topildi',
+    recapAria: 'Bu o‘yin: {row}-qator, {kills} yengilgan, {coins} tanga topildi'
   },
   chest: {
     title: 'Boss yengildi!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: '{name} uchun reklama ko‘ring ({max} tadan {n} tasi ko‘rildi)'
   },
   supply: {
-    ready: 'Xazina sandig‘i tayyor — ochish uchun bos!'
+    ready: 'Xazina sandig‘i tayyor — ochish uchun bos!',
+    filling: '{name}: {time} dan keyin +{n} tanga'
   },
   codex: {
     title: 'To‘plar kodeksi',
@@ -279,7 +287,7 @@ export default {
     locked: 'Kashf etish uchun ikkita {n}-darajali to‘pni birlashtiring!'
   },
   tutorial: {
-    aim: 'Orqaga torting va otish uchun qo‘yib yuboring!',
+    aim: 'Maxluqlar tomon torting va otish uchun qo‘yib yuboring!',
     pickup: 'To‘p yig‘ish uchun +1 pufakchasi orqali oting!',
     merge: 'Yana bitta to‘p yig‘ing: to‘la tova egizaklarni kuchliroq to‘pga birlashtiradi!',
     upgrade: 'Ko‘proq to‘p saqlash uchun bepul yaxshilanishni bosing!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Tovang to‘la: +1 faqat bo‘sh joy bo‘lsagina qo‘shimcha o‘q beradi. Ko‘proq to‘p otish uchun tova sig‘imini yaxshila!',
     combo: 'Bo‘shliq orqali mo‘ljal ol: maxluqlar ortida sakragan to‘plar ulkan kombo beradi!',
     trayIntro: 'Bu tovada to‘plaring turadi: har biri — bitta o‘q. +1 bo‘sh joyni to‘ldiradi, to‘la tova esa ikki egizakni kuchliroq to‘pga birlashtiradi.',
-    upgrade: 'Yonib turgan yaxshilashga bos: u to‘plaringni, tovangni yoki tangalaringni yaxshilaydi.'
+    upgrade: 'Yonib turgan yaxshilashga bos: u to‘plaringni, tovangni yoki tangalaringni yaxshilaydi.',
+    bank: 'Qiya nishonga ol: devordan qaytgan to‘p bir zarbada bir nechta maxluqqa tegadi!',
+    funnel: 'Endi {name} uchun tangangiz yetadi — bosing, har bir to‘p kuchliroq uradi!',
+    overrun: 'Agar maxluq chiziqdan o‘tsa, himoya yorib o‘tiladi — avval 1 belgisi borlarini ur!'
+  },
+  merge: {
+    sr: 'Ikkita {from}-darajali to‘p birlashib, bitta {to}-darajali to‘pga aylandi! Tovangizdagi har bir to‘p — bitta otish.',
+    discovery: 'Yangi to‘p: {name}. Qobiliyati: {ability} — {desc}',
+    skipAria: 'Birlashishni o‘tkazib yuborish'
   },
   unlock: {
     announce: 'Ochildi: {name}!'

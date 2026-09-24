@@ -9,7 +9,8 @@ export default {
     todayBest: 'Dziś {n}',
     shields: 'Ładunki tarczy: {n}',
     revives: 'Ładunki wskrzeszenia: {n}',
-    warcry: 'Okrzyk bojowy gotowy: następna salwa zada podwójne obrażenia'
+    warcry: 'Okrzyk bojowy gotowy: następna salwa zada podwójne obrażenia',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Za darmo',
     aria: '{name}: {desc} Koszt: {cost} monet.',
     ariaMaxed: '{name}: {desc} W pełni ulepszone.',
-    ariaFree: '{name}: {desc} Za darmo!'
+    ariaFree: '{name}: {desc} Za darmo!',
+    denied: 'Za mało monet: potrzebujesz {cost}.',
+    need: 'Brakuje {n}'
   },
   turn: {
     bonus: '+{n} kul',
@@ -231,7 +234,11 @@ export default {
     free: 'Za darmo',
     restart: 'Zacznij od rzędu {n}',
     restartDesc: 'Zachowujesz wszystkie monety',
-    onceHint: 'Burza meteorów działa raz na punkt kontrolny.'
+    onceHint: 'Burza meteorów działa raz na punkt kontrolny.',
+    recapRow: 'Rząd',
+    recapKills: 'Pokonani',
+    recapEarned: 'Zdobyte w tej grze',
+    recapAria: 'Ta gra: rząd {row}, pokonani: {kills}, zdobyte monety: {coins}'
   },
   chest: {
     title: 'Boss pokonany!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: 'Obejrzyj reklamę dla {name} (obejrzano {n} z {max})'
   },
   supply: {
-    ready: 'Skrzynia skarbów gotowa — dotknij, aby otworzyć!'
+    ready: 'Skrzynia skarbów gotowa — dotknij, aby otworzyć!',
+    filling: '{name}: +{n} monet za {time}'
   },
   codex: {
     title: 'Kodeks kul',
@@ -279,7 +287,7 @@ export default {
     locked: 'Połącz dwie kule poziomu {n}, aby ją odkryć!'
   },
   tutorial: {
-    aim: 'Przeciągnij do tyłu i puść, aby strzelić!',
+    aim: 'Przeciągnij w stronę potworów i puść, aby strzelić!',
     pickup: 'Strzel przez bańkę +1, aby zebrać kulę!',
     merge: 'Zbierz kolejną kulę: pełna taca łączy bliźniaki w silniejszą kulę!',
     upgrade: 'Dotknij darmowego ulepszenia, aby mieścić więcej kul!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Twoja taca jest pełna: +1 dodaje strzał tylko wtedy, gdy jest wolne miejsce. Ulepsz pojemność tacy, aby strzelać większą liczbą kul!',
     combo: 'Celuj przez lukę: kule odbijające się za potworami dają ogromne komba!',
     trayIntro: 'Ta taca trzyma twoje kule: każda to jeden strzał. +1 wypełnia wolne miejsce, a pełna taca łączy dwa bliźniaki w silniejszą kulę.',
-    upgrade: 'Dotknij świecącego ulepszenia: poprawia twoje kule, tacę albo monety.'
+    upgrade: 'Dotknij świecącego ulepszenia: poprawia twoje kule, tacę albo monety.',
+    bank: 'Celuj pod kątem: kula odbita od ściany może trafić kilka potworów jednym strzałem!',
+    funnel: 'Stać cię teraz na {name} – dotknij, a każda kula uderzy mocniej!',
+    overrun: 'Jeśli potwór przekroczy linię, nastąpi przełamanie — najpierw trafiaj te oznaczone 1!'
+  },
+  merge: {
+    sr: 'Dwie kule poziomu {from} połączyły się w jedną kulę poziomu {to}! Każda kula na tacy to jeden strzał.',
+    discovery: 'Nowa kula: {name}. Umiejętność: {ability} – {desc}',
+    skipAria: 'Pomiń łączenie'
   },
   unlock: {
     announce: 'Odblokowano: {name}!'

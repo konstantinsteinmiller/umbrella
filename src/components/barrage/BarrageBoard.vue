@@ -6,8 +6,17 @@
  *     ResizeObserver-driven;
  *   • owns the rAF loop: `engine.update(dt)` unless `isGamePaused || holdSim`,
  *     always draws (a paused game keeps its last frame and skips the work);
- *   • slingshot input in phase 'aim' only (`render/aim.ts`), fires through
- *     `useBarrage().fire(angle)` itself and emits aimStart / aimCancel / fired;
+ *   • dual-mode aim in phase 'aim' only (`render/aim.ts`: point at a finger
+ *     above the launcher, slingshot from one below it; a tap on the unit fires
+ *     the repeat shot — the run's last fired angle, straight up before the
+ *     first; every release fires but a drag let go back on the unit), fires
+ *     through `useBarrage().fire(angle)` itself and emits aimStart / aimCancel /
+ *     fired / misfire('tap');
+ *   • `beginAimFrom(e)`: the same aim from a finger that went down OUTSIDE the
+ *     canvas (the tray's ball orbs), tracked through window listeners;
+ *   • `overrunDemo(id)`: the wordless lose-rule demo (a ghost crosses the line);
+ *   • a touch on the flying chest opens it (`engine.tapChest`, any phase but
+ *     'breach', never paused/held) and emits chestTapped — never a shot;
  *   • board SFX/VFX + coins flying to `coinTarget` (the shared particle overlay).
  *
  * Draws numbers only — every word on screen is DOM owned by UI.
@@ -18,8 +27,8 @@ import { coinSrc } from '@/barrage/art'
 import useBarrage from '@/barrage/state/useBarrage'
 import useCollections from '@/barrage/state/useCollections'
 import { BoardRenderer, type RendererStats } from '@/barrage/render/BoardRenderer'
-import { AimController } from '@/barrage/render/aim'
-import { cellX, cellY } from '@/barrage/render/layout'
+import { AimController, REPEAT_DEFAULT } from '@/barrage/render/aim'
+import { cellX, cellY, toCellX, toCellY } from '@/barrage/render/layout'
 import { FIELD_BANDS } from '@/barrage/render/backdrop'
 import { backdropSrc } from '@/barrage/render/backdropArt'
 import { sprite } from '@/barrage/render/sprites'
@@ -38,12 +47,15 @@ const emit = defineEmits<{
   (e: 'aimStart'): void
   (e: 'aimCancel'): void
   (e: 'fired', angle: number): void
-  /** The finger on the board points AT the monsters instead of pulling back:
-   *  its drag vector (CSS px, y down) while it does, null when it stops. The
-   *  coach shows the right way live. */
+  /** Kept for compatibility, NEVER emitted: pointing at the monsters is a
+   *  valid aim now (point-at mode), not a wrong way. */
   (e: 'aimWrongWay', drag: { dx: number; dy: number } | null): void
-  /** A release fired nothing: a wrong-way pull, or a pull too short to count. */
+  /** A release fired nothing: only a drag that left the unit and was let go
+   *  back on it does that now ('tap' — a plain tap on the unit FIRES the repeat
+   *  shot). 'wrongWay' is kept for compatibility, never emitted. */
   (e: 'misfire', kind: 'wrongWay' | 'tap'): void
+  /** A touch on the flying chest opened it (no shot is fired by it). */
+  (e: 'chestTapped'): void
 }>()
 
 // The game reads the live run; the dev lab provides a sandbox source instead.
@@ -109,6 +121,9 @@ const renderer = new BoardRenderer({
 setCoinFlightImage(sprite(coinSrc()).img)
 
 const aim = new AimController()
+/** The repeat shot (a tap on the unit, a tap on a tray orb): the run's last
+ *  fired angle — straight up until this engine's first shot. */
+let repeatAngle = REPEAT_DEFAULT
 let raf = 0
 let last = 0
 /** A redraw is owed even while paused (resize, engine swap, cosmetic change). */
@@ -123,6 +138,7 @@ const onReduceChange = (): void => {
 const bindEngine = (): void => {
   renderer.setEngine(source.engine.value)
   if (aim.active) cancelAim(true)
+  repeatAngle = REPEAT_DEFAULT
   dirty = true
 }
 // Both: a swap bumps engineGen, but never trust the order of the two writes.
@@ -176,7 +192,7 @@ const applySize = (w: number, h: number): void => {
   if (c.width !== pw) c.width = pw
   if (c.height !== ph) c.height = ph
   renderer.resize(w, h, dpr)
-  aim.minPull = Math.max(14, renderer.layout.cell * 0.32)
+  if (aim.active) aim.placeLauncher(renderer.layout, source.engine.value.state.launcherX)
   refreshRect()
   dirty = true
 }
@@ -187,63 +203,171 @@ const localPoint = (e: PointerEvent): { x: number; y: number } => {
   return r ? { x: e.clientX - r.left, y: e.clientY - r.top } : { x: e.offsetX, y: e.offsetY }
 }
 
-const cancelAim = (notify: boolean): void => {
+/** The aim was begun OUTSIDE the canvas (`beginAimFrom`): its moves and its
+ *  release arrive through window listeners (capture phase) — pointer capture
+ *  across elements is flaky on touch — and the canvas handlers stand aside. */
+let outside = false
+
+const releaseCapture = (): void => {
   const c = canvasRef.value
   if (c && aim.pointerId >= 0 && c.hasPointerCapture?.(aim.pointerId)) {
     try { c.releasePointerCapture(aim.pointerId) } catch { /* already released */ }
   }
+}
+
+const cancelAim = (notify: boolean): void => {
+  releaseCapture()
+  detachOutside()
   const was = aim.active
-  const wrong = aim.wrongWay
   aim.cancel()
   renderer.setAim(false, aim.angle)
-  if (wrong) emit('aimWrongWay', null)
   if (notify && was) emit('aimCancel')
+}
+
+/** Every blind first-timer tried to tap the flying chest: a touch on it opens
+ *  it (the engine checks the hit), in any phase but a breach. Never a shot. */
+const tryChestTap = (px: number, py: number): boolean => {
+  const eng = source.engine.value
+  if (!eng.state.chest || eng.state.phase === 'breach') return false
+  const l = renderer.layout
+  if (l.cssW === 0 || !eng.tapChest(toCellX(l, px), toCellY(l, py))) return false
+  emit('chestTapped')
+  return true
+}
+
+/** An aim may start: phase 'aim', a shot to fire, no finger already aiming,
+ *  not paused / held. */
+const canStartAim = (): boolean => {
+  if (aim.active || isGamePaused.value || source.holdSim.value) return false
+  const eng = source.engine.value
+  return eng.state.phase === 'aim' && eng.canFire()
+}
+
+const aimStarted = (e: PointerEvent): void => {
+  renderer.setAim(aim.armed, aim.angle)
+  // A finger on the board ends the lose-rule demo at once.
+  renderer.stopOverrunDemo()
+  e.preventDefault()
+  emit('aimStart')
 }
 
 const onDown = (e: PointerEvent): void => {
   if (aim.active || isGamePaused.value || source.holdSim.value) return
   if (e.pointerType === 'mouse' && e.button !== 0) return
-  const eng = source.engine.value
-  if (eng.state.phase !== 'aim' || !eng.canFire()) return
   refreshRect()
   const p = localPoint(e)
-  aim.begin(e.pointerId, p.x, p.y, e.timeStamp || performance.now())
+  if (tryChestTap(p.x, p.y)) {
+    e.preventDefault()
+    return
+  }
+  if (!canStartAim()) return
+  // The preview is up from the press: a tap is a press + release and fires
+  // at the tapped point — on the unit itself, the repeat shot.
+  aim.placeLauncher(renderer.layout, source.engine.value.state.launcherX)
+  aim.begin(e.pointerId, p.x, p.y, e.timeStamp || performance.now(), repeatAngle)
   try { canvasRef.value?.setPointerCapture(e.pointerId) } catch { /* synthetic event */ }
-  e.preventDefault()
-  emit('aimStart')
+  aimStarted(e)
 }
 
-const onMove = (e: PointerEvent): void => {
-  if (!aim.active || e.pointerId !== aim.pointerId) return
-  const p = localPoint(e)
-  const wasWrong = aim.wrongWay
-  if (aim.move(p.x, p.y, e.timeStamp || performance.now()) || aim.armed) renderer.setAim(aim.armed, aim.angle)
-  if (aim.wrongWay) emit('aimWrongWay', { dx: aim.dragX, dy: aim.dragY })
-  else if (wasWrong) emit('aimWrongWay', null)
-  e.preventDefault()
-}
-
-const onUp = (e: PointerEvent): void => {
-  if (!aim.active || e.pointerId !== aim.pointerId) return
+const trackTo = (e: PointerEvent): void => {
   const p = localPoint(e)
   aim.move(p.x, p.y, e.timeStamp || performance.now())
+}
+
+const release = (e: PointerEvent): void => {
+  trackTo(e)
+  detachOutside()
   // Capture is released implicitly after pointerup; end the aim first so the
   // trailing lostpointercapture finds nothing active.
-  const wasWrong = aim.wrongWay
   const angle = aim.end()
   renderer.setAim(false, aim.angle)
-  if (wasWrong) emit('aimWrongWay', null)
   const eng = source.engine.value
   if (angle !== null && eng.state.phase === 'aim' && !source.holdSim.value && !isGamePaused.value && source.fire(angle)) {
     emit('fired', angle)
   } else {
     emit('aimCancel')
-    if (angle === null) emit('misfire', aim.endedWrongWay ? 'wrongWay' : 'tap')
+    // A drag let go back on the unit: the one release that fires nothing.
+    if (angle === null) emit('misfire', 'tap')
   }
 }
 
+const onMove = (e: PointerEvent): void => {
+  if (outside || !aim.active || e.pointerId !== aim.pointerId) return
+  trackTo(e)
+  renderer.setAim(aim.armed, aim.angle)
+  e.preventDefault()
+}
+
+const onUp = (e: PointerEvent): void => {
+  if (outside || !aim.active || e.pointerId !== aim.pointerId) return
+  release(e)
+}
+
+/** pointercancel / lost capture: the system took the touch — no shot, no misfire. */
 const onCancel = (e: PointerEvent): void => {
-  if (aim.active && e.pointerId === aim.pointerId) cancelAim(true)
+  if (!outside && aim.active && e.pointerId === aim.pointerId) cancelAim(true)
+}
+
+// Window-level tracking for an aim begun outside the canvas.
+const onWinMove = (e: PointerEvent): void => {
+  if (!outside || !aim.active || e.pointerId !== aim.pointerId) return
+  trackTo(e)
+  renderer.setAim(aim.armed, aim.angle)
+}
+const onWinUp = (e: PointerEvent): void => {
+  if (!outside || !aim.active || e.pointerId !== aim.pointerId) return
+  release(e)
+}
+const onWinCancel = (e: PointerEvent): void => {
+  if (outside && aim.active && e.pointerId === aim.pointerId) cancelAim(true)
+}
+const attachOutside = (): void => {
+  if (outside) return
+  outside = true
+  window.addEventListener('pointermove', onWinMove, true)
+  window.addEventListener('pointerup', onWinUp, true)
+  window.addEventListener('pointercancel', onWinCancel, true)
+}
+const detachOutside = (): void => {
+  if (!outside) return
+  outside = false
+  window.removeEventListener('pointermove', onWinMove, true)
+  window.removeEventListener('pointerup', onWinUp, true)
+  window.removeEventListener('pointercancel', onWinCancel, true)
+}
+
+/**
+ * CONTRACT §10 (run 3): start an aim from a finger that went down OUTSIDE the
+ * canvas — the tray's ball orbs in the bottom panel, where dragging up is the
+ * slingshot motion. Same gates as a press on the board. It behaves like a
+ * press on the unit: the repeat shot until the finger has moved ~0.3 cell,
+ * then the ordinary dual-mode aim; a release before moving fires the repeat
+ * shot. Emits aimStart / fired / aimCancel (+ misfire) like a board press.
+ * Returns false when no aim started.
+ */
+const beginAimFrom = (e: PointerEvent): boolean => {
+  if (!canvasRef.value || !canStartAim()) return false
+  if (e.pointerType === 'mouse' && e.button !== 0) return false
+  if (renderer.layout.cssW === 0) return false
+  refreshRect()
+  const p = localPoint(e)
+  aim.placeLauncher(renderer.layout, source.engine.value.state.launcherX)
+  aim.beginFrom(e.pointerId, p.x, p.y, e.timeStamp || performance.now(), repeatAngle)
+  attachOutside()
+  try { canvasRef.value.setPointerCapture(e.pointerId) } catch { /* not an active pointer: the window listeners carry it */ }
+  aimStarted(e)
+  return true
+}
+
+/** CONTRACT §10 (run 3): the wordless lose-rule demo on `monsterId` — a ghost
+ *  of it marches across the line, the line flashes red, the skull flashes. The
+ *  real board is untouched; it ends early when an aim starts or the phase
+ *  leaves 'aim'. Returns its duration in ms (0 = could not play). */
+const overrunDemo = (monsterId: number): number => {
+  if (aim.active || isGamePaused.value) return 0
+  const ms = renderer.overrunDemo(monsterId)
+  if (ms > 0) dirty = true
+  return ms
 }
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
@@ -253,7 +377,11 @@ onMounted(() => {
   if (!c || !root) return
   renderer.attach(c)
   bindEngine()
-  offEvents = source.onEngineEvent((ev) => renderer.onEvent(ev))
+  offEvents = source.onEngineEvent((ev) => {
+    // The repeat shot follows every shot of this run, however it was fired.
+    if (ev.type === 'fire') repeatAngle = ev.angle
+    renderer.onEvent(ev)
+  })
   const r = root.getBoundingClientRect()
   applySize(r.width, r.height)
   ro = new ResizeObserver((entries) => {
@@ -269,6 +397,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(raf)
+  detachOutside()
   ro?.disconnect()
   ro = null
   offEvents?.()
@@ -299,7 +428,7 @@ const boardClientRect = (): DOMRect | null => {
 /** Dev / perf probe (not part of the contract): renderer + sim timings. */
 const stats = (): RendererStats & { simMs: number } => ({ ...renderer.stats, simMs })
 
-defineExpose({ launcherClientPoint, cellToClient, boardClientRect, stats })
+defineExpose({ launcherClientPoint, cellToClient, boardClientRect, beginAimFrom, overrunDemo, stats })
 </script>
 
 <template lang="pug">

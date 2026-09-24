@@ -37,7 +37,10 @@
     "art:measure": "python scripts/art/measure-art.py",
     "art:backdrops": "python scripts/art/backdrops.py",
     "art:desk": "node scripts/art/art-desk/server.mjs",
-    "preview:video": "node tools/preview-video/record.mjs"
+    "preview:video": "node tools/preview-video/record.mjs",
+    "playtest:start": "node tools/playtest/start-players.mjs",
+    "playtest:stop": "node tools/playtest/stop-players.mjs",
+    "playtest:report": "node tools/playtest/build-report.mjs"
   },
   "dependencies": {
     "@playgama/bridge": "^2.1.0",

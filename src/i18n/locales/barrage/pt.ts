@@ -9,7 +9,8 @@ export default {
     todayBest: 'Hoje {n}',
     shields: 'Cargas de escudo: {n}',
     revives: 'Cargas de reviver: {n}',
-    warcry: 'Grito de guerra pronto: sua próxima rajada causa dano dobrado'
+    warcry: 'Grito de guerra pronto: sua próxima rajada causa dano dobrado',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Grátis',
     aria: '{name}: {desc} Custa {cost} moedas.',
     ariaMaxed: '{name}: {desc} No máximo.',
-    ariaFree: '{name}: {desc} Grátis!'
+    ariaFree: '{name}: {desc} Grátis!',
+    denied: 'Moedas insuficientes: você precisa de {cost}.',
+    need: 'Faltam {n}'
   },
   turn: {
     bonus: '+{n} bolas',
@@ -231,7 +234,11 @@ export default {
     free: 'Grátis',
     restart: 'Recomeçar na fileira {n}',
     restartDesc: 'Você mantém todas as moedas',
-    onceHint: 'A Chuva de meteoros funciona uma vez por checkpoint.'
+    onceHint: 'A Chuva de meteoros funciona uma vez por checkpoint.',
+    recapRow: 'Fileira',
+    recapKills: 'Derrotados',
+    recapEarned: 'Ganhas nesta partida',
+    recapAria: 'Nesta partida: fileira {row}, {kills} derrotados, {coins} moedas ganhas'
   },
   chest: {
     title: 'Chefe derrotado!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: 'Assista a um anúncio para {name} ({n} de {max} assistidos)'
   },
   supply: {
-    ready: 'Baú do tesouro pronto — toque para abrir!'
+    ready: 'Baú do tesouro pronto — toque para abrir!',
+    filling: '{name}: +{n} moedas em {time}'
   },
   codex: {
     title: 'Códice de bolas',
@@ -279,7 +287,7 @@ export default {
     locked: 'Funda duas bolas de nível {n} para descobrir!'
   },
   tutorial: {
-    aim: 'Arraste para trás e solte para atirar!',
+    aim: 'Arraste em direção aos monstros e solte para atirar!',
     pickup: 'Atire através de uma bolha +1 para coletar uma bola!',
     merge: 'Colete outra bola: uma bandeja cheia funde as gêmeas numa bola mais forte!',
     upgrade: 'Toque na melhoria grátis para guardar mais bolas!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Sua bandeja está cheia: um +1 só adiciona um tiro quando há um espaço livre. Melhore a capacidade da bandeja para disparar mais bolas!',
     combo: 'Mire por uma brecha: bolas quicando atrás dos monstros fazem combos enormes!',
     trayIntro: 'Esta bandeja guarda suas bolas: cada uma é um tiro. Um +1 preenche um espaço vazio, e uma bandeja cheia funde duas gêmeas em uma bola mais forte.',
-    upgrade: 'Toque na melhoria que brilha: ela melhora suas bolas, sua bandeja ou suas moedas.'
+    upgrade: 'Toque na melhoria que brilha: ela melhora suas bolas, sua bandeja ou suas moedas.',
+    bank: 'Mire na diagonal: uma bola que ricocheteia na parede pode acertar vários monstros com um só tiro!',
+    funnel: 'Agora você pode comprar {name} — toque e cada bola vai bater mais forte!',
+    overrun: 'Se um monstro cruzar a linha, você é invadido — acerte primeiro os marcados com 1!'
+  },
+  merge: {
+    sr: 'Duas bolas de nível {from} se fundiram em uma bola de nível {to}! Cada bola na sua bandeja é um tiro.',
+    discovery: 'Nova bola: {name}. Habilidade: {ability} — {desc}',
+    skipAria: 'Pular a fusão'
   },
   unlock: {
     announce: 'Desbloqueado: {name}!'

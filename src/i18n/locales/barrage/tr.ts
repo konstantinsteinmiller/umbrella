@@ -9,7 +9,8 @@ export default {
     todayBest: 'Bugün {n}',
     shields: 'Kalkan yükü: {n}',
     revives: 'Diriliş yükü: {n}',
-    warcry: 'Savaş çığlığı hazır: sonraki atışın iki kat hasar verir'
+    warcry: 'Savaş çığlığı hazır: sonraki atışın iki kat hasar verir',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Bedava',
     aria: '{name}: {desc} Fiyat: {cost} para.',
     ariaMaxed: '{name}: {desc} Tamamen geliştirildi.',
-    ariaFree: '{name}: {desc} Bedava!'
+    ariaFree: '{name}: {desc} Bedava!',
+    denied: 'Yeterli para yok: {cost} gerekiyor.',
+    need: '{n} daha lazım'
   },
   turn: {
     bonus: '+{n} top',
@@ -231,7 +234,11 @@ export default {
     free: 'Bedava',
     restart: '{n}. sıradan yeniden başla',
     restartDesc: 'Tüm paraların sende kalır',
-    onceHint: 'Meteor fırtınası kontrol noktası başına bir kez kullanılır.'
+    onceHint: 'Meteor fırtınası kontrol noktası başına bir kez kullanılır.',
+    recapRow: 'Sıra',
+    recapKills: 'Yenilen',
+    recapEarned: 'Bu turda kazanılan',
+    recapAria: 'Bu tur: sıra {row}, {kills} yenilen, {coins} para kazanıldı'
   },
   chest: {
     title: 'Boss yenildi!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: '{name} için reklam izle ({max} reklamdan {n} izlendi)'
   },
   supply: {
-    ready: 'Hazine sandığı hazır — açmak için dokun!'
+    ready: 'Hazine sandığı hazır — açmak için dokun!',
+    filling: '{name}: {time} sonra +{n} para'
   },
   codex: {
     title: 'Top kodeksi',
@@ -279,7 +287,7 @@ export default {
     locked: 'Keşfetmek için iki tane {n}. seviye topu birleştir!'
   },
   tutorial: {
-    aim: 'Geri çek ve bırakıp ateş et!',
+    aim: 'Canavarlara doğru sürükle ve ateş etmek için bırak!',
     pickup: 'Bir top toplamak için +1 balonunun içinden ateş et!',
     merge: 'Bir top daha topla: dolu tepsi ikizleri daha güçlü bir topa birleştirir!',
     upgrade: 'Daha çok top tutmak için bedava geliştirmeye dokun!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Tepsin dolu: +1 yalnızca boş bir yuva varken bir atış ekler. Daha çok top atmak için tepsi kapasitesini yükselt!',
     combo: 'Bir boşluktan nişan al: canavarların arkasında seken toplar dev kombolar yapar!',
     trayIntro: 'Bu tepsi toplarını tutar: her top bir atıştır. +1 boş bir yuvayı doldurur, dolu tepsi ise iki ikizi daha güçlü bir topa birleştirir.',
-    upgrade: 'Parlayan geliştirmeye dokun: toplarını, tepsini ya da paralarını iyileştirir.'
+    upgrade: 'Parlayan geliştirmeye dokun: toplarını, tepsini ya da paralarını iyileştirir.',
+    bank: 'Açılı nişan al: duvardan seken bir top tek atışta birkaç canavarı vurabilir!',
+    funnel: 'Artık {name} alabilirsin — dokun, her top daha sert vursun!',
+    overrun: 'Bir canavar çizgiyi geçerse hat yarılır — önce 1 yazanları vur!'
+  },
+  merge: {
+    sr: 'İki {from}. seviye top birleşip bir {to}. seviye top oldu! Tepsindeki her top bir atıştır.',
+    discovery: 'Yeni top: {name}. Yetenek: {ability} — {desc}',
+    skipAria: 'Birleşmeyi atla'
   },
   unlock: {
     announce: 'Açıldı: {name}!'

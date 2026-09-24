@@ -9,7 +9,8 @@ export default {
     todayBest: '今日{n}',
     shields: 'シールド: {n}',
     revives: '復活: {n}',
-    warcry: 'ウォークライ準備完了：次の一斉射撃はダメージ2倍'
+    warcry: 'ウォークライ準備完了：次の一斉射撃はダメージ2倍',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: '無料',
     aria: '{name}：{desc} 価格：{cost}コイン',
     ariaMaxed: '{name}：{desc} 最大まで強化済み',
-    ariaFree: '{name}：{desc} 無料！'
+    ariaFree: '{name}：{desc} 無料！',
+    denied: 'コインが足りません：{cost}コイン必要です。',
+    need: 'あと{n}必要'
   },
   turn: {
     bonus: 'ボール+{n}',
@@ -231,7 +234,11 @@ export default {
     free: '無料',
     restart: '{n}列目から再開',
     restartDesc: 'コインはすべてそのまま',
-    onceHint: 'メテオストームはチェックポイントごとに1回。'
+    onceHint: 'メテオストームはチェックポイントごとに1回。',
+    recapRow: '列',
+    recapKills: '撃破',
+    recapEarned: '今回の獲得',
+    recapAria: '今回: {row}列目、撃破{kills}、獲得コイン{coins}'
   },
   chest: {
     title: 'ボス撃破！',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: '{name}の広告を見る（{max}回中{n}回視聴済み）'
   },
   supply: {
-    ready: '宝箱の準備完了！タップで開ける'
+    ready: '宝箱の準備完了！タップで開ける',
+    filling: '{name}：あと{time}でコイン+{n}'
   },
   codex: {
     title: 'ボール図鑑',
@@ -279,7 +287,7 @@ export default {
     locked: 'レベル{n}のボールを2つ合体させて発見しよう！'
   },
   tutorial: {
-    aim: '後ろに引いて離すと発射！',
+    aim: 'モンスターの方へドラッグして、離すと発射！',
     pickup: '+1の泡を撃ち抜いてボールを拾おう！',
     merge: 'もう1個拾おう：トレイが満杯になると、ふたごが合体して強いボールになる！',
     upgrade: '無料アップグレードをタップしてボールを増やそう！'
@@ -289,7 +297,15 @@ export default {
     tray: 'トレイが満杯：空きがあるときだけ、+1で発射数が増えるよ。トレイ容量をアップグレードして、もっとたくさん撃とう！',
     combo: 'すき間を狙おう：モンスターの裏で跳ね回るボールが大コンボを生む！',
     trayIntro: 'このトレイにはボールが入っている：1個が1発。+1は空きスロットを埋め、満杯のトレイではふたごが合体してより強いボールになる。',
-    upgrade: '光っているアップグレードをタップしよう：ボール、トレイ、コインが強くなる。'
+    upgrade: '光っているアップグレードをタップしよう：ボール、トレイ、コインが強くなる。',
+    bank: '斜めに狙おう：壁で跳ね返ったボールは一発で何体ものモンスターに当たる！',
+    funnel: '{name}を買えるようになりました。タップすると、すべてのボールの威力が上がります！',
+    overrun: 'モンスターがラインを越えると突破されてしまう！「1」の付いたものから倒そう！'
+  },
+  merge: {
+    sr: 'レベル{from}のボール2つが合体して、レベル{to}のボールになりました！トレイのボール1つが1発の弾です。',
+    discovery: '新しいボール: {name}。能力: {ability} — {desc}',
+    skipAria: '合体をスキップ'
   },
   unlock: {
     announce: '解放：{name}！'

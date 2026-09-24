@@ -21,8 +21,8 @@ import {
   addToTray, ballAbility, ballDamage, eruptionFraction, insertDesc, pactTray, type TraySink
 } from './balls'
 import {
-  IMP_MINI_COINS, IMP_MINI_HP, bossForRow, chargesAt, footprint, monsterHp, planBossCol, planRow, randomSkill, restsAt,
-  type WalkerKind
+  HP_CURVE, IMP_MINI_COINS, IMP_MINI_HP, bossForRow, bossHp, chargesAt, footprint, hpClockAt, isFirstBoss, monsterHp, planBossCol,
+  planRow, randomSkill, restsAt, type WalkerKind
 } from './monsters'
 import { bossBounty, chestCoins, coinPickupCoins, killCoins, overflowCoins } from './economy'
 import { Grid, STEP, stepBall, type BallWorld, type SimBall } from './physics'
@@ -42,6 +42,16 @@ export const CHEST_CROSS_TIME = 8
 export const CHEST_Y = 4.5
 export const CHEST_R = 0.45
 export const CHEST_SKILL_CHANCE = 0.4
+/** Half the chest's drawn width (cells; the sprite is ~2.1 × `CHEST_R`). It
+ *  appears with its whole body on the board and leaves only once fully off it:
+ *  a chest born clipped at the wall read as scenery, not as something to hit. */
+export const CHEST_HALF_W = 1
+/** First session (`config.ftue`): the chest crosses at this fraction of its
+ *  speed, so a first-timer has time to notice it and try to open it. */
+export const CHEST_FTUE_SPEED = 0.6
+/** A tap opens the chest within its radius plus this margin (cells) — a
+ *  finger is fat and the chest is moving. */
+export const CHEST_TAP_MARGIN = 0.35
 export const COMBO_MARKS: readonly number[] = [10, 20, 30, 40]
 export const LEGION_BALLS = 3
 /** Meteor skill: fraction of max HP (bosses take far less). */
@@ -56,6 +66,10 @@ export const DRYAD_HEAL = 0.15
 export const BOSS_ENRAGE_AT = 0.3
 /** Rows from the breach line that count as "danger" (renderer pulse). */
 export const DANGER_ROWS = 2
+/** A dying boss's blast clears this many rows above the line (the continue's
+ *  two), and its turn skips the march: playtest run 2 saw a boss kill and an
+ *  overrun land in the SAME turn — the reward screen, then OVERRUN at once. */
+export const BOSS_BLAST_ROWS = 2
 /** FTUE: while the run is at or below this row, missed "+1"s are collected at
  *  volley end, so the scripted turn-3 merge never depends on aim. */
 export const FTUE_AUTO_COLLECT_ROWS = 4
@@ -121,6 +135,14 @@ export class BarrageEngine implements IBarrageEngine {
   /** Heal skill moves monsters, which must never happen under balls in flight. */
   private pendingHeal = false
   private breachPending = false
+  /** A boss died before this turn's advance: the advance moves nothing. */
+  private skipMarch = false
+  /** The HP clock (monsters.ts): the clock row the last spawned row took its
+   *  walkers' HP from (a boss takes `hpRow + 1`). */
+  private hpRow = 0
+  /** Held rows still to come: the first `fightHold` rows of a later boss
+   *  fight, or the post-boss plateau (the first boss's fight is checked live). */
+  private hpHold = 0
   /** > 0 while a forced clear runs (meteor continue, boss throw-back): an imp
    *  killed then does not split — its little imps would land in the rows that
    *  were just cleared. */
@@ -179,7 +201,7 @@ export class BarrageEngine implements IBarrageEngine {
       },
       onMonster: (b, m, nx, ny) => self.onBallHit(b, m, nx, ny),
       onPickup: (b, p) => self.collectPickup(b, p),
-      onChest: b => self.openChest(b),
+      onChest: b => self.openChest(b.x, b.y),
       onLand: b => self.landBall(b)
     }
   }
@@ -246,6 +268,25 @@ export class BarrageEngine implements IBarrageEngine {
     return true
   }
 
+  /**
+   * Every blind first-timer tried to TAP the flying chest; only a ball could
+   * open it. A tap now opens it exactly like a ball hit — the same `chestHit`,
+   * coins and skill roll — in any phase but a breach (the board is frozen
+   * behind the continue offer then). Board cells. A miss changes nothing and
+   * draws nothing from the RNG, so replays stay exact.
+   */
+  tapChest(x: number, y: number): boolean {
+    const s = this.state
+    const chest = s.chest
+    if (chest === null || s.phase === 'breach' || !Number.isFinite(x) || !Number.isFinite(y)) return false
+    const dx = x - chest.x
+    const dy = y - chest.y
+    const rr = chest.r + CHEST_TAP_MARGIN
+    if (dx * dx + dy * dy > rr * rr) return false
+    this.openChest(chest.x, chest.y)
+    return true
+  }
+
   recall(): void {
     const s = this.state
     if (s.phase !== 'volley') return
@@ -307,8 +348,16 @@ export class BarrageEngine implements IBarrageEngine {
       chestTimer: s.chestTimer,
       turn: s.turn,
       rng: this.rng.state,
-      nextId: this.nextId
+      nextId: this.nextId,
+      ...(this.skipMarch ? { skipMarch: true } : {}),
+      hpRow: this.hpRow,
+      hpHold: this.hpHold
     }
+  }
+
+  /** The HP clock (read-only view for the bot sim and tests). */
+  get hpClock(): { hpRow: number; hpHold: number } {
+    return { hpRow: this.hpRow, hpHold: this.hpHold }
   }
 
   /** Independent deep copy (no listeners) — the bot sim fires trial volleys on clones. */
@@ -363,6 +412,9 @@ export class BarrageEngine implements IBarrageEngine {
     e.knocked = new Map(this.knocked)
     e.pendingHeal = this.pendingHeal
     e.breachPending = this.breachPending
+    e.skipMarch = this.skipMarch
+    e.hpRow = this.hpRow
+    e.hpHold = this.hpHold
     Object.assign(e.stats, this.stats)
     e.rebuildGrid()
     return e
@@ -382,14 +434,24 @@ export class BarrageEngine implements IBarrageEngine {
   }
 
   // ─── Run setup (factories below) ───────────────────────────────────────────
-  /** Fresh board whose first spawned row is `row`. */
-  beginRun(row: number, tray: readonly number[]): void {
+  /** Fresh board whose first spawned row is `row`. Its HP clock starts at
+   *  `hpClock` when given (the clock that first row spawns with), else at the
+   *  typical run's clock for that row (`hpClockAt`); either way the typical
+   *  run's remaining post-boss hold follows — a checkpoint restart right
+   *  after a boss starts on the plateau. */
+  beginRun(row: number, tray: readonly number[], hpClock?: number): void {
     const s = this.state
     const first = Math.max(1, Math.floor(row))
     s.tray = sanitizeTray(tray)
     this.stats.maxTier = s.tray[0] ?? 1
     s.row = first - 1
     s.nextBossRow = Math.ceil(first / BOSS_EVERY) * BOSS_EVERY
+    const typical = hpClockAt(first)
+    const clock = hpClock !== undefined && Number.isFinite(hpClock) ? Math.max(1, Math.floor(hpClock)) : typical.clock
+    // One extra hold step: the first spawn below consumes it instead of
+    // advancing, so that row takes `clock` itself.
+    this.hpRow = clock
+    this.hpHold = typical.hold + 1
     this.spawnNextRow()
     this.setPhase('aim')
   }
@@ -416,6 +478,16 @@ export class BarrageEngine implements IBarrageEngine {
     for (const p of s.pickups) maxId = Math.max(maxId, p.id)
     for (const h of s.hazards) maxId = Math.max(maxId, h.id)
     this.nextId = Math.max(maxId + 1, Math.floor(snap.nextId) || 1)
+    this.skipMarch = snap.skipMarch === true
+    // A save from before the HP clock: the typical run's clock for its row.
+    if (Number.isFinite(snap.hpRow) && (snap.hpRow as number) >= 0) {
+      this.hpRow = Math.floor(snap.hpRow as number)
+      this.hpHold = Number.isFinite(snap.hpHold) ? Math.max(0, Math.floor(snap.hpHold as number)) : 0
+    } else {
+      const typical = hpClockAt(s.row)
+      this.hpRow = typical.clock
+      this.hpHold = typical.hold
+    }
     this.stats.maxTier = s.tray[0] ?? 1
     this.rebuildGrid()
     s.phase = 'aim'
@@ -491,7 +563,7 @@ export class BarrageEngine implements IBarrageEngine {
     const chest = s.chest
     if (chest !== null) {
       chest.x += chest.vx * simDt
-      if ((chest.vx > 0 && chest.x > COLS + chest.r) || (chest.vx < 0 && chest.x < -chest.r)) {
+      if ((chest.vx > 0 && chest.x > COLS + CHEST_HALF_W) || (chest.vx < 0 && chest.x < -CHEST_HALF_W)) {
         s.chest = null
         this.emit({ type: 'chestGone' })
       }
@@ -501,10 +573,13 @@ export class BarrageEngine implements IBarrageEngine {
     if (s.chestTimer > 0) return
     s.chestTimer = CHEST_EVERY
     const dir = this.rng.chance(0.5) ? 1 : -1
+    // Born fully on the board, one board width (COLS) from where it is fully
+    // off the far side: CHEST_CROSS_TIME is the time it can be hit.
+    const speed = (COLS / CHEST_CROSS_TIME) * (s.config.ftue ? CHEST_FTUE_SPEED : 1)
     s.chest = {
-      x: dir > 0 ? -CHEST_R : COLS + CHEST_R,
+      x: dir > 0 ? CHEST_HALF_W : COLS - CHEST_HALF_W,
       y: CHEST_Y,
-      vx: (dir * (COLS + 2 * CHEST_R)) / CHEST_CROSS_TIME,
+      vx: dir * speed,
       r: CHEST_R
     }
     this.emit({ type: 'chestAppear' })
@@ -550,21 +625,35 @@ export class BarrageEngine implements IBarrageEngine {
         s.hazards.splice(i, 1)
       }
     }
+    this.breachPending = false
+    if (this.skipMarch) {
+      // The boss's relief beat: nothing hops, marches, spits or spawns this
+      // turn (no new row either — it would need the row-0 cells the last row
+      // still stands in).
+      this.skipMarch = false
+      return
+    }
     this.goblinHops()
     this.marchAll()
     this.emit({ type: 'march', rows: 1 })
     this.centaurSludge()
     this.slimeTowerSpawn()
     this.spawnNextRow()
-    this.breachPending = false
-    for (const m of s.monsters) {
-      if (m.row + m.h > ROWS) { this.breachPending = true; break }
-    }
+    this.breachPending = this.pastLine()
+  }
+
+  /** A monster stands past the breach line. */
+  private pastLine(): boolean {
+    for (const m of this.state.monsters) if (m.row + m.h > ROWS) return true
+    return false
   }
 
   private endAdvance(): void {
     const s = this.state
-    if (!this.breachPending) {
+    // Re-checked: something may have died during the advance (a boss blast
+    // after a tapped chest's meteor, say) — a cleared line is no breach.
+    if (!this.breachPending || !this.pastLine()) {
+      this.breachPending = false
       this.enterAim()
       return
     }
@@ -687,7 +776,9 @@ export class BarrageEngine implements IBarrageEngine {
     const hx = b.x - nx * BALL_R
     const hy = b.y - ny * BALL_R
     const loud = this.listeners.length > 0
-    if (loud) this.emit({ type: 'hit', monsterId: m.id, ballId: b.id, tier: b.tier, dmg, x: hx, y: hy, ability, crit })
+    // `dealt`: what the hit really removes — a 1-HP kill pops "1", not the
+    // ball's full damage (playtest run 3, "overkill").
+    if (loud) this.emit({ type: 'hit', monsterId: m.id, ballId: b.id, tier: b.tier, dmg, dealt: Math.min(dmg, m.hp), x: hx, y: hy, ability, crit })
 
     let pierce = false
     if (ability === 'pierce' && b.pierceLeft > 0) {
@@ -889,8 +980,30 @@ export class BarrageEngine implements IBarrageEngine {
       const bounty = Math.max(1, Math.round(bossBounty(spawnRow) * s.config.coinMult))
       // The FTUE script ends with the first boss: normal generation from here.
       if (s.config.ftue) s.config.ftue = false
+      // The post-boss plateau: the next rows come back at the boss's clock.
+      this.hpHold = s.config.mode === 'daily' ? 0 : Math.max(0, Math.round(HP_CURVE.plateau))
       this.emit({ type: 'bossDefeated', monsterId: m.id, bossKind: m.bossKind ?? 'slime-tower', row: spawnRow, bounty })
+      this.bossBlast(m, x, y)
     }
+  }
+
+  /**
+   * The boss's death blast — the relief beat after a boss fight: every monster
+   * in the bottom BOSS_BLAST_ROWS rows dies (normal kill coins; through gem
+   * shields; imps do not split into the cleared rows), and when the boss died
+   * before its turn's advance, that advance moves nothing. Together they make
+   * a boss kill impossible to follow with a breach in the same turn.
+   */
+  private bossBlast(boss: Monster, x: number, y: number): void {
+    const s = this.state
+    const line = ROWS - BOSS_BLAST_ROWS
+    const doomed: Monster[] = []
+    for (const m of s.monsters) if (m.hp > 0 && m.row + m.h > line) doomed.push(m)
+    this.emit({ type: 'bossBlast', monsterId: boss.id, rows: BOSS_BLAST_ROWS, ids: doomed.map(m => m.id), x, y })
+    for (const m of doomed) this.slay(m, false)
+    // In 'advance' the march already ran (the blast just cleared its result,
+    // and endAdvance re-checks the line); in 'breach' a continue is clearing it.
+    if (s.phase === 'aim' || s.phase === 'volley' || s.phase === 'resolve') this.skipMarch = true
   }
 
   /** A carbuncle's gem shield breaks (it grows back at the next aim phase). */
@@ -1018,7 +1131,9 @@ export class BarrageEngine implements IBarrageEngine {
     }
   }
 
-  private openChest(b: SimBall): void {
+  /** Opens the chest (a ball hit or a tap); a rolled skill fires at (sx, sy) —
+   *  the ball that hit it, or the chest itself for a tap. */
+  private openChest(sx: number, sy: number): void {
     const s = this.state
     const chest = s.chest
     if (chest === null) return
@@ -1029,7 +1144,7 @@ export class BarrageEngine implements IBarrageEngine {
     if (skill) e.skill = skill
     this.emit(e)
     this.grantCoins(coins, chest.x, chest.y, 'chest')
-    if (skill) this.triggerSkill(skill, b.x, b.y)
+    if (skill) this.triggerSkill(skill, sx, sy)
   }
 
   // ─── Resolve ───────────────────────────────────────────────────────────────
@@ -1039,16 +1154,17 @@ export class BarrageEngine implements IBarrageEngine {
       if (m.hp <= 0) continue
       const x = m.col + m.w / 2
       const y = m.row + m.h / 2
+      // `dealt` as on 'hit' — and 0 when a gem shield is about to eat the tick.
       if (m.burnTurns > 0) {
         const dmg = m.burnDmg
         m.burnTurns--
         if (m.burnTurns <= 0) m.burnDmg = 0
-        this.emit({ type: 'dot', monsterId: m.id, dmg, kind: 'burn', x, y })
+        this.emit({ type: 'dot', monsterId: m.id, dmg, dealt: m.shield ? 0 : Math.min(dmg, m.hp), kind: 'burn', x, y })
         if (this.damage(m, dmg)) continue
       }
       if (m.poisonStacks > 0) {
         const dmg = m.poisonStacks * m.poisonDmg
-        this.emit({ type: 'dot', monsterId: m.id, dmg, kind: 'poison', x, y })
+        this.emit({ type: 'dot', monsterId: m.id, dmg, dealt: m.shield ? 0 : Math.min(dmg, m.hp), kind: 'poison', x, y })
         this.damage(m, dmg)
       }
     }
@@ -1194,7 +1310,7 @@ export class BarrageEngine implements IBarrageEngine {
     for (let r = Math.max(0, boss.row); r < boss.row + boss.h; r++) {
       for (const c of sides) {
         if (r > ROWS - 4 || !this.grid.isFree(c, r)) continue
-        this.spawnMonster('slime', c, r, false, monsterHp(s.row, 'slime', false), s.row)
+        this.spawnMonster('slime', c, r, false, monsterHp(this.hpRow, 'slime', false, false, s.config.assist), s.row)
         return
       }
     }
@@ -1230,6 +1346,21 @@ export class BarrageEngine implements IBarrageEngine {
     const ftue = cfg.ftue
     const blocked = (c: number): boolean => !this.grid.isFree(c, 0)
     let boss = false
+    // Does a boss arrive in this row? (A pure row-local draw — no RNG state.)
+    const bossCol = row >= s.nextBossRow && s.bossId === null ? planBossCol(cfg.seed, row, blocked) : null
+    // The HP clock (monsters.ts): one clock row per spawned row, except the
+    // held ones — a boss's own row (the boss takes the NEXT clock row, its
+    // walkers stay at the last one), the whole fight against the run's first
+    // boss, the first `fightHold` rows of any later boss fight, and the
+    // post-boss plateau (`hpHold` counts the last two).
+    // Daily Barrage is a fixed-kit sprint with no checkpoints: its clock is the
+    // row counter itself (no holds, no plateau).
+    const fightBoss = s.bossId !== null ? s.monsters.find(m => m.id === s.bossId) : undefined
+    if (cfg.mode === 'daily') { this.hpRow = row; this.hpHold = 0 }
+    else if (fightBoss !== undefined && isFirstBoss(fightBoss, row)) { /* the first boss fight holds it */ }
+    else if (this.hpHold > 0) this.hpHold--
+    else if (bossCol === null) this.hpRow++
+    const hpRow = this.hpRow
 
     if (ftue && row === 1) {
       // CONTRACT §7: three one-hit slimes dead ahead of the launcher.
@@ -1241,17 +1372,15 @@ export class BarrageEngine implements IBarrageEngine {
     const scripted = ftue && (row === 2 || row === 3)
     const lineCols = this.shotLineCols()
     if (row >= s.nextBossRow) {
-      if (s.bossId === null) {
-        const col = planBossCol(cfg.seed, row, blocked)
-        if (col !== null) {
-          this.spawnBoss(row, col)
-          boss = true
-        }
+      if (bossCol !== null) {
+        this.spawnBoss(row, bossCol)
+        boss = true
       }
       // A boss still alive (or no room for one) postpones the next boss by a row.
       s.nextBossRow = boss ? (Math.floor(row / BOSS_EVERY) + 1) * BOSS_EVERY : row + 1
     }
 
+    const liveBoss = s.bossId !== null ? s.monsters.find(m => m.id === s.bossId) : undefined
     const plan = planRow(cfg.seed, row, {
       bossAlive: s.bossId !== null,
       pickupLuck: cfg.pickupLuck,
@@ -1260,11 +1389,12 @@ export class BarrageEngine implements IBarrageEngine {
       avoidCol: scripted ? (c => lineCols.includes(c)) : undefined,
       scriptBall: scripted,
       maxMonsters: boss ? 3 : scripted ? 3 : undefined,
-      lightOnly: boss
+      lightOnly: boss,
+      calm: liveBoss !== undefined && isFirstBoss(liveBoss, row)
     })
     for (const pm of plan.monsters) {
       const kind: WalkerKind = pm.kind
-      this.spawnMonster(kind, pm.col, 0, pm.corrupted, monsterHp(row, kind, pm.corrupted, ftue), row)
+      this.spawnMonster(kind, pm.col, 0, pm.corrupted, monsterHp(hpRow, kind, pm.corrupted, ftue, cfg.assist), row)
     }
     if (plan.ballCol !== null) this.spawnPickup('ball', plan.ballCol, 0)
     if (plan.coinCol !== null) {
@@ -1278,10 +1408,34 @@ export class BarrageEngine implements IBarrageEngine {
   private spawnBoss(row: number, col: number): void {
     const s = this.state
     const { bossKind, corrupted } = bossForRow(row)
-    const m = this.spawnMonster('boss', col, -2, corrupted, monsterHp(row, 'boss', corrupted, s.config.ftue), row)
+    const daily = s.config.mode === 'daily'
+    // The boss takes the clock row after its walkers' (its own row held it);
+    // on the Daily board the clock is the row itself.
+    const hp = bossHp(daily ? this.hpRow : this.hpRow + 1, row, corrupted, s.config.ftue, s.config.assist)
+    const m = this.spawnMonster('boss', col, -2, corrupted, hp, row)
     m.bossKind = bossKind
     s.bossId = m.id
+    // A later boss's fight holds the clock for `fightHold` rows (the first
+    // boss's whole fight holds it — spawnNextRow checks that one live).
+    this.hpHold = daily || isFirstBoss(m, row) ? 0 : Math.max(0, Math.round(HP_CURVE.fightHold))
     this.emit({ type: 'bossSpawn', monsterId: m.id, bossKind, row })
+    if (isFirstBoss(m, row)) this.bossRoar(m)
+  }
+
+  /**
+   * The run's FIRST boss clears the stage as it arrives (playtest run 3: the
+   * 8–13 grunts already on the board shielded it for several turns — "HP bar
+   * stayed pinned at 57"). Every walker on the board dies — normal kill coins,
+   * through gem shields, no imp split; pickups and hazards stay. Same seed,
+   * same board ⇒ same roar: it reads the board and never the RNG. Keyed on the
+   * boss's spawn row (`isFirstBoss`), so later bosses and checkpoint restarts
+   * past row 10 never roar; the FTUE's scripted Slime Tower does.
+   */
+  private bossRoar(boss: Monster): void {
+    const s = this.state
+    const doomed = s.monsters.filter(m => m !== boss && m.kind !== 'boss' && m.hp > 0)
+    this.emit({ type: 'bossRoar', monsterId: boss.id, ids: doomed.map(m => m.id), x: boss.col + boss.w / 2, y: boss.row + boss.h / 2 })
+    for (const m of doomed) this.slay(m, false)
   }
 
   /** Columns a straight-up shot from the launcher sweeps. */
@@ -1375,10 +1529,12 @@ export const createEngine = (config: EngineConfig): BarrageEngine => {
   return e
 }
 
-/** Checkpoint restart: fresh board whose first row is `row`, with `tray`. */
-export const createEngineAtRow = (config: EngineConfig, row: number, tray: number[]): BarrageEngine => {
+/** Checkpoint restart: fresh board whose first row is `row`, with `tray`.
+ *  `hpClock` (optional) is the HP clock that first row spawns with; absent,
+ *  the typical run's clock for `row` (`hpClockAt` in monsters.ts). */
+export const createEngineAtRow = (config: EngineConfig, row: number, tray: number[], hpClock?: number): BarrageEngine => {
   const e = new BarrageEngine(config)
-  e.beginRun(row, tray)
+  e.beginRun(row, tray, hpClock)
   return e
 }
 

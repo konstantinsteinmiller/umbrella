@@ -9,7 +9,8 @@ export default {
     todayBest: 'Vandaag {n}',
     shields: 'Schildladingen: {n}',
     revives: 'Herrijzenisladingen: {n}',
-    warcry: 'Strijdkreet klaar: je volgende salvo doet dubbele schade'
+    warcry: 'Strijdkreet klaar: je volgende salvo doet dubbele schade',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Gratis',
     aria: '{name}: {desc} Kost {cost} munten.',
     ariaMaxed: '{name}: {desc} Volledig verbeterd.',
-    ariaFree: '{name}: {desc} Gratis!'
+    ariaFree: '{name}: {desc} Gratis!',
+    denied: 'Niet genoeg munten: je hebt er {cost} nodig.',
+    need: 'Nog {n} nodig'
   },
   turn: {
     bonus: '+{n} ballen',
@@ -231,7 +234,11 @@ export default {
     free: 'Gratis',
     restart: 'Herstart bij rij {n}',
     restartDesc: 'Je houdt al je munten',
-    onceHint: 'De Meteorenstorm werkt één keer per checkpoint.'
+    onceHint: 'De Meteorenstorm werkt één keer per checkpoint.',
+    recapRow: 'Rij',
+    recapKills: 'Verslagen',
+    recapEarned: 'Verdiend deze run',
+    recapAria: 'Deze run: rij {row}, {kills} verslagen, {coins} munten verdiend'
   },
   chest: {
     title: 'Baas verslagen!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: 'Bekijk een advertentie voor {name} ({n} van {max} bekeken)'
   },
   supply: {
-    ready: 'Schatkist klaar — tik om te openen!'
+    ready: 'Schatkist klaar — tik om te openen!',
+    filling: '{name}: +{n} munten over {time}'
   },
   codex: {
     title: 'Ballencodex',
@@ -279,7 +287,7 @@ export default {
     locked: 'Voeg twee ballen van niveau {n} samen om hem te ontdekken!'
   },
   tutorial: {
-    aim: 'Trek terug en laat los om te schieten!',
+    aim: 'Sleep richting de monsters en laat los om te schieten!',
     pickup: 'Schiet door een +1-bel om een bal te pakken!',
     merge: 'Pak nog een bal: een volle bak smelt tweelingen samen tot een sterkere bal!',
     upgrade: 'Tik op de gratis upgrade om meer ballen te houden!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Je bak is vol: een +1 geeft alleen een extra schot als er een plek vrij is. Upgrade de bakcapaciteit om meer ballen te schieten!',
     combo: 'Mik door een gat: ballen die achter de monsters stuiteren, maken enorme combo’s!',
     trayIntro: 'Deze bak houdt je ballen vast: elke bal is een schot. Een +1 vult een lege plek, en een volle bak smelt twee tweelingen samen tot een sterkere bal.',
-    upgrade: 'Tik op de gloeiende upgrade: die maakt je ballen, je bak of je munten beter.'
+    upgrade: 'Tik op de gloeiende upgrade: die maakt je ballen, je bak of je munten beter.',
+    bank: 'Mik schuin: een bal die tegen de muur kaatst, kan met één schot meerdere monsters raken!',
+    funnel: 'Je kunt nu {name} betalen – tik erop en elke bal raakt harder!',
+    overrun: 'Gaat een monster over de lijn, dan word je overlopen — raak eerst de monsters met een 1!'
+  },
+  merge: {
+    sr: 'Twee ballen van niveau {from} zijn samengesmolten tot één bal van niveau {to}! Elke bal in je bak is één schot.',
+    discovery: 'Nieuwe bal: {name}. Vaardigheid: {ability} – {desc}',
+    skipAria: 'Samensmelten overslaan'
   },
   unlock: {
     announce: 'Vrijgespeeld: {name}!'

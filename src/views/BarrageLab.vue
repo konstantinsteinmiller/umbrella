@@ -4,7 +4,9 @@
  *
  * Mounts BarrageBoard on a SANDBOX source (its own engine, provided through
  * `BOARD_SOURCE_KEY`) so scenes can be staged without touching the player's
- * saved run: `?scene=showcase|boss|enraged|danger|breach|fever|stress|ftue`,
+ * saved run: `?scene=showcase|boss|enraged|danger|breach|fever|stress|ftue|firstboss`
+ * (`firstboss`: row 9 with grunts on the board — the next shot's advance brings
+ * the row-10 first boss and its roar; `&ftue=1` runs it as a first session),
  * `?clean=1` hides the dev bar, `?auto=1` auto-fires for perf runs.
  * `?live=1` skips the sandbox: the board runs on the REAL `useBarrage()` +
  * `useCollections()` exactly as GameScene mounts it (scenes are then inert).
@@ -25,8 +27,8 @@ import { BOARD_SOURCE_KEY, type BoardSource } from '@/barrage/render/source'
 import { useScreenshake } from '@/use/useScreenshake'
 import useBarrage from '@/barrage/state/useBarrage'
 
-type Scene = 'showcase' | 'boss' | 'enraged' | 'danger' | 'breach' | 'fever' | 'stress' | 'ftue' | 'fresh'
-const SCENES: Scene[] = ['showcase', 'boss', 'enraged', 'danger', 'breach', 'fever', 'stress', 'ftue', 'fresh']
+type Scene = 'showcase' | 'boss' | 'enraged' | 'danger' | 'breach' | 'fever' | 'stress' | 'ftue' | 'fresh' | 'firstboss'
+const SCENES: Scene[] = ['showcase', 'boss', 'enraged', 'danger', 'breach', 'fever', 'stress', 'ftue', 'fresh', 'firstboss']
 
 const route = useRoute()
 const q = (k: string): string | null => {
@@ -118,6 +120,14 @@ const buildScene = (scene: Scene): IBarrageEngine => {
       m.push(mon('slime', 1, 6, 9), mon('ogre', 4, 7, 44), mon('slime', 5, 5, 6))
       return restoreEngine(snap(40, m, [pick('skill', 3, 4, 'shield')], [], ladder(18, 8), { shields: 1 }))
     }
+    case 'firstboss': {
+      // Row 9, grunts spread over the board: the next advance spawns the row-10
+      // Slime Tower (the run's first boss), which roars them all away.
+      const m: Monster[] = []
+      const kinds: MonsterKind[] = ['slime', 'goblin', 'slime', 'slime', 'goblin', 'slime', 'slime']
+      for (let i = 0; i < 11; i++) m.push(mon(kinds[i % kinds.length]!, (i * 3) % 7, 2 + Math.floor(i / 3), 60 + i * 7))
+      return restoreEngine(snap(9, m, [pick('ball', 3, 1)], [], [1, 1, 1], {}, { ftue: q('ftue') === '1' }))
+    }
     case 'breach': {
       // One march from the line: the next advance breaches (OVERRUN → meteor continue).
       const m: Monster[] = [mon('ogre', 0, 9, 900), mon('slime', 2, 9, 900), mon('goblin', 5, 9, 900), mon('slime', 6, 8, 900), mon('dryad', 1, 7, 900)]
@@ -204,6 +214,12 @@ const fireAt = (deg: number): boolean => (liveBarrage ? liveBarrage.fire((deg * 
 
 // ─── Stats + auto-fire ───────────────────────────────────────────────────────
 const boardRef = ref<InstanceType<typeof BarrageBoard> | null>(null)
+/** The board's emits, newest last (CDP probes drain it via `__barrageLab.events()`). */
+const boardEvents: (string | number)[][] = []
+const logEmit = (...e: (string | number)[]): void => {
+  boardEvents.push(e)
+  if (boardEvents.length > 200) boardEvents.shift()
+}
 const coinTargetRef = ref<HTMLElement | null>(null)
 const statText = ref('')
 let frames = 0
@@ -270,7 +286,19 @@ onMounted(() => {
     setLauncher: (t: number) => { selectedLauncher.value = t },
     autoFire: (on: boolean) => { autoFire.value = on },
     hold: (on: boolean) => { hold.value = on },
-    clean: (on: boolean) => { clean.value = on }
+    clean: (on: boolean) => { clean.value = on },
+    /** Drain the board's emits: ['aimStart'] / ['fired', deg] / ['aimCancel'] / ['misfire', kind] / ['chestTapped']. */
+    events: () => boardEvents.splice(0),
+    /** The overrun demo on `id`, or on the monster closest to the line. Returns its ms (0 = not played). */
+    demo: (id?: number): number => {
+      const ms = active().state.monsters
+      let target = id
+      if (target === undefined) {
+        let best = -1e9
+        for (const m of ms) if (m.row + m.h > best) { best = m.row + m.h; target = m.id }
+      }
+      return target === undefined ? 0 : (boardRef.value?.overrunDemo(target) ?? 0)
+    }
   }
 })
 onBeforeUnmount(() => {
@@ -296,7 +324,15 @@ onBeforeUnmount(() => {
       button.lab-btn(@click="clean = true") hide
       span.lab-stats.w-full {{ statText }}
     div.relative.flex-1.min-h-0
-      BarrageBoard(ref="boardRef" :coin-target="coinTargetRef")
+      BarrageBoard(
+        ref="boardRef"
+        :coin-target="coinTargetRef"
+        @aim-start="logEmit('aimStart')"
+        @aim-cancel="logEmit('aimCancel')"
+        @fired="(a) => logEmit('fired', Math.round(a * 18000 / Math.PI) / 100)"
+        @misfire="(k) => logEmit('misfire', k)"
+        @chest-tapped="logEmit('chestTapped')"
+      )
       div.lab-wallet(ref="coinTargetRef") {{ coins }}
     ParticleCanvas
 </template>

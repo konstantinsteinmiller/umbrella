@@ -7,13 +7,22 @@
  */
 import { shallowRef, ref } from 'vue'
 import { formatBig } from '@/utils/bigNumber'
-import type { UpgradeId } from '@/barrage/engine/types'
+import type { Phase, UpgradeId } from '@/barrage/engine/types'
 
 /** The part of BarrageBoard's `defineExpose` the DOM layer relies on (CONTRACT §10). */
 export interface BoardApi {
   launcherClientPoint(): { x: number; y: number } | null
   cellToClient(x: number, y: number): { x: number; y: number } | null
   boardClientRect(): DOMRect | null
+  /** Start an aim from a finger that went down OUTSIDE the canvas — the
+   *  tray's ball orbs (dragging up from them is the slingshot motion). Acts
+   *  like a press on the unit: let go before moving = the repeat shot. False
+   *  when no aim started (not the aim phase, paused, held, cannot fire). */
+  beginAimFrom(e: PointerEvent): boolean
+  /** The wordless lose rule: a ghost of that monster marches over the line,
+   *  the line and its skull flash. Returns its length in ms, 0 = could not
+   *  play. Stops itself when an aim starts or the phase leaves 'aim'. */
+  overrunDemo(monsterId: number): number
 }
 
 /** The mounted board — set by GameScene, read by the FTUE overlay and banners.
@@ -24,11 +33,39 @@ export const boardApi = shallowRef<BoardApi | null>(null)
  *  must get out of the way the moment a finger is on the board. */
 export const playerAiming = ref(false)
 
-/** The finger on the board points AT the monsters instead of pulling back
- *  (BarrageBoard's `aimWrongWay`): the drag vector in CSS px (y down), or
- *  null. The one moment the coach draws WHILE the player is aiming — the
- *  pull-back arrow, live, pointing the right way under their thumb. */
-export const aimWrongWay = shallowRef<{ dx: number; dy: number } | null>(null)
+/** Bumped when a purchase is refused for coins: the wallet (CoinBadge) pulses,
+ *  so "not enough" points at what is short, not only at the chip tapped. */
+export const walletDenied = ref(0)
+export const pulseWallet = (): void => { walletDenied.value++ }
+
+// ─── Recall (skip) button ────────────────────────────────────────────────────
+/** Seconds a volley runs before the skip button appears — the moment the
+ *  engine's own fast-forward starts (CONTRACT §1): a volley that is still
+ *  quick needs no escape hatch. */
+export const RECALL_AFTER_S = 2
+
+/**
+ * Whether the recall (skip) button shows. Play-test: a button that popped up
+ * at every volley read as "confirm the shot" — players dragged, then tapped
+ * it, and cut every volley short. So it waits until a volley is actually
+ * long, and never shows while the first-session FTUE runs (its turns must
+ * resolve on their own: every one of them is the lesson).
+ */
+export const recallVisible = (phase: Phase, volleySeconds: number, ftueActive: boolean): boolean =>
+  phase === 'volley' && !ftueActive && volleySeconds >= RECALL_AFTER_S
+
+// ─── Upgrade chips ───────────────────────────────────────────────────────────
+/** What each chip's rune border — and the funnel's arrows — spell (ornament in
+ *  Elder Futhark, never read, so not user-facing copy). */
+export const UPGRADE_INSCRIPTION: Readonly<Record<UpgradeId, string>> = {
+  damage: 'ball damage', capacity: 'tray capacity', speed: 'launch speed', luck: 'pickup luck', bounty: 'coin bounty'
+}
+
+/** The quiet gold glow of an affordable chip: every chip the player can buy
+ *  right now EXCEPT the one glowing chip (which says it louder) — and none at
+ *  all beside the FTUE's free offer, which must be the only thing lit. */
+export const readyGlow = (c: { affordable: boolean; maxed: boolean; glow: boolean; free: boolean; freeOffer: boolean }): boolean =>
+  c.affordable && !c.maxed && !c.glow && !c.free && !c.freeOffer
 
 // ─── Number formatting ───────────────────────────────────────────────────────
 // Numbers are locale-neutral in this game (Latin digits, K/M/B suffixes — the

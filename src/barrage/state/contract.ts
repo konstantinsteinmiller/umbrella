@@ -33,6 +33,18 @@ export interface BreachOffer {
   checkpointRow: number
   /** Row reached when the breach happened. */
   row: number
+  /** (STATE, additive) This run's tally for the loss recap: the row it reached,
+   *  and the kills made and coins earned since it started (the last checkpoint
+   *  restart or fresh start — a Meteor/revive continue does not start a new
+   *  run; boss chests count at what they paid). Endless only. */
+  recap?: RunRecap
+}
+
+/** (STATE, additive) See `BreachOffer.recap`. */
+export interface RunRecap {
+  row: number
+  kills: number
+  coins: number
 }
 
 export interface BossChestOffer {

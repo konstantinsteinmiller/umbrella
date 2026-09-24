@@ -773,3 +773,155 @@ describe('engine events survive engine swaps', () => {
     expect(h.b.boss.value).toMatchObject({ monsterId: id, hp: 80, maxHp: 80, enraged: false })
   })
 })
+
+describe('safety net (config.assist) for players who have not bought upgrades — fades per paid level', () => {
+  const buyPaid = async (h: Awaited<ReturnType<typeof boot>>, id: 'damage' | 'speed' | 'bounty' | 'capacity' | 'luck') => {
+    const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
+    h.wallet.addCoins(1e9)
+    expect(up.buy(id)).toBe(true)
+  }
+
+  it('a brand-new player starts with it on', async () => {
+    const h = await boot()
+    expect(h.fx.made[0]!.config.assist).toBe(1)
+    expect(h.eng().state.config.assist).toBe(1)
+  })
+
+  // Playtest run 3: it used to switch off at the 2nd paid upgrade and monsters
+  // jumped ~25% right when the player got stronger. It now fades in small
+  // steps (engine `assistForPaidLevels`: 1, 1, 0.75, 0.5, 0.25, 0).
+  it('the free Tray Capacity does not count; from the 2nd PAID upgrade it fades a step per level', async () => {
+    const h = await boot()
+    const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
+    h.eng().state.tray = [1, 1]
+    h.eng().merge(1)
+    up.claimFreeCapacity()
+    expect(h.eng().state.config.assist).toBe(1)
+    await buyPaid(h, 'damage')
+    expect(h.eng().state.config.assist).toBe(1)
+    await buyPaid(h, 'speed')
+    expect(h.eng().state.config.assist).toBe(0.75)
+    expect(h.eng().calls.setConfig.at(-1)).toEqual({ assist: 0.75 })
+    await buyPaid(h, 'luck')
+    expect(h.eng().state.config.assist).toBe(0.5)
+    await buyPaid(h, 'damage')
+    expect(h.eng().state.config.assist).toBe(0.25)
+    await buyPaid(h, 'speed')
+    expect(h.eng().state.config.assist).toBe(0)
+    expect(h.eng().calls.setConfig.at(-1)).toEqual({ assist: 0 })
+    // …and every later board keeps it (a checkpoint restart).
+    await h.b.restartFromCheckpoint()
+    expect(h.fx.made.at(-1)!.config.assist).toBe(0)
+  })
+
+  it('a capacity level bought with coins (no gift claimed) is a paid one', async () => {
+    const h = await boot()
+    await buyPaid(h, 'capacity')
+    expect(h.eng().state.config.assist).toBe(1)
+    await buyPaid(h, 'capacity')
+    expect(h.eng().state.config.assist).toBe(0.75)
+  })
+
+  it('a save boots with the fade its paid levels earned (its gifted capacity level not counted)', async () => {
+    const two = await boot({ eb_upgrades: { damage: 1, capacity: 1, speed: 1, luck: 0, bounty: 0 }, eb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
+    expect(two.fx.made[0]!.config.assist).toBe(0.75)
+    const one = await boot({ eb_upgrades: { damage: 1, capacity: 1, speed: 0, luck: 0, bounty: 0 }, eb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
+    expect(one.fx.made[0]!.config.assist).toBe(1)
+    const five = await boot({ eb_upgrades: { damage: 2, capacity: 2, speed: 2, luck: 0, bounty: 0 }, eb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
+    expect(five.fx.made[0]!.config.assist).toBe(0)
+  })
+
+  it('never reaches the Daily Barrage board', async () => {
+    const h = await boot()
+    h.b.startDaily()
+    expect(h.fx.made.at(-1)!.config.assist ?? 0).toBe(0)
+    await buyPaid(h, 'damage')
+    await buyPaid(h, 'speed')
+    expect(h.eng().calls.setConfig).toEqual([])
+  })
+})
+
+describe('loss recap (BreachOffer.recap)', () => {
+  const breachAt = async (h: Awaited<ReturnType<typeof boot>>) => {
+    h.eng().fire(1)
+    h.eng().breachNow()
+    await flush()
+  }
+  const kill = (e: FakeEngine, coins: number): void => {
+    e.emit({ type: 'kill', monsterId: 1, kind: 'slime', corrupted: false, x: 1, y: 1, coins, row: e.state.row })
+    e.emit({ type: 'coins', amount: coins, x: 1, y: 1, source: 'kill' })
+  }
+
+  it('counts the run\'s kills and earned coins (never the boss bounty event) up to the breach row', async () => {
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const e = h.eng()
+    e.fire(1)
+    kill(e, 4)
+    kill(e, 6)
+    e.emit({ type: 'coins', amount: 5, x: 0, y: 0, source: 'pickup' })
+    e.emit({ type: 'coins', amount: 999, x: 0, y: 0, source: 'boss' })
+    e.endTurn()
+    await breachAt(h)
+    expect(h.b.breach.value!.recap).toEqual({ row: h.b.breach.value!.row, kills: 2, coins: 15 })
+    expect(h.b.breach.value!.recap!.row).toBe(12)
+  })
+
+  it('a continue keeps counting; a checkpoint restart starts a new run at zero', async () => {
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    h.eng().fire(1)
+    kill(h.eng(), 3)
+    h.eng().breachNow()
+    await flush()
+    expect(await h.b.continueWithMeteor()).toBe(true)
+    h.eng().fire(1)
+    kill(h.eng(), 3)
+    h.eng().breachNow()
+    await flush()
+    expect(h.b.breach.value!.recap).toMatchObject({ kills: 2, coins: 6 })
+
+    await h.b.restartFromCheckpoint()
+    h.eng().fire(1)
+    kill(h.eng(), 8)
+    h.eng().breachNow()
+    await flush()
+    expect(h.b.breach.value!.recap).toEqual({ row: 11, kills: 1, coins: 8 })
+  })
+
+  it('boss chests count at what they paid (2× included)', async () => {
+    const h = await boot()
+    const e = h.eng()
+    e.fire(1)
+    e.spawnBoss()
+    e.killBoss(300)
+    e.endTurn()
+    expect(await h.b.claimBossChest(true)).toBe(600)
+    await breachAt(h)
+    expect(h.b.breach.value!.recap).toMatchObject({ kills: 1, coins: 600 })
+  })
+
+  it('survives a reload mid-run (saved with the run snapshot)', async () => {
+    const first = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    first.eng().fire(1)
+    kill(first.eng(), 7)
+    first.eng().endTurn()
+    expect((first.blobNow().eb_run as { tally?: unknown }).tally).toEqual({ kills: 1, coins: 7 })
+    const second = await boot()
+    expect(second.fx.made[0]!.kind).toBe('restore')
+    await breachAt(second)
+    expect(second.b.breach.value!.recap).toMatchObject({ kills: 1, coins: 7 })
+  })
+
+  it('a daily run never adds to the endless run\'s recap', async () => {
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    h.eng().fire(1)
+    kill(h.eng(), 2)
+    h.eng().endTurn()
+    h.b.startDaily()
+    h.eng().fire(1)
+    kill(h.eng(), 50)
+    h.eng().endTurn()
+    h.b.exitDaily()
+    await breachAt(h)
+    expect(h.b.breach.value!.recap).toMatchObject({ kills: 1, coins: 2 })
+  })
+})

@@ -9,7 +9,8 @@ export default {
     todayBest: 'Hôm nay {n}',
     shields: 'Lượt khiên: {n}',
     revives: 'Lượt hồi sinh: {n}',
-    warcry: 'Chiến hống sẵn sàng: loạt bắn kế tiếp gây sát thương gấp đôi'
+    warcry: 'Chiến hống sẵn sàng: loạt bắn kế tiếp gây sát thương gấp đôi',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Miễn phí',
     aria: '{name}: {desc} Giá: {cost} xu.',
     ariaMaxed: '{name}: {desc} Đã tối đa.',
-    ariaFree: '{name}: {desc} Miễn phí!'
+    ariaFree: '{name}: {desc} Miễn phí!',
+    denied: 'Không đủ xu: cần {cost}.',
+    need: 'Cần thêm {n}'
   },
   turn: {
     bonus: '+{n} bóng',
@@ -231,7 +234,11 @@ export default {
     free: 'Miễn phí',
     restart: 'Chơi lại từ hàng {n}',
     restartDesc: 'Giữ nguyên toàn bộ xu',
-    onceHint: 'Mưa thiên thạch chỉ dùng một lần mỗi điểm lưu.'
+    onceHint: 'Mưa thiên thạch chỉ dùng một lần mỗi điểm lưu.',
+    recapRow: 'Hàng',
+    recapKills: 'Hạ gục',
+    recapEarned: 'Kiếm được lượt này',
+    recapAria: 'Lượt này: hàng {row}, hạ gục {kills}, kiếm được {coins} xu'
   },
   chest: {
     title: 'Hạ gục trùm!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: 'Xem quảng cáo cho {name} (đã xem {n}/{max})'
   },
   supply: {
-    ready: 'Rương kho báu đã sẵn sàng — chạm để mở!'
+    ready: 'Rương kho báu đã sẵn sàng — chạm để mở!',
+    filling: '{name}: +{n} xu sau {time}'
   },
   codex: {
     title: 'Sách bóng',
@@ -279,7 +287,7 @@ export default {
     locked: 'Hợp nhất hai quả bóng cấp {n} để khám phá!'
   },
   tutorial: {
-    aim: 'Kéo ra sau rồi thả để bắn!',
+    aim: 'Kéo về phía quái vật rồi thả để bắn!',
     pickup: 'Bắn xuyên qua bong bóng +1 để nhặt thêm bóng!',
     merge: 'Nhặt thêm một quả: khay đầy sẽ hợp nhất cặp song sinh thành bóng mạnh hơn!',
     upgrade: 'Chạm vào nâng cấp miễn phí để chứa nhiều bóng hơn!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Khay của bạn đã đầy: +1 chỉ thêm một phát bắn khi còn ô trống. Nâng cấp sức chứa khay để bắn nhiều bóng hơn!',
     combo: 'Ngắm qua khe hở: bóng nảy phía sau quái vật tạo combo cực lớn!',
     trayIntro: 'Khay này chứa bóng của bạn: mỗi quả là một phát bắn. +1 lấp một ô trống, và khay đầy sẽ hợp nhất hai quả sinh đôi thành một quả mạnh hơn.',
-    upgrade: 'Chạm vào nâng cấp đang sáng: nó làm bóng, khay hoặc xu của bạn tốt hơn.'
+    upgrade: 'Chạm vào nâng cấp đang sáng: nó làm bóng, khay hoặc xu của bạn tốt hơn.',
+    bank: 'Ngắm chéo: bóng nảy vào tường có thể trúng nhiều quái vật chỉ với một phát!',
+    funnel: 'Giờ bạn đã đủ xu mua {name} — chạm vào để mọi quả bóng đánh mạnh hơn!',
+    overrun: 'Nếu quái vật vượt qua vạch, phòng tuyến sẽ vỡ — hãy bắn những con có số 1 trước!'
+  },
+  merge: {
+    sr: 'Hai quả bóng cấp {from} đã hợp nhất thành một quả bóng cấp {to}! Mỗi quả bóng trong khay là một phát bắn.',
+    discovery: 'Bóng mới: {name}. Kỹ năng: {ability} — {desc}',
+    skipAria: 'Bỏ qua hợp nhất'
   },
   unlock: {
     announce: 'Đã mở khóa: {name}!'

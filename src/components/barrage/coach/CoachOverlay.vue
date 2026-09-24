@@ -2,17 +2,35 @@
 /**
  * The wordless coach on screen (`useCoach.ts` decides WHAT; this shows it).
  *
- *   pull     — the slingshot acted out on the unit (SlingshotDemo, teach);
- *              and, live under a wrong-way thumb, the arrow stretched the
- *              right way so the correction lands while the finger is down.
- *   combo    — the ghost pulls to a real bank shot and flies its path; each
- *              monster hit counts up and the volley total pops at the end.
- *   survive  — the monsters about to break through get a red reticle and a
- *              chevron per march they have left to the line; then the
- *              rescue shot (and a gold ring on the skill bubble it takes).
+ *   pull     — the shot acted out inside the board (FingerDemo, teach): a
+ *              ghost finger drags toward the monsters, the ghost line grows
+ *              under it, release, a ghost ball flies. The idle nudge, and
+ *              after two empty taps on the unit.
+ *   combo    — the ghost finger aims a real bank shot and the ball flies its
+ *              path; each monster hit counts up and the volley total pops at
+ *              the end. The first one comes early (FTUE turn 2–3, `bank`):
+ *              play-testers who found the shot never found out it can be
+ *              ANGLED.
+ *   survive  — the monsters about to break through get a red reticle over
+ *              the line they would cross; then the rescue shot (and a gold
+ *              ring on the skill bubble it takes). How many marches are left
+ *              is the canvas's own always-on danger pips now, so the coach
+ *              no longer draws its chevrons (they doubled the pips).
  *   tray     — TrayDemo: why "+1" did not add a shot, and the fix.
  *   trayIntro — TrayIntroDemo: what the tray is (shots · "+1" · merge).
- *   upgrade  — UpgradeDemo on the glowing chip: press → what it changes.
+ *   overrun  — the lose rule, played on the canvas (`boardApi.overrunDemo`):
+ *              the monster about to cross wears a ghost that marches over the
+ *              line, the line and its skull flash. This overlay only runs it:
+ *              starts it the first frame it may be seen (during the FTUE too —
+ *              the FTUE hand steps aside), counts it only when the board
+ *              really played it, holds the one-lesson channel for its length
+ *              and hands the aim back to the coach when it is over (or the
+ *              player takes the board).
+ *
+ * Beside them, the upgrade funnel (UpgradeFunnel): runic gold arrows on the
+ * chip to buy, the wallet paying into it and the hand pressing it — arrows
+ * only while a shot lesson has the finger, nothing during a survive lesson
+ * (danger comes first).
  *
  * Everything is pointer-events: none and gets out of the way the moment a
  * finger is on the board. The sentence for each lesson exists only in the
@@ -22,46 +40,127 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBarrage from '@/barrage/state/useBarrage'
 import { FLOOR_Y, MIN_AIM, ROWS } from '@/barrage/engine/types'
-import { coachLesson, noteLessonVisible, type CoachLesson } from '@/use/useCoach'
+import {
+  coachLesson, finishOverrun, isShotLesson, noteFunnelVisible, noteLessonVisible, upgradeFunnel, type CoachLesson
+} from '@/use/useCoach'
 import { tutorialActive, tutorialPreview } from '@/use/useTutorial'
 import { unlocking } from '@/use/useFeatureUnlocks'
 import { isAnyModalOpen } from '@/use/useModalState'
 import { activeReveal } from '@/use/useTierReveal'
-import { aimWrongWay, boardApi, playerAiming } from '@/components/barrage/barrageUi'
-import SlingshotDemo from '@/components/barrage/coach/SlingshotDemo.vue'
+import { boardApi, playerAiming } from '@/components/barrage/barrageUi'
+import { mergeBox } from '@/components/barrage/mergeLightbox'
+import FingerDemo from '@/components/barrage/coach/FingerDemo.vue'
 import TrayDemo from '@/components/barrage/coach/TrayDemo.vue'
 import TrayIntroDemo from '@/components/barrage/coach/TrayIntroDemo.vue'
-import UpgradeDemo from '@/components/barrage/coach/UpgradeDemo.vue'
+import UpgradeFunnel from '@/components/barrage/coach/UpgradeFunnel.vue'
 
 interface Pt { x: number; y: number }
+interface Box { left: number; top: number; width: number; height: number }
 
 const { t } = useI18n()
 const barrage = useBarrage()
 
-// An earned feature flying in (FeatureUnlockFx) owns the moment too.
+// An earned feature flying in (FeatureUnlockFx) and the merge lightbox own the
+// moment too.
 const blocked = computed(() =>
-  isAnyModalOpen.value || !!activeReveal.value || barrage.holdSim.value || barrage.phase.value !== 'aim' || !!unlocking.value)
-/** The FTUE's own hand is on screen: never two coaches at once. */
+  isAnyModalOpen.value || !!activeReveal.value || barrage.holdSim.value || barrage.phase.value !== 'aim'
+  || !!unlocking.value || !!mergeBox.value)
+/** The FTUE's own hand is on screen: never two coaches at once. (It steps
+ *  aside by itself for the early bank shot — see TutorialOverlay.) */
 const ftueShowing = computed(() => tutorialActive.value && tutorialPreview.value !== null)
+/** The lose rule plays during the FTUE too (the FTUE hand yields to it). */
 const lessonVisible = computed(() =>
-  !!coachLesson.value && !blocked.value && !playerAiming.value && !ftueShowing.value)
-const liveFix = computed(() => !!aimWrongWay.value && !blocked.value)
+  !!coachLesson.value && !blocked.value && !playerAiming.value
+  && (!ftueShowing.value || coachLesson.value.id === 'overrun'))
+
+// ─── overrun: the board plays it, this overlay sequences it ──────────────────
+/** A board that has just been built (a load, a restart) has not drawn its
+ *  monsters yet and cannot play the demo: ask again this often… */
+const OVERRUN_RETRY_MS = 200
+/** …this many times, then give up for this aim phase. */
+const OVERRUN_TRIES = 6
+type OverrunLesson = Extract<CoachLesson, { id: 'overrun' }>
+/** The lesson whose demo is starting or running (its seq), or -1. */
+let overrunSeq = -1
+let overrunTimer = 0
+let overrunTries = 0
+/** The board is playing it right now (the live region reads the rule then). */
+const overrunPlaying = ref(false)
+const endOverrun = (): void => {
+  window.clearTimeout(overrunTimer)
+  overrunPlaying.value = false
+  const seq = overrunSeq
+  overrunSeq = -1
+  if (seq >= 0) finishOverrun(seq)
+}
+const tryOverrun = (l: OverrunLesson): void => {
+  if (overrunSeq !== l.seq) return
+  const ms = boardApi.value?.overrunDemo(l.monsterId) ?? 0
+  if (ms > 0) {
+    overrunPlaying.value = true
+    noteLessonVisible(l)
+    overrunTimer = window.setTimeout(endOverrun, ms)
+    return
+  }
+  if (++overrunTries < OVERRUN_TRIES) {
+    overrunTimer = window.setTimeout(() => tryOverrun(l), OVERRUN_RETRY_MS)
+    return
+  }
+  // It could not play (the board never drew that monster): not counted — it
+  // comes back at the next aim phase that shows a `1` pip.
+  endOverrun()
+}
+const startOverrun = (l: OverrunLesson): void => {
+  if (overrunSeq === l.seq) return
+  overrunSeq = l.seq
+  overrunTries = 0
+  tryOverrun(l)
+}
 
 // Exposure = the first frame a lesson is actually on screen.
 watch([lessonVisible, () => coachLesson.value?.seq], () => {
   const l = coachLesson.value
-  if (lessonVisible.value && l) noteLessonVisible(l)
+  // A demo in flight whose lesson went away (a shot, a new board) or was
+  // covered (a finger on the board, a modal): it is over — the board stops
+  // its ghost by itself when an aim starts.
+  if (overrunSeq >= 0 && (!l || l.seq !== overrunSeq || !lessonVisible.value)) endOverrun()
+  if (!lessonVisible.value || !l) return
+  if (l.id === 'overrun') startOverrun(l)
+  else noteLessonVisible(l)
 }, { immediate: true })
 
+// ─── The upgrade funnel ──────────────────────────────────────────────────────
+/** Danger first: a survive lesson (or the lose rule) on screen takes the
+ *  funnel off it. */
+const funnelVisible = computed(() =>
+  !!upgradeFunnel.value && !blocked.value && !playerAiming.value && !ftueShowing.value
+  && !(lessonVisible.value && (coachLesson.value?.id === 'survive' || coachLesson.value?.id === 'overrun')))
+/** A shot lesson has the ghost finger: the funnel keeps its arrows and drops
+ *  its own hand (one hand on screen at a time). */
+const funnelQuiet = computed(() => lessonVisible.value && isShotLesson(coachLesson.value))
+watch([funnelVisible, () => upgradeFunnel.value?.seq], () => {
+  const f = upgradeFunnel.value
+  if (funnelVisible.value && f) noteFunnelVisible(f)
+}, { immediate: true })
+const funnelSr = computed(() => {
+  const f = funnelVisible.value ? upgradeFunnel.value : null
+  if (!f) return ''
+  return f.reason === 'damage'
+    ? t('barrage.coach.funnel', { name: t('barrage.upgrades.damage.name') })
+    : t('barrage.coach.upgrade')
+})
+
 // ─── Board geometry (client px), re-measured while something shows ───────────
-const geo = ref<{ launcher: Pt; cell: number } | null>(null)
+const geo = ref<{ launcher: Pt; cell: number; bounds: Box | null } | null>(null)
 const measureTick = ref(0)
 const measure = (): void => {
   const b = boardApi.value
   const L = b?.launcherClientPoint()
   const o = b?.cellToClient(0, 0)
   const o1 = b?.cellToClient(1, 0)
-  geo.value = L && o && o1 ? { launcher: L, cell: Math.max(8, o1.x - o.x) } : null
+  const r = b?.boardClientRect() ?? null
+  const bounds = r ? { left: r.left, top: r.top, width: r.width, height: r.height } : null
+  geo.value = L && o && o1 ? { launcher: L, cell: Math.max(8, o1.x - o.x), bounds } : null
   measureTick.value++
 }
 const toClient = (x: number, y: number): Pt | null => boardApi.value?.cellToClient(x, y) ?? null
@@ -109,7 +208,7 @@ const demo = computed<Demo | null>(() => {
     const a = pullAngle()
     let path: Pt[] = []
     try { path = flatToClient(barrage.engine.value.aimPreview(a).points.flatMap((p) => [p.x, p.y])) } catch { path = [] }
-    return { dir: dirOf(a), path, legs: 1, contacts: [], total: null, tone: 'teach' }
+    return { dir: dirOf(a), path, legs: 2, contacts: [], total: null, tone: 'teach' }
   }
   if (l.id === 'combo' || l.id === 'survive') {
     const tr = l.trial
@@ -125,22 +224,8 @@ const demo = computed<Demo | null>(() => {
   return null
 })
 
-/** The live correction: the player points toward d — pull toward −d. */
-const liveDemo = computed<Demo | null>(() => {
-  void measureTick.value
-  const w = aimWrongWay.value
-  if (!w || !geo.value) return null
-  const len = Math.hypot(w.dx, w.dy) || 1
-  // Their finger points where they want the ball to go; keep it in the fan.
-  let a = Math.atan2(-w.dy / len, w.dx / len)
-  a = Math.max(MIN_AIM, Math.min(Math.PI - MIN_AIM, a))
-  let path: Pt[] = []
-  try { path = flatToClient(barrage.engine.value.aimPreview(a).points.flatMap((p) => [p.x, p.y])) } catch { path = [] }
-  return { dir: dirOf(a), path, legs: 1, contacts: [], total: null, tone: 'teach' }
-})
-
-// ─── survive: reticles on the threats + chevrons to the line ─────────────────
-interface Threat { id: number; x: number; y: number; w: number; h: number; lineY: number; marches: number; chevrons: boolean }
+// ─── survive: reticles on the threats + the line they would cross ────────────
+interface Threat { id: number; x: number; y: number; w: number; h: number; lineY: number }
 const threats = computed<Threat[]>(() => {
   void measureTick.value
   const l = coachLesson.value
@@ -150,14 +235,11 @@ const threats = computed<Threat[]>(() => {
   const list = l.threats.map((id) => st.monsters.find((x) => x.id === id)).filter((m): m is NonNullable<typeof m> => !!m)
   for (const m of list) {
     const id = m.id
-    // Chevrons only under the LOWEST threat of its columns — the one above it
-    // would draw its march count straight over the one below.
-    const covered = list.some((o) => o !== m && o.row > m.row && o.col < m.col + m.w && o.col + o.w > m.col)
     const a = toClient(m.col, Math.max(0, m.row))
     const b = toClient(m.col + m.w, m.row + m.h)
     const line = toClient(m.col, ROWS)
     if (!a || !b || !line) continue
-    out.push({ id, x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y, lineY: line.y, marches: Math.max(1, ROWS - (m.row + m.h) + 1), chevrons: !covered })
+    out.push({ id, x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y, lineY: line.y })
   }
   return out
 })
@@ -169,57 +251,54 @@ const skillRing = computed<Pt | null>(() => {
 
 // ─── sr-only sentence ────────────────────────────────────────────────────────
 const srText = computed(() => {
-  if (liveFix.value) return t('barrage.tutorial.aim')
   const l: CoachLesson | null = lessonVisible.value ? coachLesson.value : null
   if (!l) return ''
-  return l.id === 'pull' ? t('barrage.tutorial.aim') : t(`barrage.coach.${l.id}`)
+  if (l.id === 'overrun' && !overrunPlaying.value) return ''
+  if (l.id === 'pull') return t('barrage.tutorial.aim')
+  if (l.id === 'combo' && l.bank) return t('barrage.coach.bank')
+  return t(`barrage.coach.${l.id}`)
 })
 
 // The launcher glides into place after a volley and the board can re-layout:
 // re-measure on every change and on a slow poll while anything shows.
 let poll = 0
-watch([() => coachLesson.value?.seq, () => !!aimWrongWay.value, () => barrage.phase.value], () => measure())
+watch([() => coachLesson.value?.seq, () => barrage.phase.value], () => measure())
 onMounted(() => {
   measure()
-  poll = window.setInterval(() => { if (coachLesson.value || aimWrongWay.value) measure() }, 250)
+  poll = window.setInterval(() => { if (coachLesson.value) measure() }, 250)
   window.addEventListener('resize', measure)
 })
 onUnmounted(() => {
   window.clearInterval(poll)
   window.removeEventListener('resize', measure)
+  endOverrun()
 })
 </script>
 
 <template lang="pug">
   Teleport(to="body")
     div.sr-only(aria-live="polite") {{ srText }}
-    //- Live correction under a wrong-way thumb (shows even mid-drag).
-    SlingshotDemo(
-      v-if="liveFix && liveDemo && geo"
-      :launcher="geo.launcher"
-      :cell="geo.cell"
-      :dir="liveDemo.dir"
-      :path="liveDemo.path"
-      mode="hold"
-    )
+    div.sr-only(aria-live="polite") {{ funnelSr }}
     Transition(name="coach-fade")
-      div.coach-layer(v-if="lessonVisible && !liveFix && coachLesson" :key="coachLesson.seq")
-        //- survive: what is about to break through, and how soon.
+      UpgradeFunnel(
+        v-if="funnelVisible && upgradeFunnel"
+        :key="upgradeFunnel.target"
+        :target="upgradeFunnel.target"
+        :quiet="funnelQuiet"
+      )
+    Transition(name="coach-fade")
+      div.coach-layer(v-if="lessonVisible && coachLesson" :key="coachLesson.seq")
+        //- survive: what is about to break through (the canvas pips say how soon).
         svg.fixed.inset-0.pointer-events-none.coach-threats(v-if="threats.length" width="100%" height="100%" aria-hidden="true")
           g(v-for="th in threats" :key="th.id")
             rect.coach-reticle(:x="th.x + 2" :y="th.y + 2" :width="th.w - 4" :height="th.h - 4" rx="10")
             line.coach-line(:x1="th.x" :x2="th.x + th.w" :y1="th.lineY" :y2="th.lineY")
-            path.coach-chevron(
-              v-for="k in (th.chevrons ? th.marches : 0)"
-              :key="k"
-              :style="{ animationDelay: (k * 0.18) + 's' }"
-              :d="'M ' + (th.x + th.w * 0.3) + ' ' + (th.y + th.h + (k - 0.6) * (th.lineY - th.y - th.h) / (th.marches + 0.2)) + ' l ' + (th.w * 0.2) + ' ' + (th.w * 0.14) + ' l ' + (th.w * 0.2) + ' ' + (-th.w * 0.14)"
-            )
           circle.coach-skill(v-if="skillRing" :cx="skillRing.x" :cy="skillRing.y" :r="(geo ? geo.cell : 40) * 0.5")
-        SlingshotDemo(
+        FingerDemo(
           v-if="demo && geo"
           :launcher="geo.launcher"
           :cell="geo.cell"
+          :bounds="geo.bounds"
           :dir="demo.dir"
           :path="demo.path"
           :legs="demo.legs"
@@ -229,7 +308,6 @@ onUnmounted(() => {
         )
         TrayDemo(v-if="coachLesson.id === 'tray'")
         TrayIntroDemo(v-else-if="coachLesson.id === 'trayIntro'")
-        UpgradeDemo(v-else-if="coachLesson.id === 'upgrade'" :id="coachLesson.upgrade")
 </template>
 
 <style scoped lang="sass">
@@ -249,21 +327,6 @@ onUnmounted(() => {
   stroke-width: 4
   stroke-linecap: round
   animation: coach-blink 0.7s ease-in-out infinite alternate
-.coach-chevron
-  fill: none
-  stroke: #ff5a5a
-  stroke-width: 4
-  stroke-linecap: round
-  stroke-linejoin: round
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8))
-  animation: coach-march 1.1s ease-in-out infinite
-@keyframes coach-march
-  0%, 100%
-    opacity: 0.35
-    transform: translateY(-3px)
-  50%
-    opacity: 1
-    transform: translateY(3px)
 @keyframes coach-blink
   from
     opacity: 0.45
@@ -282,6 +345,6 @@ onUnmounted(() => {
   opacity: 0
 
 @media (prefers-reduced-motion: reduce)
-  .coach-reticle, .coach-line, .coach-chevron, .coach-skill
+  .coach-reticle, .coach-line, .coach-skill
     animation-duration: 2s
 </style>

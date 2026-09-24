@@ -1,15 +1,85 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import useEpicConfig from '@/use/useEpicConfig'
+import { saveDataVersion } from '@/use/useSaveStatus'
 import { isCompactHud } from '@/use/useUser'
 import { formatBig } from '@/utils/bigNumber'
+import { walletDenied } from '@/components/barrage/barrageUi'
 import {
   registerAdChordTap, adChordTapCount,
   AD_CHORD_TAP_THRESHOLD, AD_CHORD_HINT_AT
 } from '@/use/useAdDebugChord'
 
+const props = withDefaults(defineProps<{
+  /** Ms between the wallet counting a gain and its coin reaching the badge
+   *  (the scene knows the board's kill hold + coin-flight time). */
+  landMs?: number
+}>(), { landMs: 650 })
+
+const { t } = useI18n()
 const { coins } = useEpicConfig()
+
+// ─── "+N" at the wallet ──────────────────────────────────────────────────────
+// Play-test: nobody noticed coins arriving — the counter ticking up in a
+// corner is not an event. Every increase floats a small "+N" off the counter;
+// increases within MERGE_MS of each other (a volley's kills, a coin shower)
+// add into the pop already up instead of stacking a column of them.
+const MERGE_MS = 250
+// The wallet counts a kill's coins the moment it dies, but the coin still has
+// to fly up from the board (`landMs`): the pop waits for it, so the "+N" reads
+// as the coin landing. Every gain waits the same, so merging is unchanged.
+/** How long a pop stays after its last increase. */
+const POP_MS = 900
+/** A cloud / local hydrate rewrites the wallet: that is not income. */
+const HYDRATE_QUIET_MS = 600
+const pop = ref<{ id: number; amount: number } | null>(null)
+let popSeq = 0
+let lastGainAt = -Infinity
+let hydratedAt = -Infinity
+let popTimer = 0
+const landing = new Set<number>()
+const showGain = (gain: number): void => {
+  const at = performance.now()
+  // A merged gain keeps the pop (same id: no re-entrance, only a bump of the
+  // number); a gain after a pause starts a fresh pop.
+  pop.value = pop.value && at - lastGainAt < MERGE_MS
+    ? { id: pop.value.id, amount: pop.value.amount + gain }
+    : { id: ++popSeq, amount: gain }
+  lastGainAt = at
+  window.clearTimeout(popTimer)
+  popTimer = window.setTimeout(() => { pop.value = null }, POP_MS)
+}
+watch(saveDataVersion, () => { hydratedAt = performance.now() }, { flush: 'sync' })
+watch(coins, (now, was) => {
+  if (!(now > was) || performance.now() - hydratedAt < HYDRATE_QUIET_MS) return
+  const gain = now - was
+  const id = window.setTimeout(() => { landing.delete(id); showGain(gain) }, Math.max(0, props.landMs))
+  landing.add(id)
+})
+// ─── "Not enough" ────────────────────────────────────────────────────────────
+// A refused purchase pulses the wallet red: play-test run 2's denied chip
+// flashed only its own price, and nothing pointed at what was short.
+const DENIED_MS = 700
+const denied = ref(false)
+let deniedTimer = 0
+watch(walletDenied, () => {
+  // Off for a frame, then on: a second refusal restarts the pulse.
+  denied.value = false
+  requestAnimationFrame(() => { denied.value = true })
+  window.clearTimeout(deniedTimer)
+  deniedTimer = window.setTimeout(() => { denied.value = false }, DENIED_MS)
+})
+
+onUnmounted(() => {
+  window.clearTimeout(popTimer)
+  window.clearTimeout(deniedTimer)
+  for (const id of landing) window.clearTimeout(id)
+})
+const popText = computed(() => pop.value
+  ? t('barrage.hud.coinGain', { n: formatBig(pop.value.amount, { decimals: 1, floor: true, trim: true, lower: true }) })
+  : '')
 
 // Abbreviate big wallets: 1435 → "1.4k", 4.5m, 1.2b, 1.3t, 2.5qa … One
 // decimal, FLOORED so the badge never shows more than the player actually has;
@@ -48,9 +118,9 @@ const showChordCount = computed(() => adChordTapCount.value >= AD_CHORD_HINT_AT)
       @touchstart="registerAdChordTap"
       @click="registerAdChordTap"
       style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
-      :class="isCompactHud\
+      :class="[isCompactHud\
         ? 'gap-1 pl-0.5 pr-1.5 py-0 text-[11px] coin-badge--compact'\
-        : 'gap-2 pl-1 pr-3 py-1 text-sm sm:text-base'"
+        : 'gap-2 pl-1 pr-3 py-1 text-sm sm:text-base', { 'coin-badge--denied': denied }]"
     )
       div.coin-badge__icon.flex.items-center.justify-center.rounded-full(
         :class="isCompactHud ? 'w-5 h-5' : 'w-7 h-7 sm:w-8 sm:h-8'"
@@ -60,6 +130,18 @@ const showChordCount = computed(() => adChordTapCount.value >= AD_CHORD_HINT_AT)
           :class="isCompactHud ? 'w-3.5 h-3.5' : 'w-5 h-5 sm:w-6 sm:h-6'"
         )
       span.game-text.coin-badge__value {{ display }}
+
+    //- "+N" income pop, under the counter (the wallet itself is read aloud, so
+    //- the pop is decoration only).
+    Transition(name="coin-gain")
+      span.coin-badge__gain.absolute.pointer-events-none.game-text.font-black(
+        v-if="pop"
+        :key="pop.id"
+        :class="isCompactHud ? 'text-[11px]' : 'text-sm'"
+        aria-hidden="true"
+      )
+        //- Re-keyed on every merge: the number bumps, the pop stays put.
+        span.coin-badge__gain-n(:key="pop.amount") {{ popText }}
 
     //- Debug readout — exempt from i18n (a debug overlay, not player copy).
     div.coin-badge__chord.absolute.pointer-events-none(
@@ -118,6 +200,62 @@ const showChordCount = computed(() => adChordTapCount.value >= AD_CHORD_HINT_AT)
   line-height: 13px
   letter-spacing: 0.5px
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace
+
+// Pops just below the counter and rises onto the badge's bottom edge — the
+// top bar has no room above it (the safe area / the screen edge).
+.coin-badge__gain
+  top: 100%
+  right: 0.6rem
+  margin-top: -2px
+  color: #ffe27a
+  white-space: nowrap
+  text-shadow: 0 1px 0 #000, 0 -1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 0 6px rgba(252, 211, 77, 0.8)
+.coin-badge__gain-n
+  display: inline-block
+  animation: coin-gain-bump 0.22s ease-out
+@keyframes coin-gain-bump
+  from
+    scale: 1.35
+  to
+    scale: 1
+.coin-gain-enter-active
+  transition: opacity 0.16s ease-out, translate 0.16s ease-out
+.coin-gain-leave-active
+  transition: opacity 0.28s ease-in, translate 0.28s ease-in
+.coin-gain-enter-from
+  opacity: 0
+  translate: 0 8px
+.coin-gain-leave-to
+  opacity: 0
+  translate: 0 -6px
+@media (prefers-reduced-motion: reduce)
+  .coin-badge__gain-n
+    animation: none
+  .coin-gain-enter-from, .coin-gain-leave-to
+    translate: 0 0
+
+// "Not enough coins": a red ring that pulses out twice and a short head-shake.
+.coin-badge--denied
+  animation: coin-denied 0.7s ease-out
+@keyframes coin-denied
+  0%
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 0 rgba(255, 59, 59, 0.95)
+    translate: 0 0
+  15%, 45%
+    translate: -3px 0
+  30%, 60%
+    translate: 3px 0
+  35%
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 5px rgba(255, 59, 59, 0.9)
+  75%
+    translate: 0 0
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(255, 59, 59, 0.8)
+  100%
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 0 0 9px rgba(255, 59, 59, 0)
+@media (prefers-reduced-motion: reduce)
+  .coin-badge--denied
+    animation: none
+    border-color: #ff3b3b
 
 @keyframes coin-shine
   0%

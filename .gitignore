@@ -82,3 +82,6 @@ __screenshots__/
 /art-sheets/
 # Recorded gameplay clips (`pnpm preview:video`) — build artifacts, tens of MB each.
 /preview-videos/
+
+# Blind playtest runs (`tools/playtest`) — screenshots + browser profiles, tens of MB each.
+/playtest-runs/

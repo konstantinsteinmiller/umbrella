@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createEngine, createEngineAtRow } from '@/barrage/engine/engine'
 import { defaultConfig } from '@/barrage/engine/economy'
-import { rowHp } from '@/barrage/engine/monsters'
+import { hpClockAt, rowHp } from '@/barrage/engine/monsters'
 import { LAUNCH_MARGIN, ROWS } from '@/barrage/engine/types'
 import { board, mon, ofType, pass, pick, record, turn } from './helpers'
 
@@ -97,7 +97,9 @@ describe('turn flow', () => {
     expect(e.state.nextBossRow).toBe(20)
     expect(e.state.tray).toEqual([4, 2, 2])
     expect(e.state.phase).toBe('aim')
-    for (const m of e.state.monsters) expect(m.maxHp).toBeGreaterThanOrEqual(rowHp(11))
+    // Monster HP comes off the HP clock: a restart right after the row-10 boss
+    // is on the typical run's post-boss plateau (monsters.ts `hpClockAt`).
+    for (const m of e.state.monsters) expect(m.maxHp).toBeGreaterThanOrEqual(rowHp(hpClockAt(11).clock))
   })
 
   it('emits danger when the lowest monster is ≤ 2 rows from breaching', () => {

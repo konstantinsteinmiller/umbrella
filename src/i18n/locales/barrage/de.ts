@@ -9,7 +9,8 @@ export default {
     todayBest: 'Heute {n}',
     shields: 'Schildladungen: {n}',
     revives: 'Wiederbelebungen: {n}',
-    warcry: 'Kriegsschrei bereit: Deine nächste Salve verursacht doppelten Schaden'
+    warcry: 'Kriegsschrei bereit: Deine nächste Salve verursacht doppelten Schaden',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Gratis',
     aria: '{name}: {desc} Kosten: {cost} Münzen.',
     ariaMaxed: '{name}: {desc} Voll ausgebaut.',
-    ariaFree: '{name}: {desc} Gratis!'
+    ariaFree: '{name}: {desc} Gratis!',
+    denied: 'Nicht genug Münzen: Du brauchst {cost}.',
+    need: 'Noch {n} nötig'
   },
   turn: {
     bonus: '+{n} Kugeln',
@@ -231,7 +234,11 @@ export default {
     free: 'Gratis',
     restart: 'Neustart bei Reihe {n}',
     restartDesc: 'Du behältst alle Münzen',
-    onceHint: 'Meteorsturm geht einmal pro Checkpoint.'
+    onceHint: 'Meteorsturm geht einmal pro Checkpoint.',
+    recapRow: 'Reihe',
+    recapKills: 'Besiegt',
+    recapEarned: 'In diesem Lauf verdient',
+    recapAria: 'Dieser Lauf: Reihe {row}, {kills} besiegt, {coins} Münzen verdient'
   },
   chest: {
     title: 'Boss besiegt!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: 'Werbung ansehen für {name} ({n} von {max} gesehen)'
   },
   supply: {
-    ready: 'Schatztruhe bereit – tippe zum Öffnen!'
+    ready: 'Schatztruhe bereit – tippe zum Öffnen!',
+    filling: '{name}: +{n} Münzen in {time}'
   },
   codex: {
     title: 'Kugel-Kodex',
@@ -279,7 +287,7 @@ export default {
     locked: 'Verschmelze zwei Kugeln der Stufe {n}, um sie zu entdecken!'
   },
   tutorial: {
-    aim: 'Zieh zurück und lass los, um zu schießen!',
+    aim: 'Zieh in Richtung der Monster und lass los, um zu schießen!',
     pickup: 'Schieß durch eine +1-Blase, um eine Kugel zu sammeln!',
     merge: 'Sammle noch eine Kugel: Eine volle Ablage verschmilzt Zwillinge zu einer stärkeren Kugel!',
     upgrade: 'Tippe auf die Gratis-Verbesserung, um mehr Kugeln zu halten!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Deine Ablage ist voll: Ein +1 bringt nur dann einen Schuss mehr, wenn ein Platz frei ist. Verbessere die Ablagekapazität, um mehr Kugeln zu schießen!',
     combo: 'Ziel durch eine Lücke: Kugeln, die hinter den Monstern abprallen, bringen riesige Kombos!',
     trayIntro: 'Diese Ablage hält deine Kugeln: Jede ist ein Schuss. Ein +1 füllt einen freien Platz, und eine volle Ablage verschmilzt zwei Zwillinge zu einer stärkeren Kugel.',
-    upgrade: 'Tippe auf die leuchtende Verbesserung: Sie macht deine Kugeln, deine Ablage oder deine Münzen besser.'
+    upgrade: 'Tippe auf die leuchtende Verbesserung: Sie macht deine Kugeln, deine Ablage oder deine Münzen besser.',
+    bank: 'Ziel schräg: Eine Kugel, die von der Wand abprallt, trifft mit einem Schuss mehrere Monster!',
+    funnel: 'Du kannst dir jetzt {name} leisten – tippe darauf, und jede Kugel trifft härter!',
+    overrun: 'Überquert ein Monster die Linie, wirst du überrannt – triff zuerst die mit der 1!'
+  },
+  merge: {
+    sr: 'Zwei Kugeln der Stufe {from} sind zu einer Kugel der Stufe {to} verschmolzen! Jede Kugel in deiner Ablage ist ein Schuss.',
+    discovery: 'Neue Kugel: {name}. Fähigkeit: {ability} – {desc}',
+    skipAria: 'Verschmelzen überspringen'
   },
   unlock: {
     announce: 'Freigeschaltet: {name}!'

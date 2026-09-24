@@ -16,6 +16,13 @@
  * `[data-slot=i] .unit-holder` — that is how TierRevealFx finds the ball a merge
  * just discovered. In stack mode every index of a stack gets an invisible
  * anchor laid over the stack's orb, so any index still resolves to a real box.
+ *
+ * The orbs are also a place to AIM from (play-test run 3: a tester started a
+ * drag on them and nothing happened — dragging up from the shots is the
+ * slingshot motion): a press anywhere on the orbs, an empty socket included,
+ * hands the finger to the board (`beginAimFrom`), which treats it like a
+ * press on the unit. The status icons beside them (shield / revive / warcry)
+ * name themselves on a tap (HudTip) — a `title` never shows on touch.
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -25,10 +32,13 @@ import { fighterSrc, ballColors } from '@/barrage/art'
 import useSounds from '@/use/useSound'
 import { emitConfetti, emitSparkle } from '@/use/usePrismParticles'
 import { activeReveal, claimRevealSound } from '@/use/useTierReveal'
+import { isAnyModalOpen } from '@/use/useModalState'
 import { isCompactHud, isRoomyHud } from '@/use/useUser'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import { boardApi, fmtCoins } from '@/components/barrage/barrageUi'
+import { showHudTip, type TipIcon } from '@/components/barrage/hudTip'
 import { centreOfEl, fly, type Pt } from '@/components/barrage/trayFlights'
+import { mergeBox, offerMerge } from '@/components/barrage/mergeLightbox'
 
 const { t, te } = useI18n()
 const barrage = useBarrage()
@@ -117,6 +127,12 @@ const addPop = (el: Element | null, text: string, kind: Pop['kind']): void => {
   window.setTimeout(() => { pops.value = pops.value.filter((p) => p.id !== id) }, 950)
 }
 
+/** A routine merge's twins take this long to fly into their ball. */
+const TWIN_FLIGHT_MS = 240
+
+/** The ball the merge lightbox is staging: hidden here, drawn there. */
+const boxedIdx = computed(() => mergeBox.value?.idx ?? -1)
+
 const bounceIdx = ref<number | null>(null)
 const squishIdx = ref<number | null>(null)
 let bounceTimer = 0
@@ -162,6 +178,27 @@ const flushJuice = async (): Promise<void> => {
     if (top !== undefined) {
       const idx = tray.value.indexOf(top)
       const el = slotEl(idx)
+      // The state layer has already announced a DISCOVERY (a microtask ahead
+      // of this tick). The first merges of a profile and every discovery go on
+      // the lightbox's stage instead — it plays the twins, the fuse and the
+      // sting itself, so nothing below runs for them.
+      const reveal = activeReveal.value
+      const discovery = !!reveal && reveal.tier === top
+      if (offerMerge({ fromTier: Math.max(1, top - 1), toTier: top, idx, discovery, allowed: !isAnyModalOpen.value })) {
+        flyIn(el)
+        return
+      }
+      // Routine merge, no pause: the twins still visibly fly together into
+      // the ball they make ("the portraits kept flipping" — run 2), then it
+      // squishes as they land.
+      const s = slotPx.value
+      const to = centreOfEl(el)
+      if (to) {
+        for (const dir of [-1, 1]) {
+          fly({ x: to.x + dir * s * 1.05, y: to.y }, to, { kind: 'orb', tier: Math.max(1, top - 1), size: s * 0.8, dur: 260, arc: 10, endScale: 0.55, endOpacity: 0.5 })
+        }
+      }
+      await new Promise<void>((done) => window.setTimeout(done, to ? TWIN_FLIGHT_MS : 0))
       squishIdx.value = null
       await nextTick()
       squishIdx.value = idx
@@ -177,11 +214,9 @@ const flushJuice = async (): Promise<void> => {
       addPop(el, t('barrage.tray.merged'), 'merge')
       flyIn(el)
       // The merge pop itself is the board mixer's (BarrageBoard plays it on
-      // trayMerge). A DISCOVERY adds the reveal sting — the state layer has
-      // already announced it (a microtask ahead of this tick), and claiming
-      // the sting here makes sure it plays exactly once.
-      const reveal = activeReveal.value
-      if (reveal && reveal.tier === top && claimRevealSound({ kind: 'grid', idx })) {
+      // trayMerge). A DISCOVERY adds the reveal sting; claiming it here makes
+      // sure it plays exactly once.
+      if (discovery && claimRevealSound({ kind: 'grid', idx })) {
         playSound('new-tier-reveal', 0.09)
       }
     }
@@ -293,6 +328,29 @@ onUnmounted(() => {
   window.clearTimeout(overflowTimer)
 })
 
+// ─── Aim from the orbs ───────────────────────────────────────────────────────
+/** A press on the orbs starts an aim on the board (same gates as a press on
+ *  the board itself); only then is the default (text selection, the compat
+ *  mouse events) cancelled. */
+const onOrbsDown = (e: PointerEvent): void => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return
+  if (boardApi.value?.beginAimFrom(e)) e.preventDefault()
+}
+
+// ─── Status icons: a tap names them ──────────────────────────────────────────
+type StatusId = 'shield' | 'revive' | 'warcry'
+const statusName = (id: StatusId): string =>
+  id === 'shield' ? t('barrage.hud.shields', { n: barrage.shields.value })
+    : id === 'revive' ? t('barrage.hud.revives', { n: barrage.revives.value })
+      : t('barrage.hud.warcry')
+const onStatusTap = (id: StatusId, ev: MouseEvent): void => {
+  const el = ev.currentTarget as HTMLElement | null
+  if (!el) return
+  const icon: TipIcon = id
+  showHudTip(el, () => ({ icon, name: statusName(id) }))
+  playSound('anchor-swap', 0.03, 1.15)
+}
+
 const countLabel = computed(() => t('barrage.tray.count', { n: tray.value.length, max: barrage.trayCapacity.value }))
 const trayAria = computed(() => t('barrage.tray.aria', { n: tray.value.length, max: barrage.trayCapacity.value }))
 const full = computed(() => tray.value.length >= barrage.trayCapacity.value)
@@ -309,7 +367,8 @@ defineExpose({ rootEl })
     data-tut="tray"
   )
     //- Slot area — measured; every orb size is derived from it.
-    div.tray-box.flex-1.min-w-0.min-h-0.flex.items-center.justify-center(ref="boxEl")
+    //- …and the place a drag up from the shots starts an aim (touch-action: none).
+    div.tray-box.flex-1.min-w-0.min-h-0.flex.items-center.justify-center(ref="boxEl" @pointerdown="onOrbsDown")
       div.tray-slots.flex.flex-wrap.items-center.justify-center(
         :style="{ gap: GAP + 'px', '--s': slotPx + 'px' }"
       )
@@ -322,7 +381,7 @@ defineExpose({ rootEl })
           )
             div.unit-holder.w-full.h-full(
               v-if="tier > 0"
-              :class="{ 'is-bounce': bounceIdx === i, 'is-squish': squishIdx === i, 'is-launched': i < launched }"
+              :class="{ 'is-bounce': bounceIdx === i, 'is-squish': squishIdx === i, 'is-launched': i < launched, 'is-boxed': boxedIdx === i }"
             )
               div.orb(:style="orbStyle(tier)" role="img" :aria-label="t('barrage.tray.slotAria', { name: tierName(tier), n: tier })")
                 img.orb__portrait(:src="fighterSrc(tier)" alt="" draggable="false")
@@ -337,7 +396,7 @@ defineExpose({ rootEl })
             :data-slot="g.from"
           )
             div.unit-holder.w-full.h-full(
-              :class="{ 'is-bounce': bounceIdx !== null && bounceIdx >= g.from && bounceIdx < g.from + g.count, 'is-squish': squishIdx !== null && squishIdx >= g.from && squishIdx < g.from + g.count, 'is-launched': g.from + g.count <= launched }"
+              :class="{ 'is-bounce': bounceIdx !== null && bounceIdx >= g.from && bounceIdx < g.from + g.count, 'is-squish': squishIdx !== null && squishIdx >= g.from && squishIdx < g.from + g.count, 'is-launched': g.from + g.count <= launched, 'is-boxed': boxedIdx >= g.from && boxedIdx < g.from + g.count }"
             )
               div.orb(:style="orbStyle(g.tier)" role="img" :aria-label="t('barrage.tray.stackAria', { name: tierName(g.tier), n: g.tier, count: g.count })")
                 img.orb__portrait(:src="fighterSrc(g.tier)" alt="" draggable="false")
@@ -348,17 +407,17 @@ defineExpose({ rootEl })
             div.tray-anchor.absolute.inset-0.pointer-events-none(v-for="j in g.rest" :key="'a' + j" :data-slot="j" aria-hidden="true")
               div.unit-holder.w-full.h-full
 
-    //- Count + run status (shield / revive charges, warcry armed).
+    //- Count + run status (shield / revive charges, warcry armed) — a tap names each.
     div.tray-side.shrink-0.flex.flex-col.items-center.justify-center.gap-1.px-1
       span.tray-count.game-text.font-black.tabular-nums.leading-none(:class="[countClass, { 'is-full': full }]") {{ countLabel }}
       div.flex.items-center(class="gap-0.5" v-if="barrage.shields.value > 0 || barrage.revives.value > 0 || barrage.warcryArmed.value")
-        span.tray-status.text-sky-300(v-if="barrage.shields.value > 0" role="img" :aria-label="t('barrage.hud.shields', { n: barrage.shields.value })" :title="t('barrage.hud.shields', { n: barrage.shields.value })")
+        button.tray-status.text-sky-300(v-if="barrage.shields.value > 0" type="button" :aria-label="statusName('shield')" @click="onStatusTap('shield', $event)")
           BarrageGlyph.w-4.h-4(name="shield")
           span.game-text(v-if="barrage.shields.value > 1") {{ barrage.shields.value }}
-        span.tray-status.text-rose-300(v-if="barrage.revives.value > 0" role="img" :aria-label="t('barrage.hud.revives', { n: barrage.revives.value })" :title="t('barrage.hud.revives', { n: barrage.revives.value })")
+        button.tray-status.text-rose-300(v-if="barrage.revives.value > 0" type="button" :aria-label="statusName('revive')" @click="onStatusTap('revive', $event)")
           BarrageGlyph.w-4.h-4(name="revive")
           span.game-text(v-if="barrage.revives.value > 1") {{ barrage.revives.value }}
-        span.tray-status.tray-status--warcry.text-amber-300(v-if="barrage.warcryArmed.value" role="img" :aria-label="t('barrage.hud.warcry')" :title="t('barrage.hud.warcry')")
+        button.tray-status.tray-status--warcry.text-amber-300(v-if="barrage.warcryArmed.value" type="button" :aria-label="statusName('warcry')" @click="onStatusTap('warcry', $event)")
           BarrageGlyph.w-4.h-4(name="warcry")
 
     //- Floating "+1" / "Merged!" pops.
@@ -451,6 +510,10 @@ defineExpose({ rootEl })
 .unit-holder.is-launched
   opacity: 0.35
   filter: grayscale(0.6)
+// The merge lightbox draws this ball itself until its moment is over.
+.unit-holder.is-boxed
+  opacity: 0
+  transition: none
 .unit-holder.is-bounce
   animation: tray-bounce 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)
 .unit-holder.is-squish
@@ -479,12 +542,31 @@ defineExpose({ rootEl })
   text-shadow: 1px 1px 0 #000
   &.is-full
     color: #ffd23a
+// The orbs: a drag up from them is an aim, never a scroll / pan.
+.tray-box
+  touch-action: none
+  user-select: none
+  -webkit-user-select: none
+  -webkit-touch-callout: none
 .tray-status
+  position: relative
   display: inline-flex
   align-items: center
+  padding: 0
+  border: 0
+  background: none
+  cursor: pointer
   font-size: 10px
   font-weight: 900
   filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.6))
+  touch-action: manipulation
+  // A thumb-sized hit box around a 16 px glyph, without moving the layout.
+  &::before
+    content: ''
+    position: absolute
+    inset: -8px -3px
+  &:active
+    transform: scale(0.9)
 .tray-status--warcry
   animation: warcry-throb 0.9s ease-in-out infinite alternate
 @keyframes warcry-throb

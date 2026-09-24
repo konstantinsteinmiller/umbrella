@@ -152,6 +152,13 @@ export interface EngineConfig {
   coinMult: number
   /** Scripted first-session board (see CONTRACT.md §FTUE). */
   ftue: boolean
+  /** (engine addition) Safety net for a player who has not found the upgrade
+   *  bar yet, 0..1 (absent = 0): monsters get up to `ASSIST.cut` less HP
+   *  (bosses included), fading out over HP-clock rows `ASSIST.fadeFrom` →
+   *  `fadeTo` (monsters.ts). Read at SPAWN time, so a change never touches a
+   *  monster already on the board. The state layer feeds it
+   *  `assistForPaidLevels(paid)` (economy.ts), which steps down per paid level. */
+  assist?: number
 }
 
 // ─── The whole mutable state (renderer reads it every frame; never writes) ───
@@ -207,10 +214,14 @@ export interface AimPath {
 export type EngineEvent =
   | { type: 'fire'; angle: number; balls: number }
   | { type: 'launch'; ballId: number; tier: number }
-  | { type: 'hit'; monsterId: number; ballId: number; tier: number; dmg: number; x: number; y: number; ability: BallAbility | null; crit: boolean }
+  /** `dmg` is the hit's full damage (overkill included); `dealt` (playtest run 3)
+   *  is the HP it actually removes — min(dmg, the monster's HP before the hit).
+   *  The renderer's damage number shows `dealt`, so a 1-HP kill pops "1". */
+  | { type: 'hit'; monsterId: number; ballId: number; tier: number; dmg: number; dealt: number; x: number; y: number; ability: BallAbility | null; crit: boolean }
   | { type: 'wallBounce'; ballId: number; x: number; y: number }
   | { type: 'abilityProc'; ability: BallAbility; x: number; y: number; monsterId?: number; targets?: number[] }
-  | { type: 'dot'; monsterId: number; dmg: number; kind: 'burn' | 'poison'; x: number; y: number }
+  /** `dealt` as on 'hit': the HP the tick actually removes. */
+  | { type: 'dot'; monsterId: number; dmg: number; dealt: number; kind: 'burn' | 'poison'; x: number; y: number }
   | { type: 'kill'; monsterId: number; kind: MonsterKind; bossKind?: BossKind; corrupted: boolean; x: number; y: number; coins: number; row: number }
   | { type: 'coins'; amount: number; x: number; y: number; source: 'kill' | 'pickup' | 'midas' | 'chest' | 'boss' }
   /** `auto` (engine addition): collected without a ball touching it — a "+1"
@@ -241,8 +252,21 @@ export type EngineEvent =
   /** A cyclops charged: it marched `rows` (2) this advance. */
   | { type: 'charge'; monsterId: number; rows: number }
   | { type: 'bossSpawn'; monsterId: number; bossKind: BossKind; row: number }
+  /** (engine addition, playtest run 3) The run's FIRST boss clears the stage as
+   *  it arrives: right after its `bossSpawn` every walker on the board is blown
+   *  away (`ids`, whose own `kill` + `coins` events follow at once; normal kill
+   *  coins, through gem shields, no imp split). Pickups and hazards stay. The
+   *  grunts already on the board used to shield it for several turns. (x, y) is
+   *  the boss's centre. `ids` may be empty. */
+  | { type: 'bossRoar'; monsterId: number; ids: number[]; x: number; y: number }
   | { type: 'bossEnrage'; monsterId: number }
   | { type: 'bossDefeated'; monsterId: number; bossKind: BossKind; row: number; bounty: number }
+  /** (engine addition) Right after `bossDefeated`: the boss's death blast
+   *  destroys every monster in the bottom `rows` rows (`ids`, whose own `kill`
+   *  + `coins` events follow at once), and the turn it died in skips its march
+   *  — a boss kill is never followed by a breach in the same turn. (x, y) is
+   *  the boss's centre (the blast's origin). `ids` may be empty. */
+  | { type: 'bossBlast'; monsterId: number; rows: number; ids: number[]; x: number; y: number }
   | { type: 'danger'; rowsLeft: number }
   | { type: 'shieldBlock' }
   | { type: 'breach' }
@@ -273,6 +297,16 @@ export interface RunSnapshot {
   /** RNG internal state so a resumed run continues the same sequence. */
   rng: number
   nextId: number
+  /** (engine addition) A boss died while aiming (a tapped chest's skill): the
+   *  coming turn's march is skipped. Absent = false. */
+  skipMarch?: boolean
+  /** (engine addition, playtest run 3) The HP clock: the clock row the last
+   *  spawned row took its monster HP from (held while a boss lives and on the
+   *  post-boss plateau — see monsters.ts; Daily: the row itself). Absent (older
+   *  saves) = the typical run's clock for `row` (`hpClockAt`). */
+  hpRow?: number
+  /** (engine addition) Rows still to spawn on the post-boss plateau. */
+  hpHold?: number
 }
 
 // ─── Economy (implemented in engine/economy.ts — ENGINE owns the numbers because
@@ -296,7 +330,8 @@ export type UpgradeLevels = Record<UpgradeId, number>
  * engine.ts exports:
  *   class BarrageEngine implements IBarrageEngine
  *   createEngine(config: EngineConfig): BarrageEngine          // fresh run (row 1; FTUE script if config.ftue)
- *   createEngineAtRow(config: EngineConfig, row: number, tray: number[]): BarrageEngine  // checkpoint restart
+ *   createEngineAtRow(config: EngineConfig, row: number, tray: number[], hpClock?: number): BarrageEngine  // checkpoint restart
+ *   assistForPaidLevels(paid: number): number   // economy.ts — config.assist for `paid` paid upgrade levels (1 → 0)
  *   restoreEngine(snap: RunSnapshot): BarrageEngine
  */
 
@@ -315,6 +350,10 @@ export interface IBarrageEngine {
   fire(angle: number): boolean
   /** End a slow volley now: every ball in flight returns instantly. */
   recall(): void
+  /** (addition) A tap at board cell (x, y) on the flying chest opens it exactly
+   *  like a ball hit (same `chestHit`, coins, skill roll). Hit radius = chest
+   *  r + a small margin. False on a miss, with no chest, or in 'breach'. */
+  tapChest(x: number, y: number): boolean
   /** Resolve a pending breach (phase 'breach'). 'meteor' clears the bottom 2 rows
    *  (a boss loses 25% max HP and is pushed up 3 rows instead); 'revive' consumes a
    *  revive charge and does the same. Returns false if not applicable. */

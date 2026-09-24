@@ -51,7 +51,8 @@ export interface ShotTrial {
   skills: SkillId[]
   /** The turn ends in a breach (after the march). */
   breach: boolean
-  /** Damage / kills dealt to the monsters named in `threats`. */
+  /** Damage (HP actually removed — events' `dealt`) / kills dealt to the
+   *  monsters named in `threats`. */
   threatDamage: number
   threatKills: number
   /** Rows between the lowest monster and the breach line after the march
@@ -121,12 +122,14 @@ export const startTrial = (engine: TrialEngine, angle: number, opts: TrialOption
   let firstId = -1
   c.on((e) => {
     switch (e.type) {
+      // `dealt`, not `dmg`: overkill on one threat must not count as damage
+      // the rescue shot did to the others.
       case 'hit':
-        if (threats?.has(e.monsterId)) out.threatDamage += e.dmg
+        if (threats?.has(e.monsterId)) out.threatDamage += e.dealt
         if (e.ballId === firstId && out.contacts.length < maxC * 2) out.contacts.push(e.x, e.y)
         break
       case 'dot':
-        if (threats?.has(e.monsterId)) out.threatDamage += e.dmg
+        if (threats?.has(e.monsterId)) out.threatDamage += e.dealt
         break
       case 'kill':
         if (threats?.has(e.monsterId)) out.threatKills++

@@ -14,8 +14,11 @@
  *   bounty   — coins pour into the wallet.
  *
  * Used by the FTUE's upgrade beat (the free Tray Capacity) and by the coach's
- * `upgrade` lesson. Pointer-events none; a JS clock drives every piece so the
- * spark, the press and the effect stay in step.
+ * upgrade funnel. With `pay` (the funnel) the loop opens by PAYING: coins fly
+ * from the wallet into the chip — along the screen edge when the straight way
+ * would cross the board — before the hand presses it. Pointer-events none; a
+ * JS clock drives every piece so the coins, the press and the effect stay in
+ * step.
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -30,7 +33,9 @@ const props = withDefaults(defineProps<{
   id: UpgradeId
   /** Draw the dashed ring round the chip (the FTUE draws its own hole). */
   ring?: boolean
-}>(), { ring: true })
+  /** Open each loop with coins flying from the wallet into the chip. */
+  pay?: boolean
+}>(), { ring: true, pay: false })
 
 const { t } = useI18n()
 const barrage = useBarrage()
@@ -44,6 +49,7 @@ const chip = ref<Box | null>(null)
 const tray = ref<Box | null>(null)
 const lastSlot = ref<Box | null>(null)
 const wallet = ref<Box | null>(null)
+const board = ref<Box | null>(null)
 const launcher = ref<Pt | null>(null)
 const cell = ref(40)
 const cells = ref<Pt[]>([])
@@ -61,6 +67,8 @@ const measure = (): void => {
   lastSlot.value = box(slots[slots.length - 1] ?? null)
   wallet.value = box(document.querySelector('.coin-badge'))
   const b = boardApi.value
+  const br = b?.boardClientRect() ?? null
+  board.value = br && br.width > 0 ? { left: br.left, top: br.top, width: br.width, height: br.height } : null
   launcher.value = b?.launcherClientPoint() ?? null
   const o = b?.cellToClient(0, 0)
   const o1 = b?.cellToClient(1, 0)
@@ -84,13 +92,19 @@ const measure = (): void => {
 // ─── Clock ───────────────────────────────────────────────────────────────────
 const reduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 const PERIOD = (reduced ? 1.4 : 1) * 3800
+/** The paying pre-roll (`pay`): the coins' flight, then the loop proper. */
+const PAY_MS = props.pay ? (reduced ? 1.4 : 1) * 1300 : 0
 const u = ref(0)
+/** Pre-roll progress 0..1 (1 once the loop proper runs). */
+const payK = ref(1)
 let t0 = 0
 let raf = 0
 let poll = 0
 const tick = (t: number): void => {
   if (!t0) t0 = t
-  u.value = ((t - t0) % PERIOD) / PERIOD
+  const e = (t - t0) % (PAY_MS + PERIOD)
+  payK.value = e < PAY_MS ? e / PAY_MS : 1
+  u.value = e < PAY_MS ? 0 : (e - PAY_MS) / PERIOD
   raf = requestAnimationFrame(tick)
 }
 onMounted(() => {
@@ -120,6 +134,77 @@ const chipCentre = computed<Pt | null>(() => {
   const c = chip.value
   return c ? { x: c.left + c.width / 2, y: c.top + c.height / 2 } : null
 })
+// ─── Paying: coins from the wallet into the chip ─────────────────────────────
+/** The coins' route: straight when that stays off the board, else out to the
+ *  nearer screen edge, down it, and in to the chip — the board's aim area is
+ *  never crossed. */
+const payRoute = computed<Pt[] | null>(() => {
+  const w = wallet.value
+  const c = chipCentre.value
+  if (!props.pay || !w || !c) return null
+  const W = { x: w.left + w.width * 0.2, y: w.top + w.height / 2 }
+  const b = board.value
+  const crosses = (a: Pt, z: Pt): boolean => {
+    if (!b) return false
+    for (let i = 1; i < 20; i++) {
+      const x = a.x + ((z.x - a.x) * i) / 20
+      const y = a.y + ((z.y - a.y) * i) / 20
+      if (x > b.left && x < b.left + b.width && y > b.top && y < b.top + b.height) return true
+    }
+    return false
+  }
+  if (!crosses(W, c)) return [W, c]
+  const vw = window.innerWidth
+  const left = c.x < vw / 2
+  const edgeX = left ? Math.max(9, (b?.left ?? 20) - 11) : Math.min(vw - 9, (b ? b.left + b.width : vw - 20) + 11)
+  return [W, { x: edgeX, y: W.y }, { x: edgeX, y: c.y }, c]
+})
+/** Point at fraction `k` of the route's length. */
+const alongRoute = (pts: Pt[], k: number): Pt => {
+  const lens: number[] = []
+  let total = 0
+  for (let i = 1; i < pts.length; i++) {
+    const l = Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y)
+    lens.push(l)
+    total += l
+  }
+  let d = total * clamp01(k)
+  for (let i = 1; i < pts.length; i++) {
+    const l = lens[i - 1]!
+    if (d <= l) {
+      const q = l > 0 ? d / l : 0
+      return { x: pts[i - 1]!.x + (pts[i]!.x - pts[i - 1]!.x) * q, y: pts[i - 1]!.y + (pts[i]!.y - pts[i - 1]!.y) * q }
+    }
+    d -= l
+  }
+  return pts[pts.length - 1]!
+}
+const PAY_COINS = 5
+const payCoins = computed<{ x: number; y: number; a: number }[]>(() => {
+  const route = payRoute.value
+  if (!route || payK.value >= 1) return []
+  const out: { x: number; y: number; a: number }[] = []
+  for (let j = 0; j < PAY_COINS; j++) {
+    const a = j * 0.08
+    const k = clamp01((payK.value - a) / 0.62)
+    if (k <= 0 || k >= 1) continue
+    const p = alongRoute(route, easeInOut(k))
+    out.push({ x: p.x, y: p.y, a: k > 0.9 ? (1 - k) * 10 : 1 })
+  }
+  return out
+})
+/** The chip lights up as the coins land in it. */
+const paidStyle = computed<Record<string, string> | null>(() => {
+  const c = chip.value
+  if (!props.pay || !c || payK.value < 0.62 || payK.value >= 1) return null
+  const k = clamp01((payK.value - 0.62) / 0.38)
+  const pad = 2 + 6 * k
+  return {
+    left: `${c.left - pad}px`, top: `${c.top - pad}px`, width: `${c.width + pad * 2}px`, height: `${c.height + pad * 2}px`,
+    opacity: String(1 - k)
+  }
+})
+
 const ringStyle = computed<Record<string, string> | null>(() => {
   const c = chip.value
   if (!c || !props.ring) return null
@@ -189,7 +274,8 @@ const sparks = computed<{ x: number; y: number; r: number; a: number }[]>(() => 
   const b = target.value
   if (!a || !b || u.value < 0.22 || u.value > 0.46) return []
   const k = easeInOut(seg(0.22, 0.44))
-  const lift = Math.min(160, Math.hypot(b.x - a.x, b.y - a.y) * 0.35)
+  // The funnel runs while the player aims: its spark keeps low, off the board.
+  const lift = Math.min(props.pay ? 30 : 160, Math.hypot(b.x - a.x, b.y - a.y) * 0.35)
   const at = (q: number): Pt => ({
     x: a.x + (b.x - a.x) * q,
     y: a.y + (b.y - a.y) * q - Math.sin(Math.PI * q) * lift
@@ -299,6 +385,16 @@ const plusOne = computed(() => t('barrage.tray.plusOne'))
 <template lang="pug">
   div.upgrade-demo.fixed.inset-0.pointer-events-none(aria-hidden="true")
     div.ud-ring.absolute.rounded-xl(v-if="ringStyle" :style="ringStyle")
+    //- Paying: the wallet's coins into the chip.
+    img.ud-coin.ud-coin--pay.absolute(
+      v-for="(c, i) in payCoins"
+      :key="'p' + i"
+      :src="coinSrc()"
+      :style="{ left: c.x + 'px', top: c.y + 'px', opacity: c.a }"
+      alt=""
+      draggable="false"
+    )
+    div.ud-paid.absolute.rounded-xl(v-if="paidStyle" :style="paidStyle")
     //- The spark from the chip to what it changes.
     div.ud-spark.absolute.rounded-full(
       v-for="(p, i) in sparks"
@@ -420,6 +516,13 @@ const plusOne = computed(() => t('barrage.tray.plusOne'))
   translate: -50% -50%
   object-fit: contain
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6))
+.ud-coin--pay
+  width: 18px
+  height: 18px
+  filter: drop-shadow(0 0 4px rgba(255, 210, 60, 0.9)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6))
+.ud-paid
+  border: 3px solid rgba(255, 226, 90, 0.95)
+  box-shadow: 0 0 16px rgba(255, 210, 60, 0.9), inset 0 0 12px rgba(255, 210, 60, 0.6)
 .ud-wallet
   border: 3px solid rgba(255, 210, 60, 0.95)
   box-shadow: 0 0 12px rgba(255, 210, 60, 0.8)

@@ -6,7 +6,10 @@
  * it has landed it breathes, with a gold ring and a sparkle in its corner,
  * until the player taps it. Everything stays INSIDE the button's own box: the
  * portrait control deck clips its overflow (no sideways scroll in a portal
- * iframe), so a hint hung above the button would simply not be there.
+ * iframe), so a hint hung above the button would simply not be there — and
+ * a ring or a breath that reached past the box was cut in half at the deck's
+ * corner (play-test run 2: "a padlocked icon half-clipped at the bottom-left").
+ * So the ring is drawn inward, the breath and the landing pop stay small.
  */
 import { computed, ref, watch, onUnmounted } from 'vue'
 import { featureStates, markFeatureSeen, type FeatureId } from '@/use/useFeatureUnlocks'
@@ -63,7 +66,7 @@ const onTap = (): void => {
   0%, 100%
     scale: 1
   50%
-    scale: 1.07
+    scale: 1.04
 .is-arriving
   visibility: hidden
 .is-landing
@@ -72,14 +75,15 @@ const onTap = (): void => {
   0%
     transform: scale(0.4)
   60%
-    transform: scale(1.18)
+    transform: scale(1.06)
   100%
     transform: scale(1)
 
+// Drawn INWARD from the slot's edge, with only a hairline of glow outside.
 .feature-slot__ring
-  inset: -3px
-  border-radius: 14px
-  box-shadow: 0 0 0 2px rgba(255, 226, 90, 0.95), 0 0 14px 3px rgba(255, 200, 60, 0.75)
+  inset: 0
+  border-radius: 12px
+  box-shadow: inset 0 0 0 2px rgba(255, 226, 90, 0.95), inset 0 0 9px 2px rgba(255, 200, 60, 0.6), 0 0 3px 1px rgba(255, 200, 60, 0.7)
   animation: fs-ring 1.1s ease-in-out infinite alternate
   z-index: 3
 @keyframes fs-ring

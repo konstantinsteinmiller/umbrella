@@ -9,7 +9,8 @@ export default {
     todayBest: '오늘 {n}',
     shields: '방패 충전: {n}',
     revives: '부활 충전: {n}',
-    warcry: '함성 준비 완료: 다음 일제 사격 피해 2배'
+    warcry: '함성 준비 완료: 다음 일제 사격 피해 2배',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: '무료',
     aria: '{name}: {desc} 가격: {cost} 코인.',
     ariaMaxed: '{name}: {desc} 최대 강화.',
-    ariaFree: '{name}: {desc} 무료!'
+    ariaFree: '{name}: {desc} 무료!',
+    denied: '코인이 부족해요: {cost} 코인이 필요해요.',
+    need: '{n} 더 필요해요'
   },
   turn: {
     bonus: '공 +{n}',
@@ -231,7 +234,11 @@ export default {
     free: '무료',
     restart: '{n}줄부터 다시 시작',
     restartDesc: '코인은 모두 유지돼요',
-    onceHint: '유성 폭풍은 체크포인트마다 한 번만 쓸 수 있어요.'
+    onceHint: '유성 폭풍은 체크포인트마다 한 번만 쓸 수 있어요.',
+    recapRow: '줄',
+    recapKills: '처치',
+    recapEarned: '이번 판 획득',
+    recapAria: '이번 판: {row}줄, 처치 {kills}, 획득 코인 {coins}'
   },
   chest: {
     title: '보스 처치!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: '{name}을(를) 위해 광고 보기 ({max}개 중 {n}개 시청)'
   },
   supply: {
-    ready: '보물 상자 준비 완료 — 탭해서 열어요!'
+    ready: '보물 상자 준비 완료 — 탭해서 열어요!',
+    filling: '{name}: {time} 후 코인 +{n}'
   },
   codex: {
     title: '공 도감',
@@ -279,7 +287,7 @@ export default {
     locked: '{n}단계 공 두 개를 합체해서 발견하세요!'
   },
   tutorial: {
-    aim: '뒤로 당겼다 놓아서 발사하세요!',
+    aim: '몬스터 쪽으로 드래그했다가 놓아서 발사하세요!',
     pickup: '+1 방울을 관통해 쏴서 공을 얻으세요!',
     merge: '공을 하나 더 얻으세요: 트레이가 가득 차면 쌍둥이가 더 강한 공으로 합체해요!',
     upgrade: '무료 업그레이드를 탭해서 공을 더 담으세요!'
@@ -289,7 +297,15 @@ export default {
     tray: '트레이가 가득 찼어요: 빈 칸이 있을 때만 +1이 발사 수를 늘려요. 트레이 용량을 업그레이드해서 더 많은 공을 쏘세요!',
     combo: '틈으로 조준하세요: 몬스터 뒤에서 튕기는 공이 엄청난 콤보를 만들어요!',
     trayIntro: '이 트레이에는 공이 담겨 있어요: 공 하나가 한 발이에요. +1은 빈 칸을 채우고, 가득 찬 트레이는 쌍둥이 두 개를 더 강한 공으로 합쳐요.',
-    upgrade: '빛나는 업그레이드를 탭하세요: 공, 트레이 또는 코인이 좋아져요.'
+    upgrade: '빛나는 업그레이드를 탭하세요: 공, 트레이 또는 코인이 좋아져요.',
+    bank: '비스듬히 조준하세요: 벽에 튕긴 공은 한 번에 여러 몬스터를 맞힐 수 있어요!',
+    funnel: '이제 {name}을(를) 살 수 있어요. 탭하면 모든 공이 더 세게 맞혀요!',
+    overrun: '몬스터가 선을 넘으면 방어선이 무너져요 — 1이 표시된 몬스터부터 맞히세요!'
+  },
+  merge: {
+    sr: '{from}단계 공 두 개가 합쳐져 {to}단계 공이 되었어요! 트레이의 공 하나가 한 발이에요.',
+    discovery: '새 공: {name}. 능력: {ability} — {desc}',
+    skipAria: '합체 건너뛰기'
   },
   unlock: {
     announce: '잠금 해제: {name}!'

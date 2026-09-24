@@ -9,7 +9,8 @@ export default {
     todayBest: 'Hari ini {n}',
     shields: 'Muatan perisai: {n}',
     revives: 'Muatan bangkit: {n}',
-    warcry: 'Teriakan perang siap: tembakan berikutnya memberi damage ganda'
+    warcry: 'Teriakan perang siap: tembakan berikutnya memberi damage ganda',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Gratis',
     aria: '{name}: {desc} Harga: {cost} koin.',
     ariaMaxed: '{name}: {desc} Sudah maksimal.',
-    ariaFree: '{name}: {desc} Gratis!'
+    ariaFree: '{name}: {desc} Gratis!',
+    denied: 'Koin tidak cukup: butuh {cost}.',
+    need: 'Kurang {n}'
   },
   turn: {
     bonus: '+{n} bola',
@@ -231,7 +234,11 @@ export default {
     free: 'Gratis',
     restart: 'Mulai ulang di baris {n}',
     restartDesc: 'Semua koinmu tetap aman',
-    onceHint: 'Badai meteor hanya sekali per checkpoint.'
+    onceHint: 'Badai meteor hanya sekali per checkpoint.',
+    recapRow: 'Baris',
+    recapKills: 'Dikalahkan',
+    recapEarned: 'Didapat di permainan ini',
+    recapAria: 'Permainan ini: baris {row}, {kills} dikalahkan, {coins} koin didapat'
   },
   chest: {
     title: 'Bos dikalahkan!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: 'Tonton iklan untuk {name} ({n} dari {max} ditonton)'
   },
   supply: {
-    ready: 'Peti harta siap — ketuk untuk membuka!'
+    ready: 'Peti harta siap — ketuk untuk membuka!',
+    filling: '{name}: +{n} koin dalam {time}'
   },
   codex: {
     title: 'Kodeks bola',
@@ -279,7 +287,7 @@ export default {
     locked: 'Gabungkan dua bola tingkat {n} untuk menemukannya!'
   },
   tutorial: {
-    aim: 'Tarik ke belakang lalu lepas untuk menembak!',
+    aim: 'Seret ke arah monster lalu lepas untuk menembak!',
     pickup: 'Tembak menembus gelembung +1 untuk mengambil bola!',
     merge: 'Ambil satu bola lagi: nampan penuh menggabungkan bola kembar jadi bola yang lebih kuat!',
     upgrade: 'Ketuk peningkatan gratis untuk menyimpan lebih banyak bola!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Nampanmu penuh: +1 hanya menambah tembakan jika ada slot kosong. Tingkatkan kapasitas nampan untuk menembakkan lebih banyak bola!',
     combo: 'Bidik lewat celah: bola yang memantul di belakang monster menghasilkan kombo besar!',
     trayIntro: 'Nampan ini menyimpan bolamu: setiap bola adalah satu tembakan. +1 mengisi slot kosong, dan nampan penuh menggabungkan dua bola kembar jadi bola yang lebih kuat.',
-    upgrade: 'Ketuk peningkatan yang bersinar: itu membuat bola, nampan, atau koinmu lebih baik.'
+    upgrade: 'Ketuk peningkatan yang bersinar: itu membuat bola, nampan, atau koinmu lebih baik.',
+    bank: 'Bidik miring: bola yang memantul dari dinding bisa mengenai beberapa monster sekaligus!',
+    funnel: 'Sekarang koinmu cukup untuk {name} — ketuk dan setiap bola memukul lebih keras!',
+    overrun: 'Jika monster melewati garis, kamu kewalahan — serang dulu yang bertanda 1!'
+  },
+  merge: {
+    sr: 'Dua bola tingkat {from} bergabung menjadi satu bola tingkat {to}! Setiap bola di nampanmu adalah satu tembakan.',
+    discovery: 'Bola baru: {name}. Kemampuan: {ability} — {desc}',
+    skipAria: 'Lewati penggabungan'
   },
   unlock: {
     announce: 'Terbuka: {name}!'

@@ -198,3 +198,38 @@ describe('skills', () => {
     expect(small.row).toBe(6)
   })
 })
+
+// Playtest run 3 ("overkill"): a 1-HP kill popped the ball's full damage ("4").
+describe('hit numbers show what the hit removed (`dealt`)', () => {
+  it('a kill reports the HP it took, not the ball’s damage', () => {
+    const m = mon('slime', 3, 4, 1)
+    const e = board({ monsters: [m], tray: [4] })
+    const ev = record(e)
+    turn(e, UP)
+    const hit = ofType(ev, 'hit').find(h => h.monsterId === m.id)!
+    expect(hit.dmg).toBeGreaterThan(1)
+    expect(hit.dealt).toBe(1)
+  })
+
+  it('a hit that does not kill deals its full damage', () => {
+    const m = mon('slime', 3, 4, 1000)
+    const e = board({ monsters: [m], tray: [2] })
+    const ev = record(e)
+    turn(e, UP)
+    const hits = ofType(ev, 'hit').filter(h => h.monsterId === m.id)
+    expect(hits.length).toBeGreaterThan(0)
+    for (const h of hits) expect(h.dealt).toBe(h.dmg)
+  })
+
+  it('a DoT tick reports what it removes — 0 when a gem shield eats it', () => {
+    const burning = mon('slime', 1, 4, 2, { burnDmg: 5, burnTurns: 1 })
+    const gem = mon('carbuncle', 5, 4, 100, { shield: true, burnDmg: 5, burnTurns: 1 })
+    const e = board({ monsters: [burning, gem], tray: [1] })
+    const ev = record(e)
+    pass(e)
+    const dots = ofType(ev, 'dot')
+    expect(dots.find(d => d.monsterId === burning.id)).toMatchObject({ dmg: 5, dealt: 2 })
+    expect(dots.find(d => d.monsterId === gem.id)).toMatchObject({ dmg: 5, dealt: 0 })
+    expect(gem.hp).toBe(100)
+  })
+})

@@ -142,3 +142,22 @@ export const chestCoins = (row: number): number => 8 * killCoins(row, 'slime', f
 export const coinPickupCoins = (row: number): number => 3 * killCoins(row, 'slime', false)
 
 export const dailySeed = (dateYmd: string): number => hashString(`eb-daily:${dateYmd}`)
+
+// ─── Safety net by purchases (config.assist) ─────────────────────────────────
+/**
+ * Playtest run 3: the safety net used to switch off at the 2nd paid upgrade —
+ * monsters jumped ~25% right when the player got stronger. It now steps down
+ * in small bites: full while fewer than `fullBelow` paid levels are owned,
+ * then `perLevel` less per further paid level (each step is a few % of HP,
+ * far less than any purchase adds). Mutable only so the sim can sweep it.
+ */
+export const ASSIST_PAID = { fullBelow: 2, perLevel: 0.25 }
+
+/** `config.assist` for a player owning `paid` PAID upgrade levels (the FTUE's
+ *  free Tray Capacity does not count). 1 → 0. */
+export const assistForPaidLevels = (paid: number): number => {
+  const p = Math.max(0, Math.floor(Number.isFinite(paid) ? paid : 0))
+  const over = p - ASSIST_PAID.fullBelow + 1
+  if (over <= 0) return 1
+  return Math.max(0, Math.round((1 - ASSIST_PAID.perLevel * over) * 1000) / 1000)
+}

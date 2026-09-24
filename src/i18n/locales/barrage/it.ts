@@ -9,7 +9,8 @@ export default {
     todayBest: 'Oggi {n}',
     shields: 'Cariche scudo: {n}',
     revives: 'Cariche rinascita: {n}',
-    warcry: 'Grido di guerra pronto: la prossima raffica fa danni doppi'
+    warcry: 'Grido di guerra pronto: la prossima raffica fa danni doppi',
+    coinGain: '+{n}'
   },
   tray: {
     count: '{n}/{max}',
@@ -60,7 +61,9 @@ export default {
     free: 'Gratis',
     aria: '{name}: {desc} Costo: {cost} monete.',
     ariaMaxed: '{name}: {desc} Al massimo.',
-    ariaFree: '{name}: {desc} Gratis!'
+    ariaFree: '{name}: {desc} Gratis!',
+    denied: 'Monete insufficienti: te ne servono {cost}.',
+    need: 'Ne mancano {n}'
   },
   turn: {
     bonus: '+{n} sfere',
@@ -231,7 +234,11 @@ export default {
     free: 'Gratis',
     restart: 'Riparti dalla fila {n}',
     restartDesc: 'Tieni tutte le monete',
-    onceHint: 'La Tempesta di meteore funziona una volta per checkpoint.'
+    onceHint: 'La Tempesta di meteore funziona una volta per checkpoint.',
+    recapRow: 'Fila',
+    recapKills: 'Sconfitti',
+    recapEarned: 'Guadagnate in questa partita',
+    recapAria: 'Questa partita: fila {row}, {kills} sconfitti, {coins} monete guadagnate'
   },
   chest: {
     title: 'Boss sconfitto!',
@@ -270,7 +277,8 @@ export default {
     adProgressAria: 'Guarda una pubblicità per {name} ({n} di {max} viste)'
   },
   supply: {
-    ready: 'Forziere pronto: tocca per aprirlo!'
+    ready: 'Forziere pronto: tocca per aprirlo!',
+    filling: '{name}: +{n} monete tra {time}'
   },
   codex: {
     title: 'Codice delle sfere',
@@ -279,7 +287,7 @@ export default {
     locked: 'Fondi due sfere di livello {n} per scoprirla!'
   },
   tutorial: {
-    aim: 'Trascina indietro e rilascia per sparare!',
+    aim: 'Trascina verso i mostri e rilascia per sparare!',
     pickup: 'Spara attraverso una bolla +1 per raccogliere una sfera!',
     merge: 'Raccogli un’altra sfera: un vassoio pieno fonde le gemelle in una sfera più forte!',
     upgrade: 'Tocca il potenziamento gratuito per tenere più sfere!'
@@ -289,7 +297,15 @@ export default {
     tray: 'Il tuo vassoio è pieno: un +1 aggiunge un colpo solo se c’è uno spazio libero. Potenzia la capacità vassoio per sparare più sfere!',
     combo: 'Mira attraverso un varco: le sfere che rimbalzano dietro i mostri fanno combo enormi!',
     trayIntro: 'Questo vassoio contiene le tue sfere: ognuna è un colpo. Un +1 riempie uno spazio libero, e un vassoio pieno fonde due gemelle in una sfera più forte.',
-    upgrade: 'Tocca il potenziamento che brilla: migliora le tue sfere, il vassoio o le monete.'
+    upgrade: 'Tocca il potenziamento che brilla: migliora le tue sfere, il vassoio o le monete.',
+    bank: 'Mira in diagonale: una sfera che rimbalza sul muro può colpire più mostri con un solo tiro!',
+    funnel: 'Ora puoi permetterti {name}: toccalo e ogni sfera colpirà più forte!',
+    overrun: 'Se un mostro supera la linea, vieni travolto: colpisci prima quelli con l’1!'
+  },
+  merge: {
+    sr: 'Due sfere di livello {from} si sono fuse in una sfera di livello {to}! Ogni sfera nel vassoio è un colpo.',
+    discovery: 'Nuova sfera: {name}. Abilità: {ability} — {desc}',
+    skipAria: 'Salta la fusione'
   },
   unlock: {
     announce: 'Sbloccato: {name}!'

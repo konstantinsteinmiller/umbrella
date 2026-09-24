@@ -135,3 +135,46 @@ round-trip, roster unlock rows, a deterministic row-60 run that exercises split/
 bot 12 seeds × 300 turns, old roster vs new: best row median 74 → 73, breaches 17 → 17, rows < 36 identical
 — the late walkers add variety without moving the difficulty. Browser-checked at rows 36/44/52/58 (badges,
 demos, gem bubble, charge chevrons, live volleys: no page errors).
+
+## Blind playtest pass (2026-09-24) — `tools/playtest/`, run 1 → fixes → run 2
+Run 1 (4 blind Sonnet testers, 3:00 each, headed Chrome, fresh profiles): every tester's first drag went
+UP toward the monsters and the board swallowed it (the pass-2 wrong-way guard) — Mia and Jonas never fired,
+Leo and Dev found a shot after ~1:08. The first-screen hint's hand ended on the tray portrait (tapped 11×),
+the aim preview's ball marker read as a dud shot, the recall button read as "confirm", kills didn't read,
+everyone tried to tap the flying chest. Report: https://claude.ai/artifact/Dj3HQNPtwcJzTsg3SPfXz5.
+Fixes (all built, tested, browser-checked):
+1. Dual-mode aim (`render/aim.ts`, `BarrageBoard.vue`): finger above the launch line → aim AT the finger,
+   below it → slingshot; preview from the press, only while a finger is down, hollow-ring end marker; release
+   always fires (clamped 8°/172°); tap fires at the point; the only cancel is releasing on the launcher.
+2. Coach: `coach/FingerDemo.vue` (replaces SlingshotDemo) — ghost finger mid-board drags toward the
+   monsters, dashed ghost line, never over the panel; idle nudge 4.5 s; angled bank-shot lesson on turn 2–3.
+3. First-session kill hold 0.4 s (flash, HP to 0, squash, poof, coin flight) + 1.5× damage numbers.
+4. Flying chest: `engine.tapChest(x, y)`, born fully on board, 0.6× speed in the first session, tap hint.
+5. Recall: skip glyph, only after 2 s of a volley, hidden during the FTUE. Denied upgrade chip (shake, red
+   cost, sound). CoinBadge "+N" pop timed to the coin landing.
+Suite 900/901 (known fighter-36 art lattice), vue-tsc clean. Run 2 results: see `playtest-runs/run-2/`
+(git-ignored) and the updated report.
+
+### Run-2 fix pass (2026-09-24)
+Run 2 (report v2/v3 at the same link): shooting learned in 8 s, but nobody bought a paid upgrade (115–284
+coins unspent), the first boss drowned in grunt rows, a boss kill + breach landed in one turn, the only
+danger cue was a red floor, the shot demo replayed 14–18× per tester, the chip denial was invisible,
+merges went unnoticed. Built:
+1. Boss death blast (`bossBlast`): clears the bottom two rows and skips that turn's march — a boss kill
+   can never be followed by a breach in the same turn (sim: 6 → 0 across all bots).
+2. The first boss comes alone: rows spawned while it lives carry only their "+1".
+3. `EngineConfig.assist` (−20% HP up to row 30) while the player owns < 2 paid upgrade levels, never in
+   Daily (no-upgrade bot: first boss 16 → 20 of 24, first breach row 20 → 26; casual bot unchanged).
+4. Always-on danger pips ('2' amber, '1' red) on every threatening monster + one shake and a warning
+   sound on the aim before a breaching march; boss damage numbers 1.5×; `BreachOffer.recap`.
+5. Upgrade funnel (`coach/UpgradeFunnel.vue`, `RuneArrows.vue`): gold rune arrows on DAMAGE once it is
+   affordable after the free Tray Capacity claim (coins fly in, the hand presses; ≤ 6 showings), again on
+   the glowing chip after every boss kill and breach; a quiet gold ring on every READY chip.
+6. Shot demo rule: hidden while a shot was fired in the last 20 s, shown otherwise (AFK return); first
+   frame already shows the hand.
+7. Denied chip: grey unaffordable prices, red flash, "Need N more" callout, wallet pulse, chip shake and a
+   small screenshake.
+8. Merge lightbox (`MergeLightbox.vue`): pauses the game and dims all but the tray for the first 3 merges
+   and every new-tier merge (twins fuse, trail into the launcher, codex peek); later merges animate
+   unpaused. OVERRUN shows row / kills / coins; HUD clipping and the enrage label fixed.
+Suite 953/954 (known fighter-36 art lattice), vue-tsc clean. Run 3 in `playtest-runs/run-3/`.

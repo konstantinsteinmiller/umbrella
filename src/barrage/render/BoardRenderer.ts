@@ -31,6 +31,7 @@ import { BoardSfx, hitSoundFor, SHOT_IDS } from './sfx'
 import { canvasesCreated, createCanvas, ctx2d, glowDot, rgba, sprite, type SpriteImage } from './sprites'
 import { bakeFrostStar, BoardVfx, type DmgNum } from './vfx'
 import { cellFree, healTargets, RuleBadges, ruleIconOf, tagKeyOf, type RuleIcon } from './ruleMarks'
+import { DANGER_PIP_MARCHES, marchesToBreach, nextMarchTurn } from './danger'
 
 const TAU = Math.PI * 2
 /** Seconds a meteor falls (vfx.meteor's `dur`). */
@@ -122,16 +123,118 @@ interface MonsterView {
   scale: number
   /** Carbuncle shield grow-in, 0 → 1 after it comes back up. */
   shieldIn: number
+  /** First-session kill hold: renderer time it started (−1: none), the HP the
+   *  plate counts down from, and the kill's coins, flown once it poofs. */
+  holdAt: number
+  holdHp: number
+  holdCoins: number
+  /** Marches until it crosses the line (render/danger.ts): 1..DANGER_PIP_MARCHES
+   *  wears the countdown pip; 0 / more = none. Refreshed every frame. */
+  marches: number
+  /** Boss roar (run 3): renderer time the shockwave reaches this walker (−1:
+   *  none), whether it has struck yet, and the unit direction it is flung. */
+  roarAt: number
+  roarHit: boolean
+  blowX: number
+  blowY: number
+  /** A boss's first hit already popped its extra-big number. */
+  bigHit: boolean
+}
+
+/** Where a roared walker is drawn this frame (scratch, no allocation). */
+interface BlowPose { x: number; y: number; s: number; r: number; a: number }
+/** The overrun demo (CONTRACT §10 `overrunDemo`): a ghost of a monster walks
+ *  its coming marches across the line. Display only. */
+interface OverrunGhost {
+  on: boolean
+  t: number
+  dur: number
+  /** Demo time it was told to stop (−1: running): a quick fade from there. */
+  stopAt: number
+  bake: MonsterBake | null
+  w: number
+  h: number
+  scale: number
+  /** Footprint column, top row at the start and at the end of the walk. */
+  x: number
+  y0: number
+  y1: number
+  hops: number
+  walkAt: number
+  walkDur: number
+  dissolveAt: number
+  flashed: boolean
+  dissolved: boolean
+  reduced: boolean
 }
 
 /** A little imp (the imp's split) inside its one cell. */
 const MINI_SCALE = 0.66
+/**
+ * First session only (`config.ftue`): blind first-timers never saw a kill
+ * register — a 1–3 HP monster vanished in the frame the ball touched it. So a
+ * kill holds on screen this long (s): white flash, the HP plate ticking to 0
+ * (over KILL_TICK), a squash, then the poof and its coin flight. Display
+ * only — the engine removed the monster the moment it died.
+ */
+const KILL_HOLD = 0.4
+const KILL_TICK = 0.18
+/** First session — and on a boss, always: damage numbers this much bigger.
+ *  Playtest run 2: the first boss's HP bar "didn't move" for the testers;
+ *  big numbers on it are the proof every hit counts. */
+const FTUE_NUM_SCALE = 1.5
+/** Playtest run 3 ("no on-boss hit number"): the first hit on each boss pops
+ *  a number this many times the boss number, on the boss, lasting longer. */
+const BOSS_FIRST_HIT_SCALE = 2
+const BOSS_FIRST_HIT_LIFE = 1.15
+/**
+ * The first boss's roar (`bossRoar`, playtest run 3): a shockwave from the
+ * boss that flings every walker away as it reaches them — never the
+ * first-session kill hold (≈10 kills at once must not stall or stack).
+ * Ring radii (cells) and life (s); a walker is struck when the ring reaches
+ * it, at most ROAR_MAX_DELAY after the roar (its coins leave then, inside the
+ * wallet's 0.4 s first-session pop delay), then flies BLOW_DIST cells away
+ * over BLOW_DUR, spinning and shrinking, and poofs.
+ */
+const ROAR_R0 = 1
+const ROAR_R1 = 12
+const ROAR_LIFE = 0.75
+const ROAR_MAX_DELAY = 0.4
+const BLOW_DUR = 0.55
+const BLOW_DIST = 2.6
+/** Overrun demo timings (s): fade in, the walk, standing past the line, the dissolve, a stop's fade. */
+const DEMO_IN = 0.25
+const DEMO_WALK = 1.2
+const DEMO_HOLD = 0.3
+const DEMO_OUT = 0.5
+const DEMO_STOP = 0.18
+/** Reduced motion: the ghost appears past the line and holds this long before dissolving. */
+const DEMO_IN_STILL = 0.3
+const DEMO_HOLD_STILL = 1.2
+/** The ghost's walk ends with its bottom edge here — on the launcher's floor
+ *  line, clear of the real monster (whose bottom edge is on the line at most). */
+const DEMO_END_BOTTOM = FLOOR_Y + 0.05
+/** The flash comes once the ghost's bottom edge is this far past the line (cells):
+ *  visibly across, not a hair over it. */
+const DEMO_FLASH_PAST = 0.5
+/** The line's skull glyph (cells): size, and its centre just above the line at both ends. */
+const SKULL_SIZE = 0.34
+const SKULL_INSET = 0.24
+const SKULL_LIFT = 0.06
+/** Page-wide: the first flying chest of a session wears the tap hint. */
+let chestHintsLeft = 1
+
+/** The HP a hit / tick actually removed (`dealt`, playtest run 3: overkill is
+ *  not shown); `dmg` for an engine that does not send it yet. */
+const dealtOf = (e: { dmg: number; dealt: number }): number =>
+  typeof e.dealt === 'number' && Number.isFinite(e.dealt) ? e.dealt : e.dmg
 
 const newMonsterView = (): MonsterView => ({
   id: 0, m: null, kind: 'slime', bossKind: undefined, corrupted: false, w: 1, h: 1, src: '', bake: null, bakeGen: -1,
   x: 0, y: 0, vy: 0, spawn: 1, flinch: 0, fdx: 0, fdy: 0, flash: 0, hopFrom: 0, hopTo: 0, hopT: -1, phase: 0,
   seen: 0, hpShown: -1, hpText: '', label: null, labelText: '', labelVariant: -1, labelGen: -1, labelGlyph: -1, labelW: 0, labelH: 0, num: null, lastImpact: -1, emberT: 0, heal: 0, enrage: 0, color: '#fff',
-  meteorAt: -1, dieAt: -1, dieKind: 'slime', dieCorrupted: false, scale: 1, shieldIn: 1
+  meteorAt: -1, dieAt: -1, dieKind: 'slime', dieCorrupted: false, scale: 1, shieldIn: 1, holdAt: -1, holdHp: 0, holdCoins: 0, marches: 0,
+  roarAt: -1, roarHit: false, blowX: 0, blowY: 0, bigHit: false
 })
 
 interface CellView {
@@ -292,6 +395,40 @@ export class BoardRenderer {
   private shakeT = 0
   private shakeMag = 0
   private chestSparkT = 0
+  /** Flying chest pop-in, 0 → 1 after it appears (1 when adopted mid-flight). */
+  private chestIn = 1
+  /** This chest wears the wordless tap hint (ring + tapping hand). */
+  private chestHint = false
+  private tapHand: HTMLCanvasElement | null = null
+  /** A kill held this event burst: its `coins` event (same burst) waits for the poof. */
+  private heldKill: MonsterView | null = null
+  /** This aim phase already shook + sounded the "the next march breaches" warning. */
+  private aimWarned = false
+  /** Countdown pip discs (render/danger.ts): '1' red, '2' amber; the digit is a glyph blit. */
+  private pipRed: HTMLCanvasElement | null = null
+  private pipAmber: HTMLCanvasElement | null = null
+  /** The line's skull glyph (bone = dim, red = lit), baked per size. */
+  private skullBone: HTMLCanvasElement | null = null
+  private skullRed: HTMLCanvasElement | null = null
+  /** 0 → 1 while any monster wears a '1' pip (eased). */
+  private skullLit = 0
+  /** The overrun demo's line flash, the skulls' flash, and the big skull where the ghost crossed. */
+  private lineFlash = 0
+  private skullFlash = 0
+  private crossSkull = 0
+  private crossX = 0
+  /** The demo was cut short: its flashes fade as fast as the ghost. */
+  private demoCut = false
+  private readonly demo: OverrunGhost = {
+    on: false, t: 0, dur: 0, stopAt: -1, bake: null, w: 1, h: 1, scale: 1, x: 0, y0: 0, y1: 0, hops: 1,
+    walkAt: 0, walkDur: 0, dissolveAt: 0, flashed: false, dissolved: false, reduced: false
+  }
+  /** The ghost's top row and hop lift this frame (scratch). */
+  private ghostY = 0
+  private ghostLift = 0
+  /** A boss roared before its view existed: its roar pulse waits for the view. */
+  private roarBossId = -1
+  private readonly blow: BlowPose = { x: 0, y: 0, s: 1, r: 0, a: 1 }
 
   // aim
   private aimArmed = false
@@ -425,8 +562,17 @@ export class BoardRenderer {
     this.aimArmed = false
     this.aimPath = null
     this.aimPathAngle = NaN
+    this.heldKill = null
+    this.aimWarned = false
+    this.chestIn = 1
+    this.chestHint = false
     this.flashWhite = this.flashRed = this.flashGold = this.flashBlue = 0
     this.danger = this.dangerKick = this.breach = 0
+    this.skullLit = this.lineFlash = this.skullFlash = this.crossSkull = 0
+    this.demoCut = false
+    this.demo.on = false
+    this.demo.bake = null
+    this.roarBossId = -1
     this.timeScale = 1
     if (engine) {
       this.lx = engine.state.launcherX
@@ -455,18 +601,33 @@ export class BoardRenderer {
     this.bubbleGold = this.bakeBubble(Math.round(l.cell * dpr * 0.72), 'rgba(255,226,122,0.95)', 'rgba(255,210,90,0.16)')
     this.sludge = this.bakeSludge(Math.round(l.cell * dpr * 0.95))
     this.gemShield = this.bakeBubble(Math.round(l.cell * dpr * 1.12), 'rgba(140,215,255,0.95)', 'rgba(80,165,255,0.2)')
+    this.tapHand = this.bakeTapHand(Math.round(l.cell * dpr * 0.8))
+    this.pipRed = this.bakePip(Math.round(l.cell * dpr * 0.5), '#ff2a3a', '#7a0010')
+    this.pipAmber = this.bakePip(Math.round(l.cell * dpr * 0.5), '#ff9a2a', '#6a3000')
+    // Baked big enough for the demo's flash (≈2.4× the resting size) to stay crisp.
+    const skullPx = Math.round(l.cell * dpr * SKULL_SIZE * 2.4)
+    this.skullBone = this.bakeSkull(skullPx, '#efe6d2', '#1a1016', 'rgba(16,10,18,0.92)')
+    this.skullRed = this.bakeSkull(skullPx, '#ff4a55', '#3a0008', 'rgba(42,0,8,0.95)')
     this.badges.setSize(l.cell * dpr * 0.46)
     this.plates.length = 0
     this.pedestal = null
     this.pedestalTier = -1
     for (const v of this.viewList) v.bake = null
+    // The demo's ghost holds a bake of the old size: let it go.
+    this.demo.on = false
+    this.demo.bake = null
   }
 
   // ─── Aim ───────────────────────────────────────────────────────────────────
-  /** Show / hide the aim preview. The engine's aimPreview is only re-queried when the angle moved. */
+  /** Show / hide the aim preview. The engine's aimPreview is only re-queried
+   *  when the angle moved. The board passes `armed` true only while a finger
+   *  is down (off the launcher pad) — this is the ONLY way a preview gets
+   *  drawn, so an idle board never shows a stale or static aim line. */
   setAim(armed: boolean, angle: number): void {
     this.aimArmed = armed
     this.aimAngle = angle
+    // A finger aiming ends the lose-rule demo (the board also stops it on press).
+    if (armed) this.stopOverrunDemo()
     if (!armed) {
       this.aimPath = null
       this.aimPathAngle = NaN
@@ -482,6 +643,67 @@ export class BoardRenderer {
   /** Display x of the launcher (cells). */
   launcherX(): number {
     return this.lx
+  }
+
+  // ─── Overrun demo (CONTRACT §10) ───────────────────────────────────────────
+  /**
+   * The wordless lose-rule demo (playtest run 3: testers who never breached
+   * never learned what the line does). A pale ghost of the monster (its own
+   * sprite, ~55% alpha) steps out from under it — the real monster stays
+   * drawn in place — and walks its coming marches down across the line onto
+   * the launcher's floor (DEMO_WALK); half a row past the line, the line
+   * flashes red and the skulls flash big under it; the ghost dissolves
+   * (~2.25 s). Reduced motion: no walk — the ghost appears past
+   * the line, the flash, the dissolve (~1.95 s). The real board is untouched.
+   * It fades out at once (DEMO_STOP) when an aim starts or the phase leaves
+   * 'aim'. Returns its duration in ms; 0 when it cannot play (not aiming, a
+   * finger down, the monster gone or not drawn yet).
+   */
+  overrunDemo(monsterId: number): number {
+    const s = this.engine?.state
+    if (!s || s.phase !== 'aim' || this.aimArmed || this.layout.cssW === 0) return 0
+    const v = this.views.get(monsterId)
+    const m = v?.m
+    if (!v || !m || v.dieAt >= 0 || !v.bake) return 0
+    const d = this.demo
+    d.on = true
+    d.t = 0
+    d.stopAt = -1
+    this.demoCut = false
+    d.bake = v.bake
+    d.w = v.w
+    d.h = v.h
+    d.scale = v.scale
+    d.x = m.col
+    d.y0 = m.row
+    d.y1 = Math.max(m.row + 0.5, DEMO_END_BOTTOM - m.h)
+    // At least two steps, so even a last-row monster reads as walking.
+    d.hops = Math.max(2, Math.ceil(d.y1 - d.y0 - 1e-6))
+    d.reduced = this.reducedMotion
+    d.flashed = false
+    d.dissolved = false
+    if (d.reduced) {
+      d.walkAt = 0
+      d.walkDur = 0
+      d.dissolveAt = DEMO_IN_STILL + DEMO_HOLD_STILL
+    } else {
+      d.walkAt = DEMO_IN
+      d.walkDur = DEMO_WALK
+      d.dissolveAt = DEMO_IN + DEMO_WALK + DEMO_HOLD
+    }
+    d.dur = d.dissolveAt + DEMO_OUT
+    return Math.round(d.dur * 1000)
+  }
+
+  /** End the overrun demo with a quick fade (no-op when none is playing). */
+  stopOverrunDemo(): void {
+    const d = this.demo
+    if (d.on && d.stopAt < 0) d.stopAt = d.t
+  }
+
+  /** The overrun demo is on screen (tests / dev probes). */
+  get overrunDemoPlaying(): boolean {
+    return this.demo.on
   }
 
   // ─── Frame ─────────────────────────────────────────────────────────────────
@@ -534,11 +756,15 @@ export class BoardRenderer {
       }
     }
     if (this.plusPending) this.flushPlus()
+    // Every event burst ran inside engine.update(), before this frame.
+    this.heldKill = null
     const pop = this.synced
     const kPos = 1 - Math.exp(-dt * 14)
 
     // Monsters.
     const ms = s.monsters
+    const nextTurn = nextMarchTurn(s)
+    let breachNext = false
     for (let i = 0; i < ms.length; i++) {
       const m = ms[i]!
       let v = this.views.get(m.id)
@@ -550,6 +776,14 @@ export class BoardRenderer {
       }
       v.m = m
       v.seen = frame
+      if (m.id === this.roarBossId) {
+        // The boss that roared on arrival: its white roar pulse.
+        this.roarBossId = -1
+        v.enrage = 1
+        v.flinch = 1
+      }
+      v.marches = nextTurn >= 0 ? marchesToBreach(m, nextTurn) : 0
+      if (v.marches === 1) breachNext = true
       if (v.bake === null || v.bakeGen !== this.bakeGen) {
         if (sprite(v.src).ready) {
           v.bake = this.monsterLooks.get(v.src, v.kind, v.corrupted, v.w, v.h)
@@ -603,14 +837,35 @@ export class BoardRenderer {
     for (let i = this.viewList.length - 1; i >= 0; i--) {
       const v = this.viewList[i]!
       if (v.seen === frame) continue
-      if (v.dieAt >= 0) {
-        // Killed by a meteor still in the air: stay on screen, flinching, until it lands.
+      if (v.dieAt >= 0 && v.roarAt >= 0) {
+        // Roared away: struck when the shockwave reaches it (its coins leave
+        // then), flung off, and poofed where it lands.
+        if (dt > 0) v.flash = Math.max(0, v.flash - dt * 7)
+        if (!v.roarHit && this.time >= v.roarAt) this.roarStrike(v)
+        if (v.dieAt > this.time) continue
+        this.roarPoof(v)
+        v.roarAt = -1
+      } else if (v.dieAt >= 0) {
+        // Killed by a meteor still in the air — or held by the first-session
+        // kill hold: stay on screen, flinching, until then.
         if (dt > 0) {
           v.flinch = Math.max(0, v.flinch - dt * 4.2)
           v.flash = Math.max(0, v.flash - dt * 7)
         }
+        if (v.holdAt >= 0) {
+          const hp = Math.floor(v.holdHp * (1 - clamp01((this.time - v.holdAt) / KILL_TICK)))
+          if (hp !== v.hpShown) {
+            v.hpShown = hp
+            v.hpText = hp < 1000 ? SMALL_INT_STR[hp]! : formatBig(hp)
+          }
+        }
         if (v.dieAt > this.time) continue
-        this.deathFx(v, v.dieKind, v.bossKind, v.dieCorrupted, v.x + v.w / 2, v.y + v.h / 2)
+        const cx = v.x + v.w / 2
+        const cy = v.y + v.h / 2
+        this.deathFx(v, v.dieKind, v.bossKind, v.dieCorrupted, cx, cy)
+        if (v.holdCoins > 0) this.coinFx(cx, cy, v.holdCoins)
+        v.holdAt = -1
+        v.holdCoins = 0
       }
       this.views.delete(v.id)
       v.m = null
@@ -669,6 +924,24 @@ export class BoardRenderer {
     const dTarget = rowsLeft <= 0 ? 1 : rowsLeft <= 1 ? 0.8 : rowsLeft <= 2 ? 0.5 : 0
     this.danger += (dTarget - this.danger) * Math.min(1, dt * 3)
     this.dangerKick = Math.max(0, this.dangerKick - dt * 1.5)
+    // The aim before a breaching march: one short shake and one warning sound
+    // (the shake is skipped under prefers-reduced-motion; the sound still
+    // plays). Once per aim phase, and only while time runs (not a paused redraw).
+    if (s.phase !== 'aim') this.aimWarned = false
+    else if (breachNext && !this.aimWarned && dt > 0) {
+      this.aimWarned = true
+      this.dangerKick = 1
+      this.bigShake('small')
+      this.sfx.request('grid-full', 0.06, 0.8, 7, 1500, 'breach-warn')
+    }
+    // The line's skull lights while the coming march breaches.
+    this.skullLit += ((breachNext ? 1 : 0) - this.skullLit) * Math.min(1, dt * 6)
+    // A demo cut short takes its flashes with it (as quickly as the ghost).
+    const flashK = this.demoCut ? 1 / DEMO_STOP : 1
+    this.lineFlash = Math.max(0, this.lineFlash - dt * 1.5 * flashK)
+    this.skullFlash = Math.max(0, this.skullFlash - dt * 1.2 * flashK)
+    this.crossSkull = Math.max(0, this.crossSkull - dt * 0.9 * flashK)
+    this.updateDemo(dt, s)
     this.fever += ((s.fever ? 1 : 0) - this.fever) * Math.min(1, dt * 5)
     this.breach += ((s.phase === 'breach' ? 1 : 0) - this.breach) * Math.min(1, dt * 4)
     this.flashWhite = Math.max(0, this.flashWhite - dt * 2.6)
@@ -677,7 +950,9 @@ export class BoardRenderer {
     this.flashBlue = Math.max(0, this.flashBlue - dt * 2.4)
     this.shakeT = Math.max(0, this.shakeT - dt)
 
-    // Flying chest sparkle trail.
+    // Flying chest: pop-in + sparkle trail.
+    if (this.chestIn < 1) this.chestIn = Math.min(1, this.chestIn + dt / 0.35)
+    if (!s.chest) this.chestHint = false
     if (s.chest && dt > 0) {
       this.chestSparkT -= dt
       if (this.chestSparkT <= 0) {
@@ -762,6 +1037,15 @@ export class BoardRenderer {
     v.color = monsterColor(m.kind, m.bossKind)
     v.meteorAt = -1
     v.dieAt = -1
+    v.holdAt = -1
+    v.holdHp = 0
+    v.holdCoins = 0
+    v.marches = 0
+    v.roarAt = -1
+    v.roarHit = false
+    v.blowX = 0
+    v.blowY = 0
+    v.bigHit = false
   }
 
   // ─── Draw ──────────────────────────────────────────────────────────────────
@@ -823,12 +1107,20 @@ export class BoardRenderer {
       ctx.globalAlpha = 1
     }
 
+    // The line's skulls sit UNDER everything, so they never hide a pip, a
+    // plate or the launcher; the demo's flash draws them again on top.
+    this.drawLineSkulls(ctx, t, false)
     this.vfx.drawUnder(ctx, l, this.ballLooks.bakePx / d)
     this.drawHazards(ctx, t)
     this.drawPickups(ctx, t)
     this.drawBossTelegraphs(ctx, t)
+    // Under the monsters: the ghost steps OUT from behind the real one (drawn
+    // over it, it washed the real monster out for the first half of the walk).
+    this.drawOverrunGhost(ctx)
     this.drawMonsters(ctx, t)
     this.drawRuleMarks(ctx, s, t)
+    this.drawDangerPips(ctx, t)
+    this.drawLineFlash(ctx, t)
     this.drawChest(ctx, s, t)
     this.drawLauncher(ctx, s, t)
     this.drawAim(ctx, t)
@@ -919,6 +1211,10 @@ export class BoardRenderer {
       const m = v.m
       const bake = v.bake
       if (!m || !bake) continue
+      if (v.roarAt >= 0 && v.dieAt >= 0) {
+        this.drawBlown(ctx, v, bake, t)
+        continue
+      }
       const boss = v.kind === 'boss'
       const bob = Math.sin(t * (boss ? 2.2 : 3.3) + v.phase)
       let sxK = 1 - 0.03 * bob
@@ -929,6 +1225,13 @@ export class BoardRenderer {
       const f = v.flinch
       sxK *= 1 + 0.2 * f
       syK *= 1 - 0.22 * f
+      // Kill hold: it squashes down harder and harder until it pops.
+      const hold = v.holdAt >= 0 ? clamp01((t - v.holdAt) / KILL_HOLD) : -1
+      if (hold >= 0) {
+        const q = hold * hold
+        sxK *= 1 + 0.3 * q
+        syK *= 1 - 0.36 * q
+      }
       if (v.spawn < 1) {
         const sp = Math.max(0.01, easeOutBack(v.spawn))
         sxK *= sp
@@ -983,6 +1286,8 @@ export class BoardRenderer {
       let white = v.flash * 0.85
       if (v.enrage > 0) white = Math.max(white, v.enrage)
       if (v.id === aimTarget) white = Math.max(white, 0.16 + 0.12 * Math.sin(t * 9))
+      // Kill hold: a full white hit-flash, then it glows back up to the pop.
+      if (hold >= 0) white = Math.max(white, hold < 0.25 ? 1 : 0.45 + 0.5 * ((hold - 0.25) / 0.75) * ((hold - 0.25) / 0.75))
       if (white > 0.01) {
         ctx.globalAlpha = clamp01(white)
         ctx.drawImage(bake.white, x, y, dw, dh)
@@ -1008,7 +1313,8 @@ export class BoardRenderer {
     for (let i = 0; i < list.length; i++) {
       const v = list[i]!
       const m = v.m
-      if (!m || !v.bake || v.hpText === '' || v.dieAt >= 0) continue
+      // A held kill keeps its plate: the count reaching 0 is the point.
+      if (!m || !v.bake || v.hpText === '' || (v.dieAt >= 0 && v.holdAt < 0)) continue
       const boss = v.kind === 'boss'
       let cxC = v.x + v.w / 2
       if (v.hopT >= 0) {
@@ -1038,7 +1344,8 @@ export class BoardRenderer {
     const l = this.layout
     const c = l.cell
     const b = this.chest.box
-    const w = ch.r * 2 * 2.1 * c
+    const pop = this.chestIn < 1 ? Math.max(0.01, easeOutBack(this.chestIn)) : 1
+    const w = ch.r * 2 * 2.1 * c * pop
     const h = w * (b.h / b.w) * (1 + 0.06 * Math.sin(t * 16))
     const x = l.ox + ch.x * c
     const y = l.oy + (ch.y + Math.sin(t * 3) * 0.08) * c
@@ -1049,6 +1356,44 @@ export class BoardRenderer {
     ctx.globalCompositeOperation = 'source-over'
     ctx.globalAlpha = 1
     ctx.drawImage(this.chest.img, b.x, b.y, b.w, b.h, x - w / 2, y - h / 2, w, h)
+    if (this.chestHint && s.phase !== 'breach') this.drawChestHint(ctx, x, y, w, t)
+  }
+
+  /**
+   * The first chest of a session: blind first-timers all wanted to TAP it,
+   * and now a tap opens it — so say so without a word. A hand taps at the
+   * chest's lower right; each touch sends a ring out round the chest.
+   */
+  private drawChestHint(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, t: number): void {
+    const c = this.layout.cell
+    const P = 1.2
+    const u = (t % P) / P
+    const TOUCH = 0.22
+    // Rings: one per touch, a second trailing from the touch before.
+    ctx.lineWidth = Math.max(2, c * 0.06)
+    ctx.strokeStyle = '#fff3b0'
+    for (let j = 0; j < 2; j++) {
+      let k = u - TOUCH + j * 0.5
+      if (k < 0) k += 1
+      if (k >= 1) k -= 1
+      ctx.globalAlpha = (1 - k) * 0.85
+      ctx.beginPath()
+      ctx.arc(x, y, w * (0.5 + 0.45 * k), 0, TAU)
+      ctx.stroke()
+    }
+    const hand = this.tapHand
+    if (hand) {
+      // In to the touch, a beat on it, back out.
+      const d = u < TOUCH ? 1 - u / TOUCH : u < 0.4 ? 0 : Math.min(1, (u - 0.4) / 0.35)
+      const e = d * d * (3 - 2 * d)
+      const hs = c * 0.8
+      // The bake's fingertip sits at its top-left quarter.
+      const tipX = x + w * 0.2 + e * c * 0.28
+      const tipY = y + w * 0.12 + e * c * 0.28
+      ctx.globalAlpha = 0.95
+      ctx.drawImage(hand, tipX - hs * 0.28, tipY - hs * 0.1, hs, hs)
+    }
+    ctx.globalAlpha = 1
   }
 
   private drawLauncher(ctx: CanvasRenderingContext2D, s: BoardState, t: number): void {
@@ -1164,21 +1509,30 @@ export class BoardRenderer {
       }
       acc += len
     }
-    // Bounce marker: a ghost ball + ring at the first contact.
-    const img = this.ballLooks.get(this.engine?.state.tray[0] ?? 1, this.skin, false)
-    const bp = this.ballLooks.bakePx / l.dpr
+    // First contact: a hollow reticle — ring + four ticks. It used to be a
+    // ghost ball, which first-timers read as a dud shot lying on the board.
     const bx = l.ox + p1.x * c
     const by = l.oy + p1.y * c
-    if (img) {
-      ctx.globalAlpha = 0.55
-      ctx.drawImage(img, bx - bp / 2, by - bp / 2, bp, bp)
+    const r = BALL_R * 1.25 * c
+    const r0 = r * 1.45
+    const r1 = r * 2.3
+    ctx.lineCap = 'round'
+    for (let pass = 0; pass < 2; pass++) {
+      ctx.globalAlpha = pass === 0 ? 0.5 : 0.7 + 0.25 * Math.sin(t * 8)
+      ctx.strokeStyle = pass === 0 ? 'rgba(8,12,30,0.9)' : '#dff3ff'
+      ctx.lineWidth = pass === 0 ? 3.5 : 1.6
+      ctx.beginPath()
+      ctx.arc(bx, by, r, 0, TAU)
+      ctx.moveTo(bx - r1, by)
+      ctx.lineTo(bx - r0, by)
+      ctx.moveTo(bx + r0, by)
+      ctx.lineTo(bx + r1, by)
+      ctx.moveTo(bx, by - r1)
+      ctx.lineTo(bx, by - r0)
+      ctx.moveTo(bx, by + r0)
+      ctx.lineTo(bx, by + r1)
+      ctx.stroke()
     }
-    ctx.globalAlpha = 0.6 + 0.3 * Math.sin(t * 8)
-    ctx.strokeStyle = '#dff3ff'
-    ctx.lineWidth = 1.5
-    ctx.beginPath()
-    ctx.arc(bx, by, BALL_R * 2 * c, 0, TAU)
-    ctx.stroke()
     ctx.globalAlpha = 1
   }
 
@@ -1336,7 +1690,16 @@ export class BoardRenderer {
           const dl = Math.hypot(dx, dy) || 1
           v.fdx = dx / dl
           v.fdy = dy / dl
-          this.damageNumber(v, e.dmg, e.crit ? 'crit' : 'dmg')
+          // The HP actually removed (playtest run 3: overkill read as noise).
+          const dealt = dealtOf(e)
+          if (dealt > 0) {
+            if (v.kind === 'boss' && !v.bigHit) {
+              v.bigHit = true
+              this.bossFirstHit(v, dealt, e.crit)
+            } else {
+              this.damageNumber(v, dealt, e.crit ? 'crit' : 'dmg')
+            }
+          }
           if (this.time - v.lastImpact > 0.09 && this.vfx.liveImpacts() < 6) {
             if (this.vfx.impact(e.x, e.y, v.kind === 'boss' ? 1.35 : 0.95, ti.sheet)) v.lastImpact = this.time
           }
@@ -1354,7 +1717,8 @@ export class BoardRenderer {
         break
       case 'dot': {
         const v = this.views.get(e.monsterId)
-        if (v) this.damageNumber(v, e.dmg, e.kind)
+        const dealt = dealtOf(e)
+        if (v && dealt > 0) this.damageNumber(v, dealt, e.kind)
         this.vfx.burst(e.x, e.y, 3, 1.5, e.kind === 'burn' ? '#ff9a3c' : '#aaff3c', 0.09, 0.4, -1)
         this.sfx.request(e.kind === 'burn' ? 'flesh-hit-1' : 'water-splash', 0.012, e.kind === 'burn' ? 1.2 : 1.5, 0, 90, 'dot')
         break
@@ -1363,17 +1727,14 @@ export class BoardRenderer {
         this.killFx(e.monsterId, e.kind, e.bossKind, e.corrupted, e.x, e.y)
         break
       case 'coins': {
-        const l = this.layout
-        const px = l.ox + e.x * l.cell
-        const py = l.oy + e.y * l.cell
-        if (!this.hooks.coins(px, py, e.amount)) {
-          if (this.coin.ready) {
-            const b = this.coin.box
-            this.vfx.floater(this.coin.img, b.x, b.y, b.w, b.h, e.x, e.y, 0.45, 0.7, 0.9)
-          }
+        // A held kill's coins leave with its poof, not with the killing hit.
+        const held = this.heldKill
+        if (held && e.source === 'kill') {
+          held.holdCoins += e.amount
+          this.heldKill = null
+          break
         }
-        this.vfx.burst(e.x, e.y, 4, 2.5, '#ffd23c', 0.08, 0.5)
-        this.sfx.request('coin-pickup', 0.02, 1 + Math.random() * 0.2, 1, 90)
+        this.coinFx(e.x, e.y, e.amount)
         break
       }
       case 'pickup': {
@@ -1509,6 +1870,9 @@ export class BoardRenderer {
         this.sfx.request('boss-incoming', 0.07, 1, 9, 1000)
         break
       }
+      case 'bossRoar':
+        this.roar(e.monsterId, e.ids, e.x, e.y)
+        break
       case 'bossEnrage': {
         const v = this.views.get(e.monsterId)
         if (v) {
@@ -1535,6 +1899,30 @@ export class BoardRenderer {
         this.hooks.confetti(l.ox + x * l.cell, l.oy + y * l.cell, 36)
         this.sfx.request('boss-death', 0.08, 1, 10, 800)
         this.sfx.request('explosion-1', 0.06, 0.8, 9, 300)
+        break
+      }
+      case 'bossBlast': {
+        // The death blast: a gold shockwave from the boss, then a wall of fire
+        // rolling across the bottom rows it clears (their own kills follow in
+        // this same burst and poof on top of it). Pooled VFX only.
+        const top = ROWS - e.rows
+        const midY = top + e.rows / 2
+        this.flashGold = Math.max(this.flashGold, 0.7)
+        this.vfx.ring(e.x, e.y, 0.8, 7, 0.75, '#ffe27a', 0.18)
+        this.vfx.ring(COLS / 2, midY, 0.5, COLS * 0.62, 0.55, '#ff9a3c', 0.22)
+        for (let col = 0; col < COLS; col++) {
+          const x = col + 0.5
+          this.vfx.blast(x, midY, 1.05, col % 2 === 0 ? '#ffb15a' : '#ffd23c', 0.5)
+          this.vfx.burst(x, ROWS - 0.3, 5, 4.5, '#ffd23c', 0.12, 0.55, -3, true)
+        }
+        for (let i = 0; i < e.ids.length; i++) {
+          const v = this.views.get(e.ids[i]!)
+          if (!v) continue
+          v.flash = 1
+          v.flinch = 1
+        }
+        this.microShake(0.16, 0.32)
+        this.sfx.request('meteor-impact', 0.07, 0.7, 9, 400, 'boss-blast')
         break
       }
       case 'danger':
@@ -1570,10 +1958,21 @@ export class BoardRenderer {
         }
         this.timeScale = 1
         break
-      case 'chestAppear':
+      case 'chestAppear': {
+        // It appears whole on the board (never clipped at a wall): pop it in.
+        this.chestIn = 0
+        this.chestHint = chestHintsLeft > 0
+        if (this.chestHint) chestHintsLeft--
+        const ch = s?.chest
+        if (ch) {
+          this.vfx.ring(ch.x, ch.y, 0.2, 1.3, 0.4, '#ffe27a', 0.08)
+          this.vfx.burst(ch.x, ch.y, 12, 3.5, '#ffe27a', 0.1, 0.5)
+        }
         this.sfx.request('chest-flyby', 0.04, 1, 4, 1000)
         break
+      }
       case 'chestHit': {
+        this.chestHint = false
         this.flashGold = 0.8
         this.vfx.ring(e.x, e.y, 0.3, 2.2, 0.5, '#ffd23c', 0.1)
         this.vfx.burst(e.x, e.y, 26, 6, '#ffd23c', 0.13, 0.8, 3, true)
@@ -1637,9 +2036,11 @@ export class BoardRenderer {
       case 'rowSpawned':
         this.warmWalkers(e.row)
         break
+      case 'chestGone':
+        this.chestHint = false
+        break
       case 'volleyEnd':
       case 'trayAdd':
-      case 'chestGone':
       case 'phase':
         break
     }
@@ -1704,6 +2105,45 @@ export class BoardRenderer {
       const by = oy + top * c - bs * 0.18 + bob
       ctx.globalAlpha = v.spawn < 1 ? clamp01(v.spawn * 2) : 1
       ctx.drawImage(badge, bx, by, bs, bs)
+      ctx.globalAlpha = 1
+    }
+  }
+
+  /** Always on, for every player (render/danger.ts): the marches-left pip on
+   *  the top-left shoulder of every monster within DANGER_PIP_MARCHES marches
+   *  of the line — amber '2', then a pulsing red '1'. Numbers only. The rule
+   *  badge sits on the other shoulder. */
+  private drawDangerPips(ctx: CanvasRenderingContext2D, t: number): void {
+    const red = this.pipRed
+    const amber = this.pipAmber
+    if (!red || !amber) return
+    const l = this.layout
+    const c = l.cell
+    const ox = l.ox
+    const oy = l.oy
+    const list = this.viewList
+    const digits = glyphs('count')
+    for (let i = 0; i < list.length; i++) {
+      const v = list[i]!
+      const n = v.marches
+      if (!v.m || v.dieAt >= 0 || !v.bake || n < 1 || n > DANGER_PIP_MARCHES) continue
+      const last = n === 1
+      const pulse = this.reducedMotion ? 1 : 1 + (last ? 0.13 : 0.05) * Math.sin(t * (last ? 9 : 4) + v.phase)
+      const ps = c * (v.kind === 'boss' ? 0.62 : 0.48) * pulse
+      const vx = v.hopT >= 0 ? v.hopFrom + (v.hopTo - v.hopFrom) * v.hopT : v.x
+      const cx = Math.max(ox + ps * 0.5 + 1, ox + vx * c + ps * 0.32)
+      const cy = oy + Math.max(v.y, 0.05) * c + ps * 0.32
+      ctx.globalAlpha = v.spawn < 1 ? clamp01(v.spawn * 2) : 1
+      if (last) {
+        ctx.globalCompositeOperation = 'lighter'
+        const g = ps * 1.05
+        ctx.globalAlpha *= 0.55 + (this.reducedMotion ? 0 : 0.25 * Math.sin(t * 9 + v.phase))
+        ctx.drawImage(this.vfx.dot('#ff3040'), cx - g, cy - g, g * 2, g * 2)
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.globalAlpha = v.spawn < 1 ? clamp01(v.spawn * 2) : 1
+      }
+      ctx.drawImage(last ? red : amber, cx - ps / 2, cy - ps / 2, ps, ps)
+      digits.draw(ctx, last ? '1' : '2', cx, cy + ps * 0.02, ps * 0.66)
       ctx.globalAlpha = 1
     }
   }
@@ -2001,15 +2441,372 @@ export class BoardRenderer {
       live.t = Math.min(live.t, 0.08)
       return
     }
-    const size = style === 'crit'
+    // First session: bigger numbers, so the first hits read as damage — and on
+    // a boss always, so a long fight visibly chips away at it.
+    const k = this.engine?.state.config.ftue || v.kind === 'boss' ? FTUE_NUM_SCALE : 1
+    const size = k * (style === 'crit'
       ? Math.max(15, Math.min(28, c * 0.52))
-      : v.kind === 'boss' ? Math.max(13, Math.min(22, c * 0.4)) : Math.max(11, Math.min(18, c * 0.34))
+      : v.kind === 'boss' ? Math.max(13, Math.min(22, c * 0.4)) : Math.max(11, Math.min(18, c * 0.34)))
     const jitter = (Math.random() - 0.5) * 0.35 * v.w
     // Keep the label off the side walls (the playfield clip would cut it).
-    const edge = 0.45 + (style === 'crit' ? 0.2 : 0)
+    const edge = (0.45 + (style === 'crit' ? 0.2 : 0)) * (k > 1 ? 1.3 : 1)
     const nx = Math.max(edge, Math.min(COLS - edge, v.x + v.w / 2 + jitter))
-    const n = this.vfx.num(this.fmtNum(dmg), style, nx, v.y + Math.min(0.3, v.h * 0.25), size, dmg, v.id)
+    // ...and leave it room to rise inside the board: a top-row monster's
+    // number (the whole first session's) used to rise out through the top edge.
+    const ny = Math.max(v.y + Math.min(0.3, v.h * 0.25), (size * 1.4) / c - BOARD_TOP)
+    // A boss's numbers are never dropped for a full pool and draw over every
+    // other number (playtest run 3: "no on-boss hit number").
+    const n = this.vfx.num(this.fmtNum(dmg), style, nx, ny, size, dmg, v.id, v.kind === 'boss')
     if (style !== 'crit') v.num = n
+  }
+
+  /**
+   * The first hit on a boss (playtest run 3: "HP bar stayed pinned at 57 with
+   * no on-boss hit number"): an extra-big number (BOSS_FIRST_HIT_SCALE × the
+   * boss number) ON the boss's visible body, lasting longer and rising less,
+   * over every other number. Later hits fold into ordinary boss numbers.
+   */
+  private bossFirstHit(v: MonsterView, dealt: number, crit: boolean): void {
+    const c = this.layout.cell
+    const base = FTUE_NUM_SCALE * (crit ? Math.max(15, Math.min(28, c * 0.52)) : Math.max(13, Math.min(22, c * 0.4)))
+    const size = base * BOSS_FIRST_HIT_SCALE
+    const style = crit ? 'crit' : 'dmg'
+    const text = this.fmtNum(dealt)
+    // ~0.62 em a digit (as the HP plates assume), at the 1.15× pop size.
+    const halfW = (text.length * 0.62 * size * 1.15) / 2 / c + 0.08
+    const halfH = (0.42 * size * 1.15) / c
+    const mid = v.x + v.w / 2
+    const clampX = (x: number): number => Math.max(halfW, Math.min(COLS - halfW, x))
+    let nx = clampX(mid)
+    // On the body — for a boss still entering, on the part already on the
+    // board — with room for its short rise under the top rim.
+    const ny = Math.max(v.y + v.h * 0.5, (size * 0.9) / c - BOARD_TOP)
+    // A boss still entering shows only its lowest row, where its HP plate
+    // sits: never cover the plate (its count dropping is the other half of
+    // the proof) — stand beside it, toward the board's middle.
+    const fs = Math.max(14, Math.min(30, c * 0.5))
+    const plateHalfW = (fs * (0.62 * Math.max(1, v.hpText.length) + 0.75)) / 2 / c
+    const plateHalfH = (fs * 1.22) / 2 / c
+    const plateY = v.y + v.h - plateHalfH - 0.03
+    if (Math.abs(ny - plateY) < halfH + plateHalfH) {
+      const gap = plateHalfW + halfW + 0.06
+      const toward = mid <= COLS / 2 ? 1 : -1
+      const a = clampX(mid + toward * gap)
+      const b = clampX(mid - toward * gap)
+      nx = Math.abs(a - mid) >= gap - 1e-6 ? a : Math.abs(b - mid) >= gap - 1e-6 ? b : a
+    }
+    const n = this.vfx.num(text, style, nx, ny, size, dealt, v.id, true)
+    if (n) {
+      n.life = BOSS_FIRST_HIT_LIFE
+      n.riseK = 0.35
+    }
+    // Later hits start their own numbers rather than folding into this one.
+    v.num = null
+    this.vfx.ring(nx, ny, 0.3, 1.5, 0.45, '#fff3b0', 0.1)
+    this.vfx.burst(nx, ny, 10, 4, '#ffe27a', 0.12, 0.5, 0, true)
+  }
+
+  // ─── Boss roar (playtest run 3) ────────────────────────────────────────────
+  /** `bossRoar`: a shockwave from the boss; every listed walker is struck
+   *  when it reaches them and flung away (their `kill` + `coins` follow in
+   *  this burst — see killFx). A medium shake (never under reduced motion). */
+  private roar(bossId: number, ids: readonly number[], x: number, y: number): void {
+    const bv = this.views.get(bossId)
+    if (bv) {
+      bv.enrage = 1
+      bv.flinch = 1
+    } else {
+      this.roarBossId = bossId
+    }
+    const color = bv ? bv.color : '#ffd9a0'
+    // Seen from the board: the boss is mostly above the top rim, so the
+    // shockwave's origin sits on its lowest visible row.
+    const oy = Math.max(y, 0.4)
+    this.vfx.ring(x, oy, ROAR_R0, ROAR_R1, ROAR_LIFE, '#ffffff', 0.18)
+    this.vfx.ring(x, oy, ROAR_R0 * 0.8, ROAR_R1 * 0.7, ROAR_LIFE * 0.85, '#ffd9a0', 0.26)
+    this.vfx.ring(x, oy, 0.4, 3.4, 0.5, color, 0.3)
+    this.vfx.blast(x, oy, 2.6, '#ffe6b0', 0.55)
+    for (let i = 0; i < ids.length; i++) {
+      const v = this.views.get(ids[i]!)
+      if (!v || v.dieAt >= 0) continue
+      const dx = v.x + v.w / 2 - x
+      const dy = v.y + v.h / 2 - oy
+      const d = Math.hypot(dx, dy) || 1
+      // The ring's radius eases out (easeOutCubic over ROAR_LIFE): the time it reaches d.
+      const k = clamp01((d - ROAR_R0) / (ROAR_R1 - ROAR_R0))
+      v.roarAt = this.time + Math.min(ROAR_MAX_DELAY, ROAR_LIFE * (1 - Math.cbrt(1 - k)))
+      v.roarHit = false
+      // Flung away from the boss, flattened toward the sides — a straight
+      // drop down the board would read as a march.
+      let bx = dx / d
+      const by = Math.max(0.12, dy / d) * 0.5
+      if (Math.abs(bx) < 0.3) bx = (v.id % 2 === 0 ? 0.55 : -0.55) + bx
+      const bl = Math.hypot(bx, by) || 1
+      v.blowX = bx / bl
+      v.blowY = by / bl
+    }
+    this.flashWhite = Math.max(this.flashWhite, 0.3)
+    this.microShake(0.14, 0.45)
+    this.bigShake('strong')
+    this.sfx.request('enrage-roar', 0.075, 0.78, 10, 600, 'boss-roar')
+  }
+
+  /** The shockwave reaches a roared walker: a white flash, dust, its coins. */
+  private roarStrike(v: MonsterView): void {
+    v.roarHit = true
+    v.flash = 1
+    const cx = v.x + v.w / 2
+    const cy = v.y + v.h / 2
+    this.vfx.burst(cx, v.y + v.h - 0.1, 6, 3, '#d8cdb8', 0.1, 0.4, 2)
+    if (v.holdCoins > 0) this.coinFx(cx, cy, v.holdCoins)
+    v.holdCoins = 0
+    this.sfx.request('dodge', 0.02, 0.8 + Math.random() * 0.3, 2, 45, 'roar-fling')
+  }
+
+  /** A roared walker's flight is over: a small poof where it ended up. */
+  private roarPoof(v: MonsterView): void {
+    this.blowAt(v, v.roarAt + BLOW_DUR)
+    const b = this.blow
+    const cx = v.x + v.w / 2 + b.x
+    const cy = v.y + v.h / 2 + b.y
+    const color = v.dieCorrupted ? '#b05cff' : v.color
+    this.vfx.burst(cx, cy, 8, 3.5, color, 0.1, 0.45, 3)
+    this.vfx.burst(cx, cy, 3, 2, '#ffffff', 0.08, 0.3)
+    this.sfx.request('enemy-death', 0.025, 0.95 + Math.random() * 0.25, 3, 70)
+  }
+
+  /** Where a roared walker is drawn at renderer time `t` → `this.blow` (cells
+   *  offset from its footprint, scale, spin, alpha). Reduced motion: no
+   *  flight, no spin — it flashes and fades where it stood. */
+  private blowAt(v: MonsterView, t: number): void {
+    const b = this.blow
+    const u = t > v.roarAt ? clamp01((t - v.roarAt) / BLOW_DUR) : 0
+    b.a = u < 0.5 ? 1 : 1 - (u - 0.5) / 0.5
+    if (this.reducedMotion) {
+      b.x = b.y = b.r = 0
+      b.s = 1 - 0.15 * u
+      return
+    }
+    const e = 1 - (1 - u) * (1 - u) * (1 - u)
+    b.x = v.blowX * BLOW_DIST * e
+    b.y = v.blowY * BLOW_DIST * e - Math.sin(Math.PI * Math.min(1, u * 1.4)) * 0.55
+    b.s = 1 - 0.5 * u
+    b.r = (v.blowX >= 0 ? 1 : -1) * u * u * 2.6
+  }
+
+  private drawBlown(ctx: CanvasRenderingContext2D, v: MonsterView, bake: MonsterBake, t: number): void {
+    const l = this.layout
+    const c = l.cell
+    this.blowAt(v, t)
+    const b = this.blow
+    if (b.a <= 0.01) return
+    // Waiting for the shockwave: it trembles.
+    const shiver = t < v.roarAt && !this.reducedMotion ? Math.sin(t * 55 + v.phase) * 0.035 : 0
+    const dw = bake.dw * c * v.scale * b.s
+    const dh = bake.dh * c * v.scale * b.s
+    const cx = l.ox + (v.x + v.w / 2 + b.x + shiver) * c
+    const cy = l.oy + (v.y + v.h - 0.06 - (bake.dh * v.scale) / 2 + b.y) * c
+    ctx.save()
+    ctx.translate(cx, cy)
+    if (b.r !== 0) ctx.rotate(b.r)
+    ctx.globalAlpha = b.a
+    ctx.drawImage(bake.base, -dw / 2, -dh / 2, dw, dh)
+    const white = Math.max(v.flash * 0.9, t >= v.roarAt ? 0.35 : 0)
+    if (white > 0.01) {
+      ctx.globalAlpha = b.a * clamp01(white)
+      ctx.drawImage(bake.white, -dw / 2, -dh / 2, dw, dh)
+    }
+    ctx.restore()
+  }
+
+  // ─── The line: skulls, the overrun demo ────────────────────────────────────
+  /**
+   * A small skull glyph at both ends of the line the monsters must not cross
+   * (clear of the launcher at its outermost spot, and of the pips, which sit
+   * on the monsters' shoulders a row up). Dim bone always; lit red — pulsing,
+   * steady under reduced motion — while any monster wears a '1' pip. `onTop`:
+   * the overrun demo's flash draws them again, big, over everything.
+   */
+  private drawLineSkulls(ctx: CanvasRenderingContext2D, t: number, onTop: boolean): void {
+    const bone = this.skullBone
+    const red = this.skullRed
+    if (!bone || !red) return
+    const l = this.layout
+    const c = l.cell
+    const flash = this.skullFlash
+    if (onTop && flash <= 0.01) return
+    const lit = onTop ? 0 : this.skullLit
+    const pulse = this.reducedMotion ? 1 : 0.5 + 0.5 * Math.sin(t * 7)
+    const grow = onTop ? 1 + 1.3 * flash : 1 + 0.1 * lit * pulse
+    const size = c * SKULL_SIZE * grow
+    // Resting: just above the line. Flashing big: in the lane UNDER the line,
+    // so it never covers a monster (or its plate) still standing above it.
+    const y = onTop ? l.oy + ROWS * c + size / 2 + c * 0.02 : l.oy + (ROWS - SKULL_LIFT) * c
+    const inset = Math.max(SKULL_INSET * c, size / 2 + 1)
+    const yieldK = onTop ? 1 : 1 - clamp01(flash * 1.6)
+    if (yieldK <= 0.01) return
+    for (let side = 0; side < 2; side++) {
+      const x = side === 0 ? l.ox + inset : l.ox + COLS * c - inset
+      if (onTop) {
+        ctx.globalCompositeOperation = 'lighter'
+        ctx.globalAlpha = 0.8 * flash
+        const g = size * 0.8
+        ctx.drawImage(this.vfx.dot('#ff2a3a'), x - g, y - g, g * 2, g * 2)
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.globalAlpha = clamp01(flash * 1.6)
+        ctx.drawImage(red, x - size / 2, y - size / 2, size, size)
+        continue
+      }
+      if (lit > 0.01) {
+        ctx.globalCompositeOperation = 'lighter'
+        ctx.globalAlpha = lit * (0.3 + 0.3 * pulse) * yieldK
+        ctx.drawImage(this.vfx.dot('#ff2a3a'), x - size, y - size, size * 2, size * 2)
+        ctx.globalCompositeOperation = 'source-over'
+      }
+      ctx.globalAlpha = 0.34 * (1 - lit) * yieldK
+      if (ctx.globalAlpha > 0.01) ctx.drawImage(bone, x - size / 2, y - size / 2, size, size)
+      if (lit > 0.01) {
+        ctx.globalAlpha = lit * (0.72 + 0.28 * pulse) * yieldK
+        ctx.drawImage(red, x - size / 2, y - size / 2, size, size)
+      }
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** The overrun demo's moment: the line flashes red, the skulls flash big, and
+   *  a big red skull blooms under the line where the ghost crossed — all of
+   *  it below the line, so the real monster above stays in plain view. */
+  private drawLineFlash(ctx: CanvasRenderingContext2D, t: number): void {
+    const l = this.layout
+    const c = l.cell
+    const ly = l.oy + ROWS * c
+    const f = this.lineFlash
+    if (f > 0.01) {
+      ctx.globalCompositeOperation = 'lighter'
+      ctx.globalAlpha = 0.7 * f
+      ctx.drawImage(this.vfx.dot('#ff2a3a'), l.ox - c * 0.5, ly - c * 0.6, (COLS + 1) * c, c * 1.2)
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.globalAlpha = clamp01(f * 1.3)
+      ctx.fillStyle = '#ff3848'
+      const hh = 2 + 4 * f
+      ctx.fillRect(l.ox, ly - hh / 2, COLS * c, hh)
+      ctx.globalAlpha = 1
+    }
+    this.drawLineSkulls(ctx, t, true)
+    const k = this.crossSkull
+    const red = this.skullRed
+    if (k > 0.01 && red) {
+      const size = c * SKULL_SIZE * (2.2 + (this.reducedMotion ? 0 : 0.5 * k))
+      const x = Math.max(l.ox + size / 2, Math.min(l.ox + COLS * c - size / 2, l.ox + this.crossX * c))
+      const y = ly + size / 2 + c * 0.02
+      ctx.globalCompositeOperation = 'lighter'
+      ctx.globalAlpha = 0.7 * k
+      const g = size * 0.8
+      ctx.drawImage(this.vfx.dot('#ff2a3a'), x - g, y - g, g * 2, g * 2)
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.globalAlpha = clamp01(k * 1.5)
+      ctx.drawImage(red, x - size / 2, y - size / 2, size, size)
+      ctx.globalAlpha = 1
+    }
+  }
+
+  /** The ghost's top row (+ its hop lift) at demo time → ghostY / ghostLift. */
+  private ghostPos(d: OverrunGhost): void {
+    this.ghostLift = 0
+    if (d.reduced) {
+      this.ghostY = d.y1
+      return
+    }
+    const tw = d.t - d.walkAt
+    if (tw <= 0) {
+      this.ghostY = d.y0
+      return
+    }
+    if (tw >= d.walkDur) {
+      this.ghostY = d.y1
+      return
+    }
+    const stepDur = d.walkDur / d.hops
+    const i = Math.min(d.hops - 1, Math.floor(tw / stepDur))
+    const u = clamp01((tw - i * stepDur) / stepDur)
+    const e = u * u * (3 - 2 * u)
+    this.ghostY = d.y0 + ((i + e) * (d.y1 - d.y0)) / d.hops
+    this.ghostLift = Math.sin(Math.PI * u) * 0.16
+  }
+
+  private updateDemo(dt: number, s: BoardState): void {
+    const d = this.demo
+    if (!d.on) return
+    d.t += dt
+    if (d.stopAt < 0 && (s.phase !== 'aim' || this.aimArmed)) d.stopAt = d.t
+    if (d.stopAt >= 0) {
+      this.demoCut = true
+      if (d.t >= d.stopAt + DEMO_STOP) d.on = false
+      return
+    }
+    if (d.t >= d.dur) {
+      d.on = false
+      return
+    }
+    if (!d.flashed) {
+      this.ghostPos(d)
+      if (d.reduced ? d.t >= DEMO_IN_STILL : this.ghostY + d.h >= ROWS + DEMO_FLASH_PAST) {
+        // Across the line: this is the loss.
+        d.flashed = true
+        this.lineFlash = 1
+        this.skullFlash = 1
+        this.crossSkull = 1
+        this.crossX = d.x + d.w / 2
+        this.vfx.burst(this.crossX, ROWS, 12, 3.5, '#ff3848', 0.11, 0.5, 0, true)
+        this.sfx.request('overrun', 0.045, 1.1, 8, 800, 'overrun-demo')
+      }
+    }
+    if (!d.dissolved && d.t >= d.dissolveAt) {
+      d.dissolved = true
+      this.ghostPos(d)
+      const cx = d.x + d.w / 2
+      const cy = this.ghostY + d.h / 2
+      for (let i = 0; i < 10; i++) {
+        this.vfx.spark(cx + (Math.random() - 0.5) * d.w * 0.8, cy + (Math.random() - 0.5) * d.h * 0.8,
+          (Math.random() - 0.5) * 0.6, -1.2 - Math.random() * 1.2, 0.6, 0.1, '#e8f0ff', -0.4, 0.96)
+      }
+    }
+  }
+
+  /** The pale ghost (its own sprite, ~55% alpha + its white silhouette). */
+  private drawOverrunGhost(ctx: CanvasRenderingContext2D): void {
+    const d = this.demo
+    const bake = d.bake
+    if (!d.on || !bake) return
+    let a = clamp01(d.t / (d.reduced ? DEMO_IN_STILL : DEMO_IN))
+    if (d.t > d.dissolveAt) a *= 1 - clamp01((d.t - d.dissolveAt) / DEMO_OUT)
+    if (d.stopAt >= 0) a *= 1 - clamp01((d.t - d.stopAt) / DEMO_STOP)
+    if (a <= 0.01) return
+    this.ghostPos(d)
+    const l = this.layout
+    const c = l.cell
+    const grow = d.t > d.dissolveAt ? 1 + 0.22 * clamp01((d.t - d.dissolveAt) / DEMO_OUT) : 1
+    const dw = bake.dw * c * d.scale * grow
+    const dh = bake.dh * c * d.scale * grow
+    const cx = l.ox + (d.x + d.w / 2) * c
+    const by = l.oy + (this.ghostY + d.h - 0.06 - this.ghostLift) * c
+    // The real monster stays drawn in place: the ghost only shows below its
+    // footprint, stepping out from under it.
+    const top = l.oy + (d.y0 + d.h) * c
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(l.ox, top, COLS * c, l.by + l.bh - top)
+    ctx.clip()
+    ctx.globalCompositeOperation = 'lighter'
+    ctx.globalAlpha = 0.28 * a
+    const gr = Math.max(dw, dh) * 0.75
+    ctx.drawImage(this.vfx.dot('#dfe8ff'), cx - gr, by - dh / 2 - gr, gr * 2, gr * 2)
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.globalAlpha = 0.55 * a
+    ctx.drawImage(bake.base, cx - dw / 2, by - dh, dw, dh)
+    ctx.globalAlpha = 0.5 * a
+    ctx.drawImage(bake.white, cx - dw / 2, by - dh, dw, dh)
+    ctx.restore()
   }
 
   /** Start loading every walker unlocked by `row` + 3, so a new kind's first
@@ -2113,6 +2910,18 @@ export class BoardRenderer {
 
   private killFx(id: number, kind: MonsterKind, bossKind: BossKind | undefined, corrupted: boolean, x: number, y: number): void {
     const v = this.views.get(id)
+    // Roared away (the first boss's arrival): flung off when the shockwave
+    // reaches it — never the first-session kill hold, so ~10 kills at once
+    // neither stack nor stall. Its coins (next in this burst) leave on the strike.
+    if (v && v.roarAt >= 0 && v.dieAt < 0) {
+      v.dieAt = v.roarAt + BLOW_DUR
+      v.dieKind = kind
+      v.dieCorrupted = corrupted
+      v.holdAt = -1
+      v.holdCoins = 0
+      this.heldKill = v
+      return
+    }
     // Engine kills are instant; a meteor kill (Meteor skill, meteor/revive continue)
     // waits on screen for its meteor so the rock visibly does it.
     if (v && v.bake && v.dieAt < 0) {
@@ -2129,7 +2938,34 @@ export class BoardRenderer {
         return
       }
     }
+    // First session: hold the kill so it visibly registers (bosses have their
+    // own set piece — bossDefeated — and are never held).
+    if (v && v.dieAt < 0 && kind !== 'boss' && this.engine?.state.config.ftue) {
+      v.dieAt = this.time + KILL_HOLD
+      v.dieKind = kind
+      v.dieCorrupted = corrupted
+      v.holdAt = this.time
+      v.holdHp = Math.max(0, v.hpShown)
+      v.holdCoins = 0
+      v.flash = 1
+      v.flinch = 1
+      this.heldKill = v
+      return
+    }
     this.deathFx(v ?? null, kind, bossKind, corrupted, x, y)
+  }
+
+  /** Coins earned at board point (x, y): fly them to the wallet (or float a coin up). */
+  private coinFx(x: number, y: number, amount: number): void {
+    const l = this.layout
+    if (!this.hooks.coins(l.ox + x * l.cell, l.oy + y * l.cell, amount)) {
+      if (this.coin.ready) {
+        const b = this.coin.box
+        this.vfx.floater(this.coin.img, b.x, b.y, b.w, b.h, x, y, 0.45, 0.7, 0.9)
+      }
+    }
+    this.vfx.burst(x, y, 4, 2.5, '#ffd23c', 0.08, 0.5)
+    this.sfx.request('coin-pickup', 0.02, 1 + Math.random() * 0.2, 1, 90)
   }
 
   private deathFx(v: MonsterView | null, kind: MonsterKind, bossKind: BossKind | undefined, corrupted: boolean, x: number, y: number): void {
@@ -2294,6 +3130,93 @@ export class BoardRenderer {
     return cv
   }
 
+  /** Countdown pip disc: a solid, dark-rimmed coin the digit sits on. */
+  private bakePip(px: number, fill: string, rim: string): HTMLCanvasElement {
+    const s = Math.max(10, px)
+    const cv = createCanvas(s, s)
+    const g = ctx2d(cv)
+    const c = s / 2
+    const r = c - Math.max(1, s * 0.06)
+    const body = g.createRadialGradient(c - r * 0.3, c - r * 0.35, r * 0.1, c, c, r)
+    body.addColorStop(0, rgba('#ffffff', 0.55))
+    body.addColorStop(0.35, fill)
+    body.addColorStop(1, fill)
+    g.fillStyle = body
+    g.beginPath()
+    g.arc(c, c, r, 0, TAU)
+    g.fill()
+    g.lineWidth = Math.max(1.5, s * 0.1)
+    g.strokeStyle = rim
+    g.stroke()
+    g.lineWidth = Math.max(1, s * 0.04)
+    g.strokeStyle = 'rgba(255,255,255,0.85)'
+    g.beginPath()
+    g.arc(c, c, r - s * 0.07, 0, TAU)
+    g.stroke()
+    return cv
+  }
+
+  /** The line's skull glyph: cranium + jaw in `bone`, dark eye sockets, nose
+   *  and teeth in `socket`, a dark outline (drawn in a 100-unit box). */
+  private bakeSkull(px: number, bone: string, socket: string, outline: string): HTMLCanvasElement {
+    const s = Math.max(12, px)
+    const cv = createCanvas(s, s)
+    const g = ctx2d(cv)
+    const k = s / 100
+    g.setTransform(k, 0, 0, k, 0, 0)
+    const shape = (): void => {
+      g.beginPath()
+      g.arc(50, 42, 33, 0, TAU)
+      // Jaw: a rounded rect, clockwise like the cranium so the fill is the union.
+      const x = 31
+      const y = 56
+      const w = 38
+      const h = 32
+      const r = 9
+      g.moveTo(x + r, y)
+      g.arcTo(x + w, y, x + w, y + h, r)
+      g.arcTo(x + w, y + h, x, y + h, r)
+      g.arcTo(x, y + h, x, y, r)
+      g.arcTo(x, y, x + w, y, r)
+      g.closePath()
+    }
+    g.lineJoin = 'round'
+    g.strokeStyle = outline
+    g.lineWidth = 9
+    shape()
+    g.stroke()
+    g.fillStyle = bone
+    shape()
+    g.fill()
+    g.fillStyle = socket
+    g.beginPath()
+    g.ellipse(37, 45, 10, 11.5, 0.15, 0, TAU)
+    g.ellipse(63, 45, 10, 11.5, -0.15, 0, TAU)
+    g.fill()
+    g.beginPath()
+    g.moveTo(50, 57)
+    g.lineTo(44.5, 67)
+    g.lineTo(55.5, 67)
+    g.closePath()
+    g.fill()
+    g.strokeStyle = socket
+    g.lineWidth = 3.5
+    g.lineCap = 'round'
+    g.beginPath()
+    for (const tx of [41, 50, 59]) {
+      g.moveTo(tx, 75)
+      g.lineTo(tx, 85)
+    }
+    g.stroke()
+    // A bone highlight on the crown.
+    g.strokeStyle = 'rgba(255,255,255,0.45)'
+    g.lineWidth = 3
+    g.beginPath()
+    g.arc(50, 42, 26, Math.PI * 1.15, Math.PI * 1.55)
+    g.stroke()
+    return cv
+  }
+
   private bakeBubble(px: number, rim: string, fill: string): HTMLCanvasElement {
     const s = Math.max(8, px)
     const cv = createCanvas(s, s)
@@ -2314,6 +3237,58 @@ export class BoardRenderer {
     g.beginPath()
     g.ellipse(c - r * 0.42, c - r * 0.48, r * 0.22, r * 0.12, -0.7, 0, TAU)
     g.fill()
+    return cv
+  }
+
+  /** A white pointing hand, tilted up-left, fingertip at (0.28, 0.1) of the bake. */
+  private bakeTapHand(px: number): HTMLCanvasElement {
+    const s = Math.max(12, px)
+    const cv = createCanvas(s, s)
+    const g = ctx2d(cv)
+    // Drawn in a 100-unit box pointing straight up (fingertip at 50,8), then
+    // turned round the fingertip.
+    const k = s / 100
+    g.setTransform(k, 0, 0, k, 0, 0)
+    g.translate(28, 10)
+    g.rotate((-25 * Math.PI) / 180)
+    g.translate(-50, -8)
+    // All subpaths clockwise, so the fill is their union.
+    const rrect = (x: number, y: number, w: number, h: number, r: number): void => {
+      g.moveTo(x + r, y)
+      g.arcTo(x + w, y, x + w, y + h, r)
+      g.arcTo(x + w, y + h, x, y + h, r)
+      g.arcTo(x, y + h, x, y, r)
+      g.arcTo(x, y, x + w, y, r)
+      g.closePath()
+    }
+    const shape = (): void => {
+      g.beginPath()
+      rrect(42, 8, 16, 54, 8)
+      rrect(30, 46, 50, 48, 16)
+      g.moveTo(75, 52)
+      g.arc(66, 52, 9, 0, TAU)
+      g.moveTo(84, 59)
+      g.arc(76, 59, 8, 0, TAU)
+      g.moveTo(40, 66)
+      g.ellipse(31, 66, 9, 15, -0.5, 0, TAU)
+    }
+    g.lineJoin = 'round'
+    g.strokeStyle = 'rgba(14,18,42,0.95)'
+    g.lineWidth = 9
+    shape()
+    g.stroke()
+    g.fillStyle = '#ffffff'
+    shape()
+    g.fill()
+    // Knuckle creases, so it reads as a hand and not a blob.
+    g.strokeStyle = 'rgba(14,18,42,0.55)'
+    g.lineWidth = 3
+    g.beginPath()
+    g.moveTo(58, 50)
+    g.lineTo(58, 64)
+    g.moveTo(71, 57)
+    g.lineTo(71, 68)
+    g.stroke()
     return cv
   }
 

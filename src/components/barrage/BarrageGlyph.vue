@@ -9,8 +9,10 @@
  */
 export type GlyphName =
   | 'damage' | 'capacity' | 'speed' | 'luck' | 'bounty'
-  | 'recall' | 'fast' | 'codex' | 'collection' | 'daily' | 'supply' | 'gear'
-  | 'shield' | 'revive' | 'warcry' | 'ball' | 'flag' | 'skull' | 'lock' | 'check' | 'star'
+  | 'skip' | 'fast' | 'codex' | 'collection' | 'daily' | 'supply' | 'gear'
+  | 'shield' | 'revive' | 'warcry' | 'ball' | 'flag' | 'skull' | 'lock' | 'check' | 'star' | 'clock'
+  // Ball abilities (the codex peek after a discovery) — one per BallAbility.
+  | 'burn' | 'knockback' | 'pierce' | 'freeze' | 'splash' | 'crush' | 'chain' | 'poison' | 'midas' | 'eruption'
 
 defineProps<{ name: GlyphName }>()
 </script>
@@ -42,11 +44,12 @@ defineProps<{ name: GlyphName }>()
       ellipse(cx="12" cy="6.5" rx="7" ry="3" fill="currentColor" fill-opacity="0.25")
       path(d="M5 6.5 V11 C5 12.7 8.1 14 12 14 C15.9 14 19 12.7 19 11 V6.5")
       path(d="M5 11 V15.5 C5 17.2 8.1 18.5 12 18.5 C15.9 18.5 19 17.2 19 15.5 V11")
-    //- Recall — balls drop straight back to the launcher line.
-    template(v-else-if="name === 'recall'")
-      path(d="M12 3 V15")
-      path(d="M6.5 10 L12 15.5 L17.5 10")
-      path(d="M4 20.5 H20")
+    //- Skip to the end (recall the volley) — the media "next" mark. The old
+    //- down-arrow-onto-a-line read as "confirm / drop" in the play-test.
+    template(v-else-if="name === 'skip'")
+      path(d="M3.5 5.5 L11 12 L3.5 18.5 Z" fill="currentColor")
+      path(d="M11.5 5.5 L19 12 L11.5 18.5 Z" fill="currentColor")
+      path(d="M20.5 5 V19" stroke-width="2.6")
     //- Fast-forward.
     template(v-else-if="name === 'fast'")
       path(d="M3 6 L11 12 L3 18 Z" fill="currentColor")
@@ -107,4 +110,45 @@ defineProps<{ name: GlyphName }>()
       path(d="M4.5 12.5 L9.5 17.5 L19.5 6.5")
     template(v-else-if="name === 'star'")
       path(d="M12 2.8 L14.8 8.6 L21.2 9.4 L16.5 13.8 L17.7 20.2 L12 17.1 L6.3 20.2 L7.5 13.8 L2.8 9.4 L9.2 8.6 Z" fill="currentColor" fill-opacity="0.3")
+    //- A clock face (the treasure chest's countdown).
+    template(v-else-if="name === 'clock'")
+      circle(cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.2")
+      path(d="M12 7 V12 L15.5 14.5")
+    //- ── Ball abilities ──
+    template(v-else-if="name === 'burn'")
+      path(d="M12 2.5 C14.5 6.5 18.5 9 18.5 14 A6.5 6.5 0 0 1 5.5 14 C5.5 10.5 8 9 8.5 6 C10 8 11.2 8 12 2.5 Z" fill="currentColor" fill-opacity="0.25")
+      path(d="M12 12 C13.5 13.5 14.5 15 14.5 16.5 A2.5 2.5 0 0 1 9.5 16.5 C9.5 15 10.5 13.8 12 12 Z")
+    template(v-else-if="name === 'knockback'")
+      rect(x="7.5" y="2.5" width="9" height="6" rx="1.5" fill="currentColor" fill-opacity="0.25")
+      path(d="M12 21.5 V11.5")
+      path(d="M7.5 15.5 L12 11 L16.5 15.5")
+    template(v-else-if="name === 'pierce'")
+      rect(x="9" y="6.5" width="6" height="11" rx="1.5" fill="currentColor" fill-opacity="0.25")
+      path(d="M2.5 12 H21")
+      path(d="M17.5 8.5 L21 12 L17.5 15.5")
+    template(v-else-if="name === 'freeze'")
+      path(d="M12 2.5 V21.5 M3.8 7.3 L20.2 16.7 M3.8 16.7 L20.2 7.3")
+      path(d="M9.5 4 L12 6.5 L14.5 4 M9.5 20 L12 17.5 L14.5 20")
+    template(v-else-if="name === 'splash'")
+      circle(cx="12" cy="12" r="3.5" fill="currentColor" fill-opacity="0.3")
+      circle(cx="12" cy="3.8" r="1.6")
+      circle(cx="12" cy="20.2" r="1.6")
+      circle(cx="3.8" cy="12" r="1.6")
+      circle(cx="20.2" cy="12" r="1.6")
+    template(v-else-if="name === 'crush'")
+      path(d="M13.5 2.5 L21.5 10.5 L17.5 14.5 L9.5 6.5 Z" fill="currentColor" fill-opacity="0.3")
+      path(d="M12.5 9.5 L3.5 18.5 L5.5 20.5 L14.5 11.5")
+    template(v-else-if="name === 'chain'")
+      path(d="M13.5 2.5 L5 13.5 H11 L10 21.5 L19 10 H13 Z" fill="currentColor" fill-opacity="0.25")
+    template(v-else-if="name === 'poison'")
+      path(d="M12 2.5 C12 2.5 5 10.5 5 15 A7 7 0 0 0 19 15 C19 10.5 12 2.5 12 2.5 Z" fill="currentColor" fill-opacity="0.25")
+      circle(cx="10" cy="15" r="1.5")
+      circle(cx="14" cy="12" r="1")
+    template(v-else-if="name === 'midas'")
+      circle(cx="12" cy="12" r="8.5" fill="currentColor" fill-opacity="0.25")
+      circle(cx="12" cy="12" r="5")
+      path(d="M12 9.5 V14.5")
+    template(v-else-if="name === 'eruption'")
+      path(d="M2.5 21 L8.5 11 H15.5 L21.5 21 Z" fill="currentColor" fill-opacity="0.25")
+      path(d="M12 9 V3 M8.5 8 L6 4.5 M15.5 8 L18 4.5")
 </template>

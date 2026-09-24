@@ -64,7 +64,9 @@ export const EB_MONSTERS_SEEN_KEY = 'eb_ui_monsters_seen'
 // The wordless coach (`use/useCoach.ts`): `{ v: 1, shown: Record<LessonId,
 // number>, kinds: Record<tagKey, number> }` — how often each lesson has been
 // shown, and for how many aim phases each monster kind has worn its in-world
-// rule badge (a kind stops being tagged at TAG_TURNS).
+// rule badge (a kind stops being tagged at TAG_TURNS). `shown` also counts two
+// non-lesson beats: `arrows` (the gold rune arrows of the upgrade funnel, capped)
+// and `mergeBox` (paused merge lightboxes — the first three merges are shown).
 export const EB_COACH_KEY = 'eb_coach'
 // Earned HUD features (`use/useFeatureUnlocks.ts`): `{ v: 1, n, losses, seen }`
 // — how many steps of the unlock ladder are open, lifetime endless losses (the

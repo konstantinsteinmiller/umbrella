@@ -16,6 +16,9 @@
  * 30 % and a tick where they start — so "below here it charges" is readable
  * before it happens, without a word (the board adds a double chevron under an
  * enraged boss).
+ *
+ * The ENRAGED pill sits BESIDE the framed bar, never inside it: play-test run 2
+ * read the pill at the end of the frame as lying on top of the HP bar.
  */
 import { computed, ref, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -61,30 +64,30 @@ const sizeClass = computed(() => [
 
 <template lang="pug">
   Transition(name="boss-bar")
-    div.boss-bar.flex.items-center.gap-1_5.pointer-events-none(
+    div.boss-bar-row.flex.items-center.pointer-events-none(
       v-if="boss"
-      :class="[sizeClass, { 'is-enraged': boss.enraged }]"
+      :class="sizeClass"
       role="status"
       :aria-label="aria"
     )
-      div.boss-bar__face.shrink-0
-        img.w-full.h-full.object-contain(:src="bossSrc(boss.bossKind)" alt="" draggable="false")
-      //- Inline: one row — name, bar, enrage pill.
-      template(v-if="inline")
-        span.boss-bar__name.game-text.font-black.uppercase.truncate.shrink(class="max-w-[45%]") {{ name }}
-        div.boss-bar__track.relative.flex-1.min-w-6.overflow-hidden
-          div.boss-bar__lag.absolute.inset-y-0.left-0(:style="{ width: (lag * 100) + '%' }")
-          div.boss-bar__fill.absolute.inset-y-0.left-0(:style="{ width: (frac * 100) + '%' }")
-          div.boss-bar__rage.absolute.inset-y-0.left-0(v-if="!boss.enraged" :style="rageStyle")
-        span.boss-bar__enraged.game-text.font-black.uppercase.shrink-0(v-if="boss.enraged") {{ t('barrage.boss.enraged') }}
-      div.flex.flex-col.flex-1.min-w-0.gap-0_5(v-else)
-        div.flex.items-center.justify-between.gap-1.min-w-0
+      div.boss-bar.flex.items-center.gap-1_5.min-w-0(:class="{ 'is-enraged': boss.enraged }")
+        div.boss-bar__face.shrink-0
+          img.w-full.h-full.object-contain(:src="bossSrc(boss.bossKind)" alt="" draggable="false")
+        //- Inline: one row — name, bar.
+        template(v-if="inline")
+          span.boss-bar__name.game-text.font-black.uppercase.truncate.shrink(class="max-w-[45%]") {{ name }}
+          div.boss-bar__track.relative.flex-1.min-w-6.overflow-hidden
+            div.boss-bar__lag.absolute.inset-y-0.left-0(:style="{ width: (lag * 100) + '%' }")
+            div.boss-bar__fill.absolute.inset-y-0.left-0(:style="{ width: (frac * 100) + '%' }")
+            div.boss-bar__rage.absolute.inset-y-0.left-0(v-if="!boss.enraged" :style="rageStyle")
+        div.flex.flex-col.flex-1.min-w-0.gap-0_5(v-else)
           span.boss-bar__name.game-text.font-black.uppercase.truncate {{ name }}
-          span.boss-bar__enraged.game-text.font-black.uppercase.shrink-0(v-if="boss.enraged") {{ t('barrage.boss.enraged') }}
-        div.boss-bar__track.relative.w-full.overflow-hidden
-          div.boss-bar__lag.absolute.inset-y-0.left-0(:style="{ width: (lag * 100) + '%' }")
-          div.boss-bar__fill.absolute.inset-y-0.left-0(:style="{ width: (frac * 100) + '%' }")
-          div.boss-bar__rage.absolute.inset-y-0.left-0(v-if="!boss.enraged" :style="rageStyle")
+          div.boss-bar__track.relative.w-full.overflow-hidden
+            div.boss-bar__lag.absolute.inset-y-0.left-0(:style="{ width: (lag * 100) + '%' }")
+            div.boss-bar__fill.absolute.inset-y-0.left-0(:style="{ width: (frac * 100) + '%' }")
+            div.boss-bar__rage.absolute.inset-y-0.left-0(v-if="!boss.enraged" :style="rageStyle")
+      //- Enraged: beside the frame, never over the HP track.
+      span.boss-bar__enraged.game-text.font-black.uppercase.shrink-0(v-if="boss.enraged") {{ t('barrage.boss.enraged') }}
 </template>
 
 <style scoped lang="sass">
@@ -94,8 +97,11 @@ const sizeClass = computed(() => [
   gap: 2px
 // Slim on purpose: it hangs over row 0, where the boss itself enters — the
 // canvas draws the boss's HP number there and the bar must not hide it.
-.boss-bar
+.boss-bar-row
   width: min(80%, 320px)
+  gap: 5px
+.boss-bar
+  flex: 1 1 0
   padding: 2px 7px 3px 2px
   border-radius: 10px
   background: linear-gradient(180deg, rgba(40, 10, 16, 0.86), rgba(18, 6, 12, 0.86))
@@ -145,8 +151,14 @@ const sizeClass = computed(() => [
   .boss-bar__fill
     background: linear-gradient(180deg, #ff4a4a, #a80d0d)
 
-.boss-bar--compact
+// The pill's own frame, so it reads as a label of the bar, not part of it.
+.boss-bar-row .boss-bar__enraged
+  border: 1.5px solid #0f1a30
+  box-shadow: 0 0 0 1px rgba(255, 90, 60, 0.7)
+
+.boss-bar--compact .boss-bar
   padding: 2px 6px 2px 2px
+.boss-bar--compact
   .boss-bar__face
     width: 22px
     height: 22px
@@ -154,8 +166,9 @@ const sizeClass = computed(() => [
     font-size: 10px
   .boss-bar__track
     height: 6px
-.boss-bar--roomy
+.boss-bar-row.boss-bar--roomy
   width: min(80%, 400px)
+.boss-bar--roomy
   .boss-bar__face
     width: 34px
     height: 34px
@@ -176,8 +189,11 @@ const sizeClass = computed(() => [
     box-shadow: 0 0 0 2px rgba(255, 90, 60, 1), 0 0 20px rgba(255, 40, 20, 0.85)
 
 // The top-bar strip: fills its line, no drop shadow, a thin frame.
-.boss-bar.boss-bar--inline
+.boss-bar-row.boss-bar--inline
   width: 100%
+  height: 100%
+  gap: 4px
+.boss-bar--inline .boss-bar
   height: 100%
   gap: 5px
   padding: 0 6px 0 1px
@@ -192,10 +208,10 @@ const sizeClass = computed(() => [
     font-size: 10px
   .boss-bar__track
     height: 6px
-  .boss-bar__enraged
-    font-size: 8px
-    padding: 1px 4px
-.boss-bar--inline.boss-bar--roomy
+.boss-bar--inline .boss-bar__enraged
+  font-size: 8px
+  padding: 1px 4px
+.boss-bar-row.boss-bar--inline.boss-bar--roomy
   .boss-bar__name
     font-size: 13px
   .boss-bar__track

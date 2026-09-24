@@ -32,6 +32,10 @@ interface Blast { on: boolean; x: number; y: number; r: number; t: number; life:
 interface Meteor { on: boolean; x: number; y: number; t: number; delay: number; dur: number; landed: boolean; big: boolean }
 export interface DmgNum {
   on: boolean; text: string; style: NumStyle; x: number; y: number; t: number; life: number; size: number; value: number; key: number
+  /** 0 ordinary; 1 a boss's number — drawn after (over) every ordinary one, never dropped. */
+  layer: number
+  /** Rise multiplier (1 = the MIW rise; a boss's big first-hit number rises less). */
+  riseK: number
   /** Baked label (re-baked only when the text changes) — one drawImage per number per frame. */
   cv: HTMLCanvasElement | null; cvText: string; cvGen: number; cvW: number; cvH: number; cvSize: number
 }
@@ -59,7 +63,7 @@ export class BoardVfx {
   readonly blasts: Blast[] = mk(16, () => ({ on: false, x: 0, y: 0, r: 1, t: 0, life: 0.4, img: null }))
   readonly meteors: Meteor[] = mk(60, () => ({ on: false, x: 0, y: 0, t: 0, delay: 0, dur: 0.45, landed: false, big: false }))
   readonly nums: DmgNum[] = mk(56, () => ({
-    on: false, text: '', style: 'dmg', x: 0, y: 0, t: 0, life: 0.75, size: 14, value: 0, key: -1,
+    on: false, text: '', style: 'dmg', x: 0, y: 0, t: 0, life: 0.75, size: 14, value: 0, key: -1, layer: 0, riseK: 1,
     cv: null, cvText: '', cvGen: -1, cvW: 0, cvH: 0, cvSize: 0
   }))
   /** Live spark count — emitters thin out when the board is already busy. */
@@ -212,15 +216,34 @@ export class BoardVfx {
     }
   }
 
-  /** New number, or null when the pool is full (dropped). */
-  num(text: string, style: NumStyle, x: number, y: number, size: number, value: number, key = -1): DmgNum | null {
+  /** New number, or null when the pool is full (dropped). `top` (a boss's
+   *  number) is drawn over every ordinary number and is never dropped: with
+   *  the pool full it takes the slot of the oldest ordinary number. */
+  num(text: string, style: NumStyle, x: number, y: number, size: number, value: number, key = -1, top = false): DmgNum | null {
+    let slot: DmgNum | null = null
     for (const p of this.nums) {
       if (p.on) continue
-      p.on = true; p.text = text; p.style = style; p.x = x; p.y = y; p.t = 0
-      p.life = 0.75; p.size = size; p.value = value; p.key = key
-      return p
+      slot = p
+      break
     }
-    return null
+    if (!slot && top) {
+      let oldest = -1
+      for (const p of this.nums) {
+        if (p.layer !== 0) continue
+        const k = p.t / p.life
+        if (k > oldest) {
+          oldest = k
+          slot = p
+        }
+      }
+    }
+    if (!slot) return null
+    const p = slot
+    p.on = true; p.text = text; p.style = style; p.x = x; p.y = y; p.t = 0
+    p.life = 0.75; p.size = size; p.value = value; p.key = key
+    p.layer = top ? 1 : 0
+    p.riseK = 1
+    return p
   }
 
   floater(img: HTMLCanvasElement | HTMLImageElement, sx: number, sy: number, sw: number, sh: number, x: number, y: number, size: number, life = 0.7, rise = 0.6, spin = 0): void {
@@ -497,13 +520,19 @@ export class BoardVfx {
     ctx.globalAlpha = 1
   }
 
-  /** Layer 3 — numbers on top of everything (each a baked label: one blit per number). */
+  /** Layer 3 — numbers on top of everything (each a baked label: one blit per
+   *  number); a boss's numbers (`layer` 1) last, over every other number. */
   drawNums(ctx: CanvasRenderingContext2D, l: BoardLayout): void {
+    this.drawNumLayer(ctx, l, 0)
+    this.drawNumLayer(ctx, l, 1)
+  }
+
+  private drawNumLayer(ctx: CanvasRenderingContext2D, l: BoardLayout, layer: number): void {
     const c = l.cell
     const d = l.dpr
     const gg = glyphGen()
     for (const p of this.nums) {
-      if (!p.on) continue
+      if (!p.on || p.layer !== layer) continue
       if (p.cv === null || p.cvText !== p.text || p.cvGen !== gg || p.cvSize !== p.size) this.bakeNum(p, d, gg)
       const cv = p.cv
       if (!cv) continue
@@ -528,7 +557,7 @@ export class BoardVfx {
       const w = (p.cvW / d) * sc
       const h = (p.cvH / d) * sc
       const x = l.ox + p.x * c
-      const y = l.oy + p.y * c - rise * p.size * 1.1
+      const y = l.oy + p.y * c - rise * p.size * 1.1 * p.riseK
       ctx.drawImage(cv, 0, 0, p.cvW, p.cvH, x - w / 2, y - h / 2, w, h)
     }
     ctx.globalAlpha = 1

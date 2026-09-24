@@ -65,6 +65,7 @@ export class FakeEngine implements IBarrageEngine {
   }
 
   recall(): void { /* no-op */ }
+  tapChest(): boolean { return false }
 
   continueAfterBreach(how: 'meteor' | 'revive'): boolean {
     if (this.state.phase !== 'breach') return false

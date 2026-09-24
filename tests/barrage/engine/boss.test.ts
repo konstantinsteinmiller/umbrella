@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createEngine, createEngineAtRow, restoreEngine } from '@/barrage/engine/engine'
 import { bossBounty, defaultConfig, killCoins } from '@/barrage/engine/economy'
-import { HP_CURVE, bossForRow, monsterHp, rowHp } from '@/barrage/engine/monsters'
-import { board, mon, ofType, pass, record, turn } from './helpers'
+import { HP_CURVE, bossForRow, bossHp, monsterHp, rowHp } from '@/barrage/engine/monsters'
+import { ROWS } from '@/barrage/engine/types'
+import { board, mon, ofType, pass, pick, record, turn } from './helpers'
 
 describe('bosses', () => {
   it('row 10 spawns a 3×3 slime tower above the board (rows −2..0)', () => {
@@ -19,7 +20,17 @@ describe('bosses', () => {
     expect(boss.maxHp).toBe(Math.round(HP_CURVE.boss * rowHp(10)))
     expect(e.state.nextBossRow).toBe(20)
     expect(ofType(ev, 'rowSpawned')).toEqual([{ type: 'rowSpawned', row: 10, boss: true }])
-    // 1–3 light walkers beside it, plus the row's "+1".
+    // The FIRST boss comes alone (playtest run 2): no walkers beside it, only
+    // the row's "+1".
+    expect(e.state.monsters.filter(m => m.kind !== 'boss' && m.row === 0)).toEqual([])
+    expect(e.state.pickups.filter(p => p.kind === 'ball' && p.row === 0)).toHaveLength(1)
+  })
+
+  it('a later boss (row 20) still brings 1–3 light walkers beside it', () => {
+    const e = createEngineAtRow(defaultConfig({ seed: 8 }), 19, [1])
+    turn(e, 0.3)
+    const boss = e.state.monsters.find(m => m.id === e.state.bossId)!
+    expect(boss.bossKind).toBe('worm')
     const walkers = e.state.monsters.filter(m => m.kind !== 'boss' && m.row === 0)
     expect(walkers.length).toBeGreaterThanOrEqual(1)
     expect(walkers.length).toBeLessThanOrEqual(3)
@@ -83,6 +94,16 @@ describe('bosses', () => {
     expect(e.state.monsters.filter(m => m.kind === 'slime' && m.row >= 2)).toHaveLength(0)
   })
 
+  it('a later boss takes HP_CURVE.bossLater × the clock row after its walkers', () => {
+    const e = createEngineAtRow(defaultConfig({ seed: 8 }), 19, [1])
+    const clock = e.hpClock.hpRow
+    turn(e, 0.3)
+    const boss = e.state.monsters.find(m => m.id === e.state.bossId)!
+    expect(boss.spawnRow).toBe(20)
+    expect(boss.maxHp).toBe(bossHp(clock + 1, 20, false))
+    expect(boss.maxHp).toBe(Math.round(HP_CURVE.bossLater * rowHp(clock + 1)))
+  })
+
   it('first boss ends the FTUE script', () => {
     const e = createEngine(defaultConfig({ seed: 1, ftue: true }))
     expect(e.state.config.ftue).toBe(true)
@@ -92,5 +113,84 @@ describe('bosses', () => {
     const r = restoreEngine(snap)
     turn(r, Math.PI / 2)
     expect(r.state.config.ftue).toBe(false)
+  })
+})
+
+// Playtest run 3 ("boss-shield"): the 8–13 grunts already on the board when the
+// FIRST boss arrived shielded it for several turns ("HP bar stayed pinned at 57").
+describe('the first boss roars the stage clear', () => {
+  it('right after its bossSpawn: every walker dies (normal kill coins); pickups stay', () => {
+    const e = createEngineAtRow(defaultConfig({ seed: 5 }), 9, [1])
+    const walkers = e.state.monsters.map(m => ({ id: m.id, kind: m.kind, corrupted: m.corrupted, spawnRow: m.spawnRow! }))
+    expect(walkers.length).toBeGreaterThan(0)
+    const pickupsBefore = e.state.pickups.map(p => p.id)
+    expect(pickupsBefore.length).toBeGreaterThan(0)
+    const ev = record(e)
+    expect(pass(e)).toBe('aim') // row 10: the Slime Tower
+    const boss = e.state.monsters.find(m => m.id === e.state.bossId)!
+    expect(ofType(ev, 'bossRoar')).toEqual([
+      { type: 'bossRoar', monsterId: boss.id, ids: walkers.map(w => w.id), x: boss.col + 1.5, y: boss.row + 1.5 }
+    ])
+    const order = ev.map(x => x.type)
+    expect(order.indexOf('bossRoar')).toBe(order.indexOf('bossSpawn') + 1)
+    expect(ofType(ev, 'kill').map(k => k.monsterId)).toEqual(walkers.map(w => w.id))
+    expect(ofType(ev, 'coins').filter(c => c.source === 'kill').map(c => c.amount))
+      .toEqual(walkers.map(w => killCoins(w.spawnRow, w.kind, w.corrupted)))
+    expect(e.state.monsters.filter(m => m.kind !== 'boss')).toEqual([])
+    for (const id of pickupsBefore) expect(e.state.pickups.some(p => p.id === id)).toBe(true)
+  })
+
+  it('goes through a gem shield, never splits an imp, and leaves sludge alone', () => {
+    const gem = mon('carbuncle', 0, 5, 1e9, { shield: true })
+    const imp = mon('imp', 6, 6, 50)
+    const plusOne = pick('ball', 5, 3)
+    const sludge = { id: 90001, col: 3, row: 7, turns: 3 }
+    const e = board({ monsters: [gem, imp], pickups: [plusOne], hazards: [sludge], row: 9, nextBossRow: 10 })
+    const ev = record(e)
+    expect(pass(e)).toBe('aim')
+    expect(ofType(ev, 'bossSpawn')).toHaveLength(1)
+    expect(ofType(ev, 'bossRoar')[0]!.ids).toEqual([gem.id, imp.id])
+    expect(ofType(ev, 'split')).toEqual([])
+    expect(e.state.monsters.map(m => m.kind)).toEqual(['boss'])
+    expect(e.state.pickups.some(p => p.id === plusOne.id)).toBe(true)
+    expect(e.state.hazards.map(h => h.id)).toEqual([sludge.id])
+    // The walkers were dead before the march check: nothing breaches this turn.
+    expect(ofType(ev, 'breach')).toEqual([])
+  })
+
+  it('a walker that marched past the line as the boss arrived dies in the roar — no breach', () => {
+    const last = mon('slime', 0, ROWS - 1)
+    const e = board({ monsters: [last], row: 9, nextBossRow: 10 })
+    const ev = record(e)
+    expect(pass(e)).toBe('aim')
+    expect(ofType(ev, 'bossRoar')[0]!.ids).toEqual([last.id])
+    expect(ofType(ev, 'breach')).toEqual([])
+  })
+
+  it('the FTUE’s scripted Slime Tower roars too', () => {
+    const e = createEngine(defaultConfig({ seed: 1, ftue: true }))
+    for (let k = 0; k < 8; k++) expect(pass(e)).toBe('aim')
+    expect(e.state.row).toBe(9)
+    const walkers = e.state.monsters.map(m => m.id)
+    expect(walkers.length).toBeGreaterThan(0)
+    const ev = record(e)
+    expect(pass(e)).toBe('aim')
+    const boss = e.state.monsters.find(m => m.id === e.state.bossId)!
+    expect(boss.maxHp).toBe(bossHp(10, 10, false, true))
+    expect(ofType(ev, 'bossRoar')[0]!.ids).toEqual(walkers)
+    expect(e.state.monsters).toEqual([boss])
+  })
+
+  it('later bosses never roar — nor the row-20 boss of a checkpoint restart past row 10', () => {
+    const e = createEngineAtRow(defaultConfig({ seed: 8 }), 19, [1])
+    const walkers = e.state.monsters.map(m => m.id)
+    expect(walkers.length).toBeGreaterThan(0)
+    const ev = record(e)
+    pass(e)
+    expect(ofType(ev, 'bossSpawn')).toHaveLength(1)
+    expect(ofType(ev, 'bossRoar')).toEqual([])
+    for (const id of walkers) expect(e.state.monsters.some(m => m.id === id)).toBe(true)
+    // A walker still near the line after a later boss spawns is not cleared.
+    expect(e.state.monsters.every(m => m.row + m.h <= ROWS)).toBe(true)
   })
 })

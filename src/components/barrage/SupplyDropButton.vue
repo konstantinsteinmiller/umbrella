@@ -11,7 +11,10 @@
  *   big     — gold glow, gold "+N", a bigger bob.
  *
  * A tap opens whatever is waiting: coins fly to the wallet, a skill charge (big
- * gifts only) gets its own line.
+ * gifts only) gets its own line. A tap on a chest still filling names it
+ * (HudTip): its name, a clock with the countdown and a coin with the gift it
+ * is filling toward — play-test run 3 read the pill as "$60" and the "3:00" as
+ * nothing at all. The gift pill wears the wallet's coin, the countdown a clock.
  */
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -19,9 +22,12 @@ import useSupplyDrop from '@/barrage/state/useSupplyDrop'
 import type { SkillId } from '@/barrage/engine/types'
 import { chestSrc } from '@/barrage/art'
 import HudButton from '@/components/barrage/HudButton.vue'
+import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
+import IconCoin from '@/components/icons/IconCoin.vue'
 import useSounds from '@/use/useSound'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
 import { fmtCoins, fmtCountdown } from '@/components/barrage/barrageUi'
+import { showHudTip } from '@/components/barrage/hudTip'
 
 const props = defineProps<{ coinTarget: HTMLElement | null }>()
 
@@ -50,13 +56,32 @@ const got = ref<{ id: number; coins: number; skill: SkillId | null } | null>(nul
 let gotTimer = 0
 let seq = 0
 
+/** Still filling: name it — the chest, how long, and what for. */
+const nameIt = (el: HTMLElement | null): void => {
+  if (!el) return
+  showHudTip(el, () => {
+    const time = left.value
+    const coins = fmtCoins(chest.gifts.value.small)
+    return {
+      icon: 'chest',
+      name: t('barrageMeta.supply.title'),
+      facts: [
+        { icon: 'clock', text: time },
+        { icon: 'coin', text: t('barrageMeta.supply.gift', { n: coins }) }
+      ],
+      sr: t('barrage.supply.filling', { name: t('barrageMeta.supply.title'), n: coins, time })
+    }
+  })
+}
+
 const onClick = (ev: MouseEvent): void => {
+  const src = ev.currentTarget as HTMLElement | null
   const res = chest.claim()
   if (!res) {
-    playSound('upgrade-denied', 0.012)
+    nameIt(src)
+    playSound('anchor-swap', 0.03, 1.15)
     return
   }
-  const src = ev.currentTarget as HTMLElement | null
   if (src && props.coinTarget && res.coins > 0) {
     spawnCoinExplosion({ sourceEl: src, targetEl: props.coinTarget, count: res.stage === 'big' ? 24 : 12 })
   }
@@ -80,9 +105,14 @@ const onClick = (ev: MouseEvent): void => {
         img.chest__img(:src="chestSrc()" alt="" draggable="false")
         span.chest__veil.absolute.inset-x-0.bottom-0(v-if="veil > 0" :style="{ height: (veil * 100) + '%' }")
       template(#corner)
-        span.chest__pill.game-text.tabular-nums(v-if="stage === 'cooldown'" aria-hidden="true") {{ left }}
+        span.chest__pill.chest__pill--time.game-text.tabular-nums(v-if="stage === 'cooldown'" aria-hidden="true")
+          BarrageGlyph.chest__pill-icon(name="clock")
+          | {{ left }}
         span.chest__pill.chest__pill--gift.game-text(v-else :class="'chest__pill--' + stage" aria-hidden="true")
-          | {{ t('barrageMeta.supply.gift', { n: fmtCoins(gift) }) }}
+          //- A coin, then "+N": coins, not a price (run 3 read "+60" as "$60").
+          span.chest__gift
+            IconCoin.chest__pill-coin
+            | {{ t('barrageMeta.supply.gift', { n: fmtCoins(gift) }) }}
           //- Small gift waiting: how far the big one has come.
           span.chest__bar(v-if="stage === 'small'")
             span.chest__bar-fill(:style="{ width: (chest.progress.value * 100) + '%' }")
@@ -137,11 +167,29 @@ const onClick = (ev: MouseEvent): void => {
   line-height: 13px
   white-space: nowrap
   pointer-events: none
+.chest__pill--time
+  display: flex
+  align-items: center
+  gap: 1px
+.chest__pill-icon
+  width: 9px
+  height: 9px
+  flex: 0 0 auto
 .chest__pill--gift
   display: flex
   flex-direction: column
   align-items: stretch
   font-weight: 900
+.chest__gift
+  display: flex
+  align-items: center
+  justify-content: center
+  gap: 1px
+.chest__pill-coin
+  width: 10px
+  height: 10px
+  flex: 0 0 auto
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8))
 // White outlined type on both (the game font's outline): dark text on a light
 // pill smeared into its own outline at 9 px.
 .chest__pill--small
