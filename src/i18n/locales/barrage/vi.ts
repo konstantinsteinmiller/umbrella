@@ -10,7 +10,8 @@ export default {
     shields: 'Lượt khiên: {n}',
     revives: 'Lượt hồi sinh: {n}',
     warcry: 'Chiến hống sẵn sàng: loạt bắn kế tiếp gây sát thương gấp đôi',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Xếp hạng toàn cầu'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Cấp {n}',
     plusOne: '+1',
     merged: 'Hợp nhất!',
-    overflow: 'Khay đầy! +{n} xu'
+    overflow: 'Khay đầy! +{n} xu',
+    pickupSr: '"+1" là thêm một bóng trong khay: mỗi loạt bắn thêm một phát, sát thương cao hơn.'
   },
   upgrades: {
     title: 'Nâng cấp',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Sức chứa khay',
       short: 'Sức chứa',
-      desc: 'Giữ nhiều bóng hơn trước khi cặp song sinh hợp nhất.'
+      desc: 'Khay chứa nhiều bóng hơn: bắn nhiều hơn mỗi lượt.'
     },
     speed: {
       name: 'Tốc độ phóng',
       short: 'Tốc độ',
-      desc: 'Bóng bay nhanh hơn và phóng dồn dập hơn.'
+      desc: 'Bóng bay nhanh hơn và đánh mạnh hơn.'
     },
     luck: {
       name: 'May mắn nhặt đồ',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'TỐI ĐA',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Bị tràn tuyến!',
+    wasted: 'Gục ngã',
     body: 'Quái vật đã phá tuyến ở hàng {n}.',
+    bodyBy: 'Phá tuyến ở hàng {n}: {name}',
     meteor: 'Mưa thiên thạch',
     meteorDesc: 'Dọn sạch hai hàng dưới cùng và chơi tiếp',
     meteorAdAria: 'Xem quảng cáo: Mưa thiên thạch dọn sạch hai hàng dưới cùng',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Hạ gục trùm đầu tiên!',
     defeated: 'Đã hạ {name}!',
     amount: '+{n}',
-    doubled: 'Thưởng nhân đôi!',
+    boosted: 'Thưởng ×{n}!',
     checkpoint: 'Đã lưu điểm ở hàng {n}',
-    double: '2×',
-    doubleAdAria: 'Xem quảng cáo để nhân đôi phần thưởng',
-    doubleCoinAria: 'Nhân đôi phần thưởng với {cost} xu',
-    collect: 'Nhận'
+    boost: '{n}×',
+    boostAdAria: 'Xem quảng cáo để nhận thưởng gấp {n}',
+    boostCoinAria: 'Thưởng gấp {n} với {cost} xu',
+    collect: 'Nhận',
+    powerUp: 'Nâng cấp!'
   },
   daily: {
     today: 'Bàn hôm nay: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Nhặt thêm một quả: khay đầy sẽ hợp nhất cặp song sinh thành bóng mạnh hơn!',
     upgrade: 'Chạm vào nâng cấp miễn phí để chứa nhiều bóng hơn!'
   },
+  prompt: {
+    tapToShoot: 'Chạm để bắn',
+    clickToShoot: 'Nhấp để bắn'
+  },
   coach: {
     survive: 'Quái vật sắp phá vỡ phòng tuyến — hãy bắn những con thấp nhất trước!',
     tray: 'Khay của bạn đã đầy: +1 chỉ thêm một phát bắn khi còn ô trống. Nâng cấp sức chứa khay để bắn nhiều bóng hơn!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Chạm vào nâng cấp đang sáng: nó làm bóng, khay hoặc xu của bạn tốt hơn.',
     bank: 'Ngắm chéo: bóng nảy vào tường có thể trúng nhiều quái vật chỉ với một phát!',
     funnel: 'Giờ bạn đã đủ xu mua {name} — chạm vào để mọi quả bóng đánh mạnh hơn!',
-    overrun: 'Nếu quái vật vượt qua vạch, phòng tuyến sẽ vỡ — hãy bắn những con có số 1 trước!'
+    skipAria: 'Bỏ qua bài học',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Bộ đếm ngược cạnh bạn đếm số lượt đến khi con quái gần nhất phá vỡ phòng tuyến — hãy bắn nó trước khi về 0!',
+      speed: '{name}: bóng của bạn bay nhanh hơn và mỗi cú đánh gây nhiều sát thương hơn.',
+      luck: '{name}: các hàng mới mang theo nhiều bong bóng xu và kỹ năng hơn.',
+      bounty: '{name}: mỗi quái vật bị hạ cho nhiều xu hơn.'
+    }
   },
   merge: {
     sr: 'Hai quả bóng cấp {from} đã hợp nhất thành một quả bóng cấp {to}! Mỗi quả bóng trong khay là một phát bắn.',

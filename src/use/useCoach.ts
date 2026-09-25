@@ -27,14 +27,22 @@
  *   trayIntro — right after the FTUE: what the ball tray IS ("absolutely
  *             unclear" in the play-test) — its balls are your shots, "+1"
  *             fills a socket, a full tray merges twins (TrayIntroDemo).
- *   overrun — the lose rule (play-test run 3: testers who never breached
- *             never learned what the line does). The first aim phase in which
- *             a monster wears the `1` pip, the board plays `overrunDemo` on
- *             the one closest to the line: its ghost marches over the line,
- *             the line and its skull flash. Before every other lesson, during
- *             the FTUE too (never in the Daily Barrage); one showing that
- *             actually played, and a real breach teaches it as well. The
- *             survive lesson's rescue shot may follow on the same aim.
+ *   (overrun — retired in run 7: the lose rule is taught by the loss itself,
+ *             the board's death sequence, render/death.ts; its first-danger
+ *             demo read as "an unexplained red overlay" in still frames.)
+ *
+ * And SPOTLIGHTS (`components/barrage/lessonSpotlight.ts`, after playtest run
+ * 11): short staged moments that pause the game, a tap skips —
+ *   threat  — the first time a monster comes within DANGER_PIP_MARCHES: a
+ *             ghost of it marches down while its pip and the unit's tick down
+ *             together, to the line; then a ghost shot takes it out. Both
+ *             losses of run 11 had the '1' and its tether up, unread. The
+ *             survive lesson's rescue shot follows on the real board.
+ *   speed / luck / bounty — what the three chips nobody could explain do,
+ *             once each, a few rows in (UPGRADE_SPOT_ROWS), SPOT_GAP volleys
+ *             from any other lesson, never in danger, under a funnel or right
+ *             after a boss arrives / falls — and only while the chip is
+ *             unbought.
  *
  * Beside the lessons runs the UPGRADE FUNNEL (`upgradeFunnel`, its own channel:
  * it lives on the upgrade chips, never over the board, so it may share the
@@ -48,9 +56,33 @@
  *             Every aim phase until Damage is bought (≤ ARROW_CAP showings).
  *   boss / breach — after every boss kill and every breach, the arrows
  *             come back on the glowing chip for REARM_AIMS aim phases.
+ *   gear    — a boss ARRIVES and the glowing chip is affordable: the arrows
+ *             come back for REARM_AIMS aim phases (run 6: testers met the
+ *             row-20 boss with ~200 coins unspent and read it as outscaling).
  *   pulse   — an aim phase that starts with something affordable, and no
  *             purchase for PULSE_AFTER_AIMS aim phases, pulses the glowing
  *             chip once (`chipPulse`).
+ *   rich    — play-test run 4 (purchases stalled after the first Damage,
+ *             176–449 coins unspent): an aim phase that opens with the wallet
+ *             holding RICH_MULT× the glowing chip's price, nothing bought for
+ *             RICH_IDLE_AIMS aim phases and no funnel for RICH_EVERY_AIMS,
+ *             brings the whole funnel back on the glowing chip. No lifetime
+ *             cap; any purchase ends it.
+ *
+ * The whole funnel (arrows, hand, the idle chip pulse) RETIRES once the player
+ * has been past FUNNEL_LAST_ROW (best row or this run's row): by then they have
+ * learnt that coins buy power. The glowing chip itself stays (CONTRACT §0.3).
+ *
+ * Once the player has fired FUNNEL_HAND_VOLLEYS volleys, a due funnel OWNS the
+ * ghost hand (run 4: every showing ran under a shot lesson, so the funnel was
+ * arrows only and no hand ever pressed a chip): the shot demos (pull, combo)
+ * yield to it for that aim phase. The survive lesson still wins (danger
+ * first).
+ *
+ * And it never shares the screen with a modal, an earned feature flying in or
+ * a coin rain landing in the wallet (`funnelCalm`): whenever one of them
+ * breaks the calm, the funnel is held until the next calm aim phase (an
+ * interrupted rich-wallet showing does not count — it comes back then).
  *
  * Every lesson is a DEMONSTRATION on the player's own board. The shots come
  * from `engine/shotFinder.ts` (trial volleys on engine clones), so the coach
@@ -61,8 +93,6 @@
  * which also counts the funnel's arrows and the merge lightboxes). Nothing
  * runs in the Daily Barrage except the pull hint — a coach that finds the
  * best shot would hand out the competitive board.
- * (The overrun lesson is the one that SHOWS nothing it found: it replays a
- * rule on the board the player already sees.)
  *
  * Also owns the in-world RULE BADGES' lifetime (the renderer draws them): a
  * monster kind wears its badge from its first appearance until it has been
@@ -71,7 +101,7 @@
 import { computed, ref, shallowRef, watch, type ComputedRef, type Ref } from 'vue'
 import { getState, setState, prismState } from '@/use/useEpicState'
 import { saveDataVersion } from '@/use/useSaveStatus'
-import { EB_BEST_ROW_KEY, EB_COACH_KEY, EB_MONSTERS_SEEN_KEY, EB_UNLOCKS_KEY } from '@/barrage/keys'
+import { EB_BEST_ROW_KEY, EB_COACH_KEY, EB_MONSTERS_SEEN_KEY } from '@/barrage/keys'
 import { BOSS_ORDER } from '@/barrage/engine/monsters'
 import {
   BALL_R, BOSS_EVERY, COLS, ROWS,
@@ -81,14 +111,23 @@ import {
   aimFan, canTrial, medianOf, pickBest, startTrial, type ShotTrial, type TrialEngine, type TrialRun
 } from '@/barrage/engine/shotFinder'
 import { tagKeyOf } from '@/barrage/render/ruleMarks'
-import { marchesToBreach, nextMarchTurn } from '@/barrage/render/danger'
+import { DANGER_PIP_MARCHES, dangerIds, dangerMarches, marchPlan, marchesToBreach, nextMarchTurn } from '@/barrage/render/danger'
+import { bossBounty, killCoins } from '@/barrage/engine/economy'
 import type { UpgradeView } from '@/barrage/state/contract'
+import { canSpot, offerSpot, type SpotKind, type ThreatSpot, type UpgradeSpot, type UpgradeSpotKind } from '@/components/barrage/lessonSpotlight'
 
-export type LessonId = 'pull' | 'survive' | 'tray' | 'combo' | 'trayIntro' | 'overrun'
-/** Everything the save counts: the lessons, the funnel's Damage arrows and
- *  the merge lightbox (`components/barrage/mergeLightbox.ts`). */
-export type ExposureId = LessonId | 'arrows' | 'mergeBox'
-const EXPOSURE_IDS: readonly ExposureId[] = ['pull', 'survive', 'tray', 'combo', 'trayIntro', 'overrun', 'arrows', 'mergeBox']
+export type LessonId = 'pull' | 'survive' | 'tray' | 'combo' | 'trayIntro'
+/** Everything the save counts: the lessons, the funnel's Damage arrows, the
+ *  merge lightbox (`components/barrage/mergeLightbox.ts`) and the first
+ *  "+1"'s spotlight (`components/barrage/pickupSpotlight.ts`). */
+export type ExposureId = LessonId | 'arrows' | 'mergeBox' | 'pickupBox' | SpotExposure
+/** The spotlights' exposures (lessonSpotlight.ts), one per kind. */
+export type SpotExposure = 'threatBox' | 'speedBox' | 'luckBox' | 'bountyBox'
+const EXPOSURE_IDS: readonly ExposureId[] = [
+  'pull', 'survive', 'tray', 'combo', 'trayIntro', 'arrows', 'mergeBox', 'pickupBox',
+  'threatBox', 'speedBox', 'luckBox', 'bountyBox'
+]
+const spotExposure = (kind: SpotKind): SpotExposure => `${kind}Box`
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 /** Aim phases a new monster kind wears its in-world rule badge (≈ 30 s of
@@ -101,16 +140,33 @@ export const SHOT_QUIET_MS = 20_000
  *  cancel) that bring the shot demo back over another lesson. */
 export const TAP_MISFIRES = 2
 export const MAX_SHOWS: Readonly<Record<Exclude<LessonId, 'pull'>, number>> = {
-  survive: 4, tray: 3, combo: 4, trayIntro: 2, overrun: 1
+  survive: 4, tray: 3, combo: 4, trayIntro: 2
 }
 /** Volleys between the two tray-intro showings. */
 export const TRAY_INTRO_GAP = 8
 /** Aim phases the Damage arrows may show before they give up. */
 export const ARROW_CAP = 6
+/** Playtest run 8: Damage arrows ignored this many times (Mia bought nothing
+ *  — "a stuck tutorial hint") and the first Ball Damage level turns FREE,
+ *  the way the Capacity gift taught every tester that the chips buy power. */
+export const FREE_DAMAGE_AFTER = 3
+/** The upgrade funnel retires once the player has been past this row. */
+export const FUNNEL_LAST_ROW = 25
 /** Aim phases the arrows come back for after a boss kill or a breach. */
 export const REARM_AIMS = 2
 /** Aim phases without a purchase before an affordable glowing chip pulses. */
 export const PULSE_AFTER_AIMS = 2
+/** Lifetime volleys after which a due funnel owns the ghost hand (the first
+ *  shots belong to the shot demos). */
+export const FUNNEL_HAND_VOLLEYS = 3
+/** Rich wallet: the wallet holds at least this multiple of the glowing chip's
+ *  price… */
+export const RICH_MULT = 2
+/** …nothing was bought for this many aim phases… */
+export const RICH_IDLE_AIMS = 3
+/** …and the last funnel on screen is at least this many aim phases back (a
+ *  showing at aim n, the next no sooner than aim n + RICH_EVERY_AIMS). */
+export const RICH_EVERY_AIMS = 4
 /** Lifetime best combo that retires the combo lesson. */
 export const COMBO_GRADUATE = 25
 /** A combo lesson needs a shot of at least this many hits… */
@@ -139,13 +195,21 @@ export const TRAY_GAP = 2
  *  survive and tray lessons are marked as done (combo retires on its own
  *  through the best-combo stat). */
 export const VETERAN_ROW = 30
-/** Rows between the lowest monster and the line that count as danger
- *  (the engine's `danger` event uses the same 2). */
-export const DANGER_AT = 2
 /** Tray capacity level that retires the tray lesson (capacity 6). */
 export const TRAY_GRADUATE_LEVEL = 3
 /** Angles tried per search (≈ 4.5° apart). */
 export const FAN_SIZE = 37
+/** The run's row from which each chip's spotlight may play (after run 11:
+ *  "a few rows in, spaced out" — the first minute is the FTUE's, row 10 the
+ *  first boss's). */
+export const UPGRADE_SPOT_ROWS: Readonly<Record<UpgradeSpotKind, number>> = { speed: 12, luck: 17, bounty: 22 }
+/** Volleys between a chip spotlight and any other lesson or spotlight — the
+ *  proactive lessons' own LESSON_GAP, so when both are due the spotlight
+ *  (earlier in the order) wins instead of the combo lesson re-arming first. */
+export const SPOT_GAP = LESSON_GAP
+/** A due spotlight waits this long into the aim phase (the march settles, the
+ *  launcher lands), ms. */
+export const SPOT_DELAY_MS = 380
 /** Budget per idle slice, ms. A trial stops MID-VOLLEY when it runs out
  *  (measured at 4× CPU throttle: one 20-ball volley took up to 74 ms whole). */
 const SLICE_MS = 6
@@ -183,13 +247,6 @@ export const MERGE_BOX_FIRST = 3
  *  more than MERGE_BOX_FIRST times already (the first boss sits at row 10). */
 const MERGE_BOX_VETERAN_ROW = 10
 
-/** A player with a lifetime endless loss (`eb_unlocks.losses`, counted by
- *  useFeatureUnlocks) has seen the OVERRUN screen: the line's rule is known. */
-const lostBefore = (): boolean => {
-  const u = getState<{ losses?: unknown } | null>(EB_UNLOCKS_KEY, null)
-  return !!u && typeof u === 'object' && count(u.losses) > 0
-}
-
 const readSave = (): CoachSave => {
   const raw = getState<Partial<CoachSave> | null>(EB_COACH_KEY, null)
   const best = count(getState(EB_BEST_ROW_KEY, 0))
@@ -197,10 +254,9 @@ const readSave = (): CoachSave => {
     const shown: Partial<Record<ExposureId, number>> = best > VETERAN_ROW
       ? {
           survive: MAX_SHOWS.survive, tray: MAX_SHOWS.tray, trayIntro: MAX_SHOWS.trayIntro,
-          overrun: MAX_SHOWS.overrun, mergeBox: MERGE_BOX_FIRST
+          mergeBox: MERGE_BOX_FIRST, pickupBox: 1, threatBox: 1
         }
-      : best > MERGE_BOX_VETERAN_ROW ? { mergeBox: MERGE_BOX_FIRST } : {}
-    if (lostBefore()) shown.overrun = MAX_SHOWS.overrun
+      : best > MERGE_BOX_VETERAN_ROW ? { mergeBox: MERGE_BOX_FIRST, pickupBox: 1 } : {}
     return { v: 1, shown, kinds: migrated() }
   }
   const shown: Partial<Record<ExposureId, number>> = {}
@@ -210,8 +266,10 @@ const readSave = (): CoachSave => {
   }
   // A save from before the lightbox: its routine merges are long behind it.
   if (raw.shown?.mergeBox === undefined && best > MERGE_BOX_VETERAN_ROW) shown.mergeBox = MERGE_BOX_FIRST
-  // A player who has been overrun already knows what the line does.
-  if (!shown.overrun && lostBefore()) shown.overrun = MAX_SHOWS.overrun
+  // …and it has collected its "+1"s long ago: no first-pickup spotlight.
+  if (raw.shown?.pickupBox === undefined && best > MERGE_BOX_VETERAN_ROW) shown.pickupBox = 1
+  // A veteran from before the threat spotlight has lost to the countdown.
+  if (raw.shown?.threatBox === undefined && best > VETERAN_ROW) shown.threatBox = 1
   const kinds: Record<string, number> = {}
   if (raw.kinds && typeof raw.kinds === 'object') {
     for (const [k, v] of Object.entries(raw.kinds)) if (count(v) > 0) kinds[k] = count(v)
@@ -274,12 +332,6 @@ export type CoachLesson =
   }
   | { id: 'tray'; seq: number }
   | { id: 'trayIntro'; seq: number }
-  | {
-    id: 'overrun'
-    seq: number
-    /** The monster whose ghost marches over the line (the one closest to it). */
-    monsterId: number
-  }
 
 /** What the coach overlay acts out right now (null = nothing). */
 export const coachLesson = shallowRef<CoachLesson | null>(null)
@@ -299,7 +351,7 @@ export const shotDemoAllowed = (last: number | null, now: number): boolean =>
   last === null || now - last >= SHOT_QUIET_MS
 
 // ─── The upgrade funnel ──────────────────────────────────────────────────────
-export type FunnelReason = 'damage' | 'boss' | 'breach'
+export type FunnelReason = 'damage' | 'boss' | 'breach' | 'gear' | 'rich'
 export interface FunnelShow {
   /** New per aim phase: one showing = one aim phase it was on screen. */
   seq: number
@@ -327,16 +379,48 @@ export const damageFunnelDue = (o: {
   && !!o.damage && o.damage.affordable && !o.damage.maxed && o.damage.level === 0
   && o.shown < ARROW_CAP
 
+/** The rich-wallet funnel is due (checked as an aim phase opens): the wallet
+ *  holds RICH_MULT× the glowing chip's price, nothing was bought for
+ *  RICH_IDLE_AIMS aim phases, and no funnel was on screen for RICH_EVERY_AIMS.
+ *  Endless only. `price` null = nothing glows. */
+export const richWalletDue = (o: {
+  mode: GameMode
+  coins: number
+  price: number | null
+  aimsSinceBuy: number
+  aimsSinceFunnel: number
+}): boolean =>
+  o.mode === 'endless' && o.price !== null && o.price > 0 && o.coins >= RICH_MULT * o.price
+  && o.aimsSinceBuy >= RICH_IDLE_AIMS && o.aimsSinceFunnel >= RICH_EVERY_AIMS
+
+// Session clocks of the funnel (reset by `installCoach`).
+/** Aim phases opened this session (the id of the current one). */
+let aimNo = 0
+/** Aim phases opened since a funnel was last on screen. */
+let aimsSinceFunnel = Infinity
+/** The aim phase the funnel was last counted on screen, and the clock before
+ *  it (an interrupted rich-wallet showing gives its turn back). */
+let visibleAim = -1
+let aimsBeforeVisible = Infinity
+
 /** Called by the overlay the first frame the funnel is ON SCREEN (once per
  *  showing): the Damage arrows spend one of their ARROW_CAP aim phases, the
- *  boss / breach arrows one of their REARM_AIMS. */
+ *  boss / breach arrows one of their REARM_AIMS; every showing restarts the
+ *  rich wallet's spacing. */
 export const noteFunnelVisible = (f: FunnelShow): void => {
   if (f.seq === funnelCounted) return
   funnelCounted = f.seq
-  if (f.reason === 'damage') bumpExposure('arrows')
-  else rearmShown++
+  if (f.reason === 'damage') {
+    bumpExposure('arrows')
+    if (lessonShown('arrows') >= FREE_DAMAGE_AFTER) wiring?.offerFreeDamage?.()
+  } else if (f.reason !== 'rich') rearmShown++
+  if (visibleAim !== aimNo) {
+    aimsBeforeVisible = aimsSinceFunnel
+    visibleAim = aimNo
+  }
+  aimsSinceFunnel = 0
 }
-let rearm: Exclude<FunnelReason, 'damage'> | null = null
+let rearm: Exclude<FunnelReason, 'damage' | 'rich'> | null = null
 let rearmShown = 0
 
 /** Called by the overlay the first time a lesson is actually ON SCREEN: an
@@ -347,32 +431,27 @@ export const noteLessonVisible = (lesson: CoachLesson): void => {
   const shown = { ...save.value.shown, [lesson.id]: lessonShown(lesson.id) + 1 }
   save.value = { ...save.value, shown }
   persist()
-  // The overrun demo replays a RULE, not a proactive tip: it does not hold
-  // back the next lesson (the survive lesson's rescue shot may follow it on
-  // the very same aim phase).
-  if (lesson.id !== 'overrun') lastLessonVolley = currentVolleys()
-}
-
-/** Called by the overlay when the overrun demo is over — it ran its course,
- *  the player took the board (an aim started, a modal opened), or the board
- *  could not play it (then it was never counted and comes back at the next
- *  aim phase with a `1` pip). The rest of this aim phase's coaching resumes:
- *  in danger, that is the survive lesson's rescue shot. */
-export const finishOverrun = (seq: number): void => {
-  const l = coachLesson.value
-  if (!l || l.id !== 'overrun' || l.seq !== seq) return
-  setLesson(null)
-  resumeAfterOverrun?.()
+  lastLessonVolley = currentVolleys()
+  if (lesson.id !== 'pull') lastTeachVolley = lastLessonVolley
 }
 
 // Filled by `installCoach` — module-level so `noteMisfire` (called from the
 // scene) and the overlay reach the same wiring.
 let wiring: CoachWiring | null = null
-let resumeAfterOverrun: (() => void) | null = null
 let lastLessonVolley = -Infinity
+/** …the same, not counting the idle / misfire shot hint (`pull`): playtest
+ *  run 12 — it comes back after every 20 s without a shot, and Jonas's six of
+ *  them kept the chip spotlights from ever finding their gap. */
+let lastTeachVolley = -Infinity
 let taps = 0
 let pendingTray = false
 const currentVolleys = (): number => wiring?.volleys.value ?? 0
+
+/** A due funnel has the ghost hand: the player has fired FUNNEL_HAND_VOLLEYS
+ *  volleys (the first shots belong to the shot demos), so the pull and combo
+ *  demos yield to it for this aim phase. */
+export const funnelOwnsHand = (): boolean =>
+  upgradeFunnel.value !== null && currentVolleys() >= FUNNEL_HAND_VOLLEYS
 
 /** `Omit` that keeps a union a union (plain Omit collapses it to the shared keys). */
 type LessonDraft = CoachLesson extends infer L ? (L extends CoachLesson ? Omit<L, 'seq'> : never) : never
@@ -390,8 +469,8 @@ export const noteMisfire = (): void => {
   if (!w) return
   if (w.engine.value.state.phase !== 'aim') return
   if (++taps < TAP_MISFIRES || !shotDemoDue.value || !w.ftueDone.value) return
-  // The lose rule is never talked over (it ends the moment a finger is down).
-  if (coachLesson.value?.id === 'overrun') return
+  // A due funnel keeps the hand this aim phase.
+  if (funnelOwnsHand()) return
   taps = 0
   setLesson({ id: 'pull', reason: 'tap' })
 }
@@ -404,31 +483,75 @@ export const rowsLeft = (s: BoardState): number => {
   return bottom === -Infinity ? ROWS : ROWS - bottom
 }
 
-/** Monsters within DANGER_AT rows of the line — the ones a rescue shot is for. */
-export const threatIds = (s: BoardState): number[] =>
-  s.monsters.filter((m) => ROWS - (m.row + m.h) <= DANGER_AT).map((m) => m.id)
+/** Monsters in danger — wearing a pip (run 6: the one threshold the floor,
+ *  the line and the pips share, `render/danger.ts`): the ones
+ *  a rescue shot is for. */
+export const threatIds = (s: BoardState): number[] => dangerIds(s)
 
-/** The monster the overrun demo marches: among those wearing the `1` pip
- *  (the coming march takes them over the line — `render/danger.ts`, the same
- *  rule the canvas draws), the one closest to the line; a tie goes to the one
- *  nearest the unit, where the player is looking. Null = no `1` pip. */
-export const overrunThreat = (s: BoardState): number | null => {
-  const turn = nextMarchTurn(s)
-  if (turn < 0) return null
+/** The board is in danger: some monster wears a pip. */
+export const inDanger = (s: BoardState): boolean => dangerMarches(s) <= DANGER_PIP_MARCHES
+
+/** The threat spotlight's draft: the monster with the fewest marches to the
+ *  line (nearest the unit on a tie) and its march to it — null out of danger. */
+export const threatSpotDraft = (s: BoardState): ThreatSpot | null => {
+  const next = nextMarchTurn(s)
+  if (next < 0) return null
   let best: BoardState['monsters'][number] | null = null
-  let bestBottom = -Infinity
+  let bestN = DANGER_PIP_MARCHES + 1
   let bestD = Infinity
   for (const m of s.monsters) {
-    if (marchesToBreach(m, turn) !== 1) continue
-    const bottom = m.row + m.h
+    if (m.hp <= 0) continue
+    const n = marchesToBreach(m, next)
+    if (n < 1 || n > DANGER_PIP_MARCHES) continue
     const d = Math.abs(m.col + m.w / 2 - s.launcherX)
-    if (bottom > bestBottom || (bottom === bestBottom && d < bestD)) {
+    if (n < bestN || (n === bestN && d < bestD)) {
       best = m
-      bestBottom = bottom
+      bestN = n
       bestD = d
     }
   }
-  return best ? best.id : null
+  if (!best) return null
+  const plan = marchPlan(best, next)
+  const last = plan[plan.length - 1]
+  if (last === undefined || last + best.h <= ROWS) return null
+  return { kind: 'threat', monsterId: best.id, plan }
+}
+
+/** The walker a bounty spotlight "kills": the one nearest the board's middle. */
+const bountyTarget = (s: BoardState): BoardState['monsters'][number] | null => {
+  let best: BoardState['monsters'][number] | null = null
+  let bestD = Infinity
+  for (const m of s.monsters) {
+    if (m.kind === 'boss' || m.hp <= 0 || m.row < 0) continue
+    const d = Math.hypot(m.col + m.w / 2 - COLS / 2, m.row + m.h / 2 - ROWS * 0.4)
+    if (d < bestD) {
+      bestD = d
+      best = m
+    }
+  }
+  return best
+}
+
+/** A chip spotlight's draft from its view: the value now and one level up —
+ *  and for bounty the demo kill's coins (null when there is nothing to kill).
+ *  Bounty demos the boss when one is on the board: its chest pays 25 kills'
+ *  worth, so ×1.2 is a number the eye sees ("+140 → +168"); a lone walker's
+ *  "+6 → +7" barely moves. */
+export const chipSpotDraft = (kind: UpgradeSpotKind, view: UpgradeView, s: BoardState): UpgradeSpot | null => {
+  if (view.maxed || view.nextValue === null) return null
+  if (kind !== 'bounty') return { kind, value: view.value, next: view.nextValue }
+  const boss = s.monsters.find((m) => m.kind === 'boss' && m.hp > 0 && m.row + m.h > 0)
+  const m = boss ?? bountyTarget(s)
+  if (!m) return null
+  const base = boss ? bossBounty(boss.spawnRow ?? s.row) : killCoins(m.spawnRow ?? s.row, m.kind, m.corrupted)
+  return {
+    kind,
+    value: view.value,
+    next: view.nextValue,
+    monsterId: m.id,
+    coinsNow: Math.max(1, Math.round(base * view.value)),
+    coinsNext: Math.max(1, Math.round(base * view.nextValue))
+  }
 }
 
 export const comboScore = (t: ShotTrial): number => t.hits + t.kills * 0.5
@@ -487,6 +610,23 @@ export interface CoachWiring {
   upgrades?: Readonly<Ref<readonly UpgradeView[]>>
   /** The FTUE's free Tray Capacity is still on offer. */
   freeOffer?: Readonly<Ref<boolean>>
+  /** Run 8: arm the free first Ball Damage level (FREE_DAMAGE_AFTER ignored
+   *  Damage showings). */
+  offerFreeDamage?: () => void
+  /** The wallet (the rich-wallet funnel weighs it against the glowing price). */
+  coins?: Readonly<Ref<number>>
+  /** Nothing else owns the screen: no modal, no earned feature flying in, no
+   *  coin rain landing in the wallet. A funnel starts only while it holds; if
+   *  it breaks during an aim phase the funnel waits for the next calm one. */
+  funnelCalm?: Readonly<Ref<boolean>>
+  /** The player's best row: past FUNNEL_LAST_ROW the upgrade funnel retires. */
+  bestRow?: Readonly<Ref<number>>
+  /** Nothing else owns the screen for a spotlight: no modal, unlock, reveal,
+   *  coin rain, lightbox, FTUE mark, and no finger on the board. Absent = no
+   *  spotlights (tests about other lessons). */
+  spotCalm?: Readonly<Ref<boolean>>
+  /** SPOT_DELAY_MS by default (tests pass 0). */
+  spotDelayMs?: number
   /** Run `fn` when the browser has a moment (tests pass a synchronous runner). */
   schedule?: (fn: () => void) => void
   now?: () => number
@@ -518,11 +658,12 @@ export const installCoach = (w: CoachWiring): (() => void) => {
   const showPullIfDue = (): void => {
     if (!shotDemoDue.value || !w.ftueDone.value) return
     if (w.engine.value.state.phase !== 'aim') return
-    // A shot lesson already has the finger; the lose rule finishes first;
-    // anything else (the tray acts) yields — the player is back and the shot
-    // is what they need.
+    // A due funnel owns the hand this aim phase (run 4).
+    if (funnelOwnsHand()) return
+    // A shot lesson already has the finger; anything else (the tray acts)
+    // yields — the player is back and the shot is what they need.
     const cur = coachLesson.value
-    if (cur && (isShotLesson(cur) || cur.id === 'overrun')) return
+    if (cur && isShotLesson(cur)) return
     setLesson({ id: 'pull', reason: 'idle' })
   }
   const noteShot = (): void => {
@@ -566,6 +707,9 @@ export const installCoach = (w: CoachWiring): (() => void) => {
         if (i < angles.length && outOfTime()) { schedule(step); return }
       }
       if (coachLesson.value) return // something more urgent got there first
+      // A funnel that turned due while this ran has the hand now (danger
+      // still comes first: the survive lesson hides the funnel instead).
+      if (kind !== 'survive' && funnelOwnsHand()) return
       const lesson = conclude(kind, trials, threatList, threatHp, eng.state)
       if (lesson) setLesson(lesson)
       // Nothing worth showing here: the shot demo gets the aim, if it is due.
@@ -617,20 +761,98 @@ export const installCoach = (w: CoachWiring): (() => void) => {
     persist()
   }
 
+  // ─── Spotlights (lessonSpotlight.ts) ─────────────────────────────────────
+  let lastSpotVolley = -Infinity
+  /** A boss arrived or fell: the next aim phase is its moment, no spotlight. */
+  let bossEventPending = false
+  let quietAim = -1
+  let spotTimer: ReturnType<typeof setTimeout> | null = null
+  const stopSpotTimer = (): void => {
+    if (spotTimer !== null) clearTimeout(spotTimer)
+    spotTimer = null
+  }
+  const spotDelay = w.spotDelayMs ?? SPOT_DELAY_MS
+  const spotCalmNow = (): boolean => !!w.spotCalm?.value && canSpot()
+  /** Volleys since the last lesson (the shot hint aside) or spotlight on screen. */
+  const sinceAnyLesson = (): number => currentVolleys() - Math.max(lastTeachVolley, lastSpotVolley)
+  const bossEnraged = (s: BoardState): boolean => s.monsters.some((m) => m.kind === 'boss' && m.enraged)
+
+  /** The next chip spotlight due (UPGRADE_SPOT_ROWS order), or null. */
+  const upgradeSpotDraft = (s: BoardState): UpgradeSpot | null => {
+    for (const kind of ['speed', 'luck', 'bounty'] as const) {
+      if (lessonShown(spotExposure(kind)) > 0 || s.row < UPGRADE_SPOT_ROWS[kind]) continue
+      const view = w.upgrades?.value.find((v) => v.id === kind)
+      // A chip the player bought is a chip they know.
+      if (!view || view.level > 0) continue
+      const d = chipSpotDraft(kind, view, s)
+      if (d) return d
+    }
+    return null
+  }
+
+  /** Play `draft` SPOT_DELAY_MS into this aim phase, if the calm still holds
+   *  then; otherwise this aim's other lessons run (`fallback`). `after` runs
+   *  when it ends inside the same aim phase. */
+  const trySpot = (draft: ThreatSpot | UpgradeSpot, after: (() => void) | null, fallback: () => void): void => {
+    const aim = aimNo
+    const gen = w.engineGen.value
+    const same = (): boolean => aim === aimNo && gen === w.engineGen.value && w.engine.value.state.phase === 'aim'
+    const go = (): void => {
+      spotTimer = null
+      if (!same()) return
+      if (!spotCalmNow() || !offerSpot(draft, () => { if (same()) after?.() })) {
+        fallback()
+        return
+      }
+      bumpExposure(spotExposure(draft.kind))
+      lastSpotVolley = currentVolleys()
+    }
+    stopSpotTimer()
+    if (spotDelay <= 0) go()
+    else spotTimer = setTimeout(go, spotDelay)
+  }
+
   // ─── The upgrade funnel ──────────────────────────────────────────────────
   /** Aim phases started since the last purchase (the pulse's "a while"). */
   let aimsSinceBuy = 0
+  /** The aim phase that opened with a rich wallet (its showing lasts that aim). */
+  let richAim = -1
+  /** The calm broke during this aim phase (a modal, an unlock, a coin rain):
+   *  no funnel until the next calm aim phase. */
+  let funnelHeld = false
+  aimNo = 0
+  aimsSinceFunnel = Infinity
+  visibleAim = -1
+  aimsBeforeVisible = Infinity
+  const calmNow = (): boolean => w.funnelCalm?.value ?? true
+  /** Past FUNNEL_LAST_ROW (best row or this run's) the player knows coins buy
+   *  power: no arrows, no hand, no pulse any more. */
+  const funnelRetired = (): boolean =>
+    Math.max(w.bestRow?.value ?? 0, w.engine.value.state.row) > FUNNEL_LAST_ROW
   const damageView = (): UpgradeView | undefined => w.upgrades?.value.find((v) => v.id === 'damage')
   /** The chip the boss / breach arrows point at: the glowing one — which is
    *  the FREE Tray Capacity while that is still on offer. */
   const glowTarget = (): UpgradeId | null =>
     (w.freeOffer?.value ?? false) ? 'capacity' : (w.glowingUpgrade?.value ?? null)
+  /** Weighed as an aim phase opens (the wallet only grows mid-aim from a
+   *  chest or a gift — and their coin rain holds the funnel anyway). */
+  const richNow = (): boolean => {
+    const glowing = w.glowingUpgrade?.value ?? null
+    const view = glowing ? w.upgrades?.value.find((v) => v.id === glowing) : undefined
+    return richWalletDue({
+      mode: w.mode.value,
+      coins: w.coins?.value ?? 0,
+      price: view && !view.maxed ? view.cost : null,
+      aimsSinceBuy,
+      aimsSinceFunnel
+    })
+  }
 
   /** Decide what the funnel shows. `fresh`: a new aim phase, so a new showing
    *  even when it points at the same chip for the same reason. */
   const evaluateFunnel = (fresh: boolean): void => {
     let next: Omit<FunnelShow, 'seq'> | null = null
-    if (w.mode.value === 'endless' && w.ftueDone.value && w.engine.value.state.phase === 'aim') {
+    if (w.mode.value === 'endless' && w.ftueDone.value && w.engine.value.state.phase === 'aim' && !funnelHeld && !funnelRetired()) {
       const damage = damageFunnelDue({
         mode: w.mode.value,
         freeOffer: w.freeOffer?.value ?? false,
@@ -644,6 +866,10 @@ export const installCoach = (w: CoachWiring): (() => void) => {
         const target = glowTarget()
         if (target) next = { target, reason: rearm }
       }
+      if (!next && richAim === aimNo && aimsSinceBuy >= RICH_IDLE_AIMS) {
+        const target = w.glowingUpgrade?.value ?? null
+        if (target) next = { target, reason: 'rich' }
+      }
     }
     const cur = upgradeFunnel.value
     if (!next) {
@@ -652,21 +878,31 @@ export const installCoach = (w: CoachWiring): (() => void) => {
     }
     if (!fresh && cur && cur.target === next.target && cur.reason === next.reason) return
     upgradeFunnel.value = { ...next, seq: ++funnelSeq }
+    // The funnel takes the ghost hand: a shot demo on screen steps aside.
+    const l = coachLesson.value
+    if (funnelOwnsHand() && (l?.id === 'pull' || l?.id === 'combo')) {
+      cancelSearch()
+      setLesson(null)
+    }
+  }
+
+  /** Something else took the screen mid-aim: the funnel goes and waits for
+   *  the next calm aim phase. A rich-wallet showing cut short gives its turn
+   *  back (it comes back then, whatever the spacing). */
+  const holdFunnel = (): void => {
+    funnelHeld = true
+    const cur = upgradeFunnel.value
+    if (cur?.reason === 'rich' && visibleAim === aimNo) aimsSinceFunnel = aimsBeforeVisible
+    if (cur) upgradeFunnel.value = null
   }
 
   /** An aim phase that opens with something to buy, and no purchase for a
    *  while: the glowing chip pulses once (the arrows, when up, say it louder). */
   const pulseIfIdle = (): void => {
-    if (w.mode.value !== 'endless' || !w.ftueDone.value || upgradeFunnel.value) return
+    if (w.mode.value !== 'endless' || !w.ftueDone.value || upgradeFunnel.value || funnelRetired()) return
     const glowing = w.glowingUpgrade?.value ?? null
     if (glowing && aimsSinceBuy >= PULSE_AFTER_AIMS) chipPulse.value = { id: glowing, seq: ++pulseSeq }
   }
-
-  /** The lose rule is due: a monster wears the `1` pip and the player has
-   *  not seen the demo play (nor been overrun). Endless only — the FTUE
-   *  included, a first-timer can be overrun before the first boss. */
-  const overrunDue = (s: BoardState): number | null =>
-    w.mode.value === 'endless' && lessonShown('overrun') < MAX_SHOWS.overrun ? overrunThreat(s) : null
 
   const onAim = (): void => {
     const s = w.engine.value.state
@@ -674,35 +910,26 @@ export const installCoach = (w: CoachWiring): (() => void) => {
     setLesson(null)
     countTags(s)
     aimsSinceBuy++
+    aimNo++
+    aimsSinceFunnel++
+    stopSpotTimer()
+    if (bossEventPending) {
+      quietAim = aimNo
+      bossEventPending = false
+    }
+    // Not calm as the aim opens (a modal up, an unlock flying in): this aim
+    // phase has no funnel.
+    funnelHeld = !calmNow()
+    richAim = richNow() ? aimNo : -1
     evaluateFunnel(true)
     pulseIfIdle()
-    // Before anything else: what the line does, the first time it matters.
-    const doomed = overrunDue(s)
-    if (doomed !== null) {
-      setLesson({ id: 'overrun', monsterId: doomed })
-      return
-    }
     aimLessons(s)
   }
 
-  /** What follows the overrun demo on the same aim phase: in danger, the
-   *  survive lesson's rescue shot; otherwise the shot demo, if it is due. */
-  resumeAfterOverrun = (): void => {
-    const s = w.engine.value.state
-    if (s.phase !== 'aim' || coachLesson.value) return
-    if (!w.ftueDone.value || w.mode.value !== 'endless') return
-    if (
-      rowsLeft(s) <= DANGER_AT && lessonShown('survive') < MAX_SHOWS.survive
-      && currentVolleys() - lastLessonVolley >= SURVIVE_GAP
-    ) {
-      search('survive')
-      return
-    }
-    showPullIfDue()
-  }
-
-  /** Every lesson but the overrun, in priority order. */
-  const aimLessons = (s: BoardState): void => {
+  /** Every lesson, in priority order. `spots: false` = none this time (a
+   *  spotlight fell through); `afterThreat`: the threat spotlight just ended —
+   *  its rescue shot comes now. */
+  const aimLessons = (s: BoardState, o: { spots?: boolean; afterThreat?: boolean } = {}): void => {
     // The early bank shot rides the FTUE's own aim beats on the engine's
     // first-session board (easy monsters, the scripted "+1" straight up — which
     // is auto-collected whatever the aim, so no beat is lost by angling). The
@@ -721,11 +948,22 @@ export const installCoach = (w: CoachWiring): (() => void) => {
       showPullIfDue()
       return
     }
+    const spots = (o.spots ?? true) && spotCalmNow() && aimNo !== quietAim
+    const rest = (): void => aimLessons(w.engine.value.state, { spots: false })
+    // The countdown on the launcher, staged the first time one shows (run 11).
+    if (spots && inDanger(s) && lessonShown('threatBox') === 0) {
+      const d = threatSpotDraft(s)
+      if (d) {
+        trySpot(d, () => aimLessons(w.engine.value.state, { spots: false, afterThreat: true }), rest)
+        return
+      }
+    }
     const sinceLesson = currentVolleys() - lastLessonVolley
-    if (rowsLeft(s) <= DANGER_AT && lessonShown('survive') < MAX_SHOWS.survive && sinceLesson >= SURVIVE_GAP) {
+    if (inDanger(s) && lessonShown('survive') < MAX_SHOWS.survive && (o.afterThreat || sinceLesson >= SURVIVE_GAP)) {
       search('survive')
       return
     }
+    if (o.afterThreat) return
     // The funnel owns the upgrade row this aim: the tray acts (which press
     // Tray Capacity themselves) wait for an aim without it — a spill stays
     // pending, the intro keeps its turn.
@@ -745,6 +983,17 @@ export const installCoach = (w: CoachWiring): (() => void) => {
         }
       }
     }
+    // A chip nobody could explain (run 11), spaced out and never in danger.
+    if (spots && !inDanger(s) && !upgradeFunnel.value && !bossEnraged(s) && sinceAnyLesson() >= SPOT_GAP) {
+      const d = upgradeSpotDraft(s)
+      if (d) {
+        trySpot(d, null, rest)
+        return
+      }
+    }
+    // Past the first shots, a due funnel has the ghost hand this aim phase:
+    // its full form plays (coins in, the hand presses the chip), no shot demo.
+    if (funnelOwnsHand()) return
     if (
       sinceLesson >= LESSON_GAP
       && w.bestCombo.value < COMBO_GRADUATE
@@ -761,6 +1010,7 @@ export const installCoach = (w: CoachWiring): (() => void) => {
       case 'phase':
         if (e.phase === 'aim') onAim()
         else {
+          stopSpotTimer()
           cancelSearch()
           if (coachLesson.value) setLesson(null)
           if (upgradeFunnel.value) upgradeFunnel.value = null
@@ -768,6 +1018,7 @@ export const installCoach = (w: CoachWiring): (() => void) => {
         break
       case 'fire':
         taps = 0
+        stopSpotTimer()
         cancelSearch()
         noteShot()
         setLesson(null)
@@ -781,15 +1032,18 @@ export const installCoach = (w: CoachWiring): (() => void) => {
       case 'bossDefeated':
         rearm = 'boss'
         rearmShown = 0
+        bossEventPending = true
+        break
+      // Run 6: a boss arriving while the wallet can pay for the glowing chip
+      // (the arrows only show when something glows, i.e. is affordable).
+      case 'bossSpawn':
+        rearm = 'gear'
+        rearmShown = 0
+        bossEventPending = true
         break
       case 'breach':
         rearm = 'breach'
         rearmShown = 0
-        // Being overrun teaches the line better than any demo of it.
-        if (w.mode.value === 'endless' && lessonShown('overrun') < MAX_SHOWS.overrun) {
-          save.value = { ...save.value, shown: { ...save.value.shown, overrun: MAX_SHOWS.overrun } }
-          persist()
-        }
         break
       default:
         break
@@ -798,6 +1052,7 @@ export const installCoach = (w: CoachWiring): (() => void) => {
 
   // A new board (restart, daily, hydrate) makes everything in flight stale.
   offs.push(watch(() => w.engineGen.value, () => {
+    stopSpotTimer()
     cancelSearch()
     setLesson(null)
     pendingTray = false
@@ -809,34 +1064,45 @@ export const installCoach = (w: CoachWiring): (() => void) => {
     if (lvl > was && coachLesson.value?.id === 'tray') setLesson(null)
   }))
   // A purchase: the pulse clock starts over, the boss / breach arrows have
-  // done their job, and bought Damage retires its demo for good.
+  // done their job, and bought Damage retires its demo for good. Run 6: the
+  // funnel then waits for the NEXT aim phase — Mia claimed the free Tray
+  // Capacity and the Damage arrows + coin flight started that very instant,
+  // so she read them as the answer to her tap ("the first tap only arms it")
+  // and never noticed the level she got. The purchase's own payoff is the only
+  // answer on screen now.
   if (w.upgradeTotal) {
     offs.push(watch(w.upgradeTotal, (n, was) => {
       if (!(n > was)) return
       aimsSinceBuy = 0
       rearm = null
-      evaluateFunnel(false)
+      funnelHeld = true
+      if (upgradeFunnel.value) upgradeFunnel.value = null
     }))
   }
-  // Damage turning affordable mid-aim (a chest tapped, a gift claimed) shows
-  // the arrows right away, not one volley later.
+  // Damage turning affordable mid-aim shows the arrows right away, not one
+  // volley later — unless the calm broke (a chest's coin rain, a gift modal):
+  // then the next calm aim phase.
   offs.push(watch(
     () => [w.upgrades?.value, w.freeOffer?.value, w.glowingUpgrade?.value, w.ftueDone.value],
     () => evaluateFunnel(false)
   ))
+  // Synchronously: the coin rain / modal / unlock must not share a frame with it.
+  if (w.funnelCalm) {
+    offs.push(watch(w.funnelCalm, (calm) => {
+      if (!calm && !funnelHeld && w.engine.value.state.phase === 'aim') holdFunnel()
+    }, { flush: 'sync' }))
+  }
 
   if (w.engine.value.state.phase === 'aim') onAim()
 
   return () => {
     for (const off of offs) off()
+    stopSpotTimer()
     cancelSearch()
     stopQuiet()
     setLesson(null)
     upgradeFunnel.value = null
-    if (wiring === w) {
-      wiring = null
-      resumeAfterOverrun = null
-    }
+    if (wiring === w) wiring = null
   }
 }
 
@@ -846,9 +1112,22 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
   ;(window as unknown as Record<string, unknown>).__coach = {
     lesson: () => coachLesson.value,
     funnel: () => upgradeFunnel.value,
+    ownsHand: () => funnelOwnsHand(),
     shotDemoDue: () => shotDemoDue.value,
     engine: () => wiring?.engine.value ?? null,
     retired: () => [...retiredTags.value],
-    shown: (id: ExposureId) => lessonShown(id)
+    shown: (id: ExposureId) => lessonShown(id),
+    /** Stage a spotlight now, off the live board (visual checks). */
+    spot: (kind: SpotKind): boolean => {
+      const st = wiring?.engine.value.state
+      if (!st) return false
+      if (kind === 'threat') {
+        const d = threatSpotDraft(st)
+        return !!d && offerSpot(d)
+      }
+      const view = wiring?.upgrades?.value.find((v) => v.id === kind)
+      const d = view ? chipSpotDraft(kind, view, st) : null
+      return !!d && offerSpot(d)
+    }
   }
 }

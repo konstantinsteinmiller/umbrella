@@ -39,7 +39,7 @@ watch(() => hudTip.value?.seq, async (seq) => {
   place.value = null
   if (seq === undefined) { srText.value = ''; return }
   const c = content.value
-  srText.value = c ? (c.sr ?? [c.name, ...(c.facts ?? []).map((f) => f.text)].join(' ')) : ''
+  srText.value = c ? (c.sr ?? [c.name, ...(c.facts ?? []).map((f) => (f.sub ? `${f.text} ${f.sub}` : f.text))].join(' ')) : ''
   timer = window.setTimeout(hideHudTip, TIP_MS)
   await nextTick()
   measure()
@@ -72,7 +72,7 @@ onUnmounted(() => {
 
 <template lang="pug">
   Teleport(to="body")
-    div.hud-tip-layer(aria-live="polite")
+    div.hud-tip-layer.hud-digits(aria-live="polite")
       span.sr-only {{ srText }}
       Transition(name="hud-tip")
         div.hud-tip(
@@ -82,18 +82,20 @@ onUnmounted(() => {
           :style="style"
           aria-hidden="true"
         )
-          span.hud-tip__icon
+          span.hud-tip__icon(v-if="content.icon")
             IconCoin.w-full.h-full(v-if="content.icon === 'coin'")
             img.w-full.h-full.hud-tip__art(v-else-if="content.icon === 'chest'" :src="chestSrc()" alt="" draggable="false")
             BarrageGlyph.w-full.h-full(v-else :name="content.icon")
           span.hud-tip__body
             span.hud-tip__name.game-text {{ content.name }}
             span.hud-tip__facts(v-if="content.facts && content.facts.length")
-              span.hud-tip__fact(v-for="(f, i) in content.facts" :key="i" :class="'hud-tip__fact--' + f.icon")
-                IconCoin.hud-tip__fact-icon(v-if="f.icon === 'coin'")
-                img.hud-tip__fact-icon.hud-tip__art(v-else-if="f.icon === 'chest'" :src="chestSrc()" alt="" draggable="false")
-                BarrageGlyph.hud-tip__fact-icon(v-else :name="f.icon")
+              span.hud-tip__fact(v-for="(f, i) in content.facts" :key="i" :class="'hud-tip__fact--' + (f.icon || 'plain')")
+                template(v-if="f.icon")
+                  IconCoin.hud-tip__fact-icon(v-if="f.icon === 'coin'")
+                  img.hud-tip__fact-icon.hud-tip__art(v-else-if="f.icon === 'chest'" :src="chestSrc()" alt="" draggable="false")
+                  BarrageGlyph.hud-tip__fact-icon(v-else :name="f.icon")
                 span.game-text.tabular-nums {{ f.text }}
+                span.hud-tip__sub.game-text.tabular-nums(v-if="f.sub") {{ f.sub }}
 </template>
 
 <style scoped lang="sass">
@@ -170,6 +172,14 @@ onUnmounted(() => {
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6)
 .hud-tip__fact--coin
   color: #ffe27a
+// A value without a glyph (the rank): white, with its quieter tail.
+.hud-tip__fact--plain
+  color: #fff
+  align-items: baseline
+.hud-tip__sub
+  color: #ffe6a0
+  font-size: 10px
+  text-transform: uppercase
 .hud-tip__fact-icon
   width: 14px
   height: 14px

@@ -64,6 +64,45 @@ export const REPEAT_DEFAULT = Math.PI / 2
 
 export type AimMode = 'point' | 'sling'
 
+/** A TAP (run 5): released within TAP_MS of the press… */
+export const TAP_MS = 350
+/** …and never further than this (cells, at least TAP_SLOP_MIN CSS px) from where it went down. */
+export const TAP_SLOP = 0.2
+export const TAP_SLOP_MIN = 8
+
+/**
+ * Tells a TAP from a drag (run 5: tap players never saw the aim preview — it
+ * shows only while a finger is down, and a tap is down for a blink). The
+ * board flashes the fired shot's bounce path after a tap; a drag already
+ * showed it. Coordinates CSS px, times ms.
+ */
+export class TapWatch {
+  private x = 0
+  private y = 0
+  private t = 0
+  private slop = TAP_SLOP_MIN
+  private moved = false
+
+  /** A finger went down at (x, y) at time `t`; `cell` = the board's cell size (CSS px). */
+  press(x: number, y: number, t: number, cell: number): void {
+    this.x = x
+    this.y = y
+    this.t = t
+    this.slop = Math.max(TAP_SLOP_MIN, cell * TAP_SLOP)
+    this.moved = false
+  }
+
+  /** The finger is at (x, y): once it strays past the slop it is a drag for good. */
+  move(x: number, y: number): void {
+    if (!this.moved && Math.hypot(x - this.x, y - this.y) > this.slop) this.moved = true
+  }
+
+  /** A release at time `t` ends a tap. */
+  isTap(t: number): boolean {
+    return !this.moved && t - this.t <= TAP_MS
+  }
+}
+
 export class AimController {
   pointerId = -1
   /** A finger is down (on the board, or begun outside it via `beginFrom`). */

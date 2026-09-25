@@ -116,7 +116,10 @@ onUnmounted(() => {
 
 <template lang="pug">
   Teleport(to="body")
-    div.sr-only(aria-live="polite") {{ announcement }}
+    //- `data-coach-live`: the playtest harness grabs a moment frame the first
+    //- time each distinct sentence shows (run 6: testers saw only the before /
+    //- after of the fly-in and read the new buttons as "silently appearing").
+    div.sr-only(aria-live="polite" data-coach-live="unlock") {{ announcement }}
     div.unlock-fx.fixed.inset-0.pointer-events-none(ref="layer" aria-hidden="true")
       //- type="transition": the rays SPIN on an infinite animation, and Vue would
       //- otherwise wait for its (never-coming) animationend before leaving.

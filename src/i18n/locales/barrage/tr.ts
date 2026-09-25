@@ -10,7 +10,8 @@ export default {
     shields: 'Kalkan yükü: {n}',
     revives: 'Diriliş yükü: {n}',
     warcry: 'Savaş çığlığı hazır: sonraki atışın iki kat hasar verir',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Dünya sıralaması'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Seviye {n}',
     plusOne: '+1',
     merged: 'Birleşti!',
-    overflow: 'Tepsi dolu! +{n} para'
+    overflow: 'Tepsi dolu! +{n} para',
+    pickupSr: '"+1" tepsinde bir top daha demek: her atışta bir mermi daha, daha çok hasar.'
   },
   upgrades: {
     title: 'Geliştirmeler',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Tepsi kapasitesi',
       short: 'Kapasite',
-      desc: 'İkizler birleşmeden önce daha çok top tut.'
+      desc: 'Tepside daha çok top: her turda daha çok atış.'
     },
     speed: {
       name: 'Atış hızı',
       short: 'Hız',
-      desc: 'Toplar daha hızlı uçar ve daha sık fırlar.'
+      desc: 'Toplar daha hızlı uçar ve daha sert vurur.'
     },
     luck: {
       name: 'Toplama şansı',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '%{n}',
-      plusPercent: '+%{n}'
+      percent: '%{n}'
     },
     arrow: '{from} → {to}',
     max: 'MAKS',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Yarıldı!',
+    wasted: 'Yenildin',
     body: 'Canavarlar {n}. sırada hattı yardı.',
+    bodyBy: '{n}. sırada hattı yaran: {name}',
     meteor: 'Meteor fırtınası',
     meteorDesc: 'Alttaki iki sırayı temizle ve devam et',
     meteorAdAria: 'Reklam izle: Meteor fırtınası alttaki iki sırayı temizler',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'İlk boss yenildi!',
     defeated: '{name} yenildi!',
     amount: '+{n}',
-    doubled: 'Ödül ikiye katlandı!',
+    boosted: 'Ödül ×{n}!',
     checkpoint: 'Kontrol noktası {n}. sırada kaydedildi',
-    double: '2×',
-    doubleAdAria: 'Ödülü ikiye katlamak için reklam izle',
-    doubleCoinAria: '{cost} paraya ödülü ikiye katla',
-    collect: 'Topla'
+    boost: '{n}×',
+    boostAdAria: 'Ödülü {n} katına çıkarmak için reklam izle',
+    boostCoinAria: '{cost} paraya ödülü {n} katına çıkar',
+    collect: 'Topla',
+    powerUp: 'Güçlen!'
   },
   daily: {
     today: 'Bugünün tahtası: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Bir top daha topla: dolu tepsi ikizleri daha güçlü bir topa birleştirir!',
     upgrade: 'Daha çok top tutmak için bedava geliştirmeye dokun!'
   },
+  prompt: {
+    tapToShoot: 'Ateş etmek için dokun',
+    clickToShoot: 'Ateş etmek için tıkla'
+  },
   coach: {
     survive: 'Canavarlar geçmek üzere — önce en alttakileri vur!',
     tray: 'Tepsin dolu: +1 yalnızca boş bir yuva varken bir atış ekler. Daha çok top atmak için tepsi kapasitesini yükselt!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Parlayan geliştirmeye dokun: toplarını, tepsini ya da paralarını iyileştirir.',
     bank: 'Açılı nişan al: duvardan seken bir top tek atışta birkaç canavarı vurabilir!',
     funnel: 'Artık {name} alabilirsin — dokun, her top daha sert vursun!',
-    overrun: 'Bir canavar çizgiyi geçerse hat yarılır — önce 1 yazanları vur!'
+    skipAria: 'Dersi atla',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Yanındaki geri sayım, en yakın canavar geçene kadar kalan turları sayar — sıfıra inmeden onu vur!',
+      speed: '{name}: topların daha hızlı uçar ve her vuruş daha çok hasar verir.',
+      luck: '{name}: yeni sıralar daha çok para ve yetenek balonu getirir.',
+      bounty: '{name}: yendiğin her canavar daha çok para verir.'
+    }
   },
   merge: {
     sr: 'İki {from}. seviye top birleşip bir {to}. seviye top oldu! Tepsindeki her top bir atıştır.',

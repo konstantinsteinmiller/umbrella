@@ -317,8 +317,10 @@ onUnmounted(() => {
 
 <template lang="pug">
   Teleport(to="body")
-    div.sr-only(aria-live="polite") {{ srText }}
-    div.merge-box.fixed.inset-0(
+    //- `data-coach-live`: the stable marker the playtest harness reads the
+    //- coach's sentences by (no behaviour of its own).
+    div.sr-only(aria-live="polite" data-coach-live="merge") {{ srText }}
+    div.merge-box.hud-digits.fixed.inset-0(
       v-if="box && geo"
       :style="{ opacity: layerOpacity }"
       role="button"

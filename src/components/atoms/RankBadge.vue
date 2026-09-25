@@ -25,6 +25,15 @@
  *
  * `score` is a PROP (the same number `reportRun` gets — `rankedBest` from
  * `useWaveLeaderboard`), so this component knows nothing about waves.
+ *
+ * `tappable` (play-test run 4: "#15,667 of 15,876" meant nothing to a tester)
+ * makes the plaque answer a tap with a `tap` event — its element and its
+ * formatted texts — so the host can name it (Barrage: the HUD name plate).
+ * Without it the plaque stays click-through, as before.
+ *
+ * `label` (play-test run 8: all four testers still asked what "#15,396 of
+ * 15,876" is — nobody taps a plaque to find out): a small caption before the
+ * placing that names it, e.g. "GLOBAL RANK" — the host passes its own words.
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -37,6 +46,14 @@ import {
 const props = defineProps<{
   /** The player's best wave once one has been cleared, else 0 (= not ranked). */
   score: number
+  /** Answer a tap (only while a rank shows) with `tap`. */
+  tappable?: boolean
+  /** A caption before the placing that names it ("GLOBAL RANK"). */
+  label?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'tap', el: HTMLElement, info: { rank: string; of: string | null; aria: string }): void
 }>()
 
 const { t, locale } = useI18n()
@@ -83,6 +100,19 @@ const ariaLabel = computed(() => showTotal.value
   ? t('leaderboard.aria', { rank: num(rank.value), n: num(population.value) })
   : t('leaderboard.ariaRank', { rank: num(rank.value) }))
 
+/** Tappable only while there is a placing to name (never the "…"). */
+const live = computed(() => !!props.tappable && rank.value > 0)
+const onTap = (ev: Event): void => {
+  const el = ev.currentTarget as HTMLElement | null
+  if (!live.value || !el) return
+  emit('tap', el, { rank: rankText.value, of: showTotal.value ? ofText.value : null, aria: ariaLabel.value })
+}
+const onKey = (ev: KeyboardEvent): void => {
+  if (ev.key !== 'Enter' && ev.key !== ' ') return
+  ev.preventDefault()
+  onTap(ev)
+}
+
 // ── A glint when the placing improves ──
 // A new best wave usually moves the rank; making that visible is the point of
 // having a rank on screen during play rather than on a result screen.
@@ -126,17 +156,21 @@ const runeZone = computed(() => (runes.value ? `${runeZoneFor(plaqueH.value).toF
     div.rank-badge(
       v-if="rank > 0 || waiting"
       ref="plaqueEl"
-      :class="{ 'rank-badge--glint': glint }"
+      :class="{ 'rank-badge--glint': glint, 'rank-badge--tappable': live }"
       :style="{ '--rune-zone': runeZone }"
-      role="img"
+      :role="live ? 'button' : 'img'"
+      :tabindex="live ? 0 : undefined"
       :aria-label="rank > 0 ? ariaLabel : undefined"
       :aria-hidden="rank > 0 ? undefined : 'true'"
+      @click="onTap"
+      @keydown="onKey"
     )
       RuneFrame(v-if="runes" inscription="global rank" state="ready")
       div.rank-badge__row
         //- Inline so it inherits nothing it should not and costs no request.
         svg.rank-badge__icon(viewBox="0 0 24 24" fill="currentColor" aria-hidden="true")
           path(d="M6 3h12v2h3v3a5 5 0 0 1-4.6 5A6 6 0 0 1 13 16.9V19h3.5v2h-9v-2H11v-2.1a6 6 0 0 1-3.4-3.9A5 5 0 0 1 3 8V5h3V3Zm0 4H5v1a3 3 0 0 0 1.6 2.7A8 8 0 0 1 6 8V7Zm12 0v1a8 8 0 0 1-.6 2.7A3 3 0 0 0 19 8V7h-1Z")
+        span.rank-badge__label.game-text(v-if="label") {{ label }}
         span.rank-badge__rank.game-text {{ rank > 0 ? rankText : '…' }}
         span.rank-badge__of.game-text(v-if="showTotal") {{ ofText }}
 </template>
@@ -169,6 +203,15 @@ const runeZone = computed(() => (runes.value ? `${runeZoneFor(plaqueH.value).toF
   > :not(.rune-frame)
     position: relative
     z-index: 1
+// A host that names it on a tap (Barrage's HUD plate): it catches the tap —
+// the layout is untouched, only the hit test changes.
+.rank-badge--tappable
+  pointer-events: auto
+  cursor: pointer
+  touch-action: manipulation
+  -webkit-tap-highlight-color: transparent
+  &:active
+    filter: brightness(1.15)
 
 .rank-badge__row
   display: flex
@@ -183,6 +226,14 @@ const runeZone = computed(() => (runes.value ? `${runeZoneFor(plaqueH.value).toF
   color: #ffd23a
   filter: drop-shadow(1px 1px 0 #000) drop-shadow(0 0 3px rgba(255, 210, 58, 0.6))
 
+.rank-badge__label
+  color: #ffd23a
+  font-weight: 900
+  font-size: max(9px, 0.66em)
+  letter-spacing: 0.04em
+  text-transform: uppercase
+  text-shadow: 1px 1px 0 #000
+  margin-right: 0.15em
 .rank-badge__rank
   color: #fff
   font-weight: 900

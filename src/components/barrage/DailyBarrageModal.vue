@@ -53,7 +53,7 @@ const onLeave = (): void => {
     :title="t('barrageMeta.daily.title')"
     @update:model-value="emit('update:modelValue', $event)"
   )
-    div.daily.flex.flex-col.items-center.gap-3.px-2.pb-2
+    div.daily.hud-digits.flex.flex-col.items-center.gap-3.px-2.pb-2
       p.game-text.text-white.text-center.opacity-90(class="text-sm") {{ t('barrageMeta.daily.subtitle') }}
       div.daily-date.game-text.font-black.flex.items-center.gap-2
         BarrageGlyph.w-5.h-5(name="daily")

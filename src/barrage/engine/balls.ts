@@ -12,6 +12,22 @@ export const CRIT_MULT = 2
 export const ballDamage = (tier: number, damageMult: number): number =>
   damageMult * Math.pow(TIER_GROWTH, Math.max(1, tier) - 1)
 
+/**
+ * Momentum (CONTRACT §3): every wall or ceiling bounce speeds a ball up by
+ * `perBounce` of its launch speed, up to `max` more, and a ball hits harder
+ * the faster it flies (`momentumMult`). Bank shots and balls rattling above
+ * the rows — the cool and the lucky combos — out-hit a straight shot by up to
+ * ×2. Nothing slows a ball back down; each launch starts at 0. Mutable only
+ * so the sim can sweep it.
+ */
+export const MOMENTUM = { perBounce: 0.05, max: 1 }
+
+/** A ball's momentum after one more wall bounce. */
+export const bumpedBoost = (boost: number): number => Math.min(MOMENTUM.max, boost + MOMENTUM.perBounce)
+
+/** Damage (and speed) multiplier of a ball carrying `boost` momentum. */
+export const momentumMult = (boost: number): number => 1 + boost
+
 const LADDER: readonly BallAbility[] = [
   'burn', 'knockback', 'pierce', 'freeze', 'splash', 'crush', 'chain', 'poison', 'midas'
 ]
@@ -98,3 +114,15 @@ export const trayPower = (tray: readonly number[], damageMult: number): number =
   for (const t of tray) sum += ballDamage(t, damageMult)
   return sum
 }
+
+/**
+ * CONTRACT §6: the tray a checkpoint restart starts with — the STRONGER
+ * (`trayPower` at the current damage mult) of the checkpoint tray and the
+ * tray at the breach; a tie keeps the checkpoint tray. Playtest run 4: a
+ * restart that dropped a ball read as lost progress right under "Keep all
+ * your coins". Returns a copy. One rule for the state layer and the sim.
+ */
+export const restartTray = (checkpoint: readonly number[], atBreach: readonly number[] | null | undefined, damageMult: number): number[] =>
+  atBreach && atBreach.length > 0 && trayPower(atBreach, damageMult) > trayPower(checkpoint, damageMult)
+    ? [...atBreach]
+    : [...checkpoint]

@@ -86,6 +86,10 @@ export interface Monster {
   shield?: boolean
   /** Imp: one of the two little imps a defeated imp splits into (never splits again). */
   mini?: boolean
+  /** (engine addition) Boss only: the share of its full HP it spawned with
+   *  under boss mercy (`config.bossHpMult`; absent = 1). Display only — the
+   *  HUD bar draws the rest as a chunk cracked off its end. */
+  mercy?: number
 }
 
 export interface Ball {
@@ -104,6 +108,10 @@ export interface Ball {
   pierceLeft: number
   /** Hits this ball has scored this launch (drives eruption cadence). */
   hits: number
+  /** (engine addition) Momentum, 0..`MOMENTUM.max` (balls.ts): +`perBounce`
+   *  per wall / ceiling bounce this launch. The ball flies and hits
+   *  `momentumMult(boost)` × its launch speed / damage. Renderer: hotter trail. */
+  boost: number
 }
 
 export interface Pickup {
@@ -159,6 +167,17 @@ export interface EngineConfig {
    *  monster already on the board. The state layer feeds it
    *  `assistForPaidLevels(paid)` (economy.ts), which steps down per paid level. */
   assist?: number
+  /** (engine addition) Boss mercy, 0..1 (absent = 1): the next boss spawns
+   *  with this share of its HP. Read at SPAWN time, like `assist`. The state
+   *  layer feeds it `bossHpMultForDeaths(deaths)` (economy.ts) — the boss the
+   *  player keeps dying to gets softer with every checkpoint restart. */
+  bossHpMult?: number
+  /** (engine addition, playtest run 9) Cap on the next boss's full HP
+   *  (before mercy), > 0 (absent / 0 = none). The state layer feeds it the
+   *  full HP of the boss the player last lost to, so a retry never meets a
+   *  stronger boss than the one that won (the adaptive floor follows the tray
+   *  the player keeps). Read at SPAWN time, like `bossHpMult`. */
+  bossHpCap?: number
 }
 
 // ─── The whole mutable state (renderer reads it every frame; never writes) ───
@@ -203,11 +222,14 @@ export interface BoardState {
 
 // ─── Aim preview ─────────────────────────────────────────────────────────────
 export interface AimPath {
-  /** Polyline from the launcher: [launcher, firstBounce, (short continuation)]. */
+  /** Polyline from the launcher: [launcher, contact 1 … contact n (`bounces`), (short continuation)]. */
   points: { x: number; y: number }[]
   /** What the first segment hits. */
   hit: 'wall' | 'ceiling' | 'monster' | 'hazard' | 'floor'
   monsterId?: number
+  /** (fun pass) Cells drawn solid — up to the last traced contact; the rest
+   *  is the fading continuation. Absent = the first segment. */
+  solid?: number
 }
 
 // ─── Events (engine → listeners; emitted synchronously inside update/fire) ───
@@ -217,13 +239,21 @@ export type EngineEvent =
   /** `dmg` is the hit's full damage (overkill included); `dealt` (playtest run 3)
    *  is the HP it actually removes — min(dmg, the monster's HP before the hit).
    *  The renderer's damage number shows `dealt`, so a 1-HP kill pops "1". */
-  | { type: 'hit'; monsterId: number; ballId: number; tier: number; dmg: number; dealt: number; x: number; y: number; ability: BallAbility | null; crit: boolean }
-  | { type: 'wallBounce'; ballId: number; x: number; y: number }
+  | { type: 'hit'; monsterId: number; ballId: number; tier: number; dmg: number; dealt: number; x: number; y: number; ability: BallAbility | null; crit: boolean
+      /** (engine addition) The ball's momentum (0..`MOMENTUM.max`); `dmg` already includes it. */
+      boost?: number }
+  /** `boost`: the ball's momentum after this bounce (0..`MOMENTUM.max`). */
+  | { type: 'wallBounce'; ballId: number; x: number; y: number; boost: number }
   | { type: 'abilityProc'; ability: BallAbility; x: number; y: number; monsterId?: number; targets?: number[] }
   /** `dealt` as on 'hit': the HP the tick actually removes. */
   | { type: 'dot'; monsterId: number; dmg: number; dealt: number; kind: 'burn' | 'poison'; x: number; y: number }
   | { type: 'kill'; monsterId: number; kind: MonsterKind; bossKind?: BossKind; corrupted: boolean; x: number; y: number; coins: number; row: number }
-  | { type: 'coins'; amount: number; x: number; y: number; source: 'kill' | 'pickup' | 'midas' | 'chest' | 'boss' }
+  | { type: 'coins'; amount: number; x: number; y: number; source: 'kill' | 'pickup' | 'midas' | 'chest' | 'boss' | 'combo' }
+  /** (engine addition, fun pass) The volley's combo tally, right before
+   *  `volleyEnd`: `hits` scored by `balls` launched; `coins` its balls'
+   *  long rattles paid (economy `comboCoins`; 0 = none; its `coins` event,
+   *  source 'combo', follows). */
+  | { type: 'comboBonus'; hits: number; balls: number; coins: number }
   /** `auto` (engine addition): collected without a ball touching it — a "+1"
    *  that reached the launcher line, or the FTUE guarantee at volley end.
    *  RENDER flies it into the tray instead of bursting it under a ball. */
@@ -265,7 +295,10 @@ export type EngineEvent =
    *  destroys every monster in the bottom `rows` rows (`ids`, whose own `kill`
    *  + `coins` events follow at once), and the turn it died in skips its march
    *  — a boss kill is never followed by a breach in the same turn. (x, y) is
-   *  the boss's centre (the blast's origin). `ids` may be empty. */
+   *  the boss's centre (the blast's origin). `ids` may be empty. After the
+   *  run's FIRST boss that quiet advance still spawns the next row in place
+   *  (`rowSpawned` + its `monsterSpawn`s, no `march`; playtest run 5: the
+   *  board sat empty after the kill). */
   | { type: 'bossBlast'; monsterId: number; rows: number; ids: number[]; x: number; y: number }
   | { type: 'danger'; rowsLeft: number }
   | { type: 'shieldBlock' }
@@ -300,6 +333,10 @@ export interface RunSnapshot {
   /** (engine addition) A boss died while aiming (a tapped chest's skill): the
    *  coming turn's march is skipped. Absent = false. */
   skipMarch?: boolean
+  /** (engine addition, playtest run 5) With `skipMarch`: the boss that died
+   *  was the run's FIRST, so the quiet advance still spawns the next row in
+   *  place (nothing marches). Absent = false. */
+  quietSpawn?: boolean
   /** (engine addition, playtest run 3) The HP clock: the clock row the last
    *  spawned row took its monster HP from (held while a boss lives and on the
    *  post-boss plateau — see monsters.ts; Daily: the row itself). Absent (older
@@ -307,6 +344,10 @@ export interface RunSnapshot {
   hpRow?: number
   /** (engine addition) Rows still to spawn on the post-boss plateau. */
   hpHold?: number
+  /** (engine addition, playtest run 9) The aim EMAs — ball hits per ball on
+   *  walker boards and on bosses (monsters.ts `BOSS_ADAPT`). Absent = not
+   *  measured yet. */
+  aim?: { walker: number; boss: number }
 }
 
 // ─── Economy (implemented in engine/economy.ts — ENGINE owns the numbers because
@@ -320,6 +361,7 @@ export type UpgradeLevels = Record<UpgradeId, number>
  *   upgradeCost(id: UpgradeId, level: number): number    // price to go level → level+1
  *   upgradeValue(id: UpgradeId, level: number): number   // damage/bounty: multiplier · capacity: balls
  *                                                        // speed: cells/s · luck: 0..1
+ *   glowTrack(levels: UpgradeLevels, coins: number): UpgradeId | null   // the one glowing chip (CONTRACT §0.3)
  *   configFromUpgrades(levels: UpgradeLevels): Pick<EngineConfig,
  *     'damageMult' | 'trayCapacity' | 'ballSpeed' | 'launchInterval' | 'pickupLuck' | 'coinMult'>
  *   DAILY_CONFIG: Pick<EngineConfig, same as above>     // fixed, upgrade-independent (fair seeds)
@@ -344,7 +386,7 @@ export interface IBarrageEngine {
   /** Advance by real seconds (internally fixed-step 1/120 s × speedMul; dt capped at 0.1). */
   update(dt: number): void
   /** Aim preview for an angle (see MIN_AIM). Pure; does not mutate state. */
-  aimPreview(angle: number): AimPath
+  aimPreview(angle: number, bounces?: number): AimPath
   canFire(): boolean
   /** Start a volley. Returns false if not in 'aim' or the angle is invalid (it is clamped first). */
   fire(angle: number): boolean

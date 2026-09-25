@@ -53,7 +53,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useAssets from '@/use/useAssets'
 import { prependBaseUrl } from '@/utils/function'
-import { stopLoading, startGameplay } from '@/use/useCrazyGames'
+import { stopLoading } from '@/use/useCrazyGames'
 import { armFirstLoadInterstitial, notifySplashGone } from '@/use/useFirstLoadInterstitial'
 
 const { t } = useI18n()
@@ -174,12 +174,10 @@ const signalGameReadyToCG = () => {
   if (cgLoadSignaled) return
   cgLoadSignaled = true
   try {
-    // Hot-loading is done and we boot straight into the arena → close the CG
-    // loading phase AND flag gameplay as started. We deliberately do NOT pair a
-    // gameplayStop() with the basic launch; only the CG full release stops it
-    // on menus (see useModalGameplayGate). Both wrappers no-op off CrazyGames.
+    // Hot-loading is done → close the CG loading phase. `gameplayStart()` is
+    // NOT fired here: it waits for the player's first interaction with the live
+    // game (the gameplay bracket, `usePortalGameplay`). No-op off CrazyGames.
     stopLoading()
-    startGameplay()
   } catch (e) { console.warn('[FLogoProgress] CG ready-to-play failed', e) }
 }
 
@@ -272,12 +270,6 @@ const signalGameReadyToYandex = () => {
 // GamePix's `gameLoaded` / Yandex's `LoadingAPI.ready()`; the plugin guards it
 // internally so a re-trigger is harmless.
 //
-// `notifyPortalGameLive()` rides along on the same edge: this game boots straight
-// into a live arena, so "the splash is gone" IS "the simulation is running".
-// That opens the gameplay bracket — which the plugin then HOLDS until the
-// player's first trusted gesture, so nothing is reported for a player who has
-// not touched anything yet. See `usePortalGameplay.ts`.
-//
 // Same `import.meta.env` literal pattern as the branches above so non-Poki
 // builds DCE the dynamic import entirely (this component is in the obfuscator's
 // exclude list, which is what keeps the `'@/…'` specifier resolvable).
@@ -290,9 +282,27 @@ const signalGameReadyToPoki = () => {
     try { pokiGameLoadingFinished() }
     catch (e) { console.warn('[FLogoProgress] Poki gameLoadingFinished failed', e) }
   })
+}
+
+// The gameplay bracket (`usePortalGameplay`) learns the game is live on the
+// same edge — this game boots straight into a live board, so "the splash is
+// gone" IS "the board is running". It then waits for the player's first
+// interaction before any portal hears `gameplayStart()`. Every portal with a
+// bracket needs this edge: it used to ride along on Poki's only, which left
+// Playgama's `gameplay_started` unreachable.
+let bracketLiveSignaled = false
+const signalGameLiveToBracket = () => {
+  if (bracketLiveSignaled) return
+  if (
+    import.meta.env.VITE_APP_CRAZY_WEB !== 'true'
+    && import.meta.env.VITE_APP_POKI !== 'true'
+    && import.meta.env.VITE_APP_PLAYGAMA !== 'true'
+    && import.meta.env.VITE_APP_YANDEX !== 'true'
+  ) return
+  bracketLiveSignaled = true
   void import('@/use/usePortalGameplay').then(({ notifyPortalGameLive }) => {
     try { notifyPortalGameLive() }
-    catch (e) { console.warn('[FLogoProgress] Poki game-live signal failed', e) }
+    catch (e) { console.warn('[FLogoProgress] game-live signal failed', e) }
   })
 }
 
@@ -305,6 +315,7 @@ watch(done, (isDone) => {
       signalGameReadyToGamepix()
       signalGameReadyToYandex()
       signalGameReadyToPoki()
+      signalGameLiveToBracket()
       // Triggers the GamePix first-load interstitial (no-op on other builds
       // — the orchestrator was never armed). GD / GameMonetize used to share
       // this fire but were removed above. Runs alongside the platform

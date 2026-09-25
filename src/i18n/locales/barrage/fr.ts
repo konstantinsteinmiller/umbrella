@@ -10,7 +10,8 @@ export default {
     shields: 'Charges de bouclier : {n}',
     revives: 'Charges de résurrection : {n}',
     warcry: 'Cri de guerre prêt : ta prochaine salve inflige des dégâts doublés',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Classement mondial'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Niveau {n}',
     plusOne: '+1',
     merged: 'Fusion !',
-    overflow: 'Réserve pleine ! +{n} pièces'
+    overflow: 'Réserve pleine ! +{n} pièces',
+    pickupSr: '« +1 », c’est une balle de plus dans ta réserve : un tir de plus à chaque salve, plus de dégâts.'
   },
   upgrades: {
     title: 'Améliorations',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Capacité de réserve',
       short: 'Capacité',
-      desc: 'Garde plus de balles avant que les jumelles fusionnent.'
+      desc: 'Plus de balles dans ta réserve : plus de tirs à chaque tour.'
     },
     speed: {
       name: 'Vitesse de tir',
       short: 'Vitesse',
-      desc: 'Les balles volent plus vite et partent plus tôt.'
+      desc: 'Les balles volent plus vite et frappent plus fort.'
     },
     luck: {
       name: 'Chance de butin',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}\u00a0%',
-      plusPercent: '+{n}\u00a0%'
+      percent: '{n}\u00a0%'
     },
     arrow: '{from} → {to}',
     max: 'MAX',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Submergé !',
+    wasted: 'Vaincu',
     body: 'Les monstres ont percé à la rangée {n}.',
+    bodyBy: 'Percée à la rangée {n} : {name}',
     meteor: 'Pluie de météores',
     meteorDesc: 'Nettoie les deux rangées du bas et continue',
     meteorAdAria: 'Regarde une pub : la Pluie de météores nettoie les deux rangées du bas',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Premier boss vaincu !',
     defeated: '{name} vaincu !',
     amount: '+{n}',
-    doubled: 'Prime doublée !',
+    boosted: 'Prime ×{n} !',
     checkpoint: 'Point de contrôle enregistré à la rangée {n}',
-    double: '2×',
-    doubleAdAria: 'Regarde une pub pour doubler la prime',
-    doubleCoinAria: 'Double la prime pour {cost} pièces',
-    collect: 'Récupérer'
+    boost: '{n}×',
+    boostAdAria: 'Regarde une pub pour multiplier la prime par {n}',
+    boostCoinAria: 'Prime ×{n} pour {cost} pièces',
+    collect: 'Récupérer',
+    powerUp: 'Améliore !'
   },
   daily: {
     today: 'Plateau du jour : {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Récupère une autre balle : une réserve pleine fusionne les jumelles en une balle plus forte !',
     upgrade: 'Touche l\'amélioration gratuite pour garder plus de balles !'
   },
+  prompt: {
+    tapToShoot: 'Touche pour tirer',
+    clickToShoot: 'Clique pour tirer'
+  },
   coach: {
     survive: 'Les monstres vont percer : frappe d’abord ceux du bas !',
     tray: 'Ta réserve est pleine : un +1 n’ajoute un tir que s’il reste une place libre. Améliore la capacité de réserve pour tirer plus de balles !',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Touche l’amélioration qui brille : elle rend tes balles, ta réserve ou tes pièces meilleures.',
     bank: 'Vise en biais : une balle qui rebondit sur le mur peut toucher plusieurs monstres d’un seul tir !',
     funnel: 'Tu peux maintenant acheter {name} : touche-le et chaque balle frappera plus fort !',
-    overrun: 'Si un monstre franchit la ligne, tu es submergé — frappe d’abord ceux marqués 1 !'
+    skipAria: 'Passer la leçon',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Le compte à rebours à côté de toi compte les tours avant que le monstre le plus proche ne perce : frappe-le avant qu’il n’atteigne zéro !',
+      speed: '{name} : tes balles volent plus vite et chaque coup fait plus de dégâts.',
+      luck: '{name} : les nouvelles rangées apportent plus de bulles de pièces et de compétences.',
+      bounty: '{name} : chaque monstre vaincu rapporte plus de pièces.'
+    }
   },
   merge: {
     sr: 'Deux balles de niveau {from} ont fusionné en une balle de niveau {to} ! Chaque balle de ta réserve est un tir.',

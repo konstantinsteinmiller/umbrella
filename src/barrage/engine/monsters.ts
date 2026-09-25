@@ -82,15 +82,34 @@ export const corruptChance = (row: number): number =>
 // then ×1.25 a row: 79 at 20, 242 at 25, 738 at 30, 6,877 at 40. With the
 // clock held ~5 rows per boss, a veteran meets clock 30 around row 50 and 40
 // around row 62 — about the old HP there, so the late game keeps its pressure.
-// The first-session gate is the row-20 boss (`bossLater`), not a walker wall:
-// the human sim bot beats it first try in ~45% of seeds and first breaches
-// there, around row 30.
-// Sim before → after (24 seeds, medians; full table in the sim's header):
+// The first-session gate is the row-20 boss, not a walker wall.
+// Playtest run 5: the row-20 boss at ×45 showed 792–1,100 HP right after the
+// scripted first boss's 57 ("a 20x jump in one step"; the low-buying humanlow
+// bot won it first try in 2 of 24 runs). The bosses are now a LADDER, each step
+// ≤ ~6× in the HP a first-timer sees: the scripted first boss ×15 × 0.32 (65),
+// the endless run's second ×15 (~400: a typical fight of ~8 turns, humanlow
+// first try ~4 in 5, the second try with boss mercy near-certain), its third
+// ×40 (~2,100), from the fourth on ×45 (~8,700) — and the Daily keeps ×45 past
+// its first boss (see `bossHpFactor`).
+// Run-3 pass, sim before → after (24 seeds, medians; full tables in the sim's header):
 //   human   walker pressure rows 16–20 vs 6–10 5.57× → 1.33×, post/pre-first-
 //           boss HP 4.61 → 1.13, first breach row 31 → 31 (the row-20 boss,
 //           not the wall), row-30 boss killed @turn 165 → 90, best row 40 → 64
 //   noup    first breach row 26 → 29 · random 28 → 30, best row 37 → 62
 //   casual  first breach row 35 → 60, best row 63 → 83, breaches 11 → 9
+// Late-game pass ("from row 40+ it gets really hard to defeat everything
+// unless you land very lucky combos"): past clock `deepRow` (24 — a typical
+// run's row 40) the curve grows `deep` (×1.18) a clock row instead of ×1.25:
+// 523 at 30, 2,735 at 40, 74,914 at 60 (was 738 / 6,877 / 596,446). With the
+// late kill coins, Tempo's damage and momentum, a buying player's volley still
+// removes about half a walker board to row ~130 (before: 51% → 18% from rows
+// 41–50 to 101–130). The Daily keeps ×1.25 (`rowHp(h, true)`).
+// Challenge pass after run 8 ("the overall tuning was too much to the easy
+// side — challenging, but not a quick death"; nobody lost in 3 min): `mid`
+// 1.15 → 1.22 with `late` 1.25 → 1.156, so the mid game (clock 11–23, rows
+// ~20–40) carries up to 1.6× the HP (clock 18) and the curve meets its old
+// self again at clock 24 — the late game is unchanged. The Daily keeps its
+// own `dailyMid` / `dailyLate` (its fixed kit is tuned to them).
 // Constants tuned by scripts/barrage-sim.mjs (see its header for the targets
 // and the before → after numbers). Mutable only so the sim can sweep it
 // in-process; the game never writes it.
@@ -100,19 +119,37 @@ export const HP_CURVE = {
   /** Clock row where the MIW shape hands over to the exponentials. */
   knee: 10,
   /** Growth per clock row from `knee` to `lateRow`. */
-  mid: 1.15,
+  mid: 1.22,
   lateRow: 18,
-  /** Growth per clock row past `lateRow`. */
-  late: 1.25,
+  /** Growth per clock row past `lateRow`… */
+  late: 1.156,
+  /** The Daily board's mid / late growth (the pre-challenge-pass curve). */
+  dailyMid: 1.15,
+  dailyLate: 1.25,
+  /** …up to clock row `deepRow` (a typical run's row ~40), then `deep` per
+   *  clock row — the late-game pass (see the comment block above). */
+  deepRow: 24,
+  deep: 1.18,
   /** Boss HP = boss × rowHp (CONTRACT §2: ≈14) for the run's first boss… */
   boss: 15,
-  /** …and bossLater × rowHp for every later one: the row-20 boss is the
-   *  first-session gate (a first-timer's walkers never threaten them now). */
+  /** …bossSecond × rowHp for the endless run's SECOND boss (the row-20 worm,
+   *  spawning in rows 20–29): the first session's gate, sized for the player
+   *  who reaches it then (playtest run 5: ×45 read as a wall)… */
+  bossSecond: 20,
+  /** …bossThird × rowHp for its THIRD (the row-30 fire dragon, rows 30–39),
+   *  the ladder's middle step… */
+  bossThird: 40,
+  /** …and bossLater × rowHp for every later one (and every Daily boss past
+   *  the first: its fixed kit is tuned against this one). */
   bossLater: 45,
-  /** The FTUE's Slime Tower is the scripted first win (CONTRACT §7). */
-  ftueBoss: 0.28,
+  /** The FTUE's Slime Tower is the scripted first win (CONTRACT §7). Run 5:
+   *  0.28 → 0.32 (57 → 65 HP with the safety net). Challenge pass (run 8: an
+   *  8-ball tray one-shot it): 0.5, and the adaptive floor (`BOSS_ADAPT`)
+   *  sizes it to the tray it meets — a 6–7-volley fight, lost now and then. */
+  ftueBoss: 0.5,
   /** Rows after a boss kill that spawn at the clock the boss had (the
-   *  post-boss plateau; the kill's own quiet turn spawns nothing). */
+   *  post-boss plateau; the kill's own quiet turn spawns nothing — except
+   *  after the run's first boss, where it brings the first of them in place). */
   plateau: 2,
   /** Rows of a LATER boss fight that hold the clock (the first boss's whole
    *  fight holds it). Uncapped, a first-timer's 6–8-row boss fights froze HP
@@ -123,18 +160,24 @@ export const HP_CURVE = {
   bossHold: 5
 }
 
-/** Unrounded row HP at clock row `h`. */
-const rawRowHp = (h: number): number => {
+/** Unrounded row HP at clock row `h` (`daily`: no `deep` segment). */
+const rawRowHp = (h: number, daily: boolean): number => {
   const c = HP_CURVE
   if (h <= c.knee) return c.base * h * Math.pow(c.growth, h - 1)
   const mid = Math.min(h, c.lateRow) - c.knee
-  const late = Math.max(0, h - Math.max(c.lateRow, c.knee))
-  return c.base * c.knee * Math.pow(c.growth, c.knee - 1) * Math.pow(c.mid, Math.max(0, mid)) * Math.pow(c.late, late)
+  const lateFrom = Math.max(c.lateRow, c.knee)
+  const deepFrom = daily ? Number.POSITIVE_INFINITY : Math.max(c.deepRow, lateFrom)
+  const late = Math.max(0, Math.min(h, deepFrom) - lateFrom)
+  const deep = Math.max(0, h - deepFrom)
+  return c.base * c.knee * Math.pow(c.growth, c.knee - 1) * Math.pow(daily ? c.dailyMid : c.mid, Math.max(0, mid)) *
+    Math.pow(daily ? c.dailyLate : c.late, late) * Math.pow(c.deep, deep)
 }
 
 /** Base HP of a slime spawned at HP-clock row `hpRow` (before kind / corrupted
- *  multipliers). Before the first boss the clock equals the row counter. */
-export const rowHp = (hpRow: number): number => Math.max(1, Math.round(rawRowHp(Math.max(1, hpRow))))
+ *  multipliers). Before the first boss the clock equals the row counter.
+ *  `daily`: the Daily board, whose clock is the row itself — it keeps `late`
+ *  past `deepRow` (its fixed-kit sprint ends around rows 30–40 by design). */
+export const rowHp = (hpRow: number, daily = false): number => Math.max(1, Math.round(rawRowHp(Math.max(1, hpRow), daily)))
 
 // ─── The HP clock ────────────────────────────────────────────────────────────
 // Playtest run 3: HP kept climbing with every row spawned during a boss fight,
@@ -206,13 +249,16 @@ export const assistHpMult = (hpRow: number, assist: number | undefined): number 
 }
 
 /** HP of a monster spawned at HP-clock row `hpRow`. A boss gets the FIRST
- *  boss's multiplier unless `laterBoss` (see `bossHp`). */
-export const monsterHp = (hpRow: number, kind: MonsterKind, corrupted: boolean, ftue = false, assist = 0, laterBoss = false): number => {
-  const kindMult = kind === 'boss' ? (laterBoss ? HP_CURVE.bossLater : HP_CURVE.boss) : KIND_HP_MULT[kind]
+ *  boss's multiplier unless `bossMult` gives its own (see `bossHp`).
+ *  `daily`: the Daily's curve (`rowHp`). */
+export const monsterHp = (
+  hpRow: number, kind: MonsterKind, corrupted: boolean, ftue = false, assist = 0, bossMult: number = HP_CURVE.boss, daily = false
+): number => {
+  const kindMult = kind === 'boss' ? bossMult : KIND_HP_MULT[kind]
   const mult = kindMult * (corrupted ? (kind === 'boss' ? CORRUPT_BOSS_HP_MULT : CORRUPT_HP_MULT) : 1)
   // Same product order as before the safety net (× 1 is exact), so no HP
   // without it moves by a rounding step.
-  const hp = Math.max(1, Math.round(rowHp(hpRow) * mult * (ftue && kind === 'boss' ? HP_CURVE.ftueBoss : 1) * assistHpMult(hpRow, assist)))
+  const hp = Math.max(1, Math.round(rowHp(hpRow, daily) * mult * (ftue && kind === 'boss' ? HP_CURVE.ftueBoss : 1) * assistHpMult(hpRow, assist)))
   if (ftue && kind !== 'boss' && hpRow <= FTUE_HP_ROWS) return Math.min(hp, hpRow === 1 ? 1 : FTUE_HP_CAP)
   return hp
 }
@@ -228,10 +274,134 @@ export const monsterHp = (hpRow: number, kind: MonsterKind, corrupted: boolean, 
 export const isFirstBoss = (m: { kind: MonsterKind; spawnRow?: number }, fallbackRow: number): boolean =>
   m.kind === 'boss' && (m.spawnRow ?? fallbackRow) < 2 * BOSS_EVERY
 
-/** HP of the boss spawning in `row` at HP-clock row `hpRow`: the first boss
- *  takes `HP_CURVE.boss`, every later one `HP_CURVE.bossLater`. */
-export const bossHp = (hpRow: number, row: number, corrupted: boolean, ftue = false, assist = 0): number =>
-  monsterHp(hpRow, 'boss', corrupted, ftue, assist, !isFirstBoss({ kind: 'boss', spawnRow: row }, row))
+/** The share of the walkers the endless run's THIRD boss (rows 30–39) roars
+ *  away as it arrives (the designer's call after playtest run 11: it landed on
+ *  a full board — both losses came there — but a clean board would make the
+ *  fight too easy; a third, cleared in lanes, leaves holes for bank shots). */
+export const THIRD_BOSS_ROAR = 1 / 3
+
+/** How much of the board the boss spawning in `row` roars away as it arrives:
+ *  all of it for the run's first boss and — playtest run 7 ("a second boss
+ *  appears while the full enemy swarm is STILL on screen") — the endless run's
+ *  second (rows 20–29); THIRD_BOSS_ROAR for the endless third (rows 30–39);
+ *  nothing for later ones. The Daily board's later bosses never roar. */
+export const roarShare = (row: number, daily: boolean): number => {
+  if (isFirstBoss({ kind: 'boss', spawnRow: row }, row)) return 1
+  if (daily) return 0
+  if (row < 3 * BOSS_EVERY) return 1
+  return row < 4 * BOSS_EVERY ? THIRD_BOSS_ROAR : 0
+}
+
+/** The boss spawning in `row` roars as it arrives (some share of the board). */
+export const roarsOnArrival = (row: number, daily: boolean): boolean => roarShare(row, daily) > 0
+
+/**
+ * The walkers a roar of `share` takes (board order kept). A full roar takes
+ * them all. A partial one takes round(n × share) of them LANE BY LANE — the
+ * columns beside the boss first (left, right, then one further out each side,
+ * its own columns last) and each lane from the bottom up — so what opens are
+ * channels from the launcher's side into the back rows: a ball sent up one
+ * gets behind the formation and bounces there (the combo the coach teaches).
+ * Reads the board only, never the RNG: same board ⇒ same roar.
+ */
+export const roarVictims = <M extends { id: number; col: number; row: number; w: number; h: number }>(
+  walkers: readonly M[],
+  boss: { col: number; w: number },
+  share: number
+): M[] => {
+  if (share >= 1) return [...walkers]
+  const k = Math.round(walkers.length * Math.max(0, share))
+  if (k <= 0) return []
+  const lane: number[] = new Array<number>(COLS).fill(COLS)
+  let order = 0
+  for (let d = 1; d < COLS; d++) {
+    const l = boss.col - d
+    const r = boss.col + boss.w - 1 + d
+    if (l >= 0) lane[l] = order++
+    if (r < COLS) lane[r] = order++
+  }
+  for (let c = boss.col; c < boss.col + boss.w; c++) if (c >= 0 && c < COLS) lane[c] = order++
+  const rankOf = (m: M): number => {
+    let best = COLS
+    for (let c = Math.max(0, m.col); c < Math.min(COLS, m.col + m.w); c++) best = Math.min(best, lane[c]!)
+    return best
+  }
+  const picked = new Set(
+    [...walkers]
+      .sort((a, b) => rankOf(a) - rankOf(b) || (b.row + b.h) - (a.row + a.h) || a.col - b.col || a.id - b.id)
+      .slice(0, k)
+      .map((m) => m.id)
+  )
+  return walkers.filter((m) => picked.has(m.id))
+}
+
+/**
+ * Adaptive boss HP (playtest run 8: an 8-ball tray one-shot the 73-HP Slime
+ * Tower — "completely anticlimactic"). An endless-run boss never spawns with
+ * less than `volleys` volleys (the run's first: `firstVolleys`) of the tray
+ * it meets: every ball hitting it as often as THIS player's balls hit a boss
+ * (`bossAimHpb`), at its tier's damage × Ball Damage × Tempo
+ * (`config.damageMult`; balls.ts `trayPower`). A weak tray meets the curve's
+ * HP, a stacked one a fight of about `volleys` volleys — never a one-shot,
+ * never a wall (it is the player's own power and aim).
+ *
+ * Playtest run 9: the floor assumed 3 "hits per ball"; a tapper (the same spot
+ * every shot) did ~1.5 balls' worth of damage to a boss per volley — his first
+ * boss needed ~14 volleys of the ~9 its march allows. The engine now measures
+ * it (EMAs, `aimAlpha`): a volley's damage ÷ the tray's power (momentum, crits
+ * and abilities included, the savior boost out), on a boss once it has fought
+ * one, else on walker boards × `walkerToBoss`, else `hitsPerBall`; clamped to
+ * [`minHpb`, `maxHpb`]. `firstOnly`: only the
+ * run's first boss adapts. The retry cap (`config.bossHpCap`) and boss mercy
+ * apply on top. The Daily board's fixed kit keeps the curve. Mutable only so
+ * the sim can sweep it.
+ */
+export const BOSS_ADAPT = {
+  volleys: 7,
+  firstVolleys: 5,
+  hitsPerBall: 3,
+  walkerToBoss: 1.2,
+  minHpb: 1,
+  maxHpb: 4,
+  aimAlpha: 0.3,
+  firstOnly: false
+}
+
+/** The hits per ball a boss's floor assumes, from the aim EMAs (−1: not
+ *  measured): the boss's if measured, else the walkers' × `walkerToBoss`,
+ *  else `hitsPerBall`; clamped to [`minHpb`, `maxHpb`]. */
+export const bossAimHpb = (walker: number, boss: number): number => {
+  const a = BOSS_ADAPT
+  const raw = Number.isFinite(boss) && boss >= 0 ? boss
+    : Number.isFinite(walker) && walker >= 0 ? walker * a.walkerToBoss
+      : a.hitsPerBall
+  return Math.max(a.minHpb, Math.min(a.maxHpb, raw))
+}
+
+/** A boss's HP after the adaptive floor: `curveHp` or `volleys` volleys of
+ *  a tray dealing `trayPower` per ball-hit round at `hitsPerBall` hits per
+ *  ball, whichever is more. */
+export const adaptiveBossHp = (curveHp: number, trayPower: number, hitsPerBall = BOSS_ADAPT.hitsPerBall, volleys = BOSS_ADAPT.volleys): number => {
+  const ok = Number.isFinite(trayPower) && trayPower > 0 && Number.isFinite(hitsPerBall) && hitsPerBall > 0 && Number.isFinite(volleys) && volleys > 0
+  const floor = ok ? Math.round(volleys * hitsPerBall * trayPower) : 0
+  return Math.max(curveHp, floor)
+}
+
+/** The row-HP multiplier of the boss spawning in `row`: the run's first boss
+ *  `HP_CURVE.boss`, the endless run's second (rows 20–29) `HP_CURVE.bossSecond`
+ *  and third (rows 30–39) `HP_CURVE.bossThird`, every later one — and every
+ *  Daily boss past the first — `HP_CURVE.bossLater`. */
+export const bossHpFactor = (row: number, daily = false): number => {
+  if (isFirstBoss({ kind: 'boss', spawnRow: row }, row)) return HP_CURVE.boss
+  if (!daily && row < 3 * BOSS_EVERY) return HP_CURVE.bossSecond
+  if (!daily && row < 4 * BOSS_EVERY) return HP_CURVE.bossThird
+  return HP_CURVE.bossLater
+}
+
+/** HP of the boss spawning in `row` at HP-clock row `hpRow` (`bossHpFactor`;
+ *  `daily`: the Daily board, which keeps `bossLater` past its first boss). */
+export const bossHp = (hpRow: number, row: number, corrupted: boolean, ftue = false, assist = 0, daily = false): number =>
+  monsterHp(hpRow, 'boss', corrupted, ftue, assist, bossHpFactor(row, daily), daily)
 
 // ─── Row generator ───────────────────────────────────────────────────────────
 export interface RowPlanMonster {

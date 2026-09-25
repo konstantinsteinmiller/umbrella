@@ -10,7 +10,8 @@ export default {
     shields: 'Schildladingen: {n}',
     revives: 'Herrijzenisladingen: {n}',
     warcry: 'Strijdkreet klaar: je volgende salvo doet dubbele schade',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Wereldranglijst'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Niveau {n}',
     plusOne: '+1',
     merged: 'Samengevoegd!',
-    overflow: 'Bak vol! +{n} munten'
+    overflow: 'Bak vol! +{n} munten',
+    pickupSr: '“+1” is een bal extra in je bak: één schot meer per salvo, meer schade.'
   },
   upgrades: {
     title: 'Upgrades',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Bakcapaciteit',
       short: 'Capaciteit',
-      desc: 'Houd meer ballen vast voordat tweelingen samensmelten.'
+      desc: 'Meer ballen in je bak: meer schoten per beurt.'
     },
     speed: {
       name: 'Lanceersnelheid',
       short: 'Snelheid',
-      desc: 'Ballen vliegen sneller en vertrekken eerder.'
+      desc: 'Ballen vliegen sneller en raken harder.'
     },
     luck: {
       name: 'Vondstgeluk',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MAX',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Overlopen!',
+    wasted: 'Gevallen',
     body: 'De monsters braken door bij rij {n}.',
+    bodyBy: 'Doorbraak bij rij {n}: {name}',
     meteor: 'Meteorenstorm',
     meteorDesc: 'Veeg de onderste twee rijen weg en speel door',
     meteorAdAria: 'Bekijk een advertentie: de Meteorenstorm veegt de onderste twee rijen weg',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Eerste baas verslagen!',
     defeated: '{name} verslagen!',
     amount: '+{n}',
-    doubled: 'Buit verdubbeld!',
+    boosted: 'Buit ×{n}!',
     checkpoint: 'Checkpoint opgeslagen bij rij {n}',
-    double: '2×',
-    doubleAdAria: 'Bekijk een advertentie om de buit te verdubbelen',
-    doubleCoinAria: 'Verdubbel de buit voor {cost} munten',
-    collect: 'Ophalen'
+    boost: '{n}×',
+    boostAdAria: 'Bekijk een advertentie voor {n}× de buit',
+    boostCoinAria: '{n}× de buit voor {cost} munten',
+    collect: 'Ophalen',
+    powerUp: 'Versterk!'
   },
   daily: {
     today: 'Bord van vandaag: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Pak nog een bal: een volle bak smelt tweelingen samen tot een sterkere bal!',
     upgrade: 'Tik op de gratis upgrade om meer ballen te houden!'
   },
+  prompt: {
+    tapToShoot: 'Tik om te schieten',
+    clickToShoot: 'Klik om te schieten'
+  },
   coach: {
     survive: 'De monsters breken bijna door — raak eerst de onderste!',
     tray: 'Je bak is vol: een +1 geeft alleen een extra schot als er een plek vrij is. Upgrade de bakcapaciteit om meer ballen te schieten!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Tik op de gloeiende upgrade: die maakt je ballen, je bak of je munten beter.',
     bank: 'Mik schuin: een bal die tegen de muur kaatst, kan met één schot meerdere monsters raken!',
     funnel: 'Je kunt nu {name} betalen – tik erop en elke bal raakt harder!',
-    overrun: 'Gaat een monster over de lijn, dan word je overlopen — raak eerst de monsters met een 1!'
+    skipAria: 'Les overslaan',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Het aftellen naast je telt de beurten tot het dichtstbijzijnde monster doorbreekt — raak het voordat het nul bereikt!',
+      speed: '{name}: je ballen vliegen sneller en elke treffer doet meer schade.',
+      luck: '{name}: nieuwe rijen brengen meer munt- en vaardigheidsbellen.',
+      bounty: '{name}: elk verslagen monster levert meer munten op.'
+    }
   },
   merge: {
     sr: 'Twee ballen van niveau {from} zijn samengesmolten tot één bal van niveau {to}! Elke bal in je bak is één schot.',

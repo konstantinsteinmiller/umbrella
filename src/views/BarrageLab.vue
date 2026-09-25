@@ -4,9 +4,14 @@
  *
  * Mounts BarrageBoard on a SANDBOX source (its own engine, provided through
  * `BOARD_SOURCE_KEY`) so scenes can be staged without touching the player's
- * saved run: `?scene=showcase|boss|enraged|danger|breach|fever|stress|ftue|firstboss`
+ * saved run: `?scene=showcase|boss|enraged|danger|breach|fever|stress|ftue|firstboss|tough|intents`
  * (`firstboss`: row 9 with grunts on the board — the next shot's advance brings
- * the row-10 first boss and its roar; `&ftue=1` runs it as a first session),
+ * the row-10 first boss and its roar; `&ftue=1` runs it as a first session;
+ * `tough`: the HP-rule kinds — no badge since run 5 — beside the behaviour
+ * kinds; `breach`: the next advance breaches — the death sequence (the unit
+ * torn apart under "WASTED"), then an auto meteor-continue; `intents`: every behaviour kind showing its next move — a goblin with
+ * one free side and one with two, a dryad among neighbours, a centaur on a spit
+ * turn, a treant on a rest turn),
  * `?clean=1` hides the dev bar, `?auto=1` auto-fires for perf runs.
  * `?live=1` skips the sandbox: the board runs on the REAL `useBarrage()` +
  * `useCollections()` exactly as GameScene mounts it (scenes are then inert).
@@ -26,9 +31,11 @@ import { BALL_SKINS, type BallSkinId } from '@/barrage/ballSkins'
 import { BOARD_SOURCE_KEY, type BoardSource } from '@/barrage/render/source'
 import { useScreenshake } from '@/use/useScreenshake'
 import useBarrage from '@/barrage/state/useBarrage'
+import { DEATH_SCENE_MS } from '@/barrage/render/death'
+import DeathOverlay from '@/components/barrage/DeathOverlay.vue'
 
-type Scene = 'showcase' | 'boss' | 'enraged' | 'danger' | 'breach' | 'fever' | 'stress' | 'ftue' | 'fresh' | 'firstboss'
-const SCENES: Scene[] = ['showcase', 'boss', 'enraged', 'danger', 'breach', 'fever', 'stress', 'ftue', 'fresh', 'firstboss']
+type Scene = 'showcase' | 'boss' | 'enraged' | 'danger' | 'breach' | 'fever' | 'stress' | 'ftue' | 'fresh' | 'firstboss' | 'tough' | 'intents'
+const SCENES: Scene[] = ['showcase', 'boss', 'enraged', 'danger', 'breach', 'fever', 'stress', 'ftue', 'fresh', 'firstboss', 'tough', 'intents']
 
 const route = useRoute()
 const q = (k: string): string | null => {
@@ -128,8 +135,35 @@ const buildScene = (scene: Scene): IBarrageEngine => {
       for (let i = 0; i < 11; i++) m.push(mon(kinds[i % kinds.length]!, (i * 3) % 7, 2 + Math.floor(i / 3), 60 + i * 7))
       return restoreEngine(snap(9, m, [pick('ball', 3, 1)], [], [1, 1, 1], {}, { ftue: q('ftue') === '1' }))
     }
+    case 'intents': {
+      // turn 10 → the next march runs under turn 11: the centaur (odd id)
+      // spits, the treant (even id) rests.
+      const m: Monster[] = [
+        // A goblin boxed in on its right (one exact target), one free both ways.
+        mon('goblin', 1, 1, 14), mon('slime', 2, 1, 12), mon('goblin', 5, 1, 13),
+        // A dryad among its patients (the ogre + caterpillar wear no badge).
+        mon('caterpillar', 2, 3, 32, { hp: 20 }), mon('dryad', 3, 4, 16), mon('slime', 2, 4, 12, { hp: 5 }),
+        mon('ogre', 4, 4, 40), mon('slime', 3, 5, 11),
+        // A centaur on a spit turn with the cells below it free.
+        mon('centaur', 6, 3, 18, { id: 901 }),
+        // A treant on a rest turn.
+        mon('treant', 0, 5, 50, { id: 902 })
+      ]
+      return restoreEngine(snap(50, m, [pick('ball', 5, 6)], [], [3, 2, 2, 1]))
+    }
+    case 'tough': {
+      // The HP-rule kinds (no badge since run 5 — their HP number says it)
+      // beside the behaviour kinds that keep their icons (hourglass, gem,
+      // chevrons), clear of the line.
+      const m: Monster[] = [
+        mon('caterpillar', 0, 1, 32), mon('ogre', 3, 1, 40), mon('slime', 5, 1, 12), mon('ogre', 6, 1, 38),
+        mon('treant', 1, 3, 50), mon('carbuncle', 3, 3, 24, { shield: true }), mon('cyclops', 5, 3, 28),
+        mon('slime', 0, 5, 9), mon('caterpillar', 2, 5, 30), mon('ogre', 5, 5, 44)
+      ]
+      return restoreEngine(snap(60, m, [pick('ball', 4, 5)], [], ladder(6, 4)))
+    }
     case 'breach': {
-      // One march from the line: the next advance breaches (OVERRUN → meteor continue).
+      // One march from the line: the next advance breaches (the death sequence → meteor continue).
       const m: Monster[] = [mon('ogre', 0, 9, 900), mon('slime', 2, 9, 900), mon('goblin', 5, 9, 900), mon('slime', 6, 8, 900), mon('dryad', 1, 7, 900)]
       return restoreEngine(snap(45, m, [], [], [1, 1]))
     }
@@ -166,8 +200,16 @@ const engineGen = ref(0)
 const hold = ref(false)
 const listeners = new Set<EngineListener>()
 const coins = ref(0)
+/** The death sequence's "WASTED" (GameScene gets it from the state layer). */
+const labDeath = ref(false)
+let labDeathTimer = 0
 const fanOut: EngineListener = (e) => {
   if (e.type === 'coins') coins.value += e.amount
+  if (e.type === 'breach') {
+    labDeath.value = true
+    window.clearTimeout(labDeathTimer)
+    labDeathTimer = window.setTimeout(() => { labDeath.value = false }, DEATH_SCENE_MS)
+  }
   listeners.forEach((l) => l(e))
 }
 let offEngine = engine.value.on(fanOut)
@@ -198,6 +240,7 @@ const liveBarrage = live ? useBarrage() : null
 if (!live) provide(BOARD_SOURCE_KEY, source)
 /** The engine the mounted board is actually drawing. */
 const active = (): IBarrageEngine => (liveBarrage ? liveBarrage.engine.value : engine.value)
+const deathOpen = computed(() => (liveBarrage ? liveBarrage.deathScene.value : labDeath.value))
 
 const setScene = (s: Scene): void => {
   scene.value = s
@@ -253,10 +296,10 @@ const updateStats = (): void => {
   worstGap = 0
   statText.value = `${fps.toFixed(0)} fps · draw ${sample.avgMs.toFixed(2)} ms (peak ${sample.peakMs.toFixed(1)}) · sim ${sample.simMs.toFixed(2)} ms · `
     + `${st.phase} · row ${st.row} · balls ${st.balls.filter((b) => b.active).length}/${st.tray.length} · monsters ${st.monsters.length} · hits ${st.volleyHits}`
-  // Breach: auto meteor-continue so a long perf run keeps going.
+  // Breach: auto meteor-continue (after the death sequence) so a long perf run keeps going.
   if (st.phase === 'breach') {
     if (!breachAt) breachAt = now
-    if (autoContinue.value && now - breachAt > 1400) {
+    if (autoContinue.value && now - breachAt > DEATH_SCENE_MS + 400) {
       if (!live) engine.value.continueAfterBreach('meteor')
       breachAt = 0
     }
@@ -289,15 +332,13 @@ onMounted(() => {
     clean: (on: boolean) => { clean.value = on },
     /** Drain the board's emits: ['aimStart'] / ['fired', deg] / ['aimCancel'] / ['misfire', kind] / ['chestTapped']. */
     events: () => boardEvents.splice(0),
-    /** The overrun demo on `id`, or on the monster closest to the line. Returns its ms (0 = not played). */
-    demo: (id?: number): number => {
-      const ms = active().state.monsters
-      let target = id
-      if (target === undefined) {
-        let best = -1e9
-        for (const m of ms) if (m.row + m.h > best) { best = m.row + m.h; target = m.id }
-      }
-      return target === undefined ? 0 : (boardRef.value?.overrunDemo(target) ?? 0)
+    /** A Ball Damage purchase as the state layer applies it (setConfig ×1.25
+     *  on the live engine): the unit flares, the next volley burns gold. */
+    power: (): number => {
+      const e = active()
+      const mult = e.state.config.damageMult * 1.25
+      e.setConfig({ damageMult: mult })
+      return mult
     }
   }
 })
@@ -305,6 +346,7 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(rafId)
   window.clearInterval(statTimer)
   window.clearInterval(autoTimer)
+  window.clearTimeout(labDeathTimer)
   offEngine()
   delete (window as unknown as { __barrageLab?: unknown }).__barrageLab
 })
@@ -335,6 +377,7 @@ onBeforeUnmount(() => {
       )
       div.lab-wallet(ref="coinTargetRef") {{ coins }}
     ParticleCanvas
+    DeathOverlay(:open="deathOpen")
 </template>
 
 <style scoped lang="sass">

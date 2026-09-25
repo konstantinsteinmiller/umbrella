@@ -19,13 +19,31 @@
  *
  * ─── Ads ─────────────────────────────────────────────────────────────────────
  *   • Rewarded Meteor continue — once per checkpoint segment, ad FIRST.
- *   • Rewarded 2× boss chest — ad FIRST, then the doubled payout (ad-before-
- *     result); declining, or an ad that does not complete, pays 1×.
- *   • Rewarded +5 balls — once per checkpoint segment, aim phase only.
+ *   • Rewarded 3× boss chest (`CHEST_AD_MULT`) — ad FIRST, then the tripled
+ *     payout (ad-before-result); declining, or an ad that does not complete,
+ *     pays 1×.
+ *   • Rewarded +5 balls — once per checkpoint segment, aim phase only, and
+ *     only where it helps (`bonusBallsAvailable`): never before the player's
+ *     first boss kill, and only with a boss on the board or a monster wearing
+ *     a danger pip. Poki playtests: on the Poki build the rewarded is ready
+ *     from the first frame, so the big blue "▶ +5 balls" stood under the board
+ *     from turn 1 — every tester's first tap opened a "Rewarded Break".
  *   • Interstitial — ONLY on a checkpoint restart: never the first two restarts
  *     of a session, ≥ 3 min apart, played BEFORE the new board appears.
  * A "segment" is one attempt at the stretch after a checkpoint: a boss kill
  * starts a new one, and so does a checkpoint restart.
+ *
+ * ─── Boss mercy (adaptive difficulty) ────────────────────────────────────────
+ * A checkpoint restart after a breach with the boss on the board counts a
+ * death against that boss (`checkpoint.deaths`); the rebuilt board spawns it
+ * with `bossHpMultForDeaths(deaths)` of its HP — 75%, then 50% at most. A
+ * continue (Meteor / revive) is not a death: nothing is rebuilt. The kill moves
+ * the checkpoint and the next boss is back at full HP.
+ * Playtest run 9: the adaptive floor follows the tray, and the player keeps
+ * the (stronger) tray at the breach — the retry boss came back STRONGER
+ * (224 → 348 HP). The death records the boss's full HP (`checkpoint.bossHp`,
+ * the weakest meeting lost), and the retry's boss is capped at it
+ * (`config.bossHpCap`) before mercy.
  */
 import { computed, effectScope, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue'
 import { flushPersist, getState, setState } from '@/use/useEpicState'
@@ -39,26 +57,34 @@ import { onGameSuspended } from '@/use/useGamePause'
 import { announceNewTier } from '@/use/useTierReveal'
 import useBattlePass, { BARRAGE_XP_SOURCES } from '@/use/useBattlePass'
 import { submitBestRow } from '@/platforms/leaderboard'
+import { restartTray } from '../engine/balls'
 import { createEngine, createEngineAtRow, restoreEngine } from '../engine/engine'
-import { ASSIST_PAID, assistForPaidLevels, configFromUpgrades, DAILY_CONFIG, defaultConfig, UPGRADE_IDS } from '../engine/economy'
+import { DEATH_SCENE_MS, pickStriker } from '../render/death'
+import { DANGER_PIP_MARCHES, dangerMarches } from '../render/danger'
+import {
+  ASSIST_PAID, assistForPaidLevels, bossHpMultForDeaths, configFromUpgrades, DAILY_CONFIG, defaultConfig, UPGRADE_IDS
+} from '../engine/economy'
 import {
   ROWS,
-  type EngineConfig, type EngineEvent, type EngineListener, type IBarrageEngine, type Phase,
+  type EngineConfig, type EngineEvent, type EngineListener, type IBarrageEngine, type Monster, type Phase,
   type RunSnapshot, type SkillId
 } from '../engine/types'
 import { EB_RUN_KEY } from '../keys'
 import {
-  bestRow, bumpStats, checkpoint, ftue, isFtueActive, maxBallTier, mode, noteBallTier, noteBestRow,
+  bestRow, bumpStats, checkpoint, ftue, isFtueActive, maxBallTier, mode, noteBallTier, noteBestRow, noteBossDeath,
   patchFtue, patchSegment, pending, persistStats, runEndSeq, sanitizeTray, segment, setCheckpoint,
   setPending, stats, toCount
 } from './progress'
 import { upgradeLevels } from './upgradeLevels'
 import { recordDailyAttempt, recordDailyRow, dailyRecord, todaySeed } from './useDailyBarrage'
-import type { BossChestOffer, BossHud, BreachOffer, DailyResult, RunRecap, UseBarrage } from './contract'
+import type { BossChestOffer, BossHud, BreachCulprit, BreachOffer, DailyResult, RunRecap, UseBarrage } from './contract'
 
 // ─── Tunables ────────────────────────────────────────────────────────────────
 /** Rewarded "+N balls". */
 export const BONUS_BALLS = 5
+/** The rewarded boss-chest multiplier (was 2×: a bigger offer makes the ad
+ *  view likelier — the button reads "▶ 3× ●"). */
+export const CHEST_AD_MULT = 3
 /** The first N checkpoint restarts of a session never show an interstitial. */
 export const RESTART_AD_GRACE = 2
 /** Minimum wall-clock gap between two restart interstitials — and between the
@@ -113,6 +139,10 @@ interface RunRecord {
    *  resurrect the pre-breach turn as a free retry — it restarts at the
    *  checkpoint instead, exactly as the restart button would. */
   breached?: boolean
+  /** The tray the breached run ended with — the snapshot is the last 'aim',
+   *  before that volley's pickups (absent in older saves: the snapshot's). A
+   *  checkpoint restart after a reload weighs it like the live breach tray. */
+  breachTray?: number[]
   /** The run's loss-recap tally so far (absent in older saves = 0 / 0). */
   tally?: RunTally
 }
@@ -134,7 +164,10 @@ const readRunRecord = (): RunRecord | null => {
   const snap = raw.snap
   if (!snap || snap.v !== 1 || !snap.config || !Array.isArray(snap.monsters) || !Array.isArray(snap.tray)) return null
   if (snap.config.mode !== 'endless') return null
-  return { v: 1, snap, stamp: raw.stamp, breached: raw.breached === true, tally: readTally(raw.tally) }
+  const rec: RunRecord = { v: 1, snap, stamp: raw.stamp, breached: raw.breached === true, tally: readTally(raw.tally) }
+  const breachTray = sanitizeTray(raw.breachTray)
+  if (breachTray.length) rec.breachTray = breachTray
+  return rec
 }
 
 const sessionId = Math.random().toString(36).slice(2, 8)
@@ -165,18 +198,29 @@ const engineGen = ref(0)
 const checkpointRow = computed(() => checkpoint.value.row)
 
 /** Raw offers; the public refs below add the LIVE readiness gates. */
-const breachRaw: Ref<{ row: number; recap: RunRecap } | null> = ref(null)
+const breachRaw: Ref<{ row: number; recap: RunRecap; culprit: BreachCulprit | null } | null> = ref(null)
 /** The endless run's recap tally (see RunRecord.tally). Plain module state: it
  *  is read once, at the breach, and saved with every run snapshot. */
 let tally: RunTally = { kills: 0, coins: 0 }
-const chestRaw: Ref<Omit<BossChestOffer, 'doubleAvailable'> | null> = ref(null)
+const chestRaw: Ref<Omit<BossChestOffer, 'boostAvailable' | 'boostMult'> | null> = ref(null)
 /** A boss died this volley; its chest is presented once the volley settles
  *  (next 'aim', or the breach if the same turn ends in one) — a modal thrown
  *  over balls still in flight hides the kill the player just made. */
-let queuedChest: Omit<BossChestOffer, 'doubleAvailable'> | null = null
+let queuedChest: Omit<BossChestOffer, 'boostAvailable' | 'boostMult'> | null = null
 const dailyResult: Ref<DailyResult | null> = ref(null)
 /** Held while a restart / mode switch is between boards (ad included). */
 const transition = ref(false)
+/** The death sequence holds the death screen (run 7): from a live breach
+ *  until DEATH_SCENE_MS later the board plays the monsters tearing the unit
+ *  apart and "WASTED" holds over it (DeathOverlay); then the breach offer /
+ *  the daily result opens. A reload into a saved breach opens it at once. */
+const deathScene = ref(false)
+let deathTimer: ReturnType<typeof setTimeout> | null = null
+const endDeathScene = (): void => {
+  if (deathTimer !== null) clearTimeout(deathTimer)
+  deathTimer = null
+  deathScene.value = false
+}
 
 let engineRef: ShallowRef<IBarrageEngine> | null = null
 let unsubscribe: (() => void) | null = null
@@ -226,8 +270,18 @@ export const paidUpgradeLevels = computed(() => {
  *  purchase may make monsters jump). Levels are never sold, so it only fades. */
 const assistLevel = computed(() => assistForPaidLevels(paidUpgradeLevels.value))
 
-const endlessTuning = (): Partial<EngineConfig> =>
-  ({ ...configFromUpgrades(upgradeLevels.value), ftue: isFtueActive(), assist: assistLevel.value })
+/** Boss mercy for the boss past the checkpoint (see the module header). */
+const bossHpMult = computed(() => bossHpMultForDeaths(checkpoint.value.deaths))
+/** The retry cap: the full HP of the boss that won (0 = none). */
+const bossHpCap = computed(() => checkpoint.value.bossHp)
+
+const endlessTuning = (): Partial<EngineConfig> => ({
+  ...configFromUpgrades(upgradeLevels.value),
+  ftue: isFtueActive(),
+  assist: assistLevel.value,
+  bossHpMult: bossHpMult.value,
+  bossHpCap: bossHpCap.value
+})
 
 const endlessConfig = (): EngineConfig =>
   defaultConfig({ ...endlessTuning(), mode: 'endless', seed: randomSeed() })
@@ -241,7 +295,9 @@ const readBoss = (e: IBarrageEngine): BossHud | null => {
   if (id === null || id === undefined) return null
   const m = e.state.monsters.find((x) => x.id === id)
   if (!m) return null
-  return { monsterId: id, bossKind: m.bossKind ?? 'slime-tower', hp: m.hp, maxHp: m.maxHp, enraged: m.enraged }
+  const hud: BossHud = { monsterId: id, bossKind: m.bossKind ?? 'slime-tower', hp: m.hp, maxHp: m.maxHp, enraged: m.enraged }
+  if (m.mercy !== undefined && m.mercy > 0 && m.mercy < 1) hud.mercy = m.mercy
+  return hud
 }
 
 const syncTray = (): void => {
@@ -284,12 +340,13 @@ const scheduleBossRefresh = (): void => {
 }
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
-const writeRun = (snap: RunSnapshot, breached = false): void => {
+const writeRun = (snap: RunSnapshot, breached = false, breachTray?: readonly number[]): void => {
   const stamp = `${sessionId}-${++stampSeq}`
   lastStamp = stamp
   writtenStamps.add(stamp)
   const rec: RunRecord = { v: 1, snap, stamp, tally: { ...tally } }
   if (breached) rec.breached = true
+  if (breached && breachTray?.length) rec.breachTray = [...breachTray]
   setState(EB_RUN_KEY, rec)
 }
 
@@ -300,10 +357,11 @@ const persistRun = (): void => {
   if (snap) writeRun(snap)
 }
 
-/** Mark the saved run as breached (the snapshot itself is the last 'aim'). */
+/** Mark the saved run as breached (the snapshot itself is the last 'aim'),
+ *  with the tray the breach left (a restart after a reload weighs it). */
 const persistBreach = (): void => {
   const rec = readRunRecord()
-  if (rec && writtenStamps.has(rec.stamp)) writeRun(rec.snap, true)
+  if (rec && writtenStamps.has(rec.stamp)) writeRun(rec.snap, true, eng().state.tray)
 }
 
 const flushXp = (): void => {
@@ -321,6 +379,7 @@ const flushTurn = (): void => {
 
 // ─── Engine lifecycle ────────────────────────────────────────────────────────
 const swapEngine = (next: IBarrageEngine): void => {
+  endDeathScene()
   unsubscribe?.()
   if (engineRef) engineRef.value = next
   else engineRef = shallowRef(next)
@@ -347,10 +406,56 @@ const preCheckpointTray = (): number[] => {
   return tray.length ? tray : [1]
 }
 
+/**
+ * The tray the endless run breached with: the live board while it still stands
+ * in 'breach' (an in-session restart), else the breached save's (a reload
+ * after the breach, or a hydrated breached run). Null when no breach is behind
+ * this rebuild (a fresh start, a hydrated checkpoint with no run).
+ */
+const trayAtBreach = (): number[] | null => {
+  if (engineRef && mode.value === 'endless') {
+    const s = eng().state
+    // `mode` flips to endless before `exitDaily` swaps the daily board out.
+    if (s.phase === 'breach' && s.config.mode === 'endless') return sanitizeTray(s.tray)
+  }
+  const rec = readRunRecord()
+  if (!rec?.breached) return null
+  return rec.breachTray ?? sanitizeTray(rec.snap.tray)
+}
+
+/**
+ * The breach behind this rebuild had the boss past the checkpoint on the board
+ * — a death to it (boss mercy). The live board while it still stands in
+ * 'breach', else the breached save's last 'aim'. A boss that only arrived with
+ * the breaching row does not count: the player never got a shot at it (and the
+ * saved last 'aim' does not hold it either, so a reload agrees). Returns that
+ * boss's full HP (before mercy; the retry cap), or null: no death to it.
+ */
+const bossAtBreach = (): number | null => {
+  const fullHp = (m: Monster): number => Math.round(m.maxHp / (m.mercy && m.mercy > 0 && m.mercy < 1 ? m.mercy : 1))
+  if (engineRef && mode.value === 'endless') {
+    const s = eng().state
+    if (s.phase === 'breach' && s.config.mode === 'endless') {
+      const b = s.monsters.find((m) => m.id === s.bossId)
+      return b !== undefined && (b.spawnRow ?? 0) < s.row ? fullHp(b) : null
+    }
+  }
+  const rec = readRunRecord()
+  if (rec?.breached !== true) return null
+  const b = rec.snap.monsters.find((m) => m.kind === 'boss')
+  return b ? fullHp(b) : null
+}
+
 /** A fresh board at the checkpoint, keeping every coin. Before the first boss
  *  that is row 1 (the FTUE script while it still applies) with the tray the
- *  player had built; after it, `checkpointRow + 1` with the checkpoint tray. */
+ *  player had built; after it, `checkpointRow + 1` with the STRONGER of the
+ *  checkpoint tray and the tray at the breach (CONTRACT §6, `restartTray`;
+ *  playtest run 4: a restart that dropped a ball read as lost progress right
+ *  under "Keep all your coins"). */
 const buildCheckpointRun = (): IBarrageEngine => {
+  // Before the config is read: the rebuilt board meets the boss softer.
+  const lostTo = bossAtBreach()
+  if (lostTo !== null) noteBossDeath(lostTo)
   const cp = checkpoint.value
   // Every caller starts a new run on this board (restart, fresh start, a
   // hydrated save with no run in it): the loss recap counts from here.
@@ -362,7 +467,9 @@ const buildCheckpointRun = (): IBarrageEngine => {
     if (kept.length === 1 && kept[0] === 1) return factory.create(endlessConfig())
     return factory.createAtRow(endlessConfig(), 1, kept)
   }
-  return factory.createAtRow({ ...endlessConfig(), ftue: false }, cp.row + 1, cp.tray.length ? [...cp.tray] : [1])
+  const config: EngineConfig = { ...endlessConfig(), ftue: false }
+  const tray = restartTray(cp.tray.length ? cp.tray : [1], trayAtBreach(), config.damageMult)
+  return factory.createAtRow(config, cp.row + 1, tray)
 }
 
 /** The saved endless run, or null when there is none worth resuming. */
@@ -516,6 +623,9 @@ const onBossDefeated = (e: Extract<EngineEvent, { type: 'bossDefeated' }>): void
 }
 
 const onBreach = (): void => {
+  endDeathScene()
+  deathScene.value = true
+  deathTimer = setTimeout(endDeathScene, DEATH_SCENE_MS)
   syncAll()
   flushTurn()
   if (queuedChest) presentChest()
@@ -525,8 +635,12 @@ const onBreach = (): void => {
     recordDailyRow(eng().state.row)
     dailyResult.value = { row: eng().state.row, best: dailyRecord.value.best, newBest: dailyNewBest }
   } else {
-    const at = eng().state.row
-    breachRaw.value = { row: at, recap: { row: at, kills: tally.kills, coins: tally.coins } }
+    const s = eng().state
+    const at = s.row
+    // The striker of the death sequence — the one the loss screen names.
+    const who = pickStriker(s.monsters, s.launcherX)
+    const culprit: BreachCulprit | null = who ? (who.bossKind ? { kind: who.kind, bossKind: who.bossKind } : { kind: who.kind }) : null
+    breachRaw.value = { row: at, recap: { row: at, kills: tally.kills, coins: tally.coins }, culprit }
     persistBreach()
     submitBestRow(bestRow.value)
   }
@@ -651,21 +765,34 @@ const breach = computed<BreachOffer | null>(() => {
     isDaily: false,
     checkpointRow: checkpoint.value.row,
     row: b.row,
-    recap: { ...b.recap }
+    recap: { ...b.recap },
+    ...(b.culprit ? { culprit: { ...b.culprit } } : {})
   }
 })
 
 const bossChest = computed<BossChestOffer | null>(() => {
   const c = chestRaw.value
   if (!c) return null
-  // In coin-priced builds the "2×" costs REWARD_COIN_COST: only offer it when
+  // In coin-priced builds the "3×" costs REWARD_COIN_COST: only offer it when
   // the extra bounty is worth more than the price — never a trade at a loss.
-  const worthIt = !buffsCostCoins || c.bounty > REWARD_COIN_COST
-  return { ...c, doubleAvailable: worthIt && rewardReady.value }
+  const worthIt = !buffsCostCoins || c.bounty * (CHEST_AD_MULT - 1) > REWARD_COIN_COST
+  return { ...c, boostMult: CHEST_AD_MULT, boostAvailable: worthIt && rewardReady.value }
 })
 
+/** The +5 balls only where they help (see the module header): a boss on the
+ *  board, or a monster within the danger pips' reach of the line. Read at the
+ *  aim phase — the board only changes between aim phases, and `phase` / `boss`
+ *  are what make this recompute. */
+const bonusBallsUseful = (): boolean => {
+  if (!engineRef) return false
+  if (boss.value) return true
+  const s = eng().state
+  return s.bossId !== null || dangerMarches(s) <= DANGER_PIP_MARCHES
+}
+
 const bonusBallsAvailable = computed(() =>
-  mode.value === 'endless' && phase.value === 'aim' && !segment.value.bonusBalls && !holdSim.value && rewardReady.value)
+  mode.value === 'endless' && phase.value === 'aim' && !segment.value.bonusBalls && !holdSim.value && rewardReady.value &&
+  ftue.value.done && bonusBallsUseful())
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 const fire = (angle: number): boolean => {
@@ -750,7 +877,7 @@ const restartFromCheckpoint = async (): Promise<void> => {
   }
 }
 
-const claimBossChest = async (double: boolean): Promise<number> => {
+const claimBossChest = async (boost: boolean): Promise<number> => {
   const offer = bossChest.value
   if (!offer || busy) return 0
   busy = true
@@ -758,7 +885,7 @@ const claimBossChest = async (double: boolean): Promise<number> => {
     let mult = 1
     // Ad FIRST, payout after (ad-before-result). A no-fill or a skipped ad
     // still pays the chest at 1× — the bounty was earned by the kill.
-    if (double && offer.doubleAvailable && (await capped(redeem(REWARD_COIN_COST), false))) mult = 2
+    if (boost && offer.boostAvailable && (await capped(redeem(REWARD_COIN_COST), false))) mult = CHEST_AD_MULT
     const coins = offer.bounty * mult
     addCoins(coins)
     if (mode.value === 'endless') tally.coins += coins
@@ -849,6 +976,17 @@ const installWatchers = (): void => {
     if (mode.value !== 'endless' || !engineRef) return
     eng().setConfig({ assist })
   }, { flush: 'sync' })
+  // Boss mercy back to 1 at the kill (the next boss is a new one), or raised by
+  // a hydrate — read at the boss's spawn, never touching a live boss.
+  watch(bossHpMult, (mult) => {
+    if (mode.value !== 'endless' || !engineRef) return
+    eng().setConfig({ bossHpMult: mult })
+  }, { flush: 'sync' })
+  // The retry cap likewise: cleared by the kill, set by a hydrate's death.
+  watch(bossHpCap, (cap) => {
+    if (mode.value !== 'endless' || !engineRef) return
+    eng().setConfig({ bossHpCap: cap })
+  }, { flush: 'sync' })
   // Owed rewards land as soon as the run can take them.
   watch(pending, () => { if (phase.value === 'aim') deliverPending() })
   watch(holdSim, (held) => { if (!held && phase.value === 'aim') deliverPending() })
@@ -896,6 +1034,7 @@ const init = (): UseBarrage => {
     maxBallTier,
     holdSim,
     breach,
+    deathScene,
     bossChest,
     dailyResult,
     bonusBallsAvailable,

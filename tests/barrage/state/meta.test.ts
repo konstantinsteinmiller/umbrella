@@ -42,35 +42,114 @@ describe('save-field names are load-bearing', () => {
 })
 
 describe('upgrades: exactly one glows', () => {
-  it('the pure rule: cheapest affordable, not maxed; ties to the first; none when broke', async () => {
-    const { pickGlowing } = await import('@/barrage/state/useBarrageUpgrades')
-    const v = (cost: number, affordable = true, maxed = false) => ({ cost, affordable, maxed })
-    expect(pickGlowing([v(50), v(20), v(30)])).toBe(1)
-    expect(pickGlowing([v(50), v(20, false), v(30)])).toBe(2)
-    expect(pickGlowing([v(50), v(20, true, true), v(30)])).toBe(2)
-    expect(pickGlowing([v(10), v(10)])).toBe(0)
-    expect(pickGlowing([v(10, false), v(20, false)])).toBe(-1)
+  it('the pure rule (glowTrack): the cheaper affordable POWER track, else the cheapest other, else none', async () => {
+    const { glowTrack, upgradeCost, upgradeMaxLevel } = await import('@/barrage/engine/economy')
+    const lv = (o: Partial<Record<'damage' | 'capacity' | 'speed' | 'luck' | 'bounty', number>> = {}) =>
+      ({ damage: 0, capacity: 0, speed: 0, luck: 0, bounty: 0, ...o })
+    const cost = (id: 'damage' | 'capacity' | 'speed' | 'luck' | 'bounty', l: number) => upgradeCost(id, l)
+    // Run 4's moment: free capacity + the first Damage bought. Launch Speed is
+    // the cheapest chip, yet the cheapest POWER track glows once affordable.
+    const afterFirstDamage = lv({ damage: 1, capacity: 1 })
+    expect(cost('speed', 0)).toBeLessThan(cost('capacity', 1))
+    expect(glowTrack(afterFirstDamage, cost('capacity', 1))).toBe('capacity')
+    expect(glowTrack(afterFirstDamage, 1e6)).toBe(cost('capacity', 1) <= cost('damage', 1) ? 'capacity' : 'damage')
+    // Neither power track affordable: the cheapest affordable other track.
+    expect(glowTrack(afterFirstDamage, cost('speed', 0))).toBe('speed')
+    // Nothing affordable: nothing glows.
+    expect(glowTrack(afterFirstDamage, cost('speed', 0) - 1)).toBeNull()
+    expect(glowTrack(lv(), 0)).toBeNull()
+    // The FTUE's free capacity claimed: Damage (the funnel's arrows) is the
+    // cheaper power track, so the arrows and the glow agree.
+    expect(cost('damage', 0)).toBeLessThan(cost('capacity', 1))
+    expect(glowTrack(lv({ capacity: 1 }), cost('damage', 0))).toBe('damage')
+    expect(glowTrack(lv({ capacity: 1 }), 1e6)).toBe('damage')
+    // The cheaper power track wins, whichever it is.
+    expect(glowTrack(lv({ damage: 3, capacity: 1 }), 1e6)).toBe('capacity')
+    expect(glowTrack(lv({ damage: 1, capacity: 6 }), 1e6)).toBe('damage')
+    // A maxed power track never glows; the other one does.
+    const capMax = upgradeMaxLevel('capacity')!
+    expect(glowTrack(lv({ capacity: capMax, damage: 30 }), 1e30)).toBe('damage')
+    expect(glowTrack(lv({ capacity: capMax, damage: 30 }), cost('damage', 30) - 1)).toBe('speed')
   })
 
-  it('the live list lights one track, buys it, and moves the glow', async () => {
+  it('a price tie between the power tracks glows Damage; a tie among the others, the one listed first', async () => {
+    const eco = await import('@/barrage/engine/economy')
+    const base = { ...eco.ECONOMY.costBase }
+    try {
+      Object.assign(eco.ECONOMY.costBase, { damage: 40, capacity: 40, speed: 20, luck: 20, bounty: 20 })
+      const zero = { damage: 0, capacity: 0, speed: 0, luck: 0, bounty: 0 }
+      expect(eco.glowTrack(zero, 40)).toBe('damage')
+      expect(eco.glowTrack(zero, 39)).toBe('speed')
+    } finally {
+      Object.assign(eco.ECONOMY.costBase, base)
+    }
+  })
+
+  it('the live list lights the glowTrack track, buys it, and moves the glow', async () => {
     // Prices come from ENGINE's tuned economy — read them, never hard-code them.
-    const { UPGRADE_IDS, upgradeCost, upgradeValue } = await import('@/barrage/engine/economy')
-    const cheapest = [...UPGRADE_IDS].sort((a, b) => upgradeCost(a, 0) - upgradeCost(b, 0))[0]!
-    const price = upgradeCost(cheapest, 0)
-    seed({ epic_coins: price })
+    const { glowTrack, upgradeCost, upgradeValue } = await import('@/barrage/engine/economy')
+    const levels = { damage: 1, capacity: 1, speed: 0, luck: 0, bounty: 0 }
+    const price = upgradeCost('capacity', 1)
+    seed({ epic_coins: price, eb_upgrades: levels })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
     const wallet = (await import('@/use/useEpicConfig')).default()
     const glowing = () => up.list.value.filter((v) => v.glowing).map((v) => v.id)
-    expect(glowing()).toEqual([cheapest])
-    expect(up.glowingId.value).toBe(cheapest)
-    expect(up.buy(cheapest)).toBe(true)
+    expect(glowTrack(levels, price)).toBe('capacity')
+    // Launch Speed is cheaper and affordable too — it wears only the quiet glow.
+    expect(up.list.value.find((v) => v.id === 'speed')).toMatchObject({ affordable: true, glowing: false })
+    expect(glowing()).toEqual(['capacity'])
+    expect(up.glowingId.value).toBe('capacity')
+    expect(up.buy('capacity')).toBe(true)
     expect(wallet.coins.value).toBe(0)
-    expect(up.list.value.find((v) => v.id === cheapest)).toMatchObject({ level: 1, value: upgradeValue(cheapest, 1) })
+    expect(up.list.value.find((v) => v.id === 'capacity')).toMatchObject({ level: 2, value: upgradeValue('capacity', 2) })
     // Broke: nothing glows, nothing sells.
     expect(glowing()).toEqual([])
     expect(up.buy('damage')).toBe(false)
+    // Only a non-power track affordable: it glows.
+    wallet.addCoins(upgradeCost('speed', 0))
+    expect(glowing()).toEqual(['speed'])
     wallet.addCoins(1e9)
     expect(glowing()).toHaveLength(1)
+    expect(['damage', 'capacity']).toContain(up.glowingId.value)
+  })
+
+  it('run 10: a buy is one level — the glowing chip too (the multi-buy is gone)', async () => {
+    const levels = { damage: 1, capacity: 1, speed: 0, luck: 0, bounty: 0 }
+    seed({ epic_coins: 400, eb_upgrades: levels })
+    const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
+    const first = up.glowingId.value!
+    const before = up.list.value.find((v) => v.id === first)!.level
+    expect(up.buy(first)).toBe(true)
+    expect(up.list.value.find((v) => v.id === first)!.level).toBe(before + 1)
+    expect((up as unknown as Record<string, unknown>).buyGlowing).toBeUndefined()
+  })
+
+  it('run 8: the free first Damage level — armed by the coach, one gift at a time, claimed once', async () => {
+    seed({ epic_coins: 50, eb_upgrades: { damage: 0, capacity: 1, speed: 0, luck: 0, bounty: 0 }, eb_ftue: { firstMerge: true, freeCapacity: true } })
+    const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
+    const wallet = (await import('@/use/useEpicConfig')).default()
+    expect(up.freeDamageOffer.value).toBe(false)
+    expect(up.freeId.value).toBeNull()
+    up.offerFreeDamage()
+    expect(up.freeDamageOffer.value).toBe(true)
+    expect(up.freeId.value).toBe('damage')
+    up.claimFree()
+    expect(up.list.value.find((v) => v.id === 'damage')!.level).toBe(1)
+    expect(wallet.coins.value).toBe(50)
+    expect(up.freeDamageOffer.value).toBe(false)
+    // Never again, and never to a player who owns a Damage level.
+    up.offerFreeDamage()
+    expect(up.freeDamageOffer.value).toBe(false)
+  })
+
+  it('run 8: the Capacity gift comes first — no free Damage while it is open', async () => {
+    seed({ epic_coins: 50, eb_upgrades: { damage: 0, capacity: 0, speed: 0, luck: 0, bounty: 0 }, eb_ftue: { firstMerge: true } })
+    const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
+    up.offerFreeDamage()
+    expect(up.freeId.value).toBe('capacity')
+    expect(up.freeDamageOffer.value).toBe(false)
+    up.claimFree()
+    expect(up.freeId.value).toBe('damage')
   })
 
   it('a maxed track never glows, reports no next value, and cannot be bought', async () => {
@@ -79,7 +158,17 @@ describe('upgrades: exactly one glows', () => {
     const cap = up.list.value.find((v) => v.id === 'capacity')!
     expect(cap).toMatchObject({ maxed: true, nextValue: null, glowing: false, cost: 0, value: 40 })
     expect(up.buy('capacity')).toBe(false)
-    expect(['damage', 'bounty']).toContain(up.glowingId.value)
+    expect(up.glowingId.value).toBe('damage')
+  })
+
+  it('the FTUE free capacity is offered on its own state, whatever glows', async () => {
+    const { upgradeCost } = await import('@/barrage/engine/economy')
+    seed({ epic_coins: upgradeCost('capacity', 0), eb_ftue: { firstMerge: true } })
+    const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
+    expect(up.freeCapacityOffer.value).toBe(true)
+    up.claimFreeCapacity()
+    expect(up.freeCapacityOffer.value).toBe(false)
+    expect(up.list.value.find((v) => v.id === 'capacity')!.level).toBe(1)
   })
 })
 

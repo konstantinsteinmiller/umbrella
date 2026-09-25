@@ -10,7 +10,8 @@ export default {
     shields: '방패 충전: {n}',
     revives: '부활 충전: {n}',
     warcry: '함성 준비 완료: 다음 일제 사격 피해 2배',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: '글로벌 순위'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: '{n}단계',
     plusOne: '+1',
     merged: '합체!',
-    overflow: '트레이 가득! +{n} 코인'
+    overflow: '트레이 가득! +{n} 코인',
+    pickupSr: '"+1"은 트레이에 공이 하나 더 생긴다는 뜻: 매 발사마다 한 발 더, 피해 증가.'
   },
   upgrades: {
     title: '업그레이드',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: '트레이 용량',
       short: '용량',
-      desc: '쌍둥이가 합체하기 전에 더 많은 공을 담습니다.'
+      desc: '트레이에 공이 더 들어가요: 매 턴 더 많이 쏴요.'
     },
     speed: {
       name: '발사 속도',
       short: '속도',
-      desc: '공이 더 빨리 날고 더 빨리 발사됩니다.'
+      desc: '공이 더 빨리 날아가고 더 세게 때립니다.'
     },
     luck: {
       name: '획득 행운',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MAX',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: '방어선 붕괴!',
+    wasted: '쓰러졌다',
     body: '몬스터가 {n}줄에서 방어선을 돌파했어요.',
+    bodyBy: '{n}줄에서 돌파: {name}',
     meteor: '유성 폭풍',
     meteorDesc: '맨 아래 두 줄을 쓸어버리고 계속하기',
     meteorAdAria: '광고 보기: 유성 폭풍이 맨 아래 두 줄을 쓸어버려요',
@@ -245,12 +248,13 @@ export default {
     titleFirst: '첫 보스 처치!',
     defeated: '{name} 처치!',
     amount: '+{n}',
-    doubled: '보상 2배!',
+    boosted: '보상 {n}배!',
     checkpoint: '{n}줄에 체크포인트 저장',
-    double: '2×',
-    doubleAdAria: '광고를 보고 보상 2배 받기',
-    doubleCoinAria: '{cost} 코인으로 보상 2배',
-    collect: '받기'
+    boost: '{n}×',
+    boostAdAria: '광고를 보고 보상 {n}배 받기',
+    boostCoinAria: '{cost} 코인으로 보상 {n}배',
+    collect: '받기',
+    powerUp: '강화!'
   },
   daily: {
     today: '오늘의 판: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: '공을 하나 더 얻으세요: 트레이가 가득 차면 쌍둥이가 더 강한 공으로 합체해요!',
     upgrade: '무료 업그레이드를 탭해서 공을 더 담으세요!'
   },
+  prompt: {
+    tapToShoot: '탭하여 발사',
+    clickToShoot: '클릭하여 발사'
+  },
   coach: {
     survive: '몬스터가 곧 돌파해요 — 가장 아래 있는 것부터 맞히세요!',
     tray: '트레이가 가득 찼어요: 빈 칸이 있을 때만 +1이 발사 수를 늘려요. 트레이 용량을 업그레이드해서 더 많은 공을 쏘세요!',
@@ -300,7 +308,14 @@ export default {
     upgrade: '빛나는 업그레이드를 탭하세요: 공, 트레이 또는 코인이 좋아져요.',
     bank: '비스듬히 조준하세요: 벽에 튕긴 공은 한 번에 여러 몬스터를 맞힐 수 있어요!',
     funnel: '이제 {name}을(를) 살 수 있어요. 탭하면 모든 공이 더 세게 맞혀요!',
-    overrun: '몬스터가 선을 넘으면 방어선이 무너져요 — 1이 표시된 몬스터부터 맞히세요!'
+    skipAria: '레슨 건너뛰기',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: '옆의 카운트다운은 가장 가까운 몬스터가 돌파하기까지 남은 턴 수예요 — 0이 되기 전에 맞히세요!',
+      speed: '{name}: 공이 더 빨리 날아가고 맞힐 때마다 피해가 더 커져요.',
+      luck: '{name}: 새 줄에 코인과 스킬 방울이 더 많이 나와요.',
+      bounty: '{name}: 물리친 몬스터마다 코인을 더 줘요.'
+    }
   },
   merge: {
     sr: '{from}단계 공 두 개가 합쳐져 {to}단계 공이 되었어요! 트레이의 공 하나가 한 발이에요.',

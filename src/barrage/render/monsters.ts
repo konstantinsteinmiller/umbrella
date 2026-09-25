@@ -20,6 +20,9 @@ export interface MonsterBake {
   frozen: HTMLCanvasElement
   /** Boss only (null for walkers). */
   enraged: HTMLCanvasElement | null
+  /** Red silhouette, baked the first time the renderer needs it: the "1"
+   *  outline and the death sequence's culprit. */
+  red?: HTMLCanvasElement
   /** Draw size in cells before squash/stretch. */
   dw: number
   dh: number

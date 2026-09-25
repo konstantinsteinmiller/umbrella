@@ -202,7 +202,7 @@ const skinAria = (s: BallSkinView): string => {
     :title="t('barrageMeta.collections.title')"
     @update:model-value="emit('update:modelValue', $event)"
   )
-    div.collection.flex.flex-col.gap-2.px-1.pb-2
+    div.collection.hud-digits.flex.flex-col.gap-2.px-1.pb-2
       p.game-text.text-center.opacity-80(class="text-[11px] sm:text-xs") {{ t('barrage.collection.cosmetic') }}
       //- In-frame tabs (not FModal's ribbon tabs) so each can carry its NEW badge.
       div.flex.justify-center.gap-2
@@ -346,8 +346,9 @@ const skinAria = (s: BallSkinView): string => {
   padding: 2px 8px
   border-radius: 10px
   border: 2px solid #0f1a30
-  background: linear-gradient(180deg, #4fd16a, #27a03f)
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 3px 0 #1c6b2a
+  // The ad blue (components.sass `--ad-*`): a rewarded button is never green.
+  background: linear-gradient(180deg, var(--ad-top), var(--ad-bottom))
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 3px 0 var(--ad-plate)
   cursor: pointer
   touch-action: manipulation
   transition: transform 0.08s ease

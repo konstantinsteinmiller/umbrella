@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createEngine } from '@/barrage/engine/engine'
 import { aimPreview, AIM_CONTINUATION } from '@/barrage/engine/aim'
 import {
-  CAPACITY_TABLE, DAILY_CONFIG, UPGRADE_IDS, configFromUpgrades, dailySeed, defaultConfig, killCoins,
+  CAPACITY_TABLE, DAILY_CONFIG, ECONOMY, UPGRADE_IDS, ballSpeedAt, configFromUpgrades, dailySeed, defaultConfig, killCoins,
   upgradeCost, upgradeMaxLevel, upgradeValue
 } from '@/barrage/engine/economy'
 import { BALL_R, COLS, FLOOR_Y, MIN_AIM } from '@/barrage/engine/types'
@@ -142,18 +142,43 @@ describe('economy', () => {
   it('capacity table, caps and values', () => {
     expect(CAPACITY_TABLE).toEqual([2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40])
     expect(upgradeMaxLevel('capacity')).toBe(15)
-    expect(upgradeMaxLevel('speed')).toBe(10)
     expect(upgradeMaxLevel('luck')).toBe(10)
     expect(upgradeMaxLevel('damage')).toBeNull()
     expect(upgradeMaxLevel('bounty')).toBeNull()
-    expect(upgradeValue('speed', 0)).toBe(15)
-    expect(upgradeValue('speed', 10)).toBe(26)
+    expect(upgradeMaxLevel('speed')).toBeNull()
     expect(upgradeValue('luck', 10)).toBeCloseTo(0.5)
     expect(upgradeValue('damage', 2)).toBeCloseTo(1.5625)
     expect(upgradeValue('bounty', 1)).toBeCloseTo(1.2)
     const cfg = configFromUpgrades({ damage: 0, capacity: 0, speed: 10, luck: 0, bounty: 0 })
     expect(cfg.launchInterval).toBeCloseTo(0.045)
     expect(configFromUpgrades({ damage: 0, capacity: 0, speed: 0, luck: 0, bounty: 0 }).launchInterval).toBeCloseTo(0.085)
+  })
+
+  it('Tempo (speed): 15 → 26 cells/s over 10 levels, then flat; its damage keeps compounding', () => {
+    expect(ballSpeedAt(0)).toBe(15)
+    expect(ballSpeedAt(10)).toBe(26)
+    expect(ballSpeedAt(25)).toBe(26)
+    expect(configFromUpgrades({ damage: 0, capacity: 0, speed: 25, luck: 0, bounty: 0 }).launchInterval).toBeCloseTo(0.045)
+    expect(upgradeValue('speed', 0)).toBe(1)
+    expect(upgradeValue('speed', 1)).toBeCloseTo(ECONOMY.tempoDamage)
+    expect(upgradeValue('speed', 25)).toBeCloseTo(Math.pow(ECONOMY.tempoDamage, 25))
+    expect(ECONOMY.tempoDamage).toBeGreaterThan(1)
+    // Every ball's damage = Ball Damage × Tempo.
+    const cfg = configFromUpgrades({ damage: 3, capacity: 0, speed: 4, luck: 0, bounty: 0 })
+    expect(cfg.damageMult).toBeCloseTo(upgradeValue('damage', 3) * upgradeValue('speed', 4))
+    expect(cfg.ballSpeed).toBe(ballSpeedAt(4))
+    // The Daily's fixed kit: Ball Damage 4 alone, Tempo 5's speed.
+    expect(DAILY_CONFIG.damageMult).toBeCloseTo(upgradeValue('damage', 4))
+    expect(DAILY_CONFIG.ballSpeed).toBe(ballSpeedAt(5))
+  })
+
+  it('kill coins grow 1.05 a row to coinLateRow, then coinLateGrowth a row', () => {
+    const r0 = ECONOMY.coinLateRow
+    const at = (row: number) => ECONOMY.coinBase * Math.pow(ECONOMY.coinGrowth, Math.min(row, r0) - 1) * Math.pow(ECONOMY.coinLateGrowth, Math.max(0, row - r0))
+    for (const row of [1, 10, 20, r0, r0 + 1, r0 + 10, r0 + 60]) {
+      expect(killCoins(row, 'slime', false)).toBe(Math.max(1, Math.round(at(row))))
+    }
+    expect(ECONOMY.coinLateGrowth).toBeGreaterThan(ECONOMY.coinGrowth)
   })
 
   it('costs are positive, rising, and Infinity once maxed', () => {

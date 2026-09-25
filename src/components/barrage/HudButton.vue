@@ -9,6 +9,7 @@
  */
 import { computed } from 'vue'
 import { isCompactHud, isRoomyHud } from '@/use/useUser'
+import { longPressTip } from '@/components/barrage/hudTip'
 
 type Tone = 'blue' | 'purple' | 'gold' | 'orange' | 'green' | 'red' | 'teal'
 
@@ -24,7 +25,14 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
 }>(), { tone: 'blue', badge: null, dot: false, pulse: false, disabled: false })
 
-defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
+const emit = defineEmits<{ (e: 'click', ev: MouseEvent): void }>()
+
+// Run 9: a long press names the button (a `title` never shows on touch).
+const press = longPressTip(() => ({ name: props.ariaLabel }))
+const onClick = (ev: MouseEvent): void => {
+  if (press.consumed()) return
+  emit('click', ev)
+}
 
 const TONES: Record<Tone, { face: string; base: string }> = {
   blue: { face: 'from-[#50aaff] to-[#2266ff]', base: 'bg-[#102e7a]' },
@@ -53,7 +61,12 @@ const glyphClass = computed(() => isRoomyHud.value ? 'w-7 h-7' : 'w-6 h-6')
     :aria-label="ariaLabel"
     :title="ariaLabel"
     :aria-disabled="disabled ? 'true' : undefined"
-    @click="$emit('click', $event)"
+    @click="onClick"
+    @pointerdown="press.down"
+    @pointerup="press.cancel"
+    @pointerleave="press.cancel"
+    @pointercancel="press.cancel"
+    @contextmenu.prevent
   )
     span.relative.block(:class="faceClass")
       span.absolute.inset-0.rounded-xl.translate-y-1(:class="tone.base")

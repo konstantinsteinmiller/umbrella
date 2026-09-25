@@ -108,7 +108,15 @@ export interface TutorialWiring {
   onEngineEvent(cb: EngineListener): () => void
   /** Something upgrade-shaped the hand could press right now (free offer or a glowing chip). */
   upgradeTarget: Ref<boolean>
+  /** The FTUE's free Tray Capacity is still on offer, and how to grant it. */
+  freeOffer?: Ref<boolean>
+  claimFree?: () => void
 }
+
+/** Run 7: aim phases after the FTUE has handed over before an unclaimed free
+ *  Tray Capacity is granted on its own (its socket drops into the tray) — a
+ *  tester who never claimed it ended the session with every upgrade at 0. */
+export const FREE_GRANT_AIMS = 2
 
 /**
  * Wire the FTUE to the live run. Returns the teardown. GameScene calls it on
@@ -130,7 +138,13 @@ export const installBarrageTutorial = (w: TutorialWiring): (() => void) => {
   // ignored volleys and it graduates (the FREE chip keeps glowing on its own),
   // instead of dimming the board at every aim for the rest of the session.
   let volleysInUpgrade = 0
+  let aimsSinceHandover = 0
   offs.push(w.onEngineEvent((e) => {
+    // The free Tray Capacity nobody took: granted FREE_GRANT_AIMS aims after
+    // the FTUE handed over (BallTray drops the new socket in).
+    if (e.type === 'phase' && e.phase === 'aim' && tutorialStep.value === 'done' && w.freeOffer?.value) {
+      if (++aimsSinceHandover >= FREE_GRANT_AIMS) w.claimFree?.()
+    }
     if (!tutorialActive.value) return
     if (e.type === 'fire' && tutorialStep.value === 'upgrade' && ++volleysInUpgrade >= 2) {
       notifyTutorial({ kind: 'skip' })

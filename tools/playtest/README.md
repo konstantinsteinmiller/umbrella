@@ -6,8 +6,11 @@ no rules, docs or source. The harness logs game telemetry (row, tray, coins, upg
 but never shows it to them.
 
 **Play budget.** Each action costs its in-game duration plus 2 s of "thinking". The model's own latency
-doesn't count, so a session holds about as many turns as a human's 3 minutes. There's also a 15-minute
-wall-clock cap.
+doesn't count, so a session holds about as many turns as a human's session of the same length. The default
+is 3 minutes with a 15-minute wall-clock cap; run 9 played 5 minutes, extended to 7 for a tester who had not
+lost by then (`--budget 300 --extend 420 --wallcap 2100`). When a loss shrinks the budget, the reply carries a
+`note` saying so. In run 9, two testers filed the drop in `leftSec` as "the game skipped 2 minutes". A loss that
+lands past the base budget still gets 30 s (`GRACE`) so its aftermath is seen.
 
 ## Run it
 
@@ -16,8 +19,9 @@ wall-clock cap.
 VITE_LEADERBOARD_URL= VITE_LEADERBOARD_SECRET= VITE_ENABLE_OBFUSCATION=false npx vite build --outDir <tmp>/dist-playtest
 npx vite preview --outDir <tmp>/dist-playtest --port 5320 --strictPort --host 127.0.0.1   # check <title>
 
-# 2. four tiled tester windows (fresh profiles, ports 9511–9514)
-node tools/playtest/start-players.mjs playtest-runs/run-N
+# 2. four tiled tester windows (fresh profiles, ports 9511–9514); optional budget flags (play seconds):
+#    --budget 300 --extend 420 = 5 minutes, 7 for a tester who has not lost by then; --wallcap = wall-clock cap
+node tools/playtest/start-players.mjs playtest-runs/run-N [http://127.0.0.1:5320/] [--budget 300 --extend 420 --wallcap 2100]
 
 # 3. one Sonnet agent per persona with the prompt below (personas.mjs has the briefs + ports)
 
@@ -25,7 +29,7 @@ node tools/playtest/start-players.mjs playtest-runs/run-N
 node tools/playtest/stop-players.mjs playtest-runs/run-N
 
 # 5. read every report.json, write playtest-runs/run-N/findings.json, then build the page
-node tools/playtest/build-report.mjs --run playtest-runs/run-N --previous playtest-runs/run-1,playtest-runs/run-2   # all earlier runs, oldest first
+node tools/playtest/build-report.mjs --run playtest-runs/run-N --previous playtest-runs/run-1,playtest-runs/run-2,…   # all earlier runs, oldest first
 ```
 
 `findings.json` holds `{ summary: { headline, bullets[] }, findings: [{ id, severity, title, players[], detail,
@@ -34,7 +38,7 @@ recommendation, evidence: [{ player, shot, sec }], status? }] }`. `status` is `f
 the builder copies it next to `data.json` and the screenshots, ready to publish as an artifact. Runs live in
 the git-ignored `playtest-runs/`.
 
-## Tester prompt (fill `{brief}`, `{name}`, `{api}`, `{reportPath}`)
+## Tester prompt (fill `{brief}`, `{name}`, `{api}`, `{reportPath}`, `{budget}`)
 
 > You are a BLIND PLAYTESTER for a brand-new mobile web game. You know nothing about it — no name, no rules,
 > no genre. You play it for the first time, in character, and report what a real first-time player would
@@ -50,9 +54,10 @@ the git-ignored `playtest-runs/`.
 > CLI: `node "<repo>/tools/playtest/pt.mjs" {api} <command> [args]` — `hello` · `shot` · `wait <ms>` (≤5000) ·
 > `tap <x> <y>` · `drag <x0> <y0> <x1> <y1> [ms]` · `end` (quit early, only if {name} would genuinely quit).
 > The phone screen is 390×844; screenshot pixels = touch coordinates. Every command returns JSON with
-> screenshot paths (`shots`), `playedSec` and `leftSec`; read EVERY screenshot returned. You have 3 MINUTES
-> OF PLAY TIME (action game-time + 2 s per action); keep playing until the CLI says `ended: true`, then write
-> the report.
+> screenshot paths (`shots`), `playedSec` and `leftSec`; read EVERY screenshot returned. You have {budget}
+> OF PLAY TIME (action game-time + 2 s per action; e.g. "3 MINUTES", or run 9's "about 5 MINUTES — up to 7 if
+> you never lose; `leftSec` always tells you what is left"); keep playing until the CLI says `ended: true`,
+> then write the report.
 >
 > HOW TO PLAY: behave like {name}; figure things out only from what's on screen; think aloud and keep a
 > running log with the `playedSec` of each moment — what you see, expect, try, what surprised you, every
@@ -70,8 +75,36 @@ The German persona writes its report in English and quotes on-screen German verb
 ## Caveats
 
 Testers see still frames, not motion or sound, so feedback that only shows in motion is under-weighted.
-The one exception the harness handles itself: when the game pauses on the merge lightbox while a turn
-settles, it takes an extra `NNN-moment.jpg` frame (≤ 2 per action), which the tester gets like any other
-and the report always keeps. In run 3 every lightbox fell between an action's two stills.
-They are a stand-in for first-time players. That makes them good at finding readability and flow gaps,
-but not a substitute for a human playtest or a portal fit test.
+Two harness measures narrow that gap:
+- **Moments.** While a turn settles and for a second after it, each merge lightbox and the FIRST showing of
+  each distinct coach lesson (the sr-only sentence in a `[data-coach-live]` region, compared as text) get an
+  extra `NNN-moment.jpg` frame (≤ 2 per action). The tester gets it like any other frame, and the report
+  always keeps it. In runs 3–4 every lightbox and the overrun demo fell between an action's two stills.
+  Since run 7 a fresh sentence that shows while the game is HELD between actions (an unlock's fly-in runs on
+  DOM timers) gets one too, at the front of the next action's shots; the death sequence's "WASTED" is one.
+  Since run 9 the first "+1" spotlight (`.pickup-box`) counts as a lightbox with two frames: the "+1" in flight,
+  then the ball in the tray. It pauses the game, and in run 9 it ran out before any frame. Since run 12 the
+  spotlight lessons (`.lesson-spot`: the launcher's countdown, the speed / luck / bounty chips) get two frames
+  too, ~1 s and ~2.4 s in: the demo's first act and its payoff.
+- **Hold between actions.** Outside an action the page reports itself hidden, so the game's own visibility
+  pause stops the sim; each action resumes it. Game time then matches the play budget (action time + think)
+  instead of running through a model's 10–20 s of thinking. In run 4 the flying chest was gone before any
+  tap landed. Wall-clock timers (the treasure chest's refill, the 20-s shot-demo rule) still run in real time.
+
+**Tester agents inherit the project's memory.** In run 8 a tester cited "your standing note" (the memory index
+is loaded into every agent spawned from this project), so the blind setup leaked a little. Since run 9 the
+index (`MEMORY.md` in the project's memory folder) is moved aside just while the four agents are spawned and
+put back right after — or launch them from a session without project memory.
+
+**Don't file: "the boss HP is stuck".** Two stills a few shots apart that show the same boss HP are
+misses between frames (a straight shot from a launcher off to the side passes the boss) — not a player
+problem (the designer's call after run 7). Leave it out of findings, follow-ups and the plan.
+
+The testers are a stand-in for first-time players. That makes them good at finding readability and flow
+gaps, but not a substitute for a human playtest or a portal fit test.
+
+**The tester windows are muted** (`--mute-audio`, since run 12). In runs 1 and 11 all four testers filed
+"the sound muted itself": four windows of game audio on the desktop got silenced by hand through the game's
+own speaker button. Nobody needs to touch the windows now, and the in-game mute stays the testers' own.
+
+`--headless 1` on `pt-daemon.mjs` runs a tester window headless, for testing the harness itself.

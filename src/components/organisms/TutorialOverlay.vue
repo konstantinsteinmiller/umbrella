@@ -24,15 +24,14 @@
  * The overlay is pointer-events: none throughout — the player drives the real
  * board underneath — and it gets out of the way the instant a finger is on the
  * board (`playerAiming`), a volley is running, a modal is open, or a tier
- * reveal or the merge lightbox owns the moment — and while the coach plays
- * the lose rule (`overrun`: a first-timer can reach the line before the FTUE
- * is over, and that rule comes before every other lesson).
+ * reveal or the merge lightbox owns the moment.
  *
  * The aim hand follows the coach's 20-second rule (`shotDemoDue`): after the
- * first shot it stays away until no shot has been fired for 20 s. Its very
- * first appearance skips the fade, so the first frame of the game already
- * shows the hand (run 2: a still frame of the fading-in demo read as a
- * "joystick circle").
+ * first shot it stays away until no shot has been fired for 20 s. Before the
+ * very first shot it plays under "Tap to Shoot" (ShootPrompt) — the designer's
+ * call after run 8: the drag demo stays while a first-timer has not shot
+ * (run 7 had held it back for the banner). Its first appearance skips the
+ * fade (run 2: a still frame of the fading-in demo read as a "joystick circle").
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -48,6 +47,7 @@ import { boardApi, playerAiming } from '@/components/barrage/barrageUi'
 import { isCompactHud } from '@/use/useUser'
 import { coachLesson, shotDemoDue } from '@/use/useCoach'
 import { mergeBox } from '@/components/barrage/mergeLightbox'
+import { pickupBox } from '@/components/barrage/pickupSpotlight'
 import FingerDemo from '@/components/barrage/coach/FingerDemo.vue'
 import UpgradeDemo from '@/components/barrage/coach/UpgradeDemo.vue'
 import type { UpgradeId } from '@/barrage/engine/types'
@@ -170,7 +170,7 @@ const effectHole = (id: UpgradeId): Hole | null => {
 }
 
 const pressPlan = (): Plan | null => {
-  const id: UpgradeId | null = upgrades.freeCapacityOffer.value ? 'capacity' : upgrades.glowingId.value
+  const id: UpgradeId | null = upgrades.freeId.value ?? upgrades.glowingId.value
   if (!id) return null
   const el = document.querySelector(`[data-tut="upgrade-${id}"]`)
   if (!el) return null
@@ -194,8 +194,7 @@ const coachHasShot = computed(() => {
   return l?.id === 'combo' && !!l.bank
 })
 const hidden = computed(() =>
-  playerAiming.value || isAnyModalOpen.value || !!activeReveal.value || !!mergeBox.value
-  || coachLesson.value?.id === 'overrun'
+  playerAiming.value || isAnyModalOpen.value || !!activeReveal.value || !!mergeBox.value || !!pickupBox.value
   || (plan.value?.kind === 'aim' && (coachHasShot.value || !shotDemoDue.value)))
 const visible = computed(() => tutorialActive.value && !!plan.value && !hidden.value)
 
@@ -234,7 +233,7 @@ let poll = 0
 watch(tutorialStep, () => measure())
 watch(() => barrage.phase.value, () => measure())
 watch(() => barrage.engineGen.value, () => measure())
-watch(() => upgrades.freeCapacityOffer.value, () => measure())
+watch(() => upgrades.freeId.value, () => measure())
 onMounted(() => {
   measure()
   poll = window.setInterval(measure, 300)

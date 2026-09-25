@@ -10,7 +10,8 @@ export default {
     shields: 'Schildladungen: {n}',
     revives: 'Wiederbelebungen: {n}',
     warcry: 'Kriegsschrei bereit: Deine nächste Salve verursacht doppelten Schaden',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Globaler Rang'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Stufe {n}',
     plusOne: '+1',
     merged: 'Verschmolzen!',
-    overflow: 'Ablage voll! +{n} Münzen'
+    overflow: 'Ablage voll! +{n} Münzen',
+    pickupSr: '„+1“ ist eine Kugel mehr in deiner Ablage: ein Schuss mehr pro Salve, mehr Schaden.'
   },
   upgrades: {
     title: 'Verbesserungen',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Ablagekapazität',
       short: 'Kapazität',
-      desc: 'Mehr Kugeln halten, bevor Zwillinge verschmelzen.'
+      desc: 'Mehr Kugeln in deiner Ablage: mehr Schüsse pro Zug.'
     },
     speed: {
       name: 'Schusstempo',
       short: 'Tempo',
-      desc: 'Kugeln fliegen schneller und starten zügiger.'
+      desc: 'Kugeln fliegen schneller und treffen härter.'
     },
     luck: {
       name: 'Fundglück',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}\u00a0%',
-      plusPercent: '+{n}\u00a0%'
+      percent: '{n}\u00a0%'
     },
     arrow: '{from} → {to}',
     max: 'MAX',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Überrannt!',
+    wasted: 'Überrannt',
     body: 'Die Monster sind bei Reihe {n} durchgebrochen.',
+    bodyBy: 'Durchbruch in Reihe {n}: {name}',
     meteor: 'Meteorsturm',
     meteorDesc: 'Räumt die unteren zwei Reihen – spiel weiter',
     meteorAdAria: 'Werbung ansehen: Meteorsturm räumt die unteren zwei Reihen',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Erster Boss besiegt!',
     defeated: '{name} besiegt!',
     amount: '+{n}',
-    doubled: 'Beute verdoppelt!',
+    boosted: 'Kopfgeld ×{n}!',
     checkpoint: 'Checkpoint bei Reihe {n} gespeichert',
-    double: '2×',
-    doubleAdAria: 'Werbung ansehen, um die Beute zu verdoppeln',
-    doubleCoinAria: 'Beute für {cost} Münzen verdoppeln',
-    collect: 'Einsammeln'
+    boost: '{n}×',
+    boostAdAria: 'Werbung ansehen für das {n}-fache Kopfgeld',
+    boostCoinAria: '{n}-faches Kopfgeld für {cost} Münzen',
+    collect: 'Einsammeln',
+    powerUp: 'Aufrüsten!'
   },
   daily: {
     today: 'Heutiges Feld: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Sammle noch eine Kugel: Eine volle Ablage verschmilzt Zwillinge zu einer stärkeren Kugel!',
     upgrade: 'Tippe auf die Gratis-Verbesserung, um mehr Kugeln zu halten!'
   },
+  prompt: {
+    tapToShoot: 'Tippen zum Schießen',
+    clickToShoot: 'Klicken zum Schießen'
+  },
   coach: {
     survive: 'Die Monster brechen gleich durch – triff zuerst die untersten!',
     tray: 'Deine Ablage ist voll: Ein +1 bringt nur dann einen Schuss mehr, wenn ein Platz frei ist. Verbessere die Ablagekapazität, um mehr Kugeln zu schießen!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Tippe auf die leuchtende Verbesserung: Sie macht deine Kugeln, deine Ablage oder deine Münzen besser.',
     bank: 'Ziel schräg: Eine Kugel, die von der Wand abprallt, trifft mit einem Schuss mehrere Monster!',
     funnel: 'Du kannst dir jetzt {name} leisten – tippe darauf, und jede Kugel trifft härter!',
-    overrun: 'Überquert ein Monster die Linie, wirst du überrannt – triff zuerst die mit der 1!'
+    skipAria: 'Lektion überspringen',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Der Countdown neben dir zählt die Züge, bis das nächste Monster durchbricht – triff es, bevor er null erreicht!',
+      speed: '{name}: Deine Kugeln fliegen schneller, und jeder Treffer macht mehr Schaden.',
+      luck: '{name}: Neue Reihen bringen mehr Münz- und Fertigkeitsblasen.',
+      bounty: '{name}: Jedes besiegte Monster bringt mehr Münzen.'
+    }
   },
   merge: {
     sr: 'Zwei Kugeln der Stufe {from} sind zu einer Kugel der Stufe {to} verschmolzen! Jede Kugel in deiner Ablage ist ein Schuss.',

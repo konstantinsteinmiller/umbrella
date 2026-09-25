@@ -14,9 +14,13 @@ import { chromium } from 'playwright-core'
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d }
 const ID = arg('id'), CDP = +arg('cdp'), API = +arg('api'), URL_ = arg('url'), OUT = path.resolve(arg('out'))
 const WIN_X = +arg('x', 0), LANG = arg('lang', 'en-US')
+// `--headless 1`: for testing the harness itself (real runs are headed windows).
+const HEADLESS = arg('headless', '0') === '1'
 // Play budget = each action's own duration + THINK seconds, so the tester's
 // model latency never eats into it (a session holds about a human's turns).
-const BUDGET = +arg('budget', 180), THINK = +arg('think', 2), WALLCAP = +arg('wallcap', 900)
+// `--extend` (run 9): a tester who has not lost by BUDGET plays on to EXTEND —
+// "5 minutes, or up to 7 if the player never dies".
+const BUDGET = +arg('budget', 180), EXTEND = +arg('extend', 0), THINK = +arg('think', 2), WALLCAP = +arg('wallcap', 900)
 const CHROME = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
 const W = 390, H = 844
@@ -29,7 +33,13 @@ const chrome = spawn(CHROME, [
   `--window-position=${WIN_X},0`, `--window-size=424,${H + 60}`, `--lang=${LANG}`,
   '--no-first-run', '--no-default-browser-check', '--autoplay-policy=no-user-gesture-required',
   '--disable-features=Translate,OptimizationHints',
-  `--app=data:text/html,<title>${ID}</title><body style="background:%23070a14"></body>`
+  // Run 11: four windows of game audio on the desktop got muted by hand
+  // through the game's own speaker button, and every tester filed "the sound
+  // muted itself". The testers never hear anything: the windows stay silent,
+  // the in-game mute stays theirs.
+  '--mute-audio',
+  `--app=data:text/html,<title>${ID}</title><body style="background:%23070a14"></body>`,
+  ...(HEADLESS ? ['--headless=new'] : [])
 ], { stdio: 'ignore' })
 for (let i = 0; i < 80; i++) {
   try { const r = await fetch(`http://127.0.0.1:${CDP}/json/version`); if (r.ok) break } catch { /* not up yet */ }
@@ -49,9 +59,34 @@ page.on('console', (m) => { if (m.type() === 'error') { errors.push(m.text()); l
 page.on('pageerror', (e) => { errors.push(e.message); log({ kind: 'page-error', at: Date.now(), text: e.message }) })
 await page.goto(URL_, { waitUntil: 'load' })
 await sleep(4500)
+// Hold between actions (run 4: the game ran in real time while a tester's model
+// thought for 10–20 s, so the flying chest was gone before any tap landed —
+// a human gets ~13 s). Outside an action the page reports itself hidden and the
+// game's own visibility pause stops the sim; each action resumes it. Play time
+// already counts only action time + THINK, so game time now matches it.
+await page.evaluate(() => {
+  window.__ptHidden = false
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (window.__ptHidden ? 'hidden' : 'visible') })
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => !!window.__ptHidden })
+})
+const hold = async (on) => {
+  try { await page.evaluate((h) => { window.__ptHidden = h; document.dispatchEvent(new Event('visibilitychange')) }, on) } catch { /* navigating */ }
+}
 
 const t0 = Date.now()
 let play = 0, n = 0, ended = false, endReason = ''
+/** The tester has lost at least once (a breach seen in the save). */
+let lost = false
+/** Play time of the first loss (run 9: Dev lost at 327 s and the session ended
+ *  on that very action, so he never saw the recap screen). */
+let lostAt = 0
+/** Play seconds granted after a loss that lands past BUDGET, to see its aftermath. */
+const GRACE = 30
+/** The budget in force: BUDGET, or EXTEND for a tester who has not lost yet. */
+const budgetNow = () => {
+  if (EXTEND <= BUDGET) return BUDGET
+  return lost ? Math.min(EXTEND, Math.max(BUDGET, lostAt + GRACE)) : EXTEND
+}
 const blob = async () => {
   try { return JSON.parse(await page.evaluate(() => localStorage.getItem('elemental-barrage_state')) || '{}') } catch { return {} }
 }
@@ -75,9 +110,40 @@ const shot = async (tag) => {
 const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', {
   type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1, radiusX: 6, radiusY: 6, force: 1 }]
 })
+// Run 7: teaching that plays while the tester thinks. The hold pauses the
+// sim, not the DOM — an unlock's fly-in (a calm aim phase, often starting
+// right as the hold begins) ran unseen, so new HUD icons "silently appeared".
+// While held, a fresh `[data-coach-live]` sentence gets a moment frame too
+// (≤ 2 per hold); they ride along at the front of the next action's shots.
+const heldMoments = []
+let heldTimer = null
+let heldBusy = false
+const watchHeld = (on) => {
+  if (heldTimer) { clearInterval(heldTimer); heldTimer = null }
+  if (!on) return
+  heldTimer = setInterval(async () => {
+    if (heldBusy || ended || heldMoments.length >= 2) return
+    heldBusy = true
+    try {
+      const said = await page.evaluate((sel) => [...document.querySelectorAll(sel)].map((el) => el.textContent.trim()).filter(Boolean), LESSON_SEL)
+      const fresh = said.filter((t) => !lessonsSeen.has(t))
+      for (const t of said) lessonsSeen.add(t)
+      if (fresh.length) {
+        await sleep(LESSON_STAGE_MS)
+        heldMoments.push(await shot('moment'))
+      }
+    } catch { /* navigating */ } finally { heldBusy = false }
+  }, 300)
+}
+const stopHeldWatch = async () => {
+  watchHeld(false)
+  for (let i = 0; i < 40 && heldBusy; i++) await sleep(50)
+  return heldMoments.splice(0)
+}
 const finish = async (reason) => {
   if (ended) return
   ended = true
+  await stopHeldWatch()
   endReason = reason
   const end = await shot('final')
   const b = await blob()
@@ -93,18 +159,29 @@ const act = async (name, fn, args) => {
     await finish('wall-clock cap')
     return { ended: true, message: 'Session over (wall-clock cap). Write your report now.' }
   }
+  const held = await stopHeldWatch()
+  await hold(false)
   const start = Date.now()
   const before = await blob()
   const res = await fn()
+  res.shots = [...held, ...res.shots]
   const dur = (Date.now() - start) / 1000
   play += dur + THINK
   const after = await blob()
-  const out = { shots: res.shots, playedSec: +play.toFixed(1), leftSec: +Math.max(0, BUDGET - play).toFixed(1) }
+  const ta = tele(after)
+  const budgetBefore = budgetNow()
+  if (!lost && (ta.breached || (ta.unlocks?.losses ?? 0) > 0)) { lost = true; lostAt = play }
+  await hold(true)
+  watchHeld(true)
+  const out = { shots: res.shots, playedSec: +play.toFixed(1), leftSec: +Math.max(0, budgetNow() - play).toFixed(1) }
+  // Run 9: two testers read the budget's drop from 7 to 5 minutes as the game
+  // skipping ~2 minutes in one tap, so say it in the response itself.
+  if (budgetNow() < budgetBefore) out.note = `Session length: you lost a run, so your session is now ${Math.round(budgetNow())} s of play in total instead of ${Math.round(budgetBefore)} s, and leftSec dropped by that difference. Only this timer changed; the game itself skipped no time.`
   log({ kind: 'action', at: Date.now(), n, action: name, args, dur, play: +play.toFixed(1), shots: res.shots, fired: res.fired, telemetry: tele(after), beforeRow: tele(before).row, muteBefore: tele(before).mute })
-  if (play >= BUDGET) {
-    await finish('3-minute play budget used')
+  if (play >= budgetNow()) {
+    await finish(`${Math.round(budgetNow() / 60)}-minute play budget used`)
     out.ended = true
-    out.message = 'Your 3 minutes are up. Write your report now.'
+    out.message = 'Your play time is up. Write your report now.'
   }
   return out
 }
@@ -144,51 +221,102 @@ const actions = {
 // `volleys` bumps on the fire event; a short volley may already be over (the
 // run snapshot is re-stamped every time the turn returns to aim).
 //
-// Moments: the merge lightbox pauses the game for a few seconds mid-volley, and
-// in run 3 every one of them fell between the action's two stills — a human
-// would have stared at it. While a turn settles, each lightbox that comes up
-// gets one extra frame (≤ 2 per action), taken once it has staged the merge.
-const MOMENT_SEL = '.merge-box'
+// Moments — teaching that only exists in motion, which a tester reading two
+// stills per action never sees (runs 3–4):
+//   • the merge lightbox pauses the game for a few seconds mid-volley;
+//   • a coach lesson plays at the start of an aim phase, i.e. while the
+//     tester is thinking (and an unlock's fly-in during the hold: watchHeld);
+//   • the death sequence's "WASTED" (run 7) holds ~2 s before the death screen.
+// While a turn settles and for a moment after it, each lightbox that comes up
+// and the FIRST showing of each distinct coach lesson (its sr-only sentence,
+// compared as text, so any language works; `[data-coach-live]`) get one extra
+// frame, ≤ 2 per action.
+// A lightbox also proves the shot fired: a paused volley can hold back the
+// save that the counter check reads.
+// Run 9: the first "+1" spotlight (`.pickup-box`) pauses the game too; it ran
+// out during the fire check (the paused volley never reached the save) and no
+// tester saw it. It now counts as a lightbox with two frames: the "+1" in
+// flight under the spotlight, then the ball it became in the tray.
+// After run 11: the spotlight lessons (`.lesson-spot` — the launcher's
+// countdown, the speed / luck / bounty chips) pause the game for 3–5 s too; two
+// frames each, the demo's first act and its payoff.
+const MOMENT_SEL = '.merge-box, .pickup-box, .lesson-spot'
+const STAGED = [['.pickup-box', [450, 900]], ['.lesson-spot', [900, 1400]]]
+// The coach's own live regions only (run 5 keyed on every sr-only live region
+// and took 68 moment frames — coin and HUD announcements included).
+const LESSON_SEL = '[data-coach-live]'
 const MOMENT_STAGE_MS = 500
+const LESSON_STAGE_MS = 800
+const LESSON_WATCH_MS = 1000
+const lessonsSeen = new Set()
 async function settleIfFired (b0) {
   const v0 = b0.eb_stats?.volleys ?? 0
   const stamp0 = b0.eb_run?.stamp
   const moments = []
   let momentUp = false
-  const peek = async () => {
-    let up = false
-    try {
-      up = await page.evaluate((sel) => {
-        const el = document.querySelector(sel)
-        return !!el && el.getBoundingClientRect().width > 0
-      }, MOMENT_SEL)
-    } catch { /* navigating */ }
-    if (up && !momentUp && moments.length < 2) {
-      await sleep(MOMENT_STAGE_MS)
+  let sawBox = false
+  const probe = () => page.evaluate(([sel, lessonSel, stagedSels]) => {
+    const el = document.querySelector(sel)
+    const box = !!el && el.getBoundingClientRect().width > 0
+    const staged = box ? stagedSels.findIndex((s) => el.matches(s)) : -1
+    const said = [...document.querySelectorAll(lessonSel)].map((n) => n.textContent.trim()).filter(Boolean)
+    return { box, staged, said }
+  }, [MOMENT_SEL, LESSON_SEL, STAGED.map(([sel]) => sel)])
+  const peek = async (lessons) => {
+    let p = { box: false, staged: -1, said: [] }
+    try { p = await probe() } catch { /* navigating */ }
+    if (p.box) sawBox = true
+    if (p.box && !momentUp && moments.length < 2) {
+      for (const ms of p.staged >= 0 ? STAGED[p.staged][1] : [MOMENT_STAGE_MS]) {
+        if (moments.length >= 2) break
+        await sleep(ms)
+        moments.push(await shot('moment'))
+      }
+    }
+    momentUp = p.box
+    if (!lessons) return
+    const fresh = p.said.filter((s) => !lessonsSeen.has(s))
+    for (const s of p.said) lessonsSeen.add(s)
+    if (fresh.length && moments.length < 2) {
+      await sleep(LESSON_STAGE_MS)
       moments.push(await shot('moment'))
     }
-    momentUp = up
   }
   let fired = false
   let turnOver = false
-  for (let i = 0; i < 8 && !fired; i++) {
+  for (let i = 0; i < 12 && !fired; i++) {
     const b = await blob()
     turnOver = b.eb_run?.stamp !== stamp0
-    fired = turnOver || (b.eb_stats?.volleys ?? 0) > v0
+    await peek(false)
+    fired = turnOver || sawBox || (b.eb_stats?.volleys ?? 0) > v0
     if (!fired) await sleep(250)
   }
   if (!fired) return null
-  await peek()
   for (let i = 0; i < 80 && !turnOver; i++) {
     await sleep(250)
-    await peek()
+    await peek(false)
     turnOver = (await blob()).eb_run?.stamp !== stamp0
   }
-  await sleep(700)
+  // The new aim phase: a lesson that opens it is on screen now.
+  for (let t = 0; t < LESSON_WATCH_MS && moments.length < 2; t += 250) {
+    await peek(true)
+    await sleep(250)
+  }
   return { after: await shot('after'), moments }
 }
-log({ kind: 'start', at: t0, id: ID, url: URL_, lang: LANG, viewport: `${W}x${H}`, budget: BUDGET, think: THINK })
+// Lessons already on screen at the first frame count as seen (the start shot
+// shows them), so only later ones earn a moment.
+const seedLessons = async () => {
+  try {
+    const said = await page.evaluate((lessonSel) => [...document.querySelectorAll(lessonSel)].map((n) => n.textContent.trim()).filter(Boolean), LESSON_SEL)
+    for (const s of said) lessonsSeen.add(s)
+  } catch { /* not ready */ }
+}
+log({ kind: 'start', at: t0, id: ID, url: URL_, lang: LANG, viewport: `${W}x${H}`, budget: BUDGET, extend: EXTEND, think: THINK })
 const first = await shot('start')
+await seedLessons()
+await hold(true)
+watchHeld(true)
 log({ kind: 'first-shot', at: Date.now(), shot: first, telemetry: tele(await blob()) })
 
 let busy = Promise.resolve()
@@ -199,7 +327,7 @@ http.createServer((req, res) => {
   busy = busy.then(async () => {
     let body
     try {
-      if (cmd === 'hello') body = { shots: [first], playedSec: +play.toFixed(1), leftSec: +(BUDGET - play).toFixed(1), screen: `${W}x${H} — screenshot pixels are tap/drag coordinates` }
+      if (cmd === 'hello') body = { shots: [first], playedSec: +play.toFixed(1), leftSec: +(budgetNow() - play).toFixed(1), screen: `${W}x${H} — screenshot pixels are tap/drag coordinates` }
       else if (actions[cmd]) body = await actions[cmd](...a)
       else body = { error: `unknown command ${cmd}` }
     } catch (e) { body = { error: String(e?.message ?? e) } }

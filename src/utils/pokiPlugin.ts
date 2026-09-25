@@ -50,6 +50,7 @@
 // the ref from both places would double-manage the gate.
 
 import { ref, computed } from 'vue'
+import { installPokiPlaytestStage } from '@/utils/pokiPlaytestStage'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -74,6 +75,9 @@ interface PokiSDKGlobal {
   muteAd: () => void
   setVolume: (volume: number) => void
   setDebug: (on?: boolean) => void
+  /** Playtest recorder (v2 core): the canvases it films — see
+   *  `pokiPlaytestStage.ts` (and why its DOM capture stays off). */
+  playtestSetCanvas?: (canvas: HTMLCanvasElement | HTMLCanvasElement[] | null) => void
 }
 
 declare global {
@@ -281,6 +285,16 @@ export const pokiPlugin = (): Promise<void> => {
     }
 
     isPokiSdkActive.value = true
+
+    // Playtest recordings film canvases: hand the recorder a stage with the
+    // picture (backdrop, board, particles, an outline of the HUD) — left to
+    // itself it filmed the full-window particle canvas, and every playtest
+    // video was black but for confetti.
+    try {
+      installPokiPlaytestStage(sdk)
+    } catch (e) {
+      warn('playtest stage setup threw', e)
+    }
   })()
 
   return initPromise

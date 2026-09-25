@@ -143,21 +143,36 @@ const castRay = (state: BoardState, ox: number, oy: number, dx: number, dy: numb
   }
 }
 
-/** Pure: reads the board, never mutates it. */
-export const aimPreview = (state: BoardState, angle: number): AimPath => {
+/**
+ * Pure: reads the board, never mutates it. `bounces` (fun pass, run 6: "am I
+ * even aiming?") traces that many contacts in full before the short fading
+ * continuation — the board draws 2, so a bank shot can be planned; `hit` and
+ * `monsterId` always describe the FIRST contact. `solid` is the length of
+ * the fully drawn part (up to the last traced contact).
+ */
+export const aimPreview = (state: BoardState, angle: number, bounces = 1): AimPath => {
   const a = clampAim(Number.isFinite(angle) ? angle : Math.PI / 2)
-  const ox = state.launcherX
-  const oy = launchY()
+  let x = state.launcherX
+  let y = launchY()
   let dx = Math.cos(a)
   let dy = -Math.sin(a)
   const hit: Ray = { t: 0, nx: 0, ny: 0, kind: 'wall', monster: null }
-  castRay(state, ox, oy, dx, dy, 1e3, hit)
-  const bx = ox + dx * hit.t
-  const by = oy + dy * hit.t
-  const kind = hit.kind
-  const monsterId = hit.monster?.id
-  const points = [{ x: ox, y: oy }, { x: bx, y: by }]
-  if (kind !== 'floor') {
+  const points = [{ x, y }]
+  let kind: HitKind = 'floor'
+  let monsterId: number | undefined
+  let solid = 0
+  const n = Math.max(1, Math.floor(bounces))
+  for (let k = 0; k < n; k++) {
+    castRay(state, x, y, dx, dy, 1e3, hit)
+    x += dx * hit.t
+    y += dy * hit.t
+    solid += hit.t
+    points.push({ x, y })
+    if (k === 0) {
+      kind = hit.kind
+      monsterId = hit.monster?.id
+    }
+    if (hit.kind === 'floor') break
     // Reflect exactly as the physics does, then the anti-stall floor on |vy|.
     if (hit.nx !== 0) dx = -dx
     if (hit.ny !== 0) dy = -dy
@@ -166,10 +181,12 @@ export const aimPreview = (state: BoardState, angle: number): AimPath => {
       dy = dy < 0 ? -min : min
       dx = (dx < 0 ? -1 : 1) * Math.sqrt(1 - min * min)
     }
-    castRay(state, bx, by, dx, dy, AIM_CONTINUATION, hit)
-    points.push({ x: bx + dx * hit.t, y: by + dy * hit.t })
   }
-  const path: AimPath = { points, hit: kind }
+  if (hit.kind !== 'floor') {
+    castRay(state, x, y, dx, dy, AIM_CONTINUATION, hit)
+    points.push({ x: x + dx * hit.t, y: y + dy * hit.t })
+  }
+  const path: AimPath = { points, hit: kind, solid }
   if (monsterId !== undefined) path.monsterId = monsterId
   return path
 }

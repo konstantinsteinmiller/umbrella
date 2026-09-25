@@ -84,6 +84,13 @@ html[native-dark-active] .game-ui-immune
 .game-text
   text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000
 
+// HUD numerals: digits in 'EB Digits' (fonts.sass — a curved-neck "2", run 5's
+// "ROW ZZ"), everything else in the locale's own stack. App.vue sets the stack
+// on EVERY element (`*`), so this re-applies it to the whole subtree
+// (`.hud-digits *` outranks `*`); the locale stack stays behind it untouched.
+.hud-digits, .hud-digits *
+  font-family: 'EB Digits', var(--app-font-stack, 'Angry', 'Segoe UI', Roboto, system-ui, sans-serif)
+
 .attention-bounce
   animation: attention-bounce 1.4s infinite ease-in-out
 
@@ -138,3 +145,11 @@ html[native-dark-active] .game-ui-immune
     transform: translateY(-15px) scale(1.06)
   63.5%, 84.5%
     transform: translateY(-7px) scale(1.03)
+
+// Rewarded / ad buttons (the movie-icon offers): ALWAYS this blue, never green —
+// Google Play's policy, and green sells the ad as "the good choice". CONTRACT §8.
+:root
+  --ad-top: #5aa2ff
+  --ad-bottom: #2f5fd8
+  --ad-plate: #16307a
+  --ad-glow: rgba(120, 175, 255, 0.85)

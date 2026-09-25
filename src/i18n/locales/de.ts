@@ -286,9 +286,9 @@ export default {
     'close': 'Speichern & Schließen',
     'difficulties': { 'easy': 'Einfach', 'medium': 'Mittel', 'hard': 'Schwer' },
     'difficultyHints': {
-      'easy': 'Langsameres Tempo — mehr Zeit zum Reagieren.',
-      'medium': 'Das ausgewogene Standardtempo.',
-      'hard': 'Schnelleres Tempo — präziseres Timing nötig.'
+      'easy': 'Langsamer — mehr Zeit zum Reagieren.',
+      'medium': 'Die ausgewogene Standardstufe.',
+      'hard': 'Schneller — präziseres Timing nötig.'
     }
   },
   'adsBlocked': {

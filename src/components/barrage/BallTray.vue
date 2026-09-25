@@ -23,6 +23,14 @@
  * hands the finger to the board (`beginAimFrom`), which treats it like a
  * press on the unit. The status icons beside them (shield / revive / warcry)
  * name themselves on a tap (HudTip) — a `title` never shows on touch.
+ *
+ * Buying Tray Capacity pays off right here (play-test run 4: "what Capacity
+ * changes — never noticed a difference"): the new socket drops into the tray
+ * and glows, the count flashes, and a ball that fills it at once pops "+1".
+ * In the stacks look (no sockets drawn) a ghost socket drops in beside the
+ * stacks instead. And while a monster wears the `1` pip (one march from the
+ * line) the orbs tremble — your shots are nervous too (never under
+ * prefers-reduced-motion).
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -39,6 +47,8 @@ import { boardApi, fmtCoins } from '@/components/barrage/barrageUi'
 import { showHudTip, type TipIcon } from '@/components/barrage/hudTip'
 import { centreOfEl, fly, type Pt } from '@/components/barrage/trayFlights'
 import { mergeBox, offerMerge } from '@/components/barrage/mergeLightbox'
+import { offerPickup, pickupBox } from '@/components/barrage/pickupSpotlight'
+import { breachComing } from '@/barrage/render/danger'
 
 const { t, te } = useI18n()
 const barrage = useBarrage()
@@ -130,8 +140,9 @@ const addPop = (el: Element | null, text: string, kind: Pop['kind']): void => {
 /** A routine merge's twins take this long to fly into their ball. */
 const TWIN_FLIGHT_MS = 240
 
-/** The ball the merge lightbox is staging: hidden here, drawn there. */
-const boxedIdx = computed(() => mergeBox.value?.idx ?? -1)
+/** The ball the merge lightbox (or the first "+1"'s spotlight) is staging:
+ *  hidden here, drawn there. */
+const boxedIdx = computed(() => mergeBox.value?.idx ?? pickupBox.value?.idx ?? -1)
 
 const bounceIdx = ref<number | null>(null)
 const squishIdx = ref<number | null>(null)
@@ -153,6 +164,9 @@ let flushQueued = false
 let pendingOverflow = false
 /** Where on screen the "+1" that caused this burst was collected. */
 let pendingPickup: Pt | null = null
+/** …the same for the first-"+1" spotlight, auto-collected ones included (the
+ *  first rows' leftovers are often a first-timer's first "+1"). */
+let pendingSpotFrom: Pt | null = null
 
 const flushJuice = async (): Promise<void> => {
   flushQueued = false
@@ -161,10 +175,12 @@ const flushJuice = async (): Promise<void> => {
   const adds = pendingAdds
   const overflow = pendingOverflow
   const pickup = pendingPickup
+  const spotFrom = pendingSpotFrom
   pendingMerges = []
   pendingAdds = 0
   pendingOverflow = false
   pendingPickup = null
+  pendingSpotFrom = null
   /** The "+1" flies from its bubble into the socket it ended up in. */
   const flyIn = (el: Element | null): void => {
     const to = centreOfEl(el)
@@ -227,6 +243,9 @@ const flushJuice = async (): Promise<void> => {
   if (adds > 0 && !overflow) {
     const idx = lastIndexOf(1)
     const at = idx >= 0 ? idx : tray.value.length - 1
+    // The first one that stays a ball goes on a stage (pickupSpotlight.ts):
+    // it plays the flight and the "+1" → ball itself, so no bounce here.
+    if (at >= 0 && !merges.length && offerPickup({ from: spotFrom, idx: at, tier: tray.value[at] ?? 1, allowed: !isAnyModalOpen.value && !mergeBox.value })) return
     if (at >= 0) {
       bounceIdx.value = null
       await nextTick()
@@ -269,6 +288,7 @@ const onEvent = (e: EngineEvent): void => {
     case 'pickup':
       // Auto-collected "+1"s fly to the unit on the board instead.
       if (e.kind === 'ball' && !e.auto) pendingPickup = boardApi.value?.cellToClient(e.x, e.y) ?? null
+      if (e.kind === 'ball') pendingSpotFrom = boardApi.value?.cellToClient(e.x, e.y) ?? null
       break
     case 'trayOverflow':
       pendingOverflow = true
@@ -326,6 +346,68 @@ onUnmounted(() => {
   window.clearTimeout(bounceTimer)
   window.clearTimeout(squishTimer)
   window.clearTimeout(overflowTimer)
+  window.clearTimeout(freshTimer)
+})
+
+// ─── Capacity payoff: the new socket drops in and glows ─────────────────────
+/** How long a new socket counts as fresh (its drop + glow play once). */
+const FRESH_MS = 1700
+/** Socket indices from this one up arrived with the last capacity purchase
+ *  (-1: none). The count flashes with them. */
+const freshFrom = ref(-1)
+/** Stacks look: a ghost socket drops in beside the last stack (tray-root px). */
+const ghost = ref<{ seq: number; left: number; top: number; size: number } | null>(null)
+let freshTimer = 0
+let ghostSeq = 0
+const isFresh = (i: number): boolean => freshFrom.value >= 0 && i >= freshFrom.value
+
+const onCapacityUp = async (was: number): Promise<void> => {
+  // Set before the render that adds the sockets: they are born dropping.
+  freshFrom.value = was
+  ghost.value = null
+  window.clearTimeout(freshTimer)
+  freshTimer = window.setTimeout(() => { freshFrom.value = -1; ghost.value = null }, FRESH_MS)
+  await nextTick()
+  if (!stacked.value) {
+    // A ball already sitting in a new socket (it was waiting for room) lands
+    // like a "+1".
+    for (let i = was; i < tray.value.length && i < capacity.value; i++) {
+      const el = slotEl(i)
+      if (!el) continue
+      bounceIdx.value = i
+      window.clearTimeout(bounceTimer)
+      bounceTimer = window.setTimeout(() => { bounceIdx.value = null }, 420)
+      addPop(el, t('barrage.tray.plusOne'), 'add')
+      break
+    }
+    return
+  }
+  const root = rootEl.value
+  const slots = root?.querySelectorAll<HTMLElement>('.tray-slot')
+  const last = slots && slots.length ? slots[slots.length - 1] : null
+  const box = boxEl.value
+  if (!root || !last || !box) return
+  const rr = root.getBoundingClientRect()
+  const l = last.getBoundingClientRect()
+  const b = box.getBoundingClientRect()
+  const size = l.width
+  const left = Math.min(l.right + GAP, b.right - size) - rr.left
+  ghost.value = { seq: ++ghostSeq, left, top: l.top - rr.top, size }
+}
+// A purchase only: a new board (restart, daily, hydrate) brings its own capacity.
+watch([() => barrage.trayCapacity.value, () => barrage.engineGen.value], ([cap, gen], [was, wasGen]) => {
+  if (gen !== wasGen || !(cap > was)) return
+  void onCapacityUp(was)
+})
+
+// ─── On the brink: a `1` pip on the board and the orbs tremble ───────────────
+const brink = computed(() => {
+  // Re-read at every phase change (the board only moves between aims).
+  if (barrage.phase.value !== 'aim') return false
+  void barrage.engineGen.value
+  void barrage.row.value
+  // The canvas's own `1`-pip rule (the unit cowers on the same one).
+  return breachComing(barrage.engine.value.state)
 })
 
 // ─── Aim from the orbs ───────────────────────────────────────────────────────
@@ -365,6 +447,7 @@ defineExpose({ rootEl })
     role="group"
     :aria-label="trayAria"
     data-tut="tray"
+    :class="{ 'ball-tray--brink': brink }"
   )
     //- Slot area — measured; every orb size is derived from it.
     //- …and the place a drag up from the shots starts an aim (touch-action: none).
@@ -378,6 +461,7 @@ defineExpose({ rootEl })
             v-for="(tier, i) in sockets"
             :key="'s' + i"
             :data-slot="tier > 0 ? i : undefined"
+            :class="{ 'is-fresh': isFresh(i) }"
           )
             div.unit-holder.w-full.h-full(
               v-if="tier > 0"
@@ -409,7 +493,7 @@ defineExpose({ rootEl })
 
     //- Count + run status (shield / revive charges, warcry armed) — a tap names each.
     div.tray-side.shrink-0.flex.flex-col.items-center.justify-center.gap-1.px-1
-      span.tray-count.game-text.font-black.tabular-nums.leading-none(:class="[countClass, { 'is-full': full }]") {{ countLabel }}
+      span.tray-count.game-text.font-black.tabular-nums.leading-none(:class="[countClass, { 'is-full': full, 'is-grown': freshFrom >= 0 }]") {{ countLabel }}
       div.flex.items-center(class="gap-0.5" v-if="barrage.shields.value > 0 || barrage.revives.value > 0 || barrage.warcryArmed.value")
         button.tray-status.text-sky-300(v-if="barrage.shields.value > 0" type="button" :aria-label="statusName('shield')" @click="onStatusTap('shield', $event)")
           BarrageGlyph.w-4.h-4(name="shield")
@@ -420,6 +504,14 @@ defineExpose({ rootEl })
         button.tray-status.tray-status--warcry.text-amber-300(v-if="barrage.warcryArmed.value" type="button" :aria-label="statusName('warcry')" @click="onStatusTap('warcry', $event)")
           BarrageGlyph.w-4.h-4(name="warcry")
 
+    //- Stacks look: the socket a capacity purchase added, dropping in beside the stacks.
+    div.tray-ghost.absolute.pointer-events-none(
+      v-if="ghost"
+      :key="ghost.seq"
+      :style="{ left: ghost.left + 'px', top: ghost.top + 'px', width: ghost.size + 'px', height: ghost.size + 'px' }"
+      aria-hidden="true"
+    )
+      div.tray-socket.w-full.h-full
     //- Floating "+1" / "Merged!" pops.
     span.tray-pop.game-text.absolute.pointer-events-none(
       v-for="p in pops"
@@ -542,6 +634,61 @@ defineExpose({ rootEl })
   text-shadow: 1px 1px 0 #000
   &.is-full
     color: #ffd23a
+  // A capacity purchase: the count flashes green with the new socket.
+  &.is-grown
+    animation: tray-count-grown 1.1s ease-out
+
+// ── Capacity payoff: the new socket drops in from above and glows ──
+.tray-slot.is-fresh
+  animation: tray-socket-drop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both
+  .tray-socket
+    animation: tray-socket-glow 1.7s ease-out both
+.tray-ghost
+  z-index: 3
+  animation: tray-socket-drop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both, tray-ghost-out 1.7s ease-in both
+  .tray-socket
+    animation: tray-socket-glow 1.7s ease-out both
+@keyframes tray-socket-drop
+  0%
+    transform: translateY(-110%) scale(0.55)
+    opacity: 0
+  55%
+    opacity: 1
+  100%
+    transform: translateY(0) scale(1)
+    opacity: 1
+@keyframes tray-socket-glow
+  0%, 55%
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 0 2.5px rgba(125, 255, 154, 1), 0 0 14px 2px rgba(125, 255, 154, 0.9)
+    background: radial-gradient(circle at 50% 60%, rgba(90, 220, 130, 0.45), rgba(125, 255, 154, 0.12) 70%)
+  100%
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 0 1.5px rgba(255, 255, 255, 0.12)
+@keyframes tray-ghost-out
+  0%, 75%
+    opacity: 1
+  100%
+    opacity: 0
+@keyframes tray-count-grown
+  0%, 40%
+    color: #7dffa0
+    scale: 1.3
+  100%
+    scale: 1
+
+// ── On the brink: the orbs tremble while a monster is one march from the line ──
+.ball-tray--brink .orb
+  animation: tray-brink 0.34s ease-in-out infinite alternate
+.ball-tray--brink .tray-slot:nth-child(2n) .orb
+  animation-delay: -0.17s
+.ball-tray--brink .tray-slot:nth-child(3n) .orb
+  animation-duration: 0.29s
+@keyframes tray-brink
+  0%
+    translate: -0.6px 0
+    rotate: -3deg
+  100%
+    translate: 0.6px 0.4px
+    rotate: 3deg
 // The orbs: a drag up from them is an aim, never a scroll / pan.
 .tray-box
   touch-action: none
@@ -617,6 +764,11 @@ defineExpose({ rootEl })
   transform: translateY(6px)
 
 @media (prefers-reduced-motion: reduce)
-  .unit-holder.is-bounce, .unit-holder.is-squish, .tray-status--warcry
+  .unit-holder.is-bounce, .unit-holder.is-squish, .tray-status--warcry, .ball-tray--brink .orb, .tray-slot.is-fresh, .tray-count.is-grown
     animation: none
+  // Still lit, just not moving.
+  .tray-slot.is-fresh .tray-socket
+    animation: tray-socket-glow 1.7s ease-out both
+  .tray-ghost
+    animation: tray-ghost-out 1.7s ease-in both
 </style>

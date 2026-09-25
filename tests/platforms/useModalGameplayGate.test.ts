@@ -2,23 +2,20 @@
 // Unit Codex, Options, …) must freeze the simulation and release it again when
 // the LAST modal closes, on every build.
 //
-// The two properties that matter for the CrazyGames full release:
-//   1. the sim really stops, so `gameplayStop()` isn't a lie, and
+// The two properties that matter:
+//   1. the sim really stops, so the portals' `gameplayStop()` isn't a lie, and
 //   2. audio is NOT muted — menus keep their background music (the mute gate
 //      is the sibling `isAudioPaused`, which omits the modal source).
 //
-// The CG lifecycle half is covered too, via spies on `useCrazyGames` — the real
-// wrappers no-op under test because the SDK never loaded, so the spies are the
-// only way to see which modals CG would actually hear about.
+// The gameplayStop / gameplayStart a menu causes is the gameplay bracket's
+// (`usePortalGameplay`) — see `portalGameplayBracket.test.ts`.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
-const { suspendSpy, resumeSpy, startGameplaySpy, stopGameplaySpy } = vi.hoisted(() => ({
+const { suspendSpy, resumeSpy } = vi.hoisted(() => ({
   suspendSpy: vi.fn(),
-  resumeSpy: vi.fn(),
-  startGameplaySpy: vi.fn(),
-  stopGameplaySpy: vi.fn()
+  resumeSpy: vi.fn()
 }))
 
 vi.mock('@/use/useAssets', () => ({
@@ -26,23 +23,10 @@ vi.mock('@/use/useAssets', () => ({
   resumeAllAudio: resumeSpy
 }))
 
-vi.mock('@/use/useCrazyGames', () => ({
-  startGameplay: startGameplaySpy,
-  stopGameplay: stopGameplaySpy
-}))
-
 const importAll = async () => {
   vi.resetModules()
   suspendSpy.mockClear()
   resumeSpy.mockClear()
-  startGameplaySpy.mockClear()
-  stopGameplaySpy.mockClear()
-  // Pin the CG gate ON rather than inheriting it from `.env`, so the lifecycle
-  // assertions below don't silently turn into no-ops if that default flips.
-  vi.doMock('@/use/useMatch', async () => {
-    const actual = await vi.importActual<typeof import('@/use/useMatch')>('@/use/useMatch')
-    return { ...actual, isCrazyGamesFullRelease: true }
-  })
   const gate = await import('@/use/useGamePause')
   const modalState = await import('@/use/useModalState')
   const audio = await import('@/use/useGamePauseAudio')
@@ -122,56 +106,6 @@ describe('useModalGameplayGate — modal freezes the sim, keeps the music', () =
     release()
     await nextTick()
     expect(gate.isGamePaused.value).toBe(false)
-  })
-
-  it('reports a normal modal to the CG gameplay lifecycle', async () => {
-    const { modalState } = await importAll()
-
-    const release = modalState.acquireModalOpen()
-    await nextTick()
-    expect(stopGameplaySpy).toHaveBeenCalledTimes(1)
-    expect(startGameplaySpy).not.toHaveBeenCalled()
-
-    release()
-    await nextTick()
-    expect(startGameplaySpy).toHaveBeenCalledTimes(1)
-  })
-
-  // The welcome-back claim opens ~1.2s into a returning player's boot. CG QA
-  // flagged the resulting stop/start pair — landing right behind the launch
-  // gameplayStart, before a single frame of play — as overkill.
-  it('stays silent for a modal that opted out, while still freezing the sim', async () => {
-    const { gate, modalState } = await importAll()
-
-    const release = modalState.acquireModalOpen({ firesGameplayLifecycle: false })
-    await nextTick()
-    expect(gate.isGamePaused.value).toBe(true)
-    expect(stopGameplaySpy).not.toHaveBeenCalled()
-
-    release()
-    await nextTick()
-    expect(gate.isGamePaused.value).toBe(false)
-    expect(startGameplaySpy).not.toHaveBeenCalled()
-  })
-
-  it('still reports a real menu opened on top of an opted-out modal', async () => {
-    const { modalState } = await importAll()
-
-    const releaseWelcome = modalState.acquireModalOpen({ firesGameplayLifecycle: false })
-    await nextTick()
-    expect(stopGameplaySpy).not.toHaveBeenCalled()
-
-    const releaseMenu = modalState.acquireModalOpen() // player taps Options
-    await nextTick()
-    expect(stopGameplaySpy).toHaveBeenCalledTimes(1)
-
-    releaseWelcome()
-    await nextTick()
-    expect(startGameplaySpy).not.toHaveBeenCalled() // the menu is still up
-
-    releaseMenu()
-    await nextTick()
-    expect(startGameplaySpy).toHaveBeenCalledTimes(1)
   })
 
   it('is idempotent — a second install does not double-acquire the pause', async () => {

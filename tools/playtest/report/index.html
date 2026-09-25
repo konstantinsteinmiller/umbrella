@@ -53,6 +53,9 @@ p { margin: 0; }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .section { display: grid; gap: 16px; }
+/* Grid items may shrink below their content, so a wide chart or table scrolls
+   inside its own wrapper instead of widening the whole page on a phone. */
+.wrap > *, .section > * { min-width: 0; }
 .section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -184,7 +187,7 @@ details.film-box[open] > summary { margin-bottom: 12px; }
   </header>
 
   <section class="section" aria-labelledby="h-glance">
-    <div class="section-head"><h2 id="h-glance">The testers</h2><span class="muted">3:00 of play each · fresh profile · no instructions</span></div>
+    <div class="section-head"><h2 id="h-glance">The testers</h2><span class="muted" id="glance-sub">fresh profile · no instructions</span></div>
     <div class="glance" id="glance"></div>
   </section>
 
@@ -235,7 +238,8 @@ details.film-box[open] > summary { margin-bottom: 12px; }
   const SEV = { critical: 'var(--crit)', major: 'var(--major)', minor: 'var(--minor)', positive: 'var(--good)', high: 'var(--crit)', medium: 'var(--major)', low: 'var(--minor)' }
   const RATINGS = [['fun', 'Fun'], ['clarity', 'Clarity'], ['controls', 'Controls'], ['visuals', 'Visuals'], ['wantToKeepPlaying', 'Want more']]
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-  const fmtSec = (s) => s == null ? '—' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`
+  // Round once, then split: 359.6 s is 6:00, never 5:60.
+  const fmtSec = (s) => { if (s == null) return '—'; const r = Math.round(s); return `${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}` }
   const $ = (id) => document.getElementById(id)
   let D = null
   let current = null
@@ -295,7 +299,10 @@ details.film-box[open] > summary { margin-bottom: 12px; }
     $('eyebrow').textContent = `Blind playtest${meta.run ? ` · ${meta.run}` : ''} · ${meta.game} ${meta.build.split(' ')[0]} · ${meta.date}`
     $('headline').textContent = summary?.headline ?? 'Synthesis pending — the per-tester reports below are complete.'
     $('takeaways').innerHTML = (summary?.bullets ?? []).map((b) => `<li>${esc(b)}</li>`).join('')
-    $('metarow').innerHTML = [`${meta.viewport}`, `${meta.budgetSec / 60}:00 play budget (+${meta.thinkSec}s think per action)`, meta.testers].map((m) => `<span>${esc(m)}</span>`).join('')
+    const budgetOf = (b) => `${fmtSec(b.budgetSec ?? 180)}${(b.maxBudgetSec ?? 0) > (b.budgetSec ?? 180) ? ` (${fmtSec(b.maxBudgetSec)} without a loss)` : ''}`
+    const budgetText = budgetOf(meta)
+    $('glance-sub').textContent = `${budgetText} of play each · fresh profile · no instructions`
+    $('metarow').innerHTML = [`${meta.viewport}`, `${budgetText} play budget (+${meta.thinkSec}s think per action)`, meta.testers].map((m) => `<span>${esc(m)}</span>`).join('')
 
     // glance cards
     $('glance').innerHTML = players.map((p) => {
@@ -313,7 +320,7 @@ details.film-box[open] > summary { margin-bottom: 12px; }
           <dt>Controls clear at</dt><dd>${fmtSec(r.understoodControlsAtSec)}</dd>
           <dt>Goal clear at</dt><dd>${fmtSec(r.understoodGoalAtSec)}</dd>
           <dt>Breached</dt><dd>${p.timeline.some((t) => t.breached) ? 'yes' : 'no'}</dd>
-          <dt>Session ended</dt><dd>${esc((s.reason ?? '—').replace('3-minute play budget used', 'time up').replace('player ended early', 'stopped'))} at ${fmtSec(s.playTimeSec)}</dd>
+          <dt>Session ended</dt><dd>${esc((s.reason ?? '—').replace(/\d+-minute play budget used/, 'time up').replace('player ended early', 'stopped'))} at ${fmtSec(s.playTimeSec)}</dd>
         </dl>
         <span class="verdict-pill" style="--pc: ${cont ? 'var(--good)' : cont === false ? 'var(--crit)' : 'var(--minor)'}">${cont ? 'Would keep playing' : cont === false ? 'Would stop here' : 'No verdict'}</span>
         <div class="ratings">${RATINGS.map(([k, l]) => `<div class="rating"><span>${l}</span>${pips(r.ratings?.[k] ?? 0)}<b>${r.ratings?.[k] ?? '–'}</b></div>`).join('')}</div>
@@ -325,7 +332,9 @@ details.film-box[open] > summary { margin-bottom: 12px; }
     if (prevs.length) {
       const last = prevs[prevs.length - 1]
       $('compare').hidden = false
-      $('compare-sub').textContent = `${[...prevs.map((p) => p.label), meta.run ?? 'this run'].join(' → ')} · same four personas, same budget`
+      // Run 9 played 5 minutes (7 without a loss) against run 8's 3, so the counts below aren't like for like.
+      const lastBudget = budgetOf(last)
+      $('compare-sub').textContent = `${[...prevs.map((p) => p.label), meta.run ?? 'this run'].join(' → ')} · same four personas, ${lastBudget === budgetText ? 'same budget' : `budget ${lastBudget} → ${budgetText}`}`
       const paid = (u) => Object.entries(u ?? {}).reduce((a, [k, v]) => a + (k === 'capacity' ? Math.max(0, v - 1) : v), 0)
       // A metric's values across runs; the last step is coloured by whether it got better.
       const trend = (vals, fmt = (v) => v ?? '—', better = 'up') => {
@@ -363,11 +372,13 @@ details.film-box[open] > summary { margin-bottom: 12px; }
     const W = 720, H = 260, L = 40, R = 16, T = 14, B = 30
     const maxRow = Math.max(10, ...players.flatMap((p) => p.timeline.map((t) => t.row ?? 0))) + 1
     const yMax = Math.ceil(maxRow / 5) * 5
-    const x = (s) => L + (Math.min(180, s) / 180) * (W - L - R)
+    // The time axis spans the longest budget (run 9: 5 min, 7 without a loss).
+    const span = Math.max(180, meta.maxBudgetSec ?? meta.budgetSec ?? 180, ...players.flatMap((p) => p.timeline.map((t) => t.sec ?? 0)))
+    const x = (s) => L + (Math.min(span, s) / span) * (W - L - R)
     const y = (r) => T + (1 - r / yMax) * (H - T - B)
     let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Row reached over play time for each tester">`
     for (let r = 0; r <= yMax; r += 5) svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(r)}" y2="${y(r)}"/><text x="${L - 8}" y="${y(r) + 4}" text-anchor="end">${r}</text>`
-    for (let s = 0; s <= 180; s += 30) svg += `<text x="${x(s)}" y="${H - 8}" text-anchor="middle">${fmtSec(s)}</text>`
+    for (let s = 0; s <= span; s += span > 240 ? 60 : 30) svg += `<text x="${x(s)}" y="${H - 8}" text-anchor="middle">${fmtSec(s)}</text>`
     svg += `<line x1="${L}" x2="${L}" y1="${T}" y2="${H - B}" class="grid"/>`
     svg += `<line class="grid" stroke-dasharray="3 4" x1="${L}" x2="${W - R}" y1="${y(10)}" y2="${y(10)}"/><text x="${W - R}" y="${y(10) - 5}" text-anchor="end">first boss · row 10</text>`
     for (const p of players) {
@@ -410,7 +421,7 @@ details.film-box[open] > summary { margin-bottom: 12px; }
         <li>Build ${esc(meta.build)}, served locally; every tester started on a fresh browser profile (a first-time player).</li>
         <li>Each tester had its own visible Chrome window emulating a ${esc(meta.viewport)}.</li>
         <li>Testers were ${esc(meta.testers)}, each playing one persona.</li>
-        <li>Budget: ${meta.budgetSec / 60}:00 of play time — the game time of each action plus ${meta.thinkSec} s of "thinking" per action. The model's own latency did not count, so a session holds roughly as many turns as a human's 3 minutes.</li>
+        <li>Budget: ${fmtSec(meta.budgetSec)} of play time${meta.maxBudgetSec > meta.budgetSec ? `, extended to ${fmtSec(meta.maxBudgetSec)} for a tester who never lost` : ''} — the game time of each action plus ${meta.thinkSec} s of "thinking" per action. The model's own latency did not count, so a session holds roughly as many turns as a human's session of the same length.</li>
       </ul></div>
       <div class="box"><h3>Blind rules and caveats</h3><ul>
         <li>No rules, docs or source: testers saw only screenshots (one ~0.5 s after release, one when the turn settled) and could only tap, drag, wait or quit.</li>
@@ -427,6 +438,7 @@ details.film-box[open] > summary { margin-bottom: 12px; }
     try { history.replaceState(null, '', `#${pid}`) } catch { /* sandboxed */ }
     const r = p.report
     const moments = (r.moments ?? []).slice().sort((a, b) => (a.sec ?? 0) - (b.sec ?? 0))
+    const rulerSpan = Math.max(180, D.meta.maxBudgetSec ?? D.meta.budgetSec ?? 180, p.session.playTimeSec ?? 0, ...moments.map((m) => m.sec ?? 0))
     const types = Object.keys(TYPE).filter((k) => moments.some((m) => m.type === k))
     const film = p.shots.map((f) => thumb(p, f, describeStep(p, f).split(' · ').slice(0, 2).join(' · ') || f.slice(0, 3))).join('')
     $('session').innerHTML = `<div class="session" style="--c: var(--${p.hue})">
@@ -441,9 +453,9 @@ details.film-box[open] > summary { margin-bottom: 12px; }
       </div>
       <div class="section">
         <div class="section-head"><h3>Moments</h3><div class="filters" id="filters">${types.map((k) => `<button class="chip" aria-pressed="true" data-t="${k}" style="--tc: ${TYPE[k].c}"><i></i>${TYPE[k].label}</button>`).join('')}</div></div>
-        <div class="ruler" aria-label="Moments on the 3-minute timeline"><div class="axis"></div>
-          ${[0, 60, 120, 180].map((s) => `<span class="tick" style="left: ${s / 1.8}%">${fmtSec(s)}</span>`).join('')}
-          ${moments.map((m, i) => `<button title="${esc(fmtSec(m.sec) + ' · ' + (TYPE[m.type]?.label ?? m.type))}" aria-label="Jump to moment at ${esc(fmtSec(m.sec))}" data-i="${i}" data-t="${esc(m.type)}" style="left: ${Math.min(100, (m.sec ?? 0) / 1.8)}%; --tc: ${TYPE[m.type]?.c ?? 'var(--minor)'}"></button>`).join('')}
+        <div class="ruler" aria-label="Moments on the session timeline"><div class="axis"></div>
+          ${Array.from({ length: Math.floor(rulerSpan / 60) + 1 }, (_, i) => i * 60).map((s) => `<span class="tick" style="left: ${(s / rulerSpan) * 100}%">${fmtSec(s)}</span>`).join('')}
+          ${moments.map((m, i) => `<button title="${esc(fmtSec(m.sec) + ' · ' + (TYPE[m.type]?.label ?? m.type))}" aria-label="Jump to moment at ${esc(fmtSec(m.sec))}" data-i="${i}" data-t="${esc(m.type)}" style="left: ${Math.min(100, ((m.sec ?? 0) / rulerSpan) * 100)}%; --tc: ${TYPE[m.type]?.c ?? 'var(--minor)'}"></button>`).join('')}
         </div>
         <div class="moments" data-gallery id="moments">${moments.map((m, i) => `<div class="moment" id="m-${i}" data-t="${esc(m.type)}" style="--tc: ${TYPE[m.type]?.c ?? 'var(--minor)'}">
             <span class="sec">${fmtSec(m.sec)}</span><span class="mtype">${esc(TYPE[m.type]?.label ?? m.type)}</span><p>${esc(m.note)}</p>${thumb(p, m.shot, m.shot?.slice(0, 3))}</div>`).join('') || '<p class="empty">No moments recorded.</p>'}</div>

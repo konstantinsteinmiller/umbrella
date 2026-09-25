@@ -5,10 +5,10 @@
 // every session, and the boss death blast drawn from the pooled VFX.
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { BoardRenderer } from '@/barrage/render/BoardRenderer'
-import { DANGER_PIP_MARCHES, marchesToBreach, nextMarchTurn } from '@/barrage/render/danger'
+import { DANGER_PIP_MARCHES, dangerIds, dangerMarches, launcherPipCell, marchPlan, marchesToBreach, monsterPipCell, nextMarchTurn } from '@/barrage/render/danger'
 import type { BarrageEngine } from '@/barrage/engine/engine'
 import type { BoardState, Monster } from '@/barrage/engine/types'
-import { COLS, ROWS } from '@/barrage/engine/types'
+import { COLS, FLOOR_Y, ROWS } from '@/barrage/engine/types'
 import { board, mon, pass } from '../engine/helpers'
 
 // jsdom has no 2D canvas: a context where every call is a no-op (see plusOutcome.test.ts).
@@ -49,11 +49,28 @@ const rig = (monsters: Monster[], ftue = false) => {
 
 describe('marchesToBreach', () => {
   it('counts the marches to the line: last row 1, the row above 2, further out cap + 1', () => {
-    expect(DANGER_PIP_MARCHES).toBe(2)
+    // Run 6: one threshold — the line lights at 2 rows of space = 3 marches.
+    expect(DANGER_PIP_MARCHES).toBe(3)
     expect(marchesToBreach(mon('slime', 0, ROWS - 1), 1)).toBe(1)
     expect(marchesToBreach(mon('slime', 0, ROWS - 2), 1)).toBe(2)
     expect(marchesToBreach(mon('slime', 0, ROWS - 3), 1)).toBe(3)
+    expect(marchesToBreach(mon('slime', 0, ROWS - 4), 1)).toBe(4)
     expect(marchesToBreach(mon('slime', 0, ROWS), 1)).toBe(0)
+  })
+
+  it('dangerMarches / dangerIds: the one threshold the floor, line, pips, reticles and lose demo share', () => {
+    const near = mon('slime', 0, ROWS - 3)
+    const far = mon('slime', 2, ROWS - 4)
+    const s = board({ monsters: [near, far] }).state
+    expect(dangerMarches(s)).toBe(3)
+    expect(dangerIds(s)).toEqual([near.id])
+    const calm = board({ monsters: [far] }).state
+    expect(dangerMarches(calm)).toBe(DANGER_PIP_MARCHES + 1)
+    expect(dangerIds(calm)).toEqual([])
+    // A charging cyclops two rows further out is already in danger (it strides).
+    const cy = mon('cyclops', 4, ROWS - 4)
+    const st = board({ monsters: [cy] }).state
+    expect(dangerMarches(st)).toBeLessThanOrEqual(DANGER_PIP_MARCHES)
   })
 
   it('walks each monster\'s own pace', () => {
@@ -73,6 +90,30 @@ describe('marchesToBreach', () => {
     const rest = (tr.id % 2 === 0) ? 1 : 2
     expect(marchesToBreach(tr, rest)).toBe(2)
     expect(marchesToBreach(tr, rest + 1)).toBe(1)
+  })
+
+  it('marchPlan (the threat spotlight\'s ghost): the rows after each march, the last one over the line — same pace as the count', () => {
+    expect(marchPlan(mon('slime', 0, ROWS - 3), 1)).toEqual([ROWS - 2, ROWS - 1, ROWS])
+    expect(marchPlan(mon('slime', 0, ROWS - 1), 1)).toEqual([ROWS])
+    // A frozen slime sits out a march: the row repeats.
+    expect(marchPlan(mon('slime', 0, ROWS - 2, 9, { frozen: 1 }), 1)).toEqual([ROWS - 2, ROWS - 1, ROWS])
+    // An enraged boss strides two.
+    expect(marchPlan(mon('boss', 2, ROWS - 5, 9, { enraged: true }), 1)).toEqual([ROWS - 3, ROWS - 1])
+    // Its length is the pip's number whenever that is within the pips' reach.
+    for (const m of [mon('slime', 0, ROWS - 2), mon('boss', 2, ROWS - 4), mon('cyclops', 1, ROWS - 3)]) {
+      const plan = marchPlan(m, 3)
+      expect(plan.length).toBe(marchesToBreach(m, 3))
+      expect(plan[plan.length - 1]! + m.h).toBeGreaterThan(ROWS)
+    }
+  })
+
+  it('pip geometry (cells): a monster\'s on its top-left shoulder, the unit\'s on its right shoulder — its left at the right wall', () => {
+    expect(monsterPipCell({ kind: 'slime', col: 3, row: 5 }, 50)).toEqual({ x: 3 + 0.48 * 0.32, y: 5 + 0.48 * 0.32, s: 0.48 })
+    expect(monsterPipCell({ kind: 'boss', col: 2, row: -1 }, 50)).toEqual({ x: 2 + 0.62 * 0.32, y: 0.05 + 0.62 * 0.32, s: 0.62 })
+    // Column 0: pushed inside the left wall.
+    expect(monsterPipCell({ kind: 'slime', col: 0, row: 5 }, 50).x).toBeCloseTo(0.24 + 1 / 50)
+    expect(launcherPipCell(3.5, 50)).toEqual({ x: 4.08, y: FLOOR_Y - 0.92, s: 0.62 })
+    expect(launcherPipCell(COLS - 0.5, 50).x).toBeCloseTo(COLS - 0.5 - 0.58)
   })
 
   it('reads the next march\'s turn number from the phase', () => {

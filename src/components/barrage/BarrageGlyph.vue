@@ -10,7 +10,7 @@
 export type GlyphName =
   | 'damage' | 'capacity' | 'speed' | 'luck' | 'bounty'
   | 'skip' | 'fast' | 'codex' | 'collection' | 'daily' | 'supply' | 'gear'
-  | 'shield' | 'revive' | 'warcry' | 'ball' | 'flag' | 'skull' | 'lock' | 'check' | 'star' | 'clock'
+  | 'shield' | 'revive' | 'warcry' | 'ball' | 'flag' | 'skull' | 'lock' | 'check' | 'star' | 'clock' | 'trophy'
   // Ball abilities (the codex peek after a discovery) — one per BallAbility.
   | 'burn' | 'knockback' | 'pierce' | 'freeze' | 'splash' | 'crush' | 'chain' | 'poison' | 'midas' | 'eruption'
 
@@ -114,6 +114,9 @@ defineProps<{ name: GlyphName }>()
     template(v-else-if="name === 'clock'")
       circle(cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.2")
       path(d="M12 7 V12 L15.5 14.5")
+    //- The rank plaque's trophy (RankBadge draws the same cup, filled).
+    template(v-else-if="name === 'trophy'")
+      path(d="M6 3h12v2h3v3a5 5 0 0 1-4.6 5A6 6 0 0 1 13 16.9V19h3.5v2h-9v-2H11v-2.1a6 6 0 0 1-3.4-3.9A5 5 0 0 1 3 8V5h3V3Zm0 4H5v1a3 3 0 0 0 1.6 2.7A8 8 0 0 1 6 8V7Zm12 0v1a8 8 0 0 1-.6 2.7A3 3 0 0 0 19 8V7h-1Z" fill="currentColor" stroke="none")
     //- ── Ball abilities ──
     template(v-else-if="name === 'burn'")
       path(d="M12 2.5 C14.5 6.5 18.5 9 18.5 14 A6.5 6.5 0 0 1 5.5 14 C5.5 10.5 8 9 8.5 6 C10 8 11.2 8 12 2.5 Z" fill="currentColor" fill-opacity="0.25")

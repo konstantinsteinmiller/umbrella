@@ -19,19 +19,25 @@ import {
 } from '../engine/types'
 import { ballColors, ballElement, coinSrc, fighterSrc, flyingChestSrc, impactSrc, skillSrc, SKILL_IDS, FIGHTER_ART_MAX } from '../art'
 import { chargesAt, KIND_UNLOCK_ROW, WALKER_KINDS } from '../engine/monsters'
+import { MOMENTUM } from '../engine/balls'
+import { COMBO_COINS, comboKills } from '../engine/economy'
+import { COMBO_MARKS } from '../engine/engine'
 import type { BallSkinId } from '../ballSkins'
 import type { ElementKind } from '@/game/ingredients'
 import { formatBig } from '@/utils/bigNumber'
 import { BallLooks, tierGlow } from './balls'
 import { bakeBackdrop, bakeEdgeGlow, bakeRainbowFrame, bakeVGradient, FIELD_BANDS, fieldAnchors, type FieldArt } from './backdrop'
-import { glyphGen, glyphs, SMALL_INT_STR } from './glyphs'
+import { glyphGen, glyphs, SMALL_INT_STR, type NumStyle } from './glyphs'
 import { BOARD_TOP, computeLayout, makeLayout } from './layout'
 import { BOSS_COLOR, MONSTER_COLOR, MonsterLooks, monsterSpriteSrc, type MonsterBake } from './monsters'
 import { BoardSfx, hitSoundFor, SHOT_IDS } from './sfx'
-import { canvasesCreated, createCanvas, ctx2d, glowDot, rgba, sprite, type SpriteImage } from './sprites'
+import { canvasesCreated, createCanvas, ctx2d, glowDot, rgba, silhouette, sprite, type SpriteImage } from './sprites'
 import { bakeFrostStar, BoardVfx, type DmgNum } from './vfx'
-import { cellFree, healTargets, RuleBadges, ruleIconOf, tagKeyOf, type RuleIcon } from './ruleMarks'
+import { INTENT_SPIT, RuleBadges, ruleIconOf, tagKeyOf, type RuleIcon } from './ruleMarks'
+import { HOP_LEFT, HOP_RIGHT, healsNeighbour, hopSides, restsNext, spitCell } from './intents'
+import { DEATH_HIT, DEATH_LOOM, DEATH_STAGGER, DEATH_SURGE, DEATH_SURGE_SIDE, SHARD_ASH, SHARD_N, deathLunge, pickStriker, stepShards, strikeOffset, tearUnit, type Shard } from './death'
 import { DANGER_PIP_MARCHES, marchesToBreach, nextMarchTurn } from './danger'
+import { DamageWatch, GoldVolley, newUnitPose, unitPose, UnitLooks } from './unit'
 
 const TAU = Math.PI * 2
 /** Seconds a meteor falls (vfx.meteor's `dur`). */
@@ -131,6 +137,12 @@ interface MonsterView {
   /** Marches until it crosses the line (render/danger.ts): 1..DANGER_PIP_MARCHES
    *  wears the countdown pip; 0 / more = none. Refreshed every frame. */
   marches: number
+  /** The pip's last shown value (DANGER_PIP_MARCHES + 1: none), and its last
+   *  drop: the renderer time it dropped and the value it dropped from (run 10:
+   *  an enraged boss's countdown fell 3 → 1 unseen). */
+  pipLast: number
+  pipDropAt: number
+  pipFrom: number
   /** Boss roar (run 3): renderer time the shockwave reaches this walker (−1:
    *  none), whether it has struck yet, and the unit direction it is flung. */
   roarAt: number
@@ -139,32 +151,27 @@ interface MonsterView {
   blowY: number
   /** A boss's first hit already popped its extra-big number. */
   bigHit: boolean
+  /** The death sequence: its bump at the unit this frame (cells). */
+  lungeX: number
+  lungeY: number
 }
 
 /** Where a roared walker is drawn this frame (scratch, no allocation). */
 interface BlowPose { x: number; y: number; s: number; r: number; a: number }
-/** The overrun demo (CONTRACT §10 `overrunDemo`): a ghost of a monster walks
- *  its coming marches across the line. Display only. */
-interface OverrunGhost {
+/** The death sequence (render/death.ts): its clock, the unit's spot, tier and
+ *  size (cells) when it fell, the monster that strikes it and its way there
+ *  (cells), and whether the unit lies in pieces yet. Display only. */
+interface DeathScene {
   on: boolean
   t: number
-  dur: number
-  /** Demo time it was told to stop (−1: running): a quick fade from there. */
-  stopAt: number
-  bake: MonsterBake | null
+  ux: number
+  tier: number
   w: number
   h: number
-  scale: number
-  /** Footprint column, top row at the start and at the end of the walk. */
-  x: number
-  y0: number
-  y1: number
-  hops: number
-  walkAt: number
-  walkDur: number
-  dissolveAt: number
-  flashed: boolean
-  dissolved: boolean
+  striker: number
+  dx: number
+  dy: number
+  torn: boolean
   reduced: boolean
 }
 
@@ -188,7 +195,8 @@ const FTUE_NUM_SCALE = 1.5
 const BOSS_FIRST_HIT_SCALE = 2
 const BOSS_FIRST_HIT_LIFE = 1.15
 /**
- * The first boss's roar (`bossRoar`, playtest run 3): a shockwave from the
+ * A boss's arrival roar (`bossRoar`: the first boss, playtest run 3, and the
+ * endless run's second, run 7): a shockwave from the
  * boss that flings every walker away as it reaches them — never the
  * first-session kill hold (≈10 kills at once must not stall or stack).
  * Ring radii (cells) and life (s); a walker is struck when the ring reaches
@@ -202,27 +210,45 @@ const ROAR_LIFE = 0.75
 const ROAR_MAX_DELAY = 0.4
 const BLOW_DUR = 0.55
 const BLOW_DIST = 2.6
-/** Overrun demo timings (s): fade in, the walk, standing past the line, the dissolve, a stop's fade. */
-const DEMO_IN = 0.25
-const DEMO_WALK = 1.2
-const DEMO_HOLD = 0.3
-const DEMO_OUT = 0.5
-const DEMO_STOP = 0.18
-/** Reduced motion: the ghost appears past the line and holds this long before dissolving. */
-const DEMO_IN_STILL = 0.3
-const DEMO_HOLD_STILL = 1.2
-/** The ghost's walk ends with its bottom edge here — on the launcher's floor
- *  line, clear of the real monster (whose bottom edge is on the line at most). */
-const DEMO_END_BOTTOM = FLOOR_Y + 0.05
-/** The flash comes once the ghost's bottom edge is this far past the line (cells):
- *  visibly across, not a hair over it. */
-const DEMO_FLASH_PAST = 0.5
+/** The death's dim: red-black over the whole board, a soft clear pool round
+ *  the wreck (full dark from DIM_R cells out) so the torn unit and the monster
+ *  over it stay in view; in over DEATH_DIM_IN (s) from the strike. */
+const DIM_R = 2.2
+const DIM_ALPHA = 0.7
+const DIM_COLOR = '#1a0008'
+const DEATH_DIM_IN = 0.5
+/** Badges whose kind shows its NEXT move (run 5, drawIntents) instead of an
+ *  acted-out demo: the goblin's hop, the dryad's heal, the centaur's spit,
+ *  the treant's rest. */
+const INTENT_ICONS: ReadonlySet<RuleIcon> = new Set<RuleIcon>(['hop', 'heal', 'spit', 'slow'])
+/** A tap-fire's bounce path flashes this long (s) as the ball leaves (run 5). */
+const SHOT_FLASH = 0.3
+/** Contacts the aim preview traces in full (fun pass, run 6: "am I even
+ *  aiming?"): the second one shows where a bank shot goes. */
+const AIM_BOUNCES = 2
+/** The resting aim line's strength (the live drag preview is 1). */
+const REST_AIM_K = 0.42
+/** Seconds into an aim phase before the resting line fades in. */
+const REST_AIM_DELAY = 0.35
+/** Seconds the combo tally stays up after its volley. */
+const COMBO_TALLY = 1.5
+/** Board row the tally sits on (where BarrageBanners' combo popup is, 18 %
+ *  down the board, which it replaces). */
+const COMBO_TALLY_Y = 2
+/** The engine's combo marks (engine.ts COMBO_MARKS), for the crescendo. */
+const COMBO_STEPS: readonly number[] = COMBO_MARKS
+/** The volley after a Ball Damage purchase: its hit numbers this much bigger. */
+const POWER_NUM_SCALE = 1.2
+/** A countdown pip's fall after a drop (s; ×1.5 for a jump by two). */
+const PIP_DROP = 0.75
 /** The line's skull glyph (cells): size, and its centre just above the line at both ends. */
 const SKULL_SIZE = 0.34
 const SKULL_INSET = 0.24
 const SKULL_LIFT = 0.06
-/** Page-wide: the first flying chest of a session wears the tap hint. */
-let chestHintsLeft = 1
+/** Page-wide: the first flying chests of a session wear the tap hint (run 9:
+ *  a tester's one hinted chest went by untapped — "shoot it, avoid it, or
+ *  decoration?"). */
+let chestHintsLeft = 3
 
 /** The HP a hit / tick actually removed (`dealt`, playtest run 3: overkill is
  *  not shown); `dmg` for an engine that does not send it yet. */
@@ -234,7 +260,8 @@ const newMonsterView = (): MonsterView => ({
   x: 0, y: 0, vy: 0, spawn: 1, flinch: 0, fdx: 0, fdy: 0, flash: 0, hopFrom: 0, hopTo: 0, hopT: -1, phase: 0,
   seen: 0, hpShown: -1, hpText: '', label: null, labelText: '', labelVariant: -1, labelGen: -1, labelGlyph: -1, labelW: 0, labelH: 0, num: null, lastImpact: -1, emberT: 0, heal: 0, enrage: 0, color: '#fff',
   meteorAt: -1, dieAt: -1, dieKind: 'slime', dieCorrupted: false, scale: 1, shieldIn: 1, holdAt: -1, holdHp: 0, holdCoins: 0, marches: 0,
-  roarAt: -1, roarHit: false, blowX: 0, blowY: 0, bigHit: false
+  pipLast: DANGER_PIP_MARCHES + 1, pipDropAt: -1, pipFrom: 0,
+  roarAt: -1, roarHit: false, blowX: 0, blowY: 0, bigHit: false, lungeX: 0, lungeY: 0
 })
 
 interface CellView {
@@ -250,6 +277,10 @@ interface CellView {
 const newCellView = (): CellView => ({ id: 0, x: 0, y: 0, spawn: 0, phase: 0, seen: 0, p: null, h: null })
 
 const TRAIL_N = 7
+/** Momentum colours: wall sparks at half momentum; trail and sparks near the cap. */
+const MOMENTUM_WARM = '#ffc56b'
+const MOMENTUM_HOT = '#fff0c8'
+
 interface Trail {
   id: number
   xs: Float32Array
@@ -355,6 +386,25 @@ export class BoardRenderer {
   private countText = ''
   private pedestal: HTMLCanvasElement | null = null
   private pedestalTier = -1
+  /** The ball glyph before the volley count ("●×3"), baked per size. */
+  private countBall: HTMLCanvasElement | null = null
+  /** The unit's baked variants (ash / pale / white), its pose scratch, and its states:
+   *  fear 0 → 1 while a monster wears the '1' pip (eased), a flare 1 → 0 after a
+   *  Ball Damage purchase or a continue after a breach. */
+  private readonly unitLooks = new UnitLooks()
+  private readonly pose = newUnitPose()
+  private unitFear = 0
+  private unitFlare = 0
+  private flareColor = '#ffd23c'
+  /** Next smoke wisp off a sputtering unit (s). */
+  private wispT = 0
+  /** A bead of sweat by the cowering unit's head. */
+  private sweat: HTMLCanvasElement | null = null
+  /** A soft grey smoke puff (the sputtering flame, the torn unit), flown as a pooled floater. */
+  private smoke: HTMLCanvasElement | null = null
+  /** Ball Damage purchase → flare + the next volley's numbers burn gold. */
+  private readonly dmgWatch = new DamageWatch()
+  private readonly goldVolley = new GoldVolley()
 
   // bakes (per size)
   private backdrop: HTMLCanvasElement | null = null
@@ -386,6 +436,16 @@ export class BoardRenderer {
   // overlays / feel
   private danger = 0
   private dangerKick = 0
+  /** The fewest marches any monster has left to the line (render/danger.ts;
+   *  DANGER_PIP_MARCHES + 1: none in reach) — mirrored on the unit. */
+  private minMarch = DANGER_PIP_MARCHES + 1
+  /** The unit's pip: its last shown value, and its last drop (time, from) —
+   *  it falls on the same beat as the monster's (run 10). */
+  private unitPipLast = DANGER_PIP_MARCHES + 1
+  private unitPipDropAt = -1
+  private unitPipFrom = 0
+  /** Scratch for pip centres (no allocation per frame). */
+  private readonly pipAt = { x: 0, y: 0, s: 0 }
   private fever = 0
   private breach = 0
   private flashWhite = 0
@@ -412,22 +472,33 @@ export class BoardRenderer {
   private skullRed: HTMLCanvasElement | null = null
   /** 0 → 1 while any monster wears a '1' pip (eased). */
   private skullLit = 0
-  /** The overrun demo's line flash, the skulls' flash, and the big skull where the ghost crossed. */
+  /** A breach: the line flashes red and its skulls flash big (the rule, as it is broken). */
   private lineFlash = 0
   private skullFlash = 0
-  private crossSkull = 0
-  private crossX = 0
-  /** The demo was cut short: its flashes fade as fast as the ghost. */
-  private demoCut = false
-  private readonly demo: OverrunGhost = {
-    on: false, t: 0, dur: 0, stopAt: -1, bake: null, w: 1, h: 1, scale: 1, x: 0, y0: 0, y1: 0, hops: 1,
-    walkAt: 0, walkDur: 0, dissolveAt: 0, flashed: false, dissolved: false, reduced: false
+  /** The death sequence (render/death.ts), the monsters past the line (ids)
+   *  and the torn unit's pieces. */
+  private readonly death: DeathScene = {
+    on: false, t: 0, ux: 0, tier: 1, w: 1, h: 1, striker: -1, dx: 0, dy: 0, torn: false, reduced: false
   }
-  /** The ghost's top row and hop lift this frame (scratch). */
-  private ghostY = 0
-  private ghostLift = 0
+  private readonly deathIds: number[] = []
+  /** The striker's red silhouette (its outline under the death's grey) and
+   *  where it looms once the lunge is over (cells: centre, radius). */
+  private strikerRed: HTMLCanvasElement | null = null
+  private strikerFocus: { x: number; y: number; r: number } | null = null
+  private readonly shards: Shard[] = []
+  private readonly strikeP = { x: 0, y: 0 }
+  /** The death dim's radial fill (clear round the wreck), made once per spot and size. */
+  private dimGrad: CanvasGradient | null = null
+  private dimX = NaN
+  private dimGen = -1
   /** A boss roared before its view existed: its roar pulse waits for the view. */
   private roarBossId = -1
+  /** Run 6 (boss misses were silent): a ball touched the live boss during
+   *  this volley; where the last ball landed; the boss HP plate's wobble
+   *  after a whiff (1 → 0). */
+  private bossTouched = true
+  private lastLandX = COLS / 2
+  private plateShake = 0
   private readonly blow: BlowPose = { x: 0, y: 0, s: 1, r: 0, a: 1 }
 
   // aim
@@ -435,6 +506,42 @@ export class BoardRenderer {
   private aimAngle = Math.PI / 2
   private aimPath: AimPath | null = null
   private aimPathAngle = NaN
+  /** A finger is down on the board (or began outside it): the intent
+   *  previews hide. Set through `setAim`. */
+  private fingerDown = false
+  /** A TAP-fire's bounce path, flashed as the ball leaves (run 5), and the
+   *  flash's seconds left. */
+  private flashPath: AimPath | null = null
+  private flashT = 0
+  /** The resting aim line (fun pass, run 6): in every calm aim phase, where
+   *  a tap on the unit or a tray orb will fire — the repeat angle the board
+   *  hands in (`setRestAngle`). Hidden while a finger is down, a shot flash
+   *  runs, or a coach demo owns the board (`restHidden`). */
+  private restAngle = Math.PI / 2
+  private restPath: AimPath | null = null
+  private restTurn = -1
+  private restPathAngle = NaN
+  private restK = 0
+  /** The coach is demonstrating a shot on the board: no resting line. */
+  restHidden = false
+  /** The combo tally (fun pass): the volley's balls rattled past the combo's
+   *  free hits (economy `comboKills`) — the first one to do so gets a pink
+   *  ring and a cue as it happens (the combo marks' DOM popup counts during
+   *  the volley); at its end the tally pops "×hits" and the coins it paid
+   *  where that popup was, and the coins fly from there. */
+  private comboOn = false
+  private comboHits = 0
+  private comboStr = ''
+  private comboPaid = 0
+  private comboPaidStr = ''
+  private comboK = 0
+  private comboKick = 0
+  private comboTallyT = 0
+  /** The intent previews' visibility (0..1): up in the aim phase, gone the
+   *  moment a finger is down. */
+  private intentK = 0
+  /** Scratch for the centaur's sludge cell (no allocation per frame). */
+  private readonly spitAt = { col: 0, row: 0 }
 
   constructor(hooks: RendererHooks, sfx?: BoardSfx) {
     this.hooks = hooks
@@ -562,17 +669,25 @@ export class BoardRenderer {
     this.aimArmed = false
     this.aimPath = null
     this.aimPathAngle = NaN
+    this.fingerDown = false
+    this.flashPath = null
+    this.flashT = 0
+    this.intentK = 0
     this.heldKill = null
     this.aimWarned = false
     this.chestIn = 1
     this.chestHint = false
     this.flashWhite = this.flashRed = this.flashGold = this.flashBlue = 0
     this.danger = this.dangerKick = this.breach = 0
-    this.skullLit = this.lineFlash = this.skullFlash = this.crossSkull = 0
-    this.demoCut = false
-    this.demo.on = false
-    this.demo.bake = null
+    this.skullLit = this.lineFlash = this.skullFlash = 0
+    this.endDeath()
+    this.unitFear = this.unitFlare = 0
+    // A swap (reload, restart, the daily run) is never a purchase: adopt its damage silently.
+    this.dmgWatch.reset()
+    this.goldVolley.reset()
     this.roarBossId = -1
+    this.bossTouched = true
+    this.plateShake = 0
     this.timeScale = 1
     if (engine) {
       this.lx = engine.state.launcherX
@@ -604,30 +719,33 @@ export class BoardRenderer {
     this.tapHand = this.bakeTapHand(Math.round(l.cell * dpr * 0.8))
     this.pipRed = this.bakePip(Math.round(l.cell * dpr * 0.5), '#ff2a3a', '#7a0010')
     this.pipAmber = this.bakePip(Math.round(l.cell * dpr * 0.5), '#ff9a2a', '#6a3000')
-    // Baked big enough for the demo's flash (≈2.4× the resting size) to stay crisp.
+    // Baked big enough for a breach's flash (≈2.3× the resting size) to stay crisp.
     const skullPx = Math.round(l.cell * dpr * SKULL_SIZE * 2.4)
     this.skullBone = this.bakeSkull(skullPx, '#efe6d2', '#1a1016', 'rgba(16,10,18,0.92)')
     this.skullRed = this.bakeSkull(skullPx, '#ff4a55', '#3a0008', 'rgba(42,0,8,0.95)')
     this.badges.setSize(l.cell * dpr * 0.46)
+    this.countBall = this.bakeCountBall(Math.round(Math.max(11, Math.min(20, l.cell * 0.34)) * 0.9 * dpr))
+    this.sweat = this.bakeSweat(Math.round(l.cell * dpr * 0.22))
+    this.smoke = this.bakeSmoke(Math.round(l.cell * dpr * 0.7))
+    this.unitLooks.clear()
     this.plates.length = 0
     this.pedestal = null
     this.pedestalTier = -1
     for (const v of this.viewList) v.bake = null
-    // The demo's ghost holds a bake of the old size: let it go.
-    this.demo.on = false
-    this.demo.bake = null
   }
 
   // ─── Aim ───────────────────────────────────────────────────────────────────
   /** Show / hide the aim preview. The engine's aimPreview is only re-queried
    *  when the angle moved. The board passes `armed` true only while a finger
    *  is down (off the launcher pad) — this is the ONLY way a preview gets
-   *  drawn, so an idle board never shows a stale or static aim line. */
-  setAim(armed: boolean, angle: number): void {
+   *  drawn, so an idle board never shows a stale or static aim line. `down`:
+   *  a finger is down at all (armed or not — back on the launcher pad, say);
+   *  the intent previews hide under it. */
+  setAim(armed: boolean, angle: number, down = armed): void {
     this.aimArmed = armed
     this.aimAngle = angle
-    // A finger aiming ends the lose-rule demo (the board also stops it on press).
-    if (armed) this.stopOverrunDemo()
+    this.fingerDown = down || armed
+    if (this.fingerDown) this.intentK = 0
     if (!armed) {
       this.aimPath = null
       this.aimPathAngle = NaN
@@ -635,9 +753,34 @@ export class BoardRenderer {
     }
     // (NaN-safe: the first call after a reset always queries.)
     if (this.engine && !(Math.abs(angle - this.aimPathAngle) <= 1e-4)) {
-      this.aimPath = this.engine.aimPreview(angle)
+      this.aimPath = this.engine.aimPreview(angle, AIM_BOUNCES)
       this.aimPathAngle = angle
     }
+  }
+
+  /** Where a tap on the unit / a tray orb fires next (the board's repeat
+   *  angle): the resting aim line follows it. */
+  setRestAngle(angle: number): void {
+    if (Number.isFinite(angle)) this.restAngle = angle
+  }
+
+  /**
+   * A shot fired by a TAP (press + release without a drag — the board knows;
+   * run 5: tap players never saw the aim preview, which shows only while a
+   * finger is down): the same bounce path the drag preview draws flashes for
+   * SHOT_FLASH s as the ball leaves, fading out (held, no fade, under reduced
+   * motion). Call right after a successful `fire` — the path is the engine's
+   * preview of `angle` from the board the volley started on.
+   */
+  flashShot(angle: number): void {
+    if (!this.engine || !Number.isFinite(angle)) return
+    this.flashPath = this.engine.aimPreview(angle, AIM_BOUNCES)
+    this.flashT = SHOT_FLASH
+  }
+
+  /** The tap-fire flash is on screen (tests / dev probes). */
+  get shotFlashing(): boolean {
+    return this.flashPath !== null && this.flashT > 0
   }
 
   /** Display x of the launcher (cells). */
@@ -645,65 +788,20 @@ export class BoardRenderer {
     return this.lx
   }
 
-  // ─── Overrun demo (CONTRACT §10) ───────────────────────────────────────────
-  /**
-   * The wordless lose-rule demo (playtest run 3: testers who never breached
-   * never learned what the line does). A pale ghost of the monster (its own
-   * sprite, ~55% alpha) steps out from under it — the real monster stays
-   * drawn in place — and walks its coming marches down across the line onto
-   * the launcher's floor (DEMO_WALK); half a row past the line, the line
-   * flashes red and the skulls flash big under it; the ghost dissolves
-   * (~2.25 s). Reduced motion: no walk — the ghost appears past
-   * the line, the flash, the dissolve (~1.95 s). The real board is untouched.
-   * It fades out at once (DEMO_STOP) when an aim starts or the phase leaves
-   * 'aim'. Returns its duration in ms; 0 when it cannot play (not aiming, a
-   * finger down, the monster gone or not drawn yet).
-   */
-  overrunDemo(monsterId: number): number {
-    const s = this.engine?.state
-    if (!s || s.phase !== 'aim' || this.aimArmed || this.layout.cssW === 0) return 0
-    const v = this.views.get(monsterId)
-    const m = v?.m
-    if (!v || !m || v.dieAt >= 0 || !v.bake) return 0
-    const d = this.demo
-    d.on = true
-    d.t = 0
-    d.stopAt = -1
-    this.demoCut = false
-    d.bake = v.bake
-    d.w = v.w
-    d.h = v.h
-    d.scale = v.scale
-    d.x = m.col
-    d.y0 = m.row
-    d.y1 = Math.max(m.row + 0.5, DEMO_END_BOTTOM - m.h)
-    // At least two steps, so even a last-row monster reads as walking.
-    d.hops = Math.max(2, Math.ceil(d.y1 - d.y0 - 1e-6))
-    d.reduced = this.reducedMotion
-    d.flashed = false
-    d.dissolved = false
-    if (d.reduced) {
-      d.walkAt = 0
-      d.walkDur = 0
-      d.dissolveAt = DEMO_IN_STILL + DEMO_HOLD_STILL
-    } else {
-      d.walkAt = DEMO_IN
-      d.walkDur = DEMO_WALK
-      d.dissolveAt = DEMO_IN + DEMO_WALK + DEMO_HOLD
-    }
-    d.dur = d.dissolveAt + DEMO_OUT
-    return Math.round(d.dur * 1000)
+  /** The death sequence is playing (tests / dev probes). */
+  get deathPlaying(): boolean {
+    return this.death.on
   }
 
-  /** End the overrun demo with a quick fade (no-op when none is playing). */
-  stopOverrunDemo(): void {
-    const d = this.demo
-    if (d.on && d.stopAt < 0) d.stopAt = d.t
+  /** The unit lies in pieces (tests / dev probes). */
+  get unitTorn(): boolean {
+    return this.death.torn
   }
 
-  /** The overrun demo is on screen (tests / dev probes). */
-  get overrunDemoPlaying(): boolean {
-    return this.demo.on
+  /** A config change that is NOT a purchase is coming (a cloud hydrate that
+   *  raised the upgrade levels): the next frame adopts the damage silently. */
+  resyncPower(): void {
+    this.dmgWatch.resync()
   }
 
   // ─── Frame ─────────────────────────────────────────────────────────────────
@@ -717,6 +815,8 @@ export class BoardRenderer {
     this.timeScale += (1 - this.timeScale) * Math.min(1, dt * 0.9)
     const vdt = dt * this.timeScale
     this.time += vdt
+    // The death sequence runs on real time (the breach's slow motion is for the rest).
+    this.stepDeath(dt)
     this.update(vdt, e.state)
     this.draw(ctx, e.state)
     this.sfx.flush()
@@ -784,6 +884,16 @@ export class BoardRenderer {
       }
       v.marches = nextTurn >= 0 ? marchesToBreach(m, nextTurn) : 0
       if (v.marches === 1) breachNext = true
+      // A countdown that falls plays its fall (drawDangerPips) — a march, or an
+      // enraged boss's jump by two. 0 (no march coming right now) keeps it.
+      if (v.marches >= 1) {
+        const shown = Math.min(v.marches, DANGER_PIP_MARCHES + 1)
+        if (shown < v.pipLast && shown <= DANGER_PIP_MARCHES) {
+          v.pipFrom = v.pipLast
+          v.pipDropAt = this.time
+        }
+        v.pipLast = shown
+      }
       if (v.bake === null || v.bakeGen !== this.bakeGen) {
         if (sprite(v.src).ready) {
           v.bake = this.monsterLooks.get(v.src, v.kind, v.corrupted, v.w, v.h)
@@ -913,17 +1023,44 @@ export class BoardRenderer {
     // Launcher: glides to its new spot once the volley is over.
     if (s.phase !== 'volley') this.lx += (s.launcherX - this.lx) * (1 - Math.exp(-dt * 7))
     this.kick = Math.max(0, this.kick - dt * 5)
-
-    // Danger: the lowest monster's distance to the breach line.
-    let bottom = -99
-    for (let i = 0; i < ms.length; i++) {
-      const m = ms[i]!
-      if (m.row + m.h > bottom) bottom = m.row + m.h
+    // The unit shows the danger itself (run 4 — a still frame must show it):
+    // while a monster wears the '1' pip its flame shrinks and sputters pale.
+    this.unitFear += ((breachNext ? 1 : 0) - this.unitFear) * Math.min(1, dt * 4)
+    this.unitFlare = Math.max(0, this.unitFlare - dt * 1.6)
+    if (!this.reducedMotion && dt > 0 && this.unitFear > 0.5 && !this.death.torn) {
+      // A sputtering flame smokes: a thin wisp now and then.
+      this.wispT -= dt
+      if (this.wispT <= 0) {
+        this.wispT = 0.32 + Math.random() * 0.16
+        this.smokePuff(this.lx + (Math.random() - 0.5) * 0.24, FLOOR_Y - 0.95, 0.3 + Math.random() * 0.08, 1.0, 0.65)
+      }
     }
-    const rowsLeft = ROWS - bottom
-    const dTarget = rowsLeft <= 0 ? 1 : rowsLeft <= 1 ? 0.8 : rowsLeft <= 2 ? 0.5 : 0
+    // A Ball Damage purchase: the state layer raised damageMult on this engine.
+    if (this.dmgWatch.rose(s.config.damageMult)) this.powerUp()
+    if (s.phase === 'aim' && this.goldVolley.active) this.goldVolley.onVolleyEnd()
+
+    // Danger (run 6: the pips' rule, render/danger.ts): the fewest marches
+    // any monster needs to cross the line — 3 lights the floor and the line,
+    // 2 more, 1 (or already past) full. For a walker that is the old 2 / 1 /
+    // 0 rows of space; a charging cyclops or an enraged boss lights it sooner.
+    let minMarch = DANGER_PIP_MARCHES + 1
+    for (let i = 0; i < ms.length; i++) {
+      const v = this.views.get(ms[i]!.id)
+      if (v && v.marches < minMarch) minMarch = v.marches
+    }
+    const dTarget = minMarch <= 1 ? 1 : minMarch === 2 ? 0.8 : minMarch <= DANGER_PIP_MARCHES ? 0.5 : 0
+    this.minMarch = minMarch
+    if (minMarch >= 1) {
+      const shown = Math.min(minMarch, DANGER_PIP_MARCHES + 1)
+      if (shown < this.unitPipLast && shown <= DANGER_PIP_MARCHES) {
+        this.unitPipFrom = this.unitPipLast
+        this.unitPipDropAt = this.time
+      }
+      this.unitPipLast = shown
+    }
     this.danger += (dTarget - this.danger) * Math.min(1, dt * 3)
     this.dangerKick = Math.max(0, this.dangerKick - dt * 1.5)
+    this.plateShake = Math.max(0, this.plateShake - dt * 2.2)
     // The aim before a breaching march: one short shake and one warning sound
     // (the shake is skipped under prefers-reduced-motion; the sound still
     // plays). Once per aim phase, and only while time runs (not a paused redraw).
@@ -936,13 +1073,49 @@ export class BoardRenderer {
     }
     // The line's skull lights while the coming march breaches.
     this.skullLit += ((breachNext ? 1 : 0) - this.skullLit) * Math.min(1, dt * 6)
-    // A demo cut short takes its flashes with it (as quickly as the ghost).
-    const flashK = this.demoCut ? 1 / DEMO_STOP : 1
-    this.lineFlash = Math.max(0, this.lineFlash - dt * 1.5 * flashK)
-    this.skullFlash = Math.max(0, this.skullFlash - dt * 1.2 * flashK)
-    this.crossSkull = Math.max(0, this.crossSkull - dt * 0.9 * flashK)
-    this.updateDemo(dt, s)
-    this.fever += ((s.fever ? 1 : 0) - this.fever) * Math.min(1, dt * 5)
+    this.lineFlash = Math.max(0, this.lineFlash - dt * 1.5)
+    this.skullFlash = Math.max(0, this.skullFlash - dt * 1.2)
+    // Intent previews: up while the player aims, never under a finger (a
+    // press drops them at once — setAim), back in ~0.25 s after it lifts.
+    if (s.phase !== 'aim' || this.fingerDown) this.intentK = 0
+    else this.intentK = Math.min(1, this.intentK + dt * 4)
+    // The resting aim line: a calm aim phase, no finger down, no flash, no
+    // coach demo on the board — re-traced for every new aim phase / angle.
+    const restOn = s.phase === 'aim' && s.phaseTime >= REST_AIM_DELAY && !this.fingerDown && !this.aimArmed &&
+      this.flashT <= 0 && !this.restHidden
+    if (restOn && this.engine && (this.restTurn !== s.turn || !(Math.abs(this.restAngle - this.restPathAngle) <= 1e-4))) {
+      this.restPath = this.engine.aimPreview(this.restAngle, AIM_BOUNCES)
+      this.restTurn = s.turn
+      this.restPathAngle = this.restAngle
+    }
+    this.restK = restOn ? Math.min(1, this.restK + dt * 3) : Math.max(0, this.restK - dt * 8)
+    // The combo: the first ball that rattles past the free hits gets a pink
+    // ring and a cue, once per volley.
+    if (s.phase === 'volley' && !this.comboOn && comboKills(s.balls) > 0) {
+      this.comboOn = true
+      const bs = s.balls
+      for (let i = 0; i < bs.length; i++) {
+        const b = bs[i]!
+        if (b.active && b.hits > COMBO_COINS.freeHits) {
+          this.vfx.ring(b.x, b.y, 0.2, 1.3, 0.5, '#ff4fb0', 0.07)
+          this.vfx.burst(b.x, b.y, 10, 3.5, '#ff7ac8', 0.1, 0.45)
+          break
+        }
+      }
+      this.sfx.request('ult-ready', 0.045, 1.25, 4, 400, 'combo-on')
+    }
+    if (this.comboTallyT > 0) this.comboTallyT = Math.max(0, this.comboTallyT - dt)
+    this.comboK = this.comboTallyT > 0 ? Math.min(1, this.comboK + dt * 6) : Math.max(0, this.comboK - dt * 3)
+    this.comboKick = Math.max(0, this.comboKick - dt * 5)
+    // The tap-fire flash runs its course, whatever the phase.
+    if (this.flashT > 0) {
+      this.flashT -= dt
+      if (this.flashT <= 0) {
+        this.flashT = 0
+        this.flashPath = null
+      }
+    }
+    this.fever +=((s.fever ? 1 : 0) - this.fever) * Math.min(1, dt * 5)
     this.breach += ((s.phase === 'breach' ? 1 : 0) - this.breach) * Math.min(1, dt * 4)
     this.flashWhite = Math.max(0, this.flashWhite - dt * 2.6)
     this.flashRed = Math.max(0, this.flashRed - dt * 2.2)
@@ -1041,11 +1214,16 @@ export class BoardRenderer {
     v.holdHp = 0
     v.holdCoins = 0
     v.marches = 0
+    v.pipLast = DANGER_PIP_MARCHES + 1
+    v.pipDropAt = -1
+    v.pipFrom = 0
     v.roarAt = -1
     v.roarHit = false
     v.blowX = 0
     v.blowY = 0
     v.bigHit = false
+    v.lungeX = 0
+    v.lungeY = 0
   }
 
   // ─── Draw ──────────────────────────────────────────────────────────────────
@@ -1108,26 +1286,27 @@ export class BoardRenderer {
     }
 
     // The line's skulls sit UNDER everything, so they never hide a pip, a
-    // plate or the launcher; the demo's flash draws them again on top.
+    // plate or the launcher; a breach's flash draws them again on top.
     this.drawLineSkulls(ctx, t, false)
     this.vfx.drawUnder(ctx, l, this.ballLooks.bakePx / d)
     this.drawHazards(ctx, t)
     this.drawPickups(ctx, t)
     this.drawBossTelegraphs(ctx, t)
-    // Under the monsters: the ghost steps OUT from behind the real one (drawn
-    // over it, it washed the real monster out for the first half of the walk).
-    this.drawOverrunGhost(ctx)
+    // Under the monsters: a goblin's hop target, a centaur's sludge cell (run 5).
+    if (this.intentK > 0.01) this.drawIntents(ctx, s, t, true)
     this.drawMonsters(ctx, t)
     this.drawRuleMarks(ctx, s, t)
     this.drawDangerPips(ctx, t)
     this.drawLineFlash(ctx, t)
     this.drawChest(ctx, s, t)
     this.drawLauncher(ctx, s, t)
+    this.drawLauncherPip(ctx, s, t)
     this.drawAim(ctx, t)
     this.drawBalls(ctx, s)
     this.vfx.drawOver(ctx, l)
     if (this.bubble) this.vfx.drawFliers(ctx, l, this.bubble, t)
     this.vfx.drawNums(ctx, l)
+    this.drawCombo(ctx)
     ctx.restore()
 
     // Full-board overlays.
@@ -1246,6 +1425,8 @@ export class BoardRenderer {
         byC -= Math.sin(Math.PI * k) * 0.5
         syK *= 1 + 0.1 * Math.sin(Math.PI * k)
       }
+      cxC += v.lungeX
+      byC += v.lungeY
       const dw = bake.dw * c * sxK * v.scale
       const dh = bake.dh * c * syK * v.scale
       const x = ox + cxC * c - dw / 2
@@ -1277,6 +1458,32 @@ export class BoardRenderer {
           ctx.drawImage(this.vfx.dot('#6fe08a'), midX - r, midY - r, r * 2, r * 2)
         }
         ctx.globalCompositeOperation = 'source-over'
+        ctx.globalAlpha = 1
+      }
+      // The death sequence's culprit (render/death.ts `pickStriker`): a red
+      // glow and a red outline round it — it won; the grey spares it.
+      if (this.death.on && v.id === this.death.striker && this.strikerRed) {
+        ctx.globalCompositeOperation = 'lighter'
+        ctx.globalAlpha = 0.55 + (this.reducedMotion ? 0 : 0.25 * Math.sin(t * 8))
+        const r = c * Math.max(v.w, v.h) * 0.85
+        ctx.drawImage(this.vfx.dot('#ff2a3a'), midX - r, midY - r, r * 2, r * 2)
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.globalAlpha = 1
+        const o = Math.max(2, c * 0.05)
+        for (let k = 0; k < 4; k++) {
+          ctx.drawImage(this.strikerRed, x + (k === 0 ? -o : k === 1 ? o : 0), y + (k === 2 ? -o : k === 3 ? o : 0), dw, dh)
+        }
+      }
+      // Run 11: at "1" the monster whose next march crosses the line wears
+      // the culprit's red outline while the player aims — in a crowded boss
+      // frame both losses had its pip and tether up, unread.
+      if (v.marches === 1 && v.dieAt < 0 && !this.death.on && this.engine?.state.phase === 'aim') {
+        const red = bake.red ?? (bake.red = silhouette(bake.base, '#ff2a3a'))
+        ctx.globalAlpha = this.reducedMotion ? 0.8 : 0.6 + 0.3 * Math.sin(t * 9 + v.phase)
+        const o = Math.max(1.5, c * 0.04)
+        for (let k = 0; k < 4; k++) {
+          ctx.drawImage(red, x + (k === 0 ? -o : k === 1 ? o : 0), y + (k === 2 ? -o : k === 3 ? o : 0), dw, dh)
+        }
         ctx.globalAlpha = 1
       }
       const img = m.frozen > 0 ? bake.frozen : m.enraged && bake.enraged ? bake.enraged : bake.base
@@ -1329,8 +1536,10 @@ export class BoardRenderer {
       if (!label) continue
       const pw = v.labelW / l.dpr
       const ph = v.labelH / l.dpr
-      const px = ox + cxC * c
-      const py = oy + (v.y + v.h) * c - ph * 0.5 - c * 0.03
+      // A whiff wobbles the boss's plate (never under reduced motion).
+      const wob = boss && this.plateShake > 0 && !this.reducedMotion ? Math.sin(this.time * 48) * this.plateShake * c * 0.12 : 0
+      const px = ox + (cxC + v.lungeX) * c + wob
+      const py = oy + (v.y + v.h + v.lungeY) * c - ph * 0.5 - c * 0.03
       const sp = v.spawn < 1 ? clamp01(v.spawn * 2) : 1
       if (sp < 1) ctx.globalAlpha = sp
       ctx.drawImage(label, 0, 0, v.labelW, v.labelH, px - pw / 2, py - ph / 2, pw, ph)
@@ -1355,6 +1564,23 @@ export class BoardRenderer {
     ctx.drawImage(g, x - w * 0.6, y - w * 0.6, w * 1.2, w * 1.2)
     ctx.globalCompositeOperation = 'source-over'
     ctx.globalAlpha = 1
+    // What it holds, in-world (run 9: "shoot it, avoid it, or decoration?"):
+    // two coins hop out of its lid by turns and drop back in. Drawn first, so
+    // they rise from behind the lid.
+    if (this.coin.ready && !this.reducedMotion) {
+      const cb = this.coin.box
+      const P = 1.1
+      const cs = c * 0.3
+      for (let j = 0; j < 2; j++) {
+        const u = ((t + j * P * 0.5) % P) / P
+        const hop = Math.sin(Math.PI * u)
+        ctx.globalAlpha = Math.min(1, hop * 1.8)
+        const cx = x + (j === 0 ? -0.14 : 0.14) * w
+        const cy = y - h * 0.12 - hop * c * 0.55
+        ctx.drawImage(this.coin.img, cb.x, cb.y, cb.w, cb.h, cx - cs / 2, cy - cs / 2, cs, cs)
+      }
+      ctx.globalAlpha = 1
+    }
     ctx.drawImage(this.chest.img, b.x, b.y, b.w, b.h, x - w / 2, y - h / 2, w, h)
     if (this.chestHint && s.phase !== 'breach') this.drawChestHint(ctx, x, y, w, t)
   }
@@ -1407,12 +1633,24 @@ export class BoardRenderer {
     }
     const cx = l.ox + this.lx * c
     const floor = l.oy + FLOOR_Y * c
-    // Under-glow in the element colour (warcry turns it to war-red).
+    // Danger (a '1' pip: the flame shrinks, sputters pale, trembles) — see
+    // render/unit.ts. Torn apart (the death sequence): its pieces, no glow.
+    const fear = this.unitFear
+    const pose = unitPose(this.pose, fear, t, this.reducedMotion)
+    const flare = this.unitFlare
+    const torn = this.death.torn
+    // Under-glow in the element colour (warcry turns it to war-red); it gutters with the flame.
     ctx.globalCompositeOperation = 'lighter'
     const warcry = s.warcryArmed || s.warcryActive
-    ctx.globalAlpha = 0.45 + 0.2 * Math.sin(t * 3) + (warcry ? 0.25 : 0)
+    ctx.globalAlpha = torn ? 0 : clamp01((0.45 + 0.2 * Math.sin(t * 3) + (warcry ? 0.25 : 0)) * pose.glow)
     const gr = c * (warcry ? 1.05 : 0.85)
-    ctx.drawImage(this.vfx.dot(warcry ? '#ff4a2a' : ti.glow), cx - gr, floor - gr * 0.8, gr * 2, gr * 1.6)
+    if (ctx.globalAlpha > 0.01) ctx.drawImage(this.vfx.dot(warcry ? '#ff4a2a' : ti.glow), cx - gr, floor - gr * 0.8, gr * 2, gr * 1.6)
+    if (flare > 0.01) {
+      // A flare (a Damage purchase, a continue after a breach): a bloom round the unit.
+      const fr = c * (0.8 + 0.9 * flare)
+      ctx.globalAlpha = flare * 0.9
+      ctx.drawImage(this.vfx.dot(this.flareColor), cx - fr, floor - c * 0.5 - fr, fr * 2, fr * 2)
+    }
     ctx.globalCompositeOperation = 'source-over'
     ctx.globalAlpha = 1
     const pw = c * 1.3
@@ -1420,24 +1658,53 @@ export class BoardRenderer {
     ctx.drawImage(this.pedestal, cx - pw / 2, floor - ph * 0.3, pw, ph)
     // The elemental itself.
     const fs = this.fighter(tier)
-    if (fs.ready) {
+    if (torn) {
+      this.drawShards(ctx)
+    } else if (fs.ready) {
       const b = fs.box
       const side = c * 0.98
       const k = side / Math.max(b.w, b.h)
       const bob = Math.sin(t * 2.6)
-      let sxK = 1 - 0.025 * bob + 0.1 * this.kick
-      let syK = 1 + 0.03 * bob - 0.13 * this.kick
-      let lean = 0
+      let sxK = (1 - 0.025 * bob + 0.1 * this.kick) * pose.sx
+      let syK = (1 + 0.03 * bob - 0.13 * this.kick) * pose.sy
+      let lean = pose.dx
       if (this.aimArmed) {
-        lean = Math.cos(this.aimAngle) * 0.07
+        lean += Math.cos(this.aimAngle) * 0.07
         syK *= 0.95
         sxK *= 1.03
       }
       const w = b.w * k * sxK
       const h = b.h * k * syK
-      ctx.drawImage(fs.img, b.x, b.y, b.w, b.h, cx + lean * c - w / 2, floor + c * 0.06 - h, w, h)
+      const x = cx + lean * c - w / 2
+      const y = floor + c * 0.06 - h
+      ctx.drawImage(fs.img, b.x, b.y, b.w, b.h, x, y, w, h)
+      if (pose.pale > 0.01 || flare > 0.01) {
+        // Baked once per tier and size, the first frame that needs them.
+        const looks = this.unitLooks.get(tier, fs, side * l.dpr * 1.15)
+        if (looks) {
+          if (pose.pale > 0.01) {
+            ctx.globalAlpha = clamp01(pose.pale)
+            ctx.drawImage(looks.pale, x, y, w, h)
+          }
+          if (flare > 0.01) {
+            ctx.globalAlpha = clamp01(flare * 0.8)
+            ctx.drawImage(looks.white, x, y, w, h)
+          }
+          ctx.globalAlpha = 1
+        }
+      }
+      // A bead of sweat by its head while it cowers (it slides; static under reduced motion).
+      const sweatK = fear
+      if (sweatK > 0.05 && this.sweat) {
+        const sh = c * 0.22
+        const sw = sh * (this.sweat.width / this.sweat.height)
+        const u = this.reducedMotion ? 0 : (t * 0.9) % 1
+        ctx.globalAlpha = clamp01(sweatK * (1 - 0.6 * u * u))
+        ctx.drawImage(this.sweat, x + w * 0.84, y + h * 0.1 + u * c * 0.14, sw, sh)
+        ctx.globalAlpha = 1
+      }
     }
-    // Queued-ball count ("×12") under the pedestal — numbers only.
+    // Queued-ball count ("●×12") under the pedestal — a ball glyph + numbers only.
     let n = 0
     if (s.phase === 'aim') {
       n = s.tray.length
@@ -1453,7 +1720,16 @@ export class BoardRenderer {
         this.countShown = n
         this.countText = `×${n}`
       }
-      glyphs('count').draw(ctx, this.countText, cx, floor + c * 0.62, Math.max(11, Math.min(20, c * 0.34)))
+      // Run 4: a bare "×3" was a mystery — a ball glyph says what is counted.
+      const fsz = Math.max(11, Math.min(20, c * 0.34))
+      const digits = glyphs('count')
+      const tw = digits.measure(this.countText, fsz)
+      const bd = fsz * 0.82
+      const gap = fsz * 0.1
+      const x0 = cx - (bd + gap + tw) / 2
+      const cy = floor + c * 0.62
+      if (this.countBall) ctx.drawImage(this.countBall, x0, cy - bd / 2, bd, bd)
+      digits.draw(ctx, this.countText, x0 + bd + gap, cy, fsz, 0)
     }
     // Where the next launcher will stand (first landed ball).
     if (s.phase === 'volley' && s.nextLauncherX !== null) {
@@ -1472,10 +1748,23 @@ export class BoardRenderer {
     }
   }
 
+  /** The live aim preview while a finger aims, and a tap-fire's flash of the
+   *  same path as the ball leaves (run 5): fading over SHOT_FLASH, held at
+   *  full strength under reduced motion. */
   private drawAim(ctx: CanvasRenderingContext2D, t: number): void {
-    const path = this.aimPath
+    if (!this.aimArmed && this.restK > 0.01 && this.restPath) this.drawAimPath(ctx, this.restPath, t, this.restK * REST_AIM_K)
+    if (this.aimArmed && this.aimPath) this.drawAimPath(ctx, this.aimPath, t, 1)
+    else if (this.flashPath && this.flashT > 0) {
+      const u = clamp01(this.flashT / SHOT_FLASH)
+      this.drawAimPath(ctx, this.flashPath, t, this.reducedMotion ? 1 : u * (2 - u))
+    }
+  }
+
+  /** The dotted bounce path from the launcher (the continuation past the first
+   *  contact fading out) and a hollow reticle at the first contact, at `k`. */
+  private drawAimPath(ctx: CanvasRenderingContext2D, path: AimPath, t: number, k: number): void {
     const dot = this.aimDot
-    if (!this.aimArmed || !path || !dot || path.points.length < 2) return
+    if (!dot || path.points.length < 2 || k <= 0.01) return
     const l = this.layout
     const c = l.cell
     const pts = path.points
@@ -1484,7 +1773,10 @@ export class BoardRenderer {
     const first = Math.hypot(p1.x - p0.x, p1.y - p0.y)
     let total = first
     for (let i = 2; i < pts.length; i++) total += Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y)
-    const cont = Math.max(0.01, total - first)
+    // Solid up to the last traced contact (the second bounce, fun pass), then
+    // the continuation fades out.
+    const solid = Math.max(first, Math.min(total, path.solid ?? first))
+    const cont = Math.max(0.01, total - solid)
     const spacing = 0.34
     const phase = (t * 1.5) % spacing
     let acc = 0
@@ -1501,7 +1793,7 @@ export class BoardRenderer {
       for (; dd <= len; dd += spacing) {
         const sAlong = acc + dd
         if (sAlong < 0.45) continue // keep the launcher face clear
-        const alpha = sAlong <= first ? 0.95 : Math.max(0, 1 - (sAlong - first) / cont) * 0.75
+        const alpha = k * (sAlong <= first ? 0.95 : sAlong <= solid ? 0.72 : Math.max(0, 1 - (sAlong - solid) / cont) * 0.6)
         if (alpha <= 0.02) continue
         const r = (sAlong <= first ? 0.085 : 0.068) * c
         ctx.globalAlpha = alpha
@@ -1518,7 +1810,7 @@ export class BoardRenderer {
     const r1 = r * 2.3
     ctx.lineCap = 'round'
     for (let pass = 0; pass < 2; pass++) {
-      ctx.globalAlpha = pass === 0 ? 0.5 : 0.7 + 0.25 * Math.sin(t * 8)
+      ctx.globalAlpha = k * (pass === 0 ? 0.5 : 0.7 + 0.25 * Math.sin(t * 8))
       ctx.strokeStyle = pass === 0 ? 'rgba(8,12,30,0.9)' : '#dff3ff'
       ctx.lineWidth = pass === 0 ? 3.5 : 1.6
       ctx.beginPath()
@@ -1575,8 +1867,11 @@ export class BoardRenderer {
     const l = this.layout
     const c = l.cell
     const g = tierGlow(b.tier)
-    const maxLen = 0.95 + 0.5 * g
-    const r0 = BALL_R * (0.95 + 0.4 * g)
+    // Momentum (engine balls.ts): every wall bounce stretches the comet and
+    // heats it towards white — the wordless tell that a banked ball hits harder.
+    const m = MOMENTUM.max > 0 ? Math.min(1, b.boost / MOMENTUM.max) : 0
+    const maxLen = (0.95 + 0.5 * g) * (1 + 0.9 * m)
+    const r0 = BALL_R * (0.95 + 0.4 * g) * (1 + 0.35 * m)
     const tx = this.scratchX
     const ty = this.scratchY
     // Gather head → tail, clipped to maxLen.
@@ -1607,8 +1902,8 @@ export class BoardRenderer {
       py = qy
     }
     if (n < 2) return
-    ctx.fillStyle = fever ? '#fff4a8' : tierInfo(b.tier).glow
-    ctx.globalAlpha = b.ghost ? 0.14 : 0.3
+    ctx.fillStyle = fever ? '#fff4a8' : m >= 0.75 ? MOMENTUM_HOT : tierInfo(b.tier).glow
+    ctx.globalAlpha = (b.ghost ? 0.14 : 0.3) * (1 + 0.6 * m)
     ctx.beginPath()
     // Left edge head → tail, right edge tail → head; the tail tapers to a point.
     for (let pass = 0; pass < 2; pass++) {
@@ -1640,6 +1935,9 @@ export class BoardRenderer {
     const w = COLS * c
     const h = (FLOOR_Y + BOARD_TOP) * c
     const soft = this.reducedMotion ? 0.35 : 1
+    // The death: the board dims red-black round the wreck from the strike.
+    const dim = this.death.on ? clamp01((this.death.t - DEATH_HIT) / DEATH_DIM_IN) : 0
+    if (dim > 0.01) this.drawDeathDim(ctx, this.death.ux, FLOOR_Y - 0.6, dim * DIM_ALPHA)
     if (this.fever > 0.01 && this.feverFrame) {
       ctx.globalCompositeOperation = 'lighter'
       ctx.globalAlpha = clamp01(this.fever * (0.6 + 0.35 * Math.sin(t * 7)))
@@ -1680,6 +1978,7 @@ export class BoardRenderer {
       case 'hit': {
         const ti = tierInfo(e.tier)
         const v = this.views.get(e.monsterId)
+        if (s && e.monsterId === s.bossId) this.bossTouched = true
         if (v) {
           v.flinch = 1
           v.flash = 1
@@ -1734,7 +2033,9 @@ export class BoardRenderer {
           this.heldKill = null
           break
         }
-        this.coinFx(e.x, e.y, e.amount)
+        // Combo coins leave from the tally.
+        if (e.source === 'combo') this.coinFx(COLS / 2, COMBO_TALLY_Y + 0.5, e.amount)
+        else this.coinFx(e.x, e.y, e.amount)
         break
       }
       case 'pickup': {
@@ -1783,9 +2084,13 @@ export class BoardRenderer {
         break
       case 'combo': {
         const lx = this.lx
-        this.vfx.ring(lx, FLOOR_Y - 0.4, 0.3, 1.8, 0.45, '#ffe23a', 0.08)
-        this.vfx.burst(lx, FLOOR_Y - 0.4, 14, 5, '#ffe23a', 0.12, 0.5, 0, true)
-        this.sfx.request('combo-tick', 0.045, 1.5 + Math.min(4, e.hits / 10) * 0.12, 5, 50, 'combo')
+        // A crescendo (fun pass): every mark rings wider and higher, and the
+        // big ones (60+) add a chime on top.
+        const k = Math.max(0, COMBO_STEPS.indexOf(e.hits))
+        this.vfx.ring(lx, FLOOR_Y - 0.4, 0.3, 1.8 + 0.35 * k, 0.45, '#ffe23a', 0.08)
+        this.vfx.burst(lx, FLOOR_Y - 0.4, 14 + 3 * k, 5, '#ffe23a', 0.12, 0.5, 0, true)
+        this.sfx.request('combo-tick', 0.045 + 0.006 * k, 1.5 + Math.min(8, k) * 0.1, 5, 50, 'combo')
+        if (e.hits >= 60) this.sfx.request('crystal-cut', 0.04, 1 + 0.08 * Math.min(6, k - 4), 4, 150, 'combo-chime')
         break
       }
       case 'fever':
@@ -1805,12 +2110,25 @@ export class BoardRenderer {
         this.kick = 1
         this.aimArmed = false
         this.aimPath = null
+        this.bossTouched = false
+        this.comboOn = false
+        this.comboHits = 0
+        this.comboStr = ''
+        this.comboPaid = 0
+        this.comboTallyT = 0
+        this.comboK = 0
+        // The first volley after a Ball Damage purchase burns gold.
+        this.goldVolley.onFire()
         break
-      case 'wallBounce':
-        this.vfx.burst(e.x, e.y, 2, 2, '#cfe6ff', 0.06, 0.25)
+      case 'wallBounce': {
+        // More, hotter sparks the more momentum the ball carries.
+        const m = MOMENTUM.max > 0 ? Math.min(1, e.boost / MOMENTUM.max) : 0
+        this.vfx.burst(e.x, e.y, 2 + Math.round(3 * m), 2 + 1.5 * m, m >= 0.75 ? MOMENTUM_HOT : m >= 0.35 ? MOMENTUM_WARM : '#cfe6ff', 0.06 + 0.03 * m, 0.25)
         break
+      }
       case 'ballLanded': {
         const target = s?.nextLauncherX ?? e.x
+        this.lastLandX = e.x
         if (e.first) {
           this.vfx.ring(e.x, FLOOR_Y - BALL_R, 0.1, 0.6, 0.35, '#ffffff', 0.05)
           this.vfx.retargetRollers(target)
@@ -1936,12 +2254,17 @@ export class BoardRenderer {
         this.sfx.request('barricade', 0.06, 1, 9, 500)
         break
       case 'breach':
-        this.flashRed = 1
+        // The rule as it is broken: the line and its skulls flash — then the
+        // death sequence (its strike brings the red flash and the shake).
         this.timeScale = 0.2
-        this.bigShake('big')
+        this.lineFlash = 1
+        this.skullFlash = 1
+        this.startDeath()
         this.sfx.request('overrun', 0.06, 1, 10, 800)
         break
       case 'continued':
+        // Back from a breach: the unit stands again, flaring.
+        if (this.death.on) this.endDeath(true)
         if (e.how === 'meteor') {
           // The cleared monsters already have their rocks (killFx during 'breach');
           // a pushed-back boss gets one too.
@@ -2039,11 +2362,64 @@ export class BoardRenderer {
       case 'chestGone':
         this.chestHint = false
         break
+      case 'comboBonus':
+        // The tally: the counter pops big with the coins its rattles paid
+        // (the coins event right after flies them from here to the wallet).
+        if (e.coins > 0) {
+          this.comboHits = e.hits
+          this.comboStr = '×' + (e.hits < 1000 ? SMALL_INT_STR[e.hits]! : formatBig(e.hits))
+          this.comboPaid = e.coins
+          this.comboPaidStr = '+' + (e.coins < 1000 ? SMALL_INT_STR[e.coins]! : formatBig(e.coins))
+          this.comboTallyT = COMBO_TALLY
+          this.comboKick = 1.6
+          this.sfx.request('reward-continue', 0.06, 1.15, 7, 400, 'combo-tally')
+        }
+        break
       case 'volleyEnd':
+        this.goldVolley.onVolleyEnd()
+        // Run 6: a volley that never touched the live boss is a visible whiff
+        // — a grey puff where the last ball landed, the boss's HP plate
+        // wobbles, a dull whoosh.
+        if (!this.bossTouched && s && s.bossId !== null) this.whiff()
+        this.bossTouched = true
+        break
       case 'trayAdd':
       case 'phase':
         break
     }
+  }
+
+  /** The combo tally (fun pass): "×hits" and "+coins" where the combo
+   *  marks' popup sits, for COMBO_TALLY s after a volley that paid. */
+  private drawCombo(ctx: CanvasRenderingContext2D): void {
+    if (this.comboK <= 0.01 || this.comboStr === '') return
+    const l = this.layout
+    const c = l.cell
+    const x = l.ox + (COLS / 2) * c
+    const y = l.oy + COMBO_TALLY_Y * c
+    const kick = this.reducedMotion ? 0 : this.comboKick
+    const heat = clamp01(this.comboHits / 150)
+    const size = c * (0.78 + 0.28 * heat) * (1 + 0.22 * kick)
+    ctx.globalAlpha = this.comboK
+    // A soft dark pad so the number reads over monsters and boss art alike.
+    ctx.drawImage(this.vfx.dot('#140414'), x - size * 1.7, y - size * 0.95, size * 3.4, size * 1.9)
+    glyphs('combo').draw(ctx, this.comboStr, x, y, size)
+    if (this.comboPaid > 0 && this.comboTallyT > 0) {
+      const u = 1 - this.comboTallyT / COMBO_TALLY
+      const cy = y + size * (0.85 + (this.reducedMotion ? 0 : 0.25 * Math.min(1, u * 3)))
+      glyphs('gold').draw(ctx, this.comboPaidStr, x, cy, size * 0.62)
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** A volley that missed the boss entirely (run 6: "the 65 never moved"). */
+  private whiff(): void {
+    const x = this.lastLandX
+    const y = FLOOR_Y - 0.25
+    this.vfx.burst(x, y, 9, 1.4, '#8d929c', 0.13, 0.7, -0.6)
+    this.vfx.ring(x, y, 0.15, 0.8, 0.45, '#9aa0aa', 0.05)
+    this.plateShake = 1
+    this.sfx.request('dodge', 0.035, 0.7, 3, 600, 'whiff')
   }
 
   // ─── "+1" outcome ──────────────────────────────────────────────────────────
@@ -2077,6 +2453,16 @@ export class BoardRenderer {
   }
 
   // ─── Rule marks (see ruleMarks.ts) ─────────────────────────────────────────
+  /** A monster wears its rule badge: a behaviour kind whose key the coach has
+   *  not retired yet (its first TAG_TURNS aim phases). The icon, or null. */
+  private badgeOf(v: MonsterView): RuleIcon | null {
+    const m = v.m
+    if (!m || v.dieAt >= 0 || !v.bake) return null
+    const key = tagKeyOf(m)
+    if (!key || this.coachRetired.has(key)) return null
+    return ruleIconOf(m)
+  }
+
   private drawRuleMarks(ctx: CanvasRenderingContext2D, s: BoardState, t: number): void {
     const l = this.layout
     const c = l.cell
@@ -2084,22 +2470,23 @@ export class BoardRenderer {
     const oy = l.oy
     // Demos play while the player aims (fading in), dimmed under a live aim.
     const demoK = s.phase === 'aim' ? clamp01(s.phaseTime / 0.35) * (this.aimArmed ? 0.45 : 1) : 0
+    // Intents over the monsters: the dryad's "+" marks, the treant's rest marker.
+    if (this.intentK > 0.01) this.drawIntents(ctx, s, t, false)
     const list = this.viewList
     for (let i = 0; i < list.length; i++) {
       const v = list[i]!
-      const m = v.m
-      if (!m || v.dieAt >= 0 || !v.bake) continue
-      const vx = v.hopT >= 0 ? v.hopFrom + (v.hopTo - v.hopFrom) * v.hopT : v.x
-      const key = tagKeyOf(m)
-      if (!key || this.coachRetired.has(key)) continue
-      const icon = ruleIconOf(m)
+      const icon = this.badgeOf(v)
       if (!icon) continue
-      if (demoK > 0.01) this.drawRuleDemo(ctx, icon, v, m, s, t, demoK)
-      const badge = this.badges.get(icon)
-      if (!badge) continue
+      const m = v.m!
+      const vx = v.hopT >= 0 ? v.hopFrom + (v.hopTo - v.hopFrom) * v.hopT : v.x
+      // The kinds whose next move a still frame shows (drawIntents) have no
+      // acted-out demo any more; the others keep theirs.
+      if (demoK > 0.01 && !INTENT_ICONS.has(icon)) this.drawRuleDemo(ctx, icon, v, m, t, demoK)
       const bs = c * 0.46
       const top = Math.max(v.y, 0.05)
       const bob = Math.sin(t * 3 + v.phase) * 0.04 * c
+      const badge = this.badges.get(icon)
+      if (!badge) continue
       // On the right shoulder — kept inside the board on the right-hand column.
       const bx = Math.min(ox + (vx + v.w) * c - bs * 0.62, ox + COLS * c - bs - 1)
       const by = oy + top * c - bs * 0.18 + bob
@@ -2109,18 +2496,186 @@ export class BoardRenderer {
     }
   }
 
-  /** Always on, for every player (render/danger.ts): the marches-left pip on
-   *  the top-left shoulder of every monster within DANGER_PIP_MARCHES marches
-   *  of the line — amber '2', then a pulsing red '1'. Numbers only. The rule
-   *  badge sits on the other shoulder. */
-  private drawDangerPips(ctx: CanvasRenderingContext2D, t: number): void {
-    const red = this.pipRed
-    const amber = this.pipAmber
-    if (!red || !amber) return
+  /**
+   * Intent previews (run 5, `intents.ts`): while its badge is up and the
+   * player aims (never under a finger), a behaviour kind shows its NEXT move
+   * so a still frame reads it. `under` (before the monsters are drawn): the
+   * goblin's ghost in the cell it hops to with a dotted arc arrow — both free
+   * sides when either could be — and the centaur's sludge target on its spit
+   * turns, a dotted drop from it. Over them: a green "+" on every neighbour a
+   * dryad heals, on the side facing it, and a pause marker under a treant on
+   * its rest turns. Gently breathing; static under reduced motion. No
+   * allocation per frame.
+   */
+  private drawIntents(ctx: CanvasRenderingContext2D, s: BoardState, t: number, under: boolean): void {
     const l = this.layout
     const c = l.cell
     const ox = l.ox
     const oy = l.oy
+    const k0 = this.intentK * (s.phase === 'aim' ? clamp01(s.phaseTime / 0.35) : 0)
+    if (k0 <= 0.01) return
+    const next = nextMarchTurn(s)
+    const list = this.viewList
+    const reduced = this.reducedMotion
+    for (let i = 0; i < list.length; i++) {
+      const v = list[i]!
+      const icon = this.badgeOf(v)
+      if (!icon || !INTENT_ICONS.has(icon)) continue
+      const m = v.m!
+      const k = k0 * (v.spawn < 1 ? clamp01(v.spawn * 2) : 1)
+      const breathe = reduced ? 1 : 0.86 + 0.14 * Math.sin(t * 3.2 + v.phase)
+      if (under && icon === 'hop') {
+        const mask = hopSides(m, s)
+        if (mask === 0) continue
+        // Both sides free: the engine picks one at random — show both, each fainter.
+        const both = (mask & HOP_LEFT) !== 0 && (mask & HOP_RIGHT) !== 0
+        const a = k * breathe * (both ? 0.8 : 1)
+        if (mask & HOP_LEFT) this.drawHopIntent(ctx, v, -1, a)
+        if (mask & HOP_RIGHT) this.drawHopIntent(ctx, v, 1, a)
+      } else if (under && icon === 'spit') {
+        if (!spitCell(m, s, next, this.spitAt)) continue
+        this.drawSpitIntent(ctx, v, this.spitAt.col, this.spitAt.row, k * breathe, t)
+      } else if (!under && icon === 'heal') {
+        const img = this.badges.plus()
+        if (!img) continue
+        const ms = s.monsters
+        const size = c * 0.42 * (reduced ? 1 : 1 + 0.06 * Math.sin(t * 3.2 + v.phase))
+        ctx.globalAlpha = clamp01(k * 0.95)
+        for (let j = 0; j < ms.length; j++) {
+          const n = ms[j]!
+          if (!healsNeighbour(m, n)) continue
+          // On the neighbour, a third of a cell in from the side it shares
+          // with the dryad: "+" flows from it into them.
+          let px: number
+          let py: number
+          if (n.col + n.w === m.col || n.col === m.col + m.w) {
+            const lo = Math.max(n.row, m.row)
+            const hi = Math.min(n.row + n.h, m.row + m.h)
+            py = (lo + hi) / 2
+            px = n.col === m.col + m.w ? n.col + 0.3 : n.col + n.w - 0.3
+          } else {
+            const lo = Math.max(n.col, m.col)
+            const hi = Math.min(n.col + n.w, m.col + m.w)
+            px = (lo + hi) / 2
+            py = n.row === m.row + m.h ? n.row + 0.3 : n.row + n.h - 0.3
+          }
+          ctx.drawImage(img, ox + px * c - size / 2, oy + py * c - size / 2, size, size)
+        }
+        ctx.globalAlpha = 1
+      } else if (!under && icon === 'slow') {
+        if (!restsNext(m, next)) continue
+        const img = this.badges.rest()
+        if (!img) continue
+        // Under its feet, where it would step down: "not this turn".
+        const size = c * 0.4
+        const cx = ox + (v.x + v.w / 2) * c
+        const cy = oy + (v.y + v.h) * c + size * 0.3
+        ctx.globalAlpha = clamp01(k * (0.8 + 0.2 * breathe))
+        ctx.drawImage(img, cx - size / 2, cy - size / 2, size, size)
+        ctx.globalAlpha = 1
+      }
+    }
+  }
+
+  /** A goblin's hop to side `dir`: its ghost in that cell (sprite faint + its
+   *  white silhouette, hopping in place) and a dotted arc from it with an
+   *  arrowhead. Runs 6–8 (the goblin's badge was still "armor? reflect?"):
+   *  bold — big dots, a big arrowhead, a ghost that reads at a glance — for
+   *  the few aim phases it shows (the badge's first TAG_TURNS). */
+  private drawHopIntent(ctx: CanvasRenderingContext2D, v: MonsterView, dir: number, a: number): void {
+    const bake = v.bake
+    const dot = this.aimDot
+    if (!bake || a <= 0.01) return
+    const l = this.layout
+    const c = l.cell
+    const x0 = v.x + v.w / 2
+    const x1 = x0 + dir
+    const yMid = v.y + v.h * 0.42
+    const lift = 0.62
+    // The arc from its shoulder to the target's, over the gap between them.
+    if (dot) {
+      ctx.globalAlpha = clamp01(a)
+      const r = c * 0.1
+      for (let j = 1; j <= 4; j++) {
+        const q = 0.12 + (j / 5) * 0.7
+        const px = l.ox + (x0 + dir * q) * c
+        const py = l.oy + (yMid - Math.sin(Math.PI * q) * lift) * c
+        ctx.drawImage(dot, px - r * 1.6, py - r * 1.6, r * 3.2, r * 3.2)
+      }
+    }
+    // The arrowhead where the arc comes down into the target cell.
+    const q = 0.9
+    const hx = l.ox + (x0 + dir * q) * c
+    const hy = l.oy + (yMid - Math.sin(Math.PI * q) * lift) * c
+    // Tangent of the arc there: (dir, −π·lift·cos(πq)) in cells.
+    const tx = dir
+    const ty = -Math.PI * lift * Math.cos(Math.PI * q)
+    const tl = Math.hypot(tx, ty) || 1
+    const ux = tx / tl
+    const uy = ty / tl
+    const hs = c * 0.24
+    ctx.globalAlpha = clamp01(a)
+    ctx.beginPath()
+    ctx.moveTo(hx + ux * hs, hy + uy * hs)
+    ctx.lineTo(hx - ux * hs * 0.6 - uy * hs * 0.75, hy - uy * hs * 0.6 + ux * hs * 0.75)
+    ctx.lineTo(hx - ux * hs * 0.6 + uy * hs * 0.75, hy - uy * hs * 0.6 - ux * hs * 0.75)
+    ctx.closePath()
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = Math.max(1.5, c * 0.04)
+    ctx.strokeStyle = 'rgba(8,12,30,0.85)'
+    ctx.stroke()
+    ctx.fillStyle = '#dff3ff'
+    ctx.fill()
+    // The ghost, landing in that cell over and over: a small hop.
+    const dw = bake.dw * c * v.scale
+    const dh = bake.dh * c * v.scale
+    const hop = this.reducedMotion ? 0 : Math.abs(Math.sin(this.time * 3.4 + v.phase)) * 0.14
+    const gx = l.ox + x1 * c - dw / 2
+    const gy = l.oy + (v.y + v.h - 0.06 - hop) * c - dh
+    ctx.globalAlpha = clamp01(0.5 * a)
+    ctx.drawImage(bake.base, gx, gy, dw, dh)
+    ctx.globalAlpha = clamp01(0.36 * a)
+    ctx.drawImage(bake.white, gx, gy, dw, dh)
+    ctx.globalAlpha = 1
+  }
+
+  /** A centaur's spit turn: a dotted drop from it to the cell its sludge
+   *  lands in, a faint sludge there and a sludge-green target ring round it. */
+  private drawSpitIntent(ctx: CanvasRenderingContext2D, v: MonsterView, col: number, row: number, a: number, t: number): void {
+    if (a <= 0.01) return
+    const l = this.layout
+    const c = l.cell
+    const cx = l.ox + (col + 0.5) * c
+    const cy = l.oy + (row + 0.5) * c
+    const dot = this.vfx.dot(INTENT_SPIT)
+    const r = c * 0.07
+    ctx.globalAlpha = clamp01(a * 0.85)
+    for (let y = v.y + v.h + 0.08; y < row + 0.12; y += 0.26) {
+      ctx.drawImage(dot, cx - r * 1.6, l.oy + y * c - r * 1.6, r * 3.2, r * 3.2)
+    }
+    const img = this.sludge
+    if (img) {
+      const s = c * 0.66
+      ctx.globalAlpha = clamp01(a * 0.5)
+      ctx.drawImage(img, cx - s / 2, cy - s / 2, s, s)
+    }
+    const ring = this.badges.spitTarget()
+    if (ring) {
+      const s = c * (this.reducedMotion ? 0.95 : 0.95 + 0.04 * Math.sin(t * 4))
+      ctx.globalAlpha = clamp01(a)
+      ctx.drawImage(ring, cx - s / 2, cy - s / 2, s, s)
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** Always on, for every player (render/danger.ts): the marches-left pip on
+   *  the top-left shoulder of every monster within DANGER_PIP_MARCHES marches
+   *  of the line — amber '3' and '2', then a pulsing red '1'. Numbers only.
+   *  The rule badge sits on the other shoulder. */
+  private drawDangerPips(ctx: CanvasRenderingContext2D, t: number): void {
+    const red = this.pipRed
+    const amber = this.pipAmber
+    if (!red || !amber) return
     const list = this.viewList
     const digits = glyphs('count')
     for (let i = 0; i < list.length; i++) {
@@ -2129,10 +2684,11 @@ export class BoardRenderer {
       if (!v.m || v.dieAt >= 0 || !v.bake || n < 1 || n > DANGER_PIP_MARCHES) continue
       const last = n === 1
       const pulse = this.reducedMotion ? 1 : 1 + (last ? 0.13 : 0.05) * Math.sin(t * (last ? 9 : 4) + v.phase)
-      const ps = c * (v.kind === 'boss' ? 0.62 : 0.48) * pulse
-      const vx = v.hopT >= 0 ? v.hopFrom + (v.hopTo - v.hopFrom) * v.hopT : v.x
-      const cx = Math.max(ox + ps * 0.5 + 1, ox + vx * c + ps * 0.32)
-      const cy = oy + Math.max(v.y, 0.05) * c + ps * 0.32
+      const at = this.pipCentre(v, pulse)
+      const drop = this.pipDrop(ctx, at.x, at.y, at.s, n, v.pipFrom, v.pipDropAt, t)
+      const ps = at.s * drop
+      const cx = at.x
+      const cy = at.y
       ctx.globalAlpha = v.spawn < 1 ? clamp01(v.spawn * 2) : 1
       if (last) {
         ctx.globalCompositeOperation = 'lighter'
@@ -2143,9 +2699,119 @@ export class BoardRenderer {
         ctx.globalAlpha = v.spawn < 1 ? clamp01(v.spawn * 2) : 1
       }
       ctx.drawImage(last ? red : amber, cx - ps / 2, cy - ps / 2, ps, ps)
-      digits.draw(ctx, last ? '1' : '2', cx, cy + ps * 0.02, ps * 0.66)
+      digits.draw(ctx, SMALL_INT_STR[n]!, cx, cy + ps * 0.02, ps * 0.66)
       ctx.globalAlpha = 1
     }
+  }
+
+  /** A monster's pip centre and size (px) — on its top-left shoulder. */
+  private pipCentre(v: MonsterView, pulse: number): { x: number; y: number; s: number } {
+    const l = this.layout
+    const c = l.cell
+    const ps = c * (v.kind === 'boss' ? 0.62 : 0.48) * pulse
+    const vx = v.hopT >= 0 ? v.hopFrom + (v.hopTo - v.hopFrom) * v.hopT : v.x
+    const o = this.pipAt
+    o.x = Math.max(l.ox + ps * 0.5 + 1, l.ox + vx * c + ps * 0.32)
+    o.y = l.oy + Math.max(v.y, 0.05) * c + ps * 0.32
+    o.s = ps
+    return o
+  }
+
+  /**
+   * A countdown's fall (run 10: an enraged boss's pip went 3 → 1 between two
+   * still frames, and Mia died "with no countdown"): for PIP_DROP s after a
+   * drop the old digit falls out below the pip and fades, a ring goes out from
+   * it, and the pip swells — twice as hard for a jump by two (an enraged boss,
+   * a charging cyclops). A pip that just appeared only swells. Returns the
+   * pip's size factor. Reduced motion: no fall, no swell — a steady ring.
+   */
+  private pipDrop(ctx: CanvasRenderingContext2D, x: number, y: number, ps: number, now: number, from: number, at: number, t: number): number {
+    if (at < 0) return 1
+    const big = from - now >= 2
+    const dur = big ? PIP_DROP * 1.5 : PIP_DROP
+    const u = (t - at) / dur
+    if (u < 0 || u >= 1) return 1
+    const shown = from <= DANGER_PIP_MARCHES
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.lineWidth = Math.max(1.5, ps * (big ? 0.12 : 0.08))
+    ctx.strokeStyle = now === 1 ? '#ff3040' : '#ffa23a'
+    ctx.globalAlpha = (1 - u) * (big ? 0.95 : 0.7)
+    ctx.beginPath()
+    ctx.arc(x, y, ps * (this.reducedMotion ? 0.8 : 0.55 + (big ? 1.1 : 0.7) * u), 0, TAU)
+    ctx.stroke()
+    ctx.globalAlpha = 1
+    if (this.reducedMotion) return 1
+    if (shown) {
+      ctx.globalAlpha = clamp01(1 - u * 1.3)
+      glyphs('count').draw(ctx, SMALL_INT_STR[from]!, x, y + ps * (0.25 + 1.1 * u), ps * 0.6)
+      ctx.globalAlpha = 1
+    }
+    const k = (1 - u) * (1 - u)
+    return 1 + (big ? 0.6 : shown ? 0.3 : 0.2) * k
+  }
+
+  /**
+   * Playtest run 9 (Mia: "no player health/lives indicator ever shown"; Jonas
+   * read the countdown on the boss as an enrage timer): the fewest marches any
+   * monster has left, mirrored ON THE UNIT — the same pip disc and digit the
+   * monster wears, on the unit's shoulder, so "my" danger shows where the
+   * player looks. Amber 3 / 2, then a pulsing red 1 (the unit cowers then too).
+   * Hidden in a breach and during the death sequence.
+   */
+  private drawLauncherPip(ctx: CanvasRenderingContext2D, s: BoardState, t: number): void {
+    const n = this.minMarch
+    const red = this.pipRed
+    const amber = this.pipAmber
+    if (n < 1 || n > DANGER_PIP_MARCHES || !red || !amber || s.phase === 'breach' || this.death.on) return
+    const l = this.layout
+    const c = l.cell
+    const last = n === 1
+    const pulse = this.reducedMotion ? 1 : 1 + (last ? 0.14 : 0.05) * Math.sin(t * (last ? 9 : 4))
+    const base = c * 0.62 * pulse
+    // The unit's right shoulder; its left one when it stands at the right wall.
+    const ux = l.ox + this.lx * c
+    let cx = ux + c * 0.58
+    if (cx + base / 2 > l.ox + COLS * c - 1) cx = ux - c * 0.58
+    const cy = l.oy + FLOOR_Y * c - c * 0.92
+    // At "1": a dashed red tether from the monster that will reach the unit
+    // (the one nearest it, as the death sequence picks its striker) to this
+    // pip — this monster's countdown IS the player's.
+    if (last) {
+      let near: MonsterView | null = null
+      let best = Infinity
+      for (let i = 0; i < this.viewList.length; i++) {
+        const v = this.viewList[i]!
+        if (!v.m || v.dieAt >= 0 || v.marches !== 1) continue
+        const d = Math.abs(v.x + v.w / 2 - this.lx)
+        if (d < best) { best = d; near = v }
+      }
+      if (near) {
+        const at = this.pipCentre(near, 1)
+        ctx.save()
+        ctx.setLineDash([c * 0.14, c * 0.1])
+        ctx.lineDashOffset = this.reducedMotion ? 0 : -t * c * 0.6
+        ctx.lineWidth = Math.max(1.5, c * 0.045)
+        ctx.strokeStyle = '#ff3848'
+        ctx.globalAlpha = this.reducedMotion ? 0.6 : 0.4 + 0.3 * (0.5 + 0.5 * Math.sin(t * 9))
+        ctx.beginPath()
+        ctx.moveTo(at.x, at.y)
+        ctx.lineTo(cx, cy)
+        ctx.stroke()
+        ctx.restore()
+      }
+    }
+    const ps = base * this.pipDrop(ctx, cx, cy, base, n, this.unitPipFrom, this.unitPipDropAt, t)
+    if (last) {
+      ctx.globalCompositeOperation = 'lighter'
+      const g = ps * 1.1
+      ctx.globalAlpha = 0.6 + (this.reducedMotion ? 0 : 0.25 * Math.sin(t * 9))
+      ctx.drawImage(this.vfx.dot('#ff3040'), cx - g, cy - g, g * 2, g * 2)
+      ctx.globalCompositeOperation = 'source-over'
+    }
+    ctx.globalAlpha = 1
+    ctx.drawImage(last ? red : amber, cx - ps / 2, cy - ps / 2, ps, ps)
+    glyphs('count').draw(ctx, SMALL_INT_STR[n]!, cx, cy + ps * 0.02, ps * 0.66)
+    ctx.globalAlpha = 1
   }
 
   /** Always on, for every player, UNDER the sprites and HP plates: red
@@ -2203,7 +2869,9 @@ export class BoardRenderer {
     ctx.globalAlpha = 1
   }
 
-  private drawRuleDemo(ctx: CanvasRenderingContext2D, icon: RuleIcon, v: MonsterView, m: Monster, s: BoardState, t: number, k: number): void {
+  /** The acted-out rule of a badge whose kind shows no intent (split, shield,
+   *  charge, coins): it plays while the player aims, dimmed under a live aim. */
+  private drawRuleDemo(ctx: CanvasRenderingContext2D, icon: RuleIcon, v: MonsterView, m: Monster, t: number, k: number): void {
     const l = this.layout
     const c = l.cell
     const ox = l.ox
@@ -2211,90 +2879,6 @@ export class BoardRenderer {
     const midX = ox + (v.x + v.w / 2) * c
     const midY = oy + (v.y + v.h / 2) * c
     switch (icon) {
-      case 'hop': {
-        // A ghost of the goblin hops to a free side — the move it makes at
-        // the end of this turn (it tries a random side, then the other).
-        const bake = v.bake
-        if (!bake) break
-        const blocked = (col: number, row: number): boolean =>
-          s.hazards.some((h) => h.col === col && h.row === row) || s.pickups.some((p) => p.col === col && p.row === row)
-        const left = cellFree(m.col - 1, m.row, s.monsters, blocked)
-        const right = cellFree(m.col + m.w, m.row, s.monsters, blocked)
-        if (!left && !right) break
-        const P = 1.7
-        const tt = t + v.phase
-        const cycle = Math.floor(tt / P)
-        const dir = left && right ? (cycle % 2 === 0 ? 1 : -1) : right ? 1 : -1
-        const f = (tt % P) / P
-        const u = clamp01(f * 1.35)
-        const e = u * u * (3 - 2 * u)
-        const dw = bake.dw * c
-        const dh = bake.dh * c
-        const x0 = v.x + v.w / 2
-        // The arc it travels, dotted.
-        const dot = this.aimDot
-        if (dot) {
-          ctx.globalAlpha = 0.55 * k
-          for (let j = 1; j <= 4; j++) {
-            const q = j / 5
-            const px = ox + (x0 + dir * q) * c
-            const py = oy + (v.y + v.h * 0.5 - Math.sin(Math.PI * q) * 0.55) * c
-            ctx.drawImage(dot, px - c * 0.07, py - c * 0.07, c * 0.14, c * 0.14)
-          }
-        }
-        const lift = Math.sin(Math.PI * e) * 0.55
-        const gx = ox + (x0 + dir * e) * c - dw / 2
-        const gy = oy + (v.y + v.h - 0.06 - lift) * c - dh
-        const fade = k * (f > 0.74 ? 1 - clamp01((f - 0.74) / 0.26) : 1)
-        // A GHOST, not a shadow: the sprite faint, its white silhouette over it.
-        ctx.globalAlpha = 0.34 * fade
-        ctx.drawImage(bake.base, gx, gy, dw, dh)
-        ctx.globalAlpha = 0.3 * fade
-        ctx.drawImage(bake.white, gx, gy, dw, dh)
-        ctx.globalAlpha = 1
-        break
-      }
-      case 'heal': {
-        // Green motes run to every neighbour it will heal at the end of the turn.
-        const targets = healTargets(m, s.monsters)
-        const g = this.vfx.dot('#6fe08a')
-        const r = c * 0.17
-        for (const n of targets) {
-          const tx = ox + (n.col + n.w / 2) * c
-          const ty = oy + (n.row + n.h / 2) * c
-          for (let j = 0; j < 3; j++) {
-            const u = (t * 0.8 + j / 3 + v.phase) % 1
-            ctx.globalAlpha = Math.sin(Math.PI * u) * 0.9 * k
-            ctx.drawImage(g, midX + (tx - midX) * u - r, midY + (ty - midY) * u - r, r * 2, r * 2)
-          }
-        }
-        ctx.globalAlpha = 1
-        break
-      }
-      case 'spit': {
-        // A sludge glob drops out of it: the cell below gets blocked.
-        const img = this.sludge
-        if (!img) break
-        const u = ((t + v.phase) % 1.5) / 1.5
-        const size = c * 0.5
-        const y = oy + (v.y + v.h - 0.15 + u * u * 0.95) * c - size / 2
-        ctx.globalAlpha = Math.sin(Math.PI * u) * 0.85 * k
-        ctx.drawImage(img, midX - size / 2, y, size, size)
-        ctx.globalAlpha = 1
-        break
-      }
-      case 'armor': {
-        // Armour shimmer round the footprint: it takes more to bring down.
-        ctx.globalAlpha = (0.35 + 0.3 * Math.sin(t * 4 + v.phase)) * k
-        ctx.strokeStyle = '#ffe2b0'
-        ctx.lineWidth = Math.max(2, c * 0.07)
-        const inset = c * 0.04
-        ctx.beginPath()
-        ctx.rect(ox + v.x * c + inset, oy + v.y * c + inset, v.w * c - inset * 2, v.h * c - inset * 2)
-        ctx.stroke()
-        ctx.globalAlpha = 1
-        break
-      }
       case 'coins': {
         // Coins lift off an elite: worth triple.
         if (!this.coin.ready) break
@@ -2328,36 +2912,6 @@ export class BoardRenderer {
           ctx.drawImage(bake.base, gx, gy, dw, dh)
           ctx.globalAlpha = 0.28 * fade
           ctx.drawImage(bake.white, gx, gy, dw, dh)
-        }
-        ctx.globalAlpha = 1
-        break
-      }
-      case 'slow': {
-        // A clock sweeps once round it — a whole turn of waiting — and only
-        // then does a ghost of it take its one step down.
-        const bake = v.bake
-        if (!bake) break
-        const P = 2.6
-        const f = ((t + v.phase) % P) / P
-        const sweep = clamp01(f / 0.6)
-        ctx.globalAlpha = 0.75 * k * (f < 0.6 ? 1 : 1 - clamp01((f - 0.6) / 0.25))
-        ctx.strokeStyle = '#b9f28a'
-        ctx.lineWidth = Math.max(2, c * 0.06)
-        ctx.lineCap = 'round'
-        ctx.beginPath()
-        ctx.arc(midX, midY, c * v.w * 0.56, -Math.PI / 2, -Math.PI / 2 + TAU * sweep)
-        ctx.stroke()
-        if (f >= 0.6) {
-          const u = clamp01((f - 0.6) / 0.3)
-          const e = u * u * (3 - 2 * u)
-          const dw = bake.dw * c
-          const dh = bake.dh * c
-          const gy = oy + (v.y + v.h - 0.06 + e) * c - dh
-          const fade = k * (1 - clamp01((f - 0.85) / 0.15))
-          ctx.globalAlpha = 0.3 * fade
-          ctx.drawImage(bake.base, midX - dw / 2, gy, dw, dh)
-          ctx.globalAlpha = 0.24 * fade
-          ctx.drawImage(bake.white, midX - dw / 2, gy, dw, dh)
         }
         ctx.globalAlpha = 1
         break
@@ -2434,8 +2988,12 @@ export class BoardRenderer {
   /** Spawn (or fold into this monster's still-young number) a damage number. */
   private damageNumber(v: MonsterView, dmg: number, style: 'dmg' | 'crit' | 'burn' | 'poison' | 'heal'): void {
     const c = this.layout.cell
+    // The volley after a Ball Damage purchase (run 4: "upgrade cards whose
+    // in-game effect is hard to feel"): its hit numbers burn gold, a little bigger.
+    const power = this.goldVolley.active && (style === 'dmg' || style === 'crit')
+    const st: NumStyle = power && style === 'dmg' ? 'power' : style
     const live = v.num
-    if (style !== 'crit' && live && live.on && live.key === v.id && live.style === style && live.t < 0.3) {
+    if (st !== 'crit' && live && live.on && live.key === v.id && live.style === st && live.t < 0.3) {
       live.value += dmg
       live.text = this.fmtNum(live.value)
       live.t = Math.min(live.t, 0.08)
@@ -2443,7 +3001,7 @@ export class BoardRenderer {
     }
     // First session: bigger numbers, so the first hits read as damage — and on
     // a boss always, so a long fight visibly chips away at it.
-    const k = this.engine?.state.config.ftue || v.kind === 'boss' ? FTUE_NUM_SCALE : 1
+    const k = (this.engine?.state.config.ftue || v.kind === 'boss' ? FTUE_NUM_SCALE : 1) * (power ? POWER_NUM_SCALE : 1)
     const size = k * (style === 'crit'
       ? Math.max(15, Math.min(28, c * 0.52))
       : v.kind === 'boss' ? Math.max(13, Math.min(22, c * 0.4)) : Math.max(11, Math.min(18, c * 0.34)))
@@ -2456,8 +3014,41 @@ export class BoardRenderer {
     const ny = Math.max(v.y + Math.min(0.3, v.h * 0.25), (size * 1.4) / c - BOARD_TOP)
     // A boss's numbers are never dropped for a full pool and draw over every
     // other number (playtest run 3: "no on-boss hit number").
-    const n = this.vfx.num(this.fmtNum(dmg), style, nx, ny, size, dmg, v.id, v.kind === 'boss')
-    if (style !== 'crit') v.num = n
+    const n = this.vfx.num(this.fmtNum(dmg), st, nx, ny, size, dmg, v.id, v.kind === 'boss')
+    if (st !== 'crit') v.num = n
+    if (power && n) this.powerEmbers(nx, ny)
+  }
+
+  /** Two embers rising off a gold number (pooled sparks; skipped on a busy board). */
+  private powerEmbers(x: number, y: number): void {
+    if (this.vfx.liveSparks > 200) return
+    for (let i = 0; i < 2; i++) {
+      this.vfx.spark(x + (Math.random() - 0.5) * 0.3, y, (Math.random() - 0.5) * 0.5, -1.4 - Math.random() * 0.8, 0.5, 0.08, '#ffb02a', -0.6, 0.95)
+    }
+  }
+
+  /**
+   * A Ball Damage purchase (CONTRACT §7 "Run-4 pass"; spotted by DamageWatch):
+   * the unit flares at once — a gold bloom, its white flash, a ring and a burst,
+   * embers rising — with a short power-up sound, and the next volley's hit
+   * numbers burn gold.
+   */
+  private powerUp(): void {
+    this.goldVolley.arm()
+    this.flareUnit('#ffd23c')
+    this.vfx.burst(this.lx, FLOOR_Y - 0.55, 10, 2.2, '#ffb02a', 0.1, 0.8, -3, true)
+    this.sfx.request('ult-ready', 0.05, 1.15, 8, 400, 'power-up')
+  }
+
+  /** The unit flares: a bloom + white flash (drawLauncher), a pop, a ring and a burst. */
+  private flareUnit(color: string): void {
+    this.unitFlare = 1
+    this.flareColor = color
+    this.kick = Math.max(this.kick, 0.8)
+    const y = FLOOR_Y - 0.5
+    this.vfx.ring(this.lx, y, 0.25, 1.6, 0.5, color, 0.1)
+    this.vfx.ring(this.lx, y, 0.15, 0.95, 0.35, '#ffffff', 0.06)
+    this.vfx.burst(this.lx, y, 16, 5, color, 0.12, 0.6, 0, true)
   }
 
   /**
@@ -2468,9 +3059,10 @@ export class BoardRenderer {
    */
   private bossFirstHit(v: MonsterView, dealt: number, crit: boolean): void {
     const c = this.layout.cell
+    const power = this.goldVolley.active
     const base = FTUE_NUM_SCALE * (crit ? Math.max(15, Math.min(28, c * 0.52)) : Math.max(13, Math.min(22, c * 0.4)))
-    const size = base * BOSS_FIRST_HIT_SCALE
-    const style = crit ? 'crit' : 'dmg'
+    const size = base * BOSS_FIRST_HIT_SCALE * (power ? POWER_NUM_SCALE : 1)
+    const style: NumStyle = crit ? 'crit' : power ? 'power' : 'dmg'
     const text = this.fmtNum(dealt)
     // ~0.62 em a digit (as the HP plates assume), at the 1.15× pop size.
     const halfW = (text.length * 0.62 * size * 1.15) / 2 / c + 0.08
@@ -2619,13 +3211,13 @@ export class BoardRenderer {
     ctx.restore()
   }
 
-  // ─── The line: skulls, the overrun demo ────────────────────────────────────
+  // ─── The line's skulls, the death sequence ────────────────────────────────────
   /**
    * A small skull glyph at both ends of the line the monsters must not cross
    * (clear of the launcher at its outermost spot, and of the pips, which sit
    * on the monsters' shoulders a row up). Dim bone always; lit red — pulsing,
    * steady under reduced motion — while any monster wears a '1' pip. `onTop`:
-   * the overrun demo's flash draws them again, big, over everything.
+   * a breach's flash draws them again, big, over everything.
    */
   private drawLineSkulls(ctx: CanvasRenderingContext2D, t: number, onTop: boolean): void {
     const bone = this.skullBone
@@ -2673,9 +3265,9 @@ export class BoardRenderer {
     ctx.globalAlpha = 1
   }
 
-  /** The overrun demo's moment: the line flashes red, the skulls flash big, and
-   *  a big red skull blooms under the line where the ghost crossed — all of
-   *  it below the line, so the real monster above stays in plain view. */
+  /** A breach: the line flashes red and the skulls flash big under it —
+   *  below the line, clear of the monsters crossing it. The consequence plays
+   *  at the unit (the death sequence). */
   private drawLineFlash(ctx: CanvasRenderingContext2D, t: number): void {
     const l = this.layout
     const c = l.cell
@@ -2693,120 +3285,205 @@ export class BoardRenderer {
       ctx.globalAlpha = 1
     }
     this.drawLineSkulls(ctx, t, true)
-    const k = this.crossSkull
-    const red = this.skullRed
-    if (k > 0.01 && red) {
-      const size = c * SKULL_SIZE * (2.2 + (this.reducedMotion ? 0 : 0.5 * k))
-      const x = Math.max(l.ox + size / 2, Math.min(l.ox + COLS * c - size / 2, l.ox + this.crossX * c))
-      const y = ly + size / 2 + c * 0.02
-      ctx.globalCompositeOperation = 'lighter'
-      ctx.globalAlpha = 0.7 * k
-      const g = size * 0.8
-      ctx.drawImage(this.vfx.dot('#ff2a3a'), x - g, y - g, g * 2, g * 2)
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.globalAlpha = clamp01(k * 1.5)
-      ctx.drawImage(red, x - size / 2, y - size / 2, size, size)
-      ctx.globalAlpha = 1
+  }
+
+  /** A real breach: the monsters past the line go for the unit — the one
+   *  nearest it strikes (its feet onto the unit's chest, its centre just off
+   *  the unit's: it bumps INTO it), the others surge a step at it. */
+  private startDeath(): void {
+    const s = this.engine?.state
+    const d = this.death
+    this.endDeath()
+    if (!s) return
+    d.on = true
+    d.t = 0
+    d.reduced = this.reducedMotion
+    d.ux = this.lx
+    d.tier = this.launcherTier
+    for (const m of s.monsters) if (m.row + m.h > ROWS) this.deathIds.push(m.id)
+    const sm: Monster | null = pickStriker(s.monsters, d.ux)
+    if (sm) {
+      const off = d.ux - (sm.col + sm.w / 2)
+      d.striker = sm.id
+      d.dx = off - Math.sign(off) * Math.min(Math.abs(off), sm.w * 0.3)
+      d.dy = Math.max(0.2, FLOOR_Y - 0.45 - (sm.row + sm.h))
+      const sv = this.views.get(sm.id)
+      this.strikerRed = sv?.bake ? silhouette(sv.bake.base, '#ff2a3a') : null
+      const k = d.reduced ? 0 : DEATH_LOOM
+      this.strikerFocus = { x: sm.col + sm.w / 2 + d.dx * k, y: sm.row + sm.h / 2 + d.dy * k, r: Math.max(sm.w, sm.h) * 0.62 + 0.25 }
     }
   }
 
-  /** The ghost's top row (+ its hop lift) at demo time → ghostY / ghostLift. */
-  private ghostPos(d: OverrunGhost): void {
-    this.ghostLift = 0
-    if (d.reduced) {
-      this.ghostY = d.y1
-      return
-    }
-    const tw = d.t - d.walkAt
-    if (tw <= 0) {
-      this.ghostY = d.y0
-      return
-    }
-    if (tw >= d.walkDur) {
-      this.ghostY = d.y1
-      return
-    }
-    const stepDur = d.walkDur / d.hops
-    const i = Math.min(d.hops - 1, Math.floor(tw / stepDur))
-    const u = clamp01((tw - i * stepDur) / stepDur)
-    const e = u * u * (3 - 2 * u)
-    this.ghostY = d.y0 + ((i + e) * (d.y1 - d.y0)) / d.hops
-    this.ghostLift = Math.sin(Math.PI * u) * 0.16
+  /** The death sequence's culprit, where it looms (cells: centre, radius) —
+   *  DeathOverlay keeps a clear pool round it. Null: no death playing. */
+  get deathFocus(): { x: number; y: number; r: number } | null {
+    return this.death.on ? this.strikerFocus : null
   }
 
-  private updateDemo(dt: number, s: BoardState): void {
-    const d = this.demo
-    if (!d.on) return
+  /** The death sequence is over (a continue, a new board): the monsters stand
+   *  back in place; `relight`: the unit stands again, flaring. */
+  private endDeath(relight = false): void {
+    const d = this.death
+    this.strikerRed = null
+    this.strikerFocus = null
+    for (const id of this.deathIds) {
+      const v = this.views.get(id)
+      if (v) v.lungeX = v.lungeY = 0
+    }
+    this.deathIds.length = 0
+    const wasTorn = d.torn
+    d.on = false
+    d.torn = false
+    d.striker = -1
+    d.dx = d.dy = 0
+    if (relight && wasTorn) {
+      const glow = tierInfo(this.launcherTier).glow
+      this.flareUnit(glow)
+      this.vfx.burst(this.lx, FLOOR_Y - 0.5, 16, 4, glow, 0.12, 0.6)
+    }
+  }
+
+  /** The death sequence, `dt` real seconds on: the bump, the strike, the pieces. */
+  private stepDeath(dt: number): void {
+    const d = this.death
+    if (!d.on || dt <= 0) return
     d.t += dt
-    if (d.stopAt < 0 && (s.phase !== 'aim' || this.aimArmed)) d.stopAt = d.t
-    if (d.stopAt >= 0) {
-      this.demoCut = true
-      if (d.t >= d.stopAt + DEMO_STOP) d.on = false
-      return
-    }
-    if (d.t >= d.dur) {
-      d.on = false
-      return
-    }
-    if (!d.flashed) {
-      this.ghostPos(d)
-      if (d.reduced ? d.t >= DEMO_IN_STILL : this.ghostY + d.h >= ROWS + DEMO_FLASH_PAST) {
-        // Across the line: this is the loss.
-        d.flashed = true
-        this.lineFlash = 1
-        this.skullFlash = 1
-        this.crossSkull = 1
-        this.crossX = d.x + d.w / 2
-        this.vfx.burst(this.crossX, ROWS, 12, 3.5, '#ff3848', 0.11, 0.5, 0, true)
-        this.sfx.request('overrun', 0.045, 1.1, 8, 800, 'overrun-demo')
+    const ids = this.deathIds
+    if (!d.reduced) {
+      for (let i = 0; i < ids.length; i++) {
+        const v = this.views.get(ids[i]!)
+        if (!v) continue
+        if (v.id === d.striker) {
+          strikeOffset(d.t, d.dx, d.dy, this.strikeP)
+          v.lungeX = this.strikeP.x
+          v.lungeY = this.strikeP.y
+        } else {
+          const k = deathLunge(d.t - DEATH_STAGGER * (i + 1))
+          v.lungeX = Math.sign(d.ux - (v.x + v.w / 2)) * DEATH_SURGE_SIDE * k
+          v.lungeY = DEATH_SURGE * k
+        }
       }
     }
-    if (!d.dissolved && d.t >= d.dissolveAt) {
-      d.dissolved = true
-      this.ghostPos(d)
-      const cx = d.x + d.w / 2
-      const cy = this.ghostY + d.h / 2
-      for (let i = 0; i < 10; i++) {
-        this.vfx.spark(cx + (Math.random() - 0.5) * d.w * 0.8, cy + (Math.random() - 0.5) * d.h * 0.8,
-          (Math.random() - 0.5) * 0.6, -1.2 - Math.random() * 1.2, 0.6, 0.1, '#e8f0ff', -0.4, 0.96)
-      }
-    }
+    if (!d.torn && d.t >= DEATH_HIT) this.tear()
+    if (d.torn && !d.reduced) stepShards(this.shards, dt, COLS)
   }
 
-  /** The pale ghost (its own sprite, ~55% alpha + its white silhouette). */
-  private drawOverrunGhost(ctx: CanvasRenderingContext2D): void {
-    const d = this.demo
-    const bake = d.bake
-    if (!d.on || !bake) return
-    let a = clamp01(d.t / (d.reduced ? DEMO_IN_STILL : DEMO_IN))
-    if (d.t > d.dissolveAt) a *= 1 - clamp01((d.t - d.dissolveAt) / DEMO_OUT)
-    if (d.stopAt >= 0) a *= 1 - clamp01((d.t - d.stopAt) / DEMO_STOP)
-    if (a <= 0.01) return
-    this.ghostPos(d)
+  /** The strike: the unit tears apart — its pieces fly (render/death.ts),
+   *  sparks in its element colour, smoke, a red ring and flash, the big shake
+   *  — and the striker squashes on the blow (flashes white). */
+  private tear(): void {
+    const d = this.death
+    d.torn = true
+    const fs = this.fighter(d.tier)
+    if (fs.ready) {
+      const b = fs.box
+      const k = 0.98 / Math.max(b.w, b.h)
+      d.w = b.w * k
+      d.h = b.h * k
+    } else {
+      d.w = d.h = 0.98
+    }
+    const sv = d.striker >= 0 ? this.views.get(d.striker) : undefined
+    const push = sv ? Math.max(-1, Math.min(1, d.ux - (sv.x + sv.w / 2))) : 0
+    tearUnit(this.shards, d.ux, FLOOR_Y + 0.06, d.w, d.h, FLOOR_Y - 0.02, push, d.reduced, COLS, Math.random)
+    const x = d.ux
+    const y = FLOOR_Y - 0.5
+    const glow = tierInfo(d.tier).glow
+    this.flashRed = 1
+    this.bigShake('big')
+    for (let i = 0; i < 5; i++) {
+      this.smokePuff(x + (i - 2) * 0.2, y - Math.random() * 0.3, 0.55 + Math.random() * 0.25, 1.3 + Math.random() * 0.5, 0.9)
+    }
+    if (!d.reduced) {
+      this.vfx.burst(x, y, 22, 6, glow, 0.13, 0.7, 4, true)
+      for (let i = 0; i < 10; i++) {
+        this.vfx.spark(x + (Math.random() - 0.5) * 0.5, y + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 3,
+          -1.2 - Math.random() * 2.4, 0.7 + Math.random() * 0.5, 0.1, '#ff8a3c', 3, 0.95)
+      }
+    }
+    this.vfx.ring(x, y, 0.2, 1.8, 0.5, '#ff3848', 0.1)
+    if (sv) {
+      sv.flinch = 1
+      sv.flash = d.reduced ? 1 : 0.7
+    }
+    this.sfx.request('fighter-death', 0.06, 0.8, 10, 800, 'death-tear')
+  }
+
+  /** A grey smoke puff rising off the unit (a pooled floater; dropped when the pool is full). */
+  private smokePuff(x: number, y: number, size: number, life: number, rise: number): void {
+    const img = this.smoke
+    if (img) this.vfx.floater(img, 0, 0, img.width, img.height, x, y, size, life, rise)
+  }
+
+  /** The torn unit: its pieces (cells of its own sprite), spinning as they
+   *  fly, glowing in its element colour for a moment, going ash grey. */
+  private drawShards(ctx: CanvasRenderingContext2D): void {
+    const d = this.death
+    const fs = this.fighter(d.tier)
+    if (!fs.ready) return
     const l = this.layout
     const c = l.cell
-    const grow = d.t > d.dissolveAt ? 1 + 0.22 * clamp01((d.t - d.dissolveAt) / DEMO_OUT) : 1
-    const dw = bake.dw * c * d.scale * grow
-    const dh = bake.dh * c * d.scale * grow
-    const cx = l.ox + (d.x + d.w / 2) * c
-    const by = l.oy + (this.ghostY + d.h - 0.06 - this.ghostLift) * c
-    // The real monster stays drawn in place: the ghost only shows below its
-    // footprint, stepping out from under it.
-    const top = l.oy + (d.y0 + d.h) * c
-    ctx.save()
-    ctx.beginPath()
-    ctx.rect(l.ox, top, COLS * c, l.by + l.bh - top)
-    ctx.clip()
-    ctx.globalCompositeOperation = 'lighter'
-    ctx.globalAlpha = 0.28 * a
-    const gr = Math.max(dw, dh) * 0.75
-    ctx.drawImage(this.vfx.dot('#dfe8ff'), cx - gr, by - dh / 2 - gr, gr * 2, gr * 2)
-    ctx.globalCompositeOperation = 'source-over'
-    ctx.globalAlpha = 0.55 * a
-    ctx.drawImage(bake.base, cx - dw / 2, by - dh, dw, dh)
-    ctx.globalAlpha = 0.5 * a
-    ctx.drawImage(bake.white, cx - dw / 2, by - dh, dw, dh)
-    ctx.restore()
+    const b = fs.box
+    const n = SHARD_N
+    const sw = b.w / n
+    const sh = b.h / n
+    const pw = (d.w * c) / n
+    const ph = (d.h * c) / n
+    const since = d.t - DEATH_HIT
+    const ash = clamp01(since / SHARD_ASH) * 0.85
+    const looks = ash > 0.01 ? this.unitLooks.get(d.tier, fs, c * 0.98 * l.dpr * 1.15) : null
+    const aw = looks ? looks.ash.width / n : 0
+    const ah = looks ? looks.ash.height / n : 0
+    const ember = d.reduced ? 0 : 1 - clamp01(since / 0.5)
+    const dot = ember > 0.01 ? this.vfx.dot(tierInfo(d.tier).glow) : null
+    const shards = this.shards
+    for (let k = 0; k < shards.length; k++) {
+      const p = shards[k]!
+      const x = l.ox + p.x * c
+      const y = l.oy + p.y * c
+      if (dot) {
+        ctx.globalCompositeOperation = 'lighter'
+        ctx.globalAlpha = ember * 0.55
+        const r = pw * 1.1
+        ctx.drawImage(dot, x - r, y - r, r * 2, r * 2)
+        ctx.globalCompositeOperation = 'source-over'
+      }
+      ctx.save()
+      ctx.translate(x, y)
+      if (p.rot !== 0) ctx.rotate(p.rot)
+      ctx.globalAlpha = 1
+      ctx.drawImage(fs.img, b.x + p.i * sw, b.y + p.j * sh, sw, sh, -pw / 2, -ph / 2, pw, ph)
+      if (looks) {
+        ctx.globalAlpha = ash
+        ctx.drawImage(looks.ash, p.i * aw, p.j * ah, aw, ah, -pw / 2, -ph / 2, pw, ph)
+      }
+      ctx.restore()
+    }
+    ctx.globalAlpha = 1
+  }
+
+  /** The death's dim: DIM_COLOR over the whole board at `a`, but for a soft
+   *  clear pool round (x, y) (cells) — the wreck and the monster over it stay
+   *  in view. One gradient fill, made once per spot and size. */
+  private drawDeathDim(ctx: CanvasRenderingContext2D, x: number, y: number, a: number): void {
+    const l = this.layout
+    const c = l.cell
+    if (!this.dimGrad || this.dimX !== x || this.dimGen !== this.bakeGen) {
+      const px = l.ox + x * c
+      const py = l.oy + y * c
+      const g = ctx.createRadialGradient(px, py, 0, px, py, DIM_R * c)
+      g.addColorStop(0, 'rgba(26,0,8,0)')
+      g.addColorStop(0.46, 'rgba(26,0,8,0)')
+      g.addColorStop(0.75, 'rgba(26,0,8,0.8)')
+      g.addColorStop(1, DIM_COLOR)
+      this.dimGrad = g
+      this.dimX = x
+      this.dimGen = this.bakeGen
+    }
+    ctx.globalAlpha = clamp01(a)
+    ctx.fillStyle = this.dimGrad
+    ctx.fillRect(l.bx, l.by, l.bw, l.bh)
+    ctx.globalAlpha = 1
   }
 
   /** Start loading every walker unlocked by `row` + 3, so a new kind's first
@@ -3289,6 +3966,87 @@ export class BoardRenderer {
     g.moveTo(71, 57)
     g.lineTo(71, 68)
     g.stroke()
+    return cv
+  }
+
+  /** The volley count's ball glyph ("●×3"): a glossy white ball with the
+   *  count digits' dark outline, so it reads as one label with them. */
+  private bakeCountBall(px: number): HTMLCanvasElement {
+    const s = Math.max(8, px)
+    const cv = createCanvas(s, s)
+    const g = ctx2d(cv)
+    const c = s / 2
+    const lw = Math.max(1.5, s * 0.12)
+    const r = c - lw / 2 - 0.5
+    const body = g.createRadialGradient(c - r * 0.35, c - r * 0.4, r * 0.08, c, c, r)
+    body.addColorStop(0, '#ffffff')
+    body.addColorStop(0.45, '#dcecff')
+    body.addColorStop(1, '#7aa8dc')
+    g.fillStyle = body
+    g.beginPath()
+    g.arc(c, c, r, 0, TAU)
+    g.fill()
+    g.lineWidth = lw
+    g.strokeStyle = '#0b0e18'
+    g.stroke()
+    g.fillStyle = 'rgba(255,255,255,0.9)'
+    g.beginPath()
+    g.ellipse(c - r * 0.36, c - r * 0.4, r * 0.26, r * 0.15, -0.7, 0, TAU)
+    g.fill()
+    return cv
+  }
+
+  /** A soft grey smoke puff: three overlapping blobs, fading out at the rim. */
+  private bakeSmoke(px: number): HTMLCanvasElement {
+    const s = Math.max(8, px)
+    const cv = createCanvas(s, s)
+    const g = ctx2d(cv)
+    const blob = (x: number, y: number, r: number, a: number): void => {
+      const grad = g.createRadialGradient(x, y, 0, x, y, r)
+      grad.addColorStop(0, `rgba(176,180,190,${a})`)
+      grad.addColorStop(0.55, `rgba(128,132,142,${a * 0.6})`)
+      grad.addColorStop(1, 'rgba(110,114,124,0)')
+      g.fillStyle = grad
+      g.beginPath()
+      g.arc(x, y, r, 0, TAU)
+      g.fill()
+    }
+    blob(s * 0.5, s * 0.58, s * 0.38, 0.7)
+    blob(s * 0.34, s * 0.44, s * 0.26, 0.55)
+    blob(s * 0.64, s * 0.38, s * 0.24, 0.5)
+    return cv
+  }
+
+  /** A bead of sweat (the cowering unit): a light-blue teardrop, point up. */
+  private bakeSweat(px: number): HTMLCanvasElement {
+    const h = Math.max(8, px)
+    const w = Math.max(6, Math.round(h * 0.7))
+    const cv = createCanvas(w, h)
+    const g = ctx2d(cv)
+    const lw = Math.max(1, h * 0.08)
+    const cx = w / 2
+    const r = w / 2 - lw
+    const cy = h - r - lw
+    const tip = lw
+    g.beginPath()
+    g.moveTo(cx, tip)
+    g.bezierCurveTo(cx + r * 0.25, h * 0.32, cx + r, cy - r * 0.55, cx + r, cy)
+    g.arc(cx, cy, r, 0, Math.PI)
+    g.bezierCurveTo(cx - r, cy - r * 0.55, cx - r * 0.25, h * 0.32, cx, tip)
+    g.closePath()
+    const body = g.createLinearGradient(0, 0, 0, h)
+    body.addColorStop(0, '#eefaff')
+    body.addColorStop(1, '#5fb8ff')
+    g.fillStyle = body
+    g.fill()
+    g.lineJoin = 'round'
+    g.lineWidth = lw
+    g.strokeStyle = '#0e2a44'
+    g.stroke()
+    g.fillStyle = 'rgba(255,255,255,0.85)'
+    g.beginPath()
+    g.ellipse(cx - r * 0.35, cy - r * 0.2, r * 0.22, r * 0.34, 0.3, 0, TAU)
+    g.fill()
     return cv
   }
 

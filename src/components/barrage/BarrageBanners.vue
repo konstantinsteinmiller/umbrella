@@ -16,8 +16,13 @@
  * block in the same second would otherwise stack into an unreadable pile.
  * Low-value banners (FEVER) are dropped rather than queued once the queue
  * backs up: a banner that arrives three seconds late is noise.
+ *
+ * Cause → effect (run 6: WARCRY "appeared seemingly out of nowhere — never saw
+ * what triggered it"): a skill toast's icon flies in from the very bubble the
+ * ball popped on the board, and lands in the toast (skipped under reduced
+ * motion — the toast then simply appears).
  */
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBarrage from '@/barrage/state/useBarrage'
 import type { BossKind, EngineEvent, MonsterKind, SkillId } from '@/barrage/engine/types'
@@ -26,6 +31,7 @@ import { getState, setState } from '@/use/useEpicState'
 import { isCompactHud, isRoomyHud } from '@/use/useUser'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import { EB_MONSTERS_SEEN_KEY } from '@/barrage/keys'
+import { boardApi } from '@/components/barrage/barrageUi'
 
 const { t } = useI18n()
 const barrage = useBarrage()
@@ -105,12 +111,50 @@ const combo = ref<{ id: number; hits: number } | null>(null)
 let comboTimer = 0
 
 // ─── Skill toasts ────────────────────────────────────────────────────────────
-interface Toast { id: number; skill: SkillId }
+interface Toast { id: number; skill: SkillId; arriving: boolean }
 const toasts = ref<Toast[]>([])
 let toastSeq = 0
+const layerEl = ref<HTMLElement | null>(null)
+const reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+/** Where the bubble behind the next skill toast sat (client px), from the
+ *  engine's `skill` event — the toast itself comes through `lastSkill`. */
+let pendingFly: { skill: SkillId; x: number; y: number } | null = null
+const landed = (id: number): void => {
+  toasts.value = toasts.value.map((x) => (x.id === id && x.arriving ? { ...x, arriving: false } : x))
+}
+/** The skill's icon flies from its bubble into the toast's icon slot. */
+const fly = (id: number, skill: SkillId, from: { x: number; y: number }): void => {
+  const layer = layerEl.value
+  const icon = layer?.querySelector<HTMLElement>(`[data-toast-id="${id}"] .bb-toast__icon`)
+  if (!layer || !icon) { landed(id); return }
+  const lr = layer.getBoundingClientRect()
+  const ir = icon.getBoundingClientRect()
+  const size = ir.width || 30
+  const img = document.createElement('img')
+  img.src = skillSrc(skill)
+  img.alt = ''
+  img.className = 'bb-flier'
+  img.style.cssText = `position:absolute;left:${from.x - lr.left - size / 2}px;top:${from.y - lr.top - size / 2}px;width:${size}px;height:${size}px;pointer-events:none;z-index:5;filter:drop-shadow(0 0 6px rgba(255,230,140,0.9))`
+  layer.appendChild(img)
+  const dx = ir.left + ir.width / 2 - from.x
+  const dy = ir.top + ir.height / 2 - from.y
+  const done = (): void => { img.remove(); landed(id) }
+  if (typeof img.animate !== 'function') { done(); return }
+  const a = img.animate([
+    { transform: 'translate(0, 0) scale(1.5)', opacity: 1 },
+    { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 30}px) scale(1.25)`, opacity: 1, offset: 0.45 },
+    { transform: `translate(${dx}px, ${dy}px) scale(1)`, opacity: 1 }
+  ], { duration: 460, easing: 'cubic-bezier(0.45, 0, 0.3, 1)' })
+  a.onfinish = done
+  a.oncancel = done
+}
 const addToast = (skill: SkillId): void => {
   const id = ++toastSeq
-  toasts.value = [...toasts.value.slice(-2), { id, skill }]
+  const from = pendingFly && pendingFly.skill === skill ? pendingFly : null
+  pendingFly = null
+  const arriving = !!from && !reducedMotion
+  toasts.value = [...toasts.value.slice(-2), { id, skill, arriving }]
+  if (arriving && from) void nextTick(() => fly(id, skill, from))
   window.setTimeout(() => { toasts.value = toasts.value.filter((x) => x.id !== id) }, 2400)
 }
 watch(() => barrage.lastSkill.value, (skill) => {
@@ -125,6 +169,12 @@ const onEvent = (e: EngineEvent): void => {
     case 'bossSpawn':
       announce(`${t('barrage.banners.bossIncoming')} ${t('barrage.bosses.' + e.bossKind)}`)
       break
+    case 'skill': {
+      // The bubble's spot, for the toast's icon to fly in from (cause → effect).
+      const p = boardApi.value?.cellToClient(e.x, e.y) ?? null
+      pendingFly = p ? { skill: e.skill, x: p.x, y: p.y } : null
+      break
+    }
     case 'bossEnrage': {
       const kind = barrage.boss.value?.bossKind
       if (kind) announce(`${t('barrage.banners.enraged', { name: t('barrage.bosses.' + kind) })} ${t('barrage.banners.enragedSub')}`)
@@ -153,6 +203,14 @@ const onEvent = (e: EngineEvent): void => {
       combo.value = { id: ++seq, hits: e.hits }
       window.clearTimeout(comboTimer)
       comboTimer = window.setTimeout(() => { combo.value = null }, 1100)
+      break
+    // Fun pass: a volley whose rattles paid gets the board's tally ("×hits"
+    // and "+coins", canvas, same spot) — the popup steps aside for it.
+    case 'comboBonus':
+      if (e.coins > 0) {
+        window.clearTimeout(comboTimer)
+        combo.value = null
+      }
       break
     case 'monsterSpawn': {
       if (e.kind === 'boss') break
@@ -188,12 +246,12 @@ const sizeClass = computed(() => isCompactHud.value ? 'bb--compact' : isRoomyHud
 </script>
 
 <template lang="pug">
-  div.barrage-banners.absolute.inset-0.pointer-events-none.overflow-hidden(:class="sizeClass")
+  div.barrage-banners.absolute.inset-0.pointer-events-none.overflow-hidden(ref="layerEl" :class="sizeClass")
     //- ── Skill toasts (lower middle: the top rows are where new rows and bosses enter) ──
     div.bb-toasts.absolute.left-0.right-0.flex.flex-col.items-center.gap-1(aria-live="polite")
       TransitionGroup(name="bb-toast")
-        div.bb-toast.flex.items-center.gap-2.rounded-xl(v-for="x in toasts" :key="x.id")
-          img.bb-toast__icon.shrink-0(:src="skillSrc(x.skill)" alt="" draggable="false")
+        div.bb-toast.flex.items-center.gap-2.rounded-xl(v-for="x in toasts" :key="x.id" :data-toast-id="x.id")
+          img.bb-toast__icon.shrink-0(:src="skillSrc(x.skill)" alt="" draggable="false" :class="{ 'is-arriving': x.arriving }")
           div.flex.flex-col.items-start.min-w-0
             span.bb-toast__name.game-text.font-black.uppercase.leading-none {{ t('barrage.skills.' + x.skill + '.name') }}
             span.bb-toast__effect.game-text.leading-tight {{ t('barrage.skills.' + x.skill + '.effect') }}
@@ -246,6 +304,9 @@ const sizeClass = computed(() => isCompactHud.value ? 'bb--compact' : isRoomyHud
   height: 30px
   object-fit: contain
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6))
+  // Its flying twin (from the bubble on the board) is still on the way.
+  &.is-arriving
+    opacity: 0
 .bb-toast__name
   color: #ffe27a
   font-size: 12px

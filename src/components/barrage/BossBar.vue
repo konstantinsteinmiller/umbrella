@@ -19,8 +19,19 @@
  *
  * The ENRAGED pill sits BESIDE the framed bar, never inside it: play-test run 2
  * read the pill at the end of the frame as lying on top of the HP bar.
+ *
+ * Boss mercy (a boss the player keeps losing to comes back softer): the track
+ * stays the boss's FULL HP and the share it lost is a dull stub cracked off the
+ * end of the bar — it breaks away as the bar slides in. "It is weaker than last
+ * time", without a word; the fill, lag and enrage zone scale into what is left.
+ *
+ * Run 6 ("the 65 never moved — I couldn't tell if my shots were even hitting"):
+ * every HP drop jolts the track and flashes the fill; a volley that ends
+ * without a single ball touching the boss shakes the whole bar (a whiff reads
+ * as a whiff). The board adds a grey puff where the last ball landed and
+ * wobbles the boss's HP plate. Wordless.
  */
-import { computed, ref, watch, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBarrage from '@/barrage/state/useBarrage'
 import { bossSrc } from '@/barrage/art'
@@ -40,7 +51,15 @@ const frac = computed(() => {
   return Math.max(0, Math.min(1, b.hp / b.maxHp))
 })
 const name = computed(() => boss.value ? t(`barrage.bosses.${boss.value.bossKind}`) : '')
-const rageStyle = { width: `${BOSS_ENRAGE_AT * 100}%` }
+/** Share of its full HP the boss has left after mercy (1 = none). */
+const mercy = computed(() => {
+  const m = boss.value?.mercy
+  return m !== undefined && m > 0 && m < 1 ? m : 1
+})
+const rageStyle = computed(() => ({ width: `${BOSS_ENRAGE_AT * mercy.value * 100}%` }))
+const fillStyle = computed(() => ({ width: `${frac.value * mercy.value * 100}%` }))
+const lagStyle = computed(() => ({ width: `${lag.value * mercy.value * 100}%` }))
+const crackedStyle = computed(() => ({ left: `calc(${mercy.value * 100}% + 2px)` }))
 const aria = computed(() => boss.value
   ? t('barrage.boss.hpAria', { name: name.value, hp: formatBig(Math.ceil(boss.value.hp), { sig: 3, trim: true }), max: formatBig(Math.ceil(boss.value.maxHp), { sig: 3, trim: true }) })
   : '')
@@ -53,8 +72,42 @@ watch(frac, (f, prev) => {
   if (f > (prev ?? 1)) { lag.value = f; return }
   lagTimer = window.setTimeout(() => { lag.value = f }, 380)
 })
-watch(() => boss.value?.monsterId, () => { lag.value = frac.value })
+// Immediate: the bar mounts with a boss already hurt (a reload mid-fight) —
+// the trail starts where the HP is, not at full, until the first hit.
+watch(() => boss.value?.monsterId, () => { lag.value = frac.value }, { immediate: true })
 onUnmounted(() => window.clearTimeout(lagTimer))
+
+// Hit jolt: every HP drop replays the track's flash (off a frame, then on).
+const hitOn = ref(false)
+let hitRaf = 0
+watch(frac, (f, prev) => {
+  if (prev === undefined || !(f < prev)) return
+  hitOn.value = false
+  cancelAnimationFrame(hitRaf)
+  hitRaf = requestAnimationFrame(() => { hitOn.value = true })
+})
+// Whiff: a volley ended and no ball touched the live boss.
+const whiffOn = ref(false)
+let whiffRaf = 0
+let touched = true
+let offEvents: (() => void) | null = null
+onMounted(() => {
+  offEvents = barrage.onEngineEvent((e) => {
+    if (e.type === 'fire') touched = false
+    else if (e.type === 'hit' && e.monsterId === boss.value?.monsterId) touched = true
+    else if (e.type === 'volleyEnd' && !touched && boss.value) {
+      touched = true
+      whiffOn.value = false
+      cancelAnimationFrame(whiffRaf)
+      whiffRaf = requestAnimationFrame(() => { whiffOn.value = true })
+    }
+  })
+})
+onUnmounted(() => {
+  offEvents?.()
+  cancelAnimationFrame(hitRaf)
+  cancelAnimationFrame(whiffRaf)
+})
 
 const sizeClass = computed(() => [
   props.inline ? 'boss-bar--inline' : '',
@@ -66,7 +119,8 @@ const sizeClass = computed(() => [
   Transition(name="boss-bar")
     div.boss-bar-row.flex.items-center.pointer-events-none(
       v-if="boss"
-      :class="sizeClass"
+      :class="[sizeClass, { 'is-whiff': whiffOn }]"
+      @animationend="whiffOn = false"
       role="status"
       :aria-label="aria"
     )
@@ -76,16 +130,18 @@ const sizeClass = computed(() => [
         //- Inline: one row — name, bar.
         template(v-if="inline")
           span.boss-bar__name.game-text.font-black.uppercase.truncate.shrink(class="max-w-[45%]") {{ name }}
-          div.boss-bar__track.relative.flex-1.min-w-6.overflow-hidden
-            div.boss-bar__lag.absolute.inset-y-0.left-0(:style="{ width: (lag * 100) + '%' }")
-            div.boss-bar__fill.absolute.inset-y-0.left-0(:style="{ width: (frac * 100) + '%' }")
+          div.boss-bar__track.relative.flex-1.min-w-6.overflow-hidden(:class="{ 'is-hit': hitOn }")
+            div.boss-bar__lag.absolute.inset-y-0.left-0(:style="lagStyle")
+            div.boss-bar__fill.absolute.inset-y-0.left-0(:style="fillStyle")
             div.boss-bar__rage.absolute.inset-y-0.left-0(v-if="!boss.enraged" :style="rageStyle")
+            div.boss-bar__cracked.absolute.inset-y-0.right-0(v-if="mercy < 1" :style="crackedStyle")
         div.flex.flex-col.flex-1.min-w-0.gap-0_5(v-else)
           span.boss-bar__name.game-text.font-black.uppercase.truncate {{ name }}
-          div.boss-bar__track.relative.w-full.overflow-hidden
-            div.boss-bar__lag.absolute.inset-y-0.left-0(:style="{ width: (lag * 100) + '%' }")
-            div.boss-bar__fill.absolute.inset-y-0.left-0(:style="{ width: (frac * 100) + '%' }")
+          div.boss-bar__track.relative.w-full.overflow-hidden(:class="{ 'is-hit': hitOn }")
+            div.boss-bar__lag.absolute.inset-y-0.left-0(:style="lagStyle")
+            div.boss-bar__fill.absolute.inset-y-0.left-0(:style="fillStyle")
             div.boss-bar__rage.absolute.inset-y-0.left-0(v-if="!boss.enraged" :style="rageStyle")
+            div.boss-bar__cracked.absolute.inset-y-0.right-0(v-if="mercy < 1" :style="crackedStyle")
       //- Enraged: beside the frame, never over the HP track.
       span.boss-bar__enraged.game-text.font-black.uppercase.shrink-0(v-if="boss.enraged") {{ t('barrage.boss.enraged') }}
 </template>
@@ -137,6 +193,20 @@ const sizeClass = computed(() => [
   border-radius: 999px
   background: rgba(0, 0, 0, 0.6)
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15)
+.boss-bar__cracked
+  // Boss mercy: the HP it lost to the player's earlier defeats — a dull stub
+  // past a jagged break, with two dark cracks through it.
+  background: linear-gradient(112deg, transparent 0 36%, rgba(0, 0, 0, 0.6) 36% 41%, transparent 41% 68%, rgba(0, 0, 0, 0.6) 68% 72%, transparent 72%), linear-gradient(180deg, rgba(168, 128, 110, 0.6), rgba(96, 66, 58, 0.6))
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 3px 72%, 0 50%, 3px 28%)
+  animation: mercy-break 0.8s ease-out 0.4s both
+  // Starts as live bar, flashes, and falls dull as the chunk breaks away.
+  &::before
+    content: ''
+    position: absolute
+    inset: 0
+    background: linear-gradient(180deg, #ff9a4a, #e0461e)
+    opacity: 0
+    animation: mercy-flash 0.8s ease-out 0.4s both
 .boss-bar__lag
   background: #fff3c4
   border-radius: 999px
@@ -177,6 +247,58 @@ const sizeClass = computed(() => [
   .boss-bar__track
     height: 10px
 
+// Run 6: a hit jolts the track and flashes the fill; a whiff shakes the bar.
+.boss-bar__track.is-hit
+  animation: boss-hit-jolt 0.18s ease-out
+  .boss-bar__fill
+    animation: boss-hit-flash 0.22s ease-out
+.boss-bar-row.is-whiff
+  animation: boss-whiff-shake 0.42s ease-in-out
+@media (prefers-reduced-motion: reduce)
+  .boss-bar__track.is-hit, .boss-bar-row.is-whiff
+    animation: none
+@keyframes boss-hit-jolt
+  0%
+    transform: translateY(1.5px) scaleY(1.25)
+  100%
+    transform: none
+@keyframes boss-hit-flash
+  0%
+    filter: brightness(2.2) saturate(0.4)
+  100%
+    filter: none
+@keyframes boss-whiff-shake
+  0%, 100%
+    transform: translateX(0)
+    filter: none
+  15%
+    transform: translateX(-4px)
+    filter: grayscale(0.7)
+  35%
+    transform: translateX(4px)
+  55%
+    transform: translateX(-3px)
+  75%
+    transform: translateX(2px)
+    filter: grayscale(0.3)
+
+@keyframes mercy-break
+  0%, 50%
+    transform: translateX(-2px)
+  68%
+    transform: translateX(3px)
+  100%
+    transform: translateX(0)
+@keyframes mercy-flash
+  0%, 45%
+    opacity: 1
+    filter: none
+  55%
+    opacity: 1
+    filter: brightness(2.4)
+  100%
+    opacity: 0
+    filter: none
 @keyframes enraged-blink
   0%
     opacity: 1
@@ -228,6 +350,6 @@ const sizeClass = computed(() => [
   opacity: 0
 
 @media (prefers-reduced-motion: reduce)
-  .boss-bar__enraged, .boss-bar.is-enraged
+  .boss-bar__enraged, .boss-bar.is-enraged, .boss-bar__cracked, .boss-bar__cracked::before
     animation: none
 </style>

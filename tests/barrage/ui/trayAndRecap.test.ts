@@ -11,11 +11,22 @@ import { defineComponent, h as hh, nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
 import en from '@/i18n/locales/en'
 
+interface TrayMock {
+  tray: { value: number[] }
+  trayCapacity: { value: number }
+  phase: { value: string }
+  engineGen: { value: number }
+  engine: { value: { state: { monsters: Record<string, unknown>[] } } }
+}
+const hb = vi.hoisted(() => ({ api: null as null | TrayMock }))
+
 vi.mock('@/barrage/state/useBarrage', async () => {
-  const { ref } = await import('vue')
+  const { ref, shallowRef } = await import('vue')
   const api = {
     tray: ref([2, 1]),
     trayCapacity: ref(3),
+    phase: ref('aim'),
+    engine: shallowRef({ state: { phase: 'aim', turn: 1, launcherX: 3.5, monsters: [] as unknown[] } }),
     shields: ref(2),
     revives: ref(0),
     warcryArmed: ref(false),
@@ -27,6 +38,8 @@ vi.mock('@/barrage/state/useBarrage', async () => {
       recap: { row: 15, kills: 22, coins: 78 }
     }),
     dailyResult: ref(null),
+    // Run 7: the death sequence is over — the death screen is up.
+    deathScene: ref(false),
     checkpointRow: ref(0),
     row: ref(15),
     continueWithMeteor: () => {},
@@ -35,6 +48,7 @@ vi.mock('@/barrage/state/useBarrage', async () => {
     exitDaily: () => {},
     startDaily: () => {}
   }
+  hb.api = api as unknown as TrayMock
   return { default: () => api }
 })
 vi.mock('@/use/useSound', () => ({ default: () => ({ playSound: () => null }) }))
@@ -123,6 +137,115 @@ describe('OVERRUN recap', () => {
     expect(coins.find('.recap-n').text()).toBe('+78')
     expect(coins.find('.recap-label').text()).toBe(en.barrage.breach.recapEarned)
     expect(w.find('.breach-recap').attributes('aria-label')).toBe('This run: row 15, 22 kills, 78 coins earned')
+    w.unmount()
+  })
+
+  it('run 9: it names the monster that broke through, beside its portrait', async () => {
+    const api = hb.api as unknown as { breach: { value: Record<string, unknown> } }
+    const was = api.breach.value
+    api.breach.value = { ...was, row: 40, culprit: { kind: 'boss', bossKind: 'fire-dragon' } }
+    const w = mount(BreachModal, { global: { plugins: [i18n], stubs: { FModal } } })
+    await nextTick()
+    expect(w.find('.breach-culprit').text()).toBe('Fire Dragon broke through at row 40.')
+    expect(w.find('.breach-culprit__face img').exists()).toBe(true)
+    api.breach.value = { ...was, culprit: { kind: 'goblin' } }
+    await nextTick()
+    expect(w.find('.breach-culprit').text()).toBe('Goblin broke through at row 15.')
+    // No culprit (an older offer): the plain sentence.
+    api.breach.value = was
+    await nextTick()
+    expect(w.find('.breach-culprit').exists()).toBe(false)
+    expect(w.text()).toContain('The monsters broke through at row 15.')
+    w.unmount()
+  })
+
+  it('run 7: it waits out the death sequence ("WASTED" first), then opens', async () => {
+    const Gate = defineComponent({
+      props: { modelValue: Boolean },
+      setup: (p, { slots }) => () => (p.modelValue ? hh('div', { class: 'modal-open' }, slots.default?.()) : null)
+    })
+    const api = hb.api as unknown as { deathScene: { value: boolean } }
+    api.deathScene.value = true
+    const w = mount(BreachModal, { global: { plugins: [i18n], stubs: { FModal: Gate } } })
+    await nextTick()
+    expect(w.find('.modal-open').exists()).toBe(false)
+    api.deathScene.value = false
+    await nextTick()
+    expect(w.find('.modal-open').exists()).toBe(true)
+    expect(w.find('.breach-recap').exists()).toBe(true)
+    w.unmount()
+  })
+})
+
+// Play-test run 4: "what Capacity changes — never noticed a difference". A
+// capacity purchase now pays off in the tray itself; and while a monster is
+// one march from the line, the orbs tremble.
+describe('run 4: the tray', () => {
+  const api = () => hb.api!
+  beforeEach(() => {
+    vi.useFakeTimers()
+    boardApi.value = stubBoard()
+    api().trayCapacity.value = 3
+    api().tray.value = [2, 1]
+    api().phase.value = 'aim'
+    api().engine.value.state.monsters = []
+  })
+  afterEach(() => {
+    boardApi.value = null
+    vi.useRealTimers()
+  })
+
+  it('buying Tray Capacity: the new socket drops into the tray and glows, the count flashes — then settles', async () => {
+    const w = mount(BallTray, { global: { plugins: [i18n] } })
+    await nextTick()
+    expect(w.findAll('.tray-slot')).toHaveLength(3)
+    expect(w.find('.tray-slot.is-fresh').exists()).toBe(false)
+    api().trayCapacity.value = 4
+    await nextTick()
+    const slots = w.findAll('.tray-slot')
+    expect(slots).toHaveLength(4)
+    expect(slots.map((s) => s.classes('is-fresh'))).toEqual([false, false, false, true])
+    expect(slots[3]!.find('.tray-socket').exists()).toBe(true)
+    expect(w.find('.tray-count').classes()).toContain('is-grown')
+    vi.advanceTimersByTime(1800)
+    await nextTick()
+    expect(w.find('.tray-slot.is-fresh').exists()).toBe(false)
+    expect(w.find('.tray-count').classes()).not.toContain('is-grown')
+    w.unmount()
+  })
+
+  it('a new board with a bigger tray (restart, daily) is not a purchase: nothing drops in', async () => {
+    const w = mount(BallTray, { global: { plugins: [i18n] } })
+    await nextTick()
+    api().engineGen.value += 1
+    api().trayCapacity.value = 6
+    await nextTick()
+    expect(w.findAll('.tray-slot')).toHaveLength(6)
+    expect(w.find('.tray-slot.is-fresh').exists()).toBe(false)
+    w.unmount()
+  })
+
+  it('a monster wearing the `1` pip makes the orbs tremble; the volley or a safe board stops it', async () => {
+    const w = mount(BallTray, { global: { plugins: [i18n] } })
+    await nextTick()
+    expect(w.find('.ball-tray').classes()).not.toContain('ball-tray--brink')
+    // One march from the line (row 9 of 10), as the next aim opens.
+    api().phase.value = 'volley'
+    api().engine.value.state.monsters = [
+      { id: 1, kind: 'slime', col: 3, row: 9, w: 1, h: 1, frozen: 0, enraged: false }
+    ]
+    await nextTick()
+    api().phase.value = 'aim'
+    await nextTick()
+    expect(w.find('.ball-tray').classes()).toContain('ball-tray--brink')
+    api().phase.value = 'volley'
+    await nextTick()
+    expect(w.find('.ball-tray').classes()).not.toContain('ball-tray--brink')
+    // Two marches out (the `2` pip) is not the brink.
+    api().engine.value.state.monsters[0]!.row = 8
+    api().phase.value = 'aim'
+    await nextTick()
+    expect(w.find('.ball-tray').classes()).not.toContain('ball-tray--brink')
     w.unmount()
   })
 })

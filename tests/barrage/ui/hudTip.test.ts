@@ -159,4 +159,37 @@ describe('treasure chest labels', () => {
     expect(w.find('.chest__gift').text()).toBe('+60')
     w.unmount()
   })
+
+  // Run 4: after a claim the closed chest + "3:00" read as a buff timer.
+  it('after a claim it stands EMPTY and refilling: lid open, dark mouth, coins trickling in, a hoard that rises', async () => {
+    const w = mount(SupplyDropButton, { props: { coinTarget: null }, global })
+    const art = w.find('.chest__art')
+    expect(art.classes()).toContain('chest__art--refill')
+    expect(w.find('.chest__lid').exists()).toBe(true)
+    expect(w.find('.chest__body').exists()).toBe(true)
+    expect(w.find('.chest__mouth .chest__hoard').exists()).toBe(true)
+    expect(w.findAll('.chest__drip')).toHaveLength(3)
+    // The veil still drains with the fill (progress 0.1 → 90 % veiled).
+    expect(w.find('.chest__veil').attributes('style')).toContain('height: 90%')
+    // A gift waiting: the whole, closed chest again.
+    h.stage!.value = 'small'
+    await nextTick()
+    expect(w.find('.chest__art').classes()).not.toContain('chest__art--refill')
+    expect(w.find('.chest__lid').exists()).toBe(false)
+    expect(w.findAll('.chest__drip')).toHaveLength(0)
+    w.unmount()
+  })
+
+  it('a claim rains coins into the wallet: the upgrade funnel is told to wait (coinRain)', async () => {
+    const { coinRain, COIN_RAIN_MS } = await import('@/components/barrage/barrageUi')
+    h.stage!.value = 'small'
+    ;(h.claim as unknown as { mockReturnValueOnce(v: unknown): void }).mockReturnValueOnce({ coins: 60, skill: null, stage: 'small' })
+    const w = mount(SupplyDropButton, { props: { coinTarget: null }, global })
+    expect(coinRain.value).toBe(false)
+    await w.find('button').trigger('click')
+    expect(coinRain.value).toBe(true)
+    vi.advanceTimersByTime(COIN_RAIN_MS + 10)
+    expect(coinRain.value).toBe(false)
+    w.unmount()
+  })
 })

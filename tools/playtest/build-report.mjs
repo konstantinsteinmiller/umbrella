@@ -86,10 +86,24 @@ const players = PERSONAS.map((persona) => {
   return { ...p, report: s.report, shots, shotsTotal: s.all.length, timeline: s.timeline, errors: s.errors, session: s.session }
 })
 
+/** The daemons' own record of a run's budget (run 9+: 5 min, extended to 7
+ *  for a tester who never lost); older runs don't log one (180 s). */
+const startLogOf = (runDir) => {
+  for (const p of PERSONAS) {
+    const f = path.join(runDir, p.id, 'timeline.jsonl')
+    if (!fs.existsSync(f)) continue
+    const line = fs.readFileSync(f, 'utf8').split('\n').find((l) => l.includes('"kind":"start"'))
+    if (line) return JSON.parse(line)
+  }
+  return null
+}
+const budgetOf = (log) => ({ budgetSec: log?.budget ?? 180, maxBudgetSec: Math.max(log?.budget ?? 180, log?.extend ?? 0) })
+
 const previous = PREVS.map((dir) => {
   const prevFindings = readJson(path.join(dir, 'findings.json'), { findings: [] })
   return {
     label: path.basename(dir),
+    ...budgetOf(startLogOf(dir)),
     findings: (prevFindings.findings ?? []).map(({ id, severity, title }) => ({ id, severity, title })),
     players: PERSONAS.map((persona) => {
       const s = loadSession(dir, { id: persona.id }, [])
@@ -104,12 +118,14 @@ const previous = PREVS.map((dir) => {
   }
 })
 
+const startLog = startLogOf(RUN)
+
 const data = {
   meta: {
     game: 'Elemental Barrage', run: LABEL,
     build: '0.1.0 (production build, unobfuscated, leaderboard writes off)',
     date: new Date().toISOString().slice(0, 10), viewport: '390 × 844 phone (touch + iPhone user agent)',
-    budgetSec: 180, thinkSec: 2, testers: 'Claude Sonnet agents, one per persona, each in its own headed Chrome'
+    ...budgetOf(startLog), thinkSec: startLog?.think ?? 2, testers: 'Claude Sonnet agents, one per persona, each in its own headed Chrome'
   },
   summary: findings.summary, findings: findings.findings, followUp: findings.followUp ?? [], previous, players
 }

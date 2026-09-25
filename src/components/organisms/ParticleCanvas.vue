@@ -65,7 +65,10 @@ onUnmounted(() => {
 </script>
 
 <template lang="pug">
-  canvas.particle-canvas.pointer-events-none.fixed.inset-0(ref="canvasRef" class="z-[60]")
+  //- `data-poki-no-playtest`: Poki's playtest recorder films the LARGEST canvas
+  //- unless told otherwise — this full-window one, so every video was black but
+  //- for confetti. The recorder films the stage (utils/pokiPlaytestStage.ts).
+  canvas.particle-canvas.pointer-events-none.fixed.inset-0(ref="canvasRef" class="z-[60]" data-poki-no-playtest="true")
 </template>
 
 <style scoped lang="sass">

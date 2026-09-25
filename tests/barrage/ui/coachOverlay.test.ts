@@ -1,9 +1,7 @@
-// The coach overlay's side of the overrun lesson (the lose rule, play-test
-// run 3): the board plays the demo on its canvas (`boardApi.overrunDemo`); the
-// overlay starts it the first frame it may be seen — the FTUE's hand steps
-// aside for it — counts it only when the board really played it, keeps the
-// one-lesson channel for its length and hands the aim back when it is over or
-// the player takes the board.
+// The coach overlay: the upgrade funnel's channel beside the lessons, and the
+// playtest harness's markers on every live region. (The overrun lesson it
+// used to sequence is retired — run 7: the loss itself teaches the line, the
+// board's death sequence under "WASTED".)
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
@@ -69,26 +67,19 @@ vi.mock('@/components/barrage/mergeLightbox', async () => {
 
 import CoachOverlay from '@/components/barrage/coach/CoachOverlay.vue'
 import { boardApi, playerAiming, type BoardApi } from '@/components/barrage/barrageUi'
-import { coachLesson, lessonShown } from '@/use/useCoach'
+import { coachLesson, upgradeFunnel } from '@/use/useCoach'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 const r = () => h.refs!
 
-const demo = vi.fn<(id: number) => number>()
 const stubBoard = (): BoardApi => ({
   launcherClientPoint: () => ({ x: 195, y: 600 }),
   cellToClient: (x, y) => ({ x: 20 + x * 50, y: 80 + y * 50 }),
   boardClientRect: () => null,
-  beginAimFrom: () => false,
-  overrunDemo: (id) => demo(id)
+  beginAimFrom: () => false
 })
 
 let seq = 900
-const overrun = (monsterId = 7) => {
-  const l = { id: 'overrun' as const, seq: ++seq, monsterId }
-  coachLesson.value = l
-  return l
-}
 
 const render = () => mount(CoachOverlay, {
   global: {
@@ -97,10 +88,8 @@ const render = () => mount(CoachOverlay, {
   }
 })
 
-describe('overrun demo in the coach overlay', () => {
+describe('upgrade funnel in the coach overlay', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
-    demo.mockReset()
     boardApi.value = stubBoard()
     playerAiming.value = false
     r().phase.value = 'aim'
@@ -112,113 +101,109 @@ describe('overrun demo in the coach overlay', () => {
     r().reveal.value = null
     r().mergeBox.value = null
     coachLesson.value = null
+    upgradeFunnel.value = null
   })
   afterEach(() => {
     coachLesson.value = null
+    upgradeFunnel.value = null
+  })
+
+  it('plays in full with the hand when it owns the screen; the survive lesson takes it off', async () => {
+    const w = render()
+    upgradeFunnel.value = { target: 'capacity', reason: 'rich', seq: ++seq }
+    await nextTick()
+    const f = w.findComponent({ name: 'UpgradeFunnel' })
+    expect(f.exists()).toBe(true)
+    expect(f.props('target')).toBe('capacity')
+    expect(f.props('quiet')).toBe(false)
+    expect(w.text()).toContain(en.barrage.coach.upgrade)
+    // A shot lesson on screen (only before the 3rd volley): arrows only.
+    coachLesson.value = { id: 'pull', seq: ++seq, reason: 'idle' }
+    await nextTick()
+    expect(w.findComponent({ name: 'UpgradeFunnel' }).props('quiet')).toBe(true)
+    // Danger first.
+    coachLesson.value = { id: 'survive', seq: ++seq, trial: { angle: 1, path: [], contacts: [], hits: 0, kills: 0, damage: 0, balls: 0, skills: [], breach: false, threatDamage: 1, threatKills: 0, rowsLeftAfter: 3 }, threats: [], skillAt: null }
+    await nextTick()
+    expect(w.findComponent({ name: 'UpgradeFunnel' }).exists()).toBe(false)
+    w.unmount()
+  })
+})
+
+describe('the funnel rests (run 8: the arrows "stay up forever")', () => {
+  beforeEach(() => {
+    boardApi.value = stubBoard()
+    playerAiming.value = false
+    r().phase.value = 'aim'
+    r().holdSim.value = false
+    r().tutorialActive.value = false
+    r().tutorialPreview.value = null
+    r().unlocking.value = null
+    r().modal.value = false
+    r().reveal.value = null
+    r().mergeBox.value = null
+    coachLesson.value = null
+    upgradeFunnel.value = null
+  })
+  afterEach(() => {
+    upgradeFunnel.value = null
     vi.useRealTimers()
   })
 
-  it('plays it on the board, counts it, reads the rule out, and ends when the board says it is over', async () => {
-    demo.mockReturnValue(1800)
+  it('shows for 10 s, rests for 20 s, and comes back while the chip is still unbought — across aim phases', async () => {
+    vi.useFakeTimers()
     const w = render()
-    const before = lessonShown('overrun')
-    overrun(7)
+    const shown = () => w.findComponent({ name: 'UpgradeFunnel' }).exists()
+    upgradeFunnel.value = { target: 'damage', reason: 'damage', seq: ++seq }
     await nextTick()
-    expect(demo).toHaveBeenCalledTimes(1)
-    expect(demo).toHaveBeenCalledWith(7)
-    expect(lessonShown('overrun')).toBe(before + 1)
-    expect(w.text()).toContain(en.barrage.coach.overrun)
-    // Re-renders do not replay or recount it.
+    expect(shown()).toBe(true)
+    vi.advanceTimersByTime(10_300)
     await nextTick()
-    expect(demo).toHaveBeenCalledTimes(1)
-    vi.advanceTimersByTime(1700)
-    expect(coachLesson.value?.id).toBe('overrun')
-    vi.advanceTimersByTime(200)
-    expect(coachLesson.value).toBeNull()
+    expect(shown()).toBe(false)
+    // The next aim phase's showing (a fresh seq, after a null gap) does not cut the rest short.
+    upgradeFunnel.value = null
+    await nextTick()
+    upgradeFunnel.value = { target: 'damage', reason: 'damage', seq: ++seq }
+    await nextTick()
+    expect(shown()).toBe(false)
+    vi.advanceTimersByTime(20_000)
+    await nextTick()
+    expect(shown()).toBe(true)
+    // A funnel on a different chip starts a fresh cycle, up at once.
+    vi.advanceTimersByTime(10_300)
+    await nextTick()
+    expect(shown()).toBe(false)
+    upgradeFunnel.value = { target: 'capacity', reason: 'rich', seq: ++seq }
+    await nextTick()
+    expect(shown()).toBe(true)
+    w.unmount()
+  })
+})
+
+// Run 5: the playtest harness reads the coach's sentences by a stable marker,
+// not by the (generic) sr-only / aria-live classes.
+describe('harness marker on the live regions', () => {
+  it('every sr-only live region of the coach overlay carries `data-coach-live`', async () => {
+    const w = render()
+    await nextTick()
+    const regions = w.findAll('[aria-live]')
+    expect(regions.length).toBe(2)
+    for (const el of regions) expect(el.attributes('data-coach-live')).toBeTruthy()
     w.unmount()
   })
 
-  it('a board that has not drawn the monster yet (a fresh load) is asked again, then plays', async () => {
-    demo.mockReturnValueOnce(0).mockReturnValueOnce(0).mockReturnValue(2000)
-    const w = render()
-    const before = lessonShown('overrun')
-    overrun()
-    await nextTick()
-    expect(demo).toHaveBeenCalledTimes(1)
-    expect(lessonShown('overrun')).toBe(before)
-    expect(w.text()).not.toContain(en.barrage.coach.overrun) // nothing played yet: nothing read
-    vi.advanceTimersByTime(400)
-    await nextTick()
-    expect(demo).toHaveBeenCalledTimes(3)
-    expect(lessonShown('overrun')).toBe(before + 1)
-    expect(w.text()).toContain(en.barrage.coach.overrun)
-    w.unmount()
+  it("the merge lightbox's live region carries it too", async () => {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const src = readFileSync(resolve(__dirname, '../../../src/components/barrage/MergeLightbox.vue'), 'utf8')
+    const live = src.split('\n').filter((l) => l.includes('aria-live'))
+    expect(live.length).toBeGreaterThan(0)
+    for (const l of live) expect(l).toContain('data-coach-live')
   })
 
-  it('a demo the board can never play is given up uncounted after a moment, and the aim goes on', async () => {
-    demo.mockReturnValue(0)
-    const w = render()
-    const before = lessonShown('overrun')
-    overrun()
-    await nextTick()
-    expect(coachLesson.value?.id).toBe('overrun')
-    vi.advanceTimersByTime(2000)
-    expect(demo.mock.calls.length).toBeGreaterThan(1)
-    expect(demo.mock.calls.length).toBeLessThanOrEqual(8)
-    expect(lessonShown('overrun')).toBe(before)
-    expect(coachLesson.value).toBeNull()
-    w.unmount()
-  })
-
-  it('plays over the FTUE (whose hand steps aside for it)', async () => {
-    demo.mockReturnValue(1500)
-    r().tutorialActive.value = true
-    r().tutorialPreview.value = 'aim'
-    const w = render()
-    overrun()
-    await nextTick()
-    expect(demo).toHaveBeenCalledTimes(1)
-    w.unmount()
-  })
-
-  it('waits out a modal, the merge lightbox, a feature unlock and a finger on the board', async () => {
-    demo.mockReturnValue(1500)
-    const w = render()
-    r().modal.value = true
-    r().mergeBox.value = { idx: 0 }
-    r().unlocking.value = 'supply'
-    playerAiming.value = true
-    overrun()
-    await nextTick()
-    for (const clear of [
-      () => { r().modal.value = false },
-      () => { r().mergeBox.value = null },
-      () => { r().unlocking.value = null }
-    ]) {
-      clear()
-      await nextTick()
-      expect(demo).not.toHaveBeenCalled()
-    }
-    playerAiming.value = false
-    await nextTick()
-    expect(demo).toHaveBeenCalledTimes(1)
-    w.unmount()
-  })
-
-  it('a finger on the board ends it early (the board stops its ghost itself)', async () => {
-    demo.mockReturnValue(3000)
-    const w = render()
-    overrun()
-    await nextTick()
-    expect(coachLesson.value?.id).toBe('overrun')
-    playerAiming.value = true
-    await nextTick()
-    expect(coachLesson.value).toBeNull()
-    // …and its timer does not fire into a later lesson.
-    const next = { id: 'tray' as const, seq: ++seq }
-    coachLesson.value = next
-    vi.advanceTimersByTime(3500)
-    expect(coachLesson.value).toBe(next)
-    w.unmount()
+  it('so does the death sequence\'s "WASTED" (run 7: a still frame must catch it)', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const src = readFileSync(resolve(__dirname, '../../../src/components/barrage/DeathOverlay.vue'), 'utf8')
+    expect(src).toContain('data-coach-live="death"')
   })
 })

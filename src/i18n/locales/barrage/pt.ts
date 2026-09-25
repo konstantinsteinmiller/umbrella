@@ -10,7 +10,8 @@ export default {
     shields: 'Cargas de escudo: {n}',
     revives: 'Cargas de reviver: {n}',
     warcry: 'Grito de guerra pronto: sua próxima rajada causa dano dobrado',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Ranking global'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Nível {n}',
     plusOne: '+1',
     merged: 'Fundidas!',
-    overflow: 'Bandeja cheia! +{n} moedas'
+    overflow: 'Bandeja cheia! +{n} moedas',
+    pickupSr: '“+1” é uma bola a mais na tua bandeja: um tiro a mais em cada rajada, mais dano.'
   },
   upgrades: {
     title: 'Melhorias',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Capacidade da bandeja',
       short: 'Capacidade',
-      desc: 'Guarde mais bolas antes que as gêmeas se fundam.'
+      desc: 'Mais bolas na sua bandeja: mais tiros a cada turno.'
     },
     speed: {
       name: 'Velocidade de lançamento',
       short: 'Velocidade',
-      desc: 'As bolas voam mais rápido e saem mais cedo.'
+      desc: 'As bolas voam mais rápido e batem mais forte.'
     },
     luck: {
       name: 'Sorte de coleta',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MÁX',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Invadido!',
+    wasted: 'Caído',
     body: 'Os monstros romperam a linha na fileira {n}.',
+    bodyBy: 'Rompeu a linha na fileira {n}: {name}',
     meteor: 'Chuva de meteoros',
     meteorDesc: 'Limpa as duas fileiras de baixo e continue',
     meteorAdAria: 'Assista a um anúncio: a Chuva de meteoros limpa as duas fileiras de baixo',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Primeiro chefe derrotado!',
     defeated: '{name} derrotado!',
     amount: '+{n}',
-    doubled: 'Recompensa dobrada!',
+    boosted: 'Recompensa ×{n}!',
     checkpoint: 'Checkpoint salvo na fileira {n}',
-    double: '2×',
-    doubleAdAria: 'Assista a um anúncio para dobrar a recompensa',
-    doubleCoinAria: 'Dobre a recompensa por {cost} moedas',
-    collect: 'Coletar'
+    boost: '{n}×',
+    boostAdAria: 'Assista a um anúncio para multiplicar a recompensa por {n}',
+    boostCoinAria: 'Recompensa ×{n} por {cost} moedas',
+    collect: 'Coletar',
+    powerUp: 'Melhore!'
   },
   daily: {
     today: 'Tabuleiro de hoje: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Colete outra bola: uma bandeja cheia funde as gêmeas numa bola mais forte!',
     upgrade: 'Toque na melhoria grátis para guardar mais bolas!'
   },
+  prompt: {
+    tapToShoot: 'Toque para atirar',
+    clickToShoot: 'Clique para atirar'
+  },
   coach: {
     survive: 'Os monstros estão prestes a passar — acerte primeiro os de baixo!',
     tray: 'Sua bandeja está cheia: um +1 só adiciona um tiro quando há um espaço livre. Melhore a capacidade da bandeja para disparar mais bolas!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Toque na melhoria que brilha: ela melhora suas bolas, sua bandeja ou suas moedas.',
     bank: 'Mire na diagonal: uma bola que ricocheteia na parede pode acertar vários monstros com um só tiro!',
     funnel: 'Agora você pode comprar {name} — toque e cada bola vai bater mais forte!',
-    overrun: 'Se um monstro cruzar a linha, você é invadido — acerte primeiro os marcados com 1!'
+    skipAria: 'Pular a lição',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'A contagem regressiva ao seu lado conta os turnos até o monstro mais próximo passar — acerte-o antes que chegue a zero!',
+      speed: '{name}: suas bolas voam mais rápido e cada acerto causa mais dano.',
+      luck: '{name}: novas fileiras trazem mais bolhas de moedas e habilidades.',
+      bounty: '{name}: cada monstro derrotado rende mais moedas.'
+    }
   },
   merge: {
     sr: 'Duas bolas de nível {from} se fundiram em uma bola de nível {to}! Cada bola na sua bandeja é um tiro.',

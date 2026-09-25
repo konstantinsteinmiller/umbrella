@@ -10,7 +10,8 @@ export default {
     shields: 'Muatan perisai: {n}',
     revives: 'Muatan bangkit: {n}',
     warcry: 'Teriakan perang siap: tembakan berikutnya memberi damage ganda',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Peringkat global'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Tingkat {n}',
     plusOne: '+1',
     merged: 'Bergabung!',
-    overflow: 'Nampan penuh! +{n} koin'
+    overflow: 'Nampan penuh! +{n} koin',
+    pickupSr: '"+1" berarti satu bola lagi di nampanmu: satu tembakan lagi tiap tembakan beruntun, lebih banyak kerusakan.'
   },
   upgrades: {
     title: 'Peningkatan',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Kapasitas nampan',
       short: 'Kapasitas',
-      desc: 'Simpan lebih banyak bola sebelum kembar bergabung.'
+      desc: 'Lebih banyak bola di nampanmu: lebih banyak tembakan setiap giliran.'
     },
     speed: {
       name: 'Kecepatan luncur',
       short: 'Kecepatan',
-      desc: 'Bola terbang lebih cepat dan meluncur lebih sering.'
+      desc: 'Bola terbang lebih cepat dan menghantam lebih keras.'
     },
     luck: {
       name: 'Keberuntungan pungut',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MAKS',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Kewalahan!',
+    wasted: 'Tumbang',
     body: 'Para monster menjebol pertahanan di baris {n}.',
+    bodyBy: 'Jebol di baris {n}: {name}',
     meteor: 'Badai meteor',
     meteorDesc: 'Bersihkan dua baris terbawah dan lanjutkan',
     meteorAdAria: 'Tonton iklan: Badai meteor membersihkan dua baris terbawah',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Bos pertama tumbang!',
     defeated: '{name} dikalahkan!',
     amount: '+{n}',
-    doubled: 'Hadiah digandakan!',
+    boosted: 'Hadiah ×{n}!',
     checkpoint: 'Checkpoint tersimpan di baris {n}',
-    double: '2×',
-    doubleAdAria: 'Tonton iklan untuk menggandakan hadiah',
-    doubleCoinAria: 'Gandakan hadiah seharga {cost} koin',
-    collect: 'Ambil'
+    boost: '{n}×',
+    boostAdAria: 'Tonton iklan untuk hadiah {n}×',
+    boostCoinAria: 'Hadiah {n}× seharga {cost} koin',
+    collect: 'Ambil',
+    powerUp: 'Tingkatkan!'
   },
   daily: {
     today: 'Papan hari ini: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Ambil satu bola lagi: nampan penuh menggabungkan bola kembar jadi bola yang lebih kuat!',
     upgrade: 'Ketuk peningkatan gratis untuk menyimpan lebih banyak bola!'
   },
+  prompt: {
+    tapToShoot: 'Ketuk untuk menembak',
+    clickToShoot: 'Klik untuk menembak'
+  },
   coach: {
     survive: 'Monster hampir menerobos — serang yang paling bawah dulu!',
     tray: 'Nampanmu penuh: +1 hanya menambah tembakan jika ada slot kosong. Tingkatkan kapasitas nampan untuk menembakkan lebih banyak bola!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Ketuk peningkatan yang bersinar: itu membuat bola, nampan, atau koinmu lebih baik.',
     bank: 'Bidik miring: bola yang memantul dari dinding bisa mengenai beberapa monster sekaligus!',
     funnel: 'Sekarang koinmu cukup untuk {name} — ketuk dan setiap bola memukul lebih keras!',
-    overrun: 'Jika monster melewati garis, kamu kewalahan — serang dulu yang bertanda 1!'
+    skipAria: 'Lewati pelajaran',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Hitung mundur di sampingmu menghitung giliran sampai monster terdekat menerobos — serang sebelum mencapai nol!',
+      speed: '{name}: bolamu terbang lebih cepat dan setiap pukulan memberi lebih banyak kerusakan.',
+      luck: '{name}: baris baru membawa lebih banyak gelembung koin dan skill.',
+      bounty: '{name}: setiap monster yang kamu kalahkan memberi lebih banyak koin.'
+    }
   },
   merge: {
     sr: 'Dua bola tingkat {from} bergabung menjadi satu bola tingkat {to}! Setiap bola di nampanmu adalah satu tembakan.',

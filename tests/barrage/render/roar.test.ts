@@ -5,7 +5,6 @@
 //     dropped and draw over every other number;
 //   • damage numbers show `dealt` (the HP removed), not the overkill;
 //   • the line's skull lights while a monster wears a '1' pip;
-//   • `overrunDemo`: a ghost walks across the line — display only.
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { BoardRenderer } from '@/barrage/render/BoardRenderer'
 import type { BarrageEngine } from '@/barrage/engine/engine'
@@ -35,13 +34,13 @@ interface Internals {
 
 const DT = 1 / 60
 
-const rig = (monsters: Monster[], ftue = false) => {
-  const e: BarrageEngine = board({ monsters, tray: [1], config: { ftue } })
+const rig = (monsters: Monster[], ftue = false, launcherX = 3.5) => {
+  const e: BarrageEngine = board({ monsters, tray: [1], config: { ftue }, launcherX })
   const shakes: string[] = []
   const flights: number[] = []
   const r = new BoardRenderer({ shake: (i) => { shakes.push(i) }, coins: (_x, _y, n) => { flights.push(n); return true }, confetti: () => {} })
   const sounds = vi.spyOn(r.sounds, 'request')
-  // A sized board, so bakes (the demo's ghost) exist.
+  // A sized board, so bakes exist.
   r.resize(390, 700, 1)
   r.setEngine(e)
   e.on((ev) => r.onEvent(ev))
@@ -208,129 +207,5 @@ describe('the line\'s skull', () => {
     const g = rig([mon('slime', 3, ROWS - 2, 1e9)])
     for (let i = 0; i < 60; i++) g.step()
     expect(g.x.skullLit).toBeLessThan(0.01)
-  })
-})
-
-describe('overrunDemo', () => {
-  it('plays ~2.25 s in the aim phase: the ghost crosses, the line + skull flash, it ends by itself; the run is untouched', () => {
-    const near = mon('slime', 3, ROWS - 1, 1e9)
-    const g = rig([near])
-    g.step()
-    g.fakeBake(near.id)
-    const before = JSON.stringify(g.e.snapshot())
-    const ms = g.r.overrunDemo(near.id)
-    expect(ms).toBeGreaterThanOrEqual(2000)
-    expect(ms).toBeLessThanOrEqual(2500)
-    expect(g.r.overrunDemoPlaying).toBe(true)
-    let t = 0
-    let flashedAt = -1
-    while (g.r.overrunDemoPlaying && t < 4) {
-      // The board's frame loop with the sim held (no engine.update): display only.
-      g.x.time += DT
-      g.x.update(DT, g.e.state)
-      t += DT
-      if (flashedAt < 0 && g.x.lineFlash > 0.9) flashedAt = t
-    }
-    expect(flashedAt).toBeGreaterThan(0.3)
-    expect(flashedAt).toBeLessThan(1.5)
-    expect(g.x.skullFlash).toBeLessThan(1)
-    expect(t).toBeCloseTo(ms / 1000, 1)
-    expect(JSON.stringify(g.e.snapshot())).toBe(before)
-    expect(g.e.state.monsters).toHaveLength(1)
-  })
-
-  it('the ghost steps out from under the real monster: across the line it stands clear of it', () => {
-    const near = mon('slime', 3, ROWS - 1, 1e9)
-    const g = rig([near])
-    g.step()
-    g.fakeBake(near.id)
-    g.r.overrunDemo(near.id)
-    const y = g.x as unknown as { ghostY: number }
-    let flashedAt = -1
-    let n = 0
-    while (g.r.overrunDemoPlaying && n < 400) {
-      g.x.time += DT
-      g.x.update(DT, g.e.state)
-      n++
-      if (flashedAt < 0 && g.x.lineFlash > 0.9) {
-        flashedAt = n
-        // Half a row past the line at the flash.
-        expect(y.ghostY + 1).toBeGreaterThanOrEqual(ROWS + 0.5 - 1e-9)
-      }
-    }
-    expect(flashedAt).toBeGreaterThan(0)
-    // The walk ends on the floor line, fully below the real monster (bottom edge on the line).
-    ;(g.r as unknown as { demo: { t: number } }).demo.t = 1.6
-    ;(g.r as unknown as { ghostPos(d: unknown): void }).ghostPos((g.r as unknown as { demo: unknown }).demo)
-    expect(y.ghostY).toBeGreaterThanOrEqual(ROWS)
-    expect(g.e.state.monsters[0]!.row).toBe(ROWS - 1)
-  })
-
-  it('stops at once (a quick fade) when the player presses', () => {
-    const near = mon('slime', 3, ROWS - 1, 1e9)
-    const g = rig([near])
-    g.step()
-    g.fakeBake(near.id)
-    expect(g.r.overrunDemo(near.id)).toBeGreaterThan(0)
-    for (let i = 0; i < 10; i++) g.step()
-    g.r.setAim(true, Math.PI / 2)
-    let n = 0
-    while (g.r.overrunDemoPlaying && n < 100) { g.step(); n++ }
-    expect(n * DT).toBeLessThan(0.25)
-  })
-
-  it('cut short after the crossing, its flashes fade as fast as the ghost', () => {
-    const near = mon('slime', 3, ROWS - 1, 1e9)
-    const g = rig([near])
-    g.step()
-    g.fakeBake(near.id)
-    g.r.overrunDemo(near.id)
-    let n = 0
-    while (g.x.lineFlash < 0.9 && n < 200) { g.x.time += DT; g.x.update(DT, g.e.state); n++ }
-    expect(g.x.lineFlash).toBeGreaterThan(0.9)
-    g.r.stopOverrunDemo()
-    for (let i = 0; i < 15; i++) { g.x.time += DT; g.x.update(DT, g.e.state) }
-    const x = g.x as unknown as { lineFlash: number; skullFlash: number; crossSkull: number }
-    expect(x.lineFlash + x.skullFlash + x.crossSkull).toBe(0)
-    expect(g.r.overrunDemoPlaying).toBe(false)
-  })
-
-  it('stops when the phase leaves aim', () => {
-    const near = mon('slime', 3, ROWS - 1, 1e9)
-    const g = rig([near])
-    g.step()
-    g.fakeBake(near.id)
-    g.r.overrunDemo(near.id)
-    g.e.fire(Math.PI / 2)
-    let n = 0
-    while (g.r.overrunDemoPlaying && n < 100) { g.step(); n++ }
-    expect(n * DT).toBeLessThan(0.25)
-  })
-
-  it('returns 0 when it cannot play: an unknown monster, outside the aim phase, a finger down', () => {
-    const near = mon('slime', 3, ROWS - 1, 1e9)
-    const g = rig([near])
-    g.step()
-    g.fakeBake(near.id)
-    expect(g.r.overrunDemo(99999)).toBe(0)
-    g.r.setAim(true, Math.PI / 2)
-    expect(g.r.overrunDemo(near.id)).toBe(0)
-    g.r.setAim(false, Math.PI / 2)
-    g.e.fire(Math.PI / 2)
-    g.step()
-    expect(g.r.overrunDemo(near.id)).toBe(0)
-  })
-
-  it('reduced motion: no walk — the flash comes as the ghost appears past the line', () => {
-    const near = mon('slime', 3, ROWS - 3, 1e9)
-    const g = rig([near])
-    g.r.reducedMotion = true
-    g.step()
-    g.fakeBake(near.id)
-    const ms = g.r.overrunDemo(near.id)
-    expect(ms).toBeGreaterThan(0)
-    let t = 0
-    while (g.x.lineFlash < 0.9 && t < 2) { g.x.time += DT; g.x.update(DT, g.e.state); t += DT }
-    expect(t).toBeLessThan(0.4)
   })
 })

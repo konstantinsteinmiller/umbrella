@@ -10,7 +10,8 @@ export default {
     shields: 'シールド: {n}',
     revives: '復活: {n}',
     warcry: 'ウォークライ準備完了：次の一斉射撃はダメージ2倍',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: '世界ランキング'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'レベル{n}',
     plusOne: '+1',
     merged: '合体！',
-    overflow: 'トレイ満杯！ +{n}コイン'
+    overflow: 'トレイ満杯！ +{n}コイン',
+    pickupSr: '「+1」はトレイのボールが1つ増えること：毎回の一斉射撃で1発多く、ダメージアップ。'
   },
   upgrades: {
     title: 'アップグレード',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'トレイ容量',
       short: '容量',
-      desc: 'ふたごが合体する前により多くのボールを持てる。'
+      desc: 'トレイに入るボールが増える：毎ターンの発射数が増える。'
     },
     speed: {
       name: '発射速度',
       short: '速度',
-      desc: 'ボールが速く飛び、テンポよく発射される。'
+      desc: 'ボールがより速く飛び、威力も上がる。'
     },
     luck: {
       name: '拾得運',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MAX',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: '突破された！',
+    wasted: '力尽きた',
     body: 'モンスターが{n}列目で防衛線を突破した。',
+    bodyBy: '{n}列目で突破：{name}',
     meteor: 'メテオストーム',
     meteorDesc: '下の2列を一掃して続行',
     meteorAdAria: '広告を見る：メテオストームで下の2列を一掃',
@@ -245,12 +248,13 @@ export default {
     titleFirst: '初めてのボス撃破！',
     defeated: '{name}を撃破！',
     amount: '+{n}',
-    doubled: '報酬2倍！',
+    boosted: '報酬{n}倍！',
     checkpoint: '{n}列目にチェックポイントを保存',
-    double: '2×',
-    doubleAdAria: '広告を見て報酬を2倍にする',
-    doubleCoinAria: '{cost}コインで報酬を2倍にする',
-    collect: '受け取る'
+    boost: '{n}×',
+    boostAdAria: '広告を見て報酬を{n}倍にする',
+    boostCoinAria: '{cost}コインで報酬を{n}倍にする',
+    collect: '受け取る',
+    powerUp: 'パワーアップ！'
   },
   daily: {
     today: '今日の盤面：{date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'もう1個拾おう：トレイが満杯になると、ふたごが合体して強いボールになる！',
     upgrade: '無料アップグレードをタップしてボールを増やそう！'
   },
+  prompt: {
+    tapToShoot: 'タップで発射',
+    clickToShoot: 'クリックで発射'
+  },
   coach: {
     survive: 'モンスターが突破しそう！一番下のものから倒そう！',
     tray: 'トレイが満杯：空きがあるときだけ、+1で発射数が増えるよ。トレイ容量をアップグレードして、もっとたくさん撃とう！',
@@ -300,7 +308,14 @@ export default {
     upgrade: '光っているアップグレードをタップしよう：ボール、トレイ、コインが強くなる。',
     bank: '斜めに狙おう：壁で跳ね返ったボールは一発で何体ものモンスターに当たる！',
     funnel: '{name}を買えるようになりました。タップすると、すべてのボールの威力が上がります！',
-    overrun: 'モンスターがラインを越えると突破されてしまう！「1」の付いたものから倒そう！'
+    skipAria: 'レッスンをスキップ',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'そばのカウントダウンは、一番近いモンスターが突破するまでのターン数。ゼロになる前に倒そう！',
+      speed: '{name}：ボールが速く飛び、1回の命中ダメージが上がる。',
+      luck: '{name}：新しい列にコインとスキルの泡が増える。',
+      bounty: '{name}：倒したモンスターからもらえるコインが増える。'
+    }
   },
   merge: {
     sr: 'レベル{from}のボール2つが合体して、レベル{to}のボールになりました！トレイのボール1つが1発の弾です。',

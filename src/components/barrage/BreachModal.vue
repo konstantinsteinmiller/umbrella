@@ -13,7 +13,9 @@
  * run's result instead.
  *
  * A forced choice: the modal is driven by the state layer's offer, so the
- * backdrop / ✕ can't dismiss it into a frozen board.
+ * backdrop / ✕ can't dismiss it into a frozen board. It opens once the death
+ * sequence is over (run 7, `deathScene`: the monsters tear the unit apart
+ * under "WASTED" first — the loss itself teaches the line).
  *
  * Above the ways back, a three-number recap of the run (row reached, kills,
  * coins earned) — run 2: "OVERRUN, and no summary of what I just did". The
@@ -21,6 +23,10 @@
  * row of zeros). The coins are what the run EARNED — a gain ("+78", "earned
  * this run"), never a balance: run 3 read "78 coins" beside the wallet's 126
  * as a bug.
+ *
+ * Playtest run 9: "I never saw … which enemy crossed the line" — the body names
+ * the culprit (the death sequence's striker, `breach.culprit`) beside its
+ * portrait: "Fire Dragon broke through at row 40." (`barrage.breach.bodyBy`).
  */
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -30,7 +36,7 @@ import IconCoin from '@/components/icons/IconCoin.vue'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import useBarrage from '@/barrage/state/useBarrage'
 import useReward, { formatCost } from '@/use/useReward'
-import { skillSrc } from '@/barrage/art'
+import { bossSrc, monsterSrc, skillSrc } from '@/barrage/art'
 import { fmtCoins } from '@/components/barrage/barrageUi'
 
 const { t } = useI18n()
@@ -40,7 +46,7 @@ const { buffsCostCoins, REWARD_COIN_COST } = useReward()
 const breach = computed(() => barrage.breach.value)
 const daily = computed(() => barrage.dailyResult.value)
 const isDaily = computed(() => !!daily.value || !!breach.value?.isDaily)
-const open = computed(() => !!breach.value || !!daily.value)
+const open = computed(() => (!!breach.value || !!daily.value) && !barrage.deathScene.value)
 
 const busy = ref(false)
 const run = async (fn: () => Promise<unknown> | unknown): Promise<void> => {
@@ -60,6 +66,13 @@ const onDailyBack = (): Promise<void> => run(() => barrage.exitDaily())
 /** The fresh board after a restart starts one row past the checkpoint. */
 const restartRow = computed(() => (breach.value?.checkpointRow ?? barrage.checkpointRow.value) + 1)
 const reachedRow = computed(() => breach.value?.row ?? barrage.row.value)
+/** The culprit's name and portrait (absent: the plain "The monsters broke through"). */
+const culprit = computed(() => {
+  const c = breach.value?.culprit
+  if (!c) return null
+  if (c.kind === 'boss') return c.bossKind ? { name: t(`barrage.bosses.${c.bossKind}`), src: bossSrc(c.bossKind) } : null
+  return { name: t(`barrage.monsters.${c.kind}.name`), src: monsterSrc(c.kind) }
+})
 // ─── Run recap ───────────────────────────────────────────────────────────────
 interface Recap { row: number; kills: number; coins: number }
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : null)
@@ -88,10 +101,14 @@ const meteorAria = computed(() => buffsCostCoins
     :title="isDaily ? t('barrage.daily.resultTitle') : t('barrage.breach.title')"
     :is-closable="false"
   )
-    div.breach.flex.flex-col.items-center.gap-3.px-2.pb-2
+    div.breach.hud-digits.flex.flex-col.items-center.gap-3.px-2.pb-2
       //- ── Endless: the three ways back ──
       template(v-if="!isDaily && breach")
-        p.game-text.text-white.text-center(class="text-sm sm:text-base") {{ t('barrage.breach.body', { n: reachedRow }) }}
+        div.breach-culprit.flex.items-center.justify-center.gap-2(v-if="culprit")
+          span.breach-culprit__face(aria-hidden="true")
+            img(:src="culprit.src" alt="" draggable="false")
+          p.game-text.text-white.text-left(class="text-sm sm:text-base") {{ t('barrage.breach.bodyBy', { name: culprit.name, n: reachedRow }) }}
+        p.game-text.text-white.text-center(v-else class="text-sm sm:text-base") {{ t('barrage.breach.body', { n: reachedRow }) }}
         //- What this run did: row · kills · coins.
         div.breach-recap.flex.justify-center.w-full.gap-2(v-if="recap" class="max-w-sm" role="group" :aria-label="recapAria")
           div.recap-tile.recap-tile--row(aria-hidden="true")
@@ -161,6 +178,22 @@ const meteorAria = computed(() => buffsCostCoins
 </template>
 
 <style scoped lang="sass">
+// Run 9: the culprit's portrait beside "… broke through at row N."
+.breach-culprit__face
+  flex: none
+  width: 44px
+  height: 44px
+  border-radius: 50%
+  display: grid
+  place-items: center
+  background: radial-gradient(circle at 50% 40%, #3a0a10, #14030a)
+  border: 2px solid #ff3848
+  box-shadow: 0 0 10px rgba(255, 40, 60, 0.55)
+  overflow: hidden
+  img
+    width: 86%
+    height: 86%
+    object-fit: contain
 .breach-btn
   position: relative
   display: flex

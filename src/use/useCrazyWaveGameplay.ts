@@ -1,55 +1,42 @@
-// ─── CrazyGames gameplay lifecycle around the wave break ────────────────────
+// ─── The run-break input of the gameplay bracket ────────────────────────────
 //
-// CG certification wants `gameplayStop()` / `gameplayStart()` whenever the
-// player leaves and re-enters active play. `useModalGameplayGate` covers menus;
-// this covers the battle's own breaks:
+// Portals want `gameplayStop()` when the player loses (CG certification asks
+// for it on every break in active play; Poki / Yandex list "game over" by
+// name). This module is how the run tells the bracket (`usePortalGameplay`):
 //
-//   • a wave is CLEARED — the field empties, the "wave cleared" banner shows
-//     and the next wave hasn't spawned yet, and
-//   • the player LOSES (overrun) — the gate falls, the run pauses on the
-//     OVERRUN overlay / RALLY! offer.
+//   • the endless run BREACHES / a daily run ends → `stopGameplayForWaveBreak`
+//     — the breach / result screen is up, nobody is playing;
+//   • the player is back in a run → `resumeGameplayAfterWaveBreak` — a
+//     checkpoint restart, a Meteor / revive continue, a daily start / exit, or
+//     the next shot.
 //
-// Both resume on the next `waveStart`, i.e. once the new wave has actually
-// begun — not on the countdown, which is still part of the break.
+// It only sets one input. The bracket owns every SDK call, so a resume cannot
+// report the player back while a menu or an ad still holds gameplay stopped,
+// and a stop landing on an already-stopped bracket emits nothing: the watcher
+// only fires on a change. Both calls are idempotent.
 //
-// **Only the stop WE issued gets resumed.** `stoppedForWaveBreak` is the "was
-// it paused before" guard: without it a `waveStart` could report the player
-// back into a match while gameplay is legitimately stopped for something else.
-// In practice that can't happen — an open modal or an on-screen ad freezes the
-// sim via `isGamePaused`, so no wave can start underneath either — but the two
-// checks in `resume()` make the intent explicit and cost nothing. Both of those
-// owners issue their own `startGameplay()` when they release, so skipping ours
-// never strands CG in a stopped state.
-//
-// CrazyGames FULL RELEASE only; every entry point is a no-op elsewhere, and the
-// wrappers in `useCrazyGames` are idempotent on top of that.
+// (The name is historical — the predecessor game broke between waves, and it
+// was CrazyGames-only. It now feeds every portal's bracket.)
 
-import { isCrazyGamesFullRelease } from '@/use/useMatch'
-import { isGameplayInterruptingModalOpen } from '@/use/useModalState'
-import { isAdShowing } from '@/use/useGamePause'
-import { startGameplay, stopGameplay } from '@/use/useCrazyGames'
+import { setRunBreak } from '@/use/usePortalGameplay'
 
 let stoppedForWaveBreak = false
 
-/** Wave cleared / run lost → tell CG active gameplay has paused. Idempotent:
- *  an overrun landing on an already-stopped break doesn't stack a second stop. */
+/** Run lost → the bracket closes (every portal that has one). Idempotent. */
 export const stopGameplayForWaveBreak = (): void => {
-  if (!isCrazyGamesFullRelease || stoppedForWaveBreak) return
+  if (stoppedForWaveBreak) return
   stoppedForWaveBreak = true
-  stopGameplay()
+  setRunBreak(true)
 }
 
-/** The new wave has begun → resume, but ONLY if this module is what stopped
- *  gameplay in the first place. The flag clears either way, so the next wave
- *  break can take a fresh hold. */
+/** Back in a run → the break no longer holds the bracket closed. Anything else
+ *  that does (a menu, an ad, a hidden tab) keeps it closed until it releases.
+ *  Called on every shot, so it is a cheap no-op outside a break. */
 export const resumeGameplayAfterWaveBreak = (): void => {
-  if (!isCrazyGamesFullRelease || !stoppedForWaveBreak) return
+  if (!stoppedForWaveBreak) return
   stoppedForWaveBreak = false
-  // Someone with a stronger claim owns the stopped state — let them restart it
-  // when they release, rather than declaring the player back in a match here.
-  if (isGameplayInterruptingModalOpen.value || isAdShowing.value) return
-  startGameplay()
+  setRunBreak(false)
 }
 
-/** Test-only: is a wave-break hold currently outstanding? */
+/** Test-only: is a run-break hold currently outstanding? */
 export const __isStoppedForWaveBreak = (): boolean => stoppedForWaveBreak

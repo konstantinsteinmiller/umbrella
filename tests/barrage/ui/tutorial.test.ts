@@ -70,6 +70,29 @@ describe('the first-session beats', () => {
     expect(tut.tutorialStep.value).toBe('done')
   })
 
+  it('run 7: an unclaimed free Tray Capacity is granted on its own two aims after the FTUE hands over', async () => {
+    const { tut, emit, wiring } = await boot()
+    const freeOffer = ref(true)
+    const claimFree = vi.fn(() => { freeOffer.value = false })
+    const w2 = { ...wiring, freeOffer, claimFree }
+    // A second install with the free-offer wiring (the scene's).
+    const off = tut.installBarrageTutorial(w2)
+    const AIM: EngineEvent = { type: 'phase', phase: 'aim' }
+    emit(MERGE)
+    emit(AIM) // still in the FTUE: its upgrade beat owns the free chip
+    emit(FIRE)
+    emit(FIRE)
+    expect(tut.tutorialStep.value).toBe('done')
+    emit(AIM)
+    expect(claimFree).not.toHaveBeenCalled()
+    emit(AIM)
+    expect(tut.FREE_GRANT_AIMS).toBe(2)
+    expect(claimFree).toHaveBeenCalledTimes(1)
+    emit(AIM)
+    expect(claimFree).toHaveBeenCalledTimes(1)
+    off()
+  })
+
   it('persists the beat, so a reload resumes the same coach mark', async () => {
     const first = await boot()
     first.emit(FIRE)

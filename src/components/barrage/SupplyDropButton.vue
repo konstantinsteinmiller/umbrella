@@ -2,8 +2,12 @@
 /**
  * The treasure chest (Survivalist's two-stage gift, `useSupplyDrop`).
  *
- *   filling — the chest sits under a dark veil that drains as the 3 minutes
- *             pass; the countdown hangs under it;
+ *   filling — the chest stands EMPTY and refilling: lid open, dimmed, a dark
+ *             mouth where small coins keep trickling in and a gold hoard
+ *             rises with the fill, under a veil that drains as the 3 minutes
+ *             pass; the countdown hangs under it (play-test run 4: after a
+ *             claim the closed chest + "3:00" read as a buff timer — now it
+ *             reads "refills in");
  *   small   — the veil is gone, the chest bobs with a SILVER "+N" (the small
  *             gift) and a thin gold bar that fills toward the big gift: take
  *             it now, or keep playing for more — the bar says so without a
@@ -20,13 +24,13 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useSupplyDrop from '@/barrage/state/useSupplyDrop'
 import type { SkillId } from '@/barrage/engine/types'
-import { chestSrc } from '@/barrage/art'
+import { chestSrc, coinSrc } from '@/barrage/art'
 import HudButton from '@/components/barrage/HudButton.vue'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import useSounds from '@/use/useSound'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
-import { fmtCoins, fmtCountdown } from '@/components/barrage/barrageUi'
+import { fmtCoins, fmtCountdown, noteCoinRain } from '@/components/barrage/barrageUi'
 import { showHudTip } from '@/components/barrage/hudTip'
 
 const props = defineProps<{ coinTarget: HTMLElement | null }>()
@@ -51,6 +55,13 @@ const aria = computed(() => {
 })
 /** The veil over a filling chest (1 → 0 as the first 3 minutes pass). */
 const veil = computed(() => (stage.value === 'cooldown' ? 1 - chest.progress.value : 0))
+/** Emptied and refilling (lid open, coins trickling in). */
+const refilling = computed(() => stage.value === 'cooldown')
+/** The gold hoard in the open chest's mouth, 0 → 1 with the fill. */
+const hoardStyle = computed(() => {
+  const k = Math.max(0, Math.min(1, chest.progress.value))
+  return { opacity: String(0.25 + 0.75 * k), transform: `scale(${0.35 + 0.65 * k}, ${0.3 + 0.7 * k})` }
+})
 
 const got = ref<{ id: number; coins: number; skill: SkillId | null } | null>(null)
 let gotTimer = 0
@@ -85,6 +96,9 @@ const onClick = (ev: MouseEvent): void => {
   if (src && props.coinTarget && res.coins > 0) {
     spawnCoinExplosion({ sourceEl: src, targetEl: props.coinTarget, count: res.stage === 'big' ? 24 : 12 })
   }
+  // Run 4: a chest's coin rain landed on top of the upgrade funnel — the
+  // funnel now waits for the next calm aim phase.
+  if (res.coins > 0) noteCoinRain()
   playSound('chest-open', res.stage === 'big' ? 0.07 : 0.05)
   got.value = { id: ++seq, coins: res.coins, skill: res.skill }
   window.clearTimeout(gotTimer)
@@ -101,8 +115,16 @@ const onClick = (ev: MouseEvent): void => {
       data-tut="supply"
       @click="onClick"
     )
-      span.chest__art.relative.block.w-full.h-full
-        img.chest__img(:src="chestSrc()" alt="" draggable="false")
+      span.chest__art.relative.block.w-full.h-full(:class="{ 'chest__art--refill': refilling }")
+        //- Emptied, refilling: the lid stands open over a dark mouth, coins
+        //- trickle in and a gold hoard rises inside while the veil drains.
+        template(v-if="refilling")
+          span.chest__mouth
+            span.chest__hoard(:style="hoardStyle")
+          img.chest__img.chest__body(:src="chestSrc()" alt="" draggable="false")
+          img.chest__img.chest__lid(:src="chestSrc()" alt="" draggable="false")
+          img.chest__drip(v-for="i in 3" :key="i" :class="'chest__drip--' + i" :src="coinSrc()" alt="" draggable="false")
+        img.chest__img(v-else :src="chestSrc()" alt="" draggable="false")
         span.chest__veil.absolute.inset-x-0.bottom-0(v-if="veil > 0" :style="{ height: (veil * 100) + '%' }")
       template(#corner)
         span.chest__pill.chest__pill--time.game-text.tabular-nums(v-if="stage === 'cooldown'" aria-hidden="true")
@@ -135,6 +157,82 @@ const onClick = (ev: MouseEvent): void => {
 .chest__veil
   background: rgba(4, 8, 18, 0.62)
   transition: height 0.9s linear
+
+// ── Emptied and refilling ──
+// The art box lets the falling coins in from above the chest (the face has
+// room); the veil keeps its own corners.
+.chest__art--refill
+  overflow: visible
+  .chest__veil
+    background: rgba(4, 8, 18, 0.4)
+    border-radius: 0 0 6px 6px
+    z-index: 4
+// The chest itself: dimmed — it is empty.
+.chest__body, .chest__lid
+  position: absolute
+  inset: 0
+  filter: saturate(0.5) brightness(0.72) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5))
+.chest__body
+  clip-path: inset(41% 0 0 0)
+  z-index: 2
+// The lid, lifted and swung open on its right hinge.
+.chest__lid
+  clip-path: inset(0 0 59% 0)
+  transform-origin: 92% 41%
+  rotate: 24deg
+  translate: 0 -14%
+  z-index: 3
+// The open mouth, just over the body's front rim: dark inside, the hoard
+// rising in it.
+.chest__mouth
+  position: absolute
+  left: 8%
+  right: 8%
+  top: 26%
+  height: 20%
+  border-radius: 50%
+  background: radial-gradient(ellipse at 50% 60%, #2a1406 0%, #0c0503 75%)
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.9)
+  overflow: hidden
+  z-index: 1
+.chest__hoard
+  position: absolute
+  inset: 18% 12% -10%
+  border-radius: 50% 50% 40% 40%
+  background: radial-gradient(ellipse at 50% 35%, #fff3b0 0%, #ffd23c 40%, #c98a0c 100%)
+  box-shadow: 0 0 6px rgba(255, 210, 60, 0.9)
+  transform-origin: 50% 100%
+  transition: transform 0.9s linear, opacity 0.9s linear
+// Small coins trickling into the mouth, one after another.
+.chest__drip
+  position: absolute
+  left: 44%
+  top: -34%
+  width: 24%
+  height: 24%
+  object-fit: contain
+  // Over the veil: the coins going in are the point.
+  z-index: 5
+  opacity: 0
+  filter: drop-shadow(0 0 2px rgba(255, 210, 60, 0.9))
+  animation: chest-drip 1.8s ease-in infinite
+.chest__drip--2
+  left: 22%
+  animation-delay: 0.6s
+.chest__drip--3
+  left: 58%
+  animation-delay: 1.2s
+@keyframes chest-drip
+  0%
+    translate: 0 0
+    opacity: 0
+  15%
+    opacity: 1
+  70%
+    opacity: 1
+  90%, 100%
+    translate: 0 150%
+    opacity: 0
 .chest--small .chest__img
   animation: chest-bob 1s ease-in-out infinite alternate
 .chest--big .chest__img
@@ -240,4 +338,11 @@ const onClick = (ev: MouseEvent): void => {
 @media (prefers-reduced-motion: reduce)
   .chest--small .chest__img, .chest--big .chest__img
     animation: none
+  // One coin held over the mouth instead of the trickle.
+  .chest__drip
+    animation: none
+    opacity: 1
+    translate: 0 70%
+  .chest__drip--2, .chest__drip--3
+    display: none
 </style>

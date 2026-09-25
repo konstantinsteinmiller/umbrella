@@ -29,13 +29,13 @@ const { initMusic } = useMusic()
 useExtensionGuard()
 const { resourceCache } = useAssets()
 useCrazyMuteSync()
-// Freeze the sim while any menu is open and resume on close (every build);
-// additionally fires CG gameplayStop/Start on the CrazyGames full release.
+// Freeze the sim while any menu is open and resume on close (every build).
 installModalGameplayGate()
-// Poki's gameplayStart/Stop bracket, derived from the same pause gate the
-// install above feeds. Its FIRST start is held until the player touches the
-// viewport (Poki rejects a gameplayStart nobody asked for) and the whole watcher
-// is dead code on non-Poki builds. See `usePortalGameplay.ts`.
+// THE gameplayStart/Stop bracket for CrazyGames, Poki, Playgama and Yandex —
+// the only caller of those SDK events. It opens on the player's first
+// interaction with the live game, closes for menus, lost runs and ads (before
+// the ad request), and never repeats a call. Dead code on builds without a
+// bracket portal. See `usePortalGameplay.ts`.
 installPortalGameplayBracket()
 // Attach the "cmarc" debug-unlock key listener at app boot (App.vue is eager),
 // so typing it anywhere flips debug mode — the lazy game scene used to be the

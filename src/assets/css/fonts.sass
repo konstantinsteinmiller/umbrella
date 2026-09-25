@@ -4,3 +4,20 @@
   font-weight: 700
   font-display: swap
   src: url(./font/angrybirds-regular.ttf) format('truetype')
+
+// HUD numerals (blind playtest run 5: 'Angry''s flat-topped "2" reads as a "Z"
+// at HUD sizes — "ROW ZZ" for ROW 22, "Z31" in the wallet). A DIGITS-ONLY face:
+// `unicode-range` limits it to 0–9, so where it is named first (`.hud-digits`,
+// components.sass) only the digits come from it — every letter, sign and
+// punctuation mark stays 'Angry'. Lilita One (SIL OFL 1.1, © 2011 Juan
+// Montoreano, `font/lilita-one-OFL.txt`), the unmodified Google Fonts / Fontsource
+// latin file: chunky and rounded like 'Angry', with a curved-neck "2". The
+// weight range keeps the browser from smearing a synthetic bold over it (the
+// HUD asks for 900). The canvas glyph atlases (render/glyphs.ts) name it first too.
+@font-face
+  font-family: 'EB Digits'
+  font-style: normal
+  font-weight: 100 900
+  font-display: swap
+  src: url(./font/lilita-one-latin-400-normal.woff2) format('woff2')
+  unicode-range: U+0030-0039

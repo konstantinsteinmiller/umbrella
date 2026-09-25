@@ -10,7 +10,8 @@ export default {
     shields: 'Ładunki tarczy: {n}',
     revives: 'Ładunki wskrzeszenia: {n}',
     warcry: 'Okrzyk bojowy gotowy: następna salwa zada podwójne obrażenia',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Ranking światowy'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Poziom {n}',
     plusOne: '+1',
     merged: 'Połączone!',
-    overflow: 'Taca pełna! +{n} monet'
+    overflow: 'Taca pełna! +{n} monet',
+    pickupSr: '„+1” to jedna kula więcej na tacy: jeden strzał więcej w każdej salwie, więcej obrażeń.'
   },
   upgrades: {
     title: 'Ulepszenia',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Pojemność tacy',
       short: 'Pojemność',
-      desc: 'Mieść więcej kul, zanim bliźniaki się połączą.'
+      desc: 'Więcej kul na tacy: więcej strzałów w każdej turze.'
     },
     speed: {
       name: 'Szybkość strzału',
       short: 'Szybkość',
-      desc: 'Kule lecą szybciej i wylatują wcześniej.'
+      desc: 'Kule lecą szybciej i uderzają mocniej.'
     },
     luck: {
       name: 'Szczęście do znalezisk',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MAKS',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Przełamanie!',
+    wasted: 'Pokonany',
     body: 'Potwory przebiły się w rzędzie {n}.',
+    bodyBy: 'Przełamanie w rzędzie {n}: {name}',
     meteor: 'Burza meteorów',
     meteorDesc: 'Oczyść dwa dolne rzędy i graj dalej',
     meteorAdAria: 'Obejrzyj reklamę: Burza meteorów oczyszcza dwa dolne rzędy',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Pierwszy boss pokonany!',
     defeated: '{name} pokonany!',
     amount: '+{n}',
-    doubled: 'Łup podwojony!',
+    boosted: 'Łup ×{n}!',
     checkpoint: 'Punkt kontrolny zapisany w rzędzie {n}',
-    double: '2×',
-    doubleAdAria: 'Obejrzyj reklamę, aby podwoić łup',
-    doubleCoinAria: 'Podwój łup za {cost} monet',
-    collect: 'Odbierz'
+    boost: '{n}×',
+    boostAdAria: 'Obejrzyj reklamę, aby zwiększyć łup {n}×',
+    boostCoinAria: 'Łup ×{n} za {cost} monet',
+    collect: 'Odbierz',
+    powerUp: 'Ulepsz!'
   },
   daily: {
     today: 'Dzisiejsza plansza: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Zbierz kolejną kulę: pełna taca łączy bliźniaki w silniejszą kulę!',
     upgrade: 'Dotknij darmowego ulepszenia, aby mieścić więcej kul!'
   },
+  prompt: {
+    tapToShoot: 'Stuknij, aby strzelić',
+    clickToShoot: 'Kliknij, aby strzelić'
+  },
   coach: {
     survive: 'Potwory zaraz się przebiją — najpierw trafiaj te najniżej!',
     tray: 'Twoja taca jest pełna: +1 dodaje strzał tylko wtedy, gdy jest wolne miejsce. Ulepsz pojemność tacy, aby strzelać większą liczbą kul!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Dotknij świecącego ulepszenia: poprawia twoje kule, tacę albo monety.',
     bank: 'Celuj pod kątem: kula odbita od ściany może trafić kilka potworów jednym strzałem!',
     funnel: 'Stać cię teraz na {name} – dotknij, a każda kula uderzy mocniej!',
-    overrun: 'Jeśli potwór przekroczy linię, nastąpi przełamanie — najpierw trafiaj te oznaczone 1!'
+    skipAria: 'Pomiń lekcję',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Odliczanie obok ciebie liczy tury, zanim najbliższy potwór się przebije — traf go, zanim dojdzie do zera!',
+      speed: '{name}: twoje kule lecą szybciej, a każde trafienie zadaje więcej obrażeń.',
+      luck: '{name}: nowe rzędy przynoszą więcej baniek z monetami i umiejętnościami.',
+      bounty: '{name}: każdy pokonany potwór daje więcej monet.'
+    }
   },
   merge: {
     sr: 'Dwie kule poziomu {from} połączyły się w jedną kulę poziomu {to}! Każda kula na tacy to jeden strzał.',

@@ -19,10 +19,9 @@ export interface BoardApi {
    *  like a press on the unit: let go before moving = the repeat shot. False
    *  when no aim started (not the aim phase, paused, held, cannot fire). */
   beginAimFrom(e: PointerEvent): boolean
-  /** The wordless lose rule: a ghost of that monster marches over the line,
-   *  the line and its skull flash. Returns its length in ms, 0 = could not
-   *  play. Stops itself when an aim starts or the phase leaves 'aim'. */
-  overrunDemo(monsterId: number): number
+  /** The death sequence's culprit in client px (centre, radius); null when no
+   *  death plays. DeathOverlay keeps a clear pool round it (playtest run 9). */
+  deathFocusClient?(): { x: number; y: number; r: number } | null
 }
 
 /** The mounted board — set by GameScene, read by the FTUE overlay and banners.
@@ -37,6 +36,24 @@ export const playerAiming = ref(false)
  *  so "not enough" points at what is short, not only at the chip tapped. */
 export const walletDenied = ref(0)
 export const pulseWallet = (): void => { walletDenied.value++ }
+
+// ─── Coin rain ───────────────────────────────────────────────────────────────
+/** A burst of coins flying into the wallet takes this long
+ *  (`spawnCoinExplosion`: 600 ms burst + ≤ 300 ms stagger + 500 ms flight). */
+export const COIN_RAIN_MS = 1500
+/** Coins are raining into the wallet right now (a chest claim, a bounty, a
+ *  gift). The upgrade funnel's own coins fly from the wallet to a chip: the two
+ *  never share the screen (play-test run 4, a chest's rain over the funnel). */
+export const coinRain = ref(false)
+let coinRainTimer: ReturnType<typeof setTimeout> | null = null
+export const noteCoinRain = (ms = COIN_RAIN_MS): void => {
+  coinRain.value = true
+  if (coinRainTimer !== null) clearTimeout(coinRainTimer)
+  coinRainTimer = setTimeout(() => {
+    coinRainTimer = null
+    coinRain.value = false
+  }, ms)
+}
 
 // ─── Recall (skip) button ────────────────────────────────────────────────────
 /** Seconds a volley runs before the skip button appears — the moment the
@@ -83,34 +100,25 @@ export const fmtMult = (v: number): string => {
 export const fmtCoins = (n: number): string =>
   formatBig(Math.max(0, Math.floor(n)), { decimals: 1, trim: true, lower: true })
 
-/** Ball speed at level 0 (cells/s) — CONTRACT §6 "15 → 26 cells/s". The speed
- *  chip shows "percent faster" relative to it, which is the only framing a
- *  player can read without knowing what a cell is. */
-export const BASE_BALL_SPEED = 15
+export type UpgradeValueKind = 'mult' | 'count' | 'percent'
 
-export type UpgradeValueKind = 'mult' | 'count' | 'percent' | 'plusPercent'
-
+/** Tempo (`speed`) shows its DAMAGE multiplier: the part that keeps growing
+ *  (its ball speed tops out at level 10 — economy's `ballSpeedAt`). */
 export const upgradeValueKind = (id: UpgradeId): UpgradeValueKind =>
-  id === 'damage' || id === 'bounty' ? 'mult'
+  id === 'damage' || id === 'bounty' || id === 'speed' ? 'mult'
     : id === 'capacity' ? 'count'
-      : id === 'speed' ? 'plusPercent'
-        : 'percent'
+      : 'percent'
 
 /**
  * The number part of an upgrade value, already in the unit its i18n message
- * expects. STATE hands raw effect numbers (`UpgradeView.value`): speed in
- * cells/s and luck as a 0..1 fraction — but both are tolerated as already-
- * converted percentages too, so a STATE-side change of unit can't print
- * "+1400%" or "0%".
+ * expects. STATE hands raw effect numbers (`UpgradeView.value`): luck as a
+ * 0..1 fraction — but tolerated as an already-converted percentage too, so a
+ * STATE-side change of unit can't print "0%".
  */
 export const upgradeValueNumber = (id: UpgradeId, v: number): string => {
   switch (upgradeValueKind(id)) {
     case 'mult': return fmtMult(v)
     case 'count': return String(Math.round(v))
-    case 'plusPercent': {
-      const pct = v > 5 ? (v / BASE_BALL_SPEED - 1) * 100 : v <= 1 ? v * 100 : v
-      return String(Math.max(0, Math.round(pct)))
-    }
     case 'percent':
     default: {
       const pct = v <= 1 ? v * 100 : v

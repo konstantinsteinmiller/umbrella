@@ -10,7 +10,8 @@ export default {
     shields: 'Cariche scudo: {n}',
     revives: 'Cariche rinascita: {n}',
     warcry: 'Grido di guerra pronto: la prossima raffica fa danni doppi',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Classifica globale'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Livello {n}',
     plusOne: '+1',
     merged: 'Fuse!',
-    overflow: 'Vassoio pieno! +{n} monete'
+    overflow: 'Vassoio pieno! +{n} monete',
+    pickupSr: '“+1” è una palla in più nel tuo vassoio: un colpo in più a ogni raffica, più danni.'
   },
   upgrades: {
     title: 'Potenziamenti',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Capacità vassoio',
       short: 'Capacità',
-      desc: 'Tieni più sfere prima che le gemelle si fondano.'
+      desc: 'Più sfere nel tuo vassoio: più colpi a ogni turno.'
     },
     speed: {
       name: 'Velocità di lancio',
       short: 'Velocità',
-      desc: 'Le sfere volano più veloci e partono prima.'
+      desc: 'Le sfere volano più veloci e colpiscono più forte.'
     },
     luck: {
       name: 'Fortuna raccolta',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MAX',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Travolto!',
+    wasted: 'Caduto',
     body: 'I mostri hanno sfondato alla fila {n}.',
+    bodyBy: 'Sfondamento alla fila {n}: {name}',
     meteor: 'Tempesta di meteore',
     meteorDesc: 'Libera le due file in basso e continua',
     meteorAdAria: 'Guarda una pubblicità: la Tempesta di meteore libera le due file in basso',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Primo boss sconfitto!',
     defeated: '{name} sconfitto!',
     amount: '+{n}',
-    doubled: 'Taglia raddoppiata!',
+    boosted: 'Taglia ×{n}!',
     checkpoint: 'Checkpoint salvato alla fila {n}',
-    double: '2×',
-    doubleAdAria: 'Guarda una pubblicità per raddoppiare la taglia',
-    doubleCoinAria: 'Raddoppia la taglia per {cost} monete',
-    collect: 'Raccogli'
+    boost: '{n}×',
+    boostAdAria: 'Guarda una pubblicità per moltiplicare la taglia per {n}',
+    boostCoinAria: 'Taglia ×{n} per {cost} monete',
+    collect: 'Raccogli',
+    powerUp: 'Potenzia!'
   },
   daily: {
     today: 'Campo di oggi: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Raccogli un’altra sfera: un vassoio pieno fonde le gemelle in una sfera più forte!',
     upgrade: 'Tocca il potenziamento gratuito per tenere più sfere!'
   },
+  prompt: {
+    tapToShoot: 'Tocca per sparare',
+    clickToShoot: 'Clicca per sparare'
+  },
   coach: {
     survive: 'I mostri stanno per sfondare: colpisci prima quelli più in basso!',
     tray: 'Il tuo vassoio è pieno: un +1 aggiunge un colpo solo se c’è uno spazio libero. Potenzia la capacità vassoio per sparare più sfere!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Tocca il potenziamento che brilla: migliora le tue sfere, il vassoio o le monete.',
     bank: 'Mira in diagonale: una sfera che rimbalza sul muro può colpire più mostri con un solo tiro!',
     funnel: 'Ora puoi permetterti {name}: toccalo e ogni sfera colpirà più forte!',
-    overrun: 'Se un mostro supera la linea, vieni travolto: colpisci prima quelli con l’1!'
+    skipAria: 'Salta la lezione',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Il conto alla rovescia accanto a te conta i turni finché il mostro più vicino sfonda: colpiscilo prima che arrivi a zero!',
+      speed: '{name}: le tue sfere volano più veloci e ogni colpo fa più danni.',
+      luck: '{name}: le nuove file portano più bolle di monete e abilità.',
+      bounty: '{name}: ogni mostro sconfitto rende più monete.'
+    }
   },
   merge: {
     sr: 'Due sfere di livello {from} si sono fuse in una sfera di livello {to}! Ogni sfera nel vassoio è un colpo.',

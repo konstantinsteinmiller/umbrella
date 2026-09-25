@@ -14,7 +14,16 @@
  *     fired / misfire('tap');
  *   • `beginAimFrom(e)`: the same aim from a finger that went down OUTSIDE the
  *     canvas (the tray's ball orbs), tracked through window listeners;
- *   • `overrunDemo(id)`: the wordless lose-rule demo (a ghost crosses the line);
+ *   • a TAP-fire (press + release without a drag) flashes the bounce path the
+ *     drag preview shows for ~0.3 s as the ball leaves (run 5: tap players
+ *     never saw the preview, which shows only while a finger is down);
+ *   • a breach plays the death sequence (render/death.ts): the monsters past
+ *     the line bump the unit and it tears apart — the engine waits in
+ *     'breach', the board keeps drawing (the state layer holds the death
+ *     screen meanwhile);
+ *   • a Ball Damage purchase flares the unit and the next volley's numbers burn
+ *     gold (the renderer spots `config.damageMult` rising; a cloud hydrate that
+ *     raises the levels is adopted silently via `resyncPower`);
  *   • a touch on the flying chest opens it (`engine.tapChest`, any phase but
  *     'breach', never paused/held) and emits chestTapped — never a shot;
  *   • board SFX/VFX + coins flying to `coinTarget` (the shared particle overlay).
@@ -27,14 +36,15 @@ import { coinSrc } from '@/barrage/art'
 import useBarrage from '@/barrage/state/useBarrage'
 import useCollections from '@/barrage/state/useCollections'
 import { BoardRenderer, type RendererStats } from '@/barrage/render/BoardRenderer'
-import { AimController, REPEAT_DEFAULT } from '@/barrage/render/aim'
+import { AimController, REPEAT_DEFAULT, TapWatch } from '@/barrage/render/aim'
 import { cellX, cellY, toCellX, toCellY } from '@/barrage/render/layout'
 import { FIELD_BANDS } from '@/barrage/render/backdrop'
 import { backdropSrc } from '@/barrage/render/backdropArt'
 import { sprite } from '@/barrage/render/sprites'
 import { BOARD_SOURCE_KEY, type BoardSource } from '@/barrage/render/source'
 import { isGamePaused } from '@/use/useGamePause'
-import { retiredTags } from '@/use/useCoach'
+import { saveDataVersion } from '@/use/useSaveStatus'
+import { coachLesson, retiredTags } from '@/use/useCoach'
 import { useScreenshake } from '@/use/useScreenshake'
 import { emitCoinFlight, emitConfetti, setCoinFlightImage } from '@/use/usePrismParticles'
 
@@ -124,6 +134,14 @@ const aim = new AimController()
 /** The repeat shot (a tap on the unit, a tap on a tray orb): the run's last
  *  fired angle — straight up until this engine's first shot. */
 let repeatAngle = REPEAT_DEFAULT
+/** A TAP (run 5: press + release without a drag, `render/aim.ts`) fires and
+ *  flashes the bounce path it never showed long enough to see. */
+const tap = new TapWatch()
+/** The renderer's view of the aim: its preview, and whether a finger is down
+ *  at all (the intent previews hide under one). */
+const syncAim = (): void => {
+  renderer.setAim(aim.armed, aim.angle, aim.active)
+}
 let raf = 0
 let last = 0
 /** A redraw is owed even while paused (resize, engine swap, cosmetic change). */
@@ -139,6 +157,7 @@ const bindEngine = (): void => {
   renderer.setEngine(source.engine.value)
   if (aim.active) cancelAim(true)
   repeatAngle = REPEAT_DEFAULT
+  renderer.setRestAngle(repeatAngle)
   dirty = true
 }
 // Both: a swap bumps engineGen, but never trust the order of the two writes.
@@ -150,6 +169,14 @@ watch(() => FIELD_BANDS.map((b) => backdropSrc(b.key)), (srcs) => { renderer.set
 if (source.coachRetired) {
   watch(source.coachRetired, (set) => { renderer.coachRetired = set; dirty = true }, { immediate: true })
 }
+// The resting aim line stands aside while the coach demonstrates a shot on
+// the board — one line on screen at a time.
+watch(coachLesson, (l) => {
+  renderer.restHidden = !!l && (l.id === 'pull' || l.id === 'combo' || l.id === 'survive')
+}, { immediate: true })
+// A cloud hydrate can raise the upgrade levels (the higher level per track
+// wins) on the live engine: that damage rise is not a purchase — no flare.
+watch(saveDataVersion, () => renderer.resyncPower())
 let offEvents: (() => void) | null = null
 
 // ─── Loop ────────────────────────────────────────────────────────────────────
@@ -220,7 +247,7 @@ const cancelAim = (notify: boolean): void => {
   detachOutside()
   const was = aim.active
   aim.cancel()
-  renderer.setAim(false, aim.angle)
+  syncAim()
   if (notify && was) emit('aimCancel')
 }
 
@@ -244,9 +271,7 @@ const canStartAim = (): boolean => {
 }
 
 const aimStarted = (e: PointerEvent): void => {
-  renderer.setAim(aim.armed, aim.angle)
-  // A finger on the board ends the lose-rule demo at once.
-  renderer.stopOverrunDemo()
+  syncAim()
   e.preventDefault()
   emit('aimStart')
 }
@@ -265,12 +290,14 @@ const onDown = (e: PointerEvent): void => {
   // at the tapped point — on the unit itself, the repeat shot.
   aim.placeLauncher(renderer.layout, source.engine.value.state.launcherX)
   aim.begin(e.pointerId, p.x, p.y, e.timeStamp || performance.now(), repeatAngle)
+  tap.press(p.x, p.y, performance.now(), renderer.layout.cell)
   try { canvasRef.value?.setPointerCapture(e.pointerId) } catch { /* synthetic event */ }
   aimStarted(e)
 }
 
 const trackTo = (e: PointerEvent): void => {
   const p = localPoint(e)
+  tap.move(p.x, p.y)
   aim.move(p.x, p.y, e.timeStamp || performance.now())
 }
 
@@ -280,9 +307,12 @@ const release = (e: PointerEvent): void => {
   // Capture is released implicitly after pointerup; end the aim first so the
   // trailing lostpointercapture finds nothing active.
   const angle = aim.end()
-  renderer.setAim(false, aim.angle)
+  syncAim()
+  const tapped = tap.isTap(performance.now())
   const eng = source.engine.value
   if (angle !== null && eng.state.phase === 'aim' && !source.holdSim.value && !isGamePaused.value && source.fire(angle)) {
+    // A tap never showed its preview long enough to see: flash it as the ball leaves.
+    if (tapped) renderer.flashShot(angle)
     emit('fired', angle)
   } else {
     emit('aimCancel')
@@ -294,7 +324,7 @@ const release = (e: PointerEvent): void => {
 const onMove = (e: PointerEvent): void => {
   if (outside || !aim.active || e.pointerId !== aim.pointerId) return
   trackTo(e)
-  renderer.setAim(aim.armed, aim.angle)
+  syncAim()
   e.preventDefault()
 }
 
@@ -312,7 +342,7 @@ const onCancel = (e: PointerEvent): void => {
 const onWinMove = (e: PointerEvent): void => {
   if (!outside || !aim.active || e.pointerId !== aim.pointerId) return
   trackTo(e)
-  renderer.setAim(aim.armed, aim.angle)
+  syncAim()
 }
 const onWinUp = (e: PointerEvent): void => {
   if (!outside || !aim.active || e.pointerId !== aim.pointerId) return
@@ -353,21 +383,11 @@ const beginAimFrom = (e: PointerEvent): boolean => {
   const p = localPoint(e)
   aim.placeLauncher(renderer.layout, source.engine.value.state.launcherX)
   aim.beginFrom(e.pointerId, p.x, p.y, e.timeStamp || performance.now(), repeatAngle)
+  tap.press(p.x, p.y, performance.now(), renderer.layout.cell)
   attachOutside()
   try { canvasRef.value.setPointerCapture(e.pointerId) } catch { /* not an active pointer: the window listeners carry it */ }
   aimStarted(e)
   return true
-}
-
-/** CONTRACT §10 (run 3): the wordless lose-rule demo on `monsterId` — a ghost
- *  of it marches across the line, the line flashes red, the skull flashes. The
- *  real board is untouched; it ends early when an aim starts or the phase
- *  leaves 'aim'. Returns its duration in ms (0 = could not play). */
-const overrunDemo = (monsterId: number): number => {
-  if (aim.active || isGamePaused.value) return 0
-  const ms = renderer.overrunDemo(monsterId)
-  if (ms > 0) dirty = true
-  return ms
 }
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
@@ -379,7 +399,10 @@ onMounted(() => {
   bindEngine()
   offEvents = source.onEngineEvent((ev) => {
     // The repeat shot follows every shot of this run, however it was fired.
-    if (ev.type === 'fire') repeatAngle = ev.angle
+    if (ev.type === 'fire') {
+      repeatAngle = ev.angle
+      renderer.setRestAngle(ev.angle)
+    }
     renderer.onEvent(ev)
   })
   const r = root.getBoundingClientRect()
@@ -425,10 +448,19 @@ const boardClientRect = (): DOMRect | null => {
   if (!r || l.cssW === 0) return null
   return new DOMRect(r.left + l.bx, r.top + l.by, l.bw, l.bh)
 }
+/** The death sequence's culprit in client px (centre, radius) — DeathOverlay
+ *  keeps a clear pool round it. Null: no death playing. */
+const deathFocusClient = (): { x: number; y: number; r: number } | null => {
+  const f = renderer.deathFocus
+  const r = canvasRef.value?.getBoundingClientRect()
+  const l = renderer.layout
+  if (!f || !r || l.cssW === 0) return null
+  return { x: r.left + cellX(l, f.x), y: r.top + cellY(l, f.y), r: f.r * l.cell }
+}
 /** Dev / perf probe (not part of the contract): renderer + sim timings. */
 const stats = (): RendererStats & { simMs: number } => ({ ...renderer.stats, simMs })
 
-defineExpose({ launcherClientPoint, cellToClient, boardClientRect, beginAimFrom, overrunDemo, stats })
+defineExpose({ launcherClientPoint, cellToClient, boardClientRect, beginAimFrom, deathFocusClient, stats })
 </script>
 
 <template lang="pug">

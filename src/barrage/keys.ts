@@ -20,8 +20,9 @@ import { STAGE_KEY } from '@/keys'
 export const EB_RUN_KEY = 'eb_run'
 // Deepest row ever reached in the endless mode (the leaderboard score).
 export const EB_BEST_ROW_KEY = 'eb_best_row'
-// The checkpoint: `{ row, tray }` — the last defeated boss row (0 before the
+// The checkpoint: `{ row, tray, deaths }` — the last defeated boss row (0 before the
 // first boss) and the tray as it was at that kill. A breach restarts here.
+// `deaths` counts the restarts lost to the next boss (boss mercy; reset by a kill).
 export const EB_CHECKPOINT_KEY = 'eb_checkpoint'
 // Upgrade levels: `Record<UpgradeId, number>`.
 export const EB_UPGRADES_KEY = 'eb_upgrades'

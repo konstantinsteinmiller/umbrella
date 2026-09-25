@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addToTray, ballAbility, ballDamage, pactTray, type TraySink } from '@/barrage/engine/balls'
+import { addToTray, ballAbility, ballDamage, pactTray, restartTray, trayPower, type TraySink } from '@/barrage/engine/balls'
 import { board, ofType, record } from './helpers'
 
 const sink = () => {
@@ -94,5 +94,27 @@ describe('tray add rule (CONTRACT §3)', () => {
     expect(e.state.tray).toEqual([3, 2, 2])
     expect(ofType(ev, 'trayMerge')).toEqual([{ type: 'trayMerge', fromTier: 1, toTier: 2 }])
     expect(ofType(ev, 'trayAdd')).toHaveLength(3)
+  })
+})
+
+describe('restart tray (CONTRACT §6)', () => {
+  it('the stronger of the checkpoint tray and the tray at the breach; a tie keeps the checkpoint tray', () => {
+    expect(restartTray([3, 2], [4, 2, 2], 1)).toEqual([4, 2, 2])
+    expect(restartTray([5, 4, 4, 1], [5, 4, 2, 2, 2, 1], 1)).toEqual([5, 4, 4, 1])
+    // Power, not ball count: T3 + T1 (5.84) beats T2 + T2 + T1 (5.4).
+    expect(restartTray([2, 2, 1], [3, 1], 1)).toEqual([3, 1])
+    // A tie (same power) keeps the checkpoint tray — a fresh copy of it.
+    const cp = [3, 1]
+    const out = restartTray(cp, [3, 1], 1)
+    expect(out).toEqual([3, 1])
+    expect(out).not.toBe(cp)
+    // No breach tray: the checkpoint tray.
+    expect(restartTray([2], null, 1)).toEqual([2])
+    expect(restartTray([2], [], 1)).toEqual([2])
+    // The damage multiplier scales both sides alike.
+    for (const mult of [1, 1.25, 9.3]) {
+      expect(trayPower([4, 2, 2], mult)).toBeGreaterThan(trayPower([3, 2], mult))
+      expect(restartTray([3, 2], [4, 2, 2], mult)).toEqual([4, 2, 2])
+    }
   })
 })

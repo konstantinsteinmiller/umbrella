@@ -13,18 +13,18 @@ import type {
   AimPath, BoardState, EngineConfig, EngineEvent, EngineListener, Hazard,
   IBarrageEngine, Monster, MonsterKind, Phase, Pickup, PickupKind, RunSnapshot, SkillId
 } from './types'
-import { BALL_R, BOSS_EVERY, COLS, FEVER_HITS, LAUNCH_MARGIN, ROWS } from './types'
+import { BALL_R, BOSS_EVERY, COLS, FEVER_HITS, FLOOR_Y, LAUNCH_MARGIN, ROWS } from './types'
 import { Rng, mixSeed } from './rng'
 import {
   BURN_FRACTION, BURN_TURNS, CHAIN_FRACTION, CHAIN_JUMPS, CHAIN_RANGE, CRIT_CHANCE, CRIT_MULT,
   CRUSH_MULT, ERUPTION_EVERY, MIDAS_FRACTION, POISON_FRACTION, POISON_MAX_STACKS, SPLASH_FRACTION,
-  addToTray, ballAbility, ballDamage, eruptionFraction, insertDesc, pactTray, type TraySink
+  addToTray, ballAbility, ballDamage, eruptionFraction, insertDesc, momentumMult, pactTray, trayPower, type TraySink
 } from './balls'
 import {
-  HP_CURVE, IMP_MINI_COINS, IMP_MINI_HP, bossForRow, bossHp, chargesAt, footprint, hpClockAt, isFirstBoss, monsterHp, planBossCol,
+  BOSS_ADAPT, HP_CURVE, IMP_MINI_COINS, IMP_MINI_HP, adaptiveBossHp, bossAimHpb, bossForRow, bossHp, chargesAt, footprint, hpClockAt, isFirstBoss, monsterHp, planBossCol, roarShare, roarVictims,
   planRow, randomSkill, restsAt, type WalkerKind
 } from './monsters'
-import { bossBounty, chestCoins, coinPickupCoins, killCoins, overflowCoins } from './economy'
+import { bossBounty, chestCoins, coinPickupCoins, comboCoins, killCoins, overflowCoins, saviorBoost } from './economy'
 import { Grid, STEP, stepBall, type BallWorld, type SimBall } from './physics'
 import { aimPreview, clampAim, launchY } from './aim'
 
@@ -52,7 +52,9 @@ export const CHEST_FTUE_SPEED = 0.6
 /** A tap opens the chest within its radius plus this margin (cells) — a
  *  finger is fat and the chest is moving. */
 export const CHEST_TAP_MARGIN = 0.35
-export const COMBO_MARKS: readonly number[] = [10, 20, 30, 40]
+/** Hits that ring a combo mark (the renderer's crescendo). Fun pass: past
+ *  FEVER the big late volleys keep climbing (60 … 200). */
+export const COMBO_MARKS: readonly number[] = [10, 20, 30, 40, 60, 80, 100, 150, 200]
 export const LEGION_BALLS = 3
 /** Meteor skill: fraction of max HP (bosses take far less). */
 export const METEOR_FRACTION = 0.35
@@ -137,6 +139,12 @@ export class BarrageEngine implements IBarrageEngine {
   private breachPending = false
   /** A boss died before this turn's advance: the advance moves nothing. */
   private skipMarch = false
+  /** The run's FIRST boss died: the next row arrives in place, without a
+   *  march — on the kill's quiet advance, or (a kill during an advance or a
+   *  breach clear) as the next aim phase begins. Its calm fight leaves only
+   *  "+1"s on the board, and the quiet turn used to leave it EMPTY for the next
+   *  aim (playtest run 5: "I kept firing balls into nothing"). */
+  private quietSpawn = false
   /** The HP clock (monsters.ts): the clock row the last spawned row took its
    *  walkers' HP from (a boss takes `hpRow + 1`). */
   private hpRow = 0
@@ -147,6 +155,27 @@ export class BarrageEngine implements IBarrageEngine {
    *  killed then does not split — its little imps would land in the rows that
    *  were just cleared. */
   private noSplit = 0
+  /** The hidden savior boost of the volley in flight (economy `saviorBoost`):
+   *  every hit deals × (1 + it). Set at `fire()` from how close the boss is
+   *  to breaching; never on the state the renderer reads. */
+  private savior = 0
+  /** Volleys the boss had left before breaching when this volley was fired
+   *  (null: no boss, or the Daily). The bot sim reads it via `saviorView`. */
+  private saviorLeft: number | null = null
+  /** The player's aim (monsters.ts `BOSS_ADAPT`; playtest run 9: a tapper's
+   *  balls did ~1.5 balls' worth of damage to a boss per volley where the old
+   *  floor assumed 3): a volley's damage in units of the tray's power (its
+   *  "hits per ball", momentum, crits and abilities included, the hidden savior
+   *  boost left out), as an EMA over volleys — on walker boards and on bosses.
+   *  −1: not measured yet (a fresh or restarted board). */
+  private aimWalker = -1
+  private aimBoss = -1
+  /** The volley in flight: its damage to the boss and to everything else
+   *  (full hit damage, overkill included), and the tray's power at fire(). */
+  private volleyBossDmg = 0
+  private volleyOtherDmg = 0
+  private powerAtFire = 0
+  private bossAtFire = false
   /** Where tray-overflow coins fly from (the pickup that caused it). */
   private fxX = COLS / 2
   private fxY = ROWS
@@ -197,7 +226,7 @@ export class BarrageEngine implements IBarrageEngine {
       get speed() { return self.volleySpeed },
       get chest() { return self.state.chest },
       onWall: b => {
-        if (self.listeners.length > 0) self.emit({ type: 'wallBounce', ballId: b.id, x: b.x, y: b.y })
+        if (self.listeners.length > 0) self.emit({ type: 'wallBounce', ballId: b.id, x: b.x, y: b.y, boost: b.boost })
       },
       onMonster: (b, m, nx, ny) => self.onBallHit(b, m, nx, ny),
       onPickup: (b, p) => self.collectPickup(b, p),
@@ -224,8 +253,8 @@ export class BarrageEngine implements IBarrageEngine {
     }
   }
 
-  aimPreview(angle: number): AimPath {
-    return aimPreview(this.state, angle)
+  aimPreview(angle: number, bounces = 1): AimPath {
+    return aimPreview(this.state, angle, bounces)
   }
 
   canFire(): boolean {
@@ -243,6 +272,10 @@ export class BarrageEngine implements IBarrageEngine {
     s.warcryActive = s.warcryArmed
     s.warcryArmed = false
     s.volleyHits = 0
+    this.volleyBossDmg = 0
+    this.volleyOtherDmg = 0
+    this.powerAtFire = trayPower(s.tray, s.config.damageMult)
+    this.bossAtFire = s.bossId !== null
     s.fever = false
     s.nextLauncherX = null
     s.speedMul = 1
@@ -251,6 +284,7 @@ export class BarrageEngine implements IBarrageEngine {
     this.launchIndex = 0
     this.volleySpeed = s.config.ballSpeed > 0 ? s.config.ballSpeed : 15
     this.volleyInterval = Math.max(0.01, s.config.launchInterval)
+    this.armSavior()
     s.balls.length = 0
     // The volley is the tray as it is NOW, highest tier first; pickups
     // collected mid-flight join the tray for the next volley.
@@ -350,14 +384,22 @@ export class BarrageEngine implements IBarrageEngine {
       rng: this.rng.state,
       nextId: this.nextId,
       ...(this.skipMarch ? { skipMarch: true } : {}),
+      ...(this.skipMarch && this.quietSpawn ? { quietSpawn: true } : {}),
       hpRow: this.hpRow,
-      hpHold: this.hpHold
+      hpHold: this.hpHold,
+      ...(this.aimWalker >= 0 || this.aimBoss >= 0 ? { aim: { walker: this.aimWalker, boss: this.aimBoss } } : {})
     }
   }
 
   /** The HP clock (read-only view for the bot sim and tests). */
   get hpClock(): { hpRow: number; hpHold: number } {
     return { hpRow: this.hpRow, hpHold: this.hpHold }
+  }
+
+  /** The hidden savior boost of the last volley fired (bot sim and tests only
+   *  — nothing on screen ever shows it). */
+  get saviorView(): { boost: number; volleysLeft: number | null } {
+    return { boost: this.savior, volleysLeft: this.saviorLeft }
   }
 
   /** Independent deep copy (no listeners) — the bot sim fires trial volleys on clones. */
@@ -413,6 +455,15 @@ export class BarrageEngine implements IBarrageEngine {
     e.pendingHeal = this.pendingHeal
     e.breachPending = this.breachPending
     e.skipMarch = this.skipMarch
+    e.quietSpawn = this.quietSpawn
+    e.savior = this.savior
+    e.saviorLeft = this.saviorLeft
+    e.aimWalker = this.aimWalker
+    e.aimBoss = this.aimBoss
+    e.volleyBossDmg = this.volleyBossDmg
+    e.volleyOtherDmg = this.volleyOtherDmg
+    e.powerAtFire = this.powerAtFire
+    e.bossAtFire = this.bossAtFire
     e.hpRow = this.hpRow
     e.hpHold = this.hpHold
     Object.assign(e.stats, this.stats)
@@ -479,6 +530,7 @@ export class BarrageEngine implements IBarrageEngine {
     for (const h of s.hazards) maxId = Math.max(maxId, h.id)
     this.nextId = Math.max(maxId + 1, Math.floor(snap.nextId) || 1)
     this.skipMarch = snap.skipMarch === true
+    this.quietSpawn = this.skipMarch && snap.quietSpawn === true
     // A save from before the HP clock: the typical run's clock for its row.
     if (Number.isFinite(snap.hpRow) && (snap.hpRow as number) >= 0) {
       this.hpRow = Math.floor(snap.hpRow as number)
@@ -488,6 +540,9 @@ export class BarrageEngine implements IBarrageEngine {
       this.hpRow = typical.clock
       this.hpHold = typical.hold
     }
+    const aimOf = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : -1)
+    this.aimWalker = aimOf(snap.aim?.walker)
+    this.aimBoss = aimOf(snap.aim?.boss)
     this.stats.maxTier = s.tray[0] ?? 1
     this.rebuildGrid()
     s.phase = 'aim'
@@ -553,6 +608,25 @@ export class BarrageEngine implements IBarrageEngine {
     if (s.phase === 'volley' && inFlight === 0 && this.launchIndex >= this.volleyCount) this.enterResolve()
   }
 
+  /**
+   * The hidden savior boost (economy `SAVIOR`), read from the board as the
+   * player fires: how many volleys the live boss has left before its march
+   * breaches — its rows of space over the line, at its step (an enraged boss
+   * marches 2). Endless only. Reads the board, never the RNG.
+   */
+  private armSavior(): void {
+    const s = this.state
+    this.savior = 0
+    this.saviorLeft = null
+    if (s.config.mode === 'daily' || s.bossId === null) return
+    const boss = s.monsters.find(m => m.id === s.bossId)
+    if (!boss || boss.hp <= 0) return
+    const step = boss.enraged ? 2 : 1
+    const space = Math.max(0, ROWS - (boss.row + boss.h))
+    this.saviorLeft = Math.floor(space / step) + 1
+    this.savior = saviorBoost(this.saviorLeft)
+  }
+
   private setSpeed(mul: number): void {
     this.state.speedMul = mul
     this.emit({ type: 'speedUp', speedMul: mul })
@@ -585,6 +659,27 @@ export class BarrageEngine implements IBarrageEngine {
     this.emit({ type: 'chestAppear' })
   }
 
+  /** The volley's damage per unit of tray power into the aim EMAs
+   *  (`BOSS_ADAPT.aimAlpha`): the boss's when a boss stood at fire(), else
+   *  the walkers'. */
+  private noteAim(): void {
+    const power = this.powerAtFire
+    if (!(power > 0) || !(this.volleyCount > 0) || this.state.config.mode === 'daily') return
+    const a = BOSS_ADAPT.aimAlpha
+    if (this.bossAtFire) {
+      const hpb = this.volleyBossDmg / power
+      this.aimBoss = this.aimBoss < 0 ? hpb : this.aimBoss + a * (hpb - this.aimBoss)
+    } else {
+      const hpb = this.volleyOtherDmg / power
+      this.aimWalker = this.aimWalker < 0 ? hpb : this.aimWalker + a * (hpb - this.aimWalker)
+    }
+  }
+
+  /** The aim EMAs (−1: not measured yet) — bot sim and tests. */
+  get aimView(): { walker: number; boss: number } {
+    return { walker: this.aimWalker, boss: this.aimBoss }
+  }
+
   // ─── Phases ────────────────────────────────────────────────────────────────
   private setPhase(phase: Phase): void {
     this.state.phase = phase
@@ -598,7 +693,12 @@ export class BarrageEngine implements IBarrageEngine {
     s.warcryActive = false
     s.speedMul = 1
     if (s.nextLauncherX !== null) s.launcherX = s.nextLauncherX
+    // The combo pays (economy `comboCoins`): hits past the free share per ball.
+    const combo = Math.round(comboCoins(s.row, s.balls) * s.config.coinMult)
+    this.emit({ type: 'comboBonus', hits: s.volleyHits, balls: this.volleyCount, coins: combo })
+    this.grantCoins(combo, s.launcherX, FLOOR_Y - 1.2, 'combo')
     this.emit({ type: 'volleyEnd', hits: s.volleyHits })
+    this.noteAim()
     this.setPhase('resolve')
     if (this.pendingHeal) {
       this.pendingHeal = false
@@ -629,8 +729,16 @@ export class BarrageEngine implements IBarrageEngine {
     if (this.skipMarch) {
       // The boss's relief beat: nothing hops, marches, spits or spawns this
       // turn (no new row either — it would need the row-0 cells the last row
-      // still stands in).
+      // still stands in). After the run's FIRST boss the next row still
+      // arrives, in place (its calm fight left row 0 to the last "+1"): the
+      // board is never empty after the kill, and with nothing moving the quiet
+      // turn still cannot breach. The row plan is row-local, so the engine RNG
+      // is untouched.
       this.skipMarch = false
+      if (this.quietSpawn) {
+        this.quietSpawn = false
+        this.spawnNextRow()
+      }
       return
     }
     this.goblinHops()
@@ -673,6 +781,13 @@ export class BarrageEngine implements IBarrageEngine {
 
   private enterAim(): void {
     const s = this.state
+    // The first boss died with no quiet advance to bring the next row in (a
+    // breach clear killed it, or a tapped chest during an advance): it comes
+    // now, in place — nothing marches.
+    if (this.quietSpawn && !this.skipMarch) {
+      this.quietSpawn = false
+      this.spawnNextRow()
+    }
     // Carbuncles' gem shields grow back: "blocks the first hit EVERY turn".
     for (const m of s.monsters) {
       if (m.kind !== 'carbuncle' || m.shield) continue
@@ -691,7 +806,7 @@ export class BarrageEngine implements IBarrageEngine {
   private allocBall(i: number): SimBall {
     let b = this.pool[i]
     if (b === undefined) {
-      b = { id: 0, tier: 1, x: 0, y: 0, vx: 0, vy: 0, active: false, landed: false, ghost: false, pierceLeft: 0, hits: 0, passing: null }
+      b = { id: 0, tier: 1, x: 0, y: 0, vx: 0, vy: 0, active: false, landed: false, ghost: false, pierceLeft: 0, hits: 0, boost: 0, passing: null }
       this.pool[i] = b
     }
     return b
@@ -707,6 +822,7 @@ export class BarrageEngine implements IBarrageEngine {
     b.ghost = ghost
     b.pierceLeft = ballAbility(tier) === 'pierce' ? 1 : 0
     b.hits = 0
+    b.boost = 0
     b.passing = null
   }
 
@@ -767,7 +883,9 @@ export class BarrageEngine implements IBarrageEngine {
       return true
     }
     const ability = ballAbility(b.tier)
-    let dmg = ballDamage(b.tier, s.config.damageMult)
+    // Momentum: a ball that banked off the walls hits harder (balls.ts); the
+    // hidden savior boost while a boss is about to breach (economy.ts).
+    let dmg = ballDamage(b.tier, s.config.damageMult) * momentumMult(b.boost) * (1 + this.savior)
     if (s.warcryActive) dmg *= 2
     const crit = this.rng.chance(CRIT_CHANCE)
     if (crit) dmg *= CRIT_MULT
@@ -778,7 +896,7 @@ export class BarrageEngine implements IBarrageEngine {
     const loud = this.listeners.length > 0
     // `dealt`: what the hit really removes — a 1-HP kill pops "1", not the
     // ball's full damage (playtest run 3, "overkill").
-    if (loud) this.emit({ type: 'hit', monsterId: m.id, ballId: b.id, tier: b.tier, dmg, dealt: Math.min(dmg, m.hp), x: hx, y: hy, ability, crit })
+    if (loud) this.emit({ type: 'hit', monsterId: m.id, ballId: b.id, tier: b.tier, dmg, dealt: Math.min(dmg, m.hp), x: hx, y: hy, ability, crit, boost: b.boost })
 
     let pierce = false
     if (ability === 'pierce' && b.pierceLeft > 0) {
@@ -939,6 +1057,10 @@ export class BarrageEngine implements IBarrageEngine {
       return false
     }
     this.stats.damage += Math.min(m.hp, dmg)
+    // The aim measure (`noteAim`): the hit's full damage, savior boost out.
+    const base = dmg / (1 + this.savior)
+    if (m.id === this.state.bossId) this.volleyBossDmg += base
+    else this.volleyOtherDmg += base
     m.hp -= dmg
     if (m.hp <= 1e-6) {
       m.hp = 0
@@ -1004,6 +1126,11 @@ export class BarrageEngine implements IBarrageEngine {
     // In 'advance' the march already ran (the blast just cleared its result,
     // and endAdvance re-checks the line); in 'breach' a continue is clearing it.
     if (s.phase === 'aim' || s.phase === 'volley' || s.phase === 'resolve') this.skipMarch = true
+    // The run's first boss: its calm fight left no walkers, so the next row
+    // comes in without a march — on the quiet advance, or, when the kill came
+    // during an advance or a breach clear (continue / shield), as the next aim
+    // phase begins.
+    if (isFirstBoss(boss, s.row)) this.quietSpawn = true
   }
 
   /** A carbuncle's gem shield breaks (it grows back at the next aim phase). */
@@ -1053,7 +1180,7 @@ export class BarrageEngine implements IBarrageEngine {
     if (childIds.length > 0) this.emit({ type: 'split', monsterId: m.id, x: m.col + 0.5, y: m.row + 0.5, childIds })
   }
 
-  private grantCoins(amount: number, x: number, y: number, source: 'kill' | 'pickup' | 'midas' | 'chest' | 'boss'): void {
+  private grantCoins(amount: number, x: number, y: number, source: 'kill' | 'pickup' | 'midas' | 'chest' | 'boss' | 'combo'): void {
     if (!(amount > 0)) return
     this.stats.coins += amount
     this.emit({ type: 'coins', amount, x, y, source })
@@ -1305,12 +1432,17 @@ export class BarrageEngine implements IBarrageEngine {
     const boss = s.monsters.find(m => m.id === s.bossId)
     if (!boss || boss.bossKind !== 'slime-tower') return
     const sides = this.rng.chance(0.5) ? [boss.col - 1, boss.col + boss.w] : [boss.col + boss.w, boss.col - 1]
+    // The run's FIRST boss holds its minions until it is enraged (playtest run
+    // 4: the minion beside it soaked a tester's first two volleys while the
+    // boss bar sat still). Checked after the side draw so the RNG stream is
+    // the same as before the hold — only the minion is missing.
+    if (isFirstBoss(boss, s.row) && !boss.enraged) return
     // Top visible row first, and never within 3 marches of the line: a minion
     // dropped beside the tower's feet breached two turns later in the sim.
     for (let r = Math.max(0, boss.row); r < boss.row + boss.h; r++) {
       for (const c of sides) {
         if (r > ROWS - 4 || !this.grid.isFree(c, r)) continue
-        this.spawnMonster('slime', c, r, false, monsterHp(this.hpRow, 'slime', false, false, s.config.assist), s.row)
+        this.spawnMonster('slime', c, r, false, monsterHp(this.hpRow, 'slime', false, false, s.config.assist, undefined, s.config.mode === 'daily'), s.row)
         return
       }
     }
@@ -1394,7 +1526,7 @@ export class BarrageEngine implements IBarrageEngine {
     })
     for (const pm of plan.monsters) {
       const kind: WalkerKind = pm.kind
-      this.spawnMonster(kind, pm.col, 0, pm.corrupted, monsterHp(hpRow, kind, pm.corrupted, ftue, cfg.assist), row)
+      this.spawnMonster(kind, pm.col, 0, pm.corrupted, monsterHp(hpRow, kind, pm.corrupted, ftue, cfg.assist, undefined, cfg.mode === 'daily'), row)
     }
     if (plan.ballCol !== null) this.spawnPickup('ball', plan.ballCol, 0)
     if (plan.coinCol !== null) {
@@ -1411,29 +1543,52 @@ export class BarrageEngine implements IBarrageEngine {
     const daily = s.config.mode === 'daily'
     // The boss takes the clock row after its walkers' (its own row held it);
     // on the Daily board the clock is the row itself.
-    const hp = bossHp(daily ? this.hpRow : this.hpRow + 1, row, corrupted, s.config.ftue, s.config.assist)
+    const curve = bossHp(daily ? this.hpRow : this.hpRow + 1, row, corrupted, s.config.ftue, s.config.assist, daily)
+    // Adaptive floor (monsters.ts `BOSS_ADAPT`): never less than a few
+    // volleys of the tray it meets, at the hits per ball this player lands.
+    // Endless only — the Daily's kit is fixed.
+    const first = isFirstBoss({ kind: 'boss', spawnRow: row }, row)
+    const adapts = !daily && (!BOSS_ADAPT.firstOnly || first)
+    let full = adapts
+      ? adaptiveBossHp(curve, trayPower(s.tray, s.config.damageMult), bossAimHpb(this.aimWalker, this.aimBoss), first ? BOSS_ADAPT.firstVolleys : BOSS_ADAPT.volleys)
+      : curve
+    // A retry never meets a stronger boss than the one that won (playtest run
+    // 9: 224 → 348 HP, the floor had followed the tray the player kept).
+    const cap = s.config.bossHpCap
+    if (cap !== undefined && Number.isFinite(cap) && cap > 0 && full > cap) full = Math.round(cap)
+    // Boss mercy (economy.ts `bossHpMultForDeaths`): softer after each restart
+    // against it. Absent / out of range = full HP.
+    const mercy = s.config.bossHpMult
+    const softer = mercy !== undefined && mercy > 0 && mercy < 1
+    const hp = softer ? Math.max(1, Math.round(full * mercy)) : full
     const m = this.spawnMonster('boss', col, -2, corrupted, hp, row)
     m.bossKind = bossKind
+    if (softer) m.mercy = mercy
     s.bossId = m.id
     // A later boss's fight holds the clock for `fightHold` rows (the first
     // boss's whole fight holds it — spawnNextRow checks that one live).
     this.hpHold = daily || isFirstBoss(m, row) ? 0 : Math.max(0, Math.round(HP_CURVE.fightHold))
     this.emit({ type: 'bossSpawn', monsterId: m.id, bossKind, row })
-    if (isFirstBoss(m, row)) this.bossRoar(m)
+    const share = roarShare(row, daily)
+    if (share > 0) this.bossRoar(m, share)
   }
 
   /**
    * The run's FIRST boss clears the stage as it arrives (playtest run 3: the
    * 8–13 grunts already on the board shielded it for several turns — "HP bar
-   * stayed pinned at 57"). Every walker on the board dies — normal kill coins,
-   * through gem shields, no imp split; pickups and hazards stay. Same seed,
-   * same board ⇒ same roar: it reads the board and never the RNG. Keyed on the
-   * boss's spawn row (`isFirstBoss`), so later bosses and checkpoint restarts
-   * past row 10 never roar; the FTUE's scripted Slime Tower does.
+   * stayed pinned at 57"), and so does the endless run's SECOND (run 7: it
+   * landed on a full board — "sudden difficulty spike with no ramp-up"). The
+   * THIRD clears a third of it, in lanes beside it (after run 11: holes for
+   * bank shots, not a free fight — `roarVictims`). The walkers it takes die —
+   * normal kill coins, through gem shields, no imp split; pickups and hazards
+   * stay. Same seed, same board ⇒ same roar: it reads the board and never the
+   * RNG. Keyed on the boss's spawn row (`roarShare`): later bosses and the
+   * Daily's never roar; the FTUE's scripted Slime Tower does.
    */
-  private bossRoar(boss: Monster): void {
+  private bossRoar(boss: Monster, share: number): void {
     const s = this.state
-    const doomed = s.monsters.filter(m => m !== boss && m.kind !== 'boss' && m.hp > 0)
+    const walkers = s.monsters.filter(m => m !== boss && m.kind !== 'boss' && m.hp > 0)
+    const doomed = roarVictims(walkers, boss, share)
     this.emit({ type: 'bossRoar', monsterId: boss.id, ids: doomed.map(m => m.id), x: boss.col + boss.w / 2, y: boss.row + boss.h / 2 })
     for (const m of doomed) this.slay(m, false)
   }

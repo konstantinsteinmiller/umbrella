@@ -31,7 +31,9 @@ import UpgradeBar from '@/components/barrage/UpgradeBar.vue'
 import TurnControls from '@/components/barrage/TurnControls.vue'
 import BossBar from '@/components/barrage/BossBar.vue'
 import BarrageBanners from '@/components/barrage/BarrageBanners.vue'
+import ShootPrompt from '@/components/barrage/ShootPrompt.vue'
 import BreachModal from '@/components/barrage/BreachModal.vue'
+import DeathOverlay from '@/components/barrage/DeathOverlay.vue'
 import BossChestModal from '@/components/barrage/BossChestModal.vue'
 import CollectionModal from '@/components/barrage/CollectionModal.vue'
 import DailyBarrageModal from '@/components/barrage/DailyBarrageModal.vue'
@@ -39,13 +41,18 @@ import SupplyDropButton from '@/components/barrage/SupplyDropButton.vue'
 import HudButton from '@/components/barrage/HudButton.vue'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import AchievementToast from '@/components/barrage/AchievementToast.vue'
-import { boardApi, playerAiming, type BoardApi } from '@/components/barrage/barrageUi'
+import { boardApi, coinRain, fmtCoins, noteCoinRain, playerAiming, type BoardApi } from '@/components/barrage/barrageUi'
 import CoachOverlay from '@/components/barrage/coach/CoachOverlay.vue'
 import HudTip from '@/components/barrage/HudTip.vue'
+import { rankTip, showHudTip } from '@/components/barrage/hudTip'
 import FeatureSlot from '@/components/barrage/FeatureSlot.vue'
 import FeatureUnlockFx from '@/components/barrage/FeatureUnlockFx.vue'
 import MergeLightbox from '@/components/barrage/MergeLightbox.vue'
+import PickupSpotlight from '@/components/barrage/PickupSpotlight.vue'
+import LessonSpotlight from '@/components/barrage/LessonSpotlight.vue'
 import { mergeBox } from '@/components/barrage/mergeLightbox'
+import { pickupBox } from '@/components/barrage/pickupSpotlight'
+import { lessonSpot } from '@/components/barrage/lessonSpotlight'
 
 import useBarrage from '@/barrage/state/useBarrage'
 import useBarrageUpgrades from '@/barrage/state/useBarrageUpgrades'
@@ -57,18 +64,19 @@ import { FIGHTER_ART_MAX, fighterSrc } from '@/barrage/art'
 import { useMusic } from '@/use/useSound'
 import useSounds from '@/use/useSound'
 import { spawnCoinExplosion } from '@/use/useCoinExplosion'
+import useEpicConfig from '@/use/useEpicConfig'
 import useScreenshake from '@/use/useScreenshake'
 import { isMobileLandscape, isCompactHud, isUltraCompactHud, isRoomyHud, isWideCompactHud, windowWidth, windowHeight, isCrazyWeb, androidNavBarPx } from '@/use/useUser'
 import { artSrc } from '@/use/useArtOverrides'
 import { backdropSrc } from '@/barrage/render/backdropArt'
 import { installBarrageTutorial, tutorialActive, tutorialStep } from '@/use/useTutorial'
-import { coachLesson, installCoach, noteMisfire } from '@/use/useCoach'
-import { featureReady, featureShown, installFeatureUnlocks } from '@/use/useFeatureUnlocks'
+import { installCoach, noteMisfire } from '@/use/useCoach'
+import { featureReady, featureShown, installFeatureUnlocks, unlocking } from '@/use/useFeatureUnlocks'
 import { isAnyModalOpen } from '@/use/useModalState'
 import { isFtueActive, stats as barrageStats } from '@/barrage/state/progress'
 import { upgradeLevels } from '@/barrage/state/upgradeLevels'
 import { activeReveal } from '@/use/useTierReveal'
-import { achievementToast } from '@/use/useAchievements'
+import useAchievements, { ACHIEVEMENTS, achievementToast } from '@/use/useAchievements'
 import { rankedBest, installWaveLeaderboard } from '@/use/useWaveLeaderboard'
 import { leaderboardEnabled } from '@/use/useLeaderboard'
 import { CLEAN_FEED } from '@/game/cleanFeed'
@@ -87,12 +95,15 @@ import TierRevealFx from '@/components/organisms/TierRevealFx.vue'
 
 const { t, te } = useI18n()
 const barrage = useBarrage()
+/** Run 7: the death sequence plays before the death screen (BreachModal waits for it). */
+const deathScene = computed(() => barrage.deathScene.value)
 const upgrades = useBarrageUpgrades()
 const collections = useCollections()
 const daily = useDailyBarrage()
 const { playSound } = useSounds()
 const { startBattleMusic, stopBattleMusic } = useMusic()
 const { shakeStyle } = useScreenshake()
+const { coins: walletCoins } = useEpicConfig()
 
 // ─── Refs ─────────────────────────────────────────────────────────────────────
 const coinBadgeRef = ref<InstanceType<typeof CoinBadge> | null>(null)
@@ -130,11 +141,14 @@ const rankReserve = computed(() => (!showRank.value ? 0
 const anyUtility = computed(() =>
   (['codex', 'collection', 'dailyRun', 'supply', 'dailyRewards', 'battlePass', 'achievements'] as const).some(featureShown))
 /** A calm moment for an unlock celebration: the board waits for a shot and
- *  nothing else is asking for the player's eyes (the coach's lose-rule demo
- *  included — it plays on the board where the unlock would fly from). */
+ *  nothing else is asking for the player's eyes. */
 const unlockCalm = computed(() =>
   barrage.phase.value === 'aim' && !barrage.holdSim.value && !isAnyModalOpen.value && !activeReveal.value
-  && !playerAiming.value && !mergeBox.value && coachLesson.value?.id !== 'overrun')
+  && !playerAiming.value && !mergeBox.value && !pickupBox.value && !lessonSpot.value)
+/** …and for a spotlight lesson (useCoach): no unlock flying in, no coin rain,
+ *  no FTUE mark, no death scene either. */
+const spotCalm = computed(() =>
+  unlockCalm.value && !unlocking.value && !coinRain.value && !tutorialActive.value && !deathScene.value)
 
 // ─── Layout mode ─────────────────────────────────────────────────────────────
 // The board is portrait-shaped (≈ 0.58 : 1), so ANY clearly-wider-than-tall
@@ -235,8 +249,7 @@ const installBoardApi = (): void => {
     boardClientRect: () => boardRef.value?.boardClientRect?.() ?? null,
     // Run 3: a drag up from the tray's orbs is the slingshot motion.
     beginAimFrom: (e) => boardRef.value?.beginAimFrom?.(e) ?? false,
-    // The coach's lose-rule demo (0 = the board could not play it).
-    overrunDemo: (id) => boardRef.value?.overrunDemo?.(id) ?? 0
+    deathFocusClient: () => boardRef.value?.deathFocusClient?.() ?? null
   }
 }
 const onAimStart = (): void => { playerAiming.value = true }
@@ -248,8 +261,12 @@ const onMisfire = (kind: string): void => {
   if (kind === 'tap') noteMisfire()
 }
 /** A tap on the flying chest opens it and is not an aim: whatever the board
- *  reported on press, no finger is aiming any more (the coach may show). */
-const onChestTapped = (): void => { onAimEnd() }
+ *  reported on press, no finger is aiming any more (the coach may show). Its
+ *  coins rain into the wallet: the upgrade funnel waits that out. */
+const onChestTapped = (): void => {
+  onAimEnd()
+  noteCoinRain()
+}
 
 // ─── Scene backdrop (drop-in art; the gradient is the fallback) ──────────────
 // The sky around the keep, painted per orientation (art-sheets/backdrops): the
@@ -294,6 +311,14 @@ const coinLandMs = computed(() =>
 // ─── Coins from menus fly to the wallet ──────────────────────────────────────
 const onMenuCoins = (sourceEl: HTMLElement): void => {
   if (coinBadgeEl.value) spawnCoinExplosion({ sourceEl, targetEl: coinBadgeEl.value, count: 14 })
+  noteCoinRain()
+}
+
+// ─── The rank plaque names itself on a tap (run 4: "#15,667 of 15,876" was a
+// mystery) — the same name plate as the chest and the tray's status icons. ──
+const onRankTap = (el: HTMLElement, info: { rank: string; of: string | null; aria: string }): void => {
+  showHudTip(el, () => rankTip(t('barrage.hud.rank'), info))
+  playSound('anchor-swap', 0.03, 1.15)
 }
 
 const openModal = (which: 'codex' | 'collection' | 'daily'): void => {
@@ -303,7 +328,29 @@ const openModal = (which: 'codex' | 'collection' | 'daily'): void => {
 }
 
 // ─── Achievement unlock toast (held while a tier reveal owns the moment) ─────
+// Playtest run 11: rewards pay out as they are earned. Dev and Leo found
+// 400–800 coins waiting unclaimed in the trophy panel, and that windfall is
+// what beat the third boss; the two who lost never opened it. A toast claims
+// its achievement as it shows (its "+N", the coins flying to the wallet); the
+// ones completed before the trophy was earned pay out as it arrives. The
+// panel stays as the record.
+const achievements = useAchievements()
 const achToast = ref<string | null>(null)
+const achReward = ref<string | null>(null)
+/** Fly a payout from `selector` (the toast, the trophy) into the wallet. */
+const flyPayout = (selector: string): void => {
+  void nextTick(() => {
+    const el = document.querySelector<HTMLElement>(selector)
+    if (el) onMenuCoins(el)
+  })
+}
+/** Everything complete and unclaimed, paid out of the trophy button at once. */
+const sweepAchievements = (): void => {
+  if (!featureReady('achievements')) return
+  let total = 0
+  for (const a of achievements.list.value) if (a.claimable) total += achievements.claim(a.id)
+  if (total > 0) flyPayout('.achievements-btn')
+}
 let achToastTimer = 0
 const achName = (id: string): string => {
   // STATE's catalogue — a plain string per id today; `.name` tolerated if it grows one.
@@ -312,8 +359,16 @@ const achName = (id: string): string => {
   }
   return ''
 }
+/** What earned it (run 9): the goal line, "Hits in one volley: 50". */
+const achGoal = (id: string): string => {
+  const a = ACHIEVEMENTS.find((x) => x.id === id)
+  return a ? t(`barrageMeta.achievements.desc.${a.metric}`, { n: fmtCoins(a.target) }) : ''
+}
 const showAchToast = (id: string): void => {
   achToast.value = id
+  const paid = achievements.claim(id)
+  achReward.value = paid > 0 ? t('barrage.hud.coinGain', { n: fmtCoins(paid) }) : null
+  if (paid > 0) flyPayout('.ach-toast')
   playSound('reward-continue', 0.04)
   window.clearTimeout(achToastTimer)
   achToastTimer = window.setTimeout(() => { achToast.value = null }, 3200)
@@ -332,6 +387,8 @@ watch(activeReveal, (reveal) => {
   heldAchToast = null
   showAchToast(id)
 })
+// The trophy lands (its fly-in done) — or a save that already has it loads.
+watch(() => featureReady('achievements'), (ready) => { if (ready) sweepAchievements() })
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 let uninstallTutorial: (() => void) | null = null
@@ -355,6 +412,8 @@ onMounted(() => {
     ftueDone: computed(() => !tutorialActive.value),
     calm: unlockCalm
   })
+  // A save whose trophy is already earned: anything left unclaimed pays out now.
+  sweepAchievements()
   // The wordless coach picks up where the FTUE hands over (useCoach.ts).
   uninstallCoach = installCoach({
     engine: barrage.engine,
@@ -366,16 +425,27 @@ onMounted(() => {
     ftueDone: computed(() => !tutorialActive.value),
     ftuePressBeat: computed(() => tutorialActive.value && tutorialStep.value === 'upgrade'),
     capacityLevel: computed(() => upgradeLevels.value.capacity),
-    glowingUpgrade: computed(() => (upgrades.freeCapacityOffer.value ? null : upgrades.glowingId.value)),
+    glowingUpgrade: computed(() => (upgrades.freeCapacityOffer.value ? null : (upgrades.freeId.value ?? upgrades.glowingId.value))),
     upgradeTotal: computed(() => Object.values(upgradeLevels.value).reduce((a, b) => a + b, 0)),
     // The upgrade funnel reads Ball Damage off the chips, after the free claim.
     upgrades: upgrades.list,
-    freeOffer: upgrades.freeCapacityOffer
+    freeOffer: upgrades.freeCapacityOffer,
+    // Run 8: Damage arrows ignored three times → the first Damage level is free.
+    offerFreeDamage: () => upgrades.offerFreeDamage(),
+    // Run 4: the rich-wallet funnel, and nothing lands on top of it.
+    coins: walletCoins,
+    funnelCalm: computed(() => !isAnyModalOpen.value && !unlocking.value && !coinRain.value),
+    // Past row 25 the player has learnt that coins buy power: no funnel.
+    bestRow: barrage.bestRow,
+    // After run 11: the threat countdown and the speed / luck / bounty chips, staged.
+    spotCalm
   })
   uninstallTutorial = installBarrageTutorial({
     bestRow: barrage.bestRow,
     onEngineEvent: barrage.onEngineEvent,
-    upgradeTarget: computed(() => upgrades.freeCapacityOffer.value || upgrades.glowingId.value !== null)
+    upgradeTarget: computed(() => upgrades.freeId.value !== null || upgrades.glowingId.value !== null),
+    freeOffer: upgrades.freeCapacityOffer,
+    claimFree: () => upgrades.claimFreeCapacity()
   })
 
   // The board letterboxes itself inside its area; the overlay follows it.
@@ -418,7 +488,11 @@ onUnmounted(() => {
 </script>
 
 <template lang="pug">
-  div.barrage-scene.relative.w-screen.overflow-hidden(class="h-screen h-dvh" :style="[shakeStyle, sceneBgStyle]")
+  //- `hud-digits`: every DOM digit of the HUD in the numeral face (run 5:
+  //- 'Angry''s "2" read as "Z"); the canvas keeps its own font.
+  //- `data-poki-stage-bg`: Poki playtest recordings paint this backdrop into
+  //- their stage (utils/pokiPlaytestStage.ts).
+  div.barrage-scene.hud-digits.relative.w-screen.overflow-hidden(class="h-screen h-dvh" :style="[shakeStyle, sceneBgStyle]" data-poki-stage-bg="true")
     //- ── Top bar ──────────────────────────────────────────────────────────────
     //- Teleported to <body> at z-[55]: modals teleport to body at z-50 and the
     //- scene root's transform (screenshake) traps any in-scene z-index, so this is
@@ -426,7 +500,7 @@ onUnmounted(() => {
     //- an open modal. The bar itself is click-through; only its clusters catch
     //- taps (side by side, its empty middle lies over the board).
     Teleport(to="body" v-if="!CLEAN_FEED")
-      div.barrage-topbar.fixed.top-0.left-0.right-0.flex.items-start.justify-between.pointer-events-none(
+      div.barrage-topbar.hud-digits.fixed.top-0.left-0.right-0.flex.items-start.justify-between.pointer-events-none(
         ref="topBarEl"
         class="px-2 z-[55]"
         :class="isCompactHud ? 'pb-0.5' : 'pb-1'"
@@ -454,6 +528,7 @@ onUnmounted(() => {
                 :class="[isDaily ? 'bg-[#0d4d52]' : 'bg-[#7a1c1c]', isCompactHud ? 'translate-y-0.5' : 'translate-y-1']"
               )
               div.relative.flex.items-center.rounded-xl(
+                data-poki-hud="row"
                 :class="[                  isDaily ? 'bg-gradient-to-b from-[#3fe0d0] to-[#1a9a9a] border-[#0f1a30]' : 'bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]',                  isCompactHud ? 'gap-1 border px-1.5 py-0.5' : 'gap-1.5 border-2 px-2.5 py-1'                ]"
               )
                 BarrageGlyph.text-white.shrink-0(name="flag" :class="rowIconClass")
@@ -497,7 +572,7 @@ onUnmounted(() => {
       )
         Transition(name="chip")
           div.flex.justify-center.mb-3(v-if="achToast")
-            AchievementToast(:name="achName(achToast)")
+            AchievementToast(:name="achName(achToast)" :goal="achGoal(achToast)" :reward="achReward ?? undefined")
         //- Only earned features (useFeatureUnlocks); no empty plate before the first.
         div.util-grid.grid.justify-center.gap-1(v-if="anyUtility" :class="{ 'panel-plate': plateSrc }" :style="{ gridTemplateColumns: 'repeat(' + sideUtilCols + ', ' + utilCell + 'px)' }")
           FeatureSlot(id="codex")
@@ -536,14 +611,17 @@ onUnmounted(() => {
         div.board-overlay.absolute.pointer-events-none(v-if="!CLEAN_FEED" :style="boardBoxStyle")
           //- The global rank: a runic plaque on the board's top rim, every layout.
           div.rank-rim.absolute.left-0.right-0.flex.justify-center(v-if="showRank" :style="{ top: -rankReserve + 'px' }")
-            RankBadge(:score="rankedBest")
+            //- Run 8: named on the plaque itself (a tap still names it too).
+            RankBadge(:score="rankedBest" :label="t('barrage.hud.rank')" tappable @tap="onRankTap")
           BarrageBanners
+          //- A first-time player's "Tap to Shoot", pulsing until the first shot.
+          ShootPrompt
           Transition(name="chip")
             //- Low on the board: the top rows are where new rows (and bosses) enter.
             //- Side by side it lives in the left column instead (a short landscape
             //- board has no room below the centre banner).
             div.absolute.left-0.right-0.flex.justify-center(v-if="achToast && !sideBySide" class="z-[26]" :style="{ bottom: '24%' }")
-              AchievementToast(:name="achName(achToast)")
+              AchievementToast(:name="achName(achToast)" :goal="achGoal(achToast)" :reward="achReward ?? undefined")
 
       //- ── PORTRAIT bottom panel ──
       div.bottom-panel.shrink-0.w-full.mx-auto.flex.flex-col(
@@ -599,7 +677,7 @@ onUnmounted(() => {
     //- No coach hand in the DEV clean feed: that capture is "pure gameplay".
     TutorialOverlay(v-if="!CLEAN_FEED")
     CoachOverlay(v-if="!CLEAN_FEED")
-    //- A name plate beside a tapped HUD element (chest, tray status icons).
+    //- A name plate beside a tapped HUD element (chest, tray status icons, rank plaque).
     HudTip(v-if="!CLEAN_FEED")
     //- An earned feature flies in (useFeatureUnlocks).
     FeatureUnlockFx(v-if="!CLEAN_FEED")
@@ -607,7 +685,13 @@ onUnmounted(() => {
     TierRevealFx
     //- The first merges and every discovery, on a paused stage (runs before the reveal).
     MergeLightbox(v-if="!CLEAN_FEED")
+    //- The first "+1" that becomes a ball, on a stage (paused, once per profile).
+    PickupSpotlight(v-if="!CLEAN_FEED")
+    //- The countdown and the speed / luck / bounty chips, staged (paused; the coach decides when).
+    LessonSpotlight(v-if="!CLEAN_FEED")
 
+    //- The death sequence's "WASTED" — then the death screen.
+    DeathOverlay(:open="deathScene")
     BreachModal
     BossChestModal(:coin-target="coinBadgeEl")
     UnitCodexModal(v-model="showCodex")

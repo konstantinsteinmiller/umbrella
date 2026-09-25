@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createEngine, createEngineAtRow } from '@/barrage/engine/engine'
+import { COMBO_MARKS, createEngine, createEngineAtRow } from '@/barrage/engine/engine'
 import { defaultConfig } from '@/barrage/engine/economy'
 import { hpClockAt, rowHp } from '@/barrage/engine/monsters'
 import { LAUNCH_MARGIN, ROWS } from '@/barrage/engine/types'
@@ -87,7 +87,10 @@ describe('turn flow', () => {
     const b = e.state.balls[0]!
     b.x = 3.3; b.y = 1; b.vx = 3; b.vy = -15
     e.settle(8)
-    expect(ofType(ev, 'combo').map(c => c.hits)).toEqual([10, 20, 30, 40])
+    // Every mark reached, in order (fun pass: past FEVER they go on to 200).
+    const marks = ofType(ev, 'combo').map(c => c.hits)
+    expect(marks.slice(0, 4)).toEqual([10, 20, 30, 40])
+    expect(marks).toEqual(COMBO_MARKS.slice(0, marks.length))
     expect(ofType(ev, 'fever')).toHaveLength(1)
   })
 

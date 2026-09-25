@@ -14,9 +14,14 @@
  *
  * Unaffordable chips stay tappable (aria-disabled, not disabled). Their price
  * is a neutral grey, so red can MEAN "denied": the tap shakes the chip, flashes
- * its price red, pops a "need N more" callout above it, pulses the wallet,
- * gives the screen a small shake and plays the denied sound. (Run 2: the old
- * denial reached only the screen reader — the price was already red.)
+ * its price red, pops a "need N more" callout on it (its tail points at the
+ * chip tapped), pulses the wallet, gives the screen a small shake and plays
+ * the denied sound. (Run 2: the old denial reached only the screen reader —
+ * the price was already red.)
+ *
+ * Run 5 ("FREE" and "Need 8 more" at once): while the FTUE's free Tray
+ * Capacity is on offer, a refused tap on any other chip is no denial at all —
+ * it points back at the free chip, which jumps and flashes gold.
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -34,6 +39,7 @@ import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import { fmtCoins, pulseWallet, readyGlow, UPGRADE_INSCRIPTION, upgradeValueKey, upgradeValueNumber } from '@/components/barrage/barrageUi'
 import { runeZoneFor } from '@/game/runes'
 import { emitSparkle } from '@/use/usePrismParticles'
+import { longPressTip, showHudTip, type TipContent } from '@/components/barrage/hudTip'
 
 const props = withDefaults(defineProps<{
   /** Chips per row: 5 in one strip (portrait, wide columns), 3 (+2 below) in a
@@ -54,7 +60,9 @@ const ACCENT: Record<UpgradeId, string> = {
 /** What each chip's rune border spells (ornament, never read). */
 const INSCRIPTION = UPGRADE_INSCRIPTION
 
-const freeOffer = computed(() => upgrades.freeCapacityOffer.value)
+/** The chip whose next level is a gift right now: the FTUE's Tray Capacity,
+ *  or (run 8) the first Ball Damage level after its arrows were ignored. */
+const freeId = computed(() => upgrades.freeId.value)
 
 interface Chip {
   view: UpgradeView
@@ -71,15 +79,15 @@ interface Chip {
 const fmtValue = (id: UpgradeId, v: number): string => t(upgradeValueKey(id), { n: upgradeValueNumber(id, v) })
 
 const chips = computed<Chip[]>(() => upgrades.list.value.map((view) => {
-  const free = freeOffer.value && view.id === 'capacity'
+  const free = freeId.value === view.id
   // The free FTUE offer is THE obvious next thing — nothing else glows beside it.
-  const glow = free || (!freeOffer.value && view.glowing)
+  const glow = free || (!freeId.value && view.glowing)
   return {
     view,
     id: view.id,
     free,
     glow,
-    afford: readyGlow({ affordable: view.affordable, maxed: view.maxed, glow, free, freeOffer: freeOffer.value }),
+    afford: readyGlow({ affordable: view.affordable, maxed: view.maxed, glow, free, freeOffer: freeId.value !== null }),
     state: view.maxed ? 'maxed' : (free || view.affordable) ? 'ready' : 'locked',
     value: fmtValue(view.id, view.value),
     next: view.nextValue === null || view.maxed ? null : fmtValue(view.id, view.nextValue)
@@ -92,12 +100,15 @@ const name = (id: UpgradeId): string => t(`barrage.upgrades.${id}.short`)
 const pulseId = ref<UpgradeId | null>(null)
 let pulseTimer = 0
 const PULSE_MS = 1400
-watch(chipPulse, (p) => {
-  if (!p) return
+/** Jump + gold flash on one chip (off for a frame first: a repeat restarts it). */
+const pulseChip = (id: UpgradeId): void => {
   pulseId.value = null
-  requestAnimationFrame(() => { pulseId.value = p.id })
+  requestAnimationFrame(() => { pulseId.value = id })
   window.clearTimeout(pulseTimer)
   pulseTimer = window.setTimeout(() => { pulseId.value = null }, PULSE_MS)
+}
+watch(chipPulse, (p) => {
+  if (p) pulseChip(p.id)
 })
 const ariaFor = (c: Chip): string => {
   const base = { name: t(`barrage.upgrades.${c.id}.name`), desc: t(`barrage.upgrades.${c.id}.desc`) }
@@ -108,7 +119,7 @@ const ariaFor = (c: Chip): string => {
 const titleFor = (c: Chip): string => `${t(`barrage.upgrades.${c.id}.name`)} — ${t(`barrage.upgrades.${c.id}.desc`)}`
 
 // ─── Buying ──────────────────────────────────────────────────────────────────
-const flareId = ref<UpgradeId | null>(null)
+const flareIds = ref<UpgradeId[]>([])
 const shakeId = ref<UpgradeId | null>(null)
 /** The sr-only "not enough coins" line (the screen shows the callout). */
 const deniedText = ref('')
@@ -117,38 +128,118 @@ let shakeTimer = 0
 let needTimer = 0
 /** How long the denial shows (shake + red price), ms. */
 const DENIED_MS = 650
-/** How long the "need N more" callout stays up, ms. */
+/** How long the "need N more" callout stays up, ms — and the extra time its
+ *  second line (the chip's effect, run 10) gets to be read. */
 const NEED_MS = 1200
-/** The visible callout over a refused chip (teleported: the chip and the
- *  control deck both clip their overflow). */
-const need = ref<{ seq: number; text: string; x: number; y: number } | null>(null)
+const NEED_DESC_MS = 1300
+/** The visible callout on a refused chip (teleported: the chip and the
+ *  control deck both clip their overflow). `x` is where the pill is centred,
+ *  `tail` how far its tail sits from that centre — on the chip's centre,
+ *  whatever the pill had to shift to stay on screen. */
+const need = ref<{ seq: number; text: string; desc: string; x: number; y: number; tail: number } | null>(null)
+const needEl = ref<HTMLElement | null>(null)
 let needSeq = 0
+/** The pill never runs off either screen edge (px). */
+const NEED_EDGE = 4
+/** The pill stands this far above the chip; its 7 px tail dips the rest
+ *  into the chip's rim (px). */
+const NEED_LIFT = 4
 
-const flare = (id: UpgradeId, el: HTMLElement | null): void => {
-  flareId.value = null
-  requestAnimationFrame(() => { flareId.value = id })
+const chipEl = (id: UpgradeId): HTMLElement | null =>
+  rootEl.value?.querySelector<HTMLElement>(`[data-upgrade-id="${id}"]`) ?? null
+/** The buy flash (and sparkles) on every chip that just gained a level. */
+const flare = (ids: UpgradeId[]): void => {
+  flareIds.value = []
+  requestAnimationFrame(() => { flareIds.value = ids })
   window.clearTimeout(flareTimer)
-  flareTimer = window.setTimeout(() => { flareId.value = null }, 520)
-  const r = el?.getBoundingClientRect()
-  if (r) emitSparkle(r.left + r.width / 2, r.top + r.height / 2, ACCENT[id], 12)
+  flareTimer = window.setTimeout(() => { flareIds.value = [] }, 520)
+  for (const id of ids) {
+    const r = chipEl(id)?.getBoundingClientRect()
+    if (r) emitSparkle(r.left + r.width / 2, r.top + r.height / 2, ACCENT[id], 12)
+  }
+}
+
+/** Playtest run 9: a claimed free level says so — "FREE" in green by the
+ *  chip's new price. Dev read the claim as "a purchase that didn't deduct
+ *  coins" (the chip had said FREE a frame earlier; its new price replaced it).
+ *  (Runs 7–9's "▲N" multi-buy count is gone with the multi-buy: one tap, one
+ *  level — run 10.) */
+const gift = ref<{ id: UpgradeId; seq: number } | null>(null)
+let giftSeq = 0
+let giftTimer = 0
+const GIFT_MS = 2500
+const showGift = (id: UpgradeId): void => {
+  gift.value = { id, seq: ++giftSeq }
+  window.clearTimeout(giftTimer)
+  giftTimer = window.setTimeout(() => { gift.value = null }, GIFT_MS)
+}
+
+/** Playtest run 10 (Speed, Luck and Bounty still unexplained; nobody found the
+ *  long press): the FIRST purchase of each chip in a session names what it
+ *  bought — the same name plate, beside the chip, on the player's own tap. */
+const named = new Set<UpgradeId>()
+const chipTip = (id: UpgradeId): TipContent => ({
+  icon: id, name: t(`barrage.upgrades.${id}.name`), facts: [{ text: t(`barrage.upgrades.${id}.desc`) }]
+})
+const nameOnFirstBuy = (id: UpgradeId, el: HTMLElement | null): void => {
+  if (named.has(id) || !el) return
+  named.add(id)
+  showHudTip(el, () => chipTip(id))
+}
+
+// Run 9 (Jonas: "what GLÜCK actually affects — no tooltip was shown"): a
+// long press names the chip and says what it does, and buys nothing.
+let pressId: UpgradeId | null = null
+const press = longPressTip(() => chipTip(pressId ?? 'damage'))
+const onChipDown = (c: Chip, ev: PointerEvent): void => {
+  pressId = c.id
+  press.down(ev)
 }
 
 const onChip = (c: Chip, ev: MouseEvent): void => {
+  if (press.consumed()) return
   const el = ev.currentTarget as HTMLElement | null
-  if (c.free) {
-    upgrades.claimFreeCapacity()
+  // Run 7: while the FTUE's free Tray Capacity is on offer, ANY chip takes it.
+  // A tester aimed at FREE, hit Damage beside it, read the old wordless
+  // redirect ("this one first") as nothing happening and never tapped a chip
+  // again — the free offer stayed open, so no funnel ever ran for him. The
+  // gift was the point, not the aim.
+  // (The same holds for run 8's free first Damage level.)
+  const free = freeId.value
+  if (free) {
+    upgrades.claimFree()
     playSound('upgrade-buy', 0.06, 1.1)
-    flare(c.id, el)
+    flare([free])
+    showGift(free)
+    nameOnFirstBuy(free, chipEl(free))
     notifyTutorial({ kind: 'upgrade' })
     return
   }
+  // One tap, one level — every chip (run 10: the glowing chip's multi-buy
+  // spent 89 coins on one tap and read as a bug).
   if (!c.view.maxed && upgrades.buy(c.id)) {
     playSound('upgrade-buy', 0.05, 1.05)
-    flare(c.id, el)
+    flare([c.id])
+    nameOnFirstBuy(c.id, el)
     notifyTutorial({ kind: 'upgrade' })
     return
   }
   deny(c, el)
+}
+
+/** Keep the pill on screen and its tail on the chip: measured once it is up. */
+const placeNeed = (): void => {
+  const n = need.value
+  const el = needEl.value
+  if (!n || !el) return
+  // The layout width: the pill enters scaled down, and a transformed rect
+  // would let it hang off the screen edge.
+  const w = el.offsetWidth
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 0
+  if (!(w > 0) || !(vw > 0)) return
+  const chipX = n.x + n.tail
+  const x = Math.min(Math.max(chipX, NEED_EDGE + w / 2), Math.max(NEED_EDGE + w / 2, vw - NEED_EDGE - w / 2))
+  if (x !== n.x) need.value = { ...n, x, tail: chipX - x }
 }
 
 const deny = (c: Chip, el: HTMLElement | null): void => {
@@ -164,14 +255,23 @@ const deny = (c: Chip, el: HTMLElement | null): void => {
     return
   }
   deniedText.value = t('barrage.upgrades.denied', { cost: fmtCoins(c.view.cost) })
-  // What is short, where the eye already is — and at the wallet it comes from.
+  // What is short, ON the chip tapped (its tail points at it; run 5: a pill
+  // floating over the tray read as belonging to its neighbour) — and at the
+  // wallet it comes from.
   const r = el?.getBoundingClientRect()
   if (r && r.width > 0) {
-    const vw = typeof window !== 'undefined' ? window.innerWidth : 0
-    const x = Math.min(Math.max(r.left + r.width / 2, 56), Math.max(56, vw - 56))
-    need.value = { seq: ++needSeq, text: t('barrage.upgrades.need', { n: fmtCoins(Math.max(1, c.view.cost - coins.value)) }), x, y: r.top - 4 }
+    need.value = {
+      seq: ++needSeq,
+      text: t('barrage.upgrades.need', { n: fmtCoins(Math.max(1, c.view.cost - coins.value)) }),
+      // Run 10: what it would buy, where the player is looking anyway.
+      desc: t(`barrage.upgrades.${c.id}.desc`),
+      x: r.left + r.width / 2,
+      y: r.top - NEED_LIFT,
+      tail: 0
+    }
+    void nextTick(placeNeed)
     window.clearTimeout(needTimer)
-    needTimer = window.setTimeout(() => { need.value = null }, NEED_MS)
+    needTimer = window.setTimeout(() => { need.value = null }, NEED_MS + NEED_DESC_MS)
   }
   pulseWallet()
   if (!reducedMotion) triggerShake('small')
@@ -228,13 +328,23 @@ const tutTarget = computed(() => tutorialStep.value === 'upgrade')
 // ellipsis takes over again. Re-run only when the TEXT or the box changes, not on
 // every coin tick (affordability flips don't change a single glyph).
 const MIN_FONT = 8
+/** The label's text as laid out, in fractional px. Playtest run 11 (German,
+ *  "×1.95 → ×2…"): scrollWidth / clientWidth are whole pixels, so a line 0.4 px
+ *  too wide passed as fitting and the ellipsis cut it. */
+const textWidth = (el: HTMLElement): number => {
+  const r = document.createRange()
+  r.selectNodeContents(el)
+  return r.getBoundingClientRect().width
+}
 const fitLabels = (): void => {
   const root = rootEl.value
   if (!root) return
   for (const el of root.querySelectorAll<HTMLElement>('.chip-name, .chip-value')) {
     el.style.fontSize = ''
+    // Not laid out (hidden): nothing to measure — the resize observer re-fits it.
+    if (el.getBoundingClientRect().width <= 0) continue
     let size = parseFloat(getComputedStyle(el).fontSize)
-    while (el.scrollWidth > el.clientWidth + 0.5 && size > MIN_FONT) {
+    while (textWidth(el) > el.getBoundingClientRect().width + 0.05 && size > MIN_FONT) {
       size -= 0.5
       el.style.fontSize = `${size}px`
     }
@@ -242,7 +352,25 @@ const fitLabels = (): void => {
 }
 const labelKey = computed(() => `${locale.value}|${barH.value}|${props.cols}|${chips.value.map((c) => `${c.value}${c.next ?? ''}${c.view.maxed}`).join()}`)
 watch(labelKey, () => { void nextTick(fitLabels) })
-onMounted(() => { void nextTick(fitLabels) })
+// …and whenever the bar itself changes size (shown again, a rotation, a
+// sidebar opening) — the text did not change, the room did.
+let fitRo: ResizeObserver | null = null
+let fitRaf = 0
+onMounted(() => {
+  void nextTick(fitLabels)
+  if (typeof ResizeObserver !== 'undefined' && rootEl.value) {
+    fitRo = new ResizeObserver(() => {
+      cancelAnimationFrame(fitRaf)
+      fitRaf = requestAnimationFrame(fitLabels)
+    })
+    fitRo.observe(rootEl.value)
+  }
+})
+onUnmounted(() => {
+  fitRo?.disconnect()
+  fitRo = null
+  cancelAnimationFrame(fitRaf)
+})
 </script>
 
 <template lang="pug">
@@ -257,7 +385,7 @@ onMounted(() => { void nextTick(fitLabels) })
       v-for="c in chips"
       :key="c.id"
       type="button"
-      :class="['chip--' + c.state, { 'chip--glow': c.glow, 'chip--afford': c.afford, 'chip--pulse': pulseId === c.id, 'chip--free': c.free, 'chip--compact': isCompactHud, 'chip--flare': flareId === c.id, 'chip--shake': shakeId === c.id, 'chip--tut': tutTarget && c.glow, 'flex-1': cols >= 5 }]"
+      :class="['chip--' + c.state, { 'chip--glow': c.glow, 'chip--afford': c.afford, 'chip--pulse': pulseId === c.id, 'chip--free': c.free, 'chip--compact': isCompactHud, 'chip--flare': flareIds.includes(c.id), 'chip--shake': shakeId === c.id, 'chip--tut': tutTarget && c.glow, 'flex-1': cols >= 5 }]"
       :style="{ '--accent': ACCENT[c.id], '--rune-zone': runeZone, flexBasis: chipBasis, height: cols < 5 ? chipH + 'px' : undefined }"
       :aria-disabled="c.state === 'locked' || c.view.maxed ? 'true' : undefined"
       :aria-label="ariaFor(c)"
@@ -265,6 +393,11 @@ onMounted(() => { void nextTick(fitLabels) })
       :data-tut="'upgrade-' + c.id"
       :data-upgrade-id="c.id"
       @click="onChip(c, $event)"
+      @pointerdown="onChipDown(c, $event)"
+      @pointerup="press.cancel"
+      @pointerleave="press.cancel"
+      @pointercancel="press.cancel"
+      @contextmenu.prevent
     )
       RuneFrame(v-if="runes" :inscription="INSCRIPTION[c.id]" :state="c.state")
       //- Glyph + short name.
@@ -287,17 +420,27 @@ onMounted(() => { void nextTick(fitLabels) })
           span.chip-cost.game-text.font-black.leading-none.tabular-nums(
             :class="[c.view.affordable ? 'chip-cost--ok' : 'chip-cost--short', { 'chip-cost--denied': shakeId === c.id }, costClass]"
           ) {{ fmtCoins(c.view.cost) }}
+          //- Run 9: a claimed gift says "FREE" by the new price (beside it —
+          //- run 8: a pill over the name read as a MAX badge).
+          span.chip-levels.chip-levels--gift.game-text.font-black.tabular-nums.leading-none(
+            v-if="gift && gift.id === c.id"
+            :key="gift.seq"
+            aria-hidden="true"
+          ) {{ t('barrage.upgrades.free') }}
     div.sr-only(aria-live="assertive") {{ deniedText }}
     Teleport(to="body")
       Transition(name="chip-need")
-        div.chip-need.fixed.flex.items-center.pointer-events-none(
+        div.chip-need.hud-digits.fixed.flex.flex-col.items-center.pointer-events-none(
           v-if="need"
           :key="need.seq"
-          :style="{ left: need.x + 'px', top: need.y + 'px' }"
+          ref="needEl"
+          :style="{ left: need.x + 'px', top: need.y + 'px', '--tail': need.tail + 'px' }"
           aria-hidden="true"
         )
-          IconCoin.chip-need__coin.shrink-0
-          span.game-text.font-black.whitespace-nowrap {{ need.text }}
+          span.chip-need__row.flex.items-center
+            IconCoin.chip-need__coin.shrink-0
+            span.game-text.font-black.whitespace-nowrap {{ need.text }}
+          span.chip-need__desc.game-text(v-if="need.desc") {{ need.desc }}
 </template>
 
 <style scoped lang="sass">
@@ -422,13 +565,16 @@ onMounted(() => { void nextTick(fitLabels) })
     scale: 1.1
     filter: brightness(1.45)
 
-// "Need N more": a small dark pill over the refused chip.
+// "Need N more": a small dark pill on the refused chip — its tail points down
+// at the chip tapped (`--tail`: the chip's centre from the pill's, when the
+// pill had to shift to stay on screen), dipping into the chip's rim.
 .chip-need
+  --tail: 0px
   z-index: 72
   gap: 3px
   translate: -50% -100%
   padding: 3px 8px 3px 5px
-  border-radius: 999px
+  border-radius: 12px
   background: linear-gradient(180deg, #3a0f14, #1d070b)
   border: 1.5px solid #ff5a5a
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55), 0 0 10px rgba(255, 60, 60, 0.45)
@@ -436,6 +582,31 @@ onMounted(() => { void nextTick(fitLabels) })
   font-size: 12px
   line-height: 1
   text-shadow: 0 1px 0 #000
+  &::after
+    content: ''
+    position: absolute
+    top: 100%
+    left: clamp(8px, calc(50% + var(--tail)), calc(100% - 8px))
+    width: 0
+    height: 0
+    translate: -50% 0
+    border-left: 6px solid transparent
+    border-right: 6px solid transparent
+    border-top: 7px solid #ff5a5a
+    filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.5))
+.chip-need__row
+  gap: 3px
+// Run 10: what the chip would buy, under "need N more".
+.chip-need__desc
+  max-width: 190px
+  margin-top: 2px
+  padding: 0 2px 1px
+  font-size: 10.5px
+  font-weight: 700
+  line-height: 1.2
+  text-align: center
+  white-space: normal
+  color: #ffd7d7
 .chip-need__coin
   width: 14px
   height: 14px
@@ -470,6 +641,11 @@ onMounted(() => { void nextTick(fitLabels) })
     translate: 0 0
   14%, 19%
     translate: 0 2px
+// Run 5: a refused tap beside the free offer points back at it — the free
+// chip jumps and flashes gold without losing the hand's press rhythm (the
+// running animations keep their names, so they carry on; only the pulse starts).
+.chip--tut.chip--pulse
+  animation: chip-glow 1.1s ease-in-out infinite alternate, chip-tut-press 3.8s ease-in-out infinite, chip-pulse 1.4s ease-out
 
 .chip--compact
   border-width: 1.5px
@@ -498,9 +674,49 @@ onMounted(() => { void nextTick(fitLabels) })
   color: #8dffa6
   letter-spacing: 0.04em
 
+// Run 9: a claimed gift — "FREE" in a small green pill beside the price (the
+// only pill since run 10: runs 7–9's gold "▲N" left with the multi-buy).
+.chip-levels
+  margin-left: 3px
+  padding: 1px 4px
+  border-radius: 999px
+  font-size: 11px
+  text-transform: uppercase
+  color: #06290f
+  background: linear-gradient(#d6ffe0, #5fe38a)
+  box-shadow: 0 0 8px rgba(120, 255, 160, 0.9)
+  pointer-events: none
+  animation: chip-multi 2.5s ease-out both
+@keyframes chip-multi
+  0%
+    opacity: 0
+    scale: 0.4
+  15%
+    opacity: 1
+    scale: 1.25
+  30%
+    scale: 1
+  80%
+    opacity: 1
+  100%
+    opacity: 0
+    translate: 0 -4px
+
+// Reduced motion: the pill holds still, then fades.
+@keyframes chip-multi-still
+  0%, 85%
+    opacity: 1
+  100%
+    opacity: 0
+
 @media (prefers-reduced-motion: reduce)
-  .chip--glow, .chip--tut, .chip--shake, .chip--pulse, .chip--afford::after
+  .chip--glow, .chip--tut, .chip--shake, .chip--pulse, .chip--tut.chip--pulse, .chip--afford::after
     animation: none
+  .chip-levels
+    animation: chip-multi-still 2.5s linear both
+  // The pulse without the jump: a gold flash that holds while it lasts.
+  .chip--pulse
+    filter: brightness(1.4)
   .chip--afford::after
     opacity: 1
   // Reduced motion keeps the red price (a colour change, not motion).

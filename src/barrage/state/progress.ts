@@ -66,6 +66,14 @@ export interface Checkpoint {
   row: number
   /** The tray at that kill (descending). */
   tray: number[]
+  /** Checkpoint restarts after a breach with the NEXT boss on the board —
+   *  the boss mercy count (`bossHpMultForDeaths`). A kill resets it. */
+  deaths: number
+  /** Playtest run 9: the full HP (before mercy) of the weakest meeting with
+   *  that boss the player lost — the retry's cap (`config.bossHpCap`), so the
+   *  boss never comes back stronger than the one that won. 0 = none. A kill
+   *  resets it. */
+  bossHp: number
 }
 
 export interface FtueState {
@@ -75,6 +83,11 @@ export interface FtueState {
   firstMerge: boolean
   /** The free capacity level was taken. */
   freeCapacity: boolean
+  /** Playtest run 8: the Damage arrows were ignored three times, so the first
+   *  Ball Damage level is offered FREE (like the Capacity gift)… */
+  freeDamageOffer: boolean
+  /** …and was taken. */
+  freeDamage: boolean
 }
 
 export interface SegmentState {
@@ -96,7 +109,7 @@ export const sanitizeTray = (v: unknown): number[] =>
 
 const readCheckpoint = (): Checkpoint => {
   const raw = getState<Partial<Checkpoint> | null>(EB_CHECKPOINT_KEY, null)
-  return { row: toCount(raw?.row), tray: sanitizeTray(raw?.tray) }
+  return { row: toCount(raw?.row), tray: sanitizeTray(raw?.tray), deaths: toCount(raw?.deaths), bossHp: toCount(raw?.bossHp) }
 }
 
 const readFtue = (): FtueState => {
@@ -104,7 +117,9 @@ const readFtue = (): FtueState => {
   return {
     done: raw?.done === true,
     firstMerge: raw?.firstMerge === true,
-    freeCapacity: raw?.freeCapacity === true
+    freeCapacity: raw?.freeCapacity === true,
+    freeDamageOffer: raw?.freeDamageOffer === true,
+    freeDamage: raw?.freeDamage === true
   }
 }
 
@@ -179,7 +194,17 @@ export const noteBestRow = (row: number): boolean => {
 }
 
 export const setCheckpoint = (row: number, tray: readonly number[]): void => {
-  checkpoint.value = { row: toCount(row), tray: sanitizeTray([...tray]) }
+  checkpoint.value = { row: toCount(row), tray: sanitizeTray([...tray]), deaths: 0, bossHp: 0 }
+  setState(EB_CHECKPOINT_KEY, checkpoint.value)
+}
+
+/** The run lost to the boss past the checkpoint and restarts before it;
+ *  `fullHp`: that boss's full HP (before mercy) — the retry's cap. */
+export const noteBossDeath = (fullHp = 0): void => {
+  const cp = checkpoint.value
+  const hp = toCount(fullHp)
+  const bossHp = hp > 0 && (cp.bossHp <= 0 || hp < cp.bossHp) ? hp : cp.bossHp
+  checkpoint.value = { ...cp, deaths: cp.deaths + 1, bossHp }
   setState(EB_CHECKPOINT_KEY, checkpoint.value)
 }
 
@@ -234,12 +259,19 @@ export const refreshProgressFromBlob = (): void => {
   // the one the run started from), so the deeper one is the newer one.
   const savedCp = readCheckpoint()
   if (savedCp.row > checkpoint.value.row) checkpoint.value = savedCp
+  // At the same checkpoint the death count only grows (a kill resets it by
+  // moving the checkpoint), so the higher one is the newer one.
+  else if (savedCp.row === checkpoint.value.row && savedCp.deaths > checkpoint.value.deaths) {
+    checkpoint.value = { ...checkpoint.value, deaths: savedCp.deaths, bossHp: savedCp.bossHp || checkpoint.value.bossHp }
+  }
 
   const savedFtue = readFtue()
   ftue.value = {
     done: ftue.value.done || savedFtue.done,
     firstMerge: ftue.value.firstMerge || savedFtue.firstMerge,
-    freeCapacity: ftue.value.freeCapacity || savedFtue.freeCapacity
+    freeCapacity: ftue.value.freeCapacity || savedFtue.freeCapacity,
+    freeDamageOffer: ftue.value.freeDamageOffer || savedFtue.freeDamageOffer,
+    freeDamage: ftue.value.freeDamage || savedFtue.freeDamage
   }
   // A used one-shot stays used: taking the OR means switching devices can
   // never mint a second Meteor continue in the same segment.

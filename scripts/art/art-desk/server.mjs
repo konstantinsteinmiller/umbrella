@@ -26,15 +26,15 @@
  * Everything is local: the server binds 127.0.0.1, and writes are refused
  * without the desk's own header, so a web page cannot post into the repo.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
-import { homedir } from 'node:os'
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { loadConfig } from './config.mjs'
 import { IMAGE_EXT, imageSize, scanJobs } from './jobs.mjs'
 import { processReturn, sliceAndCompress } from './pipeline.mjs'
+import { countGeneration, usedToday } from './usage.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 // scripts/art/art-desk → the project root is THREE folders up (the template
@@ -174,17 +174,9 @@ const latestDownload = () => {
 }
 
 // ─── By queue: Gemini, throttled ────────────────────────────────────────────
-
-const USAGE = join(homedir(), '.art-desk', 'usage.json')
-const today = () => new Date().toISOString().slice(0, 10)
-const usage = () => { try { return JSON.parse(readFileSync(USAGE, 'utf-8')) } catch { return {} } }
-const usedToday = () => usage()[today()] ?? 0
-const countGeneration = () => {
-  const u = usage()
-  u[today()] = (u[today()] ?? 0) + 1
-  mkdirSync(dirname(USAGE), { recursive: true })
-  writeFileSync(USAGE, JSON.stringify(u, null, 2))
-}
+//
+// The ledger lives in ./usage.mjs, shared with scripts/art/art-promotion.mjs:
+// two counters over one Google allowance drift apart silently.
 
 const auto = {
   running: false,

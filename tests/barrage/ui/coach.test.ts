@@ -1,9 +1,9 @@
 // The wordless coach (`useCoach.ts`): lessons triggered by the real board,
 // demonstrated with shots the engine has actually played on a clone.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick, ref, shallowRef } from 'vue'
+import { nextTick, ref, shallowRef, type Ref } from 'vue'
 import { createEngine, type BarrageEngine } from '@/barrage/engine/engine'
-import { defaultConfig } from '@/barrage/engine/economy'
+import { bossBounty, defaultConfig, killCoins } from '@/barrage/engine/economy'
 import { COLS, type EngineEvent, type GameMode, type IBarrageEngine, type UpgradeId } from '@/barrage/engine/types'
 import type { UpgradeView } from '@/barrage/state/contract'
 import { board, mon, pick } from '../engine/helpers'
@@ -19,6 +19,8 @@ interface BootOpts {
   /** Raw blob: no coach defaults injected (migration tests). */
   raw?: boolean
   glowing?: UpgradeId | null
+  /** The player's best row (past FUNNEL_LAST_ROW the funnel retires). */
+  bestRow?: number
   upgradeTotal?: number
   mode?: GameMode
   volleys?: number
@@ -32,6 +34,15 @@ interface BootOpts {
   /** A shot landed moments ago (default): the shot demo is not due. Suites
    *  about other lessons would otherwise see it take every quiet aim. */
   shotRecent?: boolean
+  /** The wallet (the rich-wallet funnel; 0 by default: never rich). */
+  coins?: number
+  /** The five chips as given (instead of `chipViews(damage)`). */
+  chips?: UpgradeView[]
+  /** No modal / unlock / coin rain (the scene's `funnelCalm`). */
+  calm?: Ref<boolean>
+  /** A spotlight view is mounted and the stage is calm (the spotlight
+   *  lessons may play, at once — no delay). */
+  spots?: boolean
 }
 
 /** The five chips, Damage as asked (the rest unaffordable). */
@@ -54,10 +65,14 @@ const boot = async (engine: BarrageEngine, o: BootOpts = {}) => {
   if (!o.raw && !o.freshIntro) {
     const c = (state.eb_coach as { v: 1; shown?: Record<string, number>; kinds?: Record<string, number> } | undefined)
       ?? { v: 1, shown: {}, kinds: {} }
-    state.eb_coach = { ...c, shown: { trayIntro: 2, ...(c.shown ?? {}) }, kinds: c.kinds ?? {} }
+    const defaults: Record<string, number> = { trayIntro: 2 }
+    state.eb_coach = { ...c, shown: { ...defaults, ...(c.shown ?? {}) }, kinds: c.kinds ?? {} }
   }
   if (Object.keys(state).length > 0) window.localStorage.setItem(STATE_KEY, JSON.stringify(state))
   const coach = await import('@/use/useCoach')
+  const spot = await import('@/components/barrage/lessonSpotlight')
+  spot.__resetLessonSpot()
+  if (o.spots) spot.registerSpotView()
   if (o.shotRecent ?? true) coach.shotDemoDue.value = false
   const eng = shallowRef<IBarrageEngine>(engine)
   const w = {
@@ -72,12 +87,16 @@ const boot = async (engine: BarrageEngine, o: BootOpts = {}) => {
     capacityLevel: ref(o.capacityLevel ?? 1),
     glowingUpgrade: ref<UpgradeId | null>(o.glowing ?? null),
     upgradeTotal: ref(o.upgradeTotal ?? 1),
-    upgrades: ref<UpgradeView[]>(chipViews(o.damage)),
+    upgrades: ref<UpgradeView[]>(o.chips ?? chipViews(o.damage)),
     freeOffer: ref(o.freeOffer ?? false),
-    schedule: (fn: () => void) => fn()
+    coins: ref(o.coins ?? 0),
+    funnelCalm: o.calm ?? ref(true),
+    bestRow: ref(o.bestRow ?? 0),
+    schedule: (fn: () => void) => fn(),
+    ...(o.spots ? { spotCalm: ref(true), spotDelayMs: 0 } : {})
   }
   const off = coach.installCoach(w)
-  return { coach, w, off }
+  return { coach, w, off, spot }
 }
 
 /** An engine event the board would emit (boss kill, breach…). */
@@ -610,6 +629,21 @@ describe('upgrade funnel', () => {
     expect(coach.upgradeFunnel.value).toBeNull()
   })
 
+  it('run 8: the FREE_DAMAGE_AFTER-th Damage showing without a purchase arms the free first Damage level', async () => {
+    const e = quiet()
+    const { coach, w } = await boot(e, { damage: { affordable: true } })
+    const offer = vi.fn()
+    ;(w as unknown as { offerFreeDamage?: () => void }).offerFreeDamage = offer
+    for (let i = 0; i < coach.FREE_DAMAGE_AFTER; i++) {
+      const f = coach.upgradeFunnel.value
+      expect(f?.target).toBe('damage')
+      if (f) coach.noteFunnelVisible(f)
+      if (i < coach.FREE_DAMAGE_AFTER - 1) expect(offer).not.toHaveBeenCalled()
+      play(e, UP)
+    }
+    expect(offer).toHaveBeenCalled()
+  })
+
   it('a boss kill brings the arrows back on the glowing chip for REARM_AIMS aims', async () => {
     const e = quiet()
     const { coach } = await boot(e, { damage: { affordable: false, level: 2 }, glowing: 'speed' })
@@ -671,6 +705,59 @@ describe('upgrade funnel', () => {
     expect(coach.chipPulse.value?.seq).toBe(seq + 1)
   })
 
+  it('run 6: after a purchase the funnel waits for the next aim (the free claim is its own answer)', async () => {
+    // Mia claimed the FREE Tray Capacity and the Damage arrows started that
+    // instant — she read them as the reply to her tap and missed her level.
+    const e = quiet()
+    const { coach, w } = await boot(e, { freeOffer: true, capacityLevel: 0, damage: { affordable: true } })
+    expect(coach.upgradeFunnel.value).toBeNull() // the free chip is on offer
+    w.freeOffer.value = false
+    w.capacityLevel.value = 1
+    w.upgradeTotal.value += 1
+    await nextTick()
+    expect(coach.upgradeFunnel.value).toBeNull()
+    play(e, UP)
+    expect(coach.upgradeFunnel.value).toMatchObject({ target: 'damage', reason: 'damage' })
+  })
+
+  it('run 6: a boss ARRIVING with the glowing chip affordable brings the arrows back (gear up)', async () => {
+    const e = quiet()
+    const { coach } = await boot(e, { damage: { affordable: false, level: 2 }, glowing: 'speed' })
+    expect(coach.upgradeFunnel.value).toBeNull()
+    emit(e, { type: 'bossSpawn', monsterId: 99, bossKind: 'worm', row: 20 })
+    play(e, UP)
+    expect(coach.upgradeFunnel.value).toMatchObject({ target: 'speed', reason: 'gear' })
+  })
+
+  it('run 6: nothing affordable glows when the boss arrives — no gear-up arrows', async () => {
+    const e = quiet()
+    const { coach } = await boot(e, { damage: { affordable: false, level: 2 }, glowing: null })
+    emit(e, { type: 'bossSpawn', monsterId: 99, bossKind: 'worm', row: 20 })
+    play(e, UP)
+    expect(coach.upgradeFunnel.value).toBeNull()
+  })
+
+  it('retires past FUNNEL_LAST_ROW: no arrows, no hand, no pulse (the player knows coins buy power)', async () => {
+    expect((await import('@/use/useCoach')).FUNNEL_LAST_ROW).toBe(25)
+    // A best row past it: nothing, even with Damage never bought and a boss kill.
+    const e = quiet()
+    const { coach } = await boot(e, { damage: { affordable: true }, glowing: 'damage', bestRow: 26 })
+    expect(coach.upgradeFunnel.value).toBeNull()
+    bossDown(e)
+    play(e, UP)
+    play(e, UP)
+    expect(coach.upgradeFunnel.value).toBeNull()
+    expect(coach.chipPulse.value).toBeNull()
+    // This run's row past it counts too (a best row not yet saved).
+    const deep = board({ monsters: [mon('slime', 3, 2, 1e9)], launcherX: 3.5, row: 26 })
+    const second = await boot(deep, { damage: { affordable: true }, glowing: 'damage', bestRow: 0 })
+    expect(second.coach.upgradeFunnel.value).toBeNull()
+    // At row 25 it still runs.
+    const edge = board({ monsters: [mon('slime', 3, 2, 1e9)], launcherX: 3.5, row: 25 })
+    const third = await boot(edge, { damage: { affordable: true }, glowing: 'damage', bestRow: 25 })
+    expect(third.coach.upgradeFunnel.value).toMatchObject({ target: 'damage', reason: 'damage' })
+  })
+
   it('never pulses under the arrows (they already say it louder)', async () => {
     const e = quiet()
     const { coach } = await boot(e, { damage: { affordable: true }, glowing: 'damage' })
@@ -682,155 +769,412 @@ describe('upgrade funnel', () => {
 })
 
 
-describe('overrun lesson (the lose rule)', () => {
+describe('run 4: a due funnel owns the ghost hand after 3 volleys', () => {
   beforeEach(() => { window.localStorage.clear() })
   afterEach(() => { vi.useRealTimers() })
 
-  /** One monster a march from the line (the canvas's `1` pip), one far up. */
-  const brink = () => {
-    const doomed = mon('slime', 1, 9, 3)
-    const e = board({ monsters: [doomed, mon('slime', 4, 3, 1e9)], launcherX: 3.5, tray: [1, 1] })
-    return { e, doomed }
-  }
-  /** The overlay's side of it: the board played the demo (seen), it ran out. */
-  const playOut = (coach: typeof import('@/use/useCoach')): void => {
-    const l = coach.coachLesson.value
-    if (l?.id !== 'overrun') throw new Error(`no overrun lesson: ${l?.id}`)
-    coach.noteLessonVisible(l)
-    coach.finishOverrun(l.seq)
-  }
+  const quiet = () => board({ monsters: [mon('slime', 3, 2, 1e9)], launcherX: 3.5 })
 
-  it('the first aim with a `1` pip plays it on the monster about to cross — before every other lesson', async () => {
-    const { e, doomed } = brink()
-    // The tray intro and the shot demo are both due: the lose rule still goes first.
-    const { coach } = await boot(e, { freshIntro: true, shotRecent: false, damage: { affordable: true } })
-    const l = coach.coachLesson.value
-    expect(l?.id).toBe('overrun')
-    if (l?.id !== 'overrun') return
-    expect(l.monsterId).toBe(doomed.id)
+  it('the shot demo yields to it: no pull, the funnel plays in full (it owns the hand)', async () => {
+    const { coach } = await boot(quiet(), { shotRecent: false, damage: { affordable: true }, volleys: 3 })
+    expect(coach.FUNNEL_HAND_VOLLEYS).toBe(3)
+    expect(coach.upgradeFunnel.value).toMatchObject({ target: 'damage', reason: 'damage' })
+    expect(coach.funnelOwnsHand()).toBe(true)
+    expect(coach.coachLesson.value).toBeNull()
   })
 
-  it('never for a `2` pip: a monster two marches out is the survive lesson\'s', async () => {
-    const { e } = dangerBoard() // row 8: two marches from the line
+  it('before 3 volleys nothing changes: the pull demo keeps the hand, the funnel shows beside it', async () => {
+    const { coach } = await boot(quiet(), { shotRecent: false, damage: { affordable: true }, volleys: 2 })
+    expect(coach.upgradeFunnel.value?.target).toBe('damage')
+    expect(coach.funnelOwnsHand()).toBe(false)
+    expect(coach.coachLesson.value?.id).toBe('pull')
+  })
+
+  it('the combo demo yields too', async () => {
+    const plain = await boot(gapBoard())
+    expect(plain.coach.coachLesson.value?.id).toBe('combo')
+    plain.off()
+    const { coach } = await boot(gapBoard(), { damage: { affordable: true } })
+    expect(coach.upgradeFunnel.value?.target).toBe('damage')
+    expect(coach.coachLesson.value).toBeNull()
+  })
+
+  it('the survive lesson still wins (danger first)', async () => {
+    const { e } = dangerBoard()
+    const danger = await boot(e, { shotRecent: false, damage: { affordable: true } })
+    expect(danger.coach.coachLesson.value?.id).toBe('survive')
+  })
+
+  it('run 7: no lose-rule lesson any more — the loss itself teaches the line (the death sequence)', async () => {
+    const brink = board({ monsters: [mon('slime', 1, 9, 3), mon('slime', 4, 3, 1e9)], launcherX: 3.5, tray: [1, 1] })
+    const { coach } = await boot(brink, { shotRecent: false })
+    expect(coach.coachLesson.value?.id).not.toBe('overrun')
+    expect('overrunThreat' in coach).toBe(false)
+  })
+
+  it('turning due mid-aim, it takes the hand from the pull demo on screen', async () => {
+    const { coach, w } = await boot(quiet(), { shotRecent: false, damage: { affordable: false } })
+    expect(coach.coachLesson.value?.id).toBe('pull')
+    w.upgrades.value = chipViews({ affordable: true })
+    await nextTick()
+    expect(coach.upgradeFunnel.value?.target).toBe('damage')
+    expect(coach.coachLesson.value).toBeNull()
+  })
+
+  it('neither the 20-second rule nor two empty taps bring the pull demo over it', async () => {
+    vi.useFakeTimers()
+    const e = quiet()
+    const { coach } = await boot(e, { damage: { affordable: true }, bestCombo: 99 })
+    play(e, UP)
+    expect(coach.upgradeFunnel.value?.target).toBe('damage')
+    vi.advanceTimersByTime(coach.SHOT_QUIET_MS + 100)
+    expect(coach.shotDemoDue.value).toBe(true)
+    expect(coach.coachLesson.value).toBeNull()
+    coach.noteMisfire()
+    coach.noteMisfire()
+    expect(coach.coachLesson.value).toBeNull()
+  })
+
+  it('once it is gone (bought), the next aim is the shot demo\'s again', async () => {
+    const e = quiet()
+    const { coach, w } = await boot(e, { shotRecent: false, damage: { affordable: true }, bestCombo: 99 })
+    expect(coach.coachLesson.value).toBeNull()
+    w.upgrades.value = chipViews({ affordable: false, level: 1 })
+    w.upgradeTotal.value += 1
+    await nextTick()
+    expect(coach.upgradeFunnel.value).toBeNull()
+    emit(e, { type: 'phase', phase: 'aim' })
+    expect(coach.coachLesson.value?.id).toBe('pull')
+  })
+})
+
+describe('run 4: the rich-wallet funnel', () => {
+  beforeEach(() => { window.localStorage.clear() })
+
+  const quiet = () => board({ monsters: [mon('slime', 3, 2, 1e9)], launcherX: 3.5 })
+  /** Damage already bought (no first-Damage funnel); `glow` glows at `cost`,
+   *  the rest cost three times as much. */
+  const richChips = (glow: UpgradeId, cost = 12): UpgradeView[] =>
+    (['damage', 'capacity', 'speed', 'luck', 'bounty'] as const).map((id) => ({
+      id,
+      level: 1,
+      maxed: false,
+      cost: id === glow ? cost : cost * 3,
+      affordable: true,
+      glowing: id === glow,
+      value: 1,
+      nextValue: 1.25
+    }))
+  /** One more aim phase opens on the same board (nothing on it moves). */
+  const nextAim = (e: BarrageEngine): void => emit(e, { type: 'phase', phase: 'aim' })
+  /** The overlay puts the funnel on screen (its exposure call). */
+  const show = (coach: typeof import('@/use/useCoach')): void => {
+    const f = coach.upgradeFunnel.value
+    if (f) coach.noteFunnelVisible(f)
+  }
+  const bootRich = (e: BarrageEngine, o: BootOpts = {}) =>
+    boot(e, { chips: richChips('capacity'), glowing: 'capacity', coins: 24, ...o })
+
+  it('the rule: ≥ 2× the glowing price, 3 aims without a purchase, 4 aims since the last funnel', async () => {
+    const { richWalletDue, RICH_MULT, RICH_IDLE_AIMS, RICH_EVERY_AIMS } = await import('@/use/useCoach')
+    expect([RICH_MULT, RICH_IDLE_AIMS, RICH_EVERY_AIMS]).toEqual([2, 3, 4])
+    const base = { mode: 'endless' as GameMode, coins: 24, price: 12, aimsSinceBuy: 3, aimsSinceFunnel: 4 }
+    expect(richWalletDue(base)).toBe(true)
+    expect(richWalletDue({ ...base, coins: 23 })).toBe(false)
+    expect(richWalletDue({ ...base, aimsSinceBuy: 2 })).toBe(false)
+    expect(richWalletDue({ ...base, aimsSinceFunnel: 3 })).toBe(false)
+    expect(richWalletDue({ ...base, price: null })).toBe(false)
+    expect(richWalletDue({ ...base, mode: 'daily' })).toBe(false)
+  })
+
+  it('the third aim without a purchase brings the whole funnel back on the glowing chip — it has the hand', async () => {
+    const e = quiet()
+    const { coach } = await bootRich(e, { shotRecent: false })
+    expect(coach.upgradeFunnel.value).toBeNull() // aim 1
+    expect(coach.coachLesson.value?.id).toBe('pull')
+    nextAim(e)
+    expect(coach.upgradeFunnel.value).toBeNull() // aim 2
+    nextAim(e)
+    expect(coach.upgradeFunnel.value).toMatchObject({ target: 'capacity', reason: 'rich' })
+    expect(coach.funnelOwnsHand()).toBe(true)
+    expect(coach.coachLesson.value).toBeNull()
+  })
+
+  it('shows at most every 4th aim phase, with no lifetime cap', async () => {
+    const e = quiet()
+    const { coach } = await bootRich(e)
+    const on: number[] = []
+    for (let aim = 1; aim <= 20; aim++) {
+      if (aim > 1) nextAim(e)
+      if (coach.upgradeFunnel.value?.reason === 'rich') {
+        on.push(aim)
+        show(coach)
+      }
+    }
+    expect(on).toEqual([3, 7, 11, 15, 19])
+  })
+
+  it('a showing nobody saw (a modal covered the whole aim) comes back at the next aim', async () => {
+    const e = quiet()
+    const { coach } = await bootRich(e)
+    nextAim(e)
+    nextAim(e)
+    expect(coach.upgradeFunnel.value?.reason).toBe('rich') // never put on screen
+    nextAim(e)
+    expect(coach.upgradeFunnel.value?.reason).toBe('rich')
+  })
+
+  it('never below 2× the price, never in the daily', async () => {
+    const e = quiet()
+    const poor = await bootRich(e, { coins: 23 })
+    for (let i = 0; i < 6; i++) nextAim(e)
+    expect(poor.coach.upgradeFunnel.value).toBeNull()
+    poor.off()
+    const d = quiet()
+    const daily = await bootRich(d, { coins: 999, mode: 'daily' })
+    for (let i = 0; i < 6; i++) nextAim(d)
+    expect(daily.coach.upgradeFunnel.value).toBeNull()
+  })
+
+  it('any purchase ends it at once and restarts the 3 idle aims', async () => {
+    const e = quiet()
+    const { coach, w } = await bootRich(e, { coins: 36 })
+    nextAim(e)
+    nextAim(e)
+    expect(coach.upgradeFunnel.value?.reason).toBe('rich')
+    show(coach)
+    w.upgradeTotal.value += 1 // bought (anything)
+    await nextTick()
+    expect(coach.upgradeFunnel.value).toBeNull()
+    const on: number[] = []
+    for (let aim = 1; aim <= 8; aim++) {
+      nextAim(e)
+      if (coach.upgradeFunnel.value?.reason === 'rich') {
+        on.push(aim)
+        show(coach)
+      }
+    }
+    // Three idle aims again — and the spacing from the last showing.
+    expect(on).toEqual([4, 8])
+  })
+
+  it('after the Damage arrows gave up (ARROW_CAP), the rich wallet brings the funnel back', async () => {
+    const e = quiet()
+    const { coach } = await boot(e, {
+      damage: { affordable: true },
+      glowing: 'damage',
+      coins: 24,
+      state: { eb_coach: { v: 1, shown: { arrows: 6 }, kinds: {} } }
+    })
+    expect(coach.upgradeFunnel.value).toBeNull()
+    nextAim(e)
+    nextAim(e)
+    expect(coach.upgradeFunnel.value).toMatchObject({ target: 'damage', reason: 'rich' })
+  })
+})
+
+describe('run 4: nothing lands on top of the funnel', () => {
+  beforeEach(() => { window.localStorage.clear() })
+
+  const quiet = () => board({ monsters: [mon('slime', 3, 2, 1e9)], launcherX: 3.5 })
+  const nextAim = (e: BarrageEngine): void => emit(e, { type: 'phase', phase: 'aim' })
+
+  it('a coin rain / unlock / modal mid-aim takes it off at once; it waits for the next calm aim phase', async () => {
+    const e = quiet()
+    const calm = ref(true)
+    const { coach } = await boot(e, { damage: { affordable: true }, calm })
+    expect(coach.upgradeFunnel.value?.target).toBe('damage')
+    calm.value = false // a chest claimed: its coins rain into the wallet
+    expect(coach.upgradeFunnel.value).toBeNull() // synchronously: never one frame together
+    calm.value = true // the rain landed…
+    await nextTick()
+    expect(coach.upgradeFunnel.value).toBeNull() // …but this aim phase is over for it
+    nextAim(e)
+    expect(coach.upgradeFunnel.value?.target).toBe('damage')
+  })
+
+  it('an aim that opens under a modal / an unlock has no funnel, not even once it closes', async () => {
+    const e = quiet()
+    const calm = ref(false)
+    const { coach, w } = await boot(e, { damage: { affordable: true }, calm })
+    expect(coach.upgradeFunnel.value).toBeNull()
+    calm.value = true
+    w.upgrades.value = chipViews({ affordable: true }) // the watcher re-evaluates
+    await nextTick()
+    expect(coach.upgradeFunnel.value).toBeNull()
+    nextAim(e)
+    expect(coach.upgradeFunnel.value?.target).toBe('damage')
+  })
+
+  it('an interrupted rich-wallet showing gives its turn back: it is there again at the next calm aim', async () => {
+    const e = quiet()
+    const calm = ref(true)
+    const chips = (['damage', 'capacity', 'speed', 'luck', 'bounty'] as const).map((id) => ({
+      id, level: 1, maxed: false, cost: 12, affordable: true, glowing: id === 'speed', value: 1, nextValue: 1.25
+    }))
+    const { coach } = await boot(e, { chips, glowing: 'speed', coins: 30, calm })
+    nextAim(e)
+    nextAim(e)
+    const f = coach.upgradeFunnel.value
+    expect(f?.reason).toBe('rich')
+    if (f) coach.noteFunnelVisible(f)
+    calm.value = false
+    expect(coach.upgradeFunnel.value).toBeNull()
+    calm.value = true
+    nextAim(e)
+    expect(coach.upgradeFunnel.value).toMatchObject({ target: 'speed', reason: 'rich' })
+  })
+})
+
+// After playtest run 11: the spotlight lessons (lessonSpotlight.ts) — the
+// countdown on the launcher, then speed / luck / bounty, spaced out.
+describe('spotlight lessons', () => {
+  beforeEach(() => { window.localStorage.clear() })
+
+  /** Chips at level 0 except Damage / Capacity (the ones everybody buys). */
+  const chips0 = (): UpgradeView[] =>
+    (['damage', 'capacity', 'speed', 'luck', 'bounty'] as const).map((id) => ({
+      id, level: id === 'damage' || id === 'capacity' ? 1 : 0, maxed: false, cost: 20, affordable: false,
+      glowing: false, value: id === 'luck' ? 0 : 1, nextValue: id === 'luck' ? 0.05 : id === 'bounty' ? 1.2 : 1.12
+    }))
+
+  it('threatSpotDraft: the fewest marches, the nearest the unit on a tie, walked to the line', async () => {
+    const near = mon('slime', 3, 8, 3)
+    const far = mon('slime', 0, 8, 3)
+    const safe = mon('slime', 5, 2, 3)
+    const e = board({ monsters: [far, near, safe], launcherX: 3.5 })
     const { coach } = await boot(e)
-    expect(coach.overrunThreat(e.state)).toBeNull()
+    const d = coach.threatSpotDraft(e.state)
+    expect(d).toEqual({ kind: 'threat', monsterId: near.id, plan: [9, 10] })
+    // Nothing within DANGER_PIP_MARCHES: no draft.
+    expect(coach.threatSpotDraft(board({ monsters: [mon('slime', 3, 1, 3)] }).state)).toBeNull()
+  })
+
+  it('the first danger plays the threat spotlight — once — and its rescue shot follows the moment it ends', async () => {
+    const { e, threat } = dangerBoard()
+    const { coach, spot } = await boot(e, { spots: true })
+    expect(spot.lessonSpot.value?.kind).toBe('threat')
+    expect(spot.lessonSpot.value?.kind === 'threat' && spot.lessonSpot.value.monsterId).toBe(threat.id)
+    expect(coach.lessonShown('threatBox')).toBe(1)
+    // Nothing else talks over it.
+    expect(coach.coachLesson.value).toBeNull()
+    spot.finishSpot()
+    const l = coach.coachLesson.value
+    expect(l?.id).toBe('survive')
+    if (l?.id === 'survive') expect(l.threats).toContain(threat.id)
+  })
+
+  it('a profile that has seen it goes straight to the survive lesson', async () => {
+    const { e } = dangerBoard()
+    const { coach, spot } = await boot(e, { spots: true, state: { eb_coach: { v: 1, shown: { threatBox: 1 }, kinds: {} } } })
+    expect(spot.lessonSpot.value).toBeNull()
     expect(coach.coachLesson.value?.id).toBe('survive')
   })
 
-  it('marches the one closest to the line; a tie goes to the one nearest the unit', async () => {
-    const { overrunThreat } = await import('@/use/useCoach')
-    // An enraged boss one row out (it strides two) vs a slime right on the line.
-    const boss = mon('boss', 0, 6, 1e9, { enraged: true })
-    const far = mon('slime', 6, 9, 1e9)
-    const a = board({ monsters: [boss, far], launcherX: 3.5 })
-    expect(overrunThreat(a.state)).toBe(far.id)
-    // Two on the line: the one under the unit.
-    const left = mon('slime', 0, 9, 1e9)
-    const mid = mon('slime', 3, 9, 1e9)
-    const b = board({ monsters: [left, mid], launcherX: 3.5 })
-    expect(overrunThreat(b.state)).toBe(mid.id)
-    // A frozen monster skips the march: no `1` pip on it.
-    const cold = board({ monsters: [mon('slime', 3, 9, 1e9, { frozen: 1 })], launcherX: 3.5 })
-    expect(overrunThreat(cold.state)).toBeNull()
+  it('no mounted view (the lab, the clean feed): no spotlight, the survive lesson as ever', async () => {
+    const { e } = dangerBoard()
+    const { coach, spot } = await boot(e)
+    expect(spot.lessonSpot.value).toBeNull()
+    expect(coach.coachLesson.value?.id).toBe('survive')
+    expect(coach.lessonShown('threatBox')).toBe(0)
   })
 
-  it('runs during the FTUE too, never in the Daily Barrage', async () => {
-    const a = brink()
-    const ftue = await boot(a.e, { ftueDone: false })
-    expect(ftue.coach.coachLesson.value?.id).toBe('overrun')
-    ftue.off()
-    const b = brink()
-    const daily = await boot(b.e, { mode: 'daily' })
-    expect(daily.coach.coachLesson.value?.id).not.toBe('overrun')
+  it('speed from row 12, luck from 17, bounty from 22 — each once, only while the chip is unbought', async () => {
+    const quiet = (row: number) => board({ monsters: [mon('slime', 3, 2, 30, { spawnRow: row })], row, launcherX: 3.5 })
+    // Row 11: nothing yet.
+    let r = await boot(quiet(11), { spots: true, chips: chips0() })
+    expect(r.spot.lessonSpot.value).toBeNull()
+    r.off()
+    // Row 12: speed, with the chip's values.
+    r = await boot(quiet(12), { spots: true, chips: chips0() })
+    expect(r.spot.lessonSpot.value).toMatchObject({ kind: 'speed', value: 1, next: 1.12 })
+    expect(r.coach.lessonShown('speedBox')).toBe(1)
+    r.spot.finishSpot()
+    r.off()
+    // Row 22, speed seen, luck bought: bounty — with the demo kill's coins.
+    const chips = chips0().map((c) => (c.id === 'luck' ? { ...c, level: 2 } : c))
+    const e = quiet(22)
+    r = await boot(e, { spots: true, chips, state: { eb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
+    const b = r.spot.lessonSpot.value
+    expect(b?.kind).toBe('bounty')
+    if (b?.kind === 'bounty') {
+      const base = killCoins(22, 'slime', false)
+      expect(b.monsterId).toBe(e.state.monsters[0]!.id)
+      expect(b.coinsNow).toBe(Math.max(1, Math.round(base)))
+      expect(b.coinsNext).toBe(Math.max(1, Math.round(base * 1.2)))
+    }
+    r.off()
   })
 
-  it('counts only a showing the board played; one played showing retires it', async () => {
-    const { e } = brink()
-    const { coach, w } = await boot(e)
-    const first = coach.coachLesson.value
-    expect(first?.id).toBe('overrun')
-    // The board could not play it (ms 0): finished, not counted…
-    if (first) coach.finishOverrun(first.seq)
-    expect(coach.lessonShown('overrun')).toBe(0)
-    // …so it is back at the next aim phase that still has the `1` pip.
-    w.engineGen.value++
-    await nextTick()
-    expect(coach.coachLesson.value?.id).toBe('overrun')
-    playOut(coach)
-    expect(coach.lessonShown('overrun')).toBe(1)
-    w.engineGen.value++
-    await nextTick()
-    expect(coach.coachLesson.value?.id).not.toBe('overrun')
-    // Persisted in the blob like every other exposure.
-    const { getState } = await import('@/use/useEpicState')
-    expect(getState<{ shown: Record<string, number> } | null>('eb_coach', null)?.shown.overrun).toBe(1)
-  })
-
-  it('hands the aim back: in danger, the survive lesson\'s rescue shot follows on the same aim', async () => {
-    const { e, doomed } = brink()
-    const { coach } = await boot(e)
-    playOut(coach)
-    const l = coach.coachLesson.value
-    expect(l?.id).toBe('survive')
-    if (l?.id !== 'survive') return
-    expect(l.threats).toContain(doomed.id)
-  })
-
-  it('a stale finish (another lesson, a shot) changes nothing', async () => {
-    const { e } = brink()
-    const { coach } = await boot(e)
-    const l = coach.coachLesson.value
-    expect(l?.id).toBe('overrun')
-    coach.finishOverrun((l?.seq ?? 0) + 1)
-    expect(coach.coachLesson.value?.id).toBe('overrun')
-    e.fire(UP)
-    expect(coach.coachLesson.value).toBeNull()
-    if (l) coach.finishOverrun(l.seq)
-    expect(coach.coachLesson.value).toBeNull()
-  })
-
-  it('neither the 20-second shot demo nor two empty taps talk over it', async () => {
-    vi.useFakeTimers()
-    // A tough monster two marches out: after one volley it wears the `1` pip.
-    const e = board({ monsters: [mon('slime', 3, 8, 1e9)], launcherX: 3.5, tray: [1] })
-    const { coach } = await boot(e, { state: { eb_coach: { v: 1, shown: { survive: 4 }, kinds: {} } } })
+  it('run 12: the idle shot hint does not hold a chip spotlight back (Jonas: six of them, no speed lesson)', async () => {
+    const e = board({ monsters: [mon('slime', 3, 1, 1e9)], row: 11, nextBossRow: 20, launcherX: 3.5, tray: [1] })
+    const r = await boot(e, { spots: true, chips: chips0(), volleys: 10 })
+    expect(r.spot.lessonSpot.value).toBeNull() // row 11: speed waits for 12
+    // The idle hint was on screen this volley…
+    r.coach.noteLessonVisible({ id: 'pull', seq: 9001, reason: 'idle' })
+    r.w.volleys.value = 11
+    // …and the next aim phase, row 12, still gets the speed spotlight.
     play(e, UP)
-    expect(coach.coachLesson.value?.id).toBe('overrun')
-    vi.advanceTimersByTime(coach.SHOT_QUIET_MS + 100) // the shot demo is due again
-    expect(coach.shotDemoDue.value).toBe(true)
-    expect(coach.coachLesson.value?.id).toBe('overrun')
-    coach.noteMisfire()
-    coach.noteMisfire()
-    expect(coach.coachLesson.value?.id).toBe('overrun')
+    expect(e.state.row).toBe(12)
+    expect(r.spot.lessonSpot.value?.kind).toBe('speed')
+    r.off()
   })
 
-  it('a real breach teaches it; a save with a lifetime loss, or a veteran\'s, never gets it', async () => {
-    const quiet = board({ monsters: [mon('slime', 3, 2, 1e9)], launcherX: 3.5 })
-    const live = await boot(quiet)
-    emit(quiet, { type: 'breach' })
-    expect(live.coach.lessonShown('overrun')).toBe(live.coach.MAX_SHOWS.overrun)
-    live.off()
-
-    const a = brink()
-    const lost = await boot(a.e, { state: { eb_unlocks: { v: 1, n: 1, losses: 1, seen: [] } } })
-    expect(lost.coach.coachLesson.value?.id).not.toBe('overrun')
-    lost.off()
-
-    const b = brink()
-    const vet = await boot(b.e, { raw: true, state: { eb_best_row: 80 } })
-    expect(vet.coach.coachLesson.value?.id).not.toBe('overrun')
+  it('bounty demos the boss when one stands — its chest bounty, so ×1.2 is a number the eye sees', async () => {
+    const boss = mon('boss', 2, 1, 900, { bossKind: 'worm', spawnRow: 20 })
+    const e = board({ monsters: [mon('slime', 0, 2, 30, { spawnRow: 22 }), boss], row: 22, launcherX: 3.5 })
+    const view = chips0().find((c) => c.id === 'bounty')!
+    const { coach } = await boot(e)
+    const d = coach.chipSpotDraft('bounty', view, e.state)
+    expect(d).toMatchObject({ kind: 'bounty', monsterId: boss.id })
+    expect(d?.coinsNow).toBe(Math.round(bossBounty(20)))
+    expect(d?.coinsNext).toBe(Math.round(bossBounty(20) * 1.2))
+    expect(d!.coinsNext! - d!.coinsNow!).toBeGreaterThanOrEqual(10)
   })
 
-  it('does not spend the lesson gap: a rule replayed is not a tip that must wait its turn', async () => {
-    const { e } = brink()
-    const { coach, w } = await boot(e, { state: { eb_coach: { v: 1, shown: { survive: 4 }, kinds: {} } } })
-    playOut(coach)
-    expect(coach.lessonShown('overrun')).toBe(1)
-    // The same volley count, a board with a standout shot: the combo lesson
-    // is not held back LESSON_GAP volleys by the overrun demo.
-    w.engine.value = gapBoard()
-    w.engineGen.value++
-    await nextTick()
-    expect(coach.coachLesson.value?.id).toBe('combo')
+  it('never in danger, never under an upgrade funnel, never the aim a boss arrived on, and SPOT_GAP volleys apart', async () => {
+    // In danger: the threat spotlight (seen) is out, the chip one waits too.
+    const { e } = dangerBoard()
+    e.state.row = 14
+    let r = await boot(e, { spots: true, chips: chips0(), state: { eb_coach: { v: 1, shown: { threatBox: 1 }, kinds: {} } } })
+    expect(r.spot.lessonSpot.value).toBeNull()
+    r.off()
+    // A funnel up (Ball Damage affordable, never bought): it has the aim.
+    const chipsD = chips0().map((c) => (c.id === 'damage' ? { ...c, level: 0, affordable: true } : c))
+    r = await boot(board({ monsters: [mon('slime', 3, 2)], row: 14 }), { spots: true, chips: chipsD })
+    expect(r.coach.upgradeFunnel.value).not.toBeNull()
+    expect(r.spot.lessonSpot.value).toBeNull()
+    r.off()
+    // A boss arriving: its aim phase is its own; the next one may speak.
+    const e2 = board({ monsters: [mon('slime', 3, 2)], row: 14, tray: [1] })
+    r = await boot(e2, { spots: true, chips: chips0(), volleys: 0, state: { eb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
+    expect(r.spot.lessonSpot.value).toBeNull() // row 14: luck waits for 17
+    r.off()
+    const e3 = board({ monsters: [mon('slime', 3, 1)], row: 17, tray: [1] })
+    r = await boot(e3, { spots: true, chips: chips0(), volleys: 10, state: { eb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
+    expect(r.spot.lessonSpot.value?.kind).toBe('luck')
+    r.spot.finishSpot()
+    // The next aim phase: 0 volleys since (SPOT_GAP): nothing.
+    emit(e3, { type: 'bossSpawn', monsterId: 999, bossKind: 'worm', row: 20 })
+    play(e3, UP)
+    expect(r.spot.lessonSpot.value).toBeNull()
+    r.off()
+  })
+
+  it('the pause is held while it plays and released when it ends; the view gone ends it', async () => {
+    const { spot } = await boot(board({ monsters: [mon('slime', 3, 2)] }))
+    const pause = await import('@/use/useGamePause')
+    const unregister = spot.registerSpotView()
+    const done = vi.fn()
+    expect(spot.offerSpot({ kind: 'speed', value: 1, next: 1.12 }, done)).toBe(true)
+    expect(pause.isGamePaused.value).toBe(true)
+    // One at a time.
+    expect(spot.offerSpot({ kind: 'luck', value: 0, next: 0.05 })).toBe(false)
+    spot.finishSpot()
+    expect(done).toHaveBeenCalledTimes(1)
+    expect(pause.isGamePaused.value).toBe(false)
+    expect(spot.lessonSpot.value).toBeNull()
+    unregister()
+    expect(spot.canSpot()).toBe(false)
   })
 })

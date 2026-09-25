@@ -10,7 +10,8 @@ export default {
     shields: 'Cargas de escudo: {n}',
     revives: 'Cargas de revivir: {n}',
     warcry: 'Grito de guerra listo: tu próxima ráfaga hace el doble de daño',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Clasificación global'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: 'Nivel {n}',
     plusOne: '+1',
     merged: '¡Fusionadas!',
-    overflow: '¡Bandeja llena! +{n} monedas'
+    overflow: '¡Bandeja llena! +{n} monedas',
+    pickupSr: '“+1” es una bola más en tu bandeja: un disparo más en cada ráfaga, más daño.'
   },
   upgrades: {
     title: 'Mejoras',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Capacidad de bandeja',
       short: 'Capacidad',
-      desc: 'Guarda más bolas antes de que los gemelos se fusionen.'
+      desc: 'Más bolas en tu bandeja: más disparos en cada turno.'
     },
     speed: {
       name: 'Velocidad de lanzamiento',
       short: 'Velocidad',
-      desc: 'Las bolas vuelan más rápido y salen antes.'
+      desc: 'Las bolas vuelan más rápido y golpean más fuerte.'
     },
     luck: {
       name: 'Suerte de recogida',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MÁX',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: '¡Arrollado!',
+    wasted: 'Caído',
     body: 'Los monstruos rompieron la línea en la fila {n}.',
+    bodyBy: 'Rompió la línea en la fila {n}: {name}',
     meteor: 'Tormenta de meteoros',
     meteorDesc: 'Limpia las dos filas de abajo y sigue jugando',
     meteorAdAria: 'Mira un anuncio: la Tormenta de meteoros limpia las dos filas de abajo',
@@ -245,12 +248,13 @@ export default {
     titleFirst: '¡Primer jefe derrotado!',
     defeated: '¡{name} derrotado!',
     amount: '+{n}',
-    doubled: '¡Botín duplicado!',
+    boosted: '¡Botín ×{n}!',
     checkpoint: 'Punto de control guardado en la fila {n}',
-    double: '2×',
-    doubleAdAria: 'Mira un anuncio para duplicar el botín',
-    doubleCoinAria: 'Duplica el botín por {cost} monedas',
-    collect: 'Recoger'
+    boost: '{n}×',
+    boostAdAria: 'Mira un anuncio para multiplicar el botín por {n}',
+    boostCoinAria: 'Botín ×{n} por {cost} monedas',
+    collect: 'Recoger',
+    powerUp: '¡Mejora!'
   },
   daily: {
     today: 'Tablero de hoy: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Recoge otra bola: ¡una bandeja llena fusiona a los gemelos en una bola más fuerte!',
     upgrade: '¡Toca la mejora gratis para guardar más bolas!'
   },
+  prompt: {
+    tapToShoot: 'Toca para disparar',
+    clickToShoot: 'Haz clic para disparar'
+  },
   coach: {
     survive: '¡Los monstruos están a punto de atravesar: golpea primero a los de abajo!',
     tray: 'Tu bandeja está llena: un +1 solo añade un disparo si hay un hueco libre. ¡Mejora la capacidad de bandeja para disparar más bolas!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Toca la mejora que brilla: mejora tus bolas, tu bandeja o tus monedas.',
     bank: '¡Apunta en diagonal: una bola que rebota en la pared puede golpear a varios monstruos de un solo tiro!',
     funnel: '¡Ya te alcanza para {name}! Tócalo y cada bola golpeará más fuerte.',
-    overrun: 'Si un monstruo cruza la línea, te arrollan: ¡golpea primero a los marcados con 1!'
+    skipAria: 'Saltar la lección',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'La cuenta atrás a tu lado cuenta los turnos hasta que el monstruo más cercano atraviese: ¡golpéalo antes de que llegue a cero!',
+      speed: '{name}: tus bolas vuelan más rápido y cada golpe hace más daño.',
+      luck: '{name}: las filas nuevas traen más burbujas de monedas y habilidades.',
+      bounty: '{name}: cada monstruo que derrotas da más monedas.'
+    }
   },
   merge: {
     sr: 'Dos bolas de nivel {from} se fusionaron en una bola de nivel {to}. ¡Cada bola de tu bandeja es un disparo!',

@@ -13,7 +13,9 @@ export default {
     shields: 'Shield charges: {n}',
     revives: 'Revive charges: {n}',
     warcry: 'Warcry armed: your next volley deals double damage',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    // The rank plaque's name (a tap on it shows the HUD name plate).
+    rank: 'Global rank'
   },
   // The ball tray under the board.
   tray: {
@@ -25,22 +27,22 @@ export default {
     tierOnly: 'Tier {n}',
     plusOne: '+1',
     merged: 'Merged!',
-    overflow: 'Tray full! +{n} coins'
+    overflow: 'Tray full! +{n} coins',
+    pickupSr: '“+1” is one more ball in your tray: one more shot every volley, more damage.'
   },
   // The five upgrade chips. `short` is the chip label; `name` + `desc` are the
   // tooltip and the screen-reader label.
   upgrades: {
     title: 'Upgrades',
     damage: { name: 'Ball Damage', short: 'Damage', desc: 'Every ball hits harder.' },
-    capacity: { name: 'Tray Capacity', short: 'Capacity', desc: 'Hold more balls before twins merge.' },
-    speed: { name: 'Launch Speed', short: 'Speed', desc: 'Balls fly faster and leave the launcher quicker.' },
+    capacity: { name: 'Tray Capacity', short: 'Capacity', desc: 'More balls in your tray: more shots every turn.' },
+    speed: { name: 'Launch Speed', short: 'Speed', desc: 'Balls fly faster and hit harder.' },
     luck: { name: 'Pickup Luck', short: 'Luck', desc: 'More coin and skill bubbles on the board.' },
     bounty: { name: 'Coin Bounty', short: 'Bounty', desc: 'Earn more coins from every monster.' },
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MAX',
@@ -129,7 +131,11 @@ export default {
   // OVERRUN — the breach screen.
   breach: {
     title: 'Overrun!',
+    // The death sequence's title (GTA's "wasted", Elden Ring's "you died"), shown uppercase.
+    wasted: 'Wasted',
     body: 'The monsters broke through at row {n}.',
+    // Run 9: the loss screen names the monster that broke through (the death sequence's striker).
+    bodyBy: '{name} broke through at row {n}.',
     meteor: 'Meteor Storm',
     meteorDesc: 'Clear the bottom two rows and keep going',
     meteorAdAria: 'Watch an ad: Meteor Storm clears the bottom two rows',
@@ -151,12 +157,14 @@ export default {
     titleFirst: 'First boss down!',
     defeated: '{name} defeated!',
     amount: '+{n}',
-    doubled: 'Bounty doubled!',
+    boosted: 'Bounty ×{n}!',
     checkpoint: 'Checkpoint saved at row {n}',
-    double: '2×',
-    doubleAdAria: 'Watch an ad to double the bounty',
-    doubleCoinAria: 'Double the bounty for {cost} coins',
-    collect: 'Collect'
+    boost: '{n}×',
+    boostAdAria: 'Watch an ad for {n}× the bounty',
+    boostCoinAria: '{n}× the bounty for {cost} coins',
+    collect: 'Collect',
+    // Run 9: after the chest pays, the card offers the glowing upgrade.
+    powerUp: 'Power up!'
   },
   // Daily Barrage (title / rules / best: barrageMeta.daily.*).
   daily: {
@@ -203,6 +211,11 @@ export default {
     merge: 'Collect another ball: a full tray merges twins into a stronger ball!',
     upgrade: 'Tap the free upgrade to hold more balls!'
   },
+  // The first-shot call to action (visible, pulsing, first-time players only).
+  prompt: {
+    tapToShoot: 'Tap to Shoot',
+    clickToShoot: 'Click to Shoot'
+  },
   // The wordless coach (sr-only: the screen acts each lesson out).
   coach: {
     survive: 'Monsters are about to break through — hit the lowest ones first!',
@@ -212,7 +225,14 @@ export default {
     upgrade: 'Tap the glowing upgrade: it makes your balls, your tray or your coins better.',
     bank: 'Aim at an angle: a ball that bounces off the wall can hit several monsters in one shot!',
     funnel: 'You can afford {name} now — tap it and every ball hits harder!',
-    overrun: 'If a monster crosses the line, you are overrun — hit the ones marked 1 first!'
+    skipAria: 'Skip the lesson',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'The countdown beside you counts the turns until the nearest monster breaks through — hit it before it reaches zero!',
+      speed: '{name}: your balls fly faster and every hit does more damage.',
+      luck: '{name}: new rows bring more coin and skill bubbles.',
+      bounty: '{name}: every monster you defeat pays more coins.'
+    }
   },
   // The merge lightbox (sr-only; the screen acts the merge out).
   merge: {

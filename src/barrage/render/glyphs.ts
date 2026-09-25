@@ -8,10 +8,12 @@
  */
 import { createCanvas, ctx2d } from './sprites'
 
-export type NumStyle = 'dmg' | 'crit' | 'burn' | 'poison' | 'gold' | 'heal' | 'hp' | 'plus' | 'count'
+export type NumStyle = 'dmg' | 'crit' | 'burn' | 'poison' | 'gold' | 'heal' | 'hp' | 'plus' | 'count' | 'power' | 'combo'
 
 interface StyleDef {
   fill: string
+  /** Optional bottom colour: the fill is a vertical gradient fill → fill2. */
+  fill2?: string
   stroke: string
   /** Outline width as a fraction of the font size. */
   strokeK: number
@@ -28,11 +30,21 @@ const STYLES: Record<NumStyle, StyleDef> = {
   heal: { fill: '#6fe08a', stroke: '#000000', strokeK: 0.16, glow: 'rgba(0,0,0,0.6)' },
   hp: { fill: '#ffffff', stroke: '#0b0e18', strokeK: 0.12, glow: null },
   plus: { fill: '#eaffd0', stroke: '#1f5a12', strokeK: 0.14, glow: null },
-  count: { fill: '#ffffff', stroke: '#0b0e18', strokeK: 0.14, glow: null }
+  count: { fill: '#ffffff', stroke: '#0b0e18', strokeK: 0.14, glow: null },
+  // Run-4 pass: the volley right after a Ball Damage purchase — molten gold
+  // (pale gold → deep orange, a burnt outline, a hot glow), never mistaken
+  // for a crit's flat yellow.
+  power: { fill: '#fff6b8', fill2: '#ffb02a', stroke: '#3a1200', strokeK: 0.17, glow: 'rgba(255,140,0,0.95)' },
+  // Fun pass: the combo counter / tally — hot pink over violet, never a crit's
+  // yellow or a purchase's molten gold.
+  combo: { fill: '#fff0fa', fill2: '#ff4fb0', stroke: '#2a0620', strokeK: 0.17, glow: 'rgba(255,60,170,0.9)' }
 }
 
 const CHARSET = '0123456789.+-×KMBTQaiSxpOcNoDdutgVe∞'
-const FONT_STACK = "'Angry', 'Arial Black', 'Arial Rounded MT Bold', Arial, sans-serif"
+// Digits come from 'EB Digits' (fonts.sass: Lilita One limited to 0–9 — the
+// HUD's face since run 5, whose "2" can't read as "Z"); every other character
+// in CHARSET falls through to 'Angry'.
+const FONT_STACK = "'EB Digits', 'Angry', 'Arial Black', 'Arial Rounded MT Bold', Arial, sans-serif"
 /** Font size (device px) the atlas is baked at; labels are drawn scaled down from it. */
 const BASE_PX = 44
 
@@ -74,6 +86,13 @@ export class GlyphAtlas {
     g.lineJoin = 'round'
     g.miterLimit = 2
     const cy = this.cellH / 2 + BASE_PX * 0.04
+    let fill: string | CanvasGradient = def.fill
+    if (def.fill2) {
+      const grad = g.createLinearGradient(0, cy - BASE_PX * 0.42, 0, cy + BASE_PX * 0.42)
+      grad.addColorStop(0, def.fill)
+      grad.addColorStop(1, def.fill2)
+      fill = grad
+    }
     for (let i = 0; i < CHARSET.length; i++) {
       const ch = CHARSET[i]!
       const x = this.sx[i]! + this.pad
@@ -86,7 +105,7 @@ export class GlyphAtlas {
       g.strokeText(ch, x, cy)
       g.shadowBlur = 0
       g.shadowColor = 'transparent'
-      g.fillStyle = def.fill
+      g.fillStyle = fill
       g.fillText(ch, x, cy)
     }
   }
@@ -150,13 +169,17 @@ export const glyphs = (style: NumStyle): GlyphAtlas => {
   }
   if (!fontWatchStarted) {
     fontWatchStarted = true
+    // Re-bake as each face arrives (the digits face and the display face load
+    // independently; whichever lands second triggers the final bake).
+    const rebake = (faces: FontFace[]): void => {
+      if (faces.length) {
+        atlases.clear()
+        gen++
+      }
+    }
     try {
-      void document.fonts?.load(`900 ${BASE_PX}px Angry`).then((faces) => {
-        if (faces.length) {
-          atlases.clear()
-          gen++
-        }
-      }).catch(() => undefined)
+      void document.fonts?.load(`900 ${BASE_PX}px Angry`).then(rebake).catch(() => undefined)
+      void document.fonts?.load(`900 ${BASE_PX}px 'EB Digits'`, '0123456789').then(rebake).catch(() => undefined)
     } catch { /* FontFaceSet unavailable */ }
   }
   return a

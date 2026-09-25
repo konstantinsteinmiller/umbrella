@@ -7,6 +7,7 @@
  */
 import type { Ball, FlyingChest, Monster, Pickup } from './types'
 import { BALL_R, COLS, FLOOR_Y, ROWS } from './types'
+import { MOMENTUM, bumpedBoost, momentumMult } from './balls'
 
 /** Fixed simulation step (seconds of real time at speedMul 1). */
 export const STEP = 1 / 120
@@ -178,12 +179,32 @@ export const antiStall = (b: { vx: number; vy: number }, speed: number): void =>
 export const substepsFor = (speed: number, dt: number): number =>
   Math.max(1, Math.ceil((speed * dt) / (BALL_R * 0.95)))
 
+/** A ball's own speed: the volley's launch speed × its momentum. */
+export const ballSpeedOf = (b: { boost: number }, launchSpeed: number): number => launchSpeed * momentumMult(b.boost)
+
+/**
+ * Momentum (balls.ts `MOMENTUM`): a wall or ceiling bounce speeds the ball up
+ * along its new heading. Returns the ball's new speed.
+ */
+export const bumpMomentum = (b: { vx: number; vy: number; boost: number }, launchSpeed: number): number => {
+  const next = bumpedBoost(b.boost)
+  if (next !== b.boost) {
+    const k = momentumMult(next) / momentumMult(b.boost)
+    b.vx *= k
+    b.vy *= k
+    b.boost = next
+  }
+  return launchSpeed * momentumMult(b.boost)
+}
+
 /** What the engine does when the physics reports something. */
 export interface BallWorld {
   readonly grid: Grid
-  /** Ball speed of the current volley (cells/s). */
+  /** Launch speed of the current volley (cells/s); a ball flies at this ×
+   *  its momentum (`ballSpeedOf`). */
   readonly speed: number
   readonly chest: FlyingChest | null
+  /** A wall or ceiling bounce (the ball's momentum is already bumped). */
   onWall(ball: SimBall): void
   /** A ball drove into a monster face. Return false to pierce through it. */
   onMonster(ball: SimBall, m: Monster, nx: number, ny: number): boolean
@@ -252,7 +273,7 @@ const collideSolids = (b: SimBall, w: BallWorld): void => {
       if (grid.hazardAt(c, r)) {
         if (circleBox(b.x, b.y, b.vx, b.vy, BALL_R, c, r, c + 1, r + 1, contact)) {
           unseam(grid, b.x, b.y, c, r, c + 1, r + 1)
-          if (b.vx * contact.nx + b.vy * contact.ny < 0) bounce(b, w.speed)
+          if (b.vx * contact.nx + b.vy * contact.ny < 0) bounce(b, ballSpeedOf(b, w.speed))
           b.x = contact.x
           b.y = contact.y
         }
@@ -275,7 +296,7 @@ const collideSolids = (b: SimBall, w: BallWorld): void => {
         if (w.onMonster(b, m, nx, ny)) {
           contact.nx = nx
           contact.ny = ny
-          bounce(b, w.speed)
+          bounce(b, ballSpeedOf(b, w.speed))
           b.x = px
           b.y = py
         } else {
@@ -308,8 +329,10 @@ const collectPickups = (b: SimBall, w: BallWorld): void => {
 
 /** Advances one in-flight ball by `dt` simulated seconds. */
 export const stepBall = (b: SimBall, dt: number, w: BallWorld): void => {
-  const speed = w.speed
-  const n = substepsFor(speed, dt)
+  const launch = w.speed
+  // Sized for the speed after two more bounces (a corner is two in one
+  // sub-step), so momentum gained mid-step never outruns BALL_R per sub-step.
+  const n = substepsFor(launch * momentumMult(Math.min(MOMENTUM.max, b.boost + 2 * MOMENTUM.perBounce)), dt)
   const h = dt / n
   for (let s = 0; s < n && b.active; s++) {
     b.x += b.vx * h
@@ -319,14 +342,14 @@ export const stepBall = (b: SimBall, dt: number, w: BallWorld): void => {
 
     if (b.x < BALL_R) {
       b.x = BALL_R
-      if (b.vx < 0) { b.vx = -b.vx; antiStall(b, speed); w.onWall(b) }
+      if (b.vx < 0) { b.vx = -b.vx; antiStall(b, bumpMomentum(b, launch)); w.onWall(b) }
     } else if (b.x > COLS - BALL_R) {
       b.x = COLS - BALL_R
-      if (b.vx > 0) { b.vx = -b.vx; antiStall(b, speed); w.onWall(b) }
+      if (b.vx > 0) { b.vx = -b.vx; antiStall(b, bumpMomentum(b, launch)); w.onWall(b) }
     }
     if (b.y < BALL_R) {
       b.y = BALL_R
-      if (b.vy < 0) { b.vy = -b.vy; antiStall(b, speed); w.onWall(b) }
+      if (b.vy < 0) { b.vy = -b.vy; antiStall(b, bumpMomentum(b, launch)); w.onWall(b) }
     }
 
     collideSolids(b, w)

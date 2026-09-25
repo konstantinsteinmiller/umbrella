@@ -7,23 +7,34 @@
  * Barrage is turn-based, so while they aim nothing moves and a mark can be
  * studied for as long as they like.
  *
- *   • BADGE  — a round icon on the monster's shoulder (hop / armour / heal /
- *     spit / coins / skull) for its kind's first TAG_TURNS (4) aim phases
- *     (`useCoach` owns that clock; the renderer gets the retired keys).
- *   • DEMO   — during the aim phase the badge's rule is acted out in place:
- *     a ghost goblin hops to the side, green motes run from a dryad to the
- *     monsters it heals, a sludge glob drops out of a centaur, armour
- *     shimmers round an ogre, coins rise off a corrupted elite.
+ *   • BADGE  — a round icon on the monster's shoulder (hop / heal / spit /
+ *     coins / skull …) for its kind's first TAG_TURNS (4) aim phases
+ *     (`useCoach` owns that clock; the renderer gets the retired keys). The
+ *     TOUGH kinds, whose one rule is more HP (caterpillar, ogre), wear NO
+ *     badge: run 4's armour icon read "shielded", run 5's heart "×2" read
+ *     "heal? damage? reward?" — and the HP number already says it.
+ *   • INTENT — (run 5, `intents.ts`) while its badge is up, a behaviour kind
+ *     shows its NEXT move in a way a still frame reads: the goblin's hop
+ *     target, the dryad's "+" on the neighbours it heals, the centaur's sludge
+ *     cell, the treant's rest marker. Aim phase only, never under a finger.
+ *   • DEMO   — the other badges' rules are acted out in place during the aim
+ *     phase: two little imps burst out of an imp, a ball bounces off a
+ *     carbuncle's gem, a cyclops's ghost charges, coins rise off an elite.
  *   • ALWAYS — two telegraphs every player gets, forever: red chevrons over
  *     the columns a boss is entering through, and a double chevron under an
  *     ENRAGED boss (it now marches two rows a turn).
  *
- * This module bakes the badges and computes geometry; BoardRenderer draws.
+ * This module bakes the badges and the intent glyphs; BoardRenderer draws.
  */
-import { COLS, type Monster } from '../engine/types'
+import type { Monster, MonsterKind } from '../engine/types'
 import { createCanvas, ctx2d, type SpriteImage } from './sprites'
 
-export type RuleIcon = 'hop' | 'armor' | 'heal' | 'spit' | 'coins' | 'skull' | 'split' | 'slow' | 'shield' | 'charge'
+export type RuleIcon = 'hop' | 'heal' | 'spit' | 'coins' | 'skull' | 'split' | 'slow' | 'shield' | 'charge'
+
+/** The kinds whose one rule is more HP: they wear no badge (run 5). (Treant /
+ *  carbuncle / cyclops carry more HP too, but their rule is a behaviour —
+ *  they keep its icon.) */
+export const TOUGH_KINDS: readonly MonsterKind[] = ['caterpillar', 'ogre']
 
 /** Badge key of a monster: its kind, `corrupted`, `boss:<kind>` — or null for
  *  the slime (the FTUE board IS the slime lesson). `useCoach` counts aim
@@ -39,8 +50,7 @@ export const ruleIconOf = (m: Pick<Monster, 'kind' | 'corrupted' | 'mini'>): Rul
   if (m.corrupted) return 'coins'
   switch (m.kind) {
     case 'goblin': return 'hop'
-    case 'caterpillar':
-    case 'ogre': return 'armor'
+    // caterpillar, ogre: more HP is not a rule to learn — no badge.
     case 'dryad': return 'heal'
     case 'centaur': return 'spit'
     // A little imp is the rule's RESULT, not a second imp to learn.
@@ -53,7 +63,7 @@ export const ruleIconOf = (m: Pick<Monster, 'kind' | 'corrupted' | 'mini'>): Rul
 }
 
 const RING: Record<RuleIcon, string> = {
-  hop: '#86d957', armor: '#e2b884', heal: '#6fe08a', spit: '#c3d052', coins: '#ffd23c', skull: '#ff4a3a',
+  hop: '#86d957', heal: '#6fe08a', spit: '#c3d052', coins: '#ffd23c', skull: '#ff4a3a',
   split: '#e0924e', slow: '#8ccf5a', shield: '#6fc8ff', charge: '#ff9a3a'
 }
 
@@ -61,7 +71,6 @@ const RING: Record<RuleIcon, string> = {
 const ICON_PATHS: Record<Exclude<RuleIcon, 'coins'>, { stroke?: string; fill?: string }> = {
   // A hop arc with a head at both ends: "jumps sideways".
   hop: { stroke: 'M5 16 Q12 3 19 16 M19 16 L14.6 15.4 M19 16 L19.6 11.6 M5 16 L9.4 15.4 M5 16 L4.4 11.6' },
-  armor: { fill: 'M12 2.5 L20 5.5 V11.5 C20 16.5 16.5 20 12 21.5 C7.5 20 4 16.5 4 11.5 V5.5 Z' },
   heal: { stroke: 'M12 5 V19 M5 12 H19' },
   // A glob and a drop arrow: "spits down".
   spit: { fill: 'M8.5 3.5 C8.5 3.5 4.5 8.5 4.5 11 A4 4 0 0 0 12.5 11 C12.5 8.5 8.5 3.5 8.5 3.5 Z', stroke: 'M17.5 6 V18 M14 14.5 L17.5 18 L21 14.5' },
@@ -88,10 +97,20 @@ const ICON_PATHS: Record<Exclude<RuleIcon, 'coins'>, { stroke?: string; fill?: s
 
 const hasPath2D = typeof Path2D !== 'undefined'
 
-/** One baked badge per icon at the current size (device px). */
+/** The intent glyphs' colours (run 5): the dryad's "+", the treant's rest
+ *  marker, the centaur's sludge target. */
+export const INTENT_HEAL = '#6fe08a'
+export const INTENT_REST = '#b9f28a'
+export const INTENT_SPIT = '#c3d052'
+
+/** One baked badge per icon at the current size (device px), and the intent
+ *  glyphs (run 5) at the same scale. */
 export class RuleBadges {
   private px = 0
   private readonly cache = new Map<RuleIcon, HTMLCanvasElement>()
+  private plusCv: HTMLCanvasElement | null = null
+  private restCv: HTMLCanvasElement | null = null
+  private spitCv: HTMLCanvasElement | null = null
   coin: SpriteImage | null = null
 
   /** Badge diameter in device px; drops the cache when it changes. */
@@ -99,7 +118,7 @@ export class RuleBadges {
     const p = Math.max(12, Math.round(px))
     if (p === this.px) return
     this.px = p
-    this.cache.clear()
+    this.clear()
   }
 
   get(icon: RuleIcon): HTMLCanvasElement | null {
@@ -156,30 +175,115 @@ export class RuleBadges {
     return cv
   }
 
+  /** The dryad's intent: a fat green "+" with a dark outline in a soft green
+   *  halo (the heal badge's own cross, so badge and marks read as one rule). */
+  plus(): HTMLCanvasElement | null {
+    if (this.plusCv) return this.plusCv
+    const px = this.px
+    if (px <= 0) return null
+    const cv = createCanvas(px, px)
+    const g = ctx2d(cv)
+    const r = px / 2
+    const halo = g.createRadialGradient(r, r, 0, r, r, r)
+    halo.addColorStop(0, 'rgba(111,224,138,0.55)')
+    halo.addColorStop(0.55, 'rgba(111,224,138,0.22)')
+    halo.addColorStop(1, 'rgba(111,224,138,0)')
+    g.fillStyle = halo
+    g.fillRect(0, 0, px, px)
+    const arm = px * 0.3
+    g.lineCap = 'round'
+    g.strokeStyle = '#0c2a14'
+    g.lineWidth = px * 0.3
+    g.beginPath()
+    g.moveTo(r, r - arm)
+    g.lineTo(r, r + arm)
+    g.moveTo(r - arm, r)
+    g.lineTo(r + arm, r)
+    g.stroke()
+    g.strokeStyle = INTENT_HEAL
+    g.lineWidth = px * 0.17
+    g.stroke()
+    g.strokeStyle = 'rgba(235,255,238,0.85)'
+    g.lineWidth = px * 0.05
+    g.beginPath()
+    g.moveTo(r - arm * 0.15, r - arm * 0.8)
+    g.lineTo(r - arm * 0.15, r - arm * 0.25)
+    g.stroke()
+    this.plusCv = cv
+    return cv
+  }
+
+  /** The treant's intent on its rest turns: a pause glyph (two bars — no
+   *  letters) on a navy disc with the slow badge's green ring. */
+  rest(): HTMLCanvasElement | null {
+    if (this.restCv) return this.restCv
+    const px = this.px
+    if (px <= 0) return null
+    const cv = createCanvas(px, px)
+    const g = ctx2d(cv)
+    const r = px / 2
+    g.fillStyle = '#0f1a30'
+    g.beginPath()
+    g.arc(r, r, r - 1, 0, Math.PI * 2)
+    g.fill()
+    g.lineWidth = Math.max(2, px * 0.1)
+    g.strokeStyle = INTENT_REST
+    g.beginPath()
+    g.arc(r, r, r - g.lineWidth / 2 - 1, 0, Math.PI * 2)
+    g.stroke()
+    // Two round-capped bars.
+    const bw = px * 0.14
+    const half = px * 0.15
+    g.lineCap = 'round'
+    g.strokeStyle = '#ffffff'
+    g.lineWidth = bw
+    g.beginPath()
+    g.moveTo(r - bw * 0.85, r - half)
+    g.lineTo(r - bw * 0.85, r + half)
+    g.moveTo(r + bw * 0.85, r - half)
+    g.lineTo(r + bw * 0.85, r + half)
+    g.stroke()
+    this.restCv = cv
+    return cv
+  }
+
+  /** The centaur's intent: a target ring round the cell its sludge lands in —
+   *  dashed, sludge green, four ticks — baked at twice the badge size. */
+  spitTarget(): HTMLCanvasElement | null {
+    if (this.spitCv) return this.spitCv
+    const px = this.px * 2
+    if (px <= 0) return null
+    const cv = createCanvas(px, px)
+    const g = ctx2d(cv)
+    const r = px / 2
+    const rr = r * 0.62
+    g.lineCap = 'round'
+    const ring = (color: string, w: number): void => {
+      g.strokeStyle = color
+      g.lineWidth = w
+      g.setLineDash?.([px * 0.09, px * 0.06])
+      g.beginPath()
+      g.arc(r, r, rr, 0, Math.PI * 2)
+      g.stroke()
+      g.setLineDash?.([])
+      g.beginPath()
+      for (let i = 0; i < 4; i++) {
+        const a = (i * Math.PI) / 2
+        g.moveTo(r + Math.cos(a) * rr * 1.08, r + Math.sin(a) * rr * 1.08)
+        g.lineTo(r + Math.cos(a) * rr * 1.45, r + Math.sin(a) * rr * 1.45)
+      }
+      g.stroke()
+    }
+    ring('rgba(14,18,6,0.85)', px * 0.075)
+    ring(INTENT_SPIT, px * 0.04)
+    this.spitCv = cv
+    return cv
+  }
+
   clear(): void {
     this.cache.clear()
+    this.plusCv = null
+    this.restCv = null
+    this.spitCv = null
   }
 }
-
-/** Is cell (col, row) free for a goblin hop (no monster, pickup or sludge)? */
-export const cellFree = (
-  col: number, row: number,
-  monsters: readonly Pick<Monster, 'col' | 'row' | 'w' | 'h'>[],
-  blocked: (col: number, row: number) => boolean
-): boolean => {
-  if (col < 0 || col >= COLS) return false
-  for (const m of monsters) {
-    if (col >= m.col && col < m.col + m.w && row >= m.row && row < m.row + m.h) return false
-  }
-  return !blocked(col, row)
-}
-
-/** Monsters orthogonally next to `d` (a dryad's heal targets), bosses excluded
- *  like the engine's `dryadHeals`. */
-export const healTargets = <M extends Pick<Monster, 'id' | 'col' | 'row' | 'w' | 'h' | 'kind'>>(d: M, monsters: readonly M[]): M[] =>
-  monsters.filter((n) => {
-    if (n === d || n.kind === 'boss') return false
-    const hTouch = n.row < d.row + d.h && n.row + n.h > d.row && (n.col + n.w === d.col || n.col === d.col + d.w)
-    const vTouch = n.col < d.col + d.w && n.col + n.w > d.col && (n.row + n.h === d.row || n.row === d.row + d.h)
-    return hTouch || vTouch
-  })

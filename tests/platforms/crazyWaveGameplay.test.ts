@@ -1,106 +1,93 @@
-// CrazyGames gameplay lifecycle around the battle's own breaks: a cleared wave
-// and an overrun both stop gameplay, and the next `waveStart` resumes it —
-// but ONLY when this module is what stopped it ("was it paused before").
+// The run-break input of the gameplay bracket: a lost run (breach / daily over)
+// closes every portal's bracket, and the player's way back into a run reopens
+// it — but a resume never reports the player back while a menu or an ad still
+// holds gameplay stopped, and nothing is ever reported twice.
 //
-// `.env` ships VITE_APP_CRAZY_GAMES_FULL_RELEASE=true, so the gate is live
-// under vitest; the real `startGameplay` / `stopGameplay` no-op because no SDK
-// loaded, hence the spies.
+// The module only sets one input of `usePortalGameplay`; the bracket makes the
+// SDK calls. The CrazyGames wrappers are spied (the real ones no-op without an
+// SDK); the bracket is live and touched before each case, as in a real session.
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const { startSpy, stopSpy } = vi.hoisted(() => ({
-  startSpy: vi.fn(),
-  stopSpy: vi.fn()
-}))
+const { calls } = vi.hoisted(() => ({ calls: [] as string[] }))
 
 vi.mock('@/use/useCrazyGames', () => ({
-  startGameplay: startSpy,
-  stopGameplay: stopSpy
+  startGameplay: () => calls.push('start'),
+  stopGameplay: () => calls.push('stop')
 }))
 
-const importAll = async () => {
+const importAll = async (fullRelease = true) => {
   vi.resetModules()
-  startSpy.mockClear()
-  stopSpy.mockClear()
-  vi.doMock('@/use/useMatch', async () => {
-    const actual = await vi.importActual<typeof import('@/use/useMatch')>('@/use/useMatch')
-    return { ...actual, isCrazyGamesFullRelease: true }
-  })
+  calls.length = 0
+  vi.stubEnv('VITE_APP_CRAZY_WEB', 'true')
+  vi.stubEnv('VITE_APP_CRAZY_GAMES_FULL_RELEASE', fullRelease ? 'true' : 'false')
+  const gameplay = await import('@/use/usePortalGameplay')
   const wave = await import('@/use/useCrazyWaveGameplay')
   const modalState = await import('@/use/useModalState')
   const pause = await import('@/use/useGamePause')
+  gameplay.installPortalGameplayBracket()
+  gameplay.notifyPortalGameLive()
+  gameplay.notePlayerInteraction()
+  calls.length = 0 // the opening start is the bracket's business, not this module's
   return { wave, modalState, pause }
 }
 
-beforeEach(() => { window.localStorage.clear() })
+afterEach(() => { vi.unstubAllEnvs() })
 
-describe('useCrazyWaveGameplay', () => {
-  it('stops on a cleared wave and resumes once the next wave starts', async () => {
+describe('useCrazyWaveGameplay → the bracket', () => {
+  it('stops on a lost run and resumes once the player is back in one', async () => {
     const { wave } = await importAll()
 
     wave.stopGameplayForWaveBreak()
-    expect(stopSpy).toHaveBeenCalledTimes(1)
-    expect(startSpy).not.toHaveBeenCalled()
+    expect(calls).toEqual(['stop'])
+    expect(wave.__isStoppedForWaveBreak()).toBe(true)
 
     wave.resumeGameplayAfterWaveBreak()
-    expect(startSpy).toHaveBeenCalledTimes(1)
+    expect(calls).toEqual(['stop', 'start'])
     expect(wave.__isStoppedForWaveBreak()).toBe(false)
   })
 
-  it('stops on an overrun the same way', async () => {
+  it('a resume with no break behind it is a no-op (every shot calls it)', async () => {
     const { wave } = await importAll()
 
-    wave.stopGameplayForWaveBreak() // engine emitted 'overrun'
-    expect(stopSpy).toHaveBeenCalledTimes(1)
-    expect(wave.__isStoppedForWaveBreak()).toBe(true)
-  })
-
-  it('never resumes a stop it did not issue', async () => {
-    const { wave } = await importAll()
-
-    // waveStart with no preceding break (first wave of the session).
     wave.resumeGameplayAfterWaveBreak()
-    expect(startSpy).not.toHaveBeenCalled()
+    expect(calls).toEqual([])
   })
 
-  it('does not stack a second stop while a break is already held', async () => {
+  it('does not stack a second stop, nor a second start', async () => {
     const { wave } = await importAll()
 
     wave.stopGameplayForWaveBreak()
-    wave.stopGameplayForWaveBreak() // e.g. overrun landing on a cleared break
-    expect(stopSpy).toHaveBeenCalledTimes(1)
-
+    wave.stopGameplayForWaveBreak()
     wave.resumeGameplayAfterWaveBreak()
-    expect(startSpy).toHaveBeenCalledTimes(1) // one resume, not two
+    wave.resumeGameplayAfterWaveBreak()
+    expect(calls).toEqual(['stop', 'start'])
   })
 
-  it('cycles cleanly across several waves', async () => {
+  it('cycles cleanly across several runs', async () => {
     const { wave } = await importAll()
 
     for (let i = 0; i < 3; i++) {
       wave.stopGameplayForWaveBreak()
       wave.resumeGameplayAfterWaveBreak()
     }
-    expect(stopSpy).toHaveBeenCalledTimes(3)
-    expect(startSpy).toHaveBeenCalledTimes(3)
+    expect(calls).toEqual(['stop', 'start', 'stop', 'start', 'stop', 'start'])
   })
 
-  it('yields to a modal that owns the stopped state, and re-arms for the next break', async () => {
+  it('yields to a menu that still holds the bracket closed, and re-arms for the next break', async () => {
     const { wave, modalState } = await importAll()
 
     wave.stopGameplayForWaveBreak()
     const releaseModal = modalState.acquireModalOpen()
-
-    // The modal gate will call startGameplay() itself on close — declaring the
-    // player back in a match from here would be a lie.
     wave.resumeGameplayAfterWaveBreak()
-    expect(startSpy).not.toHaveBeenCalled()
-    // Hold released regardless, so the NEXT wave break can still take one.
+    expect(calls).toEqual(['stop']) // the menu is still up
     expect(wave.__isStoppedForWaveBreak()).toBe(false)
+
     releaseModal()
+    expect(calls).toEqual(['stop', 'start'])
 
     wave.stopGameplayForWaveBreak()
-    expect(stopSpy).toHaveBeenCalledTimes(2)
+    expect(calls).toEqual(['stop', 'start', 'stop'])
   })
 
   it('yields to an on-screen ad', async () => {
@@ -109,25 +96,17 @@ describe('useCrazyWaveGameplay', () => {
     wave.stopGameplayForWaveBreak()
     pause.isAdShowing.value = true
     wave.resumeGameplayAfterWaveBreak()
-    expect(startSpy).not.toHaveBeenCalled()
-    pause.isAdShowing.value = false
-  })
-})
+    expect(calls).toEqual(['stop'])
 
-describe('useCrazyWaveGameplay off the CrazyGames full release', () => {
-  it('is inert', async () => {
-    vi.resetModules()
-    startSpy.mockClear()
-    stopSpy.mockClear()
-    vi.doMock('@/use/useMatch', async () => {
-      const actual = await vi.importActual<typeof import('@/use/useMatch')>('@/use/useMatch')
-      return { ...actual, isCrazyGamesFullRelease: false }
-    })
-    const wave = await import('@/use/useCrazyWaveGameplay')
+    pause.isAdShowing.value = false
+    expect(calls).toEqual(['stop', 'start'])
+  })
+
+  it('on the CrazyGames basic launch a lost run reports nothing', async () => {
+    const { wave } = await importAll(false)
 
     wave.stopGameplayForWaveBreak()
     wave.resumeGameplayAfterWaveBreak()
-    expect(stopSpy).not.toHaveBeenCalled()
-    expect(startSpy).not.toHaveBeenCalled()
+    expect(calls).toEqual([])
   })
 })

@@ -40,10 +40,20 @@ describe('barrage locales', () => {
     expect(Object.keys(byLang).sort()).toEqual([...LANGS].sort())
   })
 
-  it('carries the run-3 keys (overrun lesson, recap "earned", chest name tip)', () => {
-    for (const k of ['coach.overrun', 'breach.recapEarned', 'breach.recapAria', 'supply.filling', 'hud.coinGain']) {
+  it('carries the run-3 keys (recap "earned", chest name tip)', () => {
+    for (const k of ['breach.recapEarned', 'breach.recapAria', 'supply.filling', 'hud.coinGain']) {
       expect(en[k], k).toBeTruthy()
     }
+  })
+
+  it('carries the death title ("Wasted" / run 9: "Überrannt" — "Gefallen" read as the boss dying); the retired overrun lesson sentence is gone', () => {
+    expect(en['breach.wasted']).toBe('Wasted')
+    expect(flatten(byLang.de ?? {})['breach.wasted']).toBe('Überrannt')
+    expect(en['coach.overrun']).toBeUndefined()
+  })
+
+  it('carries the run-4 keys (the rank plaque name tip)', () => {
+    expect(en['hud.rank']).toBe('Global rank')
   })
 
   for (const lang of LANGS) {

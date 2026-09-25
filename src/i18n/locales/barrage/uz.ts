@@ -10,7 +10,8 @@ export default {
     shields: 'Qalqon zaryadi: {n}',
     revives: 'Tirilish zaryadi: {n}',
     warcry: 'Jang hayqirig‘i tayyor: keyingi zarba ikki barobar zarar beradi',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: 'Jahon reytingi'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: '{n}-daraja',
     plusOne: '+1',
     merged: 'Birlashdi!',
-    overflow: 'Tova to‘la! +{n} tanga'
+    overflow: 'Tova to‘la! +{n} tanga',
+    pickupSr: '“+1” — tovangizda yana bitta to‘p: har bir zarbada bitta o‘q ko‘proq, ko‘proq zarar.'
   },
   upgrades: {
     title: 'Yaxshilanishlar',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: 'Tova sig‘imi',
       short: 'Sig‘im',
-      desc: 'Egizaklar birlashmasdan oldin ko‘proq to‘p saqlang.'
+      desc: 'Tovangda ko‘proq to‘p: har navbatda ko‘proq o‘q.'
     },
     speed: {
       name: 'Otish tezligi',
       short: 'Tezlik',
-      desc: 'To‘plar tezroq uchadi va tez-tez otiladi.'
+      desc: 'To‘plar tezroq uchadi va kuchliroq uradi.'
     },
     luck: {
       name: 'Topilma omadi',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: 'MAKS',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: 'Yorib o‘tildi!',
+    wasted: 'Magʻlub',
     body: 'Maxluqlar {n}-qatorda chiziqni yorib o‘tdi.',
+    bodyBy: '{n}-qatorda chiziqni yorgan: {name}',
     meteor: 'Meteor bo‘roni',
     meteorDesc: 'Pastki ikki qatorni tozalab, davom eting',
     meteorAdAria: 'Reklama ko‘ring: meteor bo‘roni pastki ikki qatorni tozalaydi',
@@ -245,12 +248,13 @@ export default {
     titleFirst: 'Birinchi boss yengildi!',
     defeated: '{name} yengildi!',
     amount: '+{n}',
-    doubled: 'Mukofot ikki barobar!',
+    boosted: 'Mukofot ×{n}!',
     checkpoint: 'Nazorat nuqtasi {n}-qatorda saqlandi',
-    double: '2×',
-    doubleAdAria: 'Mukofotni ikki barobar qilish uchun reklama ko‘ring',
-    doubleCoinAria: '{cost} tangaga mukofotni ikki barobar qiling',
-    collect: 'Olish'
+    boost: '{n}×',
+    boostAdAria: 'Mukofotni {n} barobar qilish uchun reklama ko‘ring',
+    boostCoinAria: '{cost} tangaga mukofotni {n} barobar qiling',
+    collect: 'Olish',
+    powerUp: 'Kuchaytir!'
   },
   daily: {
     today: 'Bugungi taxta: {date}',
@@ -292,6 +296,10 @@ export default {
     merge: 'Yana bitta to‘p yig‘ing: to‘la tova egizaklarni kuchliroq to‘pga birlashtiradi!',
     upgrade: 'Ko‘proq to‘p saqlash uchun bepul yaxshilanishni bosing!'
   },
+  prompt: {
+    tapToShoot: 'Otish uchun teging',
+    clickToShoot: 'Otish uchun bosing'
+  },
   coach: {
     survive: 'Maxluqlar yorib o‘tay deb qoldi — avval eng pastdagilarini ur!',
     tray: 'Tovang to‘la: +1 faqat bo‘sh joy bo‘lsagina qo‘shimcha o‘q beradi. Ko‘proq to‘p otish uchun tova sig‘imini yaxshila!',
@@ -300,7 +308,14 @@ export default {
     upgrade: 'Yonib turgan yaxshilashga bos: u to‘plaringni, tovangni yoki tangalaringni yaxshilaydi.',
     bank: 'Qiya nishonga ol: devordan qaytgan to‘p bir zarbada bir nechta maxluqqa tegadi!',
     funnel: 'Endi {name} uchun tangangiz yetadi — bosing, har bir to‘p kuchliroq uradi!',
-    overrun: 'Agar maxluq chiziqdan o‘tsa, himoya yorib o‘tiladi — avval 1 belgisi borlarini ur!'
+    skipAria: 'Darsni o‘tkazib yuborish',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: 'Yoningdagi teskari sanoq eng yaqin maxluq yorib o‘tguncha qolgan navbatlarni sanaydi — nolga yetmasdan uni ur!',
+      speed: '{name}: to‘plaring tezroq uchadi va har bir zarba ko‘proq zarar yetkazadi.',
+      luck: '{name}: yangi qatorlar ko‘proq tanga va mahorat pufakchalarini olib keladi.',
+      bounty: '{name}: yenggan har bir maxluq ko‘proq tanga beradi.'
+    }
   },
   merge: {
     sr: 'Ikkita {from}-darajali to‘p birlashib, bitta {to}-darajali to‘pga aylandi! Tovangizdagi har bir to‘p — bitta otish.',

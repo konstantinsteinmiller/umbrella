@@ -4,7 +4,12 @@
  *
  *   aim    → rewarded "+5 balls" (movie icon, or its coin price on coin-mode
  *            builds) — ONLY while `bonusBallsAvailable` (rewarded readiness
- *            gating: never a dead button).
+ *            gating: never a dead button; and only after the first boss kill,
+ *            in a boss fight or with a danger pip on the board — on Poki it
+ *            stood under the board from turn 1 and every tester's first tap
+ *            opened a Rewarded Break). The ad blue, never green (Google
+ *            Play; green sells the ad as "the good choice"), its label big
+ *            and outlined so it reads on the blue.
  *   volley → SKIP (recall: end a slow volley now) + the auto fast-forward
  *            ×2/×3 pill.
  *
@@ -81,7 +86,7 @@ const bonusAria = computed(() => buffsCostCoins
   : t('barrage.turn.bonusAdAria', { n: BONUS_BALLS }))
 
 const btnH = computed(() => isCompactHud.value ? 'h-11' : isRoomyHud.value ? 'h-14' : 'h-12')
-const labelClass = computed(() => isCompactHud.value ? 'text-sm' : isRoomyHud.value ? 'text-lg' : 'text-base')
+const labelClass = computed(() => isCompactHud.value ? 'text-base' : isRoomyHud.value ? 'text-xl' : 'text-lg')
 </script>
 
 <template lang="pug">
@@ -92,19 +97,20 @@ const labelClass = computed(() => isCompactHud.value ? 'text-sm' : isRoomyHud.va
         v-if="showBonus"
         key="bonus"
         type="button"
-        class="gap-1 border-[#0f1a30] active:scale-95 transition-transform"
+        class="gap-1_5 border-[#0f1a30] active:scale-95 transition-transform"
         :class="[btnH, { 'opacity-60': busy }]"
         :aria-label="bonusAria"
         :title="bonusAria"
         :disabled="busy"
         @click="onBonus"
       )
-        template(v-if="buffsCostCoins")
+        span.turn-ad.flex.items-center.gap-1.shrink-0(v-if="buffsCostCoins")
           IconCoin.w-5.h-5.shrink-0
           span.game-text.font-black.text-white.leading-none(class="text-xs") {{ formatCost(REWARD_COIN_COST) }}
-        IconMovie.w-6.h-6.shrink-0(v-else)
-        span.game-text.font-black.text-white.leading-none.whitespace-nowrap(:class="labelClass") {{ t('barrage.turn.bonus', { n: BONUS_BALLS }) }}
-        span.turn-ball.w-4.h-4.shrink-0(aria-hidden="true")
+        span.turn-ad.flex.items-center.justify-center.shrink-0(v-else)
+          IconMovie.w-6.h-6
+        span.turn-label.game-text.font-black.text-white.leading-none.whitespace-nowrap(:class="labelClass") {{ t('barrage.turn.bonus', { n: BONUS_BALLS }) }}
+        span.turn-ball.w-5.h-5.shrink-0(aria-hidden="true")
       //- ── Volley: skip (recall) once it runs long + fast-forward ──
       div.flex.items-center.gap-1_5(v-else-if="showVolleyRow" key="volley")
         Transition(name="turn-pop")
@@ -136,10 +142,25 @@ const labelClass = computed(() => isCompactHud.value ? 'text-sm' : isRoomyHud.va
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 3px 0 var(--plate, #1a2b4b)
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5)
   touch-action: manipulation
+// The ad blue (components.sass `--ad-*`): a rewarded button is never green.
 .turn-btn--bonus
-  --plate: #1c6b2a
-  background: linear-gradient(180deg, #4fd16a, #27a03f)
+  --plate: var(--ad-plate)
+  background: linear-gradient(180deg, var(--ad-top), var(--ad-bottom))
   animation: bonus-breathe 1.4s ease-in-out infinite
+// The ad marker sits in its own dark socket, apart from the offer.
+.turn-ad
+  min-width: 30px
+  height: 30px
+  padding: 0 4px
+  border-radius: 8px
+  background: rgba(8, 18, 52, 0.45)
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18)
+// Big, outlined, and a hard drop: the offer reads at a glance on the blue.
+.turn-label
+  -webkit-text-stroke: 1.5px rgba(8, 18, 52, 0.95)
+  paint-order: stroke fill
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55)
+  letter-spacing: 0.01em
 .turn-btn--recall
   --plate: #102e7a
   background: linear-gradient(180deg, #50aaff, #2266ff)
@@ -154,9 +175,9 @@ const labelClass = computed(() => isCompactHud.value ? 'text-sm' : isRoomyHud.va
   color: #ffe27a
 @keyframes bonus-breathe
   0%, 100%
-    filter: drop-shadow(0 0 0 rgba(120, 255, 150, 0))
+    filter: drop-shadow(0 0 0 transparent)
   50%
-    filter: drop-shadow(0 0 8px rgba(120, 255, 150, 0.75))
+    filter: drop-shadow(0 0 8px var(--ad-glow))
 .turn-pop-enter-active, .turn-pop-leave-active
   transition: opacity 0.18s ease, transform 0.18s ease
 .turn-pop-enter-from, .turn-pop-leave-to

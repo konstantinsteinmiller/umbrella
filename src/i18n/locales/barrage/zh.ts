@@ -10,7 +10,8 @@ export default {
     shields: '护盾次数：{n}',
     revives: '复活次数：{n}',
     warcry: '战吼就绪：下一轮齐射伤害翻倍',
-    coinGain: '+{n}'
+    coinGain: '+{n}',
+    rank: '全球排名'
   },
   tray: {
     count: '{n}/{max}',
@@ -21,7 +22,8 @@ export default {
     tierOnly: '{n}级',
     plusOne: '+1',
     merged: '合成！',
-    overflow: '球槽已满！+{n}金币'
+    overflow: '球槽已满！+{n}金币',
+    pickupSr: '“+1”就是球槽里多一颗球：每轮多射一发，伤害更高。'
   },
   upgrades: {
     title: '升级',
@@ -33,12 +35,12 @@ export default {
     capacity: {
       name: '球槽容量',
       short: '容量',
-      desc: '双胞胎合成前能容纳更多球。'
+      desc: '球槽能装更多球：每回合发射更多。'
     },
     speed: {
       name: '发射速度',
       short: '速度',
-      desc: '球飞得更快，发射更密集。'
+      desc: '球飞得更快，打得更狠。'
     },
     luck: {
       name: '拾取幸运',
@@ -53,8 +55,7 @@ export default {
     fmt: {
       mult: '×{n}',
       count: '{n}',
-      percent: '{n}%',
-      plusPercent: '+{n}%'
+      percent: '{n}%'
     },
     arrow: '{from} → {to}',
     max: '满级',
@@ -224,7 +225,9 @@ export default {
   },
   breach: {
     title: '防线失守！',
+    wasted: '阵亡',
     body: '怪物在第{n}行突破了防线。',
+    bodyBy: '第{n}行被突破：{name}',
     meteor: '流星风暴',
     meteorDesc: '清除最下面两行，继续战斗',
     meteorAdAria: '观看广告：流星风暴清除最下面两行',
@@ -245,12 +248,13 @@ export default {
     titleFirst: '击败了第一个首领！',
     defeated: '击败了{name}！',
     amount: '+{n}',
-    doubled: '赏金翻倍！',
+    boosted: '赏金×{n}！',
     checkpoint: '已在第{n}行保存检查点',
-    double: '2×',
-    doubleAdAria: '观看广告让赏金翻倍',
-    doubleCoinAria: '花{cost}金币让赏金翻倍',
-    collect: '领取'
+    boost: '{n}×',
+    boostAdAria: '观看广告获得{n}倍赏金',
+    boostCoinAria: '花{cost}金币获得{n}倍赏金',
+    collect: '领取',
+    powerUp: '升级！'
   },
   daily: {
     today: '今日棋盘：{date}',
@@ -292,6 +296,10 @@ export default {
     merge: '再收集一个球：球槽满了，双胞胎就会合成更强的球！',
     upgrade: '点击免费升级来容纳更多的球！'
   },
+  prompt: {
+    tapToShoot: '轻触发射',
+    clickToShoot: '点击发射'
+  },
   coach: {
     survive: '怪物马上要冲破防线了——先打最下面的！',
     tray: '球槽满了：只有还有空位时，+1 才会多一发。升级球槽容量，发射更多的球！',
@@ -300,7 +308,14 @@ export default {
     upgrade: '点一下发光的升级：它会让你的球、球槽或金币变得更好。',
     bank: '斜着瞄准：弹墙的球一发就能击中好几只怪物！',
     funnel: '现在买得起{name}了——点一下，每个球都会打得更狠！',
-    overrun: '怪物一旦越过这条线，防线就会失守——先打标着 1 的怪物！'
+    skipAria: '跳过教学',
+    // The spotlight lessons (sr-only; the screen stages them).
+    spot: {
+      threat: '你身旁的倒计时显示最近的怪物还有几回合冲破防线——在归零前击中它！',
+      speed: '{name}：球飞得更快，每次命中伤害更高。',
+      luck: '{name}：新的一排会出现更多金币和技能泡泡。',
+      bounty: '{name}：每击败一只怪物都能获得更多金币。'
+    }
   },
   merge: {
     sr: '两个{from}级球合成了一个{to}级球！球槽里的每个球就是一发射击。',

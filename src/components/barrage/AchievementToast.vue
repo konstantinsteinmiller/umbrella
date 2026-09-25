@@ -3,10 +3,17 @@
  * The gold "Achievement complete!" toast (MIW's look). A component so GameScene
  * can put it wherever the layout has room: low on a tall portrait board, or in
  * the left column when the board is short and landscape.
+ *
+ * Run 9 (Dev: "no idea what specifically causes a chain reaction"): under the
+ * name, what earned it — the achievement's goal line.
+ * Run 11 (Dev and Leo found 400–800 coins waiting unclaimed in the trophy
+ * panel): the toast pays the reward out as it shows — its "+N" beside the
+ * name, the coins flying from it to the wallet (GameScene).
  */
 import { useI18n } from 'vue-i18n'
+import IconCoin from '@/components/icons/IconCoin.vue'
 
-defineProps<{ name: string }>()
+defineProps<{ name: string; goal?: string; reward?: string }>()
 const { t } = useI18n()
 </script>
 
@@ -26,4 +33,9 @@ const { t } = useI18n()
     div.flex.flex-col.items-start.min-w-0
       span.text-white.font-black.uppercase.game-text(class="text-[9px] leading-none opacity-90") {{ t('barrageMeta.achievements.unlocked') }}
       span.text-white.font-black.game-text.truncate.max-w-full(class="text-xs sm:text-sm") {{ name }}
+      span.ach-toast__goal.text-white.font-bold.game-text.truncate.max-w-full(v-if="goal" class="text-[10px] leading-tight") {{ goal }}
+    //- The reward, paid as the toast shows.
+    div.ach-toast__reward.shrink-0.flex.items-center.gap-1.rounded-full.px-2.py-1(v-if="reward" class="bg-[#0f1a30]")
+      IconCoin.shrink-0(class="w-3.5 h-3.5")
+      span.game-text.font-black.whitespace-nowrap(class="text-xs text-[#ffe28a]") {{ reward }}
 </template>

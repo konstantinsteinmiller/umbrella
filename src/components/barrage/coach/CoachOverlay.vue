@@ -18,19 +18,13 @@
  *              no longer draws its chevrons (they doubled the pips).
  *   tray     — TrayDemo: why "+1" did not add a shot, and the fix.
  *   trayIntro — TrayIntroDemo: what the tray is (shots · "+1" · merge).
- *   overrun  — the lose rule, played on the canvas (`boardApi.overrunDemo`):
- *              the monster about to cross wears a ghost that marches over the
- *              line, the line and its skull flash. This overlay only runs it:
- *              starts it the first frame it may be seen (during the FTUE too —
- *              the FTUE hand steps aside), counts it only when the board
- *              really played it, holds the one-lesson channel for its length
- *              and hands the aim back to the coach when it is over (or the
- *              player takes the board).
  *
  * Beside them, the upgrade funnel (UpgradeFunnel): runic gold arrows on the
- * chip to buy, the wallet paying into it and the hand pressing it — arrows
- * only while a shot lesson has the finger, nothing during a survive lesson
- * (danger comes first).
+ * chip to buy, the wallet paying into it and the hand pressing it — nothing
+ * during a survive lesson (danger comes first). Past the first 3 volleys the
+ * coach gives a due funnel the hand outright (the shot demos yield, run 4);
+ * only before that can a shot lesson share the screen with it, and then the
+ * funnel keeps its arrows and drops its own hand (one hand at a time).
  *
  * Everything is pointer-events: none and gets out of the way the moment a
  * finger is on the board. The sentence for each lesson exists only in the
@@ -41,7 +35,7 @@ import { useI18n } from 'vue-i18n'
 import useBarrage from '@/barrage/state/useBarrage'
 import { FLOOR_Y, MIN_AIM, ROWS } from '@/barrage/engine/types'
 import {
-  coachLesson, finishOverrun, isShotLesson, noteFunnelVisible, noteLessonVisible, upgradeFunnel, type CoachLesson
+  coachLesson, isShotLesson, noteFunnelVisible, noteLessonVisible, upgradeFunnel, type CoachLesson
 } from '@/use/useCoach'
 import { tutorialActive, tutorialPreview } from '@/use/useTutorial'
 import { unlocking } from '@/use/useFeatureUnlocks'
@@ -49,6 +43,8 @@ import { isAnyModalOpen } from '@/use/useModalState'
 import { activeReveal } from '@/use/useTierReveal'
 import { boardApi, playerAiming } from '@/components/barrage/barrageUi'
 import { mergeBox } from '@/components/barrage/mergeLightbox'
+import { pickupBox } from '@/components/barrage/pickupSpotlight'
+import { lessonSpot } from '@/components/barrage/lessonSpotlight'
 import FingerDemo from '@/components/barrage/coach/FingerDemo.vue'
 import TrayDemo from '@/components/barrage/coach/TrayDemo.vue'
 import TrayIntroDemo from '@/components/barrage/coach/TrayIntroDemo.vue'
@@ -64,77 +60,50 @@ const barrage = useBarrage()
 // moment too.
 const blocked = computed(() =>
   isAnyModalOpen.value || !!activeReveal.value || barrage.holdSim.value || barrage.phase.value !== 'aim'
-  || !!unlocking.value || !!mergeBox.value)
+  || !!unlocking.value || !!mergeBox.value || !!pickupBox.value || !!lessonSpot.value)
 /** The FTUE's own hand is on screen: never two coaches at once. (It steps
  *  aside by itself for the early bank shot — see TutorialOverlay.) */
 const ftueShowing = computed(() => tutorialActive.value && tutorialPreview.value !== null)
-/** The lose rule plays during the FTUE too (the FTUE hand yields to it). */
 const lessonVisible = computed(() =>
-  !!coachLesson.value && !blocked.value && !playerAiming.value
-  && (!ftueShowing.value || coachLesson.value.id === 'overrun'))
-
-// ─── overrun: the board plays it, this overlay sequences it ──────────────────
-/** A board that has just been built (a load, a restart) has not drawn its
- *  monsters yet and cannot play the demo: ask again this often… */
-const OVERRUN_RETRY_MS = 200
-/** …this many times, then give up for this aim phase. */
-const OVERRUN_TRIES = 6
-type OverrunLesson = Extract<CoachLesson, { id: 'overrun' }>
-/** The lesson whose demo is starting or running (its seq), or -1. */
-let overrunSeq = -1
-let overrunTimer = 0
-let overrunTries = 0
-/** The board is playing it right now (the live region reads the rule then). */
-const overrunPlaying = ref(false)
-const endOverrun = (): void => {
-  window.clearTimeout(overrunTimer)
-  overrunPlaying.value = false
-  const seq = overrunSeq
-  overrunSeq = -1
-  if (seq >= 0) finishOverrun(seq)
-}
-const tryOverrun = (l: OverrunLesson): void => {
-  if (overrunSeq !== l.seq) return
-  const ms = boardApi.value?.overrunDemo(l.monsterId) ?? 0
-  if (ms > 0) {
-    overrunPlaying.value = true
-    noteLessonVisible(l)
-    overrunTimer = window.setTimeout(endOverrun, ms)
-    return
-  }
-  if (++overrunTries < OVERRUN_TRIES) {
-    overrunTimer = window.setTimeout(() => tryOverrun(l), OVERRUN_RETRY_MS)
-    return
-  }
-  // It could not play (the board never drew that monster): not counted — it
-  // comes back at the next aim phase that shows a `1` pip.
-  endOverrun()
-}
-const startOverrun = (l: OverrunLesson): void => {
-  if (overrunSeq === l.seq) return
-  overrunSeq = l.seq
-  overrunTries = 0
-  tryOverrun(l)
-}
+  !!coachLesson.value && !blocked.value && !playerAiming.value && !ftueShowing.value)
 
 // Exposure = the first frame a lesson is actually on screen.
 watch([lessonVisible, () => coachLesson.value?.seq], () => {
   const l = coachLesson.value
-  // A demo in flight whose lesson went away (a shot, a new board) or was
-  // covered (a finger on the board, a modal): it is over — the board stops
-  // its ghost by itself when an aim starts.
-  if (overrunSeq >= 0 && (!l || l.seq !== overrunSeq || !lessonVisible.value)) endOverrun()
-  if (!lessonVisible.value || !l) return
-  if (l.id === 'overrun') startOverrun(l)
-  else noteLessonVisible(l)
+  if (lessonVisible.value && l) noteLessonVisible(l)
 }, { immediate: true })
 
 // ─── The upgrade funnel ──────────────────────────────────────────────────────
-/** Danger first: a survive lesson (or the lose rule) on screen takes the
- *  funnel off it. */
+/**
+ * The funnel's duty cycle (playtest run 8: the arrows "stay up forever" — a
+ * player who does not want that upgrade has to look at them the whole time):
+ * FUNNEL_ON_MS up, then FUNNEL_REST_MS away, and back while the chip is still
+ * unbought. Wall-clock, so the gaps between aim phases do not restart it; a
+ * funnel pointing at a different chip starts a fresh cycle.
+ */
+const FUNNEL_ON_MS = 10_000
+const FUNNEL_REST_MS = 20_000
+const funnelResting = ref(false)
+let dutyTarget: string | null = null
+let dutyStart = 0
+let dutyPoll = 0
+const dutyTick = (): void => {
+  const p = (Date.now() - dutyStart) % (FUNNEL_ON_MS + FUNNEL_REST_MS)
+  funnelResting.value = p >= FUNNEL_ON_MS
+}
+watch(() => upgradeFunnel.value?.target ?? null, (target) => {
+  if (!target) return
+  if (target !== dutyTarget) {
+    dutyTarget = target
+    dutyStart = Date.now()
+  }
+  dutyTick()
+  if (!dutyPoll) dutyPoll = window.setInterval(dutyTick, 250)
+}, { immediate: true })
+/** Danger first: a survive lesson on screen takes the funnel off it. */
 const funnelVisible = computed(() =>
-  !!upgradeFunnel.value && !blocked.value && !playerAiming.value && !ftueShowing.value
-  && !(lessonVisible.value && (coachLesson.value?.id === 'survive' || coachLesson.value?.id === 'overrun')))
+  !!upgradeFunnel.value && !funnelResting.value && !blocked.value && !playerAiming.value && !ftueShowing.value
+  && !(lessonVisible.value && coachLesson.value?.id === 'survive'))
 /** A shot lesson has the ghost finger: the funnel keeps its arrows and drops
  *  its own hand (one hand on screen at a time). */
 const funnelQuiet = computed(() => lessonVisible.value && isShotLesson(coachLesson.value))
@@ -253,7 +222,6 @@ const skillRing = computed<Pt | null>(() => {
 const srText = computed(() => {
   const l: CoachLesson | null = lessonVisible.value ? coachLesson.value : null
   if (!l) return ''
-  if (l.id === 'overrun' && !overrunPlaying.value) return ''
   if (l.id === 'pull') return t('barrage.tutorial.aim')
   if (l.id === 'combo' && l.bank) return t('barrage.coach.bank')
   return t(`barrage.coach.${l.id}`)
@@ -270,15 +238,17 @@ onMounted(() => {
 })
 onUnmounted(() => {
   window.clearInterval(poll)
+  window.clearInterval(dutyPoll)
   window.removeEventListener('resize', measure)
-  endOverrun()
 })
 </script>
 
 <template lang="pug">
   Teleport(to="body")
-    div.sr-only(aria-live="polite") {{ srText }}
-    div.sr-only(aria-live="polite") {{ funnelSr }}
+    //- `data-coach-live`: the stable marker the playtest harness reads the
+    //- coach's sentences by (no behaviour of its own).
+    div.sr-only(aria-live="polite" data-coach-live="lesson") {{ srText }}
+    div.sr-only(aria-live="polite" data-coach-live="funnel") {{ funnelSr }}
     Transition(name="coach-fade")
       UpgradeFunnel(
         v-if="funnelVisible && upgradeFunnel"
@@ -287,7 +257,7 @@ onUnmounted(() => {
         :quiet="funnelQuiet"
       )
     Transition(name="coach-fade")
-      div.coach-layer(v-if="lessonVisible && coachLesson" :key="coachLesson.seq")
+      div.coach-layer.hud-digits(v-if="lessonVisible && coachLesson" :key="coachLesson.seq")
         //- survive: what is about to break through (the canvas pips say how soon).
         svg.fixed.inset-0.pointer-events-none.coach-threats(v-if="threats.length" width="100%" height="100%" aria-hidden="true")
           g(v-for="th in threats" :key="th.id")

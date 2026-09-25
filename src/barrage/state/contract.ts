@@ -10,7 +10,7 @@
  * Fields may be ADDED; nothing listed here may be renamed or removed.
  */
 import type { ComputedRef, Ref, ShallowRef } from 'vue'
-import type { BossKind, EngineListener, GameMode, IBarrageEngine, Phase, SkillId, UpgradeId } from '../engine/types'
+import type { BossKind, EngineListener, GameMode, IBarrageEngine, MonsterKind, Phase, SkillId, UpgradeId } from '../engine/types'
 import type { BallSkinId } from '../ballSkins'
 
 // ─── Run / board state ───────────────────────────────────────────────────────
@@ -20,6 +20,10 @@ export interface BossHud {
   hp: number
   maxHp: number
   enraged: boolean
+  /** (STATE, additive) Boss mercy: the share of its full HP this boss spawned
+   *  with after the player's earlier losses to it (absent = 1, full HP). The
+   *  bar draws the rest as a cracked-off chunk. */
+  mercy?: number
 }
 
 export interface BreachOffer {
@@ -38,6 +42,17 @@ export interface BreachOffer {
    *  restart or fresh start — a Meteor/revive continue does not start a new
    *  run; boss chests count at what they paid). Endless only. */
   recap?: RunRecap
+  /** (STATE, additive, playtest run 9) The monster that broke through — the
+   *  death sequence's striker (render/death.ts `pickStriker`): the loss
+   *  screen names it ("I never saw … which enemy crossed the line"). Endless
+   *  only; absent when none stood past the line. */
+  culprit?: BreachCulprit
+}
+
+/** (STATE, additive) See `BreachOffer.culprit`. */
+export interface BreachCulprit {
+  kind: MonsterKind
+  bossKind?: BossKind
 }
 
 /** (STATE, additive) See `BreachOffer.recap`. */
@@ -52,8 +67,10 @@ export interface BossChestOffer {
   row: number
   /** Coins the chest pays at 1×. */
   bounty: number
-  /** Rewarded 2× is possible right now (readiness-gated). */
-  doubleAvailable: boolean
+  /** The rewarded multiplier (3×: "▶ 3× ●") and whether it is possible right
+   *  now (readiness-gated). */
+  boostMult: number
+  boostAvailable: boolean
   /** First-ever boss kill (UI: bigger celebration + CHECKPOINT banner). */
   first: boolean
 }
@@ -92,6 +109,11 @@ export interface UseBarrage {
    *  BarrageBoard's loop skips `engine.update` when `holdSim || isGamePaused`. */
   holdSim: ComputedRef<boolean>
   breach: Ref<BreachOffer | null>
+  /** Run 7: the death sequence is playing — the board tears the unit apart
+   *  and "WASTED" holds over it (DeathOverlay). The breach offer and the
+   *  daily result exist already but their screen waits until this is false
+   *  again (≈2.4 s after a live breach). */
+  deathScene: Readonly<Ref<boolean>>
   bossChest: Ref<BossChestOffer | null>
   dailyResult: Ref<DailyResult | null>
   /** Rewarded "+5 balls" is offered (phase aim, unused this checkpoint segment, ad ready). */
@@ -138,7 +160,9 @@ export interface UpgradeView {
   maxed: boolean
   cost: number
   affordable: boolean
-  /** Exactly one upgrade glows: the cheapest affordable, not-maxed one (or none). */
+  /** Exactly one upgrade glows (or none): economy's `glowTrack` — the cheaper
+   *  affordable power track (Damage / Capacity, tie → Damage), else the
+   *  cheapest affordable other track; never a maxed one (CONTRACT §0.3). */
   glowing: boolean
   /** Current and next effect as numbers; UI formats (damage/bounty: multiplier,
    *  capacity: balls, speed: percent faster, luck: percent). */
@@ -149,10 +173,23 @@ export interface UpgradeView {
 export interface UseBarrageUpgrades {
   list: ComputedRef<UpgradeView[]>
   glowingId: ComputedRef<UpgradeId | null>
+  /** One level of `id` — every tap, every chip (playtest run 10: the glowing
+   *  chip's up-to-5 multi-buy, runs 7–9, spent 89 coins on one tap and read as
+   *  a bug; runs 7–8's bundle before it as "a double purchase"). */
   buy(id: UpgradeId): boolean
-  /** FTUE beat: one free "Tray Capacity 3" after the first merge. */
+  /** FTUE beat: one free "Tray Capacity 3" after the first merge. Run 7: any
+   *  chip tap takes it, and two aims after the FTUE hands over it is granted
+   *  on its own (useTutorial). */
   freeCapacityOffer: ComputedRef<boolean>
   claimFreeCapacity(): void
+  /** Run 8: the first Ball Damage level FREE after the Damage arrows were
+   *  ignored three times (the coach arms it with `offerFreeDamage`). */
+  freeDamageOffer: ComputedRef<boolean>
+  offerFreeDamage(): void
+  claimFreeDamage(): void
+  /** The chip whose next level is free right now (Capacity first), and its claim. */
+  freeId: ComputedRef<UpgradeId | null>
+  claimFree(): void
 }
 
 // ─── Collections (launchers + ball skins) ────────────────────────────────────
