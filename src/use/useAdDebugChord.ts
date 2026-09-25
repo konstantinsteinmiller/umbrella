@@ -36,14 +36,10 @@ import { adProviderName, showMidgameAd } from '@/use/useAds'
 import { isAdShowing } from '@/use/useGamePause'
 import { noteExternalInterstitial } from '@/use/useBreakInterstitial'
 
-/** Taps that must land inside the window to fire. Exported so the on-screen
- *  `N/20` readout and the tests stay in lockstep with the gate. */
+/** Taps that must land inside the window to fire. */
 export const AD_CHORD_TAP_THRESHOLD = 20
 /** Rolling window the taps must fall inside. */
 export const AD_CHORD_WINDOW_MS = 30_000
-/** The counter stays hidden below this, so an idle double-tap on the badge
- *  never puts a mystery number on a player's HUD. */
-export const AD_CHORD_HINT_AT = 5
 
 // Coalesce window: one physical touch fires pointerdown AND touchstart AND
 // click within ~30-50 ms, and the badge listens for all three (cross-WebView
@@ -51,10 +47,9 @@ export const AD_CHORD_HINT_AT = 5
 // chord would trip after seven real taps.
 const COALESCE_MS = 60
 
-/** Reactive: taps inside the current window. The badge renders it as `N/20`
- *  from `AD_CHORD_HINT_AT` up — which is the only useful diagnostic when the
- *  question is "are my taps even reaching the handler" on a device with no
- *  inspector. */
+/** Reactive: taps inside the current window. Nothing renders it: a QA chord
+ *  leaves no trace on a player's HUD (its "N/20" under the badge came out
+ *  after playtest run 12). Tests and a console read it. */
 export const adChordTapCount: Ref<number> = ref(0)
 
 /** Reactive: true from the request until the ad has fully closed. */

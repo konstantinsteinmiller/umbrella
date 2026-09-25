@@ -1,8 +1,8 @@
 {
-  "version": "Auroras Magic 0.1.1",
-  "versionId": "ca7d5b93-6ad0-4c7d-a1f9-655707934d74",
-  "when": "2026-09-24T14:54:03.683Z",
-  "inspector": "https://inspector.poki.dev/?game=poki-ca7d5b93-6ad0-4c7d-a1f9-655707934d74",
+  "version": "Auroras Magic 1.1.1",
+  "versionId": "eafeb3b6-ad77-4b46-aea0-69f8fd45cc74",
+  "when": "2026-09-25T00:42:52.300Z",
+  "inspector": "https://inspector.poki.dev/?game=poki-eafeb3b6-ad77-4b46-aea0-69f8fd45cc74",
   "evidence": {
     "sdkInit": {
       "verdict": "pass",
@@ -319,7 +319,7 @@
     ],
     [
       "a.poki-cdn.com",
-      4
+      7
     ],
     [
       "geo.poki.io",
@@ -327,6 +327,18 @@
     ],
     [
       "ads.poki.com",
+      2
+    ],
+    [
+      "api.poki.com",
+      1
+    ],
+    [
+      "v.poki-cdn.com",
+      1
+    ],
+    [
+      "t.poki.io",
       2
     ]
   ],

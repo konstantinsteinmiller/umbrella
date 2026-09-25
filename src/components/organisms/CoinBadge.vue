@@ -7,10 +7,7 @@ import { saveDataVersion } from '@/use/useSaveStatus'
 import { isCompactHud } from '@/use/useUser'
 import { formatBig } from '@/utils/bigNumber'
 import { walletDenied } from '@/components/barrage/barrageUi'
-import {
-  registerAdChordTap, adChordTapCount,
-  AD_CHORD_TAP_THRESHOLD, AD_CHORD_HINT_AT
-} from '@/use/useAdDebugChord'
+import { registerAdChordTap } from '@/use/useAdDebugChord'
 
 const props = withDefaults(defineProps<{
   /** Ms between the wallet counting a gain and its coin reaching the badge
@@ -87,25 +84,24 @@ const popText = computed(() => pop.value
 const display = computed(() => formatBig(coins.value, { decimals: 1, floor: true, trim: true, lower: true }))
 
 // Exposed so siblings (e.g. TreasureChest) can target the badge for fly-to VFX.
-// Stays on `.coin-badge` itself, NOT on the positioning wrapper added for the
-// chord readout — the coin-fly animations aim at this rect.
+// Stays on `.coin-badge` itself, NOT on the positioning wrapper — the coin-fly
+// animations aim at this rect.
 const rootEl = ref<HTMLElement | null>(null)
 defineExpose({ rootEl })
 
 // Hidden debug chord: 20 taps here inside 30 s force a midgame interstitial.
-// See `useAdDebugChord.ts` for why it ships in every build. The readout only
-// appears once a chord is clearly under way, so it is invisible to a player who
-// happens to poke their gold counter.
-const showChordCount = computed(() => adChordTapCount.value >= AD_CHORD_HINT_AT)
+// See `useAdDebugChord.ts` for why it ships in every build. It leaves no trace
+// on the HUD: a QA feature, never shown to a player (its tap count lived under
+// the badge as "N/20" until run 12).
 </script>
 
 <template lang="pug">
   //- Compact mode shrinks the REAL box (padding, icon size, font), never a
   //- transform: a scaled badge keeps its original footprint in the top bar and
   //- the merge grid gets none of the room back. See `isCompactHud`.
-  //- The wrapper exists only to anchor the chord readout: `.coin-badge` itself
-  //- is `overflow: hidden` (the shine sweep), so an absolutely-positioned child
-  //- of it would be clipped.
+  //- The wrapper anchors the "+N" pop: `.coin-badge` itself is
+  //- `overflow: hidden` (the shine sweep), so an absolutely-positioned child of
+  //- it would be clipped.
   div.coin-badge-wrap.relative.flex.items-center
     //- Chord taps are read on pointerdown AND touchstart AND click — one of the
     //- three is missing or unreliable depending on the WebView (the CG mobile
@@ -143,10 +139,6 @@ const showChordCount = computed(() => adChordTapCount.value >= AD_CHORD_HINT_AT)
         //- Re-keyed on every merge: the number bumps, the pop stays put.
         span.coin-badge__gain-n(:key="pop.amount") {{ popText }}
 
-    //- Debug readout — exempt from i18n (a debug overlay, not player copy).
-    div.coin-badge__chord.absolute.pointer-events-none(
-      v-if="showChordCount"
-    ) {{ adChordTapCount }}/{{ AD_CHORD_TAP_THRESHOLD }}
 </template>
 
 <style scoped lang="sass">
@@ -184,22 +176,6 @@ const showChordCount = computed(() => adChordTapCount.value >= AD_CHORD_HINT_AT)
     text-shadow: 0 1px 0 #000, 0 0 6px rgba(252, 211, 77, 0.7)
     letter-spacing: 0.5px
     position: relative
-
-// Hidden-chord progress readout. Sits UNDER the badge (outside its
-// `overflow: hidden`), right-aligned so it can't push the top bar wider.
-.coin-badge__chord
-  top: 100%
-  right: 0
-  margin-top: 2px
-  padding: 0 4px
-  border-radius: 4px
-  background: rgba(4, 8, 18, 0.82)
-  color: #9fd8ff
-  font-size: 9px
-  font-weight: 700
-  line-height: 13px
-  letter-spacing: 0.5px
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace
 
 // Pops just below the counter and rises onto the badge's bottom edge — the
 // top bar has no room above it (the safe area / the screen edge).
