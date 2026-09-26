@@ -1115,6 +1115,14 @@ export default defineConfig(({ mode, command }) => {
           // survives DCE. Same failure — and same fix — as gamepixPlugin above.
           '@/utils/pokiPlugin': fileURLToPath(new URL('./src/utils/pokiPlugin.stub.ts', import.meta.url))
         }),
+        ...(env.VITE_APP_YANDEX === 'true' ? {} : {
+          // yandexPlugin is STATICALLY imported by `platforms/leaderboard.ts`
+          // (on every build, via useBarrage), so it rode into every portal's
+          // main chunk with its ad-block bait URLs (`an.yandex.ru`,
+          // `yandex.ru/ads`) — the Poki gate's "unapproved external hosts"
+          // warning on 1.1.2. Same failure, same fix as pokiPlugin above.
+          '@/utils/yandexPlugin': fileURLToPath(new URL('./src/utils/yandexPlugin.stub.ts', import.meta.url))
+        }),
         '@': fileURLToPath(new URL('./src', import.meta.url)),
         '@/': fileURLToPath(new URL('./src/', import.meta.url)),
         '#': fileURLToPath(new URL('./src/assets', import.meta.url))

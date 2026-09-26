@@ -1,8 +1,8 @@
 {
-  "version": "Auroras Magic 1.1.1",
-  "versionId": "eafeb3b6-ad77-4b46-aea0-69f8fd45cc74",
-  "when": "2026-09-25T00:42:52.300Z",
-  "inspector": "https://inspector.poki.dev/?game=poki-eafeb3b6-ad77-4b46-aea0-69f8fd45cc74",
+  "version": "Elemental Barrage 1.1.3",
+  "versionId": "b901a80a-7a92-4124-94e8-0cc9f75c9a6b",
+  "when": "2026-09-26T13:51:14.779Z",
+  "inspector": "https://inspector.poki.dev/?game=poki-b901a80a-7a92-4124-94e8-0cc9f75c9a6b",
   "evidence": {
     "sdkInit": {
       "verdict": "pass",
@@ -311,7 +311,7 @@
   "hosts": [
     [
       "09c611d5-0f4c-468e-a4d9-50190b05a725.gdn.poki.com",
-      347
+      413
     ],
     [
       "game-cdn.poki.com",
@@ -319,7 +319,7 @@
     ],
     [
       "a.poki-cdn.com",
-      7
+      4
     ],
     [
       "geo.poki.io",
@@ -327,18 +327,6 @@
     ],
     [
       "ads.poki.com",
-      2
-    ],
-    [
-      "api.poki.com",
-      1
-    ],
-    [
-      "v.poki-cdn.com",
-      1
-    ],
-    [
-      "t.poki.io",
       2
     ]
   ],

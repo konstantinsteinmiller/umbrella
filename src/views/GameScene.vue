@@ -30,6 +30,7 @@ import BallTray from '@/components/barrage/BallTray.vue'
 import UpgradeBar from '@/components/barrage/UpgradeBar.vue'
 import TurnControls from '@/components/barrage/TurnControls.vue'
 import BossBar from '@/components/barrage/BossBar.vue'
+import BossPreview from '@/components/barrage/BossPreview.vue'
 import BarrageBanners from '@/components/barrage/BarrageBanners.vue'
 import ShootPrompt from '@/components/barrage/ShootPrompt.vue'
 import BreachModal from '@/components/barrage/BreachModal.vue'
@@ -121,6 +122,26 @@ const showDaily = ref(false)
 
 // ─── HUD numbers ─────────────────────────────────────────────────────────────
 const bossIn = computed(() => Math.max(1, barrage.nextBossRow.value - barrage.row.value))
+/** The next boss in smoke beside "Boss in N" — while no boss lives (a live
+ *  boss has its bar on that line instead). Wordless: the retention hook for a
+ *  first-time player still nine rows from the first boss. */
+const showBossPreview = computed(() => !barrage.boss.value && !isUltraCompactHud.value)
+/** Its edge: a little under the row badge + line 2 it stands beside. */
+const bossPreviewPx = computed(() => isCompactHud.value ? (isWideCompactHud.value ? 40 : 38) : isRoomyHud.value ? 60 : 50)
+/** The badge / line-2 stack fills the block — and line 2 shows the boss bar —
+ *  only once the preview has LEFT: flipped after the render (`flush: 'post'`),
+ *  so `pinForLeave` still reads the preview where it stood beside "Boss in N",
+ *  not where the bar's width pushed it. Same frame, so nothing paints between. */
+const stackFill = ref(!showBossPreview.value)
+watch(showBossPreview, (shown) => { stackFill.value = !shown }, { flush: 'post' })
+/** A leaving preview (its boss just spawned) puffs away where it stood, out of
+ *  the flow, while the boss bar takes the line. */
+const pinForLeave = (el: Element): void => {
+  const h = el as HTMLElement
+  const left = h.offsetLeft
+  const top = h.offsetTop
+  Object.assign(h.style, { position: 'absolute', left: `${left}px`, top: `${top}px`, margin: '0' })
+}
 const isDaily = computed(() => barrage.mode.value === 'daily')
 /** Next undiscovered ball tier — ghosts as a silhouette on the codex button. */
 const nextUndiscovered = computed(() =>
@@ -518,39 +539,58 @@ onUnmounted(() => {
         //- height means the board never resizes when a boss shows up.
         //- Side by side, the block stops at the left column's edge so neither the
         //- rank nor the boss bar ever lies over the board.
-        div.topbar-left.flex.flex-col.items-stretch.pointer-events-auto.min-w-0(
-          :class="[isCompactHud ? 'gap-0.5' : 'gap-1', sideBySide ? '' : 'flex-1']"
+        //- Beside the two rows, until the boss comes: its silhouette in smoke
+        //- (BossPreview) — the reason to play the next rows.
+        div.topbar-left.relative.flex.items-center.pointer-events-auto.min-w-0(
+          :class="sideBySide ? '' : 'flex-1'"
           :style="sideBySide ? { width: sideW + 'px' } : {}"
         )
-          div.flex.items-center.min-w-0(:class="isCompactHud ? 'gap-1' : 'gap-1.5'")
-            div.relative.shrink-0
-              div.absolute.inset-0.rounded-xl(
-                :class="[isDaily ? 'bg-[#0d4d52]' : 'bg-[#7a1c1c]', isCompactHud ? 'translate-y-0.5' : 'translate-y-1']"
-              )
-              div.relative.flex.items-center.rounded-xl(
-                data-poki-hud="row"
-                :class="[                  isDaily ? 'bg-gradient-to-b from-[#3fe0d0] to-[#1a9a9a] border-[#0f1a30]' : 'bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]',                  isCompactHud ? 'gap-1 border px-1.5 py-0.5' : 'gap-1.5 border-2 px-2.5 py-1'                ]"
-              )
-                BarrageGlyph.text-white.shrink-0(name="flag" :class="rowIconClass")
-                span.text-white.font-black.game-text.uppercase.whitespace-nowrap(:class="rowTextClass") {{ t('barrage.hud.row', { n: barrage.row.value }) }}
-                span.daily-tag.rounded.font-black.game-text.uppercase.leading-none(
-                  v-if="isDaily"
-                  :class="isCompactHud ? 'text-[8px] px-0.5' : 'text-[10px] px-1 py-0.5'"
-                ) {{ t('barrage.hud.daily') }}
-          div.topbar-line2.flex.items-center.min-w-0(
-            v-if="!isUltraCompactHud"
-            :class="isCompactHud ? 'gap-x-1.5 px-0.5' : 'gap-x-2 px-1'"
-            :style="{ height: line2H + 'px' }"
+          //- Row badge over line 2. Content-wide while the boss preview stands
+          //- beside it; the whole block once a boss lives (its bar needs the room).
+          div.topbar-stack.flex.flex-col.items-stretch.min-w-0(
+            :class="[isCompactHud ? 'gap-0.5' : 'gap-1', stackFill ? 'flex-1' : 'shrink']"
           )
-            BossBar.flex-1.min-w-0(v-if="barrage.boss.value" :inline="true")
-            template(v-else)
-              span.game-text.font-black.text-red-300.drop-shadow.whitespace-nowrap(
-                :class="subTextClass"
-              ) {{ t('barrage.hud.bossIn', { n: bossIn }) }}
-              span.game-text.font-black.text-yellow-200.drop-shadow.whitespace-nowrap(
-                v-if="showBest"
-                :class="subTextClass"
-              ) {{ isDaily ? t('barrage.hud.todayBest', { n: daily.todayBest.value }) : t('barrage.hud.best', { n: barrage.bestRow.value }) }}
+            div.flex.items-center.min-w-0(:class="isCompactHud ? 'gap-1' : 'gap-1.5'")
+              div.relative.shrink-0
+                div.absolute.inset-0.rounded-xl(
+                  :class="[isDaily ? 'bg-[#0d4d52]' : 'bg-[#7a1c1c]', isCompactHud ? 'translate-y-0.5' : 'translate-y-1']"
+                )
+                div.relative.flex.items-center.rounded-xl(
+                  data-poki-hud="row"
+                  :class="[                  isDaily ? 'bg-gradient-to-b from-[#3fe0d0] to-[#1a9a9a] border-[#0f1a30]' : 'bg-gradient-to-b from-[#ff7a4d] to-[#d43a1f] border-[#0f1a30]',                  isCompactHud ? 'gap-1 border px-1.5 py-0.5' : 'gap-1.5 border-2 px-2.5 py-1'                ]"
+                )
+                  BarrageGlyph.text-white.shrink-0(name="flag" :class="rowIconClass")
+                  span.text-white.font-black.game-text.uppercase.whitespace-nowrap(:class="rowTextClass") {{ t('barrage.hud.row', { n: barrage.row.value }) }}
+                  span.daily-tag.rounded.font-black.game-text.uppercase.leading-none(
+                    v-if="isDaily"
+                    :class="isCompactHud ? 'text-[8px] px-0.5' : 'text-[10px] px-1 py-0.5'"
+                  ) {{ t('barrage.hud.daily') }}
+            div.topbar-line2.flex.items-center.min-w-0(
+              v-if="!isUltraCompactHud"
+              :class="isCompactHud ? 'gap-x-1.5 px-0.5' : 'gap-x-2 px-1'"
+              :style="{ height: line2H + 'px' }"
+            )
+              //- Mounts with the full-width stack (`stackFill`), one render after
+              //- the boss preview left — see `pinForLeave`.
+              BossBar.flex-1.min-w-0(v-if="barrage.boss.value && stackFill" :inline="true")
+              template(v-else)
+                span.game-text.font-black.text-red-300.drop-shadow.whitespace-nowrap(
+                  :class="subTextClass"
+                  data-poki-hud="boss-in"
+                ) {{ t('barrage.hud.bossIn', { n: bossIn }) }}
+                span.game-text.font-black.text-yellow-200.drop-shadow.whitespace-nowrap(
+                  v-if="showBest"
+                  :class="subTextClass"
+                ) {{ isDaily ? t('barrage.hud.todayBest', { n: daily.todayBest.value }) : t('barrage.hud.best', { n: barrage.bestRow.value }) }}
+          //- The next boss in smoke, right beside the line its HP bar will fill.
+          Transition(name="boss-preview" @before-leave="pinForLeave")
+            BossPreview(
+              v-if="showBossPreview"
+              :next-row="barrage.nextBossRow.value"
+              :rows-left="bossIn"
+              :size="bossPreviewPx"
+              :class="isCompactHud ? 'ms-1.5' : 'ms-2'"
+            )
         div.flex-1(v-if="sideBySide")
         //- Rank · wallet · mute · options.
         div.flex.items-center.shrink-0.pointer-events-auto(:class="isCompactHud ? 'gap-1' : 'gap-1.5'")
