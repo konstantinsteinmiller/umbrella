@@ -16,12 +16,18 @@
  *
  * Beats (UPGRADE_SPOT_MS): open 0–350 · before 350–1400 · the glyph flies
  * 1400–1800 · after 1800–2900 · hold, then the stage closes.
+ *
+ * Playtest run 13: the two values sit side by side (now left, next right) on
+ * dark plates of their own, inside the board and below the rank plaque on its
+ * top rim. Bare, they landed on whatever number was there: speed's "×1.12"
+ * over the plaque read as "GLOBAL RANK #X1.12", luck's "5%" beside the Fire
+ * Dragon's "1.2K" as "boss HP 1.2%".
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBarrage from '@/barrage/state/useBarrage'
 import { coinSrc, skillSrc } from '@/barrage/art'
-import { COLS } from '@/barrage/engine/types'
+import { COLS, ROWS } from '@/barrage/engine/types'
 import { boardApi, fmtCoins, upgradeValueKey, upgradeValueNumber } from '@/components/barrage/barrageUi'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import SpotMask from '@/components/barrage/coach/SpotMask.vue'
@@ -33,8 +39,14 @@ const barrage = useBarrage()
 
 interface Pt { x: number; y: number }
 interface Rect { x: number; y: number; w: number; h: number }
+/** Where the value plates may stand (client px). */
+interface Room { l: number; t: number; r: number; b: number }
+/** The plates keep this far from the board's edges and the rank plaque (px). */
+const ROOM_INSET = 4
 interface Geo {
   cell: number
+  /** The board below the rank plaque, inset a little (run 13). */
+  room: Room
   origin: Pt
   chip: Rect
   unit: Pt
@@ -61,6 +73,15 @@ const measure = (): void => {
   }
   const cell = Math.max(8, o1.x - o.x)
   const toC = (x: number, y: number): Pt => ({ x: o.x + x * cell, y: o.y + y * cell })
+  const b = api.boardClientRect()
+  const rim = document.querySelector('.rank-rim')?.getBoundingClientRect()
+  const top = b ? b.top : o.y
+  const room: Room = {
+    l: (b ? b.left : o.x) + ROOM_INSET,
+    r: (b ? b.right : o.x + COLS * cell) - ROOM_INSET,
+    t: Math.max(top, rim && rim.height > 0 ? rim.bottom : top) + ROOM_INSET,
+    b: (b ? b.bottom : o.y + ROWS * cell) - ROOM_INSET
+  }
   const st = barrage.engine.value.state
   // speed: the monster most directly above the unit.
   let best: { x: number; y: number } | null = null
@@ -77,6 +98,7 @@ const measure = (): void => {
   const prey = props.spot.monsterId !== undefined ? st.monsters.find((m) => m.id === props.spot.monsterId) : undefined
   geo.value = {
     cell,
+    room,
     origin: o,
     chip,
     unit,
@@ -162,29 +184,64 @@ const speedBalls = computed(() => {
   }
   return out
 })
-/** The hit pops: the value now after the slow ball, the next one after the fast. */
+/** The values' type size, in cells; the next value is drawn this much larger. */
+const POP_FONT = 0.52
+const GOLD_SCALE = 1.2
+const clampTo = (v: number, lo: number, hi: number): number => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)))
+/** A plate's box, estimated from its text (it is placed before it is laid out). */
+const plateW = (text: string, font: number): number => text.length * 0.6 * font + 0.9 * font + 4
+const plateH = (font: number): number => 1.5 * font + 4
+/** The two plates side by side, the gap between them on `at` — now on the
+ *  left, next on the right — the pair moved as one to stay inside the room. */
+const pairAt = (g: Geo, at: Pt, now: string, next: string): [Pt, Pt] => {
+  const font = g.cell * POP_FONT
+  const wa = plateW(now, font)
+  const wb = plateW(next, font) * GOLD_SCALE
+  const gap = g.cell * 0.3
+  const h = plateH(font) * GOLD_SCALE
+  const x = clampTo(at.x, g.room.l + wa + gap / 2, g.room.r - wb - gap / 2)
+  const y = clampTo(at.y, g.room.t + h / 2, g.room.b - h / 2)
+  return [{ x: x - gap / 2 - wa / 2, y }, { x: x + gap / 2 + wb / 2, y }]
+}
+/** Where the pair stands: speed — on the ball's path, just below the monster
+ *  it hits; luck — under the top rows' bubbles, mid-board; bounty — above
+ *  the kill, or under it when it stands at the top. */
+const popAnchor = (g: Geo): Pt | null => {
+  const k = props.spot.kind
+  if (k === 'speed') {
+    const rise = Math.max(1, g.unit.y - g.target.y)
+    return along(1 - Math.min(0.6, (g.cell * 1.4) / rise))
+  }
+  if (k === 'luck') return toC(COLS / 2, 3.3)
+  if (!g.prey) return null
+  const h = plateH(g.cell * POP_FONT) * GOLD_SCALE
+  const above = g.prey.y - g.cell * 0.2 - h / 2
+  return { x: g.prey.x + g.prey.w / 2, y: above - h / 2 >= g.room.t ? above : g.prey.y + g.prey.h + g.cell * 0.2 + h / 2 }
+}
+const coinGain = (n: number | undefined): string => t('barrage.hud.coinGain', { n: fmtCoins(n ?? 1) })
+const nowPop = computed(() => (props.spot.kind === 'bounty' ? coinGain(props.spot.coinsNow) : nowText.value))
+const nextPop = computed(() => (props.spot.kind === 'bounty' ? coinGain(props.spot.coinsNext) : nextText.value))
+/** When each value lands: the now value after the first demo, the next after the second. */
+const popTimes = computed<[number, number]>(() => {
+  const k = props.spot.kind
+  if (k === 'speed') return [SPEED_A[1], SPEED_B[1]]
+  if (k === 'luck') return [B.before + 350, B.after + 450]
+  return [BOUNTY_A.hit, BOUNTY_B.hit]
+})
 const pops = computed(() => {
   const g = geo.value
-  if (!g) return []
+  const at = g ? popAnchor(g) : null
+  if (!g || !at) return []
+  const [pa, pb] = pairAt(g, at, nowPop.value, nextPop.value)
+  const [ta, tb] = popTimes.value
   const out: { key: string; text: string; at: Pt; gold: boolean; scale: number; o: number }[] = []
-  const pop = (key: string, text: string, at: Pt, t0: number, gold: boolean, dim: boolean): void => {
+  const pop = (key: string, text: string, p: Pt, t0: number, gold: boolean): void => {
     if (props.now < t0) return
     const s = props.reduced ? 1 : easeOutBack(seg(t0, t0 + 260))
-    out.push({ key, text, at, gold, scale: s * (gold ? 1.25 : 1), o: dim && props.now > B.after ? 0.55 : 1 })
+    out.push({ key, text, at: p, gold, scale: s * (gold ? GOLD_SCALE : 1), o: !gold && props.now > B.after ? 0.6 : 1 })
   }
-  const up = g.cell * 0.9
-  if (props.spot.kind === 'speed') {
-    pop('a', nowText.value, { x: g.target.x - g.cell * 0.9, y: g.target.y - up }, SPEED_A[1], false, true)
-    pop('b', nextText.value, { x: g.target.x + g.cell * 0.9, y: g.target.y - up }, SPEED_B[1], true, false)
-  } else if (props.spot.kind === 'luck') {
-    const band = toC(COLS, 1)
-    pop('a', nowText.value, { x: band.x - g.cell * 1.2, y: band.y + g.cell * 1.7 }, B.before + 350, false, true)
-    pop('b', nextText.value, { x: band.x - g.cell * 1.2, y: band.y + g.cell * 2.6 }, B.after + 450, true, false)
-  } else if (g.prey) {
-    const c = centre(g.prey)
-    pop('a', t('barrage.hud.coinGain', { n: fmtCoins(props.spot.coinsNow ?? 1) }), { x: c.x - g.cell * 0.8, y: g.prey.y - g.cell * 0.4 }, BOUNTY_A.hit, false, true)
-    pop('b', t('barrage.hud.coinGain', { n: fmtCoins(props.spot.coinsNext ?? 1) }), { x: c.x + g.cell * 0.8, y: g.prey.y - g.cell * 0.4 }, BOUNTY_B.hit, true, false)
-  }
+  pop('a', nowPop.value, pa, ta, false)
+  pop('b', nextPop.value, pb, tb, true)
   return out
 })
 const hitRings = computed(() => {
@@ -331,8 +388,8 @@ const holes = computed<SpotHole[]>(() => {
     span.us-pop.absolute.game-text(
       v-for="p in pops"
       :key="p.key"
-      :class="{ 'is-gold': p.gold }"
-      :style="{ left: p.at.x + 'px', top: p.at.y + 'px', transform: 'translate(-50%, -50%) scale(' + p.scale + ')', opacity: p.o, fontSize: geo.cell * 0.52 + 'px' }"
+      :class="['is-' + spot.kind, { 'is-gold': p.gold }]"
+      :style="{ left: p.at.x + 'px', top: p.at.y + 'px', transform: 'translate(-50%, -50%) scale(' + p.scale + ')', opacity: p.o, fontSize: geo.cell * POP_FONT + 'px' }"
     ) {{ p.text }}
 </template>
 
@@ -407,13 +464,30 @@ const holes = computed<SpotHole[]>(() => {
   object-fit: contain
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6))
 
+// Run 13: a plate of its own, so a value never reads as part of a number
+// already on the board.
 .us-pop
   white-space: nowrap
   color: #fff
   font-weight: 900
   line-height: 1
-  -webkit-text-stroke: 3px #0b0e18
+  padding: 0.25em 0.45em
+  border-radius: 999px
+  border: 2px solid rgba(190, 205, 235, 0.55)
+  background: rgba(8, 11, 24, 0.92)
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6)
+  -webkit-text-stroke: 2px #0b0e18
   paint-order: stroke fill
   &.is-gold
     color: #ffe28a
+    border-color: #ffd23c
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 10px rgba(255, 210, 60, 0.7)
+  &.is-gold.is-speed
+    color: #bff0ff
+    border-color: #7fe0ff
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 10px rgba(120, 220, 255, 0.75)
+  &.is-gold.is-luck
+    color: #c8ffd4
+    border-color: #7dff9a
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 10px rgba(125, 255, 154, 0.75)
 </style>

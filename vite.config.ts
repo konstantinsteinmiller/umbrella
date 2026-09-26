@@ -1087,7 +1087,12 @@ export default defineConfig(({ mode, command }) => {
           '@/use/ads/GameDistributionProvider': fileURLToPath(new URL('./src/use/ads/GameDistributionProvider.stub.ts', import.meta.url))
         }),
         ...(env.VITE_APP_PLAYGAMA === 'true' ? {} : {
-          '@/use/ads/PlaygamaProvider': fileURLToPath(new URL('./src/use/ads/PlaygamaProvider.stub.ts', import.meta.url))
+          '@/use/ads/PlaygamaProvider': fileURLToPath(new URL('./src/use/ads/PlaygamaProvider.stub.ts', import.meta.url)),
+          // playgamaPlugin is STATICALLY imported by `platforms/leaderboard.ts`
+          // and `platforms/playgama` (both in every build's graph), so the
+          // whole plugin rode inside the Poki build's GameScene chunk (1.1.3).
+          // Same failure, same fix as pokiPlugin / yandexPlugin below.
+          '@/utils/playgamaPlugin': fileURLToPath(new URL('./src/utils/playgamaPlugin.stub.ts', import.meta.url))
         }),
         ...(env.VITE_APP_GAMEPIX === 'true' ? {} : {
           '@/use/ads/GamepixProvider': fileURLToPath(new URL('./src/use/ads/GamepixProvider.stub.ts', import.meta.url)),

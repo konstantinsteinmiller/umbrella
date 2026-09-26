@@ -278,7 +278,8 @@ export default {
     buyAria: '{cost} सिक्कों में {name} खरीदें',
     adProgress: '{n}/{max}',
     adAria: '{name} अनलॉक करने के लिए विज्ञापन देखें',
-    adProgressAria: '{name} के लिए विज्ञापन देखें ({max} में से {n} देखे गए)'
+    adProgressAria: '{name} के लिए विज्ञापन देखें ({max} में से {n} देखे गए)',
+    adUnlock: 'अनलॉक'
   },
   supply: {
     ready: 'खज़ाने का संदूक तैयार — खोलने के लिए टैप करें!',

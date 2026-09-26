@@ -278,7 +278,8 @@ export default {
     buyAria: '{name}を{cost}コインで購入',
     adProgress: '{n}/{max}',
     adAria: '広告を見て{name}をアンロック',
-    adProgressAria: '{name}の広告を見る（{max}回中{n}回視聴済み）'
+    adProgressAria: '{name}の広告を見る（{max}回中{n}回視聴済み）',
+    adUnlock: 'アンロック'
   },
   supply: {
     ready: '宝箱の準備完了！タップで開ける',

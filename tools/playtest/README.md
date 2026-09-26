@@ -100,6 +100,11 @@ put back right after — or launch them from a session without project memory.
 misses between frames (a straight shot from a launcher off to the side passes the boss) — not a player
 problem (the designer's call after run 7). Leave it out of findings, follow-ups and the plan.
 
+**Don't file: "a boss off to the side is never hit by plain taps".** A tester that only taps the unit
+repeats one straight shot; a human aims at what they are fighting. In run 12 Mia lost the first boss that
+way — an AI-only problem (the designer's call after run 12). Report the loss as a number, never as a
+finding, follow-up or plan item.
+
 The testers are a stand-in for first-time players. That makes them good at finding readability and flow
 gaps, but not a substitute for a human playtest or a portal fit test.
 

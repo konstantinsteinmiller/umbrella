@@ -479,9 +479,33 @@ shot past it for ten volleys (restart at row 1). Jonas lost at 4:55 (row 30) in 
 never lost; Leo beat the Fire Dragon after the trophy paid its backlog (+797), which he read as "coins jumped
 181 → 978 with no cause". Nobody filed the mute. Open, in order: (1) the countdown still does not read as a
 stake — all four asked what the line does, three asked for a health or lives indicator: show the unit's
-countdown as a 3-segment life bar and end the lesson on it emptying; (2) the first boss off the tap line —
-spawn it over the middle columns or let the repeat tap aim at it; (3) Bounty's lesson demos one kill ("+10 →
-+12" reads as an ordinary reward) — demo a volley; (4) make the trophy's backlog payout a held toast and a
-counting wallet; (5) the claimed gift's "FREE" pill beside the next price, and the first-buy plate, make chip
-taps look inconsistent. Fixed after the run: the idle shot hint no longer resets the chip spotlights' spacing
+countdown as a 3-segment life bar and end the lesson on it emptying; (2) Bounty's lesson demos one kill ("+10
+→ +12" reads as an ordinary reward) — demo a volley; (3) make the trophy's backlog payout a held toast and a
+counting wallet; (4) the claimed gift's "FREE" pill beside the next price, and the first-buy plate, make chip
+taps look inconsistent. (Mia's first-boss loss — a boss off to the side, only taps — is an AI-tester artifact,
+the designer's call: not filed.) Fixed after the run: the idle shot hint no longer resets the chip spotlights' spacing
 (Jonas saw six hints and no chip lesson).
+
+**Run-12 fix pass** (the designer's call: the chip taps only; the first boss off a tap's line is an AI-only
+problem). A claimed gift's pill reads as received (a check with "FREE"), leaves after 1.5 s and is cleared by
+the next chip tap; the first purchase's plate is a receipt — a check and the level bought ("3 → 4") above what
+the chip does — opening 380 ms after the buy, once its flare has landed, and cancelled by any touch before.
+
+Run 13 in `playtest-runs/run-13/` (report v25/v26 at the same link; build on port 5326). Fun 4/4/3/4, clarity 2.75
+(run 12: 2.5); everyone reached rows 38–41 (run 12: 20–41), Mia and Jonas without a loss, Dev and Leo lost in the
+Fire Dragon's fight. The upgrade-tap fix reads: all four read the first purchase's receipt as a purchase, and nobody
+saw "FREE" beside "Need N more" again. Mia bought Luck and Bounty on the turn after each lesson (the first Bounty
+purchase in thirteen runs); the idle-hint fix let the lessons reach everyone. The trophy's backlog paid everyone
++680 to +1,361 at row 31, and nobody filed it as unexplained. Open, in order: (1) the tray lesson pressed Capacity
+while a free Damage level was on offer, so Dev's tap claimed Damage; he never tapped an upgrade again — a tap on an
+affordable other chip should buy it and the gift wait, and no lesson should point elsewhere while a gift is on offer;
+(2) the countdown is still not read as a stake — Jonas read the launcher's number as its HP: make it a life bar;
+(3) the lessons' value pops landed on the rank banner and the boss HP ("#X1.12", "1.2%") — give them a plate inside
+the board.
+
+**Run-13 fix pass** ((1) and (3); (2) stays open). A tap on a chip the wallet covers buys that chip while a gift
+waits elsewhere — the gift still takes a tap that would only be refused (run 7). The tray lesson (its spill stays
+pending) and the chip spotlights wait while a gift sits on another chip (`giftId` in the coach's wiring). The
+spotlights' values stand side by side on dark plates, inside the board and below the rank plaque: speed on the
+ball's path under the monster hit, luck mid-board under the bubble rows, bounty above the kill or under a boss at
+the top.

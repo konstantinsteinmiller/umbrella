@@ -278,7 +278,8 @@ export default {
     buyAria: '{name}ni {cost} tangaga sotib olish',
     adProgress: '{n}/{max}',
     adAria: '{name}ni ochish uchun reklama ko‘ring',
-    adProgressAria: '{name} uchun reklama ko‘ring ({max} tadan {n} tasi ko‘rildi)'
+    adProgressAria: '{name} uchun reklama ko‘ring ({max} tadan {n} tasi ko‘rildi)',
+    adUnlock: 'Ochish'
   },
   supply: {
     ready: 'Xazina sandig‘i tayyor — ochish uchun bos!',

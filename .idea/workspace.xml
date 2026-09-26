@@ -4,12 +4,49 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- rebalance difficulty&#10;- fix onboarding">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- tap counter">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game-implementation-plan.md" beforeDir="false" afterPath="$PROJECT_DIR$/game-implementation-plan.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/poki-qa-report.json" beforeDir="false" afterPath="$PROJECT_DIR$/poki-qa-report.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/CoinBadge.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/CoinBadge.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useAdDebugChord.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAdDebugChord.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/CONTRACT.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/CONTRACT.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/ballSkins.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/ballSkins.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/state/contract.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/state/contract.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/state/useCollections.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/state/useCollections.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/CollectionModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/CollectionModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/HudTip.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/HudTip.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/UpgradeBar.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/UpgradeBar.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/coach/UpgradeSpot.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/coach/UpgradeSpot.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/barrage/hudTip.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/hudTip.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ar.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/de.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/es.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/fr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/hi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/id.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/it.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ja.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/kk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ko.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/nl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/pl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/pt.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ru.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/th.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/tr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/uk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/uz.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/vi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/zh.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useCoach.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCoach.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/state/skinAdUnlock.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/state/skinAdUnlock.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/ui/coach.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/ui/coach.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/ui/upgradeBar.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/ui/upgradeBar.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/playtest/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/tools/playtest/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/poki-deploy/poki.config.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/tools/poki-deploy/poki.config.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/vite.config.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,23 +76,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/konst/Documents/__p/elemental-barrage/tools/poki-deploy",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "pnpm",
-    "npm.build:poki.executor": "Run",
-    "npm.deploy:poki.executor": "Run",
-    "npm.dev.executor": "Run",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/elemental-barrage/tools/poki-deploy&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;npm.build:poki.executor&quot;: &quot;Run&quot;,
+    &quot;npm.deploy:poki.executor&quot;: &quot;Run&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage\tools\poki-deploy" />
@@ -111,7 +148,7 @@
       <option name="presentableId" value="Default" />
       <updated>1790165645764</updated>
       <workItem from="1790165647095" duration="2583000" />
-      <workItem from="1790169209346" duration="49893000" />
+      <workItem from="1790169209346" duration="60352000" />
     </task>
     <task id="LOCAL-00001" summary="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
       <option name="closed" value="true" />
@@ -145,7 +182,15 @@
       <option name="project" value="LOCAL" />
       <updated>1790296497088</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="- tap counter">
+      <option name="closed" value="true" />
+      <created>1790323473115</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1790323473115</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -156,6 +201,7 @@
     <MESSAGE value="- gameplay stop change" />
     <MESSAGE value="- gameplay fixes&#10;- onboarding fixes" />
     <MESSAGE value="- rebalance difficulty&#10;- fix onboarding" />
-    <option name="LAST_COMMIT_MESSAGE" value="- rebalance difficulty&#10;- fix onboarding" />
+    <MESSAGE value="- tap counter" />
+    <option name="LAST_COMMIT_MESSAGE" value="- tap counter" />
   </component>
 </project>

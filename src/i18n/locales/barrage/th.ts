@@ -278,7 +278,8 @@ export default {
     buyAria: 'ซื้อ {name} ราคา {cost} เหรียญ',
     adProgress: '{n}/{max}',
     adAria: 'ดูโฆษณาเพื่อปลดล็อก {name}',
-    adProgressAria: 'ดูโฆษณาเพื่อ {name} (ดูแล้ว {n} จาก {max})'
+    adProgressAria: 'ดูโฆษณาเพื่อ {name} (ดูแล้ว {n} จาก {max})',
+    adUnlock: 'ปลดล็อก'
   },
   supply: {
     ready: 'หีบสมบัติพร้อมแล้ว — แตะเพื่อเปิด!',

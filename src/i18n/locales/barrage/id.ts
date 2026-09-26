@@ -278,7 +278,8 @@ export default {
     buyAria: 'Beli {name} seharga {cost} koin',
     adProgress: '{n}/{max}',
     adAria: 'Tonton iklan untuk membuka {name}',
-    adProgressAria: 'Tonton iklan untuk {name} ({n} dari {max} ditonton)'
+    adProgressAria: 'Tonton iklan untuk {name} ({n} dari {max} ditonton)',
+    adUnlock: 'Buka'
   },
   supply: {
     ready: 'Peti harta siap — ketuk untuk membuka!',

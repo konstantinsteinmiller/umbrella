@@ -278,7 +278,8 @@ export default {
     buyAria: 'Купити {name} за {cost} монет',
     adProgress: '{n}/{max}',
     adAria: 'Перегляньте рекламу, щоб відкрити {name}',
-    adProgressAria: 'Перегляньте рекламу для {name} (переглянуто {n} з {max})'
+    adProgressAria: 'Перегляньте рекламу для {name} (переглянуто {n} з {max})',
+    adUnlock: 'Відкрити'
   },
   supply: {
     ready: 'Скриня зі скарбами готова — натисни, щоб відкрити!',

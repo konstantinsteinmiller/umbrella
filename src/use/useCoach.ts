@@ -42,7 +42,8 @@
  *             once each, a few rows in (UPGRADE_SPOT_ROWS), SPOT_GAP volleys
  *             from any other lesson, never in danger, under a funnel or right
  *             after a boss arrives / falls — and only while the chip is
- *             unbought.
+ *             unbought. Neither they nor the tray lesson frame a chip while
+ *             a gift waits on another one (run 13).
  *
  * Beside the lessons runs the UPGRADE FUNNEL (`upgradeFunnel`, its own channel:
  * it lives on the upgrade chips, never over the board, so it may share the
@@ -610,6 +611,9 @@ export interface CoachWiring {
   upgrades?: Readonly<Ref<readonly UpgradeView[]>>
   /** The FTUE's free Tray Capacity is still on offer. */
   freeOffer?: Readonly<Ref<boolean>>
+  /** The chip whose next level is a gift right now (`freeId`), or null. Run
+   *  13: no lesson frames or presses ANOTHER chip while it waits. */
+  giftId?: Readonly<Ref<UpgradeId | null>>
   /** Run 8: arm the free first Ball Damage level (FREE_DAMAGE_AFTER ignored
    *  Damage showings). */
   offerFreeDamage?: () => void
@@ -776,11 +780,18 @@ export const installCoach = (w: CoachWiring): (() => void) => {
   /** Volleys since the last lesson (the shot hint aside) or spotlight on screen. */
   const sinceAnyLesson = (): number => currentVolleys() - Math.max(lastTeachVolley, lastSpotVolley)
   const bossEnraged = (s: BoardState): boolean => s.monsters.some((m) => m.kind === 'boss' && m.enraged)
+  /** A gift waits on a chip other than `id`: a lesson framing `id` now would
+   *  send the player's tap where the gift is not (run 13: Dev followed the tray
+   *  lesson's hand onto Capacity while Damage said FREE). */
+  const giftElsewhere = (id: UpgradeId): boolean => {
+    const gift = w.giftId?.value ?? null
+    return gift !== null && gift !== id
+  }
 
   /** The next chip spotlight due (UPGRADE_SPOT_ROWS order), or null. */
   const upgradeSpotDraft = (s: BoardState): UpgradeSpot | null => {
     for (const kind of ['speed', 'luck', 'bounty'] as const) {
-      if (lessonShown(spotExposure(kind)) > 0 || s.row < UPGRADE_SPOT_ROWS[kind]) continue
+      if (lessonShown(spotExposure(kind)) > 0 || s.row < UPGRADE_SPOT_ROWS[kind] || giftElsewhere(kind)) continue
       const view = w.upgrades?.value.find((v) => v.id === kind)
       // A chip the player bought is a chip they know.
       if (!view || view.level > 0) continue
@@ -974,8 +985,9 @@ export const installCoach = (w: CoachWiring): (() => void) => {
         setLesson({ id: 'trayIntro' })
         return
       }
-      // A spill stays pending until the tray lesson may speak again.
-      if (pendingTray && sinceLesson >= TRAY_GAP) {
+      // A spill stays pending until the tray lesson may speak again — and
+      // while a gift waits on another chip (its hand presses Capacity).
+      if (pendingTray && sinceLesson >= TRAY_GAP && !giftElsewhere('capacity')) {
         pendingTray = false
         if (lessonShown('tray') < MAX_SHOWS.tray && w.capacityLevel.value < TRAY_GRADUATE_LEVEL) {
           setLesson({ id: 'tray' })

@@ -278,7 +278,8 @@ export default {
     buyAria: 'Acheter {name} pour {cost} pièces',
     adProgress: '{n}/{max}',
     adAria: 'Regarder une pub pour débloquer {name}',
-    adProgressAria: 'Regarder une pub pour {name} ({n} sur {max} vues)'
+    adProgressAria: 'Regarder une pub pour {name} ({n} sur {max} vues)',
+    adUnlock: 'Débloquer'
   },
   supply: {
     ready: 'Coffre au trésor prêt — touche pour l’ouvrir !',

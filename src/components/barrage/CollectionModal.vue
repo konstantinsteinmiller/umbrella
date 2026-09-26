@@ -9,10 +9,13 @@
  *   Ball Skins — elemental shells (stone, tide, frost, lava, gold…) framed by
  *               rarity. Each card is the real bake from the renderer, around
  *               the face of the player's best tier: what they see is exactly
- *               what will fly, on the balls they actually make. Every locked
- *               skin also offers a "watch ad" pill (movie icon, n/N for the
- *               multi-ad rarities) as the alternative to its coin price —
- *               only while a rewarded ad can fill, never on coin-mode builds.
+ *               what will fly, on the balls they actually make. Every skin
+ *               past stone is ad-only: its card shows a lock (and n/N for the
+ *               multi-ad rarities) instead of a price, and the "▶ Unlock"
+ *               button under it is the way in — always there, disabled while
+ *               no rewarded ad can fill. Stone keeps its coin price with the
+ *               same button beside it, shown only while an ad can fill. Coin-
+ *               mode builds have no rewarded ads: every skin keeps its price.
  *
  * NEW badges: opening a tab marks its items seen at once (STATE's
  * `markLaunchersSeen` / `markSkinsSeen`), but the set that WAS new is snapshotted
@@ -148,12 +151,13 @@ const onSkin = (s: BallSkinView, ev: MouseEvent): void => {
   }
 }
 
-// ── Rewarded-ad unlock (the alternative to the coin price) ──
+// ── Rewarded-ad unlock (the only way in past stone; stone's alternative to coins) ──
 const adBusy = ref(false)
-/** The pill stays up with its progress while no ad can fill (disabled), but only
- *  on builds that have rewarded ads at all. */
+/** An ad-only skin always shows its button (disabled while no ad can fill: it
+ *  is the only way in); stone's only while an ad can fill or one was watched.
+ *  Only on builds that have rewarded ads at all. */
 const showSkinAd = (s: BallSkinView): boolean =>
-  !buffsCostCoins && !s.owned && s.adsNeeded > 0 && (col.skinAdReady.value || s.adsWatched > 0)
+  !buffsCostCoins && !s.owned && s.adsNeeded > 0 && (s.adOnly || col.skinAdReady.value || s.adsWatched > 0)
 
 const onSkinAd = async (s: BallSkinView, ev: MouseEvent): Promise<void> => {
   if (adBusy.value || !col.skinAdReady.value) return
@@ -192,6 +196,8 @@ const skinAria = (s: BallSkinView): string => {
   const name = t(`barrageMeta.collections.skinNames.${s.id}`)
   if (s.selected) return t('barrage.collection.selectedAria', { name })
   if (s.owned) return t('barrage.collection.selectAria', { name })
+  // The Unlock button under the card carries the ad offer.
+  if (s.adOnly) return name
   return t('barrage.collection.buyAria', { name, cost: fmtCoins(s.price) })
 }
 </script>
@@ -276,6 +282,9 @@ const skinAria = (s: BallSkinView): string => {
                 span.text-emerald-300 {{ t('barrageMeta.collections.equipped') }}
               template(v-else-if="s.owned")
                 span.text-sky-200 {{ t('barrageMeta.collections.equip') }}
+              template(v-else-if="s.adOnly")
+                BarrageGlyph.w-3_5.h-3_5.text-slate-300(name="lock")
+                span.text-sky-200(v-if="s.adsNeeded > 1") {{ t('barrage.collection.adProgress', { n: s.adsWatched, max: s.adsNeeded }) }}
               template(v-else)
                 IconCoin.w-3_5.h-3_5
                 span(:class="s.affordable ? 'text-yellow-200' : 'text-red-300'") {{ fmtCoins(s.price) }}
@@ -287,8 +296,8 @@ const skinAria = (s: BallSkinView): string => {
             :title="skinAdAria(s)"
             @click="onSkinAd(s, $event)"
           )
-            IconMovie.w-6.h-6.shrink-0
-            span.col-ad__count.game-text(v-if="s.adsNeeded > 1") {{ t('barrage.collection.adProgress', { n: s.adsWatched, max: s.adsNeeded }) }}
+            IconMovie.col-ad__icon.shrink-0
+            span.col-ad__label.game-text {{ t('barrage.collection.adUnlock') }}
 </template>
 
 <style scoped lang="sass">
@@ -336,14 +345,16 @@ const skinAria = (s: BallSkinView): string => {
   > .col-card
     flex: 1
 
-// The rewarded-ad alternative under a locked skin (same green as every ad offer).
+// "▶ Unlock" under a locked skin: the only way in past stone, stone's alternative to coins.
+// Tight padding + an 18 px icon: the longest labels (Freischalten, Desbloquear:
+// 62 px at 12 px) fit an 89 px button, the three-column grid on a 360 px phone.
 .col-ad
   display: flex
   align-items: center
   justify-content: center
-  gap: 4px
+  gap: 2px
   min-height: 32px
-  padding: 2px 8px
+  padding: 2px 3px
   border-radius: 10px
   border: 2px solid #0f1a30
   // The ad blue (components.sass `--ad-*`): a rewarded button is never green.
@@ -357,12 +368,17 @@ const skinAria = (s: BallSkinView): string => {
   &:disabled
     filter: grayscale(0.7) brightness(0.8)
     cursor: default
-.col-ad__count
+.col-ad__icon
+  width: 18px
+  height: 18px
+// Outlined so it reads on the ad blue; one line, never wrapped.
+.col-ad__label
   font-size: 12px
   font-weight: 900
   line-height: 1
+  white-space: nowrap
   color: #fff
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.55)
+  text-shadow: -1px -1px 0 #0f1a30, 1px -1px 0 #0f1a30, -1px 1px 0 #0f1a30, 1px 1px 0 #0f1a30
 
 .col-card
   --rim: rgba(255, 255, 255, 0.25)

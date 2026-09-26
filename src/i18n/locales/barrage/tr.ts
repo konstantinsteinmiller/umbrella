@@ -278,7 +278,8 @@ export default {
     buyAria: '{name}, {cost} paraya satın al',
     adProgress: '{n}/{max}',
     adAria: '{name} kilidini açmak için reklam izle',
-    adProgressAria: '{name} için reklam izle ({max} reklamdan {n} izlendi)'
+    adProgressAria: '{name} için reklam izle ({max} reklamdan {n} izlendi)',
+    adUnlock: 'Kilidi aç'
   },
   supply: {
     ready: 'Hazine sandığı hazır — açmak için dokun!',

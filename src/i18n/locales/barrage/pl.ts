@@ -278,7 +278,8 @@ export default {
     buyAria: 'Kup {name} za {cost} monet',
     adProgress: '{n}/{max}',
     adAria: 'Obejrzyj reklamę, aby odblokować {name}',
-    adProgressAria: 'Obejrzyj reklamę dla {name} (obejrzano {n} z {max})'
+    adProgressAria: 'Obejrzyj reklamę dla {name} (obejrzano {n} z {max})',
+    adUnlock: 'Odblokuj'
   },
   supply: {
     ready: 'Skrzynia skarbów gotowa — dotknij, aby otworzyć!',

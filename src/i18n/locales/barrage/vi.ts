@@ -278,7 +278,8 @@ export default {
     buyAria: 'Mua {name} với {cost} xu',
     adProgress: '{n}/{max}',
     adAria: 'Xem quảng cáo để mở khóa {name}',
-    adProgressAria: 'Xem quảng cáo cho {name} (đã xem {n}/{max})'
+    adProgressAria: 'Xem quảng cáo cho {name} (đã xem {n}/{max})',
+    adUnlock: 'Mở khóa'
   },
   supply: {
     ready: 'Rương kho báu đã sẵn sàng — chạm để mở!',

@@ -21,7 +21,8 @@
  *
  * Run 5 ("FREE" and "Need 8 more" at once): while the FTUE's free Tray
  * Capacity is on offer, a refused tap on any other chip is no denial at all —
- * it points back at the free chip, which jumps and flashes gold.
+ * run 7: it claims the gift instead. Run 13: a chip the player CAN afford buys
+ * itself and the gift waits (the tap buys what it touched).
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -162,29 +163,59 @@ const flare = (ids: UpgradeId[]): void => {
 /** Playtest run 9: a claimed free level says so — "FREE" in green by the
  *  chip's new price. Dev read the claim as "a purchase that didn't deduct
  *  coins" (the chip had said FREE a frame earlier; its new price replaced it).
- *  (Runs 7–9's "▲N" multi-buy count is gone with the multi-buy: one tap, one
- *  level — run 10.) */
+ *  Run 12 (Dev tapped again inside its 2.5 s and got "Need 13 more" beside it:
+ *  "the FREE label directly contradicts the actual cost"): the pill says
+ *  RECEIVED — a check with "FREE" — leaves with the flare, and the next chip
+ *  tap clears it before anything else answers. (Runs 7–9's "▲N" multi-buy
+ *  count is gone with the multi-buy: one tap, one level — run 10.) */
 const gift = ref<{ id: UpgradeId; seq: number } | null>(null)
 let giftSeq = 0
 let giftTimer = 0
-const GIFT_MS = 2500
+const GIFT_MS = 1500
 const showGift = (id: UpgradeId): void => {
   gift.value = { id, seq: ++giftSeq }
   window.clearTimeout(giftTimer)
   giftTimer = window.setTimeout(() => { gift.value = null }, GIFT_MS)
 }
+const clearGift = (): void => {
+  window.clearTimeout(giftTimer)
+  gift.value = null
+}
 
 /** Playtest run 10 (Speed, Luck and Bounty still unexplained; nobody found the
  *  long press): the FIRST purchase of each chip in a session names what it
- *  bought — the same name plate, beside the chip, on the player's own tap. */
+ *  bought, beside the chip, on the player's own tap. Run 12 (Leo read it as
+ *  "an info tooltip only (no purchase)", and chip taps as inconsistent): it is
+ *  a RECEIPT — a check and the level just bought ("3 → 4") above what the chip
+ *  does — and it opens once the buy's flare has landed (RECEIPT_DELAY_MS); any
+ *  touch before that cancels it. */
 const named = new Set<UpgradeId>()
+const RECEIPT_DELAY_MS = 380
+let receiptTimer = 0
+const cancelReceipt = (): void => {
+  window.clearTimeout(receiptTimer)
+  receiptTimer = 0
+}
 const chipTip = (id: UpgradeId): TipContent => ({
   icon: id, name: t(`barrage.upgrades.${id}.name`), facts: [{ text: t(`barrage.upgrades.${id}.desc`) }]
 })
-const nameOnFirstBuy = (id: UpgradeId, el: HTMLElement | null): void => {
-  if (named.has(id) || !el) return
+const receiptTip = (id: UpgradeId, from: string, to: string): TipContent => ({
+  icon: id,
+  name: t(`barrage.upgrades.${id}.name`),
+  facts: [
+    { icon: 'check', text: t('barrage.upgrades.arrow', { from, to }) },
+    { text: t(`barrage.upgrades.${id}.desc`) }
+  ]
+})
+/** `from` / `to`: the chip's value line before and after the level. */
+const receiptOnFirstBuy = (id: UpgradeId, el: HTMLElement | null, from: string, to: string | null): void => {
+  if (named.has(id) || !el || to === null) return
   named.add(id)
-  showHudTip(el, () => chipTip(id))
+  cancelReceipt()
+  receiptTimer = window.setTimeout(() => {
+    receiptTimer = 0
+    if (el.isConnected) showHudTip(el, () => receiptTip(id, from, to))
+  }, RECEIPT_DELAY_MS)
 }
 
 // Run 9 (Jonas: "what GLÜCK actually affects — no tooltip was shown"): a
@@ -199,28 +230,39 @@ const onChipDown = (c: Chip, ev: PointerEvent): void => {
 const onChip = (c: Chip, ev: MouseEvent): void => {
   if (press.consumed()) return
   const el = ev.currentTarget as HTMLElement | null
-  // Run 7: while the FTUE's free Tray Capacity is on offer, ANY chip takes it.
-  // A tester aimed at FREE, hit Damage beside it, read the old wordless
-  // redirect ("this one first") as nothing happening and never tapped a chip
-  // again — the free offer stayed open, so no funnel ever ran for him. The
-  // gift was the point, not the aim.
+  // A new tap answers for itself: no gift pill or pending receipt from the
+  // last one stands beside its answer.
+  clearGift()
+  cancelReceipt()
+  // Run 7: while the FTUE's free Tray Capacity is on offer, a chip that would
+  // only refuse takes it. A tester aimed at FREE, hit Damage beside it, read
+  // the old wordless redirect ("this one first") as nothing happening and
+  // never tapped a chip again — the free offer stayed open, so no funnel ever
+  // ran for him. The gift was the point, not the aim.
   // (The same holds for run 8's free first Damage level.)
+  // Run 13: but a chip the wallet covers buys ITSELF, and the gift waits. Dev
+  // followed the tray lesson's hand onto Capacity while Damage said FREE, got
+  // the Damage level, read it as "the hint and the purchase didn't match" and
+  // never tapped a chip again.
   const free = freeId.value
-  if (free) {
+  if (free && (c.id === free || c.view.maxed || !c.view.affordable)) {
+    const gifted = chips.value.find((x) => x.id === free)
     upgrades.claimFree()
     playSound('upgrade-buy', 0.06, 1.1)
     flare([free])
     showGift(free)
-    nameOnFirstBuy(free, chipEl(free))
+    if (gifted) receiptOnFirstBuy(free, chipEl(free), gifted.value, gifted.next)
     notifyTutorial({ kind: 'upgrade' })
     return
   }
   // One tap, one level — every chip (run 10: the glowing chip's multi-buy
   // spent 89 coins on one tap and read as a bug).
+  const from = c.value
+  const to = c.next
   if (!c.view.maxed && upgrades.buy(c.id)) {
     playSound('upgrade-buy', 0.05, 1.05)
     flare([c.id])
-    nameOnFirstBuy(c.id, el)
+    receiptOnFirstBuy(c.id, el, from, to)
     notifyTutorial({ kind: 'upgrade' })
     return
   }
@@ -357,6 +399,7 @@ watch(labelKey, () => { void nextTick(fitLabels) })
 let fitRo: ResizeObserver | null = null
 let fitRaf = 0
 onMounted(() => {
+  window.addEventListener('pointerdown', cancelReceipt, true)
   void nextTick(fitLabels)
   if (typeof ResizeObserver !== 'undefined' && rootEl.value) {
     fitRo = new ResizeObserver(() => {
@@ -367,6 +410,9 @@ onMounted(() => {
   }
 })
 onUnmounted(() => {
+  window.removeEventListener('pointerdown', cancelReceipt, true)
+  cancelReceipt()
+  window.clearTimeout(giftTimer)
   fitRo?.disconnect()
   fitRo = null
   cancelAnimationFrame(fitRaf)
@@ -421,12 +467,15 @@ onUnmounted(() => {
             :class="[c.view.affordable ? 'chip-cost--ok' : 'chip-cost--short', { 'chip-cost--denied': shakeId === c.id }, costClass]"
           ) {{ fmtCoins(c.view.cost) }}
           //- Run 9: a claimed gift says "FREE" by the new price (beside it —
-          //- run 8: a pill over the name read as a MAX badge).
-          span.chip-levels.chip-levels--gift.game-text.font-black.tabular-nums.leading-none(
+          //- run 8: a pill over the name read as a MAX badge); run 12: with a
+          //- check — received, not "this chip is free".
+          span.chip-levels.chip-levels--gift.game-text.font-black.tabular-nums.leading-none.inline-flex.items-center(
             v-if="gift && gift.id === c.id"
             :key="gift.seq"
             aria-hidden="true"
-          ) {{ t('barrage.upgrades.free') }}
+          )
+            BarrageGlyph.chip-levels__check(name="check")
+            span {{ t('barrage.upgrades.free') }}
     div.sr-only(aria-live="assertive") {{ deniedText }}
     Teleport(to="body")
       Transition(name="chip-need")
@@ -686,7 +735,12 @@ onUnmounted(() => {
   background: linear-gradient(#d6ffe0, #5fe38a)
   box-shadow: 0 0 8px rgba(120, 255, 160, 0.9)
   pointer-events: none
-  animation: chip-multi 2.5s ease-out both
+  animation: chip-multi 1.5s ease-out both
+.chip-levels__check
+  width: 10px
+  height: 10px
+  margin-right: 1px
+  flex: 0 0 auto
 @keyframes chip-multi
   0%
     opacity: 0
@@ -713,7 +767,7 @@ onUnmounted(() => {
   .chip--glow, .chip--tut, .chip--shake, .chip--pulse, .chip--tut.chip--pulse, .chip--afford::after
     animation: none
   .chip-levels
-    animation: chip-multi-still 2.5s linear both
+    animation: chip-multi-still 1.5s linear both
   // The pulse without the jump: a gold flash that holds while it lasts.
   .chip--pulse
     filter: brightness(1.4)

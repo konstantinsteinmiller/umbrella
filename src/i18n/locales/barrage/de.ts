@@ -278,7 +278,8 @@ export default {
     buyAria: '{name} für {cost} Münzen kaufen',
     adProgress: '{n}/{max}',
     adAria: 'Werbung ansehen, um {name} freizuschalten',
-    adProgressAria: 'Werbung ansehen für {name} ({n} von {max} gesehen)'
+    adProgressAria: 'Werbung ansehen für {name} ({n} von {max} gesehen)',
+    adUnlock: 'Freischalten'
   },
   supply: {
     ready: 'Schatztruhe bereit – tippe zum Öffnen!',

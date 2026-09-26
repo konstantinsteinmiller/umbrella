@@ -278,7 +278,8 @@ export default {
     buyAria: '{name} kopen voor {cost} munten',
     adProgress: '{n}/{max}',
     adAria: 'Bekijk een advertentie om {name} te ontgrendelen',
-    adProgressAria: 'Bekijk een advertentie voor {name} ({n} van {max} bekeken)'
+    adProgressAria: 'Bekijk een advertentie voor {name} ({n} van {max} bekeken)',
+    adUnlock: 'Ontgrendel'
   },
   supply: {
     ready: 'Schatkist klaar — tik om te openen!',

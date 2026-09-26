@@ -216,6 +216,9 @@ export interface BallSkinView {
   adsNeeded: number
   /** (STATE, additive) Rewarded ads already watched towards it (kept across sessions). */
   adsWatched: number
+  /** (STATE, additive) Rewarded ads are the only way in: coins cannot buy it
+   *  (false on coin-mode builds, where the coin price stays the way in). */
+  adOnly: boolean
 }
 
 /** (STATE, additive) Outcome of one rewarded ad towards a skin. */

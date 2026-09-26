@@ -377,6 +377,11 @@ except the pull hint):
   again (89 coins on one tap), so it is gone. **Run 8:** the Damage arrows ignored `FREE_DAMAGE_AFTER` (3) times arm a
   FREE first Ball Damage level (`offerFreeDamage` → `freeDamageOffer`, the Capacity gift's rules: any chip tap
   claims it, one gift at a time — `freeId` / `claimFree`); Mia had ended run 8 with 347 coins and Damage 0.
+  **Run 13:** "any chip" now means any chip that would only refuse (short of coins, or maxed): a chip the wallet
+  covers buys ITSELF and the gift waits. Dev followed the tray lesson's hand onto Capacity while Damage said FREE,
+  got the Damage level ("the hint and the purchase didn't match") and never tapped a chip again. No lesson frames
+  another chip while a gift waits (the coach's `giftId`: the tray lesson's spill stays pending, the chip
+  spotlights wait).
   The funnel (arrows + hand) now RESTS: 10 s up, 20 s away, and back while the chip is unbought (wall-clock in
   CoachOverlay; a funnel on a different chip starts a fresh cycle) — run 8: "a stuck tutorial hint".
   **Run-4 pass** (purchases stalled after the first Damage: 1/1/0/2 paid levels, 176–449 coins unspent; the
@@ -430,7 +435,12 @@ except the pull hint):
     to the monster above the unit ("×1"), then one twice as fast, streaking ("×1.12"); luck — the top rows
     show one bubble ("0 %"), then more coin and skill bubbles ("5 %"); bounty — a kill's coins fly to the
     wallet ("+N"), then more of them ("+N×1.2"; the boss's chest bounty when a boss stands, so the ×1.2 is a
-    number the eye sees).
+    number the eye sees). **Run 13:** the two values stand side by side (now left, next right) on dark plates
+    of their own, inside the board and below the rank plaque — speed on the ball's path just below the monster
+    it hits, luck mid-board under the bubble rows, bounty above the kill (under it when it stands at the top).
+    Bare, they landed on other numbers: "×1.12" on the plaque read as "GLOBAL RANK #X1.12", "5%" beside the
+    Fire Dragon's "1.2K" as "boss HP 1.2%". Neither these nor the tray lesson play while a gift waits on
+    another chip (`giftId`).
   At "1" (run 11) the monster whose next march crosses the line also wears the death culprit's red outline
   while the player aims (BoardRenderer) — the pip alone went unread in a crowded boss frame.
 - *overrun* — RETIRED in run 7: its first-danger ghost demo read as "an unexplained red overlay" in still
@@ -447,7 +457,11 @@ except the pull hint):
   deduct coins"). **Run 10** (nobody found the long press; Speed, Luck and Bounty still unexplained): the refused
   tap's "need N more" callout carries the chip's effect as a second line (`barrage.upgrades.<id>.desc`, up
   ~2.5 s), and the FIRST purchase of each chip in a session shows the chip's name plate (the long press's) —
-  on the player's own tap, never on a timer. **Run 11**: Capacity's line is "More balls in your tray: more
+  on the player's own tap, never on a timer. **Run 12** (Dev: "the FREE label directly contradicts the actual
+  cost"; Leo: chip taps "behave differently"): that plate is a RECEIPT — a check and the level just bought
+  ("3 → 4") above what the chip does — opening RECEIPT_DELAY_MS (380 ms) after the buy, once its flare has
+  landed; any touch before cancels it. A claimed gift's pill reads as received (a check with "FREE"), leaves
+  after 1.5 s, and the next chip tap clears it before its own answer. **Run 11**: Capacity's line is "More balls in your tray: more
   shots every turn." (three of four read "before twins merge" as jargon; the tray intro teaches merging). A
   chip's name / value line shrinks to fit by its FRACTIONAL width (a line 0.4 px too wide passed the whole-pixel
   check and the ellipsis cut it: German "×1.95 → ×2…") and re-fits when the bar resizes. The achievement toast
@@ -494,16 +508,21 @@ ids (`RETIRED_SKIN_PRICES`) are refunded at their price once (`eb_collections.re
   to the next glowing chip; "Continue" closes. Endless only.
 - **Rewarded buttons are never green** (Google Play policy; green also sells the ad as "the good choice"):
   every rewarded / ad button wears the movie icon and the ad blue (`--ad-*` in `components.sass`: the 3× chest,
-  +5 balls, the Collection's skin-ad pill) — the breach's Meteor keeps its own fire orange (the Restart beside it
+  +5 balls, the Collection's "▶ Unlock" skin button) — the breach's Meteor keeps its own fire orange (the Restart beside it
   is the blue one). `+5 balls` shows its label big and outlined on the blue.
 - Rewarded **+5 balls** (button in the aim HUD; once per checkpoint segment) — only where it helps: never before
   the player's first boss kill, and only with a boss on the board or a monster wearing a danger pip
   (`bonusBallsAvailable`). Poki playtests: the Poki build's rewarded is ready from the first frame, so the blue
   button stood under the board from turn 1 and every tester's first tap opened a "Rewarded Break".
-- Rewarded **ball-skin unlock**: every locked skin in the Collection offers a movie-icon pill beside its
-  coin price — common 1 ad, rare 2, epic 3, legendary 5 (`SKIN_ADS_BY_RARITY`); the count is kept per skin
-  (`eb_collections.adViews`, max-merged on hydrate) and the last ad unlocks + equips it. Ad FIRST: the
-  count moves only on a granted reward. Not on coin-mode builds (the coin price already is the way in).
+- Rewarded **ball-skin unlock**: only the first two skins are coin skins (orb owned, stone 2k). Every skin
+  past stone is **ad-only** (`BallSkinDef.adOnly`): no coin price, the card shows a lock (+ `n/N` for the
+  multi-ad rarities) and the "▶ Unlock" button under it (`barrage.collection.adUnlock`) is the only way in —
+  always shown, disabled while no rewarded ad can fill. Stone keeps its coin price with the same button beside
+  it, shown only while an ad can fill. Common 1 ad, every rarer skin 2 — never more than 2 per skin
+  (`MAX_SKIN_ADS`; epics were 3 and legendaries 5, and a save already holding 2+ towards one owns it). The
+  count is kept per skin (`eb_collections.adViews`, max-merged on hydrate) and the last ad unlocks + equips
+  it. Ad FIRST: the count moves only on a granted reward. Coin-mode builds have no rewarded ads: there every
+  skin keeps its coin price (`adOnly` is ignored), or ten skins would be unobtainable.
 - Interstitials ONLY on checkpoint restarts, never the first two restarts of a session, ≥ 3 min apart.
 - All rewarded offers are hidden when the provider is not ready (rewarded readiness gating); coin-mode
   builds price them in coins (existing `useReward` handles both).

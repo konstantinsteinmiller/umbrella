@@ -278,7 +278,8 @@ export default {
     buyAria: 'Compra {name} per {cost} monete',
     adProgress: '{n}/{max}',
     adAria: 'Guarda una pubblicità per sbloccare {name}',
-    adProgressAria: 'Guarda una pubblicità per {name} ({n} di {max} viste)'
+    adProgressAria: 'Guarda una pubblicità per {name} ({n} di {max} viste)',
+    adUnlock: 'Sblocca'
   },
   supply: {
     ready: 'Forziere pronto: tocca per aprirlo!',

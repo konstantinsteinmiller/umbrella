@@ -190,7 +190,31 @@ describe('upgrade chips', () => {
     w.unmount()
   })
 
-  it('run 7: while the FREE offer is up, ANY chip tap claims it — no denial, no redirect', async () => {
+  it('run 13: while a gift waits, a chip the wallet covers buys ITSELF and the gift waits', async () => {
+    // p2/063: Dev followed the tray lesson's hand onto Capacity while Damage
+    // said FREE, got the Damage level and read it as "the hint and the
+    // purchase didn't match".
+    mocked.__free.value = true
+    h.buy.mockImplementation((id: string) => id === 'speed')
+    const w = render()
+    await nextTick()
+    await chip(w, 'speed').trigger('click')
+    expect(h.buy).toHaveBeenCalledWith('speed')
+    expect(h.claim).not.toHaveBeenCalled()
+    vi.advanceTimersToNextFrame()
+    await nextTick()
+    expect(chip(w, 'speed').classes()).toContain('chip--flare')
+    expect(chip(w, 'capacity').classes()).not.toContain('chip--flare')
+    // The gift is still on offer: its chip still says FREE.
+    expect(chip(w, 'capacity').find('.chip-free').exists()).toBe(true)
+    // A tap on the gift's own chip claims it, whatever the wallet says.
+    await chip(w, 'capacity').trigger('click')
+    expect(h.claim).toHaveBeenCalledTimes(1)
+    w.unmount()
+    h.buy.mockImplementation(() => false)
+  })
+
+  it('run 7: while the FREE offer is up, a chip that would refuse claims it — no denial, no redirect', async () => {
     // p3/010: Leo aimed at the FREE Capacity chip, hit Damage beside it, read
     // the old redirect as "nothing happens" and never tapped a chip again.
     mocked.__free.value = true
@@ -239,17 +263,37 @@ describe('upgrade chips', () => {
     h.buy.mockImplementation(() => false)
   })
 
-  it('run 10: the first purchase of each chip names what it bought (the name plate); the next one does not', async () => {
+  it('run 12: the first purchase of each chip gets a RECEIPT once its flare lands — the level bought, then what it does; the next one does not', async () => {
     h.buy.mockImplementation((id: string) => id === 'luck')
     const w = render()
     await nextTick()
     hideHudTip()
+    const before = chip(w, 'luck').find('.chip-value').text()
     await chip(w, 'luck').trigger('click')
+    // Not at once: the buy's flare first (run 12: Leo read the plate as "an info tooltip only").
+    expect(hudTip.value).toBeNull()
+    vi.advanceTimersByTime(400)
     const tip = hudTip.value?.content()
     expect(tip?.name).toBe(en.barrage.upgrades.luck.name)
-    expect(tip?.facts?.[0]?.text).toBe(en.barrage.upgrades.luck.desc)
+    expect(tip?.facts?.[0]?.icon).toBe('check')
+    expect(tip?.facts?.[0]?.text).toBe(before)
+    expect(tip?.facts?.[1]?.text).toBe(en.barrage.upgrades.luck.desc)
     hideHudTip()
     await chip(w, 'luck').trigger('click')
+    vi.advanceTimersByTime(400)
+    expect(hudTip.value).toBeNull()
+    w.unmount()
+    h.buy.mockImplementation(() => false)
+  })
+
+  it('run 12: a touch before the receipt opens cancels it', async () => {
+    h.buy.mockImplementation((id: string) => id === 'bounty')
+    const w = render()
+    await nextTick()
+    hideHudTip()
+    await chip(w, 'bounty').trigger('click')
+    window.dispatchEvent(new Event('pointerdown'))
+    vi.advanceTimersByTime(400)
     expect(hudTip.value).toBeNull()
     w.unmount()
     h.buy.mockImplementation(() => false)
@@ -294,6 +338,12 @@ describe('upgrade chips', () => {
     expect(pill.exists()).toBe(true)
     expect(pill.classes()).toContain('chip-levels--gift')
     expect(pill.text()).toBe(en.barrage.upgrades.free)
+    // Run 12: received — a check with it…
+    expect(pill.find('svg').exists()).toBe(true)
+    // …and the next chip tap clears it before its own answer (Dev: "Need 13
+    // more" beside "FREE").
+    await chip(w, 'capacity').trigger('click')
+    expect(chip(w, 'capacity').find('.chip-levels').exists()).toBe(false)
     w.unmount()
   })
 

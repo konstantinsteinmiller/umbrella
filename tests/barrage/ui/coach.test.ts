@@ -31,6 +31,8 @@ interface BootOpts {
   /** Ball Damage as the chips show it (the funnel's trigger). */
   damage?: { affordable: boolean; level?: number }
   freeOffer?: boolean
+  /** The chip whose next level is a gift (`freeId`). */
+  giftId?: UpgradeId | null
   /** A shot landed moments ago (default): the shot demo is not due. Suites
    *  about other lessons would otherwise see it take every quiet aim. */
   shotRecent?: boolean
@@ -89,6 +91,7 @@ const boot = async (engine: BarrageEngine, o: BootOpts = {}) => {
     upgradeTotal: ref(o.upgradeTotal ?? 1),
     upgrades: ref<UpgradeView[]>(o.chips ?? chipViews(o.damage)),
     freeOffer: ref(o.freeOffer ?? false),
+    giftId: ref<UpgradeId | null>(o.giftId ?? null),
     coins: ref(o.coins ?? 0),
     funnelCalm: o.calm ?? ref(true),
     bestRow: ref(o.bestRow ?? 0),
@@ -268,6 +271,26 @@ describe('tray lesson', () => {
     w.volleys.value += 1
     feed()
     play(e, UP) // …and it speaks again once the gap has passed
+    expect(coach.coachLesson.value?.id).toBe('tray')
+  })
+
+  it('run 13: waits while a gift sits on another chip (its hand would press Capacity), then speaks', async () => {
+    // p2/062–063: the hand pressed Capacity while Damage said FREE; Dev's tap
+    // took the Damage gift and he read it as "the hint and the purchase didn't match".
+    const e = board({ pickups: [pick('ball', 3, 5)], launcherX: 3.5, tray: [3, 2], config: { trayCapacity: 2 } })
+    const { coach, w } = await boot(e, { giftId: 'damage' })
+    play(e, UP)
+    expect(coach.coachLesson.value).toBeNull()
+    // The gift is taken: the spill it held back is acted out at the next aim.
+    w.giftId.value = null
+    play(e, UP)
+    expect(coach.coachLesson.value?.id).toBe('tray')
+  })
+
+  it('the FTUE\'s own Capacity gift does not hold it (the hand points at the gift)', async () => {
+    const e = board({ pickups: [pick('ball', 3, 5)], launcherX: 3.5, tray: [3, 2], config: { trayCapacity: 2 } })
+    const { coach } = await boot(e, { giftId: 'capacity' })
+    play(e, UP)
     expect(coach.coachLesson.value?.id).toBe('tray')
   })
 
@@ -1103,6 +1126,17 @@ describe('spotlight lessons', () => {
       expect(b.coinsNow).toBe(Math.max(1, Math.round(base)))
       expect(b.coinsNext).toBe(Math.max(1, Math.round(base * 1.2)))
     }
+    r.off()
+  })
+
+  it('run 13: not while a gift waits on another chip — it plays once the gift is taken', async () => {
+    const e = board({ monsters: [mon('slime', 3, 1, 1e9)], row: 12, nextBossRow: 20, launcherX: 3.5, tray: [1] })
+    const r = await boot(e, { spots: true, chips: chips0(), giftId: 'damage' })
+    expect(r.spot.lessonSpot.value).toBeNull()
+    expect(r.coach.lessonShown('speedBox')).toBe(0)
+    r.w.giftId.value = null
+    play(e, UP)
+    expect(r.spot.lessonSpot.value?.kind).toBe('speed')
     r.off()
   })
 

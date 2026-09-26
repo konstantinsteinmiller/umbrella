@@ -1,8 +1,8 @@
 {
-  "version": "Elemental Barrage 1.1.3",
-  "versionId": "b901a80a-7a92-4124-94e8-0cc9f75c9a6b",
-  "when": "2026-09-26T13:51:14.779Z",
-  "inspector": "https://inspector.poki.dev/?game=poki-b901a80a-7a92-4124-94e8-0cc9f75c9a6b",
+  "version": "Elemental Barrage 1.2.1",
+  "versionId": "dc848929-9cf9-4855-87d4-2da012c18cdf",
+  "when": "2026-09-26T14:56:17.579Z",
+  "inspector": "https://inspector.poki.dev/?game=poki-dc848929-9cf9-4855-87d4-2da012c18cdf",
   "evidence": {
     "sdkInit": {
       "verdict": "pass",
@@ -21,16 +21,16 @@
       "evidence": "a gameplayStop followed another tab taking the foreground"
     },
     "commercialBreak": {
-      "verdict": "unproven",
-      "evidence": "no commercial break within 120 s of play, even with \"Force show ads\" on"
-    },
-    "adAudioMuted": {
-      "verdict": "unproven",
-      "evidence": "no break occurred to sample audio during"
+      "verdict": "pass",
+      "evidence": "Event log: commercial break, with \"Force show ads\" on"
     },
     "adNotInterrupted": {
-      "verdict": "unproven",
-      "evidence": "no break occurred to interrupt"
+      "verdict": "pass",
+      "evidence": "space, arrow and escape did not end the break"
+    },
+    "adAudioMuted": {
+      "verdict": "pass",
+      "evidence": "2 sample(s) while the ad video played: worst 0 audible game element(s), 0 running AudioContext(s) — of 1 element(s) + 1 context(s) the game created (the SDK's own 2 ad/probe media excluded)"
     },
     "gameplayStop": {
       "verdict": "pass",
@@ -38,7 +38,7 @@
     },
     "noDuplicates": {
       "verdict": "pass",
-      "evidence": "sequence: start → stop → start"
+      "evidence": "sequence: start → stop → start → stop → start → stop → start → stop → start → stop → start → stop"
     },
     "rewardedBreak": {
       "verdict": "unproven",
@@ -62,7 +62,7 @@
     },
     "noExternal": {
       "verdict": "pass",
-      "evidence": "5 host(s) requested, all Poki or its ad stack"
+      "evidence": "8 host(s) requested, all Poki or its ad stack"
     },
     "cookieLabels": {
       "verdict": "pass",
@@ -120,7 +120,7 @@
       "match": {},
       "probe": "loadingFinished",
       "verdict": "pass",
-      "action": "ticked (proven by this run)"
+      "action": "already ticked"
     },
     {
       "id": "gameplay-start",
@@ -128,7 +128,7 @@
       "match": {},
       "probe": "gameplayStart",
       "verdict": "pass",
-      "action": "ticked (proven by this run)"
+      "action": "already ticked"
     },
     {
       "id": "gameplay-stop",
@@ -136,7 +136,7 @@
       "match": {},
       "probe": "gameplayStop",
       "verdict": "pass",
-      "action": "ticked (proven by this run)"
+      "action": "already ticked"
     },
     {
       "id": "pause-bracket",
@@ -144,7 +144,7 @@
       "match": {},
       "probe": "pauseBracket",
       "verdict": "pass",
-      "action": "ticked (proven by this run)"
+      "action": "already ticked"
     },
     {
       "id": "no-duplicates",
@@ -152,7 +152,7 @@
       "match": {},
       "probe": "noDuplicates",
       "verdict": "pass",
-      "action": "ticked (proven by this run)"
+      "action": "already ticked"
     },
     {
       "id": "no-crashes",
@@ -160,7 +160,7 @@
       "match": {},
       "probe": "noCrashes",
       "verdict": "pass",
-      "action": "ticked (proven by this run)"
+      "action": "already ticked"
     },
     {
       "id": "no-breaking-bugs",
@@ -168,7 +168,7 @@
       "match": {},
       "probe": "noBreakingBugs",
       "verdict": "unproven",
-      "action": "ticked (not decidable by the harness — your declaration)"
+      "action": "already ticked"
     },
     {
       "id": "saves-progress",
@@ -271,8 +271,8 @@
       "module": "Ad Implementation",
       "match": {},
       "probe": "commercialBreak",
-      "verdict": "unproven",
-      "action": "ticked (not decidable by the harness — your declaration)"
+      "verdict": "pass",
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "rewarded-breaks",
@@ -287,16 +287,16 @@
       "module": "Ad Implementation",
       "match": {},
       "probe": "adAudioMuted",
-      "verdict": "unproven",
-      "action": "ticked (not decidable by the harness — your declaration)"
+      "verdict": "pass",
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "ad-not-interrupted",
       "module": "Ad Implementation",
       "match": {},
       "probe": "adNotInterrupted",
-      "verdict": "unproven",
-      "action": "ticked (not decidable by the harness — your declaration)"
+      "verdict": "pass",
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "pointer-lock",
@@ -310,15 +310,27 @@
   "warnings": [],
   "hosts": [
     [
-      "09c611d5-0f4c-468e-a4d9-50190b05a725.gdn.poki.com",
-      413
-    ],
-    [
-      "game-cdn.poki.com",
-      4
+      "api.poki.com",
+      1
     ],
     [
       "a.poki-cdn.com",
+      7
+    ],
+    [
+      "v.poki-cdn.com",
+      1
+    ],
+    [
+      "t.poki.io",
+      3
+    ],
+    [
+      "09c611d5-0f4c-468e-a4d9-50190b05a725.gdn.poki.com",
+      368
+    ],
+    [
+      "game-cdn.poki.com",
       4
     ],
     [

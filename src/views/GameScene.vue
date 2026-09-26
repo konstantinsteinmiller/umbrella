@@ -451,6 +451,8 @@ onMounted(() => {
     // The upgrade funnel reads Ball Damage off the chips, after the free claim.
     upgrades: upgrades.list,
     freeOffer: upgrades.freeCapacityOffer,
+    // Run 13: no lesson frames another chip while a gift waits.
+    giftId: upgrades.freeId,
     // Run 8: Damage arrows ignored three times → the first Damage level is free.
     offerFreeDamage: () => upgrades.offerFreeDamage(),
     // Run 4: the rich-wallet funnel, and nothing lands on top of it.

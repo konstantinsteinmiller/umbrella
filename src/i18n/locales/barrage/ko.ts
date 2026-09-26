@@ -278,7 +278,8 @@ export default {
     buyAria: '{cost} 코인으로 {name} 구매',
     adProgress: '{n}/{max}',
     adAria: '광고를 보고 {name} 잠금 해제',
-    adProgressAria: '{name}을(를) 위해 광고 보기 ({max}개 중 {n}개 시청)'
+    adProgressAria: '{name}을(를) 위해 광고 보기 ({max}개 중 {n}개 시청)',
+    adUnlock: '잠금 해제'
   },
   supply: {
     ready: '보물 상자 준비 완료 — 탭해서 열어요!',

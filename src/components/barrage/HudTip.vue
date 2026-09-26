@@ -172,6 +172,9 @@ onUnmounted(() => {
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6)
 .hud-tip__fact--coin
   color: #ffe27a
+// A purchase's receipt line (UpgradeBar, run 12): the level just bought.
+.hud-tip__fact--check
+  color: #8dffa6
 // A value without a glyph (the rank): white, with its quieter tail.
 .hud-tip__fact--plain
   color: #fff

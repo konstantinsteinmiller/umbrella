@@ -10,10 +10,11 @@
  *   • Ball skins — the catalogue in `ballSkins.ts`; `orb` is owned from the start.
  *     A skin that was retired from the catalogue is paid back at what it cost,
  *     once (`refunded` remembers which), and an equipped one falls back to orb.
- *     Every skin can ALSO be unlocked with rewarded ads instead of coins
- *     (`SKIN_ADS_BY_RARITY`); `adViews` keeps the count per skin so the ads can
- *     be watched across sessions. Readiness-gated, and absent on coin-mode
- *     builds (no rewarded ads there).
+ *     Skins are unlocked with rewarded ads (`SKIN_ADS_BY_RARITY`) — the only way
+ *     in for every skin past stone (`adOnly`), the alternative to stone's coin
+ *     price; `adViews` keeps the count per skin so the ads can be watched across
+ *     sessions. Readiness-gated, and absent on coin-mode builds (no rewarded ads
+ *     there), where every skin keeps its coin price.
  *
  * NEW badges: a launcher is new from the moment its tier is discovered until the
  * player opens the launcher list; a skin is new from the moment it becomes
@@ -26,7 +27,7 @@ import { flushSaveNow, saveDataVersion } from '@/use/useSaveStatus'
 import useEpicConfig from '@/use/useEpicConfig'
 import { buffsCostCoins } from '@/use/useUser'
 import { isRewardedReady, showRewardedAd } from '@/use/useAds'
-import { BALL_SKINS, DEFAULT_BALL_SKIN, RETIRED_SKIN_PRICES, skinAdsNeeded, type BallSkinId } from '../ballSkins'
+import { BALL_SKINS, DEFAULT_BALL_SKIN, RETIRED_SKIN_PRICES, skinAdsNeeded, type BallSkinDef, type BallSkinId } from '../ballSkins'
 import { FIGHTER_ART_MAX } from '../art'
 import { EB_COLLECTIONS_KEY } from '../keys'
 import { maxBallTier } from './progress'
@@ -88,10 +89,30 @@ const mergeAdViews = (
   return out
 }
 
+/**
+ * Skins whose watched ads already reach what they need now — a save from when
+ * epics took 3 ads and legendaries 5 may hold 2+ towards one: it owns it. Those
+ * leave the ad ledger; the rest stay as they are.
+ */
+const settleAdViews = (
+  adViews: Partial<Record<BallSkinId, number>>
+): { earned: BallSkinId[]; adViews: Partial<Record<BallSkinId, number>> } => {
+  const earned: BallSkinId[] = []
+  const rest: Partial<Record<BallSkinId, number>> = {}
+  for (const [id, n] of Object.entries(adViews) as [BallSkinId, number][]) {
+    const def = BALL_SKINS.find((s) => s.id === id)
+    const needed = def ? skinAdsNeeded(def) : 0
+    if (needed > 0 && n >= needed) earned.push(id)
+    else rest[id] = n
+  }
+  return { earned, adViews: rest }
+}
+
 const read = (): CollectionsState => {
   const raw = getState<Partial<CollectionsState> | null>(EB_COLLECTIONS_KEY, null) ?? {}
+  const ads = settleAdViews(readAdViews(raw.adViews))
   const launchers = new Set<number>([1, ...(Array.isArray(raw.launchers) ? raw.launchers.filter(isLauncherTier) : [])])
-  const skins = new Set<BallSkinId>([DEFAULT_BALL_SKIN, ...(Array.isArray(raw.skins) ? raw.skins.filter(isSkinId) : [])])
+  const skins = new Set<BallSkinId>([DEFAULT_BALL_SKIN, ...(Array.isArray(raw.skins) ? raw.skins.filter(isSkinId) : []), ...ads.earned])
   const selectedLauncher = isLauncherTier(raw.selectedLauncher) && launchers.has(raw.selectedLauncher) ? raw.selectedLauncher : 1
   const selectedSkin = isSkinId(raw.selectedSkin) && skins.has(raw.selectedSkin) ? raw.selectedSkin : DEFAULT_BALL_SKIN
   return {
@@ -102,7 +123,7 @@ const read = (): CollectionsState => {
     seenSkins: Array.isArray(raw.seenSkins) ? raw.seenSkins.filter(isSkinId) : [],
     seenLaunchers: Array.isArray(raw.seenLaunchers) ? raw.seenLaunchers.filter(isLauncherTier) : [],
     refunded: Array.isArray(raw.refunded) ? raw.refunded.filter(isRetired) : [],
-    adViews: readAdViews(raw.adViews)
+    adViews: ads.adViews
   }
 }
 
@@ -184,12 +205,17 @@ const launchers: ComputedRef<LauncherView[]> = computed(() => {
   })
 })
 
+/** Coins cannot buy `def` on this build: an ad-only skin wherever rewarded ads
+ *  exist (coin-mode builds have none, so the coin price stays the way in). */
+const adOnlyHere = (def: BallSkinDef): boolean => def.adOnly && !buffsCostCoins
+
 const skins: ComputedRef<BallSkinView[]> = computed(() => {
   const owned = new Set(state.value.skins)
   const seen = new Set(state.value.seenSkins)
   return BALL_SKINS.map((def): BallSkinView => {
     const isOwned = owned.has(def.id)
-    const affordable = !isOwned && coins.value >= def.price
+    const adOnly = adOnlyHere(def)
+    const affordable = !isOwned && !adOnly && coins.value >= def.price
     const adsNeeded = skinAdsNeeded(def)
     return {
       id: def.id,
@@ -199,7 +225,8 @@ const skins: ComputedRef<BallSkinView[]> = computed(() => {
       selected: selectedSkin.value === def.id,
       isNew: affordable && !seen.has(def.id),
       adsNeeded,
-      adsWatched: Math.min(adsNeeded, state.value.adViews[def.id] ?? 0)
+      adsWatched: Math.min(adsNeeded, state.value.adViews[def.id] ?? 0),
+      adOnly
     }
   })
 })
@@ -226,7 +253,7 @@ const selectLauncher = (tier: number): void => {
 
 const buySkin = (id: BallSkinId): boolean => {
   const def = BALL_SKINS.find((s) => s.id === id)
-  if (!def || state.value.skins.includes(id)) return false
+  if (!def || adOnlyHere(def) || state.value.skins.includes(id)) return false
   if (!spendCoins(def.price)) return false
   state.value = { ...state.value, skins: [...state.value.skins, id] }
   selectedSkin.value = id

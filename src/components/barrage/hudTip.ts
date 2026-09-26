@@ -16,7 +16,7 @@ import type { UpgradeId } from '@/barrage/engine/types'
 
 /** What the plate can show as a glyph: BarrageGlyph names, the wallet coin
  *  and the treasure chest's own art. */
-export type TipIcon = 'shield' | 'revive' | 'warcry' | 'clock' | 'coin' | 'chest' | 'trophy' | UpgradeId
+export type TipIcon = 'shield' | 'revive' | 'warcry' | 'clock' | 'coin' | 'chest' | 'trophy' | 'check' | UpgradeId
 
 /** A value line: a glyph (none when the plate's own glyph already says it),
  *  a (digits-only or already translated) text, and an optional quieter tail

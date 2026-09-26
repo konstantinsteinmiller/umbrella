@@ -6,7 +6,7 @@
 
 export default {
   team: 'hyperg8',
-  // Auroras Magic's P4D game id. The previous id was survivalist's — a deploy
+  // Elemental Barrage's P4D game id. The previous id was survivalist's — a deploy
   // with it would upload THIS build to THAT game. deploy.mjs refuses to run
   // until it is set.
   gameId: '09c611d5-0f4c-468e-a4d9-50190b05a725',
@@ -26,7 +26,7 @@ export default {
 
   /** What the version is called in P4D. Keep the version number in it — it is
    *  the only thing tying a live build back to a commit. */
-  versionName: version => `Auroras Magic ${version}`,
+  versionName: version => `Elemental Barrage ${version}`,
 
   /** Extra hosts the gates and the runtime sweep should accept. Anything here
    *  needs a matching per-URL approval in P4D → Settings → CSP. */

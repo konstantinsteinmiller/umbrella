@@ -278,7 +278,8 @@ export default {
     buyAria: '{name} — {cost} тиынға сатып алу',
     adProgress: '{n}/{max}',
     adAria: '{name} ашу үшін жарнама көріңіз',
-    adProgressAria: '{name} үшін жарнама көріңіз ({max} ішінен {n} көрілді)'
+    adProgressAria: '{name} үшін жарнама көріңіз ({max} ішінен {n} көрілді)',
+    adUnlock: 'Ашу'
   },
   supply: {
     ready: 'Қазына сандығы дайын — ашу үшін түрт!',

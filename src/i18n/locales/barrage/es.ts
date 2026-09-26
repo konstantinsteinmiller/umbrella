@@ -278,7 +278,8 @@ export default {
     buyAria: 'Comprar {name} por {cost} monedas',
     adProgress: '{n}/{max}',
     adAria: 'Mira un anuncio para desbloquear {name}',
-    adProgressAria: 'Mira un anuncio para {name} ({n} de {max} vistos)'
+    adProgressAria: 'Mira un anuncio para {name} ({n} de {max} vistos)',
+    adUnlock: 'Desbloquear'
   },
   supply: {
     ready: '¡Cofre del tesoro listo: toca para abrirlo!',

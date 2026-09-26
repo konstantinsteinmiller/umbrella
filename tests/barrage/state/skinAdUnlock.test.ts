@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Ball skins unlocked with rewarded ads instead of coins: ad FIRST (the count
- * only moves on a granted reward), rarity-scaled counts kept per skin across a
- * reload and merged on hydrate, readiness-gated, and absent on coin-mode builds.
+ * Ball skins unlocked with rewarded ads: the only way in past stone, stone's
+ * alternative to coins. Ad FIRST (the count only moves on a granted reward),
+ * rarity-scaled counts kept per skin across a reload and merged on hydrate,
+ * readiness-gated, and absent on coin-mode builds (every coin price stays).
  */
 
 const ctl = vi.hoisted(() => ({
@@ -46,14 +47,73 @@ afterEach(async () => {
 })
 
 describe('ball skins: rewarded-ad unlock', () => {
-  it('every purchasable skin has an ad count that grows with rarity; orb needs none', async () => {
+  it('every purchasable skin needs 1 or 2 ads, never more; orb needs none', async () => {
     const { BALL_SKINS, skinAdsNeeded, SKIN_ADS_BY_RARITY } = await import('@/barrage/ballSkins')
     expect(skinAdsNeeded(BALL_SKINS.find((s) => s.id === 'orb')!)).toBe(0)
-    for (const def of BALL_SKINS.filter((s) => s.price > 0)) expect(skinAdsNeeded(def)).toBeGreaterThan(0)
+    for (const def of BALL_SKINS.filter((s) => s.price > 0)) {
+      expect(skinAdsNeeded(def), def.id).toBeGreaterThan(0)
+      expect(skinAdsNeeded(def), def.id).toBeLessThanOrEqual(2)
+    }
     const r = SKIN_ADS_BY_RARITY
     expect(r.common).toBeLessThanOrEqual(r.rare)
     expect(r.rare).toBeLessThanOrEqual(r.epic)
     expect(r.epic).toBeLessThanOrEqual(r.legendary)
+  })
+
+  it('a save that already watched 2+ ads towards a skin (old 3- and 5-ad counts) owns it', async () => {
+    seed({ epic_coins: 0, eb_collections: { skins: ['orb'], adViews: { lava: 2, eclipse: 4, glow: 1 } } })
+    const c = await load()
+    const view = (id: string) => c.skins.value.find((s) => s.id === id)!
+    expect(view('lava').owned).toBe(true)
+    expect(view('eclipse').owned).toBe(true)
+    expect(view('glow')).toMatchObject({ owned: false, adsNeeded: 2, adsWatched: 1 })
+    // Owned, not forced on: the equipped skin stays the player's choice.
+    expect(c.selectedSkin.value).toBe('orb')
+    expect(await c.watchSkinAd('eclipse')).toBe('none')
+    expect(ctl.showRewardedAd).not.toHaveBeenCalled()
+  })
+
+  it('only the first two skins are coin skins: every skin past stone is ad-only', async () => {
+    const { BALL_SKINS } = await import('@/barrage/ballSkins')
+    expect(BALL_SKINS.slice(0, 2).map((s) => s.id)).toEqual(['orb', 'stone'])
+    expect(BALL_SKINS.slice(0, 2).every((s) => !s.adOnly)).toBe(true)
+    expect(BALL_SKINS.slice(2).every((s) => s.adOnly)).toBe(true)
+  })
+
+  it('coins cannot buy an ad-only skin however many there are; stone still sells for coins', async () => {
+    seed({ epic_coins: 1_000_000_000 })
+    const c = await load()
+    const wallet = (await import('@/use/useEpicConfig')).default()
+    const view = (id: string) => c.skins.value.find((s) => s.id === id)!
+    for (const s of c.skins.value.filter((v) => v.id !== 'orb' && v.id !== 'stone')) {
+      expect(s, s.id).toMatchObject({ adOnly: true, affordable: false, isNew: false })
+    }
+    expect(c.buySkin('tide')).toBe(false)
+    expect(c.buySkin('eclipse')).toBe(false)
+    expect(wallet.coins.value).toBe(1_000_000_000)
+    expect(view('tide').owned).toBe(false)
+    // NEW badges only for what coins can act on: stone, never an ad-only skin.
+    expect(view('stone')).toMatchObject({ adOnly: false, affordable: true, isNew: true })
+    expect(c.buySkin('stone')).toBe(true)
+    expect(wallet.coins.value).toBe(1_000_000_000 - 2_000)
+    // The ad is the way in.
+    expect(await c.watchSkinAd('tide')).toBe('unlocked')
+    expect(view('tide')).toMatchObject({ owned: true, selected: true })
+  })
+
+  it('an ad-only skin a save already bought with coins stays owned', async () => {
+    seed({ epic_coins: 0, eb_collections: { skins: ['orb', 'lava'], selectedSkin: 'lava' } })
+    const c = await load()
+    expect(c.skins.value.find((s) => s.id === 'lava')).toMatchObject({ owned: true, selected: true })
+  })
+
+  it('coin-mode builds (no rewarded ads) keep every coin price', async () => {
+    ctl.coinMode = true
+    seed({ epic_coins: 5_000 })
+    const c = await load()
+    expect(c.skins.value.every((s) => !s.adOnly)).toBe(true)
+    expect(c.skins.value.find((s) => s.id === 'tide')).toMatchObject({ affordable: true })
+    expect(c.buySkin('tide')).toBe(true)
   })
 
   it('a common unlocks and equips after one ad, without spending a coin', async () => {
@@ -71,20 +131,19 @@ describe('ball skins: rewarded-ad unlock', () => {
     expect(ctl.showRewardedAd).toHaveBeenCalledTimes(1)
   })
 
-  it('a multi-ad skin counts up, survives a reload, and unlocks on the last ad', async () => {
+  it('a two-ad skin counts up, survives a reload, and unlocks on the second ad', async () => {
     seed({ epic_coins: 0 })
     const c = await load()
-    expect(c.skins.value.find((s) => s.id === 'lava')).toMatchObject({ adsNeeded: 3, adsWatched: 0, owned: false })
-    expect(await c.watchSkinAd('lava')).toBe('progress')
-    expect(await c.watchSkinAd('lava')).toBe('progress')
-    expect(c.skins.value.find((s) => s.id === 'lava')).toMatchObject({ adsWatched: 2, owned: false })
+    expect(c.skins.value.find((s) => s.id === 'eclipse')).toMatchObject({ adsNeeded: 2, adsWatched: 0, owned: false })
+    expect(await c.watchSkinAd('eclipse')).toBe('progress')
+    expect(c.skins.value.find((s) => s.id === 'eclipse')).toMatchObject({ adsWatched: 1, owned: false })
     expect(c.selectedSkin.value).toBe('orb')
     ;(await import('@/use/useEpicState')).flushPersist()
     vi.resetModules()
     const again = await load()
-    expect(again.skins.value.find((s) => s.id === 'lava')!.adsWatched).toBe(2)
-    expect(await again.watchSkinAd('lava')).toBe('unlocked')
-    expect(again.skins.value.find((s) => s.id === 'lava')).toMatchObject({ owned: true, selected: true })
+    expect(again.skins.value.find((s) => s.id === 'eclipse')!.adsWatched).toBe(1)
+    expect(await again.watchSkinAd('eclipse')).toBe('unlocked')
+    expect(again.skins.value.find((s) => s.id === 'eclipse')).toMatchObject({ owned: true, selected: true })
   })
 
   it('ad FIRST: a no-fill or skipped ad moves nothing', async () => {
@@ -126,16 +185,18 @@ describe('ball skins: rewarded-ad unlock', () => {
   })
 
   it('hydrate keeps the higher ad count per skin (an ad watched on either device stays watched)', async () => {
-    seed({ epic_coins: 0, eb_collections: { skins: ['orb'], adViews: { lava: 1, eclipse: 4 } } })
+    seed({ epic_coins: 0, eb_collections: { skins: ['orb'], adViews: { lava: 1 } } })
     const c = await load()
     const { setState } = await import('@/use/useEpicState')
     const { saveDataVersion } = await import('@/use/useSaveStatus')
     const { nextTick } = await import('vue')
-    setState('eb_collections', { skins: ['orb'], adViews: { lava: 2, eclipse: 1, bogus: 9 } })
+    // The other device ran a build that still asked 5 ads for eclipse: 3 watched there owns it here.
+    setState('eb_collections', { skins: ['orb'], adViews: { eclipse: 3, gale: 1, bogus: 9 } })
     saveDataVersion.value++
     await nextTick()
     const view = (id: string) => c.skins.value.find((s) => s.id === id)!
-    expect(view('lava').adsWatched).toBe(2)
-    expect(view('eclipse').adsWatched).toBe(4)
+    expect(view('lava').adsWatched).toBe(1)
+    expect(view('gale').adsWatched).toBe(1)
+    expect(view('eclipse').owned).toBe(true)
   })
 })

@@ -190,7 +190,8 @@ export default {
     buyAria: 'Buy {name} for {cost} coins',
     adProgress: '{n}/{max}',
     adAria: 'Watch an ad to unlock {name}',
-    adProgressAria: 'Watch an ad for {name} ({n} of {max} watched)'
+    adProgressAria: 'Watch an ad for {name} ({n} of {max} watched)',
+    adUnlock: 'Unlock'
   },
   // The treasure chest: a small gift after 3 min, a big one after 10 (lines: barrageMeta.supply.*).
   supply: {

@@ -278,7 +278,8 @@ export default {
     buyAria: 'Comprar {name} por {cost} moedas',
     adProgress: '{n}/{max}',
     adAria: 'Assista a um anúncio para desbloquear {name}',
-    adProgressAria: 'Assista a um anúncio para {name} ({n} de {max} assistidos)'
+    adProgressAria: 'Assista a um anúncio para {name} ({n} de {max} assistidos)',
+    adUnlock: 'Desbloquear'
   },
   supply: {
     ready: 'Baú do tesouro pronto — toque para abrir!',

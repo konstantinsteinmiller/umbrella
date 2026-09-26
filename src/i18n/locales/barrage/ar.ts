@@ -278,7 +278,8 @@ export default {
     buyAria: 'اشترِ {name} مقابل {cost} عملة',
     adProgress: '{n}/{max}',
     adAria: 'شاهد إعلانًا لفتح {name}',
-    adProgressAria: 'شاهد إعلانًا من أجل {name} (تمت مشاهدة {n} من {max})'
+    adProgressAria: 'شاهد إعلانًا من أجل {name} (تمت مشاهدة {n} من {max})',
+    adUnlock: 'فتح'
   },
   supply: {
     ready: 'صندوق الكنز جاهز — اضغط لفتحه!',
