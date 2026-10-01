@@ -128,6 +128,18 @@ export const corruptChance = (row: number): number =>
 //   noup     0/2 · 0/2 · 1/3, 82/85/66% → 2/5 · 2/5 · 3/5, 29/31/20% (danger zone 2–6%)
 //   first breach row humanlow 50 → 60, noup 40 → 41, tapper 39 → 30; row-20
 //   boss first try humanlow 40/40 → 40/40 (full tables in the sim's header).
+// Second pass ("keep the harder game for normal monsters especially after row
+// 30 … not a cake walk to the next boss"): the early tent is gone by clock 24
+// (≈ row 40), so the sharper players killed 67–80% of the rows 31–60 walkers
+// within two volleys. A later tent (`lateLift` ×2.5, `lateWalkerLift`) rises
+// from clock 12 to clock 24 and falls back to exactly ×1 at clock 34 (≈ row
+// 60–70), its exponent cut by the safety net's assist — a flagged
+// non-upgrader (noup) keeps none of it, a low buyer part (a clock-only ×1.7
+// walled noup's row-40 boss: 18 → 9 of 24 by the 2nd try). Sim, 24 seeds ×
+// 240 turns, rows 31–40 / 41–50 / 51–60 killed within 2 volleys, before → after:
+//   human 67/72/67% → 44/39/52% · random 69/75/80% → 49/58/69% · humanlow
+//   43/52/38% → 37/31/29% (bite 50/48/36% → 41/35/30%); best row by turn
+//   200 human 113 → 116, humanlow 85 → 86, random 184 → 185, noup unchanged.
 // Constants tuned by scripts/barrage-sim.mjs (see its header for the targets
 // and the before → after numbers). Mutable only so the sim can sweep it
 // in-process; the game never writes it.
@@ -184,18 +196,43 @@ export const HP_CURVE = {
   walkerLift: 10,
   liftFrom: 0,
   liftFull: 4,
-  liftTo: 24
+  liftTo: 24,
+  /** Second pass ("keep the harder game … after row 30"): a later tent on top
+   *  — ×1 at clock `lateFrom`, `lateLift` at `lateFull`, ×1 again at `lateTo`
+   *  — scaled down by the safety net (`lateAssist` 1: a flagged non-upgrader
+   *  keeps none of it; 0: everyone carries it). */
+  lateLift: 2.5,
+  lateFrom: 12,
+  lateFull: 24,
+  lateTo: 34,
+  lateAssist: 1
 }
 
-/** The early-challenge lift on an endless walker spawned at clock `hpRow`: a
- *  geometric tent — 1 up to `liftFrom`, `walkerLift` at `liftFull`, exactly 1
- *  again from `liftTo` on (the late game keeps its curve). */
-export const walkerLift = (hpRow: number): number => {
-  const { walkerLift: peak, liftFrom, liftFull, liftTo } = HP_CURVE
-  if (!(peak > 1) || hpRow <= liftFrom || hpRow >= liftTo) return 1
-  if (hpRow <= liftFull) return Math.pow(peak, (hpRow - liftFrom) / Math.max(1, liftFull - liftFrom))
-  return Math.pow(peak, (liftTo - hpRow) / Math.max(1, liftTo - liftFull))
+/** A geometric tent: 1 up to `from`, `peak` at `full`, exactly 1 from `to` on. */
+const tent = (h: number, peak: number, from: number, full: number, to: number): number => {
+  if (!(peak > 1) || h <= from || h >= to) return 1
+  if (h <= full) return Math.pow(peak, (h - from) / Math.max(1, full - from))
+  return Math.pow(peak, (to - h) / Math.max(1, to - full))
 }
+
+/** The early-challenge lift on an endless walker spawned at clock `hpRow`
+ *  under the safety net's `assist`: a geometric tent — 1 up to `liftFrom`,
+ *  `walkerLift` at `liftFull`, 1 again at `liftTo` — times the second pass's
+ *  later tent (`lateWalkerLift`); exactly 1 from `lateTo` on (the late game
+ *  keeps its curve). */
+export const walkerLift = (hpRow: number, assist = 0): number =>
+  tent(hpRow, HP_CURVE.walkerLift, HP_CURVE.liftFrom, HP_CURVE.liftFull, HP_CURVE.liftTo) *
+  lateWalkerLift(hpRow, assist)
+
+/** The second pass's later tent (`lateLift`), its exponent cut by the safety
+ *  net's `assist` (0..1) × `lateAssist`. */
+export const lateWalkerLift = (hpRow: number, assist = 0): number => {
+  const c = HP_CURVE
+  const a = Number.isFinite(assist) && assist > 0 ? Math.min(1, assist) : 0
+  const share = 1 - a * Math.max(0, Math.min(1, c.lateAssist))
+  return share <= 0 ? 1 : Math.pow(tent(hpRow, c.lateLift, c.lateFrom, c.lateFull, c.lateTo), share)
+}
+
 
 /** Unrounded row HP at clock row `h` (`daily`: no `deep` segment). */
 const rawRowHp = (h: number, daily: boolean): number => {
@@ -295,7 +332,7 @@ export const monsterHp = (
   const mult = kindMult * (corrupted ? (kind === 'boss' ? CORRUPT_BOSS_HP_MULT : CORRUPT_HP_MULT) : 1)
   // The early-challenge lift: endless walkers past the FTUE only — bosses,
   // FTUE rows and the Daily keep the curve.
-  const lift = kind === 'boss' || ftue || daily ? 1 : walkerLift(hpRow)
+  const lift = kind === 'boss' || ftue || daily ? 1 : walkerLift(hpRow, assist)
   // Same product order as before the safety net (× 1 is exact), so no HP
   // without it moves by a rounding step.
   const hp = Math.max(1, Math.round(rowHp(hpRow, daily) * mult * (ftue && kind === 'boss' ? HP_CURVE.ftueBoss : 1) * assistHpMult(hpRow, assist) * lift))

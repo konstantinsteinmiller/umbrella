@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { createEngine, createEngineAtRow, restoreEngine, type BarrageEngine } from '@/barrage/engine/engine'
 import { ASSIST_PAID, DAILY_CONFIG, assistForPaidLevels, defaultConfig, killCoins } from '@/barrage/engine/economy'
 import {
-  ASSIST, ASSIST_HP_CUT, FTUE_HP_CAP, FTUE_HP_ROWS, HP_CURVE, assistHpMult, bossHp, bossHpFactor, hpClockAt, isFirstBoss, monsterHp, planRow, rowHp, walkerLift
+  ASSIST, ASSIST_HP_CUT, FTUE_HP_CAP, FTUE_HP_ROWS, HP_CURVE, assistHpMult, bossHp, bossHpFactor, hpClockAt, isFirstBoss, monsterHp, planRow, rowHp, walkerLift, lateWalkerLift
 } from '@/barrage/engine/monsters'
 import { BOSS_EVERY, ROWS } from '@/barrage/engine/types'
 import { board, mon, ofType, pass, pick, record, turn } from './helpers'
@@ -271,8 +271,8 @@ describe('assist (safety net for non-upgraders)', () => {
     expect(assistHpMult(ASSIST.fadeTo, 1)).toBe(1)
     expect(assistHpMult(ASSIST.fadeTo + 20, 1)).toBe(1)
     // Endless walkers carry the early-challenge lift on top (walkerLift).
-    expect(monsterHp(15, 'slime', false, false, 1)).toBe(Math.round(rowHp(15) * 0.8 * walkerLift(15)))
-    expect(monsterHp(15, 'ogre', false, false, 1)).toBe(Math.round(rowHp(15) * 2 * 0.8 * walkerLift(15)))
+    expect(monsterHp(15, 'slime', false, false, 1)).toBe(Math.round(rowHp(15) * 0.8 * walkerLift(15, 1)))
+    expect(monsterHp(15, 'ogre', false, false, 1)).toBe(Math.round(rowHp(15) * 2 * 0.8 * walkerLift(15, 1)))
     expect(monsterHp(ASSIST.fadeTo, 'slime', false, false, 1)).toBe(monsterHp(ASSIST.fadeTo, 'slime', false))
     // The first boss, scripted (FTUE) or not.
     expect(monsterHp(10, 'boss', false, false, 1)).toBe(Math.round(rowHp(10) * HP_CURVE.boss * 0.8))
@@ -576,21 +576,35 @@ describe('the Daily HP clock is the row counter', () => {
 })
 
 describe('early-challenge pass: the endless walker lift', () => {
-  it('a tent over the early clock: ×walkerLift at liftFull, exactly ×1 from liftTo on (the late game keeps its curve)', () => {
-    expect(HP_CURVE.walkerLift).toBe(10)
-    expect(walkerLift(HP_CURVE.liftFull)).toBeCloseTo(HP_CURVE.walkerLift, 9)
-    for (const h of [HP_CURVE.liftTo, HP_CURVE.liftTo + 1, HP_CURVE.deepRow, 60, 200]) expect(walkerLift(h)).toBe(1)
-    for (let h = 1; h < HP_CURVE.liftTo; h++) {
+  it('two tents over the early clock: ×walkerLift at liftFull, ×lateLift on top at lateFull, exactly ×1 from lateTo on (the late game keeps its curve)', () => {
+    const c = HP_CURVE
+    expect([c.walkerLift, c.liftFull, c.liftTo, c.lateLift, c.lateFrom, c.lateFull, c.lateTo]).toEqual([10, 4, 24, 2.5, 12, 24, 34])
+    expect(walkerLift(c.liftFull)).toBeCloseTo(c.walkerLift, 9)
+    expect(lateWalkerLift(c.lateFull)).toBeCloseTo(c.lateLift, 9)
+    const end = Math.max(c.liftTo, c.lateTo)
+    for (const h of [end, end + 1, 60, 200]) expect(walkerLift(h)).toBe(1)
+    // No step: a clock row changes the lift by at most the tents' slopes.
+    const up = Math.pow(c.walkerLift, 1 / (c.liftFull - c.liftFrom)) * Math.pow(c.lateLift, 1 / (c.lateFull - c.lateFrom))
+    for (let h = 1; h < end; h++) {
       expect(walkerLift(h)).toBeGreaterThanOrEqual(1)
-      // No step: a clock row changes the lift by at most the tent's slope.
       const r = walkerLift(h + 1) / walkerLift(h)
-      expect(r).toBeLessThanOrEqual(Math.pow(HP_CURVE.walkerLift, 1 / (HP_CURVE.liftFull - HP_CURVE.liftFrom)) + 1e-9)
-      expect(r).toBeGreaterThanOrEqual(Math.pow(HP_CURVE.walkerLift, -1 / (HP_CURVE.liftTo - HP_CURVE.liftFull)) - 1e-9)
+      expect(r).toBeLessThanOrEqual(up + 1e-9)
+      expect(r).toBeGreaterThanOrEqual(1 / up - 1e-9)
     }
-    // The lifted walker curve still grows row over row past the peak.
-    for (let h = HP_CURVE.liftFull + 1; h <= HP_CURVE.liftTo + 2; h++) {
+    // The lifted walker curve still grows row over row.
+    for (let h = 2; h <= end + 2; h++) {
       expect(monsterHp(h, 'slime', false)).toBeGreaterThanOrEqual(monsterHp(h - 1, 'slime', false))
     }
+  })
+
+  it('the later tent spares a flagged non-upgrader: none of it at full assist, part of it at partial assist', () => {
+    const h = HP_CURVE.lateFull
+    expect(lateWalkerLift(h, 1)).toBe(1)
+    expect(lateWalkerLift(h, 0.5)).toBeCloseTo(Math.sqrt(HP_CURVE.lateLift), 9)
+    expect(lateWalkerLift(h, 0)).toBeCloseTo(HP_CURVE.lateLift, 9)
+    expect(lateWalkerLift(h, Number.NaN)).toBeCloseTo(HP_CURVE.lateLift, 9)
+    // The early tent ignores the safety net (it has its own cut).
+    expect(walkerLift(HP_CURVE.liftFull, 1)).toBeCloseTo(HP_CURVE.walkerLift, 9)
   })
 
   it('endless walkers only: FTUE rows, bosses and the Daily keep the curve', () => {

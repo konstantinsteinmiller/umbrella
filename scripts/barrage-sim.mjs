@@ -103,6 +103,34 @@
  * first breach ≥ row 20; random first paid upgrade within ~5 turns of the free
  * one; casual still breaches past row 40; balls in flight ≤ ~40.
  *
+ * Early-challenge second pass ("keep the harder game for normal monsters
+ * especially after row 30 when the player is already invested and needs a
+ * challenge and not a cake walk to the next boss"). The first pass's lift is
+ * ×1 from clock 24 (≈ row 40). monsters.ts `lateLift` ×2.5: a second tent,
+ * ×1 at clock 12 → ×2.5 at 24 → ×1 at 34, its exponent × (1 − assist) so a
+ * flagged non-upgrader keeps none of it. Swept (24 seeds × 240 turns): a
+ * clock-only knee ×2 / ×3 to clock 40 and a clock-only ×1.7 tent (all walled
+ * noup / tapper: row-40 boss by the 2nd try 18 → 6–9 of 24, humanlow bite
+ * 41–60 → 22–33%); assist-scaled ×2 (human still 49–53% two-volley kills),
+ * ×2.5 to clock 40 (rows 61–80 human bite 53 → 45%), ×3.5 (human bite 51–60
+ * 31%, humanlow 19%); peak at clock 22 dipped walker HP row over row at clock
+ * 22–24 (both tents falling) — kept: ×2.5, peak 24, end 34. Before → after,
+ * rows 31–40 · 41–50 · 51–60: rows descended median/p90, killed within 2
+ * volleys, danger zone, bite (share of a walker board one volley clears):
+ *   human     1/3 1/2 1/3 · 67 72 67% · 0 0 0% · 73 68 63%  →  2/4 1/4 1/3 · 44 39 52% · 1 1 1% · 54 44 58%
+ *   random    1/3 1/2 0/2 · 69 75 80% · 0 0 0% · 62 59 63%  →  1/4 1/3 1/2 · 49 58 69% · 1 0 0% · 56 54 70%
+ *   humanlow  1/4 1/3 1/4 · 43 52 38% · 1 0 3% · 50 48 36%  →  1/4 1/4 2/5 · 37 31 29% · 1 2 5% · 41 35 30%
+ *   casual    96 97 98% two-volley kills → 87 86 96%; noup unchanged (full
+ *             assist); tapper 45 48 46% → 38 37 40%, danger 11/8/10 → 13/11/8%
+ *   first breach / best row / row-40 boss clean (by 2nd), of 24:
+ *   human r80 → r80 · 130 → 131 · 24 → 24 (24) · humanlow r60 → r59 · 94 → 92
+ *   · 16 → 15 (23 → 22) · random r80 → r111 · 213 → 222 · 23 → 23 · noup the
+ *   same · tapper r30 → r30 · 70 → 61 · 4 → 4 (7 → 5) · casual never breaches.
+ *   Rows 61–80 bite human 53 → 52%, humanlow 30 → 31%, random 72 → 73%; best
+ *   row by turn 200 human 113 → 116, humanlow 85 → 86, random 184 → 185,
+ *   tapper 64 → 57, casual 184 → 184. Rows 1–30 (40 × 120): row-20 boss first
+ *   try unchanged for every bot; Daily (60 dates) identical row for row.
+ *
  * Early-challenge pass ("the normal early enemies up to row 30 are no
  * challenge at all, they all stay at row 1 or 2 from the top and are instantly
  * destroyed"; the `life` line). Cause, humanlow before: a walker of rows 6–10 /
@@ -868,7 +896,7 @@ const lateReport = (logs) => {
 }
 
 /** Walker-life row bands (by the row a walker spawned in). */
-const LIFE_BANDS = [[1, 5], [6, 10], [11, 20], [21, 30], [31, 40], [41, 60], [61, 100]]
+const LIFE_BANDS = [[1, 5], [6, 10], [11, 20], [21, 30], [31, 40], [41, 50], [51, 60], [61, 100]]
 /** Grid row from which a walker stands in the danger zone (engine DANGER_ROWS:
  *  its bottom edge within 2 rows of the line, ROWS 10). */
 const DANGER_FROM = 7
