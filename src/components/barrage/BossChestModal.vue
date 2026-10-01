@@ -18,6 +18,11 @@
  * tap buys one level and the row moves on to the next glowing chip — and
  * "Continue". Endless only; no row when nothing is affordable (the card
  * closes with the coins, as before).
+ *
+ * Shoot-to-Choose (retention-roadmap #5): the boss's reward is the power orbs
+ * on the board now, so the card only comes up while "▶ 3× ●" is really on
+ * offer (the rewarded gate, readiness, worth it). Otherwise there is no card:
+ * the chest pays 1× at once and its coins fly from the board to the wallet.
  */
 import { computed, ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -53,8 +58,28 @@ const granted = ref(0)
 const busy = ref(false)
 const coinsEl = ref<HTMLElement | null>(null)
 
+/** No ▶3× on offer: pay at once, coins fly from the board — no card. */
+let silentBusy = false
+const silentCollect = async (bounty: number, first: boolean): Promise<void> => {
+  if (silentBusy) return
+  silentBusy = true
+  let coins = 0
+  try { coins = await barrage.claimBossChest(false) } finally { silentBusy = false }
+  const amount = coins || bounty
+  playSound(first ? 'celebration-3' : 'celebration-2', 0.05)
+  const src = document.querySelector<HTMLElement>('.barrage-board__canvas')
+  if (src && props.coinTarget && amount > 0) {
+    spawnCoinExplosion({ sourceEl: src, targetEl: props.coinTarget, count: Math.min(30, 10 + Math.round(Math.log10(amount + 1) * 5)) })
+    noteCoinRain()
+  }
+}
+
 watch(() => barrage.bossChest.value, (next) => {
   if (!next) return
+  if (!next.boostAvailable) {
+    if (!offer.value) void silentCollect(next.bounty, next.first)
+    return
+  }
   offer.value = { ...next }
   stage.value = 'offer'
   granted.value = 0

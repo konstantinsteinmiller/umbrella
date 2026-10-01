@@ -15,7 +15,8 @@ import type {
 } from './types'
 import {
   BALL_R, BOSS_EVERY, BOSS_SHARD_SHARE, COLS, FTUE_BOSS_CLOCK_HOLD, FEVER_HITS, FLOOR_Y, FTUE_BOSS_ROW, FTUE_BOSS_VOLLEYS, FTUE_FEVER_HITS, FTUE_OVERCHARGE_COPIES,
-  LAUNCH_MARGIN, ROWS, overchargeArmed
+  LAUNCH_MARGIN, PERK_BOUNTY, PERK_IDS, PERK_MAX, PERK_OFFER, PERK_POWER, PERK_SPLASH, PERK_VOLLEY_BALLS, ROWS, overchargeArmed, perkStacks,
+  type PerkId
 } from './types'
 import { Rng, mixSeed } from './rng'
 import {
@@ -930,6 +931,9 @@ export class BarrageEngine implements IBarrageEngine {
     // Momentum: a ball that banked off the walls hits harder (balls.ts); the
     // hidden savior boost while a boss is about to breach (economy.ts).
     let dmg = ballDamage(b.tier, s.config.damageMult) * momentumMult(b.boost) * (1 + this.savior)
+    // Shoot-to-Choose: Power.
+    const power = perkStacks(s.config.perks, 'power')
+    if (power > 0) dmg *= 1 + PERK_POWER * power
     if (s.warcryActive) dmg *= 2
     const crit = this.rng.chance(CRIT_CHANCE)
     if (crit) dmg *= CRIT_MULT
@@ -971,7 +975,7 @@ export class BarrageEngine implements IBarrageEngine {
         }
         break
       case 'splash':
-        this.splash(m, dmg * SPLASH_FRACTION, hx, hy)
+        this.splash(m, dmg * (SPLASH_FRACTION + PERK_SPLASH * perkStacks(s.config.perks, 'splash')), hx, hy)
         break
       case 'chain':
         this.chain(m, dmg * CHAIN_FRACTION, hx, hy)
@@ -995,6 +999,9 @@ export class BarrageEngine implements IBarrageEngine {
       default:
         break
     }
+    // Shoot-to-Choose: Splash (the T5 ball's own splash already carries it).
+    const splash = perkStacks(s.config.perks, 'splash')
+    if (splash > 0 && ability !== 'splash') this.splash(m, dmg * PERK_SPLASH * splash, hx, hy)
     return !pierce
   }
 
@@ -1152,7 +1159,8 @@ export class BarrageEngine implements IBarrageEngine {
     if (m.kind !== 'boss') {
       const fever = s.fever && s.phase === 'volley' ? 2 : 1
       const share = m.mini ? IMP_MINI_COINS : 1
-      coins = Math.max(1, Math.round(killCoins(spawnRow, m.kind, m.corrupted) * share * s.config.coinMult * fever))
+      const bounty = 1 + PERK_BOUNTY * perkStacks(s.config.perks, 'bounty')
+      coins = Math.max(1, Math.round(killCoins(spawnRow, m.kind, m.corrupted) * share * s.config.coinMult * fever * bounty))
     }
     this.stats.kills++
     const kill: EngineEvent = { type: 'kill', monsterId: m.id, kind: m.kind, corrupted: m.corrupted, x, y, coins, row: spawnRow }
@@ -1174,6 +1182,7 @@ export class BarrageEngine implements IBarrageEngine {
       this.hpHold = s.config.mode === 'daily' ? 0 : Math.max(0, Math.round(HP_CURVE.plateau)) + (early ? FTUE_BOSS_CLOCK_HOLD : 0)
       this.emit({ type: 'bossDefeated', monsterId: m.id, bossKind: m.bossKind ?? 'slime-tower', row: spawnRow, bounty })
       this.bossBlast(m, x, y)
+      if (s.config.mode !== 'daily') this.offerPerks(spawnRow)
     }
   }
 
@@ -1254,6 +1263,84 @@ export class BarrageEngine implements IBarrageEngine {
     this.emit({ type: 'coins', amount, x, y, source })
   }
 
+  // ─── Shoot-to-Choose (retention-roadmap #5) ───────────────────────────────
+  /** Cells the boss's orbs float in, best first (mid-board, spread out). */
+  private static readonly ORB_CELLS: readonly [number, number][] = [
+    [1, 3], [3, 2], [5, 3], [2, 4], [4, 4], [0, 4], [6, 4], [3, 4], [1, 5], [5, 5], [3, 5], [0, 2], [6, 2]
+  ]
+
+  /** A boss died: up to PERK_OFFER perks not yet maxed float on the board as
+   *  orbs (a row-local draw — the engine RNG is untouched). Any orbs of an
+   *  older offer still on the board are replaced. */
+  private offerPerks(row: number): void {
+    const s = this.state
+    this.clearOrbs()
+    const open = PERK_IDS.filter(id => perkStacks(s.config.perks, id) < PERK_MAX)
+    if (open.length === 0) return
+    const rng = new Rng(mixSeed(s.config.seed, row * 97 + 13))
+    const pool = open.slice()
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = rng.int(i + 1)
+      const t = pool[i]!
+      pool[i] = pool[j]!
+      pool[j] = t
+    }
+    const offered: PerkId[] = []
+    for (const [col, r] of BarrageEngine.ORB_CELLS) {
+      if (offered.length >= Math.min(PERK_OFFER, pool.length)) break
+      if (!this.grid.isFree(col, r)) continue
+      const perk = pool[offered.length]!
+      const p: Pickup = { id: this.nextId++, kind: 'perk', perk, col, row: r }
+      s.pickups.push(p)
+      this.grid.putPickup(p)
+      offered.push(perk)
+    }
+    if (offered.length > 0) this.emit({ type: 'perkOffer', perks: offered })
+  }
+
+  /** Removes any orbs on the board (also the bot sim's forced pick path). */
+  clearOrbs(): void {
+    const s = this.state
+    const gone: number[] = []
+    for (let i = s.pickups.length - 1; i >= 0; i--) {
+      const p = s.pickups[i]!
+      if (p.kind !== 'perk') continue
+      this.grid.removePickup(p)
+      s.pickups.splice(i, 1)
+      gone.push(p.id)
+    }
+    if (gone.length > 0) this.emit({ type: 'perkGone', pickupIds: gone })
+  }
+
+  private pickPerk(perk: PerkId, x: number, y: number, auto: boolean): void {
+    const s = this.state
+    this.clearOrbs()
+    const stacks = Math.min(PERK_MAX, perkStacks(s.config.perks, perk) + 1)
+    s.config.perks = { ...(s.config.perks ?? {}), [perk]: stacks }
+    const e: EngineEvent = { type: 'perkPick', perk, stacks, x, y }
+    if (auto) e.auto = true
+    this.emit(e)
+    if (perk === 'volley') {
+      this.fxX = x
+      this.fxY = y
+      for (let k = 0; k < PERK_VOLLEY_BALLS; k++) this.addBallToTray(1)
+    }
+  }
+
+  /** The orbs on the board (bot sim, tests). */
+  get perkOrbs(): readonly Pickup[] {
+    return this.state.pickups.filter(p => p.kind === 'perk')
+  }
+
+  /** Bot sim / tests: take the orb of `perk` as if a ball touched it. False
+   *  when no such orb is on the board. */
+  choosePerk(perk: PerkId): boolean {
+    const p = this.state.pickups.find(q => q.kind === 'perk' && q.perk === perk)
+    if (!p) return false
+    this.collectPickup(null, p, false)
+    return true
+  }
+
   // ─── Pickups, tray, skills, chest ──────────────────────────────────────────
   private addBallToTray(tier: number): void {
     const s = this.state
@@ -1286,6 +1373,8 @@ export class BarrageEngine implements IBarrageEngine {
       this.addBallToTray(1)
     } else if (p.kind === 'coin') {
       this.grantCoins(p.amount ?? 1, x, y, 'pickup')
+    } else if (p.kind === 'perk') {
+      if (p.perk) this.pickPerk(p.perk, x, y, auto)
     } else if (p.skill) {
       this.triggerSkill(p.skill, x, y)
     }
@@ -1470,6 +1559,15 @@ export class BarrageEngine implements IBarrageEngine {
         continue
       }
       const p = mv.p!
+      // An orb picked (or gone) earlier in this march.
+      if (!s.pickups.includes(p)) continue
+      if (p.kind === 'perk' && p.row + 1 >= ROWS) {
+        // Shoot-to-Choose: unpicked orbs reaching the line — the leftmost is taken.
+        let first: Pickup = p
+        for (const q of s.pickups) if (q.kind === 'perk' && (q.col < first.col || (q.col === first.col && q.row > first.row))) first = q
+        this.collectPickup(null, first, true)
+        continue
+      }
       if (p.row + 1 >= ROWS) {
         // A "+1" that reaches the launcher line still joins the tray (Ballz's
         // ~1 ball per turn, whatever the aim); coins and skills are lost.

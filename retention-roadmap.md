@@ -26,7 +26,7 @@ All five add zero HUD elements; #2 and #4 remove UI. They ship together with Tie
 | 2 | Silent Flow: no pause, no dimming, no text before the first boss kill | 0–1 m, 1–2 m | easy to pick up | removes | v1.2.4 | ✅ |
 | 3 | Boss at 75 s: a shorter first act with a live boss fight | 1–2 m, 2–3 m | pick-up, average playtime | none | v1.2.4 | ✅ |
 | 4 | One-Tap Comeback: back in play about 1 s after a loss | 3–5 m, 5 m+ | hard to put down | removes | v1.2.4 | ✅ |
-| 5 | Shoot-to-Choose: boss drops you pick by shooting them | 5 m+ | session length, Day-1 return | removes a modal | v1.2.4 | |
+| 5 | Shoot-to-Choose: boss drops you pick by shooting them | 5 m+ | session length, Day-1 return | removes a modal | v1.2.4 | ✅ |
 
 ---
 
@@ -378,7 +378,24 @@ Frame 1 already has about 13 HUD elements. They include all 5 upgrade chips with
   - Nakamura 2025 (84k players): a 10 s delay between rounds cut playtime; 1 s made little difference.
   - Netflix autoplay study (arXiv 2412.16040): sessions were 17.6 min shorter without autoplay.
 
-### #5 Shoot-to-Choose: boss drops you pick by shooting them
+### ✅ #5 Shoot-to-Choose: boss drops you pick by shooting them
+
+**Done (2026-10-01).**
+- **What's built:**
+  - Every endless boss kill floats up to 3 power orbs mid-board: 'perk' pickups, distinct perks not yet maxed, drawn row-locally so the engine RNG is untouched.
+  - The first orb a ball touches is kept for the run, and the others vanish. Unpicked orbs that reach the line give the leftmost one.
+  - The perks, up to 3 stacks each:
+    - Power: +15% ball damage per stack.
+    - Splash: 25% of a hit to the struck monster's neighbours.
+    - Bounty: +40% kill coins.
+    - Volley: +3 balls at once.
+  - Picks live in `config.perks` (the run snapshot) and on the checkpoint (`Checkpoint.perks`): a restart keeps them, a fresh row-1 run starts without, and the Daily never gets them.
+  - The boss chest card now shows only while ▶3× is on offer; otherwise the chest pays 1× and its coins fly from the board, with no card.
+  - The orbs borrow the war-cry, meteor, coin and legion icons until painted ones land (art-todo #9). There are no new strings.
+- **Sim** (`--pick` forced paths, 24 seeds × 260 turns, all bots): no path is strictly dominated across boss first-tries, best row by turn 100 and 250, and late bite.
+  - The first tuning (+20% / +25% / +2) had Power dominate Volley for the low-buyer bot, hence the retune.
+  - #1's and #3's lines hold with #4 and #5 in.
+- **Browser pass:** a fresh profile's first boss kill offered orbs, and a ball picked Power (saved on the checkpoint). The chest paid without a card while ▶3× is locked, and the orbs render with no console errors.
 
 **Problem.**
 - After a boss the reward is a chest-card modal (`BossChestModal.vue`; 75 coins at row 10).

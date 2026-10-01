@@ -63,6 +63,13 @@ but are secondary.
   (`BarrageGlyph` `retry`, aria-label `barrage.breach.restart`); Meteor (gated, T0.2) and Revive sit below
   it; the culprit + recap are a small secondary block. `BreachOffer.bossLeft` (the boss's HP share at the
   breach) draws the near-miss sliver. The retry tap resumes the gameplay bracket — never the timer.
+- **Shoot-to-Choose** (retention-roadmap #5): every endless boss kill floats up to `PERK_OFFER` (3) power
+  orbs ('perk' pickups, distinct perks not yet maxed, a row-local draw) mid-board (`perkOffer`). The first orb
+  a ball touches is kept for the run (`perkPick`), the others vanish (`perkGone`); orbs left to reach the line
+  give the leftmost. Perks (`config.perks`, ≤ `PERK_MAX` 3 stacks): Power +20% ball damage, Splash 25% of a
+  hit to the struck monster's neighbours, Bounty +25% kill coins, Volley +2 balls at once. The state layer
+  keeps them on the checkpoint (`Checkpoint.perks`) — a restart keeps them, a fresh row-1 run and the Daily
+  have none. The boss chest card shows only while ▶3× is on offer; otherwise it pays 1× with no card.
 - **Boss death blast** (playtest run 2: a boss kill and OVERRUN landed in the same turn): right after
   `bossDefeated` the engine emits `bossBlast {monsterId, rows: 2, ids, x, y}` and kills every monster in the
   bottom two rows (normal kill coins, through gem shields, no imp split); a boss that died before its turn's

@@ -1569,3 +1569,35 @@ describe('One-Tap Comeback (retention-roadmap #4)', () => {
     expect(h.b.breach.value!.bossLeft).toBeCloseTo(0.1)
   })
 })
+
+describe('Shoot-to-Choose: the run\'s perks (retention-roadmap #5)', () => {
+  it('a pick rides the checkpoint: a restart keeps it, the save carries it', async () => {
+    const h = await boot({ ...QUALIFIED, eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const e = h.eng()
+    e.state.config.perks = { power: 1 }
+    e.emit({ type: 'perkPick', perk: 'power', stacks: 1, x: 1, y: 1 })
+    expect(h.progress.checkpoint.value.perks).toEqual({ power: 1 })
+    expect(h.blobNow().eb_checkpoint).toMatchObject({ row: 10, perks: { power: 1 } })
+    e.fire(1)
+    e.breachNow()
+    await flush()
+    await h.b.restartFromCheckpoint()
+    expect(h.fx.made.at(-1)!.config.perks).toEqual({ power: 1 })
+    // A later boss kill moves the checkpoint; the perks move with it.
+    const e2 = h.eng()
+    e2.state.row = 20
+    e2.fire(1)
+    e2.spawnBoss(50)
+    e2.killBoss(40)
+    expect(h.progress.checkpoint.value).toMatchObject({ row: 20, perks: { power: 1 } })
+  })
+
+  it('a fresh row-1 run has none, and the Daily never gets the endless perks', async () => {
+    const h = await boot()
+    expect(h.fx.made[0]!.config.perks ?? {}).toEqual({})
+    const q = await boot({ ...QUALIFIED, eb_checkpoint: { row: 10, tray: [2], perks: { splash: 2 } }, eb_ftue: { done: true } })
+    expect(q.eng().state.config.perks).toEqual({ splash: 2 })
+    q.b.startDaily()
+    expect(q.eng().state.config.perks ?? {}).toEqual({})
+  })
+})

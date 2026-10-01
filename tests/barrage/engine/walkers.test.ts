@@ -180,7 +180,9 @@ describe('the roster', () => {
     const run = (): string => {
       const e = createEngineAtRow(defaultConfig({ seed: 3, trayCapacity: 8, damageMult: 40 }), 60, [6, 5, 5, 4, 3, 3, 2, 1])
       const ev = record(e)
-      for (let i = 0; i < 24; i++) {
+      // 32 turns: since Shoot-to-Choose the row-70 boss's pick (a Volley
+      // here) reshapes the board, and the centaur's charge comes at turn 27.
+      for (let i = 0; i < 32; i++) {
         if (e.state.phase === 'breach') e.continueAfterBreach('meteor')
         turn(e, angles[i % angles.length]!)
       }

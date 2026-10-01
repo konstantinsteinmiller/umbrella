@@ -15,7 +15,7 @@
 import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { getState, setState } from '@/use/useEpicState'
 import { saveDataVersion } from '@/use/useSaveStatus'
-import type { GameMode, SkillId } from '../engine/types'
+import type { GameMode, PerkCounts, SkillId } from '../engine/types'
 import {
   EB_BEST_ROW_KEY, EB_CHECKPOINT_KEY, EB_FTUE_KEY, EB_MERGE_SCORE_KEY, EB_PENDING_KEY,
   EB_SEGMENT_KEY, EB_STATS_KEY
@@ -92,7 +92,26 @@ export interface Checkpoint {
    *  boss never comes back stronger than the one that won. 0 = none. A kill
    *  resets it. */
   bossHp: number
+  /** Shoot-to-Choose (retention-roadmap #5): the run's picked perks. They ride
+   *  the checkpoint — a restart keeps them; only a fresh row-1 run (no
+   *  checkpoint) starts without. Absent = none. */
+  perks?: PerkCounts
 }
+
+/** Perk ids, literal here so this module stays engine-free (types.ts `PERK_IDS`). */
+const PERK_KEYS = ['power', 'splash', 'bounty', 'volley'] as const
+const PERK_CAP = 3
+export const sanitizePerks = (v: unknown): PerkCounts | undefined => {
+  if (!v || typeof v !== 'object') return undefined
+  const out: PerkCounts = {}
+  let any = false
+  for (const k of PERK_KEYS) {
+    const n = (v as Record<string, unknown>)[k]
+    if (typeof n === 'number' && Number.isFinite(n) && n >= 1) { out[k] = Math.min(PERK_CAP, Math.floor(n)); any = true }
+  }
+  return any ? out : undefined
+}
+const perkTotal = (p: PerkCounts | undefined): number => PERK_KEYS.reduce((a, k) => a + (p?.[k] ?? 0), 0)
 
 export interface FtueState {
   /** First boss killed — the scripted first-session config is over for good. */
@@ -130,7 +149,8 @@ export const sanitizeTray = (v: unknown): number[] =>
 
 const readCheckpoint = (): Checkpoint => {
   const raw = getState<Partial<Checkpoint> | null>(EB_CHECKPOINT_KEY, null)
-  return { row: toCount(raw?.row), tray: sanitizeTray(raw?.tray), deaths: toCount(raw?.deaths), bossHp: toCount(raw?.bossHp) }
+  const perks = sanitizePerks(raw?.perks)
+  return { row: toCount(raw?.row), tray: sanitizeTray(raw?.tray), deaths: toCount(raw?.deaths), bossHp: toCount(raw?.bossHp), ...(perks ? { perks } : {}) }
 }
 
 const readFtue = (): FtueState => {
@@ -227,7 +247,17 @@ export const noteBestRow = (row: number): boolean => {
 }
 
 export const setCheckpoint = (row: number, tray: readonly number[]): void => {
-  checkpoint.value = { row: toCount(row), tray: sanitizeTray([...tray]), deaths: 0, bossHp: 0 }
+  // The run's perks carry over to the new checkpoint (Shoot-to-Choose).
+  const perks = checkpoint.value.perks
+  checkpoint.value = { row: toCount(row), tray: sanitizeTray([...tray]), deaths: 0, bossHp: 0, ...(perks ? { perks: { ...perks } } : {}) }
+  setState(EB_CHECKPOINT_KEY, checkpoint.value)
+}
+
+/** Shoot-to-Choose: the run's perks after a pick, kept with the checkpoint. */
+export const setRunPerks = (perks: PerkCounts | undefined): void => {
+  const clean = sanitizePerks(perks)
+  const { perks: _old, ...rest } = checkpoint.value
+  checkpoint.value = clean ? { ...rest, perks: clean } : rest
   setState(EB_CHECKPOINT_KEY, checkpoint.value)
 }
 
@@ -318,7 +348,11 @@ export const refreshProgressFromBlob = (): void => {
   if (savedCp.row > checkpoint.value.row) checkpoint.value = savedCp
   // At the same checkpoint the death count only grows (a kill resets it by
   // moving the checkpoint), so the higher one is the newer one.
-  else if (savedCp.row === checkpoint.value.row && savedCp.deaths > checkpoint.value.deaths) {
+  // Same checkpoint, more picks on the other device: those are the newer ones.
+  if (savedCp.row === checkpoint.value.row && perkTotal(savedCp.perks) > perkTotal(checkpoint.value.perks)) {
+    checkpoint.value = { ...checkpoint.value, perks: savedCp.perks }
+  }
+  if (savedCp.row === checkpoint.value.row && savedCp.deaths > checkpoint.value.deaths) {
     checkpoint.value = { ...checkpoint.value, deaths: savedCp.deaths, bossHp: savedCp.bossHp || checkpoint.value.bossHp }
   }
 

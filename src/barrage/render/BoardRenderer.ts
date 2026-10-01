@@ -15,7 +15,7 @@
 import {
   BALL_R, COLS, FLOOR_Y, ROWS, overchargeArmed,
   type AimPath, type Ball, type BoardState, type BossKind, type EngineEvent, type Hazard, type IBarrageEngine,
-  type Monster, type MonsterKind, type Pickup, type SkillId
+  type Monster, type MonsterKind, type PerkId, type Pickup, type SkillId
 } from '../engine/types'
 import { ballColors, ballElement, coinSrc, fighterSrc, flyingChestSrc, impactSrc, skillSrc, SKILL_IDS, FIGHTER_ART_MAX } from '../art'
 import { chargesAt, KIND_UNLOCK_ROW, WALKER_KINDS } from '../engine/monsters'
@@ -326,6 +326,12 @@ const SKILL_SFX: Record<SkillId, string> = {
   heal: 'level-up',
   revive: 'reward-continue'
 }
+/** Shoot-to-Choose orbs: each perk's glow, and the art it borrows until the
+ *  painted orb icons land (art-todo.md): Power — the war-cry fist, Splash —
+ *  the meteor, Volley — the legion, Bounty — the coin. */
+const PERK_TINT: Record<PerkId, string> = { power: '#ff5a3c', splash: '#4ac8ff', bounty: '#ffd23c', volley: '#b48cff' }
+const PERK_ICON: Record<PerkId, SkillId | 'coin'> = { power: 'warcry', splash: 'meteor', bounty: 'coin', volley: 'legion' }
+
 const SKILL_TINT: Record<SkillId, string> = {
   meteor: '#ff7a2a', warcry: '#ff5a3c', legion: '#9fd8ff', pact: '#c05cff',
   shield: '#5ab8ff', execute: '#ff3050', heal: '#6fe08a', revive: '#ffe27a'
@@ -1407,6 +1413,28 @@ export class BoardRenderer {
           const s = r * 1.15
           ctx.drawImage(cs.img, b.x, b.y, b.w, b.h, cx - s / 2, cy - s / 2, s, s)
         }
+      } else if (p.kind === 'perk' && p.perk) {
+        // Shoot-to-Choose: a big gold orb with a turning ring in the perk's colour.
+        const tint = PERK_TINT[p.perk]
+        const R = r * 1.25
+        ctx.globalAlpha = 0.5 + 0.3 * Math.sin(t * 5 + v.phase)
+        ctx.drawImage(this.vfx.dot(tint), cx - R * 1.9, cy - R * 1.9, R * 3.8, R * 3.8)
+        ctx.globalAlpha = 0.9
+        ctx.strokeStyle = tint
+        ctx.lineWidth = Math.max(2, c * 0.07)
+        const spin = this.reducedMotion ? 0 : t * 1.8 + v.phase
+        ctx.beginPath()
+        ctx.arc(cx, cy, R * 1.18, spin, spin + Math.PI * 1.4)
+        ctx.stroke()
+        ctx.globalAlpha = 1
+        ctx.drawImage(this.bubbleGold ?? bub, cx - R, cy - R, R * 2, R * 2)
+        const want = PERK_ICON[p.perk]
+        const icon = want === 'coin' ? this.coin : this.skillIcons.get(want)
+        if (icon && icon.ready) {
+          const b = icon.box
+          const s = R * 1.4
+          ctx.drawImage(icon.img, b.x, b.y, b.w, b.h, cx - s / 2, cy - s / 2, s, s)
+        }
       } else {
         const gold = this.bubbleGold ?? bub
         const glow = this.vfx.dot(p.skill ? SKILL_TINT[p.skill] : '#ffe27a')
@@ -2125,6 +2153,14 @@ export class BoardRenderer {
       case 'skill':
         this.skillFx(e.skill, e.x, e.y)
         break
+      case 'perkPick': {
+        // Shoot-to-Choose: the kept orb bursts in its colour.
+        const tint = PERK_TINT[e.perk]
+        this.vfx.ring(e.x, e.y, 0.2, 1.6, 0.5, tint, 0.12)
+        this.vfx.burst(e.x, e.y, 16, 5, tint, 0.14, 0.6)
+        this.sfx.request('upgrade-buy', 0.06, 1.15, 1, 200)
+        break
+      }
       case 'trayMerge':
         if (this.plusPending) this.plusMerge = Math.max(this.plusMerge, e.toTier)
         this.sfx.request('merge-pop', 0.045, 0.9 + Math.min(12, e.toTier) * 0.04, 4, 80)

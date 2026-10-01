@@ -84,7 +84,7 @@ import { EB_RUN_KEY } from '../keys'
 import {
   bestRow, bumpStats, checkpoint, ftue, isFtueActive, maxBallTier, mode, noteBallTier, noteBestRow, noteBossDeath,
   patchFtue, patchSegment, pending, persistStats, rewardedOffersUnlocked, runEndSeq, sanitizeTray, segment,
-  setCheckpoint, setPending, stats, toCount
+  setCheckpoint, setPending, setRunPerks, stats, toCount
 } from './progress'
 import { installPlayClock, sessionPlaySeconds } from './playClock'
 import { funnelMilestone, funnelPlayTime, funnelRow, setFunnelCohortResolver } from './funnel'
@@ -296,7 +296,9 @@ const endlessTuning = (): Partial<EngineConfig> => ({
   ftue: isFtueActive(),
   assist: assistLevel.value,
   bossHpMult: bossHpMult.value,
-  bossHpCap: bossHpCap.value
+  bossHpCap: bossHpCap.value,
+  // Shoot-to-Choose: the run's perks ride the checkpoint (a fresh row-1 run has none).
+  perks: checkpoint.value.perks ? { ...checkpoint.value.perks } : {}
 })
 
 const endlessConfig = (): EngineConfig =>
@@ -733,6 +735,12 @@ const onEvent = (e: EngineEvent): void => {
       syncTray()
       break
     case 'trayOverflow':
+      syncTray()
+      break
+    case 'perkPick':
+      // Shoot-to-Choose (retention-roadmap #5): the pick is the run's from now
+      // on — kept with the checkpoint, so a restart keeps it too.
+      if (mode.value === 'endless') setRunPerks(eng().state.config.perks)
       syncTray()
       break
     case 'traySocket':

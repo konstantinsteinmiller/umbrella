@@ -338,6 +338,10 @@ const GLOW = String(flag('glow', 'power'))
 const RESTART = String(flag('restart', 'stronger'))
 const LOW_REARM = flag('lowrearm', false) === true
 const DAILY = flag('daily', false) === true
+// Shoot-to-Choose (retention-roadmap #5): `--pick power|splash|bounty|volley`
+// forces one pick path (every boss's pick is that perk, while it is not
+// maxed); the default `natural` leaves the orbs to the balls and the line.
+const PICK = String(flag('pick', 'natural'))
 if (typeof flag('buygap', null) === 'string') HUMAN_BUY_GAP = String(flag('buygap', '4,5')).split(',').map(Number)
 if (typeof flag('lowgap', null) === 'string') LOW_BUY_GAP = String(flag('lowgap', '16,20')).split(',').map(Number)
 // The safety net (config.assist): the state layer feeds it
@@ -463,8 +467,12 @@ const runBot = (bot, seed) => {
   // The retry cap (the game's `checkpoint.bossHp` → `config.bossHpCap`): the
   // full HP of the weakest meeting lost to the boss past the checkpoint.
   let bossCap = 0
+  // The run's perks (the game keeps them with the checkpoint).
+  let runPerks = {}
+  let offeredNow = false
+  let pickedNow = []
   const cfgFor = (extra) => ({
-    ...defaultConfig({ seed: seed + restarts * 1000003 }), ...configFromUpgrades(levels), assist: assistNow(), bossHpMult: mercyNow(), bossHpCap: bossCap, ...extra
+    ...defaultConfig({ seed: seed + restarts * 1000003 }), ...configFromUpgrades(levels), assist: assistNow(), bossHpMult: mercyNow(), bossHpCap: bossCap, perks: { ...runPerks }, ...extra
   })
   let engine
   // Aim stats (`--aimstat`): hits per ball on walker boards (an EMA), and
@@ -534,6 +542,11 @@ const runBot = (bot, seed) => {
       } else if (ev.type === 'trayMerge') {
         if (!firstMerge) log.firstMergeTurn = turn
         firstMerge = true
+      } else if (ev.type === 'perkOffer') {
+        offeredNow = true
+      } else if (ev.type === 'perkPick') {
+        pickedNow.push(ev.perk)
+        log.picks.push(ev.perk)
       } else if (ev.type === 'traySocket') {
         // Instant Barrage: the game books an FTUE socket as a free capacity level.
         if (levels.capacity < ev.level) { log.sockets += ev.level - levels.capacity; levels.capacity = ev.level }
@@ -561,7 +574,8 @@ const runBot = (bot, seed) => {
     // First session (the `ftue` report line): sockets granted, first FEVER,
     // first flying chest, tray size and bank at 45 s, and the first boss
     // fight's turns that earned nothing.
-    sockets: 0, feverTurn: null, chestTurn: null, trayAt45: null, coinsAt45: null, zeroBoss1: 0
+    sockets: 0, feverTurn: null, chestTurn: null, trayAt45: null, coinsAt45: null, zeroBoss1: 0,
+    picks: []
   }
   const SEC = SEC_PER_TURN[bot] ?? 7
   const T45 = Math.ceil(45 / SEC)
@@ -588,7 +602,21 @@ const runBot = (bot, seed) => {
     const bossBefore = engine.state.bossId !== null
     bossHitsN = 0
     engine.fire(a)
+    offeredNow = false
+    pickedNow = []
     const phase = engine.settle()
+    if (PICK !== 'natural' && (offeredNow || pickedNow.length > 0)) {
+      // The forced pick path: undo any other pick this volley made, take PICK.
+      const perks = { ...(engine.state.config.perks ?? {}) }
+      for (const p of pickedNow) if (p !== PICK) perks[p] = Math.max(0, (perks[p] ?? 0) - 1)
+      if (!pickedNow.includes(PICK) && (perks[PICK] ?? 0) < 3) {
+        perks[PICK] = (perks[PICK] ?? 0) + 1
+        if (PICK === 'volley') engine.addBalls(3)
+      }
+      engine.state.config.perks = perks
+      engine.clearOrbs?.()
+    }
+    runPerks = { ...(engine.state.config.perks ?? {}) }
     if (bossBefore && log.bossKills.length === 0 && coins === coins0) log.zeroBoss1++
     if (lastCombo && lastCombo.balls > 0 && bossBefore && fight) { fight.volleys++; fight.dmg += bossHitsN / (1 + (engine.saviorView?.boost ?? 0)); fight.powerSum += power }
     if (fight?.killed) closeFight(true)

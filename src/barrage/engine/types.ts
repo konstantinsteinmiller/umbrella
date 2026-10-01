@@ -60,7 +60,29 @@ export type MonsterKind =
   | 'boss'
 export type BossKind = 'slime-tower' | 'worm' | 'fire-dragon' | 'silver-dragon' | 'troll' | 'orc'
 export type SkillId = 'meteor' | 'warcry' | 'legion' | 'pact' | 'shield' | 'execute' | 'heal' | 'revive'
-export type PickupKind = 'ball' | 'coin' | 'skill'
+export type PickupKind = 'ball' | 'coin' | 'skill' | 'perk'
+/** Shoot-to-Choose (retention-roadmap #5): run perks a boss kill offers as
+ *  power orbs on the board — the first orb a ball touches is kept for the run.
+ *  power: ball damage +PERK_POWER per stack · splash: every hit chips the
+ *  struck monster's neighbours for PERK_SPLASH of it per stack · bounty: kill
+ *  coins +PERK_BOUNTY per stack · volley: PERK_VOLLEY_BALLS balls into the
+ *  tray at once. PERK_MAX stacks each. */
+export type PerkId = 'power' | 'splash' | 'bounty' | 'volley'
+export const PERK_IDS: readonly PerkId[] = ['power', 'splash', 'bounty', 'volley']
+export type PerkCounts = Partial<Record<PerkId, number>>
+export const PERK_MAX = 3
+export const PERK_OFFER = 3
+// Tuned on the forced-pick-path sim (24 seeds × 260 turns, all bots): at 0.2 /
+// 0.25 / 2 Power led every bot's depth; these keep the four paths close.
+export const PERK_POWER = 0.15
+export const PERK_SPLASH = 0.25
+export const PERK_BOUNTY = 0.4
+export const PERK_VOLLEY_BALLS = 3
+/** Stacks of `id` in a perk record (absent / malformed = 0, capped at PERK_MAX). */
+export const perkStacks = (perks: PerkCounts | undefined, id: PerkId): number => {
+  const n = perks?.[id]
+  return typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(PERK_MAX, Math.floor(n))) : 0
+}
 /** On-hit ability of a ball tier (see `ballAbility(tier)` in balls.ts). */
 export type BallAbility =
   | 'burn'       // T1  Magma Mote     — DoT ticks at end of turn
@@ -143,6 +165,8 @@ export interface Pickup {
   id: number
   kind: PickupKind
   skill?: SkillId
+  /** Shoot-to-Choose: the perk a power orb ('perk' pickup) grants. */
+  perk?: PerkId
   /** Coin pickups: coin amount (already multiplied by the coin bounty). */
   amount?: number
   col: number
@@ -203,6 +227,9 @@ export interface EngineConfig {
    *  stronger boss than the one that won (the adaptive floor follows the tray
    *  the player keeps). Read at SPAWN time, like `bossHpMult`. */
   bossHpCap?: number
+  /** Shoot-to-Choose: this run's picked perks (the state layer keeps them with
+   *  the checkpoint; absent = none). The engine replaces the record on a pick. */
+  perks?: PerkCounts
 }
 
 // ─── The whole mutable state (renderer reads it every frame; never writes) ───
@@ -293,6 +320,12 @@ export type EngineEvent =
   /** Instant Barrage: an FTUE "+1" met a full tray and grew a socket instead of
    *  merging — capacity is now `CAPACITY_TABLE[level]` (a free capacity level). */
   | { type: 'traySocket'; level: number; capacity: number }
+  /** Shoot-to-Choose: a boss kill floated these power orbs onto the board. */
+  | { type: 'perkOffer'; perks: PerkId[] }
+  /** …a ball touched one (or the line took the leftmost: `auto`); `stacks`
+   *  is the run's count of it now. The other orbs vanish (`perkGone`). */
+  | { type: 'perkPick'; perk: PerkId; stacks: number; x: number; y: number; auto?: boolean }
+  | { type: 'perkGone'; pickupIds: number[] }
   | { type: 'skill'; skill: SkillId; x: number; y: number }
   | { type: 'combo'; hits: number }
   | { type: 'fever' }
