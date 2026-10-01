@@ -4,49 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- tap counter">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- skin ads">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game-implementation-plan.md" beforeDir="false" afterPath="$PROJECT_DIR$/game-implementation-plan.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/alternative-concepts.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/game-implementation-plan.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/non-strategy-concepts.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/poki-qa-report.json" beforeDir="false" afterPath="$PROJECT_DIR$/poki-qa-report.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/barrage/CONTRACT.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/CONTRACT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/barrage/ballSkins.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/ballSkins.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/barrage/state/contract.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/state/contract.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/barrage/state/useCollections.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/state/useCollections.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/barrage/CollectionModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/CollectionModal.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/barrage/HudTip.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/HudTip.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/barrage/UpgradeBar.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/UpgradeBar.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/barrage/coach/UpgradeSpot.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/coach/UpgradeSpot.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/barrage/hudTip.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/barrage/hudTip.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ar.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/de.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/en.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/es.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/fr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/hi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/id.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/it.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ja.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/kk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ko.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/nl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/pl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/pt.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/ru.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/th.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/tr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/uk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/uz.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/vi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/barrage/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/barrage/zh.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useCoach.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCoach.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/barrage/state/skinAdUnlock.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/state/skinAdUnlock.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/barrage/ui/coach.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/ui/coach.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/barrage/ui/upgradeBar.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/ui/upgradeBar.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/playtest/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/tools/playtest/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/poki-deploy/poki.config.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/tools/poki-deploy/poki.config.mjs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/organisms/ParticleCanvas.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/ParticleCanvas.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/pokiPlaytestStage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/pokiPlaytestStage.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/pokiPlaytestStage.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/pokiPlaytestStage.test.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -148,7 +115,10 @@
       <option name="presentableId" value="Default" />
       <updated>1790165645764</updated>
       <workItem from="1790165647095" duration="2583000" />
-      <workItem from="1790169209346" duration="60352000" />
+      <workItem from="1790169209346" duration="62075000" />
+      <workItem from="1790446887495" duration="3885000" />
+      <workItem from="1790547053097" duration="158000" />
+      <workItem from="1790850351026" duration="3523000" />
     </task>
     <task id="LOCAL-00001" summary="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
       <option name="closed" value="true" />
@@ -190,7 +160,15 @@
       <option name="project" value="LOCAL" />
       <updated>1790323473115</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="- skin ads">
+      <option name="closed" value="true" />
+      <created>1790443253773</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1790443253773</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -202,6 +180,7 @@
     <MESSAGE value="- gameplay fixes&#10;- onboarding fixes" />
     <MESSAGE value="- rebalance difficulty&#10;- fix onboarding" />
     <MESSAGE value="- tap counter" />
-    <option name="LAST_COMMIT_MESSAGE" value="- tap counter" />
+    <MESSAGE value="- skin ads" />
+    <option name="LAST_COMMIT_MESSAGE" value="- skin ads" />
   </component>
 </project>
