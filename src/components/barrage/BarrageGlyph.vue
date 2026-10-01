@@ -10,7 +10,7 @@
 export type GlyphName =
   | 'damage' | 'capacity' | 'speed' | 'luck' | 'bounty'
   | 'skip' | 'fast' | 'codex' | 'collection' | 'daily' | 'supply' | 'gear'
-  | 'shield' | 'revive' | 'warcry' | 'ball' | 'flag' | 'skull' | 'lock' | 'check' | 'star' | 'clock' | 'trophy'
+  | 'shield' | 'revive' | 'warcry' | 'ball' | 'flag' | 'skull' | 'lock' | 'check' | 'star' | 'clock' | 'trophy' | 'retry'
   // Ball abilities (the codex peek after a discovery) — one per BallAbility.
   | 'burn' | 'knockback' | 'pierce' | 'freeze' | 'splash' | 'crush' | 'chain' | 'poison' | 'midas' | 'eruption'
 
@@ -98,6 +98,10 @@ defineProps<{ name: GlyphName }>()
     //- Row — a banner flag.
     template(v-else-if="name === 'flag'")
       path(d="M5 21 L5 4 L13 4 L12 7 L19 7 L19 14 L11 14 L12 11 L5 11")
+    //- Retry — a circular arrow (One-Tap Comeback).
+    template(v-else-if="name === 'retry'")
+      path(d="M19 12 A7 7 0 1 1 16.5 6.6")
+      path(d="M17.5 2.8 L17 7.4 L12.4 7" fill="none")
     template(v-else-if="name === 'skull'")
       path(d="M12 3 C7 3 4 6.5 4 11 C4 13.5 5.2 15.3 7 16.3 V19.5 H17 V16.3 C18.8 15.3 20 13.5 20 11 C20 6.5 17 3 12 3 Z" fill="currentColor" fill-opacity="0.25")
       circle(cx="9" cy="11" r="1.6" fill="currentColor")

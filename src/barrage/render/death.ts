@@ -68,12 +68,15 @@ export const DEATH_STAGGER = 0.05
 export const SHARD_N = 4
 export const SHARD_ASH = 0.9
 /**
- * Breach → death screen (ms): the strike, then "WASTED" holds ~2 s over the
- * wreck (the brief: "the game stays in this state for 2 seconds").
+ * Breach → death screen (ms): the strike, then "WASTED" over the wreck.
+ * One-Tap Comeback (retention-roadmap #4): 2.4 s → 1.2 s — the strike itself
+ * takes ~0.9 s; a 10 s gap between rounds cuts playtime, 1 s barely does
+ * (Nakamura 2025).
  */
-export const DEATH_SCENE_MS = 2400
+export const DEATH_SCENE_MS = 1200
 
-const SHARD_G = 26
+// One-Tap Comeback: 26 → 40 so the pieces settle inside the 1.2 s scene.
+const SHARD_G = 40
 const SHARD_BOUNCE = 0.32
 const SHARD_REST_V = 1.6
 /** The pieces keep this far (cells) inside the side walls. */

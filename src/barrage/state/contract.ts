@@ -47,6 +47,10 @@ export interface BreachOffer {
    *  screen names it ("I never saw … which enemy crossed the line"). Endless
    *  only; absent when none stood past the line. */
   culprit?: BreachCulprit
+  /** (STATE, additive) One-Tap Comeback's near-miss cue: the boss on the board
+   *  at the breach, its HP left as a share of its full HP (0..1). Absent: no
+   *  boss stood (or an older save). */
+  bossLeft?: number
 }
 
 /** (STATE, additive) See `BreachOffer.culprit`. */
@@ -112,7 +116,7 @@ export interface UseBarrage {
   /** Run 7: the death sequence is playing — the board tears the unit apart
    *  and "WASTED" holds over it (DeathOverlay). The breach offer and the
    *  daily result exist already but their screen waits until this is false
-   *  again (≈2.4 s after a live breach). */
+   *  again (≈1.2 s after a live breach). */
   deathScene: Readonly<Ref<boolean>>
   bossChest: Ref<BossChestOffer | null>
   dailyResult: Ref<DailyResult | null>

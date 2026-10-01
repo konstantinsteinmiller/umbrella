@@ -211,7 +211,7 @@ const engineGen = ref(0)
 const checkpointRow = computed(() => checkpoint.value.row)
 
 /** Raw offers; the public refs below add the LIVE readiness gates. */
-const breachRaw: Ref<{ row: number; recap: RunRecap; culprit: BreachCulprit | null } | null> = ref(null)
+const breachRaw: Ref<{ row: number; recap: RunRecap; culprit: BreachCulprit | null; bossLeft?: number } | null> = ref(null)
 /** The endless run's recap tally (see RunRecord.tally). Plain module state: it
  *  is read once, at the breach, and saved with every run snapshot. */
 let tally: RunTally = { kills: 0, coins: 0 }
@@ -658,7 +658,10 @@ const onBreach = (): void => {
     // The striker of the death sequence — the one the loss screen names.
     const who = pickStriker(s.monsters, s.launcherX)
     const culprit: BreachCulprit | null = who ? (who.bossKind ? { kind: who.kind, bossKind: who.bossKind } : { kind: who.kind }) : null
-    breachRaw.value = { row: at, recap: { row: at, kills: tally.kills, coins: tally.coins }, culprit }
+    // One-Tap Comeback's near-miss cue: how close the boss on the board came to dying.
+    const bossNow = s.bossId !== null ? s.monsters.find((m) => m.id === s.bossId) : undefined
+    const bossLeft = bossNow && bossNow.maxHp > 0 ? Math.max(0, Math.min(1, bossNow.hp / bossNow.maxHp)) : undefined
+    breachRaw.value = { row: at, recap: { row: at, kills: tally.kills, coins: tally.coins }, culprit, ...(bossLeft !== undefined ? { bossLeft } : {}) }
     persistBreach()
     submitBestRow(bestRow.value)
   }
@@ -815,7 +818,8 @@ const breach = computed<BreachOffer | null>(() => {
     checkpointRow: checkpoint.value.row,
     row: b.row,
     recap: { ...b.recap },
-    ...(b.culprit ? { culprit: { ...b.culprit } } : {})
+    ...(b.culprit ? { culprit: { ...b.culprit } } : {}),
+    ...(b.bossLeft !== undefined ? { bossLeft: b.bossLeft } : {})
   }
 })
 

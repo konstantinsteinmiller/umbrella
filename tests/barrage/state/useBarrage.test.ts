@@ -1527,3 +1527,45 @@ describe('Boss at 75 s: the first boss\'s entrance checkpoint (retention-roadmap
     expect(h.progress.checkpoint.value.row).toBe(0)
   })
 })
+
+describe('One-Tap Comeback (retention-roadmap #4)', () => {
+  it('a loss is an aimable board again in ≤ 2 s with one tap — gameplay resumes on the tap, never before', async () => {
+    const { DEATH_SCENE_MS } = await import('@/barrage/render/death')
+    expect(DEATH_SCENE_MS).toBeLessThanOrEqual(1500)
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    vi.useFakeTimers()
+    try {
+      const t0 = Date.now()
+      h.eng().fire(1)
+      h.eng().breachNow()
+      expect(h.b.deathScene.value).toBe(true)
+      const resumesBefore = ctl.resumeGameplay.mock.calls.length
+      vi.advanceTimersByTime(DEATH_SCENE_MS)
+      // The death screen is up; nothing has resumed gameplay on its own.
+      expect(h.b.deathScene.value).toBe(false)
+      expect(h.b.breach.value).not.toBeNull()
+      expect(ctl.resumeGameplay.mock.calls.length).toBe(resumesBefore)
+      // The one tap.
+      const done = h.b.restartFromCheckpoint()
+      await vi.advanceTimersByTimeAsync(0)
+      await done
+      expect(h.eng().state.phase).toBe('aim')
+      expect(h.b.breach.value).toBeNull()
+      expect(ctl.resumeGameplay.mock.calls.length).toBe(resumesBefore + 1)
+      expect(Date.now() - t0).toBeLessThanOrEqual(2000)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('the offer carries the near miss: the boss\'s HP left at the breach', async () => {
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const e = h.eng()
+    e.state.row = 15
+    const id = e.spawnBoss(200)
+    e.state.monsters.find((m) => m.id === id)!.hp = 20
+    e.fire(1)
+    e.breachNow()
+    expect(h.b.breach.value!.bossLeft).toBeCloseTo(0.1)
+  })
+})

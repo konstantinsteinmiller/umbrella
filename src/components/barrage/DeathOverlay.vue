@@ -77,7 +77,7 @@ const drainStyle = computed(() => {
   display: flex
   justify-content: center
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.78) 22%, rgba(0, 0, 0, 0.78) 78%, rgba(0, 0, 0, 0))
-  animation: death-band 0.35s ease-out 0.3s both
+  animation: death-band 0.3s ease-out 0.26s both
 .death-fx__word
   font-family: Georgia, 'Times New Roman', 'Noto Serif', serif
   font-weight: 700
@@ -92,7 +92,7 @@ const drainStyle = computed(() => {
   -webkit-text-stroke: 2px rgba(18, 0, 4, 0.95)
   paint-order: stroke fill
   text-shadow: 0 0 22px rgba(255, 24, 40, 0.55), 0 3px 0 rgba(0, 0, 0, 0.7)
-  animation: death-fade 0.6s ease-out 0.34s both, death-swell 2.4s cubic-bezier(0.2, 0.6, 0.3, 1) 0.34s both
+  animation: death-fade 0.35s ease-out 0.3s both, death-swell 0.9s cubic-bezier(0.2, 0.6, 0.3, 1) 0.3s both
 .death-fx-leave-active
   transition: opacity 0.25s ease
 .death-fx-leave-to

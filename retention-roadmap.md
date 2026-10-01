@@ -25,7 +25,7 @@ All five add zero HUD elements; #2 and #4 remove UI. They ship together with Tie
 | 1 | Instant Barrage: the power fantasy in the first 30 s | 0–1 m | easy to pick up | none | v1.2.4 | ✅ |
 | 2 | Silent Flow: no pause, no dimming, no text before the first boss kill | 0–1 m, 1–2 m | easy to pick up | removes | v1.2.4 | ✅ |
 | 3 | Boss at 75 s: a shorter first act with a live boss fight | 1–2 m, 2–3 m | pick-up, average playtime | none | v1.2.4 | ✅ |
-| 4 | One-Tap Comeback: back in play about 1 s after a loss | 3–5 m, 5 m+ | hard to put down | removes | v1.2.4 | |
+| 4 | One-Tap Comeback: back in play about 1 s after a loss | 3–5 m, 5 m+ | hard to put down | removes | v1.2.4 | ✅ |
 | 5 | Shoot-to-Choose: boss drops you pick by shooting them | 5 m+ | session length, Day-1 return | removes a modal | v1.2.4 | |
 
 ---
@@ -333,7 +333,18 @@ Frame 1 already has about 13 HUD elements. They include all 5 upgrade chips with
   - Supersonic (Trash Tycoon): 60% of players were lost to a tutorial with no clear goal.
   - Our own histogram.
 
-### #4 One-Tap Comeback: back in play within about 1 s of a loss
+### ✅ #4 One-Tap Comeback: back in play within about 1 s of a loss
+
+**Done (2026-10-01).**
+- **What's built:**
+  - The death beat is 1.2 s (was 2.4 s). The pieces of the torn unit now fall faster, so they settle inside it.
+  - OVERRUN leads with one big round icon-only retry. Its aria-label reuses `barrage.breach.restart`, so there are no new strings.
+  - Meteor (gated by T0.2) and Revive sit below the retry. The culprit and recap are a small secondary block.
+  - A boss still standing at the breach shows its last sliver of HP as a wordless near-miss bar (`BreachOffer.bossLeft`).
+  - The gameplay bracket resumes only on the retry tap. Interstitial cadence, the ad wait cap and the Daily result are unchanged.
+  - The glowing-chip re-arm after a loss was already the coach's breach rule.
+- **Tests:** loss to an aimable board in ≤ 2 s with one tap (a fake-timer spec), plus the modal and near-miss specs.
+- **Browser pass:** the retry screen appears after a forced breach, and one tap is back in play in 0.3 s, at the boss entrance with the tray kept.
 
 **Problem.**
 - Every loss plays a 2.4 s death scene under "WASTED" (`DEATH_SCENE_MS = 2400`, `barrage/render/death.ts:74`, started in `onBreach`, `useBarrage.ts:625–628`).

@@ -159,6 +159,38 @@ describe('OVERRUN recap', () => {
     w.unmount()
   })
 
+  it('One-Tap Comeback: one big icon-only retry leads the screen, above the recap', async () => {
+    const api = hb.api as unknown as { restartFromCheckpoint: () => void }
+    const spy = vi.fn()
+    const was = api.restartFromCheckpoint
+    api.restartFromCheckpoint = spy
+    const w = mount(BreachModal, { global: { plugins: [i18n], stubs: { FModal } } })
+    await nextTick()
+    const first = w.findAll('button')[0]!
+    expect(first.classes()).toContain('breach-retry')
+    expect(first.text()).toBe('')
+    expect(first.attributes('aria-label')).toBe(en.barrage.breach.restart.replace('{n}', '1'))
+    expect(w.html().indexOf('breach-retry')).toBeLessThan(w.html().indexOf('breach-recap'))
+    await first.trigger('click')
+    expect(spy).toHaveBeenCalledTimes(1)
+    api.restartFromCheckpoint = was
+    w.unmount()
+  })
+
+  it('One-Tap Comeback: a boss still standing shows its last sliver — no boss, no bar', async () => {
+    const api = hb.api as unknown as { breach: { value: Record<string, unknown> } }
+    const was = api.breach.value
+    api.breach.value = { ...was, culprit: { kind: 'boss', bossKind: 'worm' }, bossLeft: 0.08 }
+    const w = mount(BreachModal, { global: { plugins: [i18n], stubs: { FModal } } })
+    await nextTick()
+    expect(w.find('.breach-near').exists()).toBe(true)
+    expect(w.find('.breach-near__fill').attributes('style')).toContain('width: 8%')
+    api.breach.value = was
+    await nextTick()
+    expect(w.find('.breach-near').exists()).toBe(false)
+    w.unmount()
+  })
+
   it('run 7: it waits out the death sequence ("WASTED" first), then opens', async () => {
     const Gate = defineComponent({
       props: { modelValue: Boolean },

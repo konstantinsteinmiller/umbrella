@@ -59,6 +59,10 @@ but are secondary.
   a loss to it restarts at it with the FTUE still on and mercy on top. **Coin shards** (every boss): each
   hit pays its share of `BOSS_SHARD_SHARE` (60%) of the bounty at once (`coins` source `shard`, whole coins
   owed against the HP taken, `Monster.shards` carries the paid part); `bossDefeated.bounty` is the rest.
+- **One-Tap Comeback** (retention-roadmap #4): the OVERRUN screen leads with one big icon-only retry
+  (`BarrageGlyph` `retry`, aria-label `barrage.breach.restart`); Meteor (gated, T0.2) and Revive sit below
+  it; the culprit + recap are a small secondary block. `BreachOffer.bossLeft` (the boss's HP share at the
+  breach) draws the near-miss sliver. The retry tap resumes the gameplay bracket — never the timer.
 - **Boss death blast** (playtest run 2: a boss kill and OVERRUN landed in the same turn): right after
   `bossDefeated` the engine emits `bossBlast {monsterId, rows: 2, ids, x, y}` and kills every monster in the
   bottom two rows (normal kill coins, through gem shields, no imp split); a boss that died before its turn's
@@ -77,7 +81,7 @@ but are secondary.
   `breach` event the renderer (`render/death.ts`) has the breacher nearest the unit rear up and lunge into it
   (the others surge a step), and at the strike (≈0.26 s) the unit TEARS APART — 4×4 pieces of its own sprite
   fly, bounce and lie on the floor going ash grey (red flash, one big shake) — while the board dims red-black
-  round the wreck. The state layer's `deathScene` is true for `DEATH_SCENE_MS` (2.4 s) from a live breach:
+  round the wreck. The state layer's `deathScene` is true for `DEATH_SCENE_MS` (1.2 s since One-Tap Comeback, retention-roadmap #4; was 2.4 s) from a live breach:
   UI's `DeathOverlay` shows "WASTED" (`barrage.breach.wasted`; de "Überrannt" since run 9 — "Gefallen" over the
   greyed boss read as the BOSS dying) in blood red over a colour-drained screen, and the breach offer / Daily
   result opens only after it. **The culprit** (run 9: "I never saw … which enemy crossed the line"): the striker

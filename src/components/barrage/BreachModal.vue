@@ -24,6 +24,11 @@
  * this run"), never a balance: run 3 read "78 coins" beside the wallet's 126
  * as a bug.
  *
+ * One-Tap Comeback (retention-roadmap #4): one big icon-only retry leads the
+ * screen (its aria-label is the old Restart caption); Meteor and Revive sit
+ * below it, and the culprit + recap became a small secondary block. A boss
+ * still standing at the breach shows its last sliver of HP (the near miss).
+ *
  * Playtest run 9: "I never saw … which enemy crossed the line" — the body names
  * the culprit (the death sequence's striker, `breach.culprit`) beside its
  * portrait: "Fire Dragon broke through at row 40." (`barrage.breach.bodyBy`).
@@ -66,6 +71,12 @@ const onDailyBack = (): Promise<void> => run(() => barrage.exitDaily())
 /** The fresh board after a restart starts one row past the checkpoint. */
 const restartRow = computed(() => (breach.value?.checkpointRow ?? barrage.checkpointRow.value) + 1)
 const reachedRow = computed(() => breach.value?.row ?? barrage.row.value)
+/** One-Tap Comeback's near miss: the boss's HP left at the breach (null: none stood). */
+const bossLeft = computed<number | null>(() => {
+  const v = breach.value?.bossLeft
+  return typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : null
+})
+const nearStyle = computed(() => ({ width: `${Math.max(3, Math.round((bossLeft.value ?? 0) * 100))}%` }))
 /** The culprit's name and portrait (absent: the plain "The monsters broke through"). */
 const culprit = computed(() => {
   const c = breach.value?.culprit
@@ -104,25 +115,21 @@ const meteorAria = computed(() => buffsCostCoins
     div.breach.hud-digits.flex.flex-col.items-center.gap-3.px-2.pb-2
       //- ── Endless: the three ways back ──
       template(v-if="!isDaily && breach")
-        div.breach-culprit.flex.items-center.justify-center.gap-2(v-if="culprit")
-          span.breach-culprit__face(aria-hidden="true")
+        //- One-Tap Comeback (retention-roadmap #4): the retry IS the screen —
+        //- one big glyph, back at the checkpoint with every coin and the tray.
+        button.breach-retry(
+          type="button"
+          :disabled="busy"
+          :aria-label="t('barrage.breach.restart', { n: restartRow })"
+          @click="onRestart"
+        )
+          BarrageGlyph.breach-retry__glyph(name="retry")
+        //- The near miss, wordless: the boss's last sliver of HP.
+        div.breach-near.flex.items-center.gap-2.w-full(v-if="bossLeft !== null" class="max-w-xs" aria-hidden="true")
+          span.breach-culprit__face.breach-near__face(v-if="culprit")
             img(:src="culprit.src" alt="" draggable="false")
-          p.game-text.text-white.text-left(class="text-sm sm:text-base") {{ t('barrage.breach.bodyBy', { name: culprit.name, n: reachedRow }) }}
-        p.game-text.text-white.text-center(v-else class="text-sm sm:text-base") {{ t('barrage.breach.body', { n: reachedRow }) }}
-        //- What this run did: row · kills · coins.
-        div.breach-recap.flex.justify-center.w-full.gap-2(v-if="recap" class="max-w-sm" role="group" :aria-label="recapAria")
-          div.recap-tile.recap-tile--row(aria-hidden="true")
-            BarrageGlyph.recap-icon(name="flag")
-            span.recap-n.game-text.tabular-nums {{ recap.row }}
-            span.recap-label.game-text {{ t('barrage.breach.recapRow') }}
-          div.recap-tile.recap-tile--kills(aria-hidden="true")
-            BarrageGlyph.recap-icon(name="skull")
-            span.recap-n.game-text.tabular-nums {{ fmtCoins(recap.kills) }}
-            span.recap-label.game-text {{ t('barrage.breach.recapKills') }}
-          div.recap-tile.recap-tile--coins(aria-hidden="true")
-            IconCoin.recap-icon
-            span.recap-n.game-text.tabular-nums {{ t('barrage.hud.coinGain', { n: fmtCoins(recap.coins) }) }}
-            span.recap-label.game-text {{ t('barrage.breach.recapEarned') }}
+          div.breach-near__bar
+            div.breach-near__fill(:style="nearStyle")
         div.flex.flex-col.w-full.gap-2(class="max-w-sm")
           button.breach-btn.breach-btn--meteor(
             v-if="breach.meteorAvailable"
@@ -151,17 +158,27 @@ const meteorAria = computed(() => buffsCostCoins
               span.breach-btn__title.game-text {{ t('barrage.breach.revive') }}
               span.breach-btn__sub.game-text {{ t('barrage.breach.reviveDesc', { n: barrage.revives.value }) }}
             span.breach-btn__free.game-text.font-black.uppercase.shrink-0 {{ t('barrage.breach.free') }}
-          button.breach-btn.breach-btn--restart(
-            type="button"
-            :disabled="busy"
-            @click="onRestart"
-          )
-            span.breach-btn__glyph.text-white
-              BarrageGlyph.w-full.h-full(name="flag")
-            span.flex.flex-col.items-start.flex-1.min-w-0
-              span.breach-btn__title.game-text {{ t('barrage.breach.restart', { n: restartRow }) }}
-              span.breach-btn__sub.game-text {{ t('barrage.breach.restartDesc') }}
         p.game-text.text-center.opacity-70(v-if="breach.meteorAvailable" class="text-[11px]") {{ t('barrage.breach.onceHint') }}
+        //- Secondary, below the way back: who broke through, and what this run did.
+        div.breach-secondary.flex.flex-col.items-center.gap-2.w-full
+          div.breach-culprit.flex.items-center.justify-center.gap-2(v-if="culprit")
+            span.breach-culprit__face(aria-hidden="true")
+              img(:src="culprit.src" alt="" draggable="false")
+            p.game-text.text-white.text-left(class="text-xs") {{ t('barrage.breach.bodyBy', { name: culprit.name, n: reachedRow }) }}
+          p.game-text.text-white.text-center(v-else class="text-xs") {{ t('barrage.breach.body', { n: reachedRow }) }}
+          div.breach-recap.flex.justify-center.w-full.gap-2(v-if="recap" class="max-w-xs" role="group" :aria-label="recapAria")
+            div.recap-tile.recap-tile--row(aria-hidden="true")
+              BarrageGlyph.recap-icon(name="flag")
+              span.recap-n.game-text.tabular-nums {{ recap.row }}
+              span.recap-label.game-text {{ t('barrage.breach.recapRow') }}
+            div.recap-tile.recap-tile--kills(aria-hidden="true")
+              BarrageGlyph.recap-icon(name="skull")
+              span.recap-n.game-text.tabular-nums {{ fmtCoins(recap.kills) }}
+              span.recap-label.game-text {{ t('barrage.breach.recapKills') }}
+            div.recap-tile.recap-tile--coins(aria-hidden="true")
+              IconCoin.recap-icon
+              span.recap-n.game-text.tabular-nums {{ t('barrage.hud.coinGain', { n: fmtCoins(recap.coins) }) }}
+              span.recap-label.game-text {{ t('barrage.breach.recapEarned') }}
 
       //- ── Daily: no continues, the result ──
       template(v-else)
@@ -215,6 +232,66 @@ const meteorAria = computed(() => buffsCostCoins
   &:disabled
     filter: grayscale(0.6) brightness(0.8)
     cursor: wait
+// One-Tap Comeback: the retry — big, round, blue, breathing.
+.breach-retry
+  display: grid
+  place-items: center
+  width: 96px
+  height: 96px
+  border-radius: 50%
+  border: 3px solid #0f1a30
+  color: #fff
+  background: radial-gradient(circle at 50% 35%, #7cc0ff, #2266ff 70%)
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35), 0 5px 0 #102e7a, 0 0 22px rgba(80, 170, 255, 0.55)
+  cursor: pointer
+  touch-action: manipulation
+  animation: retry-breathe 1.1s ease-in-out infinite alternate
+  &:active
+    transform: translateY(2px)
+  &:disabled
+    filter: grayscale(0.6) brightness(0.8)
+    cursor: wait
+  &:focus-visible
+    outline: 3px solid #fff
+    outline-offset: 3px
+.breach-retry__glyph
+  width: 56px
+  height: 56px
+  filter: drop-shadow(1px 2px 0 rgba(0, 0, 0, 0.5))
+.breach-near__face
+  width: 32px
+  height: 32px
+.breach-near__bar
+  flex: 1
+  height: 10px
+  border-radius: 999px
+  background: rgba(0, 0, 0, 0.45)
+  border: 2px solid #0f1a30
+  overflow: hidden
+.breach-near__fill
+  height: 100%
+  background: linear-gradient(90deg, #ff3848, #ff8a5a)
+  animation: near-pulse 0.7s ease-in-out infinite alternate
+.breach-secondary
+  opacity: 0.85
+  .recap-n
+    font-size: 15px
+  .recap-icon
+    width: 16px
+    height: 16px
+  .breach-culprit__face
+    width: 32px
+    height: 32px
+@keyframes retry-breathe
+  from
+    scale: 1
+  to
+    scale: 1.06
+@keyframes near-pulse
+  from
+    opacity: 0.7
+  to
+    opacity: 1
 .breach-btn--small
   width: auto
   min-width: 132px
@@ -314,6 +391,6 @@ const meteorAria = computed(() => buffsCostCoins
   to
     filter: drop-shadow(0 0 10px rgba(255, 170, 60, 0.85))
 @media (prefers-reduced-motion: reduce)
-  .breach-btn--meteor, .daily-new
+  .breach-btn--meteor, .daily-new, .breach-retry, .breach-near__fill
     animation: none
 </style>
