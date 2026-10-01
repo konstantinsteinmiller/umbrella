@@ -138,7 +138,16 @@ Players who get past the 3–5 m band stay. The 5 m+ bucket ("hooked") averages 
 - **Accept:** p95 work per frame beats the noise floor in an interleaved A/B, and a ledger row is written either way.
 - **Evidence:** the slowest 5% of frames predicts experience; the median doesn't (CHI'23). A performance pass gained one Poki developer 30–40 s (Ball vs Block).
 
-### T0.4 Keep desktop input in the frame · S (verify first)
+### ✅ T0.4 Keep desktop input in the frame · S (verify first)
+
+**Done (2026-10-01).**
+- **What's built:**
+  - A mouse or pen drag released where the frame never sees it fires the last angle the preview showed (decided: fire, not cancel). Chrome delivers no pointerup past a cross-origin iframe's edge, only a later `lostpointercapture` or a button-up move.
+  - A touch that loses capture is still cancelled.
+  - Aiming is direction-only (no pull strength), so a full-strength shot never needs to leave the frame. The board sets `touch-action: none` and `user-select: none`.
+- **Tests:**
+  - Unit specs: `tests/barrage/render/aimCapture.test.ts`, covering the Chrome and Firefox event orders.
+  - Real-browser acceptance: `tools/qa/iframe-edge-release.mjs`. A drag from the launcher, released outside a cross-origin iframe, fires exactly 1 shot in Chrome and in Firefox 155.
 
 - **Now (correction):** pointer capture already exists.
   - `setPointerCapture` runs on the board press (`BarrageBoard.vue:294`) and on aims started from the tray (`:388`), with capture-phase window listeners (`:357–359`).
