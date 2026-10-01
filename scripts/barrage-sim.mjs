@@ -430,7 +430,8 @@ const pickAngle = (engine, bot, rng) => {
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0)
 /** The boss "of" a row: a boss with no room at row 20 spawns at 21, 22… and
  *  is still the row-20 boss for every metric. */
-const dec = (row) => Math.floor(row / 10) * 10
+// Boss at 75 s: the FTUE's row-5 boss replaces the row-10 one, so it reports as boss10.
+const dec = (row) => Math.max(10, Math.floor(row / 10) * 10)
 
 /** Slime-equivalent HP of a walker (kind / corrupted multipliers divided out). */
 const slimeHp = (m) => m.maxHp / ((KIND_HP_MULT[m.kind] ?? 1) * (m.corrupted ? CORRUPT_HP_MULT : 1))
@@ -518,6 +519,12 @@ const runBot = (bot, seed) => {
         const hp = e.state.monsters.find(m => m.id === ev.monsterId)?.maxHp ?? null
         log.bossSpawns.push({ row: ev.row, turn, clock: e.hpClock ? e.hpClock.hpRow + 1 : ev.row, hp })
         if (log.bossKills.length === 0) log.preBossHp = lastWalkerHp
+        // The game's entrance checkpoint (Boss at 75 s): the run's first boss
+        // sets it once, at the row before its own, with the tray it meets.
+        if (log.bossKills.length === 0 && checkpointRow < ev.row - 1) {
+          checkpointRow = ev.row - 1
+          checkpointTray = e.state.tray.slice()
+        }
       } else if (ev.type === 'rowSpawned') {
         const ws = e.state.monsters.filter(m => m.spawnRow === ev.row && m.kind !== 'boss' && !m.mini)
         if (ws.length > 0) {

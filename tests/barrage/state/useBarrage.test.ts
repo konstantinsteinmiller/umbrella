@@ -1495,3 +1495,35 @@ describe('Instant Barrage: FTUE sockets (retention-roadmap #1)', () => {
     expect(ftue.value.sockets).toBe(3)
   })
 })
+
+describe('Boss at 75 s: the first boss\'s entrance checkpoint (retention-roadmap #3)', () => {
+  it('a loss to the FTUE\'s first boss restarts AT it — tray kept, FTUE on, mercy counted once', async () => {
+    const h = await boot()
+    const e = h.eng()
+    for (let k = 0; k < 4; k++) turn(e) // row 5
+    e.state.tray = [2, 2, 1]
+    e.spawnBoss(60)
+    expect(h.progress.checkpoint.value).toMatchObject({ row: 4, deaths: 0 })
+    e.fire(1)
+    e.breachNow()
+    await flush()
+    await h.b.restartFromCheckpoint()
+    const made = h.fx.made.at(-1)!
+    expect(made).toMatchObject({ kind: 'createAtRow', row: 5 })
+    expect(made.tray).toEqual([2, 2, 1])
+    expect(made.config.ftue).toBe(true)
+    expect(made.config.bossHpMult).toBe(0.75)
+    expect(h.progress.checkpoint.value).toMatchObject({ row: 4, deaths: 1 })
+    // The retry meets the same entrance: the checkpoint (and its death count) stays.
+    h.eng().spawnBoss(60)
+    expect(h.progress.checkpoint.value).toMatchObject({ row: 4, deaths: 1 })
+  })
+
+  it('only the FTUE\'s first boss sets one — never a later boss, never past a kill', async () => {
+    const h = await boot({ ...QUALIFIED, eb_ftue: { done: true } })
+    const e = h.eng()
+    e.state.row = 20
+    e.spawnBoss(60)
+    expect(h.progress.checkpoint.value.row).toBe(0)
+  })
+})

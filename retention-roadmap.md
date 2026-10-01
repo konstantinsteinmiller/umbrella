@@ -24,7 +24,7 @@ All five add zero HUD elements; #2 and #4 remove UI. They ship together with Tie
 |---|---|---|---|---|---|---|
 | 1 | Instant Barrage: the power fantasy in the first 30 s | 0–1 m | easy to pick up | none | v1.2.4 | ✅ |
 | 2 | Silent Flow: no pause, no dimming, no text before the first boss kill | 0–1 m, 1–2 m | easy to pick up | removes | v1.2.4 | ✅ |
-| 3 | Boss at 75 s: a shorter first act with a live boss fight | 1–2 m, 2–3 m | pick-up, average playtime | none | v1.2.4 | |
+| 3 | Boss at 75 s: a shorter first act with a live boss fight | 1–2 m, 2–3 m | pick-up, average playtime | none | v1.2.4 | ✅ |
 | 4 | One-Tap Comeback: back in play about 1 s after a loss | 3–5 m, 5 m+ | hard to put down | removes | v1.2.4 | |
 | 5 | Shoot-to-Choose: boss drops you pick by shooting them | 5 m+ | session length, Day-1 return | removes a modal | v1.2.4 | |
 
@@ -270,7 +270,20 @@ Frame 1 already has about 13 HUD elements. They include all 5 upgrade chips with
   - Poki easy-access guide: teach with gestures and reveal buttons over the first levels.
   - Onboarding skill: survival across 5 full stops ≈ 0.87⁵ ≈ 50%.
 
-### #3 Boss at 75 s: a shorter first act with a live boss fight
+### ✅ #3 Boss at 75 s: a shorter first act with a live boss fight
+
+**Done (2026-10-01).**
+- **What's built:**
+  - On a fresh FTUE run the Slime Tower arrives at row 5, clamped to 2–3 volleys of the tray it meets (floor and ceiling).
+  - It replaces the row-10 boss: the next boss is at row 20.
+  - Every boss hit pays coin shards worth 60% of the bounty in total, and the chest holds the rest, so a boss pays the same overall.
+  - The boss's spawn sets an entrance checkpoint, so a loss restarts at the boss with the tray kept and mercy counted once.
+  - The early kill holds the HP clock 3 extra rows, so rows 10–30 stay as hard as they were with a row-10 boss.
+- **Sim (24 seeds × 45 turns, all bots):**
+  - First boss kill: median 42–67 s (target ≤ 90 s).
+  - Turns with zero income during boss 1: median 0.
+  - Boss-20 and boss-30 first tries and first-breach rows: equal to or better than the pre-#3 build. Examples: noup 19 → 24/24 at boss 20, tapper 7 → 8/24 at boss 30.
+- **Browser pass:** the entrance checkpoint lands at row 4, and the first boss dies within the first minute.
 
 **Problem.**
 - Boss 1 arrives at row 10 (`BOSS_EVERY`, `barrage/engine/types.ts:30`), about 1:35.

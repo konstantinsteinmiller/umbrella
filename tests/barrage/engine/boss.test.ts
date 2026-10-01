@@ -67,7 +67,10 @@ describe('bosses', () => {
     const ev = record(e)
     turn(e, Math.PI / 2)
     const d = ofType(ev, 'bossDefeated')
-    expect(d).toEqual([{ type: 'bossDefeated', monsterId: boss.id, bossKind: 'worm', row: 20, bounty: bossBounty(20) * 2 }])
+    // Boss at 75 s: the hits before the kill paid their shards; the chest
+    // (`bounty`) holds the rest — the whole bounty either way.
+    const shards = ofType(ev, 'coins').filter(c => c.source === 'shard').reduce((a, c) => a + c.amount, 0)
+    expect(d).toEqual([{ type: 'bossDefeated', monsterId: boss.id, bossKind: 'worm', row: 20, bounty: bossBounty(20) * 2 - shards }])
     expect(bossBounty(20)).toBe(25 * killCoins(20, 'slime', false))
     expect(ofType(ev, 'coins').some(c => c.source === 'boss')).toBe(false)
     expect(e.state.bossId).toBeNull()
@@ -276,16 +279,17 @@ describe('the first boss roars the stage clear', () => {
     expect(ofType(ev, 'breach')).toEqual([])
   })
 
-  it('the FTUE’s scripted Slime Tower roars too', () => {
+  it('the FTUE’s scripted Slime Tower roars too (Boss at 75 s: at row 5)', () => {
     const e = createEngine(defaultConfig({ seed: 1, ftue: true }))
-    for (let k = 0; k < 8; k++) expect(pass(e)).toBe('aim')
-    expect(e.state.row).toBe(9)
+    for (let k = 0; k < 3; k++) expect(pass(e)).toBe('aim')
+    expect(e.state.row).toBe(4)
     const walkers = e.state.monsters.map(m => m.id)
     expect(walkers.length).toBeGreaterThan(0)
     const ev = record(e)
     expect(pass(e)).toBe('aim')
+    expect(e.state.row).toBe(5)
     const boss = e.state.monsters.find(m => m.id === e.state.bossId)!
-    expect(boss.maxHp).toBe(bossHp(10, 10, false, true))
+    expect(boss.bossKind).toBe('slime-tower')
     expect(ofType(ev, 'bossRoar')[0]!.ids).toEqual(walkers)
     expect(e.state.monsters).toEqual([boss])
   })

@@ -38,6 +38,18 @@ export const FTUE_FEVER_HITS = 20
  *  ghost balls), announced by a gold glow under the launcher while the player
  *  aims it. Dense FTUE rows + ×3 balls set off FEVER, the combo crescendo and
  *  a coin rain worth the first upgrade. */
+/** Boss at 75 s (retention-roadmap #3): a fresh run's first boss arrives at
+ *  this row (not BOSS_EVERY), sized to FTUE_BOSS_VOLLEYS of the tray it meets;
+ *  it replaces the row-10 boss — the next one is at 2 × BOSS_EVERY. */
+export const FTUE_BOSS_ROW = 5
+export const FTUE_BOSS_VOLLEYS: readonly [number, number] = [2, 3]
+/** Share of every boss's bounty paid as coin shards per damage dealt; the
+ *  chest holds the rest, so a boss pays the same in total. */
+export const BOSS_SHARD_SHARE = 0.6
+/** Extra HP-clock hold rows when the FTUE's early boss dies: the row-10 first
+ *  boss it replaces held the clock through a 4–6-turn fight, the early one's
+ *  2–3-volley fight holds less, and the rows after it would come back harder. */
+export const FTUE_BOSS_CLOCK_HOLD = 3
 export const FTUE_OVERCHARGE_TURN = 4
 export const FTUE_OVERCHARGE_COPIES = 2
 
@@ -100,6 +112,9 @@ export interface Monster {
    *  under boss mercy (`config.bossHpMult`; absent = 1). Display only — the
    *  HUD bar draws the rest as a chunk cracked off its end. */
   mercy?: number
+  /** (engine addition) Boss only: bounty coins already paid as shards
+   *  (Boss at 75 s: every hit pays its share of BOSS_SHARD_SHARE). */
+  shards?: number
 }
 
 export interface Ball {
@@ -262,7 +277,7 @@ export type EngineEvent =
   /** `dealt` as on 'hit': the HP the tick actually removes. */
   | { type: 'dot'; monsterId: number; dmg: number; dealt: number; kind: 'burn' | 'poison'; x: number; y: number }
   | { type: 'kill'; monsterId: number; kind: MonsterKind; bossKind?: BossKind; corrupted: boolean; x: number; y: number; coins: number; row: number }
-  | { type: 'coins'; amount: number; x: number; y: number; source: 'kill' | 'pickup' | 'midas' | 'chest' | 'boss' | 'combo' }
+  | { type: 'coins'; amount: number; x: number; y: number; source: 'kill' | 'pickup' | 'midas' | 'chest' | 'boss' | 'combo' | 'shard' }
   /** (engine addition, fun pass) The volley's combo tally, right before
    *  `volleyEnd`: `hits` scored by `balls` launched; `coins` its balls'
    *  long rattles paid (economy `comboCoins`; 0 = none; its `coins` event,

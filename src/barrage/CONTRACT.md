@@ -52,6 +52,13 @@ but are secondary.
   before the breach check. Sim (40 seeds): the row-20 fight length is unchanged (human 5 turns, humanlow 7).
 - Boss enrages at < 30% HP (`bossEnrage`), then marches 2 rows per turn. Killing it emits `bossDefeated`
   (with `bounty`) → the state layer sets the CHECKPOINT at that row.
+- **Boss at 75 s** (retention-roadmap #3): on a fresh FTUE run the first boss (Slime Tower) arrives at
+  `FTUE_BOSS_ROW` = 5, its HP clamped to 2–3 volleys of the tray it meets (`FTUE_BOSS_VOLLEYS`, adaptive
+  floor AND ceiling), and it replaces the row-10 boss (the next is at row 20; its kill holds the HP clock
+  `FTUE_BOSS_CLOCK_HOLD` extra rows). Its spawn sets an **entrance checkpoint** (row 4, the tray it met), so
+  a loss to it restarts at it with the FTUE still on and mercy on top. **Coin shards** (every boss): each
+  hit pays its share of `BOSS_SHARD_SHARE` (60%) of the bounty at once (`coins` source `shard`, whole coins
+  owed against the HP taken, `Monster.shards` carries the paid part); `bossDefeated.bounty` is the rest.
 - **Boss death blast** (playtest run 2: a boss kill and OVERRUN landed in the same turn): right after
   `bossDefeated` the engine emits `bossBlast {monsterId, rows: 2, ids, x, y}` and kills every monster in the
   bottom two rows (normal kill coins, through gem shields, no imp split); a boss that died before its turn's
@@ -332,7 +339,7 @@ heal: every monster moves back up one row where free (bottom rows first) · revi
 | ~20 s | **Instant Barrage** (retention-roadmap #1): every FTUE row 1–5 carries an extra "+1"; a "+1" that meets a full tray grows a socket (`traySocket`, capacity 2 → 3 → 4 → 6, booked as free capacity levels, `eb_ftue.sockets`) instead of merging. |
 | ~30 s | Row 4 arrives as a swarm (every free top cell a slime). Turn 4 is **overcharged**: a gold glow under the unit while aiming, then the tray fires three times over (the copies are ghosts, fanned ±0.3 rad) and FEVER ignites on its first hit. FTUE FEVER otherwise needs 20 hits (not 50). |
 | after the first merge | The gift: one free Ball Damage level when the sockets grew the tray (otherwise the old free "Tray Capacity 3"). |
-| ~2:30 | Row 10: Slime Tower. Win = coin fountain + CHECKPOINT banner. |
+| ~45–70 s | Row 5: Slime Tower (Boss at 75 s), 2–3 volleys, shards on every hit. Win = coin fountain + CHECKPOINT banner. |
 FTUE rows 1–5 use HP ≤ 3, 3–4 walkers and no goblins; while `row ≤ 4` any "+1" left on the board when a
 volley ends is auto-collected, so the tray grows whatever the aim. FTUE ends at the first boss kill.
 Before the first boss, a breach restart keeps the tray from the last aim (a fresh row-1 board).

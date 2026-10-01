@@ -483,7 +483,9 @@ const buildCheckpointRun = (): IBarrageEngine => {
     if (kept.length === 1 && kept[0] === 1) return factory.create(endlessConfig())
     return factory.createAtRow(endlessConfig(), 1, kept)
   }
-  const config: EngineConfig = { ...endlessConfig(), ftue: false }
+  // Past a boss kill the FTUE is over; at the first boss's entrance
+  // checkpoint (Boss at 75 s) it still runs, so the boss comes back at once.
+  const config: EngineConfig = endlessConfig()
   const tray = restartTray(cp.tray.length ? cp.tray : [1], trayAtBreach(), config.damageMult)
   return factory.createAtRow(config, cp.row + 1, tray)
 }
@@ -764,7 +766,16 @@ const onEvent = (e: EngineEvent): void => {
     case 'bossSpawn':
     case 'bossEnrage':
       boss.value = readBoss(eng())
-      if (e.type === 'bossSpawn') funnelMilestone('boss1_spawn')
+      if (e.type === 'bossSpawn') {
+        funnelMilestone('boss1_spawn')
+        // Boss at 75 s (retention-roadmap #3): the run's first boss sets a
+        // checkpoint at its entrance — a loss to it restarts AT it, the tray
+        // kept and mercy on top, instead of at row 1. Set once: its retry
+        // meets the same entrance and must keep the death count.
+        if (mode.value === 'endless' && isFtueActive() && checkpoint.value.row <= 0 && e.row > 1) {
+          setCheckpoint(e.row - 1, eng().state.tray)
+        }
+      }
       break
     case 'bossDefeated':
       onBossDefeated(e)

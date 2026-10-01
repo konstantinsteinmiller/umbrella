@@ -13,7 +13,10 @@ import type {
   AimPath, BoardState, EngineConfig, EngineEvent, EngineListener, Hazard,
   IBarrageEngine, Monster, MonsterKind, Phase, Pickup, PickupKind, RunSnapshot, SkillId
 } from './types'
-import { BALL_R, BOSS_EVERY, COLS, FEVER_HITS, FLOOR_Y, FTUE_FEVER_HITS, FTUE_OVERCHARGE_COPIES, LAUNCH_MARGIN, ROWS, overchargeArmed } from './types'
+import {
+  BALL_R, BOSS_EVERY, BOSS_SHARD_SHARE, COLS, FTUE_BOSS_CLOCK_HOLD, FEVER_HITS, FLOOR_Y, FTUE_BOSS_ROW, FTUE_BOSS_VOLLEYS, FTUE_FEVER_HITS, FTUE_OVERCHARGE_COPIES,
+  LAUNCH_MARGIN, ROWS, overchargeArmed
+} from './types'
 import { Rng, mixSeed } from './rng'
 import {
   BURN_FRACTION, BURN_TURNS, CHAIN_FRACTION, CHAIN_JUMPS, CHAIN_RANGE, CRIT_CHANCE, CRIT_MULT,
@@ -119,6 +122,12 @@ const sanitizeTray = (tray: readonly number[] | undefined): number[] => {
 
 const copyMonster = (m: Monster): Monster => ({ ...m })
 
+/** The first boss row of a board whose first spawned row is `first`: the
+ *  FTUE's early boss (Boss at 75 s) while the first session lasts — its
+ *  entrance restart included — else the next multiple of BOSS_EVERY. */
+export const firstBossRow = (config: EngineConfig, first: number): number =>
+  config.ftue && config.mode !== 'daily' && first <= FTUE_BOSS_ROW ? FTUE_BOSS_ROW : Math.ceil(first / BOSS_EVERY) * BOSS_EVERY
+
 export class BarrageEngine implements IBarrageEngine {
   readonly state: BoardState
   readonly stats: EngineStats = newStats()
@@ -212,7 +221,7 @@ export class BarrageEngine implements IBarrageEngine {
       phase: 'aim',
       phaseTime: 0,
       row: 0,
-      nextBossRow: BOSS_EVERY,
+      nextBossRow: firstBossRow(config, 1),
       monsters: [],
       pickups: [],
       hazards: [],
@@ -524,7 +533,7 @@ export class BarrageEngine implements IBarrageEngine {
     s.tray = sanitizeTray(tray)
     this.stats.maxTier = s.tray[0] ?? 1
     s.row = first - 1
-    s.nextBossRow = Math.ceil(first / BOSS_EVERY) * BOSS_EVERY
+    s.nextBossRow = firstBossRow(s.config, first)
     const typical = hpClockAt(first)
     const clock = hpClock !== undefined && Number.isFinite(hpClock) ? Math.max(1, Math.floor(hpClock)) : typical.clock
     // One extra hold step: the first spawn below consumes it instead of
@@ -1084,6 +1093,23 @@ export class BarrageEngine implements IBarrageEngine {
     for (const n of hitList) this.damage(n, dmg)
   }
 
+  /** A boss's whole bounty (shards + chest), Coin Bounty applied. */
+  private bossTotal(m: Monster): number {
+    return Math.max(1, Math.round(bossBounty(m.spawnRow ?? this.state.row) * this.state.config.coinMult))
+  }
+
+  /** Boss at 75 s (retention-roadmap #3): a boss hit pays its share of
+   *  BOSS_SHARD_SHARE of the bounty as coins at once (whole coins, owed
+   *  against the HP taken off so far), so the upgrade loop keeps running
+   *  through a boss fight. */
+  private payShards(m: Monster): void {
+    const owed = Math.floor(BOSS_SHARD_SHARE * this.bossTotal(m) * Math.max(0, Math.min(1, 1 - m.hp / Math.max(1, m.maxHp))))
+    const paid = m.shards ?? 0
+    if (owed <= paid) return
+    m.shards = owed
+    this.grantCoins(owed - paid, m.col + m.w / 2, Math.max(0, m.row) + m.h / 2, 'shard')
+  }
+
   /** Applies damage; returns true if it killed. A carbuncle's shield blocks
    *  the first damage of any kind — splash, chain, eruption, meteor, a DoT
    *  tick — and breaks doing it. */
@@ -1104,6 +1130,7 @@ export class BarrageEngine implements IBarrageEngine {
       this.killMonster(m)
       return true
     }
+    if (m.kind === 'boss') this.payShards(m)
     if (m.kind === 'boss' && !m.enraged && m.hp < BOSS_ENRAGE_AT * m.maxHp) {
       m.enraged = true
       this.emit({ type: 'bossEnrage', monsterId: m.id })
@@ -1136,11 +1163,15 @@ export class BarrageEngine implements IBarrageEngine {
     if (m.kind === 'boss') {
       if (s.bossId === m.id) s.bossId = null
       this.stats.bossKills++
-      const bounty = Math.max(1, Math.round(bossBounty(spawnRow) * s.config.coinMult))
+      // Boss at 75 s: the shards already paid come off the chest — a boss pays
+      // its whole bounty either way.
+      const bounty = Math.max(1, this.bossTotal(m) - (m.shards ?? 0))
+      const early = s.config.ftue && spawnRow < BOSS_EVERY
       // The FTUE script ends with the first boss: normal generation from here.
       if (s.config.ftue) s.config.ftue = false
-      // The post-boss plateau: the next rows come back at the boss's clock.
-      this.hpHold = s.config.mode === 'daily' ? 0 : Math.max(0, Math.round(HP_CURVE.plateau))
+      // The post-boss plateau: the next rows come back at the boss's clock
+      // (longer after the FTUE's early boss: FTUE_BOSS_CLOCK_HOLD).
+      this.hpHold = s.config.mode === 'daily' ? 0 : Math.max(0, Math.round(HP_CURVE.plateau)) + (early ? FTUE_BOSS_CLOCK_HOLD : 0)
       this.emit({ type: 'bossDefeated', monsterId: m.id, bossKind: m.bossKind ?? 'slime-tower', row: spawnRow, bounty })
       this.bossBlast(m, x, y)
     }
@@ -1217,7 +1248,7 @@ export class BarrageEngine implements IBarrageEngine {
     if (childIds.length > 0) this.emit({ type: 'split', monsterId: m.id, x: m.col + 0.5, y: m.row + 0.5, childIds })
   }
 
-  private grantCoins(amount: number, x: number, y: number, source: 'kill' | 'pickup' | 'midas' | 'chest' | 'boss' | 'combo'): void {
+  private grantCoins(amount: number, x: number, y: number, source: Extract<EngineEvent, { type: 'coins' }>['source']): void {
     if (!(amount > 0)) return
     this.stats.coins += amount
     this.emit({ type: 'coins', amount, x, y, source })
@@ -1554,7 +1585,8 @@ export class BarrageEngine implements IBarrageEngine {
         boss = true
       }
       // A boss still alive (or no room for one) postpones the next boss by a row.
-      s.nextBossRow = boss ? (Math.floor(row / BOSS_EVERY) + 1) * BOSS_EVERY : row + 1
+      // Boss at 75 s: the FTUE's row-5 boss replaces the row-10 one.
+      s.nextBossRow = boss ? Math.max(2 * BOSS_EVERY, (Math.floor(row / BOSS_EVERY) + 1) * BOSS_EVERY) : row + 1
     }
 
     const liveBoss = s.bossId !== null ? s.monsters.find(m => m.id === s.bossId) : undefined
@@ -1610,9 +1642,16 @@ export class BarrageEngine implements IBarrageEngine {
     // Endless only — the Daily's kit is fixed.
     const first = isFirstBoss({ kind: 'boss', spawnRow: row }, row)
     const adapts = !daily && (!BOSS_ADAPT.firstOnly || first)
-    let full = adapts
-      ? adaptiveBossHp(curve, trayPower(s.tray, s.config.damageMult), bossAimHpb(this.aimWalker, this.aimBoss), first ? BOSS_ADAPT.firstVolleys : BOSS_ADAPT.volleys)
-      : curve
+    const power = trayPower(s.tray, s.config.damageMult)
+    const hpb = bossAimHpb(this.aimWalker, this.aimBoss)
+    let full = adapts ? adaptiveBossHp(curve, power, hpb, first ? BOSS_ADAPT.firstVolleys : BOSS_ADAPT.volleys) : curve
+    if (!daily && s.config.ftue && row < BOSS_EVERY) {
+      // Boss at 75 s: the early first boss dies in 2–3 volleys of the tray it
+      // meets — the adaptive floor's band, as a ceiling as well as a floor.
+      const lo = adaptiveBossHp(0, power, hpb, FTUE_BOSS_VOLLEYS[0])
+      const hi = adaptiveBossHp(0, power, hpb, FTUE_BOSS_VOLLEYS[1])
+      full = Math.max(1, Math.min(hi, Math.max(lo, curve)))
+    }
     // A retry never meets a stronger boss than the one that won (playtest run
     // 9: 224 → 348 HP, the floor had followed the tray the player kept).
     const cap = s.config.bossHpCap
