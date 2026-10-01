@@ -79,13 +79,19 @@ const claimFreeCapacity = (): void => {
   void flushSaveNow()
 }
 
+/** Instant Barrage (retention-roadmap #1): when the FTUE's sockets already
+ *  grew the tray, the Capacity gift has nothing left to teach, so the gift
+ *  that teaches "coins buy power" moves to Ball Damage, at the same beat
+ *  (after the first merge). */
+const socketGift = computed(() => ftue.value.firstMerge && ftue.value.sockets > 0)
+
 /** Playtest run 8: a player who ignored the Damage arrows three times (Mia:
  *  347 coins, Damage 0 — "a stuck tutorial hint") gets the first Ball Damage
  *  level FREE, the way the Capacity gift taught everyone that the chips buy
  *  power. The coach arms it (`offerFreeDamage`); never with the Capacity
  *  gift still open, never to a player who owns a Damage level. */
 const freeDamageOffer = computed(() =>
-  ftue.value.freeDamageOffer && !ftue.value.freeDamage && upgradeLevels.value.damage === 0 && !freeCapacityOffer.value)
+  (ftue.value.freeDamageOffer || socketGift.value) && !ftue.value.freeDamage && upgradeLevels.value.damage === 0 && !freeCapacityOffer.value)
 
 const offerFreeDamage = (): void => {
   if (ftue.value.freeDamageOffer || ftue.value.freeDamage || upgradeLevels.value.damage > 0) return

@@ -88,7 +88,7 @@ import {
 } from './progress'
 import { installPlayClock, sessionPlaySeconds } from './playClock'
 import { funnelMilestone, funnelPlayTime, funnelRow, setFunnelCohortResolver } from './funnel'
-import { upgradeLevels } from './upgradeLevels'
+import { setUpgradeLevel, upgradeLevels } from './upgradeLevels'
 import { recordDailyAttempt, recordDailyRow, dailyRecord, todaySeed } from './useDailyBarrage'
 import type { BossChestOffer, BossHud, BreachCulprit, BreachOffer, DailyResult, RunRecap, UseBarrage } from './contract'
 
@@ -277,7 +277,7 @@ const randomSeed = (): number => Math.floor(Math.random() * 0x7fffffff) >>> 0
 export const paidUpgradeLevels = computed(() => {
   let n = 0
   for (const id of UPGRADE_IDS) n += upgradeLevels.value[id]
-  return Math.max(0, n - (ftue.value.freeCapacity ? 1 : 0))
+  return Math.max(0, n - (ftue.value.freeCapacity ? 1 : 0) - ftue.value.sockets)
 })
 
 /** The safety net for the endless run: full (1) below ASSIST_UNTIL_PAID paid
@@ -728,6 +728,15 @@ const onEvent = (e: EngineEvent): void => {
       syncTray()
       break
     case 'trayOverflow':
+      syncTray()
+      break
+    case 'traySocket':
+      // Instant Barrage: the FTUE grew a socket — book it as a free capacity
+      // level so the chip, the save and the next board all agree.
+      if (upgradeLevels.value.capacity < e.level) {
+        patchFtue({ sockets: ftue.value.sockets + (e.level - upgradeLevels.value.capacity) })
+        setUpgradeLevel('capacity', e.level)
+      }
       syncTray()
       break
     case 'fever':

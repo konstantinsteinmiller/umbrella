@@ -527,6 +527,13 @@ const runBot = (bot, seed) => {
       } else if (ev.type === 'trayMerge') {
         if (!firstMerge) log.firstMergeTurn = turn
         firstMerge = true
+      } else if (ev.type === 'traySocket') {
+        // Instant Barrage: the game books an FTUE socket as a free capacity level.
+        if (levels.capacity < ev.level) { log.sockets += ev.level - levels.capacity; levels.capacity = ev.level }
+      } else if (ev.type === 'fever') {
+        if (log.feverTurn === null) log.feverTurn = turn
+      } else if (ev.type === 'chestHit') {
+        if (log.chestTurn === null) log.chestTurn = turn
       }
     })
     engine = e
@@ -543,8 +550,14 @@ const runBot = (bot, seed) => {
     // Aim phases with NO monster on the board in the 6 turns after the first
     // boss kill (run 5: "I kept firing balls into nothing").
     emptyAfter1: 0,
-    fights: []
+    fights: [],
+    // First session (the `ftue` report line): sockets granted, first FEVER,
+    // first flying chest, tray size and bank at 45 s, and the first boss
+    // fight's turns that earned nothing.
+    sockets: 0, feverTurn: null, chestTurn: null, trayAt45: null, coinsAt45: null, zeroBoss1: 0
   }
+  const SEC = SEC_PER_TURN[bot] ?? 7
+  const T45 = Math.ceil(45 / SEC)
   const buy = (up) => {
     coins -= up.cost
     levels[up.id]++
@@ -569,6 +582,7 @@ const runBot = (bot, seed) => {
     bossHitsN = 0
     engine.fire(a)
     const phase = engine.settle()
+    if (bossBefore && log.bossKills.length === 0 && coins === coins0) log.zeroBoss1++
     if (lastCombo && lastCombo.balls > 0 && bossBefore && fight) { fight.volleys++; fight.dmg += bossHitsN / (1 + (engine.saviorView?.boost ?? 0)); fight.powerSum += power }
     if (fight?.killed) closeFight(true)
     bossHitsN = 0
@@ -635,17 +649,20 @@ const runBot = (bot, seed) => {
         attach(createEngineAtRow(cfgFor({ ftue: log.bossKills.length === 0 }), checkpointRow + 1, tray))
       }
     }
-    // FTUE beat: one free "Tray Capacity 3" after the first merge.
-    if (buys && freeCapacity && firstMerge && levels.capacity === 0) {
+    // FTUE beat after the first merge: one free "Tray Capacity 3" — or, when
+    // the FTUE's sockets already grew the tray (Instant Barrage), one free
+    // Ball Damage level (the game's `socketGift`).
+    if (buys && freeCapacity && firstMerge) {
       freeCapacity = false
-      levels.capacity = 1
+      if (levels.capacity === 0) levels.capacity = 1
+      else if (log.sockets > 0 && levels.damage === 0) { levels.damage = 1; nextBuyTurn = turn + buyGap() }
     }
     if (isHuman(bot)) {
       if (!freeCapacity && levels.damage === 0 && log.upgrades.length === 0) {
         // The gold-arrow funnel points at Ball Damage until it is bought.
         const cost = upgradeCost('damage', 0)
         if (coins >= cost) { buy({ id: 'damage', cost }); nextBuyTurn = turn + buyGap() }
-      } else if (log.upgrades.length > 0 && turn >= nextBuyTurn) {
+      } else if ((log.upgrades.length > 0 || levels.damage > 0) && turn >= nextBuyTurn) {
         const up = glowing(levels, coins)
         if (up) { buy(up); nextBuyTurn = turn + buyGap() }
       }
@@ -662,6 +679,7 @@ const runBot = (bot, seed) => {
     if (turn === 18) {
       log.at18 = { row: engine.state.row, tray: engine.state.tray.slice(), cap: engine.state.config.trayCapacity, coins, paid: log.upgrades.length, kills: log.kills }
     }
+    if (turn === T45) { log.trayAt45 = engine.state.tray.length; log.coinsAt45 = coins }
     if (turn === 40) log.at40 = { row: engine.state.row, paid: log.upgrades.length, coins }
   }
   closeFight(false)
@@ -856,7 +874,19 @@ const report = (bot) => {
     ` (11-15 ${f2(bandMed[1] && base ? bandMed[1] / base : null)}× · 16-20 ${f2(bandMed[2] && base ? bandMed[2] / base : null)}×)` +
     ` · post/pre boss HP ${f2(ratio)} · ${clocks}`
   const late = lateReport(logs)
+  // First session (retention-roadmap #1 / #3 acceptance).
+  const T45 = Math.ceil(45 / SEC)
+  const fever40 = logs.filter(l => l.feverTurn !== null && l.feverTurn * SEC <= 40).length
+  const balls45 = pick(l => l.trayAt45)
+  const k1 = pick(l => l.bossKills[0]?.turn)
+  const chest1 = pick(l => Math.min(l.bossKills[0]?.turn ?? Infinity, l.chestTurn ?? Infinity) === Infinity ? null : Math.min(l.bossKills[0]?.turn ?? Infinity, l.chestTurn ?? Infinity))
+  const ftueLine = `ftue: balls@45s(t${T45}) med ${balls45 ?? '-'} (≥5 in ${logs.filter(l => (l.trayAt45 ?? 0) >= 5).length}/${SEEDS})` +
+    ` · bank@45s med ${pick(l => l.coinsAt45) ?? '-'} · FEVER ≤40s ${fever40}/${SEEDS} (med t${pick(l => l.feverTurn) ?? '-'})` +
+    ` · first boss kill med ${k1 ? Math.round(k1 * SEC) : '-'} s (row ${pick(l => l.bossKills[0]?.row) ?? '-'})` +
+    ` · zero-income boss-1 turns med ${pick(l => l.zeroBoss1) ?? '-'} max ${Math.max(...logs.map(l => l.zeroBoss1))}` +
+    ` · first chest med ${chest1 ? Math.round(chest1 * SEC) : '-'} s · sockets med ${pick(l => l.sockets) ?? '-'}`
   if (BRIEF) {
+    console.log(`       ${ftueLine}`)
     console.log(`${bot.padEnd(6)} b10 ${firstTry10}/${SEEDS}@${b10 ?? '-'} fb r${fb ?? '-'}@t${fbTurn ?? '-'} best ${bestRow} br ${breaches}` +
       ` r30@${r30 ?? '-'}(${r30 ? mmss(r30, SEC) : '-'}) k30@${k30 ?? '-'} merge@${firstMergeTurn ?? '-'} paid1@${firstPaid ?? '-'} 3min ${earlyCount}` +
       ` kt ${kt} | ${bosses} | ${press} | ${at18}`)
@@ -880,6 +910,7 @@ const report = (bot) => {
     ` · avg volley ${(logs.reduce((a, l) => a + l.volleySec, 0) / Math.max(1, logs.reduce((a, l) => a + l.volleys, 0))).toFixed(1)} s (+0.75 s resolve/advance + aiming)` +
     ` · ${((performance.now() - t0) / 1000).toFixed(1)} s` +
     `
+        ${ftueLine}
         ${bosses}
         ${press}` +
     (at18 ? `

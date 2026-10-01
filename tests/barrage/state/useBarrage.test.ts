@@ -1477,3 +1477,21 @@ describe('drop-off funnel (T0.1)', () => {
     }
   })
 })
+
+describe('Instant Barrage: FTUE sockets (retention-roadmap #1)', () => {
+  it('books an engine socket as free capacity levels — never backwards, never paid', async () => {
+    const h = await boot()
+    const { upgradeLevels } = await import('@/barrage/state/upgradeLevels')
+    const { ftue } = await import('@/barrage/state/progress')
+    const mod = await import('@/barrage/state/useBarrage')
+    h.eng().emit({ type: 'traySocket', level: 1, capacity: 3 })
+    h.eng().emit({ type: 'traySocket', level: 3, capacity: 6 })
+    expect(upgradeLevels.value.capacity).toBe(3)
+    expect(ftue.value.sockets).toBe(3)
+    expect(mod.paidUpgradeLevels.value).toBe(0)
+    // A stale event below the level the player already holds books nothing.
+    h.eng().emit({ type: 'traySocket', level: 2, capacity: 4 })
+    expect(upgradeLevels.value.capacity).toBe(3)
+    expect(ftue.value.sockets).toBe(3)
+  })
+})

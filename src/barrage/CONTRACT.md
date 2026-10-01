@@ -329,11 +329,12 @@ heal: every monster moves back up one row where free (bottom rows first) · revi
 |---|---|
 | 0 s | Row 1: three slimes, HP 1, in columns 2,3,4. Ghost hand drags back and releases (straight up is fine). Tray = [1], capacity 2. |
 | ~10 s | Turn 2: a "+1" pickup sits straight above the launcher, in the preview line. |
-| ~20 s | Turn 3: another "+1" in line → overflow → Magma Mote ×2 merge into **Frost Whirl** → tier reveal. |
-| ~40 s | Free upgrade: "Tray Capacity 3" (costs 0 once). |
+| ~20 s | **Instant Barrage** (retention-roadmap #1): every FTUE row 1–5 carries an extra "+1"; a "+1" that meets a full tray grows a socket (`traySocket`, capacity 2 → 3 → 4 → 6, booked as free capacity levels, `eb_ftue.sockets`) instead of merging. |
+| ~30 s | Row 4 arrives as a swarm (every free top cell a slime). Turn 4 is **overcharged**: a gold glow under the unit while aiming, then the tray fires three times over (the copies are ghosts, fanned ±0.3 rad) and FEVER ignites on its first hit. FTUE FEVER otherwise needs 20 hits (not 50). |
+| after the first merge | The gift: one free Ball Damage level when the sockets grew the tray (otherwise the old free "Tray Capacity 3"). |
 | ~2:30 | Row 10: Slime Tower. Win = coin fountain + CHECKPOINT banner. |
-FTUE rows 1–5 use HP ≤ 3 and no goblins; while `row ≤ 4` any "+1" left on the board when a volley ends is
-auto-collected, so the first merge lands on turn 3 whatever the aim. FTUE ends at the first boss kill.
+FTUE rows 1–5 use HP ≤ 3, 3–4 walkers and no goblins; while `row ≤ 4` any "+1" left on the board when a
+volley ends is auto-collected, so the tray grows whatever the aim. FTUE ends at the first boss kill.
 Before the first boss, a breach restart keeps the tray from the last aim (a fresh row-1 board).
 
 **After the FTUE — the wordless coach** (`use/useCoach.ts`; nothing typed on screen, sentences only in

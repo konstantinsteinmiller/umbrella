@@ -106,6 +106,9 @@ export interface FtueState {
   freeDamageOffer: boolean
   /** …and was taken. */
   freeDamage: boolean
+  /** Instant Barrage (retention-roadmap #1): capacity levels the FTUE granted
+   *  as sockets (engine `traySocket`) — free levels, never counted as paid. */
+  sockets: number
 }
 
 export interface SegmentState {
@@ -137,7 +140,8 @@ const readFtue = (): FtueState => {
     firstMerge: raw?.firstMerge === true,
     freeCapacity: raw?.freeCapacity === true,
     freeDamageOffer: raw?.freeDamageOffer === true,
-    freeDamage: raw?.freeDamage === true
+    freeDamage: raw?.freeDamage === true,
+    sockets: toCount(raw?.sockets)
   }
 }
 
@@ -324,7 +328,8 @@ export const refreshProgressFromBlob = (): void => {
     firstMerge: ftue.value.firstMerge || savedFtue.firstMerge,
     freeCapacity: ftue.value.freeCapacity || savedFtue.freeCapacity,
     freeDamageOffer: ftue.value.freeDamageOffer || savedFtue.freeDamageOffer,
-    freeDamage: ftue.value.freeDamage || savedFtue.freeDamage
+    freeDamage: ftue.value.freeDamage || savedFtue.freeDamage,
+    sockets: Math.max(ftue.value.sockets, savedFtue.sockets)
   }
   // A used one-shot stays used: taking the OR means switching devices can
   // never mint a second Meteor continue in the same segment.

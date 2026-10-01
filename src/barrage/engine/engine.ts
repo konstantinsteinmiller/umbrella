@@ -13,7 +13,7 @@ import type {
   AimPath, BoardState, EngineConfig, EngineEvent, EngineListener, Hazard,
   IBarrageEngine, Monster, MonsterKind, Phase, Pickup, PickupKind, RunSnapshot, SkillId
 } from './types'
-import { BALL_R, BOSS_EVERY, COLS, FEVER_HITS, FLOOR_Y, LAUNCH_MARGIN, ROWS } from './types'
+import { BALL_R, BOSS_EVERY, COLS, FEVER_HITS, FLOOR_Y, FTUE_FEVER_HITS, FTUE_OVERCHARGE_COPIES, LAUNCH_MARGIN, ROWS, overchargeArmed } from './types'
 import { Rng, mixSeed } from './rng'
 import {
   BURN_FRACTION, BURN_TURNS, CHAIN_FRACTION, CHAIN_JUMPS, CHAIN_RANGE, CRIT_CHANCE, CRIT_MULT,
@@ -22,9 +22,9 @@ import {
 } from './balls'
 import {
   BOSS_ADAPT, HP_CURVE, IMP_MINI_COINS, IMP_MINI_HP, adaptiveBossHp, bossAimHpb, bossForRow, bossHp, chargesAt, footprint, hpClockAt, isFirstBoss, monsterHp, planBossCol, roarShare, roarVictims,
-  planRow, randomSkill, restsAt, type WalkerKind
+  FTUE_DENSE_ROWS, planRow, randomSkill, restsAt, type WalkerKind
 } from './monsters'
-import { bossBounty, chestCoins, coinPickupCoins, comboCoins, killCoins, overflowCoins, saviorBoost } from './economy'
+import { CAPACITY_TABLE, bossBounty, chestCoins, coinPickupCoins, comboCoins, killCoins, overflowCoins, saviorBoost } from './economy'
 import { Grid, STEP, stepBall, type BallWorld, type SimBall } from './physics'
 import { aimPreview, clampAim, launchY } from './aim'
 
@@ -75,6 +75,17 @@ export const BOSS_BLAST_ROWS = 2
 /** FTUE: while the run is at or below this row, missed "+1"s are collected at
  *  volley end, so the scripted turn-3 merge never depends on aim. */
 export const FTUE_AUTO_COLLECT_ROWS = 4
+/** Instant Barrage (retention-roadmap #1): in the FTUE a "+1" that meets a full
+ *  tray grows a socket — one free capacity level — instead of merging, up to
+ *  this capacity level (`CAPACITY_TABLE[3]` = 6). The socket forming is the
+ *  lesson; the state layer books it as a free capacity level. */
+export const FTUE_SOCKET_LEVEL = 3
+/** Instant Barrage: the FTUE row that arrives as a swarm — every free top cell
+ *  a slime (the FTUE HP cap still holds) — so the overcharged volley that
+ *  follows has a board to clear. */
+export const FTUE_SWARM_ROW = 4
+/** The overcharged volley's copies fan out this far (rad) either side of the aim. */
+export const OVERCHARGE_FAN = 0.3
 
 /** Lifetime counters of this engine instance (bot sim, stats, achievements). */
 export interface EngineStats {
@@ -125,6 +136,8 @@ export class BarrageEngine implements IBarrageEngine {
   private launchTimer = 0
   private launchIndex = 0
   private volleyCount = 0
+  /** Instant Barrage: launch index from which balls are overcharge copies (fanned). */
+  private fanFrom = Infinity
   private volleySpeed = 15
   private volleyInterval = 0.085
   private angle = Math.PI / 2
@@ -266,6 +279,7 @@ export class BarrageEngine implements IBarrageEngine {
     if (s.phase !== 'aim' || !Number.isFinite(angle)) return false
     const a = clampAim(angle)
     if (s.tray.length === 0) s.tray.push(1)
+    const overcharged = overchargeArmed(s)
     this.angle = a
     s.turn++
     this.ballSeq = s.turn * 1000 + 1
@@ -294,6 +308,20 @@ export class BarrageEngine implements IBarrageEngine {
       b.x = s.launcherX
       b.y = launchY()
       s.balls.push(b)
+    }
+    this.fanFrom = overcharged ? s.tray.length : Infinity
+    if (overcharged) {
+      // Instant Barrage: the tray again, twice, as ghosts (they never move the
+      // launcher and never join the tray), fanned either side of the aim.
+      for (let k = 0; k < FTUE_OVERCHARGE_COPIES; k++) {
+        for (let i = 0; i < s.tray.length; i++) {
+          const b = this.allocBall(s.balls.length)
+          this.resetBall(b, s.tray[i]!, true)
+          b.x = s.launcherX
+          b.y = launchY()
+          s.balls.push(b)
+        }
+      }
     }
     this.volleyCount = s.balls.length
     this.emit({ type: 'fire', angle: a, balls: this.volleyCount })
@@ -690,6 +718,7 @@ export class BarrageEngine implements IBarrageEngine {
   private enterResolve(): void {
     const s = this.state
     s.fever = false
+    this.fanFrom = Infinity
     s.warcryActive = false
     s.speedMul = 1
     if (s.nextLauncherX !== null) s.launcherX = s.nextLauncherX
@@ -829,11 +858,17 @@ export class BarrageEngine implements IBarrageEngine {
   private launchNext(): void {
     const s = this.state
     if (this.launchIndex >= this.volleyCount) return
-    const b = s.balls[this.launchIndex++] as SimBall
+    const i = this.launchIndex++
+    const b = s.balls[i] as SimBall
     b.x = s.launcherX
     b.y = launchY()
-    b.vx = Math.cos(this.angle) * this.volleySpeed
-    b.vy = -Math.sin(this.angle) * this.volleySpeed
+    let a = this.angle
+    if (i >= this.fanFrom) {
+      const copy = Math.floor((i - this.fanFrom) / Math.max(1, this.fanFrom))
+      a = clampAim(a + (copy % 2 === 0 ? -OVERCHARGE_FAN : OVERCHARGE_FAN))
+    }
+    b.vx = Math.cos(a) * this.volleySpeed
+    b.vy = -Math.sin(a) * this.volleySpeed
     b.active = true
     this.emit({ type: 'launch', ballId: b.id, tier: b.tier })
   }
@@ -958,7 +993,9 @@ export class BarrageEngine implements IBarrageEngine {
     const s = this.state
     const h = s.volleyHits
     if (COMBO_MARKS.includes(h)) this.emit({ type: 'combo', hits: h })
-    if (h === FEVER_HITS && !s.fever) {
+    // The FTUE's overcharged volley IS the FEVER moment: it ignites on the first hit.
+    const line = this.fanFrom !== Infinity ? 1 : s.config.ftue ? FTUE_FEVER_HITS : FEVER_HITS
+    if (h >= line && !s.fever) {
       s.fever = true
       this.emit({ type: 'fever' })
     }
@@ -1189,6 +1226,13 @@ export class BarrageEngine implements IBarrageEngine {
   // ─── Pickups, tray, skills, chest ──────────────────────────────────────────
   private addBallToTray(tier: number): void {
     const s = this.state
+    if (s.config.ftue && s.config.mode !== 'daily' && s.tray.length >= s.config.trayCapacity) {
+      const level = CAPACITY_TABLE.indexOf(s.config.trayCapacity)
+      if (level >= 0 && level < FTUE_SOCKET_LEVEL) {
+        s.config.trayCapacity = CAPACITY_TABLE[level + 1]!
+        this.emit({ type: 'traySocket', level: level + 1, capacity: s.config.trayCapacity })
+      }
+    }
     this.emit({ type: 'trayAdd', tier })
     addToTray(s.tray, tier, s.config.trayCapacity, this.traySink)
   }
@@ -1497,6 +1541,7 @@ export class BarrageEngine implements IBarrageEngine {
     if (ftue && row === 1) {
       // CONTRACT §7: three one-hit slimes dead ahead of the launcher.
       for (const c of [2, 3, 4]) if (!blocked(c)) this.spawnMonster('slime', c, 0, false, 1, row)
+      this.spawnFtueBall(row)
       this.emit({ type: 'rowSpawned', row, boss: false })
       return
     }
@@ -1534,7 +1579,23 @@ export class BarrageEngine implements IBarrageEngine {
     }
     if (plan.skillCol !== null && plan.skill) this.spawnPickup('skill', plan.skillCol, 0, plan.skill)
     if (scripted) this.placeScriptedBall()
+    if (ftue && !boss && row <= FTUE_DENSE_ROWS) this.spawnFtueBall(row)
+    if (ftue && !boss && row === FTUE_SWARM_ROW) {
+      for (let c = 0; c < COLS; c++) {
+        if (this.grid.isFree(c, 0)) this.spawnMonster('slime', c, 0, false, monsterHp(hpRow, 'slime', false, ftue, cfg.assist, undefined, false), row)
+      }
+    }
     this.emit({ type: 'rowSpawned', row, boss })
+  }
+
+  /** Instant Barrage: one extra "+1" in an FTUE row (rows 1–FTUE_DENSE_ROWS),
+   *  in a free top cell picked from the row number alone (no RNG draw, so the
+   *  row stream stays the one it always was). */
+  private spawnFtueBall(row: number): void {
+    for (let i = 0; i < COLS; i++) {
+      const c = (row * 3 + i * 5) % COLS
+      if (this.grid.isFree(c, 0)) { this.spawnPickup('ball', c, 0); return }
+    }
   }
 
   private spawnBoss(row: number, col: number): void {

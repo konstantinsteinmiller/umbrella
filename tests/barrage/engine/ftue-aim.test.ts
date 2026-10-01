@@ -21,33 +21,37 @@ describe('FTUE script (CONTRACT §7)', () => {
     expect(s.config.trayCapacity).toBe(2)
   })
 
-  it('firing straight up three times merges T1+T1 into T2 on turn 3', () => {
+  // Instant Barrage (retention-roadmap #1) replaced the scripted turn-3 merge:
+  // a "+1" that meets the full FTUE tray grows a socket, so the tray GROWS.
+  it('firing straight up three times grows the tray with sockets — no merge', () => {
     for (const seed of [1, 2, 3, 99, 12345]) {
       const e = createEngine(defaultConfig({ seed, ftue: true }))
       const ev = record(e)
       turn(e, UP) // kills the middle slime
       expect(ofType(ev, 'kill')).toHaveLength(1)
-      turn(e, UP) // collects the scripted "+1"
-      expect(e.state.tray).toEqual([1, 1])
+      turn(e, UP)
+      turn(e, UP)
       expect(ofType(ev, 'trayMerge')).toHaveLength(0)
-      turn(e, UP) // third ball overflows → merge
-      expect(ofType(ev, 'trayMerge')).toEqual([{ type: 'trayMerge', fromTier: 1, toTier: 2 }])
-      expect(e.state.tray).toEqual([2, 1])
+      expect(ofType(ev, 'traySocket').length).toBeGreaterThanOrEqual(2)
+      expect(e.state.config.trayCapacity).toBeGreaterThanOrEqual(4)
+      expect(e.state.tray.length).toBeGreaterThanOrEqual(4)
     }
   })
 
   it('the scripted "+1" follows the launcher when the first shot went elsewhere', () => {
     const e = createEngine(defaultConfig({ seed: 5, ftue: true }))
     turn(e, 0.35)
-    const col = Math.floor(e.state.launcherX)
+    const col = Math.min(COLS - 1, Math.floor(e.state.launcherX))
+    // The scripted one sits in the launcher's column (the FTUE's extra "+1"
+    // takes a free cell of the new top row).
     const plus = e.state.pickups.filter(p => p.kind === 'ball')
-    expect(plus).toHaveLength(1)
-    expect(plus[0]!.col).toBe(Math.min(COLS - 1, col))
+    expect(plus.some(p => p.col === col)).toBe(true)
+    const before = e.state.tray.length
     turn(e, UP)
-    expect(e.state.tray).toEqual([1, 1])
+    expect(e.state.tray.length).toBeGreaterThan(before)
   })
 
-  it('guarantees the turn-3 merge however the player aims (missed "+1"s auto-collect)', () => {
+  it('guarantees the tray grows however the player aims (missed "+1"s auto-collect)', () => {
     for (const angle of [0.2, 0.5, 2.6, 2.9]) {
       const e = createEngine(defaultConfig({ seed: 31, ftue: true }))
       const ev = record(e)
@@ -56,8 +60,8 @@ describe('FTUE script (CONTRACT §7)', () => {
         e.recall() // not a single ball reaches anything
         e.settle()
       }
-      expect(ofType(ev, 'trayMerge')[0]).toEqual({ type: 'trayMerge', fromTier: 1, toTier: 2 })
-      expect(e.state.tray).toEqual([2, 1])
+      expect(ofType(ev, 'trayMerge')).toHaveLength(0)
+      expect(e.state.tray.length).toBeGreaterThanOrEqual(4)
       expect(ofType(ev, 'pickup').every(p => p.auto === true)).toBe(true)
     }
   })

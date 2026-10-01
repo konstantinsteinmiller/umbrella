@@ -13,7 +13,7 @@
  *   • no ctx.filter, no shadowBlur, one clip per frame
  */
 import {
-  BALL_R, COLS, FLOOR_Y, ROWS,
+  BALL_R, COLS, FLOOR_Y, ROWS, overchargeArmed,
   type AimPath, type Ball, type BoardState, type BossKind, type EngineEvent, type Hazard, type IBarrageEngine,
   type Monster, type MonsterKind, type Pickup, type SkillId
 } from '../engine/types'
@@ -1689,9 +1689,13 @@ export class BoardRenderer {
     // Under-glow in the element colour (warcry turns it to war-red); it gutters with the flame.
     ctx.globalCompositeOperation = 'lighter'
     const warcry = s.warcryArmed || s.warcryActive
-    ctx.globalAlpha = torn ? 0 : clamp01((0.45 + 0.2 * Math.sin(t * 3) + (warcry ? 0.25 : 0)) * pose.glow)
-    const gr = c * (warcry ? 1.05 : 0.85)
-    if (ctx.globalAlpha > 0.01) ctx.drawImage(this.vfx.dot(warcry ? '#ff4a2a' : ti.glow), cx - gr, floor - gr * 0.8, gr * 2, gr * 1.6)
+    // Instant Barrage: the FTUE's overcharged volley announces itself — a big
+    // gold glow that throbs under the unit while the player aims it.
+    const charged = s.phase === 'aim' && overchargeArmed(s)
+    const boost = warcry ? 0.25 : charged ? 0.4 + 0.25 * Math.sin(t * 7) : 0
+    ctx.globalAlpha = torn ? 0 : clamp01((0.45 + 0.2 * Math.sin(t * 3) + boost) * pose.glow)
+    const gr = c * (warcry ? 1.05 : charged ? 1.35 + 0.12 * Math.sin(t * 7) : 0.85)
+    if (ctx.globalAlpha > 0.01) ctx.drawImage(this.vfx.dot(warcry ? '#ff4a2a' : charged ? '#ffd23a' : ti.glow), cx - gr, floor - gr * 0.8, gr * 2, gr * 1.6)
     if (flare > 0.01) {
       // A flare (a Damage purchase, a continue after a breach): a bloom round the unit.
       const fr = c * (0.8 + 0.9 * flare)

@@ -30,6 +30,16 @@ export const MIN_AIM = (8 * Math.PI) / 180
 export const BOSS_EVERY = 10
 /** Hits in one volley that ignite FEVER (coins ×2, rainbow balls) for the rest of it. */
 export const FEVER_HITS = 50
+/** Instant Barrage (retention-roadmap #1): the first session's FEVER line, so
+ *  the power fantasy lands in minute 1 instead of practically never. */
+export const FTUE_FEVER_HITS = 20
+/** Instant Barrage's screen-clearing moment: the FTUE's 4th volley is
+ *  OVERCHARGED — the tray fires 1 + this many times over (the copies are
+ *  ghost balls), announced by a gold glow under the launcher while the player
+ *  aims it. Dense FTUE rows + ×3 balls set off FEVER, the combo crescendo and
+ *  a coin rain worth the first upgrade. */
+export const FTUE_OVERCHARGE_TURN = 4
+export const FTUE_OVERCHARGE_COPIES = 2
 
 // ─── Ids ─────────────────────────────────────────────────────────────────────
 export type MonsterKind =
@@ -181,6 +191,10 @@ export interface EngineConfig {
 }
 
 // ─── The whole mutable state (renderer reads it every frame; never writes) ───
+/** The next volley is the FTUE's overcharged one (see FTUE_OVERCHARGE_TURN). */
+export const overchargeArmed = (s: Pick<BoardState, 'config' | 'turn'>): boolean =>
+  s.config.ftue && s.config.mode !== 'daily' && s.turn + 1 === FTUE_OVERCHARGE_TURN
+
 export interface BoardState {
   config: EngineConfig
   phase: Phase
@@ -261,6 +275,9 @@ export type EngineEvent =
   | { type: 'trayAdd'; tier: number }
   | { type: 'trayMerge'; fromTier: number; toTier: number }
   | { type: 'trayOverflow'; tier: number; coins: number }
+  /** Instant Barrage: an FTUE "+1" met a full tray and grew a socket instead of
+   *  merging — capacity is now `CAPACITY_TABLE[level]` (a free capacity level). */
+  | { type: 'traySocket'; level: number; capacity: number }
   | { type: 'skill'; skill: SkillId; x: number; y: number }
   | { type: 'combo'; hits: number }
   | { type: 'fever' }

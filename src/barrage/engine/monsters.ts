@@ -441,11 +441,17 @@ export interface RowPlanOptions {
 const SKILLS: readonly SkillId[] = ['meteor', 'warcry', 'legion', 'pact', 'shield', 'execute', 'heal', 'revive']
 const SKILL_WEIGHT: readonly number[] = [2, 2, 2, 1.5, 1, 1.5, 1, 0.6]
 
+/** Instant Barrage: FTUE rows up to here spawn 3–4 walkers (and an extra "+1"). */
+export const FTUE_DENSE_ROWS = 5
+
 export const coinBubbleChance = (luck: number): number => 0.18 + 0.5 * luck
 export const skillBubbleChance = (luck: number): number => 0.07 + 0.25 * luck
 
-const monsterCountRange = (row: number, bossAlive: boolean): [number, number] => {
+const monsterCountRange = (row: number, bossAlive: boolean, ftue: boolean): [number, number] => {
   if (bossAlive) return [1, 3]
+  // Instant Barrage: the first session's rows 1–5 are denser (the FTUE HP cap
+  // keeps every one of them a 1–3 HP target), so the bigger tray has targets.
+  if (ftue && row <= FTUE_DENSE_ROWS) return [3, 4]
   if (row < 4) return [2, 3]
   if (row < 12) return [2, 4]
   return [2, 5]
@@ -472,7 +478,7 @@ export const planRow = (seed: number, row: number, opts: RowPlanOptions): RowPla
   for (let c = 0; c < COLS; c++) taken.push(opts.blocked(c))
   const plan: RowPlan = { monsters: [], ballCol: null, coinCol: null, skillCol: null, skill: null }
 
-  const [lo, hi] = monsterCountRange(row, opts.bossAlive)
+  const [lo, hi] = monsterCountRange(row, opts.bossAlive, opts.ftue)
   // Drawn even for a calm row: the row's stream stays the one it always was.
   const drawn = rng.intIn(lo, Math.min(hi, opts.maxMonsters ?? hi))
   const want = opts.calm ? 0 : drawn

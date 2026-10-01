@@ -22,7 +22,7 @@ All five add zero HUD elements; #2 and #4 remove UI. They ship together with Tie
 
 | # | Feature | Bucket it moves | Playbook metric | UI | Ships | Status |
 |---|---|---|---|---|---|---|
-| 1 | Instant Barrage: the power fantasy in the first 30 s | 0–1 m | easy to pick up | none | v1.2.4 | |
+| 1 | Instant Barrage: the power fantasy in the first 30 s | 0–1 m | easy to pick up | none | v1.2.4 | ✅ |
 | 2 | Silent Flow: no pause, no dimming, no text before the first boss kill | 0–1 m, 1–2 m | easy to pick up | removes | v1.2.4 | ✅ |
 | 3 | Boss at 75 s: a shorter first act with a live boss fight | 1–2 m, 2–3 m | pick-up, average playtime | none | v1.2.4 | |
 | 4 | One-Tap Comeback: back in play about 1 s after a loss | 3–5 m, 5 m+ | hard to put down | removes | v1.2.4 | |
@@ -168,7 +168,20 @@ Players who get past the 3–5 m band stay. The 5 m+ bucket ("hooked") averages 
 - **Unit tests:** `pnpm test` (vitest).
 - **Returning players:** every change keys on `config.ftue` or `isFtueActive()` (`barrage/state/progress.ts:242`: FTUE not done and no boss killed yet), or on a fresh-run condition. `tests/barrage/engine/determinism.test.ts` and `relief.test.ts` must show non-FTUE boards unchanged.
 
-### #1 Instant Barrage: the power fantasy in the first 30 s
+### ✅ #1 Instant Barrage: the power fantasy in the first 30 s
+
+**Done (2026-10-01).**
+- **What's built:**
+  - In the FTUE, a "+1" that meets a full tray grows a socket (capacity 2 → 3 → 4 → 6), booked as free capacity levels (`eb_ftue.sockets`). Sockets never count as paid.
+  - Rows 1–5 carry an extra "+1" and 3–4 walkers, with the HP cap kept.
+  - Row 4 arrives as a swarm.
+  - The 4th volley is overcharged: a gold glow under the launcher while the player aims, then the tray fires three times over in a fan, and FEVER ignites on its first hit. FTUE FEVER otherwise needs 20 hits, not 50.
+  - The gift after the first merge moves to Ball Damage.
+- **Sim (24 seeds, all 7 bots):**
+  - Median balls at 45 s: 6 (≥ 5 in 24/24 for every bot).
+  - FEVER before 40 s: 24/24 for every bot, the first two plays included.
+  - Boss-1 first try: 23–24/24 (baseline 21–24). First-breach rows: noup 30 → 40 and tapper 31 → 37. The random bot's median moved 42 → 39.
+- **Browser pass:** a fresh profile gets 3 sockets and its first FEVER.
 
 **Problem.** For about 2 min the player fires 1–3 balls into 1–14 HP monsters. The 6-ball tray arrives around 2:15. FEVER (50 hits in one volley, `barrage/engine/types.ts:32`) practically never fires in minute 1. The game promises a barrage and delivers a trickle.
 

@@ -152,6 +152,23 @@ describe('upgrades: exactly one glows', () => {
     expect(up.freeId.value).toBe('damage')
   })
 
+  it('Instant Barrage: FTUE sockets move the gift to Damage and never count as paid', async () => {
+    seed({ epic_coins: 0, eb_upgrades: { damage: 0, capacity: 3, speed: 0, luck: 0, bounty: 0 }, eb_ftue: { sockets: 3 } })
+    const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
+    const { patchFtue } = await import('@/barrage/state/progress')
+    // Before the first merge: no gift yet (the same beat the Capacity gift had).
+    expect(up.freeId.value).toBeNull()
+    patchFtue({ firstMerge: true })
+    expect(up.freeCapacityOffer.value).toBe(false)
+    expect(up.freeId.value).toBe('damage')
+    up.claimFree()
+    expect(up.list.value.find((v) => v.id === 'damage')!.level).toBe(1)
+    expect(up.freeId.value).toBeNull()
+    // The three socket levels are free: only the Damage level counts as paid.
+    const { paidUpgradeLevels } = await import('@/barrage/state/useBarrage')
+    expect(paidUpgradeLevels.value).toBe(1)
+  })
+
   it('a maxed track never glows, reports no next value, and cannot be bought', async () => {
     seed({ epic_coins: 1e12, eb_upgrades: { damage: 0, capacity: 15, speed: 10, luck: 10, bounty: 0 } })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
