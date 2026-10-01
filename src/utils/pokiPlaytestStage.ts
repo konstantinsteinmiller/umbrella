@@ -130,6 +130,8 @@ interface HudBox {
 }
 
 let stage: HTMLCanvasElement | null = null
+/** T0.3 step 1: told once, the first time the recorder films the stage. */
+let onRecordOnce: (() => void) | null = null
 let ctx: CanvasRenderingContext2D | null = null
 let raf = 0
 let last = 0
@@ -543,9 +545,10 @@ const startPainting = (): void => {
  * Hand Poki's playtest recorder its stage (once, after `PokiSDK.init()`).
  * Safe on an SDK without the playtest API, and a no-op the second time.
  */
-export const installPokiPlaytestStage = (sdk: PlaytestSdk): HTMLCanvasElement | null => {
+export const installPokiPlaytestStage = (sdk: PlaytestSdk, onRecord?: () => void): HTMLCanvasElement | null => {
   if (stage || typeof document === 'undefined' || !document.body) return stage
   if (typeof sdk.playtestSetCanvas !== 'function') return null
+  onRecordOnce = onRecord ?? null
   const c = document.createElement('canvas')
   c.width = Math.max(2, Math.round(window.innerWidth))
   c.height = Math.max(2, Math.round(window.innerHeight))
@@ -569,6 +572,10 @@ export const installPokiPlaytestStage = (sdk: PlaytestSdk): HTMLCanvasElement | 
         const stream = frameRequestRate === undefined ? native() : native(frameRequestRate)
         tracks.push(...stream.getVideoTracks())
         startPainting()
+        // T0.3: did the recording stage run during this play? (a `diag` measure)
+        const told = onRecordOnce
+        onRecordOnce = null
+        try { told?.() } catch { /* diagnostics never break the recorder */ }
         return stream
       }
     })
@@ -583,6 +590,7 @@ export const installPokiPlaytestStage = (sdk: PlaytestSdk): HTMLCanvasElement | 
 
 /** Specs only: forget the stage. */
 export const __resetPokiPlaytestStage = (): void => {
+  onRecordOnce = null
   if (raf) cancelAnimationFrame(raf)
   raf = 0
   last = 0

@@ -29,6 +29,21 @@ describe('Poki playtest stage', () => {
     expect(sdk.playtestSetCanvas).toHaveBeenCalledTimes(1)
   })
 
+  it('T0.3: tells its caller once, the first time the recorder films it', () => {
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1)
+    const track = { readyState: 'live' } as MediaStreamTrack
+    const stream = { getVideoTracks: () => [track] } as unknown as MediaStream
+    Object.defineProperty(HTMLCanvasElement.prototype, 'captureStream', { configurable: true, value: vi.fn(() => stream) })
+    const told = vi.fn()
+    const stage = installPokiPlaytestStage({ playtestSetCanvas: vi.fn() }, told)!
+    expect(told).not.toHaveBeenCalled()
+    stage.captureStream(24)
+    expect(told).toHaveBeenCalledTimes(1)
+    stage.captureStream(24)
+    expect(told).toHaveBeenCalledTimes(1)
+    delete (HTMLCanvasElement.prototype as { captureStream?: unknown }).captureStream
+  })
+
   it('an SDK without the playtest API gets no stage', () => {
     expect(installPokiPlaytestStage({})).toBeNull()
     expect(document.querySelector('[data-poki-playtest-stage]')).toBeNull()

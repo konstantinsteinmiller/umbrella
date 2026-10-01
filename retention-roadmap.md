@@ -121,7 +121,13 @@ Players who get past the 3–5 m band stay. The 5 m+ bucket ("hooked") averages 
   - Returning players who already qualify see offers at once. Coin-mode builds get the same gate.
 - **Accept:** `useBarrage.test.ts` ("rewarded gate"), `skinAdUnlock.test.ts`, `playClock.test.ts` and `tests/barrage/ui/collectionSkinAds.test.ts`. The Poki build's first frame shows no live ad button.
 
-### T0.3 FPS check, measured first (`web-game-performance-optimize`) · S–M
+### ✅ T0.3 FPS check, measured first (`web-game-performance-optimize`) · S–M
+
+**Done (2026-10-01): measured; no code change shipped** (see `PERF-LEDGER.md`).
+- **Step 1:** the recording stage now sends `diag / rec_stage` the first time Poki's recorder films it, so the next Player Fit Events table shows whether it ran.
+- **Step 2:** a trace of the built Poki bundle (4× CPU, phone size) attributes the main-thread cost to layer updates and canvas uploads, not game script. The top suspect, the per-frame clear of the idle particle canvas, measured grey: −3.7 % inside a ±77 % noise floor on a machine saturated by other sessions. Per the rule it was reverted, and the ledger rows were written.
+- **Open:** a real-phone trace on a quiet machine. Candidates: the idle particle clear, and the board redraw during idle aim phases.
+- **Harness:** `tools/perf/perf-ab.mjs` (built bundle, Poki stub, interleaved A/B, trace attribution).
 
 - **Step 1: is the recording stage running during Player Fit?**
   - While Poki's recorder films, `utils/pokiPlaytestStage.ts` repaints the backdrop, board, HUD outline and particles into a hidden stage canvas at 30 fps (`paintStage` `:496`, loop `:524`). It starts only when the recorder calls `captureStream` (`:571`); outside a recording it costs nothing per frame.
