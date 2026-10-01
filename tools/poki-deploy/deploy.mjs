@@ -19,7 +19,7 @@
 //   pnpm deploy:poki --qa-only          QA the newest version already in P4D
 //   pnpm deploy:poki --gates-only       audit the artifact and stop
 //   pnpm deploy:poki --dry-run          everything except the upload itself
-//   pnpm deploy:poki --strict           budget warnings fail the run
+//   pnpm deploy:poki --strict           recommended-size warnings fail the run
 //   pnpm deploy:poki --honest-ticks     tick only what the run proved
 //   pnpm deploy:poki --keep             leave Chrome open at the end
 //
@@ -35,7 +35,7 @@ import { Cdp, DEFAULT_PROFILE, launch } from './lib/chrome.mjs'
 import { runGates } from './lib/gates.mjs'
 import { zipDir } from './lib/zip.mjs'
 import { bold, bytes, cyan, die, dim, fail, info, pass, step, warn, yellow, green, red } from './lib/log.mjs'
-import { inspectorUrl, openVersions, readVersions, uploadVersion, versionsUrl, gameFrameOrigin } from './lib/p4d.mjs'
+import { inspectorUrl, openVersions, readVersions, resolveGameId, uploadVersion, versionsUrl, gameFrameOrigin } from './lib/p4d.mjs'
 import { STEPS, applyVerdicts, runInspectorQa } from './lib/inspector.mjs'
 import { bumpPatch, readVersion, writeVersion } from './lib/version.mjs'
 
@@ -48,11 +48,8 @@ const flag = n => argv.includes(`--${n}`)
 const arg = (n, d) => { const i = argv.indexOf(`--${n}`); return i >= 0 && i + 1 < argv.length ? argv[i + 1] : d }
 
 const CONFIG_PATH = resolve(arg('config', join(here, 'poki.config.mjs')))
-if (!existsSync(CONFIG_PATH)) die(`no config at ${CONFIG_PATH}`, 'copy poki.config.mjs and fill in team + gameId from your P4D URL')
+if (!existsSync(CONFIG_PATH)) die(`no config at ${CONFIG_PATH}`, 'copy poki.config.mjs and fill in team + gameName (gameId is optional — it is looked up by name)')
 const cfg = (await import(pathToFileURL(CONFIG_PATH).href)).default
-// An empty id is a config that was never filled in for THIS game — and an id
-// copied from another game would upload this build to that game's page.
-if (!cfg.gameId) die('poki.config.mjs has no gameId', 'set it from the P4D URL of Auroras Magic: app.poki.dev/<team>/games/<gameId>/versions')
 
 const DRY = flag('dry-run')
 const STRICT = flag('strict')
@@ -68,7 +65,7 @@ const PORT = Number(arg('port', 9333))
 const PROFILE = arg('profile', DEFAULT_PROFILE)
 
 console.log(bold(`\nPoki deploy — ${cfg.gameName}`))
-console.log(dim(`  team ${cfg.team} · game ${cfg.gameId}`))
+console.log(dim(`  team ${cfg.team} · game ${cfg.gameId || `"${cfg.gameName}" (looked up by name)`}`))
 if (DRY) console.log(yellow('  --dry-run: nothing will actually be uploaded'))
 
 // ── 1. version ──────────────────────────────────────────────────────────────
@@ -133,6 +130,27 @@ info(adopted ? 'adopted the Chrome already on this port' : 'launched a headed Ch
 
 const cdp = await Cdp.open(port, 'about:blank')
 let versionId = arg('version-id', null)
+
+// `gameId` is OPTIONAL. With none configured, find it by NAME on the team page
+// rather than making somebody copy a uuid out of a URL by hand — that lookup is
+// the only manual step in setting this pipeline up. Resolved here, after the
+// browser is up and before anything needs the id, and printed so it can be
+// pasted into the config to skip the lookup on later runs.
+let gameId = arg('game-id', cfg.gameId)
+if (!gameId || /^TODO/i.test(gameId)) {
+  step('Find the game')
+  gameId = await resolveGameId(cdp, {
+    team: cfg.team,
+    gameName: cfg.gameName,
+    onLoginNeeded: () => {
+      console.log(`\n   ${yellow('▸ Sign in to Poki in the Chrome window that just opened.')}`)
+      console.log(`   ${dim('This is a one-off: the profile keeps the session for every run after this.')}`)
+      console.log(`   ${dim('Waiting up to 5 minutes…')}\n`)
+    },
+    log: m => info(m),
+  })
+  info('add this to poki.config.mjs to skip the lookup', `gameId: '${gameId}'`)
+}
 // Cleared at the end of a clean run; a failure leaves the tab open to look at.
 let failedRun = true
 
@@ -142,7 +160,7 @@ try {
     step('Upload to P4D')
     await openVersions(cdp, {
       team: cfg.team,
-      gameId: cfg.gameId,
+      gameId,
       onLoginNeeded: () => {
         console.log(`\n   ${yellow('▸ Sign in to Poki in the Chrome window that just opened.')}`)
         console.log(`   ${dim('This is a one-off: the profile keeps the session for every run after this.')}`)
@@ -162,11 +180,11 @@ try {
       })
       versionId = up.id
       pass(`uploaded as "${up.label}"`, `version ${up.id} — ${up.status}`)
-      info('served at', gameFrameOrigin(cfg.gameId, up.id))
+      info('served at', gameFrameOrigin(gameId, up.id))
     }
   } else {
     step('Target version')
-    await openVersions(cdp, { team: cfg.team, gameId: cfg.gameId, onLoginNeeded: () => console.log(yellow('   ▸ sign in to Poki in the Chrome window')) })
+    await openVersions(cdp, { team: cfg.team, gameId, onLoginNeeded: () => console.log(yellow('   ▸ sign in to Poki in the Chrome window')) })
     const rows = await readVersions(cdp)
     versionId = versionId ?? rows[0]?.id
     if (!versionId) die('no versions in P4D to QA')
@@ -185,6 +203,7 @@ try {
       port,
       playMs: Number(arg('play-ms', cfg.qa?.playMs ?? 45000)),
       adWaitMs: Number(arg('ad-wait-ms', cfg.qa?.adWaitMs ?? 120000)),
+      reloadIdleMs: Number(arg('reload-idle-ms', cfg.qa?.reloadIdleMs ?? 60000)),
       hooks: cfg.hooks ?? {},
       allowHosts: cfg.allowHosts ?? [],
       declares: cfg.declares ?? {},
@@ -195,7 +214,7 @@ try {
   }
 
   console.log(`\n${green('✔')} done — ${bold(versionName)}`)
-  console.log(`  ${dim('P4D')}        ${versionsUrl(cfg.team, cfg.gameId)}`)
+  console.log(`  ${dim('P4D')}        ${versionsUrl(cfg.team, gameId)}`)
   if (versionId) console.log(`  ${dim('Inspector')}  ${inspectorUrl(versionId)}`)
   console.log(`  ${dim('Setting the version live is still a manual click in P4D.')}\n`)
   failedRun = false
@@ -243,13 +262,14 @@ function report (qa, applied, versionId) {
   console.log(`\n  ${green(`${proven.length} proven`)} · ${red(`${failed.length} disproved`)} · ${dim(`${na.length} n/a`)} · ${yellow(`${unproven.length} assumed`)}`)
   console.log(`  ${dim(HONEST ? '--honest-ticks: only the proven ones are ticked' : 'all 25 boxes ticked in the Inspector; this report is the record of which were actually proven')}`)
 
-  // Poki's own measured figures, which is what its budgets are graded on —
-  // the local estimate in the gates is only a stand-in until this exists.
+  // Poki's own measured figures — the local estimate in the gates is only a
+  // stand-in until this exists. The size figures are Poki's RECOMMENDATION
+  // (engine guide), not a hard limit; only the 10 s load matters to players.
   if (qa.metrics?.loadTime) {
     console.log(`\n  ${bold('Measured by the Inspector')}`)
-    console.log(`    load time         ${qa.metrics.loadTime}       ${dim('(budget: under 10 s)')}`)
-    console.log(`    initial download  ${qa.metrics.initialDownload ?? '?'}   ${dim('(budget: 5 MB)')}`)
-    console.log(`    total size        ${qa.metrics.fileSize ?? '?'}   ${dim('(budget: 8 MB)')}`)
+    console.log(`    load time         ${qa.metrics.loadTime}       ${dim('(recommended: under 10 s)')}`)
+    console.log(`    initial download  ${qa.metrics.initialDownload ?? '?'}   ${dim('(recommended: ~5 MB, no hard limit)')}`)
+    console.log(`    total size        ${qa.metrics.fileSize ?? '?'}   ${dim('(recommended: ~8 MB, no hard limit)')}`)
   }
 
   if (failed.length) {

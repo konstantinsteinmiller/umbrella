@@ -291,7 +291,13 @@ export const pokiPlugin = (): Promise<void> => {
     // itself it filmed the full-window particle canvas, and every playtest
     // video was black but for confetti.
     try {
-      installPokiPlaytestStage(sdk)
+      // T0.3 step 1: one `diag / rec_stage` row in the Player Fit Events table
+      // (start + complete — the table shows nothing else) says the recording
+      // stage really ran — and repainted at 30 fps — during that test.
+      installPokiPlaytestStage(sdk, () => {
+        pokiMeasure('diag', 'rec_stage', 'start')
+        pokiMeasure('diag', 'rec_stage', 'complete')
+      })
     } catch (e) {
       warn('playtest stage setup threw', e)
     }
@@ -413,18 +419,15 @@ const stopGestureWatch = (): void => {
 const startGestureWatch = (): void => {
   if (gestureListening || userHasInteracted || typeof window === 'undefined') return
 
-  // Ask the browser first. `userActivation.hasBeenActive` is sticky for the life
-  // of the document, so it catches the gesture these listeners are armed too
-  // late for — the tap that lands while the SDK script is still in flight. Without
-  // it the gate demands a SECOND tap from a player who already acted, which is
-  // exactly the conversion cost the gate was designed to avoid. Optional-chained
-  // because Safari only shipped it in 16.4; where it is missing the listeners
-  // below are the whole gate, as before.
-  if (navigator.userActivation?.hasBeenActive) {
-    pokiNoteUserInteraction()
-    return
-  }
-
+  // NEVER open the gate from `navigator.userActivation.hasBeenActive`. Chrome
+  // keeps that flag across a SAME-ORIGIN reload of an iframe — what the Poki
+  // Inspector and the P4D preview do — so a build that trusts it boots "already
+  // activated" after a reload and fires gameplayStart with nobody touching it:
+  // the hand-checked "gameplayStart without player interaction" rejection
+  // (merge-idle-war, 2026-10-01; integrate-poki §1b). Only the trusted
+  // listeners below may open it, and the gameplay bracket's own trusted
+  // listeners (`usePortalGameplay.notePlayerInteraction`), which report the
+  // same gesture through `pokiNoteUserInteraction`.
   gestureListening = true
   for (const type of GESTURE_EVENTS) {
     window.addEventListener(type, onGesture, { capture: true, passive: true })

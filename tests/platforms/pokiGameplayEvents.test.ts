@@ -255,13 +255,14 @@ describe('poki gameplay start requires a user interaction', () => {
     expect(emitted.map((e) => e.kind)).toEqual(['start'])
   })
 
-  it('opens the gate from sticky user activation when it arms too late', async () => {
+  it('NEVER opens the gate from sticky user activation (it survives an iframe reload)', async () => {
     const emitted = installSdkSpy()
-    // The player tapped while the SDK script was still in flight, so the
-    // listeners never saw the gesture — but the document is activated, and the
-    // browser remembers that for the life of the page.
+    // Chrome carries `hasBeenActive` across a same-origin iframe reload (the
+    // Inspector's, P4D's preview's): a reloaded game nobody touched still reads
+    // "activated". Trusting it fired gameplayStart with no input — a Poki QA
+    // rejection (merge-idle-war, 2026-10-01).
     Object.defineProperty(navigator, 'userActivation', {
-      value: { hasBeenActive: true, isActive: true },
+      value: { hasBeenActive: true, isActive: false },
       configurable: true
     })
     try {
@@ -269,9 +270,7 @@ describe('poki gameplay start requires a user interaction', () => {
       await pokiPlugin()
       pokiGameplayStart()
       await wait(10)
-
-      // No second tap demanded: the start lands on the bracket the game opened.
-      expect(emitted.map((e) => e.kind)).toEqual(['start'])
+      expect(emitted.map((e) => e.kind)).toEqual([])
     } finally {
       delete (navigator as { userActivation?: unknown }).userActivation
     }

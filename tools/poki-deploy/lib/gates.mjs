@@ -45,6 +45,8 @@ const NOISE_HOSTS = [
 /** Fragments that mean another portal's integration survived into this bundle. */
 const FOREIGN_SDK_MARKERS = [
   'sdk.crazygames.com', 'CrazyGames.SDK',
+  // GameDistribution is no longer a target (2026-10-01), but older games still
+  // carry its code, so a leak of it is still worth catching.
   'html5.api.gamedistribution.com', 'gdsdk',
   'api.gamemonetize.com', 'sdk.gamemonetize.com',
   'playgama.com/bridge', 'gamepix.com/sdk', 'games.gamepix.com',
@@ -165,7 +167,10 @@ export const runGates = ({ dist, zip, allowHosts = [], sdkTag = 'game-cdn.poki.c
   }
 
   // ── 7. budgets ────────────────────────────────────────────────────────────
-  // Poki: ≤ 5 MB initial download, ≤ 8 MB total, < 10 s load. "Initial" is what
+  // Poki has NO hard size limit (requirements-quality only says loading over
+  // 10 s loses players). ~5 MB initial / ~8 MB total is a RECOMMENDATION from
+  // its engine guide (developers.poki.com/guide/web-engine), so these stay
+  // warnings, never failures (only --strict promotes them). "Initial" is what
   // the browser must have before the first frame — index.html plus everything
   // it references directly — which is an estimate here and measured for real in
   // the Inspector's own readout.
@@ -175,8 +180,8 @@ export const runGates = ({ dist, zip, allowHosts = [], sdkTag = 'game-cdn.poki.c
     return n + (existsSync(p) ? statSync(p).size : 0)
   }, Buffer.byteLength(html))
   const mb = n => `${(n / 1024 / 1024).toFixed(2)} MB`
-  ;(initial <= 5 * 1024 * 1024 ? ok : meh)('initial download ≤ 5 MB', `${mb(initial)} (estimate; the Inspector measures the real figure)`)
-  ;(total <= 8 * 1024 * 1024 ? ok : meh)('total size ≤ 8 MB', `${mb(total)} across ${files.length} files`)
+  ;(initial <= 5 * 1024 * 1024 ? ok : meh)('initial download ≤ 5 MB (recommended)', `${mb(initial)} (estimate; the Inspector measures the real figure)`)
+  ;(total <= 8 * 1024 * 1024 ? ok : meh)('total size ≤ 8 MB (recommended)', `${mb(total)} across ${files.length} files`)
 
   return {
     results,
