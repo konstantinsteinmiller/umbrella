@@ -110,6 +110,24 @@ export const corruptChance = (row: number): number =>
 // ~20–40) carries up to 1.6× the HP (clock 18) and the curve meets its old
 // self again at clock 24 — the late game is unchanged. The Daily keeps its
 // own `dailyMid` / `dailyLate` (its fixed kit is tuned to them).
+// Early-challenge pass ("the normal early enemies up to row 30 are no
+// challenge at all, they all stay at row 1 or 2 from the top and are
+// instantly destroyed"). The sim's `life` line measured it: a walker of rows
+// 6–30 spawned with 2–37 HP against a tray dealing 13–100 a ball round
+// (humanlow: HP ÷ tray power 0.13 at rows 6–10, 0.27 at 11–20, 0.43 at 21–30)
+// — Instant Barrage's sockets and the "+1"s grow the tray ~×4 by row 10, while
+// the clock holds (the row-5 FTUE boss, the row-20 fight, the plateaus) left
+// it 5 / 8 / 13 rows behind the row; the safety net's 20% cut is small beside
+// that. So 84–94% of the kills took one or two volleys. Now an endless WALKER
+// carries `walkerLift` (×10, `walkerLift()`): ×1.8 / 3.2 / 5.6 / 10 at clock
+// 1–4, fading geometrically to exactly ×1 at clock `liftTo` 24 — the late
+// game, every boss (the ladder's HP is untouched), the FTUE rows and the Daily
+// keep the curve. Sim, 40 seeds × 120 turns, rows 6–10 / 11–20 / 21–30, rows
+// descended median/p90 · killed within 2 volleys, before → after:
+//   humanlow 0/1 · 0/1 · 0/2, 93/93/84% → 1/3 · 1/3 · 1/4, 55/51/38%
+//   noup     0/2 · 0/2 · 1/3, 82/85/66% → 2/5 · 2/5 · 3/5, 29/31/20% (danger zone 2–6%)
+//   first breach row humanlow 50 → 60, noup 40 → 41, tapper 39 → 30; row-20
+//   boss first try humanlow 40/40 → 40/40 (full tables in the sim's header).
 // Constants tuned by scripts/barrage-sim.mjs (see its header for the targets
 // and the before → after numbers). Mutable only so the sim can sweep it
 // in-process; the game never writes it.
@@ -157,7 +175,26 @@ export const HP_CURVE = {
   fightHold: 3,
   /** Rows a typical boss row + fight + plateau holds the clock — the clock a
    *  fresh board starts from (`hpClockAt`: checkpoint restarts, old saves). */
-  bossHold: 5
+  bossHold: 5,
+  /** Early-challenge pass: an endless WALKER (not a boss, not an FTUE row,
+   *  not the Daily) carries up to `walkerLift` × its row HP — ×1 up to clock
+   *  row `liftFrom`, rising geometrically to the full lift at `liftFull`, then
+   *  fading geometrically to ×1 at `liftTo` (see `walkerLift` and the comment
+   *  block above). */
+  walkerLift: 10,
+  liftFrom: 0,
+  liftFull: 4,
+  liftTo: 24
+}
+
+/** The early-challenge lift on an endless walker spawned at clock `hpRow`: a
+ *  geometric tent — 1 up to `liftFrom`, `walkerLift` at `liftFull`, exactly 1
+ *  again from `liftTo` on (the late game keeps its curve). */
+export const walkerLift = (hpRow: number): number => {
+  const { walkerLift: peak, liftFrom, liftFull, liftTo } = HP_CURVE
+  if (!(peak > 1) || hpRow <= liftFrom || hpRow >= liftTo) return 1
+  if (hpRow <= liftFull) return Math.pow(peak, (hpRow - liftFrom) / Math.max(1, liftFull - liftFrom))
+  return Math.pow(peak, (liftTo - hpRow) / Math.max(1, liftTo - liftFull))
 }
 
 /** Unrounded row HP at clock row `h` (`daily`: no `deep` segment). */
@@ -256,9 +293,12 @@ export const monsterHp = (
 ): number => {
   const kindMult = kind === 'boss' ? bossMult : KIND_HP_MULT[kind]
   const mult = kindMult * (corrupted ? (kind === 'boss' ? CORRUPT_BOSS_HP_MULT : CORRUPT_HP_MULT) : 1)
+  // The early-challenge lift: endless walkers past the FTUE only — bosses,
+  // FTUE rows and the Daily keep the curve.
+  const lift = kind === 'boss' || ftue || daily ? 1 : walkerLift(hpRow)
   // Same product order as before the safety net (× 1 is exact), so no HP
   // without it moves by a rounding step.
-  const hp = Math.max(1, Math.round(rowHp(hpRow, daily) * mult * (ftue && kind === 'boss' ? HP_CURVE.ftueBoss : 1) * assistHpMult(hpRow, assist)))
+  const hp = Math.max(1, Math.round(rowHp(hpRow, daily) * mult * (ftue && kind === 'boss' ? HP_CURVE.ftueBoss : 1) * assistHpMult(hpRow, assist) * lift))
   if (ftue && kind !== 'boss' && hpRow <= FTUE_HP_ROWS) return Math.min(hp, hpRow === 1 ? 1 : FTUE_HP_CAP)
   return hp
 }

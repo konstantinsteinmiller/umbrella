@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { createEngine, createEngineAtRow, restoreEngine, type BarrageEngine } from '@/barrage/engine/engine'
 import { ASSIST_PAID, DAILY_CONFIG, assistForPaidLevels, defaultConfig, killCoins } from '@/barrage/engine/economy'
 import {
-  ASSIST, ASSIST_HP_CUT, HP_CURVE, assistHpMult, bossHp, bossHpFactor, hpClockAt, isFirstBoss, monsterHp, planRow, rowHp
+  ASSIST, ASSIST_HP_CUT, FTUE_HP_CAP, FTUE_HP_ROWS, HP_CURVE, assistHpMult, bossHp, bossHpFactor, hpClockAt, isFirstBoss, monsterHp, planRow, rowHp, walkerLift
 } from '@/barrage/engine/monsters'
 import { BOSS_EVERY, ROWS } from '@/barrage/engine/types'
 import { board, mon, ofType, pass, pick, record, turn } from './helpers'
@@ -270,8 +270,9 @@ describe('assist (safety net for non-upgraders)', () => {
     expect(assistHpMult((ASSIST.fadeFrom + ASSIST.fadeTo) / 2, 1)).toBeCloseTo(0.9)
     expect(assistHpMult(ASSIST.fadeTo, 1)).toBe(1)
     expect(assistHpMult(ASSIST.fadeTo + 20, 1)).toBe(1)
-    expect(monsterHp(15, 'slime', false, false, 1)).toBe(Math.round(rowHp(15) * 0.8))
-    expect(monsterHp(15, 'ogre', false, false, 1)).toBe(Math.round(rowHp(15) * 2 * 0.8))
+    // Endless walkers carry the early-challenge lift on top (walkerLift).
+    expect(monsterHp(15, 'slime', false, false, 1)).toBe(Math.round(rowHp(15) * 0.8 * walkerLift(15)))
+    expect(monsterHp(15, 'ogre', false, false, 1)).toBe(Math.round(rowHp(15) * 2 * 0.8 * walkerLift(15)))
     expect(monsterHp(ASSIST.fadeTo, 'slime', false, false, 1)).toBe(monsterHp(ASSIST.fadeTo, 'slime', false))
     // The first boss, scripted (FTUE) or not.
     expect(monsterHp(10, 'boss', false, false, 1)).toBe(Math.round(rowHp(10) * HP_CURVE.boss * 0.8))
@@ -571,5 +572,45 @@ describe('the Daily HP clock is the row counter', () => {
     const layout = (x: BarrageEngine): string[] => x.state.monsters.map(m => `${m.kind}@${m.col},${m.row}`)
     expect(layout(d)).toEqual(layout(e))
     expect(d.snapshot()!.rng).toBe(e.snapshot()!.rng)
+  })
+})
+
+describe('early-challenge pass: the endless walker lift', () => {
+  it('a tent over the early clock: ×walkerLift at liftFull, exactly ×1 from liftTo on (the late game keeps its curve)', () => {
+    expect(HP_CURVE.walkerLift).toBe(10)
+    expect(walkerLift(HP_CURVE.liftFull)).toBeCloseTo(HP_CURVE.walkerLift, 9)
+    for (const h of [HP_CURVE.liftTo, HP_CURVE.liftTo + 1, HP_CURVE.deepRow, 60, 200]) expect(walkerLift(h)).toBe(1)
+    for (let h = 1; h < HP_CURVE.liftTo; h++) {
+      expect(walkerLift(h)).toBeGreaterThanOrEqual(1)
+      // No step: a clock row changes the lift by at most the tent's slope.
+      const r = walkerLift(h + 1) / walkerLift(h)
+      expect(r).toBeLessThanOrEqual(Math.pow(HP_CURVE.walkerLift, 1 / (HP_CURVE.liftFull - HP_CURVE.liftFrom)) + 1e-9)
+      expect(r).toBeGreaterThanOrEqual(Math.pow(HP_CURVE.walkerLift, -1 / (HP_CURVE.liftTo - HP_CURVE.liftFull)) - 1e-9)
+    }
+    // The lifted walker curve still grows row over row past the peak.
+    for (let h = HP_CURVE.liftFull + 1; h <= HP_CURVE.liftTo + 2; h++) {
+      expect(monsterHp(h, 'slime', false)).toBeGreaterThanOrEqual(monsterHp(h - 1, 'slime', false))
+    }
+  })
+
+  it('endless walkers only: FTUE rows, bosses and the Daily keep the curve', () => {
+    for (const h of [4, 8, 15, 20]) {
+      expect(monsterHp(h, 'slime', false)).toBe(Math.round(rowHp(h) * walkerLift(h)))
+      expect(monsterHp(h, 'slime', false)).toBeGreaterThan(rowHp(h))
+      expect(monsterHp(h, 'boss', false)).toBe(Math.round(rowHp(h) * HP_CURVE.boss))
+      expect(bossHp(h, 25, false)).toBe(Math.round(rowHp(h) * HP_CURVE.bossSecond))
+      expect(monsterHp(h, 'slime', false, false, 0, undefined, true)).toBe(rowHp(h, true))
+    }
+    // The first minute stays one- to three-hit.
+    for (let h = 1; h <= FTUE_HP_ROWS; h++) expect(monsterHp(h, 'slime', false, true)).toBeLessThanOrEqual(FTUE_HP_CAP)
+    for (let h = 1; h <= FTUE_HP_ROWS; h++) expect(monsterHp(h, 'slime', false, true)).toBe(Math.min(rowHp(h), h === 1 ? 1 : FTUE_HP_CAP))
+  })
+
+  it('the engine spawns its endless walkers lifted', () => {
+    const e = createEngineAtRow(defaultConfig({ seed: 5 }), 14, [1])
+    expect(walkerLift(e.hpClock.hpRow)).toBeGreaterThan(1)
+    const walkers = e.state.monsters.filter(m => m.kind !== 'boss')
+    expect(walkers.length).toBeGreaterThan(0)
+    for (const m of walkers) expect(m.maxHp).toBe(monsterHp(e.hpClock.hpRow, m.kind, m.corrupted))
   })
 })

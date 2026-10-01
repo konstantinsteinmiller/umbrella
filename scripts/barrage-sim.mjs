@@ -71,7 +71,21 @@
  *             out-hits a typical volley
  *   best row by turn 50 / 100 / 150 / 200 / 250
  *
- * Targets (lead). Late-game pass: past row 40 bite and pressure stay near
+ * Walker lives (the `life` line; every life, every seed, per spawn-row band
+ * 1–5 … 61–100 — see `lifeReport`; non-boss walkers of spawned rows, imp minis
+ * out): desc = the grid row a walker died in (0 = the top row, killed by its
+ * first volley), median / p90, player kills only · ≤2t = share of those kills
+ * that took 1–2 volleys · vk = volleys to kill · danger = share of ALL the
+ * band's walkers that reached grid row ≥ 7 · roar = taken by a boss roar /
+ * blast · hp/pw = spawn HP (slime-eq.) ÷ the tray's power then · lag = row −
+ * HP clock · w/row = walkers per spawned row.
+ *
+ * Targets (lead). Early-challenge pass: rows 6–30 walkers live a few turns —
+ * humanlow / random kills within 2 volleys ≤ ~55%, noup rows descended median
+ * 2–3 with a few % in the danger zone — while the FTUE rows, the boss ladder,
+ * humanlow's row-20 boss first try and the late game (clock ≥ 24) stay put,
+ * and humanlow / noup first breach does not collapse.
+ * Late-game pass: past row 40 bite and pressure stay near
  * rows 31–40 (human / random bite ≥ ~50% to row 100, pressure ≤ ~3) and the
  * wall comes gradually, for casual past row ~150; a lucky (p90) volley clears
  * more than a slime row; rows 1–40 as the run-5 pass or better; Daily ±1.
@@ -88,6 +102,40 @@
  * rows 15–19, pressure at rows 11–20 ≤ ~1.5× rows 6–10, post/pre ≤ ~1.5; noup
  * first breach ≥ row 20; random first paid upgrade within ~5 turns of the free
  * one; casual still breaches past row 40; balls in flight ≤ ~40.
+ *
+ * Early-challenge pass ("the normal early enemies up to row 30 are no
+ * challenge at all, they all stay at row 1 or 2 from the top and are instantly
+ * destroyed"; the `life` line). Cause, humanlow before: a walker of rows 6–10 /
+ * 11–20 / 21–30 spawned with 2 / 7 / 24 HP (slime-eq.) against a tray of 15 /
+ * 28 / 62 power (HP ÷ power 0.13 / 0.27 / 0.43; every bot 0.09–0.58) — the
+ * Instant Barrage tray grows ~×4 by row 10 while the HP clock lags the row by
+ * 5 / 8 / 13 (FTUE boss hold, row-20 fight hold, plateaus); ~3 walkers a row;
+ * the safety net's cut is 20%. Fix: monsters.ts `walkerLift` — endless
+ * walkers ×10 at clock 4, geometric back to ×1 at clock 24 (bosses, FTUE rows
+ * and the Daily untouched). Swept: a flat ×3 / 6 / 12 (×3 barely moved it;
+ * ×15 sent tapper's first breach to r19), a tent ramping in over clock 3–8 (kept
+ * rows 6–10 at 2–3 HP: still 93% two-volley kills), ×10 with the full lift at
+ * clock 4 / 6 (kept: 4). 40 seeds × 120 turns, before → after, per band 6–10 ·
+ * 11–20 · 21–30: rows descended median/p90, kills within 2 volleys, volleys to
+ * kill median/p90 (danger zone where > 1%):
+ *   humanlow  0/1 0/1 0/2 · 93 93 84% · 1/2 1/2 1/3  →  1/3 1/3 1/4 · 55 51 38% · 2/5 2/4 3/6
+ *   human     0/1 0/1 0/1 · 93 94 90% · 1/2 1/2 1/2  →  1/2 1/3 1/3 · 65 58 52% · 2/4 2/4 2/5
+ *   random    0/2 0/2 0/2 · 83 84 80% · 1/3 1/3 1/3  →  2/4 2/4 1/4 · 45 41 51% · 3/5 3/5 2/5
+ *   noup      0/2 0/2 1/3 · 82 85 66% · 1/3 1/3 2/4  →  2/5 2/5 3/5 · 29 31 20% · 3/6 3/6 4/8 (danger 4/2/6%)
+ *   tapper    1/4 1/3 1/4 · 56 67 56% · 2/5 2/4 2/5  →  2/6 2/4 2/5 · 35 35 36% · 3/7 3/5 3/7 (danger 3/2/9 → 16/6/13%)
+ *   casual    0/0 0/1 0/1 · 100 100 99%              →  0/1 1/2 0/1 · 92 82 89%
+ *   first breach row / best row / row-20 boss first try (by 2nd) / row-30 boss by 2nd:
+ *   humanlow  r50 → r60 · 72 → 73 · 40 → 40 (40) · 40 → 40
+ *   human     r80 → r80 · 91 → 91 · 40 → 40 · 40 → 40
+ *   random    r79 → r69 · 112 → 112 · 40 → 40 · 40 → 40
+ *   noup      r40 → r41 · 62 → 62 · 39 → 37 (40) · 32 → 33
+ *   tapper    r39 → r30 · 55 → 49 · 38 → 21 (40 → 40) · 22 → 20 — its first
+ *             breaches are walkers at rows 20–30, not the boss (240 seeds: 133/240)
+ *   Boss HP unchanged (b20 shown 400 humanlow); the post/pre boss HP step
+ *   (raw HP, FTUE-capped rows before the row-5 boss) 1.0 → 8, ~2× in HP ÷
+ *   tray power (0.5 → ~1.1). Late game (24 × 240) unchanged within noise: best
+ *   row by turn 200 human 120 → 113, humanlow 83 → 85, random 185 → 184, casual
+ *   184 → 184, rows 61–100 the same; Daily (60 dates) identical row for row.
  *
  * Combo coins (fun pass after run 6: "balance the new combo coins well against
  * the difficulty"; economy `COMBO_COINS`; the `late` line's `combo x%/y%v` =
@@ -486,7 +534,21 @@ const runBot = (bot, seed) => {
   // Smoothness bookkeeping.
   let lastWalkerHp = null
   let awaitingPost = false
+  // Walker lives (the `life` line): every walker of a spawned row, by engine id
+  // (ids restart with each engine, so the map does too).
+  let lives = new Map()
+  let fired = 0
+  let roared = new Set()
+  const endLife = (w, cause, row) => {
+    w.cause = cause
+    if (row !== undefined) w.maxRow = Math.max(w.maxRow, row)
+    w.volleys = fired - w.fired
+    log.lives.push(w)
+  }
   const attach = (e) => {
+    for (const w of lives.values()) endLife(w, 'restart')
+    lives = new Map()
+    roared = new Set()
     e.on(ev => {
       if (ev.type === 'coins') {
         coins += ev.amount
@@ -494,7 +556,16 @@ const runBot = (bot, seed) => {
       } else if (ev.type === 'comboBonus') {
         lastCombo = { hits: ev.hits, balls: ev.balls, coins: ev.coins }
       }
-      else if (ev.type === 'kill') log.kills++
+      else if (ev.type === 'kill') {
+        log.kills++
+        const w = lives.get(ev.monsterId)
+        if (w) {
+          lives.delete(ev.monsterId)
+          endLife(w, roared.has(ev.monsterId) ? 'roar' : e.state.phase === 'advance' ? 'advance' : 'player', Math.round(ev.y - 0.5))
+        }
+      } else if (ev.type === 'bossRoar' || ev.type === 'bossBlast') {
+        for (const id of ev.ids) roared.add(id)
+      }
       else if (ev.type === 'bossDefeated') {
         coins += ev.bounty
         checkpointRow = ev.row
@@ -535,6 +606,11 @@ const runBot = (bot, seed) => {
         }
       } else if (ev.type === 'rowSpawned') {
         const ws = e.state.monsters.filter(m => m.spawnRow === ev.row && m.kind !== 'boss' && !m.mini)
+        const clock = e.hpClock ? e.hpClock.hpRow : ev.row
+        const power = trayPower(e.state.tray, e.state.config.damageMult)
+        for (const m of ws) {
+          if (!lives.has(m.id)) lives.set(m.id, { spawnRow: ev.row, fired, maxRow: m.row, hp: m.maxHp, slime: slimeHp(m), clock, power, n: ws.length, boss: e.state.bossId !== null, ftue: !!e.state.config.ftue })
+        }
         if (ws.length > 0) {
           lastWalkerHp = mean(ws.map(slimeHp))
           if (awaitingPost) { log.postBossHp = lastWalkerHp; awaitingPost = false }
@@ -564,6 +640,8 @@ const runBot = (bot, seed) => {
     at18: null, at40: null, kills: 0,
     // Late game (every life): one entry per volley — see `lateReport`.
     late: [], bestAt: {},
+    // Walker lives (see `lifeReport`).
+    lives: [],
     // Coins by source (kill / pickup / midas / chest / combo; boss bounty is
     // counted apart, it is not a coins event).
     coinBy: {},
@@ -601,6 +679,7 @@ const runBot = (bot, seed) => {
     for (const m of engine.state.monsters) hp0 += m.hp
     const bossBefore = engine.state.bossId !== null
     bossHitsN = 0
+    fired++
     engine.fire(a)
     offeredNow = false
     pickedNow = []
@@ -617,6 +696,10 @@ const runBot = (bot, seed) => {
       engine.clearOrbs?.()
     }
     runPerks = { ...(engine.state.config.perks ?? {}) }
+    for (const m of engine.state.monsters) {
+      const w = lives.get(m.id)
+      if (w) w.maxRow = Math.max(w.maxRow, m.row)
+    }
     if (bossBefore && log.bossKills.length === 0 && coins === coins0) log.zeroBoss1++
     if (lastCombo && lastCombo.balls > 0 && bossBefore && fight) { fight.volleys++; fight.dmg += bossHitsN / (1 + (engine.saviorView?.boost ?? 0)); fight.powerSum += power }
     if (fight?.killed) closeFight(true)
@@ -718,6 +801,7 @@ const runBot = (bot, seed) => {
     if (turn === 40) log.at40 = { row: engine.state.row, paid: log.upgrades.length, coins }
   }
   closeFight(false)
+  for (const w of lives.values()) endLife(w, 'alive')
   log.bestRow = bestRow
   log.levels = { ...levels }
   log.coins = coins
@@ -781,6 +865,46 @@ const lateReport = (logs) => {
   const total = Object.values(by).reduce((a, b) => a + b, 0) || 1
   const share = Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${Math.round((v / total) * 100)}%`).join(' ')
   return `late ${cells.join(' · ')} · best row by turn ${best} · coins by source ${share}`
+}
+
+/** Walker-life row bands (by the row a walker spawned in). */
+const LIFE_BANDS = [[1, 5], [6, 10], [11, 20], [21, 30], [31, 40], [41, 60], [61, 100]]
+/** Grid row from which a walker stands in the danger zone (engine DANGER_ROWS:
+ *  its bottom edge within 2 rows of the line, ROWS 10). */
+const DANGER_FROM = 7
+/**
+ * Walker lives per spawn-row band (early-challenge pass: "the normal early
+ * enemies up to row 30 … all stay at row 1 or 2 from the top and are instantly
+ * destroyed"), every life, every seed, non-boss walkers of spawned rows (imp
+ * minis out):
+ *   n        walkers spawned in the band (per run)
+ *   desc     rows a walker descended before the player killed it (grid row at
+ *            the kill; 0 = killed in the top row, on its first volley),
+ *            median / p90 — player kills only (volley or DoT)
+ *   ≤2t      share of the player's kills that took 1–2 volleys (desc 0–1)
+ *   vk       volleys to kill (the volleys fired while it stood), median / p90
+ *   danger   share of ALL the band's walkers that reached grid row ≥ 7
+ *   roar     share taken by a boss roar / blast (not the player's kill)
+ *   hp/pw    median spawn HP (slime-eq.) ÷ the tray's power then (×-hits a
+ *            ball round must land) · clock − row (the HP clock's lag) · walkers/row
+ */
+const lifeReport = (logs) => {
+  const cells = LIFE_BANDS.map(([lo, hi]) => {
+    const all = logs.flatMap(l => l.lives.filter(w => w.spawnRow >= lo && w.spawnRow <= hi))
+    if (!all.length) return null
+    const kills = all.filter(w => w.cause === 'player')
+    const desc = kills.map(w => w.maxRow)
+    const vk = kills.map(w => w.volleys)
+    const quick = kills.filter(w => w.volleys <= 2).length / Math.max(1, kills.length)
+    const danger = all.filter(w => w.maxRow >= DANGER_FROM).length / all.length
+    const roar = all.filter(w => w.cause === 'roar').length / all.length
+    const pct = (v) => `${Math.round(v * 100)}%`
+    return `${lo}-${hi} n${Math.round(all.length / logs.length)} desc ${quantile(desc, 0.5) ?? '-'}/${quantile(desc, 0.9) ?? '-'}` +
+      ` ≤2t ${pct(quick)} vk ${quantile(vk, 0.5) ?? '-'}/${quantile(vk, 0.9) ?? '-'} danger ${pct(danger)} roar ${pct(roar)}` +
+      ` hp/pw ${f2(quantile(all.map(w => w.slime / Math.max(1, w.power)), 0.5))} hp ${f1(quantile(all.map(w => w.slime), 0.5))} pw ${f1(quantile(all.map(w => w.power), 0.5))}` +
+      ` lag ${quantile(all.map(w => w.spawnRow - w.clock), 0.5) ?? '-'} w/row ${f1(all.length / all.reduce((a, w) => a + 1 / w.n, 0))}`
+  }).filter(Boolean)
+  return `life ${cells.join(' · ')}`
 }
 
 const report = (bot) => {
@@ -926,6 +1050,7 @@ const report = (bot) => {
       ` r30@${r30 ?? '-'}(${r30 ? mmss(r30, SEC) : '-'}) k30@${k30 ?? '-'} merge@${firstMergeTurn ?? '-'} paid1@${firstPaid ?? '-'} 3min ${earlyCount}` +
       ` kt ${kt} | ${bosses} | ${press} | ${at18}`)
     console.log(`       ${late}`)
+    console.log(`       ${lifeReport(logs)}`)
     return
   }
   console.log(`median: boss10 killed @turn ${b10 ?? '-'} (${b10 ? mmss(b10, SEC) : '-'}), first try ${firstTry10}/${SEEDS}` +
@@ -951,7 +1076,9 @@ const report = (bot) => {
     (at18 ? `
         ${at18}` : '') +
     `
-        ${late}`)
+        ${late}` +
+    `
+        ${lifeReport(logs)}`)
 }
 
 /**
