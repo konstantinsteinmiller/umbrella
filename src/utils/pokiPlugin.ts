@@ -593,15 +593,21 @@ const MEASURE_FORBIDDEN = /[/^]/
  *
  * NEVER measure an ad impression — the SDK tracks those itself and a duplicate
  * corrupts the report.
+ *
+ * Caller: the drop-off funnel (`barrage/state/funnel.ts`), whose Poki sink this
+ * is. Safe before `init()`: the loader shim queues measure calls for replay.
+ * Never throws.
  */
 export const pokiMeasure = (category: string, what: string, action: string): void => {
   const sdk = getSdk()
   if (!sdk) return
-  if ([category, what, action].some((v) => MEASURE_FORBIDDEN.test(v))) {
-    warn('measure() args cannot contain "/" or "^" —', category, what, action)
-    return
-  }
-  try { sdk.measure(category, what, action) } catch (e) { warn('measure threw', e) }
+  try {
+    if ([category, what, action].some((v) => MEASURE_FORBIDDEN.test(v))) {
+      warn('measure() args cannot contain "/" or "^" —', category, what, action)
+      return
+    }
+    sdk.measure(category, what, action)
+  } catch (e) { warn('measure threw', e) }
 }
 
 /** Feeds P4D's 24-hour Error Scanner. Wired to the app's global error handlers

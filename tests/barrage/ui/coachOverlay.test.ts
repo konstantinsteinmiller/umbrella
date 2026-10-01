@@ -15,9 +15,10 @@ const h = vi.hoisted(() => ({
     tutorialActive: { value: boolean }
     tutorialPreview: { value: string | null }
     unlocking: { value: unknown }
+    /** Chips that have flown in (Silent Flow's earned chips). */
+    chips: { value: string[] }
     modal: { value: boolean }
     reveal: { value: unknown }
-    mergeBox: { value: unknown }
   }
 }))
 
@@ -43,8 +44,9 @@ vi.mock('@/use/useTutorial', async () => {
 vi.mock('@/use/useFeatureUnlocks', async () => {
   const { ref } = await import('vue')
   const unlocking = ref<unknown>(null)
-  h.refs = { ...(h.refs ?? {}), unlocking } as NonNullable<typeof h.refs>
-  return { unlocking }
+  const chips = ref<string[]>(['damage', 'capacity', 'speed', 'luck', 'bounty'])
+  h.refs = { ...(h.refs ?? {}), unlocking, chips } as NonNullable<typeof h.refs>
+  return { unlocking, chipShown: (id: string) => chips.value.includes(id) }
 })
 vi.mock('@/use/useModalState', async () => {
   const { ref } = await import('vue')
@@ -58,16 +60,9 @@ vi.mock('@/use/useTierReveal', async () => {
   h.refs = { ...(h.refs ?? {}), reveal: activeReveal } as NonNullable<typeof h.refs>
   return { activeReveal }
 })
-vi.mock('@/components/barrage/mergeLightbox', async () => {
-  const { ref } = await import('vue')
-  const mergeBox = ref<unknown>(null)
-  h.refs = { ...(h.refs ?? {}), mergeBox } as NonNullable<typeof h.refs>
-  return { mergeBox }
-})
-
 import CoachOverlay from '@/components/barrage/coach/CoachOverlay.vue'
 import { boardApi, playerAiming, type BoardApi } from '@/components/barrage/barrageUi'
-import { coachLesson, upgradeFunnel } from '@/use/useCoach'
+import { coachCue, coachLesson, sayCue, upgradeFunnel } from '@/use/useCoach'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 const r = () => h.refs!
@@ -99,7 +94,7 @@ describe('upgrade funnel in the coach overlay', () => {
     r().unlocking.value = null
     r().modal.value = false
     r().reveal.value = null
-    r().mergeBox.value = null
+    r().chips.value = ['damage', 'capacity', 'speed', 'luck', 'bounty']
     coachLesson.value = null
     upgradeFunnel.value = null
   })
@@ -127,6 +122,18 @@ describe('upgrade funnel in the coach overlay', () => {
     expect(w.findComponent({ name: 'UpgradeFunnel' }).exists()).toBe(false)
     w.unmount()
   })
+
+  it('Silent Flow: never on a chip that has not flown in yet — it shows the moment the chip lands', async () => {
+    r().chips.value = ['capacity']
+    const w = render()
+    upgradeFunnel.value = { target: 'damage', reason: 'damage', seq: ++seq }
+    await nextTick()
+    expect(w.findComponent({ name: 'UpgradeFunnel' }).exists()).toBe(false)
+    r().chips.value = ['capacity', 'damage']
+    await nextTick()
+    expect(w.findComponent({ name: 'UpgradeFunnel' }).exists()).toBe(true)
+    w.unmount()
+  })
 })
 
 describe('the funnel rests (run 8: the arrows "stay up forever")', () => {
@@ -140,7 +147,7 @@ describe('the funnel rests (run 8: the arrows "stay up forever")', () => {
     r().unlocking.value = null
     r().modal.value = false
     r().reveal.value = null
-    r().mergeBox.value = null
+    r().chips.value = ['damage', 'capacity', 'speed', 'luck', 'bounty']
     coachLesson.value = null
     upgradeFunnel.value = null
   })
@@ -186,18 +193,21 @@ describe('harness marker on the live regions', () => {
     const w = render()
     await nextTick()
     const regions = w.findAll('[aria-live]')
-    expect(regions.length).toBe(2)
+    // The lesson, the funnel, and (Silent Flow) the in-world cues.
+    expect(regions.length).toBe(3)
     for (const el of regions) expect(el.attributes('data-coach-live')).toBeTruthy()
     w.unmount()
   })
 
-  it("the merge lightbox's live region carries it too", async () => {
+  it("the chip spotlight's and the unlock fly-in's live regions carry it too", async () => {
     const { readFileSync } = await import('node:fs')
     const { resolve } = await import('node:path')
-    const src = readFileSync(resolve(__dirname, '../../../src/components/barrage/MergeLightbox.vue'), 'utf8')
-    const live = src.split('\n').filter((l) => l.includes('aria-live'))
-    expect(live.length).toBeGreaterThan(0)
-    for (const l of live) expect(l).toContain('data-coach-live')
+    for (const file of ['LessonSpotlight.vue', 'FeatureUnlockFx.vue']) {
+      const src = readFileSync(resolve(__dirname, `../../../src/components/barrage/${file}`), 'utf8')
+      const live = src.split('\n').filter((l) => l.includes('aria-live'))
+      expect(live.length, file).toBeGreaterThan(0)
+      for (const l of live) expect(l, file).toContain('data-coach-live')
+    }
   })
 
   it('so does the death sequence\'s "WASTED" (run 7: a still frame must catch it)', async () => {
@@ -205,5 +215,60 @@ describe('harness marker on the live regions', () => {
     const { resolve } = await import('node:path')
     const src = readFileSync(resolve(__dirname, '../../../src/components/barrage/DeathOverlay.vue'), 'utf8')
     expect(src).toContain('data-coach-live="death"')
+  })
+})
+
+// Silent Flow: the staged lessons that carried a sentence (the first "+1",
+// the first merges, the threat spotlight) are cues in the world now; their
+// sentences are read out from the coach overlay's `cue` region.
+describe('the in-world cues\' sentences', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    boardApi.value = stubBoard()
+    coachCue.value = null
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  const cueText = (w: ReturnType<typeof render>): string => w.find('[data-coach-live="cue"]').text()
+
+  it('reads out the first "+1", a merge (with a discovery\'s codex line) and the threat cue', async () => {
+    const w = render()
+    sayCue({ kind: 'pickup' })
+    await nextTick()
+    vi.advanceTimersByTime(100)
+    await nextTick()
+    expect(cueText(w)).toBe(en.barrage.tray.pickupSr)
+    sayCue({ kind: 'merge', from: 1, to: 2, discovery: false })
+    await nextTick()
+    vi.advanceTimersByTime(100)
+    await nextTick()
+    expect(cueText(w)).toBe(en.barrage.merge.sr.replace('{from}', '1').replace('{to}', '2'))
+    sayCue({ kind: 'merge', from: 2, to: 3, discovery: true })
+    await nextTick()
+    vi.advanceTimersByTime(100)
+    await nextTick()
+    expect(cueText(w)).toContain(en.barrage.merge.sr.replace('{from}', '2').replace('{to}', '3'))
+    expect(cueText(w).length).toBeGreaterThan(en.barrage.merge.sr.length)
+    sayCue({ kind: 'threat' })
+    await nextTick()
+    vi.advanceTimersByTime(100)
+    await nextTick()
+    expect(cueText(w)).toBe(en.barrage.coach.spot.threat)
+    w.unmount()
+  })
+
+  it('the same sentence twice in a row is announced twice (cleared in between)', async () => {
+    const w = render()
+    sayCue({ kind: 'threat' })
+    await nextTick()
+    vi.advanceTimersByTime(100)
+    await nextTick()
+    sayCue({ kind: 'threat' })
+    await nextTick()
+    expect(cueText(w)).toBe('')
+    vi.advanceTimersByTime(100)
+    await nextTick()
+    expect(cueText(w)).toBe(en.barrage.coach.spot.threat)
+    w.unmount()
   })
 })

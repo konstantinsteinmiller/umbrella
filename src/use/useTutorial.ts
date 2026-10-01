@@ -14,6 +14,12 @@
  * Events AHEAD of the current beat advance past it (a lucky first volley that
  * already collects a pickup has taught the pickup), never behind it.
  *
+ * Silent Flow (retention-roadmap #2): no beat stops the game, dims the screen
+ * or shows a word — the ghost finger under "Tap to Shoot" is the one hand. On
+ * the "+1" beats every "+1" on the board pulses (`worldCues.plusPulse`, drawn
+ * by the board); the upgrade beat is the free chip flying in and glowing on
+ * its own (UpgradeBar), no hand pressing it under a dim.
+ *
  * Progress persists as a step index in the state blob (`eb_tutorial_step`);
  * veterans — a best row past 1 and no tutorial progress on record — skip it.
  *
@@ -25,6 +31,7 @@ import { getState, setState, flushPersist, prismState } from '@/use/useEpicState
 import { saveDataVersion } from '@/use/useSaveStatus'
 import type { EngineListener } from '@/barrage/engine/types'
 import { EB_TUTORIAL_STEP_KEY } from '@/barrage/keys'
+import { setPlusPulse } from '@/barrage/render/worldCues'
 
 export type TutorialStep = 'aim' | 'pickup' | 'merge' | 'upgrade' | 'done'
 const STEP_ORDER: TutorialStep[] = ['aim', 'pickup', 'merge', 'upgrade', 'done']
@@ -40,18 +47,24 @@ const indexOf = (s: TutorialStep): number => STEP_ORDER.indexOf(s)
 export const tutorialStep = ref<TutorialStep>(stepAt(savedIndex()))
 export const tutorialActive = computed(() => tutorialStep.value !== 'done')
 
+/** The beats where the board pulses every "+1" (the in-world pickup lesson):
+ *  until the first merge, the "+1" is what the FTUE wants shot. */
+export const PLUS_PULSE_STEPS: readonly TutorialStep[] = ['aim', 'pickup', 'merge']
+watch(tutorialStep, (step) => { setPlusPulse(PLUS_PULSE_STEPS.includes(step)) }, { immediate: true })
+
 // The FTUE never holds the simulation. MIW's coach-marks froze a real-time
 // battle so a first-timer couldn't lose while reading; Barrage is turn-based —
 // nothing marches until the player fires — and every beat here IS a shot, so
 // a held board would freeze the very volley being taught.
 
-/** 1-based index of the current beat for the progress pips. */
+/** 1-based index of the current beat (1..TUTORIAL_STEP_COUNT). */
 export const tutorialStepIndex = computed(() =>
   Math.min(TUTORIAL_STEP_COUNT, indexOf(tutorialStep.value) + 1))
 
 /** What the coach overlay is acting out right now — written only by
- *  `TutorialOverlay`; a target may read it to animate in step with the hand. */
-export type TutorialPreview = 'aim' | 'press'
+ *  `TutorialOverlay`: the aim demo (the ghost finger), or nothing. The upgrade
+ *  beat acts nothing out any more (Silent Flow: the chip shows itself). */
+export type TutorialPreview = 'aim'
 export const tutorialPreview = ref<TutorialPreview | null>(null)
 
 const advanceTo = (step: TutorialStep): void => {

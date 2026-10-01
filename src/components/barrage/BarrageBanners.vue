@@ -21,6 +21,14 @@
  * what triggered it"): a skill toast's icon flies in from the very bubble the
  * ball popped on the board, and lands in the toast (skipped under reduced
  * motion — the toast then simply appears).
+ *
+ * Silent Flow (retention-roadmap #2): a skill toast is ICON-ONLY — the skill's
+ * own glyph in a medallion, no name, no sentence — and it is not shown every
+ * time: once a session per skill and SKILL_TOAST_CAP times ever (the coach
+ * counts them), and before the first boss kill one in all (the first minute
+ * keeps its overlays under three seconds); otherwise the skill's effect on
+ * the board speaks for itself. The name and the effect sentence still reach
+ * screen readers, every time, through the live region below.
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -32,6 +40,8 @@ import { isCompactHud, isRoomyHud } from '@/use/useUser'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
 import { EB_MONSTERS_SEEN_KEY } from '@/barrage/keys'
 import { boardApi } from '@/components/barrage/barrageUi'
+import { noteSkillToast, skillToastDue } from '@/use/useCoach'
+import { isFtueActive } from '@/barrage/state/progress'
 
 const { t } = useI18n()
 const barrage = useBarrage()
@@ -110,7 +120,11 @@ const introduce = (kind: IntroKind): void => {
 const combo = ref<{ id: number; hits: number } | null>(null)
 let comboTimer = 0
 
-// ─── Skill toasts ────────────────────────────────────────────────────────────
+// ─── Skill toasts (icon-only, rationed — see the header) ─────────────────────
+/** How long an icon toast stays (its flight in is the first 460 ms). */
+const SKILL_TOAST_MS = 1200
+/** Silent Flow: the one icon toast allowed before the first boss kill is gone. */
+let silentToastShown = false
 interface Toast { id: number; skill: SkillId; arriving: boolean }
 const toasts = ref<Toast[]>([])
 let toastSeq = 0
@@ -149,13 +163,19 @@ const fly = (id: number, skill: SkillId, from: { x: number; y: number }): void =
   a.oncancel = done
 }
 const addToast = (skill: SkillId): void => {
-  const id = ++toastSeq
   const from = pendingFly && pendingFly.skill === skill ? pendingFly : null
   pendingFly = null
+  // The words, for screen readers, every time; the screen shows the skill.
+  announce(`${t(`barrage.skills.${skill}.name`)}: ${t(`barrage.skills.${skill}.effect`)}`)
+  const silent = isFtueActive()
+  if (!skillToastDue(skill) || (silent && silentToastShown)) return
+  if (silent) silentToastShown = true
+  noteSkillToast(skill)
+  const id = ++toastSeq
   const arriving = !!from && !reducedMotion
   toasts.value = [...toasts.value.slice(-2), { id, skill, arriving }]
   if (arriving && from) void nextTick(() => fly(id, skill, from))
-  window.setTimeout(() => { toasts.value = toasts.value.filter((x) => x.id !== id) }, 2400)
+  window.setTimeout(() => { toasts.value = toasts.value.filter((x) => x.id !== id) }, SKILL_TOAST_MS)
 }
 watch(() => barrage.lastSkill.value, (skill) => {
   if (!skill) return
@@ -248,13 +268,12 @@ const sizeClass = computed(() => isCompactHud.value ? 'bb--compact' : isRoomyHud
 <template lang="pug">
   div.barrage-banners.absolute.inset-0.pointer-events-none.overflow-hidden(ref="layerEl" :class="sizeClass")
     //- ── Skill toasts (lower middle: the top rows are where new rows and bosses enter) ──
-    div.bb-toasts.absolute.left-0.right-0.flex.flex-col.items-center.gap-1(aria-live="polite")
+    //- Icon-only (Silent Flow): the skill's glyph in a medallion; its name and
+    //- effect go to the sr-only live region instead.
+    div.bb-toasts.absolute.left-0.right-0.flex.flex-col.items-center.gap-1(aria-hidden="true")
       TransitionGroup(name="bb-toast")
-        div.bb-toast.flex.items-center.gap-2.rounded-xl(v-for="x in toasts" :key="x.id" :data-toast-id="x.id")
+        div.bb-toast.flex.items-center.justify-center.rounded-full(v-for="x in toasts" :key="x.id" :data-toast-id="x.id")
           img.bb-toast__icon.shrink-0(:src="skillSrc(x.skill)" alt="" draggable="false" :class="{ 'is-arriving': x.arriving }")
-          div.flex.flex-col.items-start.min-w-0
-            span.bb-toast__name.game-text.font-black.uppercase.leading-none {{ t('barrage.skills.' + x.skill + '.name') }}
-            span.bb-toast__effect.game-text.leading-tight {{ t('barrage.skills.' + x.skill + '.effect') }}
 
     //- ── Combo ──
     Transition(name="bb-combo")
@@ -293,29 +312,20 @@ const sizeClass = computed(() => isCompactHud.value ? 'bb--compact' : isRoomyHud
 
 .bb-toasts
   top: 60%
+// A round medallion holding the skill's glyph — nothing to read.
 .bb-toast
-  padding: 4px 10px 4px 4px
-  max-width: min(92%, 340px)
-  background: linear-gradient(180deg, rgba(14, 22, 48, 0.95), rgba(8, 12, 28, 0.95))
+  padding: 5px
+  background: radial-gradient(circle at 50% 38%, rgba(40, 56, 104, 0.95), rgba(8, 12, 28, 0.95) 72%)
   border: 2px solid #0f1a30
-  box-shadow: 0 0 0 1.5px rgba(120, 190, 255, 0.55), 0 4px 10px rgba(0, 0, 0, 0.45)
+  box-shadow: 0 0 0 1.5px rgba(255, 226, 122, 0.75), 0 0 12px rgba(255, 210, 90, 0.45), 0 4px 10px rgba(0, 0, 0, 0.45)
 .bb-toast__icon
-  width: 30px
-  height: 30px
+  width: 34px
+  height: 34px
   object-fit: contain
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6))
   // Its flying twin (from the bubble on the board) is still on the way.
   &.is-arriving
     opacity: 0
-.bb-toast__name
-  color: #ffe27a
-  font-size: 12px
-  text-shadow: 1px 1px 0 #000
-.bb-toast__effect
-  color: #e6efff
-  font-size: 11px
-  text-align: start
-  text-shadow: 1px 1px 0 #000
 
 .bb-combo
   top: 18%
@@ -402,12 +412,8 @@ const sizeClass = computed(() => isCompactHud.value ? 'bb--compact' : isRoomyHud
     width: 36px
     height: 36px
   .bb-toast__icon
-    width: 24px
-    height: 24px
-  .bb-toast__name
-    font-size: 11px
-  .bb-toast__effect
-    font-size: 10px
+    width: 28px
+    height: 28px
   .bb-combo__n
     font-size: 24px
 .bb--roomy
@@ -420,10 +426,9 @@ const sizeClass = computed(() => isCompactHud.value ? 'bb--compact' : isRoomyHud
   .bb-portrait
     width: 84px
     height: 84px
-  .bb-toast__name
-    font-size: 14px
-  .bb-toast__effect
-    font-size: 13px
+  .bb-toast__icon
+    width: 44px
+    height: 44px
 
 .bb-banner-enter-active
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease

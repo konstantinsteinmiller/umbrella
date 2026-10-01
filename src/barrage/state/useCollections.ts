@@ -13,8 +13,10 @@
  *     Skins are unlocked with rewarded ads (`SKIN_ADS_BY_RARITY`) — the only way
  *     in for every skin past stone (`adOnly`), the alternative to stone's coin
  *     price; `adViews` keeps the count per skin so the ads can be watched across
- *     sessions. Readiness-gated, and absent on coin-mode builds (no rewarded ads
- *     there), where every skin keeps its coin price.
+ *     sessions. Readiness-gated, behind the rewarded gate like every rewarded
+ *     offer (`rewardedOffersUnlocked`: first boss kill + 3:00 of play; the
+ *     Collection hides the ad button until then), and absent on coin-mode
+ *     builds (no rewarded ads there), where every skin keeps its coin price.
  *
  * NEW badges: a launcher is new from the moment its tier is discovered until the
  * player opens the launcher list; a skin is new from the moment it becomes
@@ -30,7 +32,7 @@ import { isRewardedReady, showRewardedAd } from '@/use/useAds'
 import { BALL_SKINS, DEFAULT_BALL_SKIN, RETIRED_SKIN_PRICES, skinAdsNeeded, type BallSkinDef, type BallSkinId } from '../ballSkins'
 import { FIGHTER_ART_MAX } from '../art'
 import { EB_COLLECTIONS_KEY } from '../keys'
-import { maxBallTier } from './progress'
+import { maxBallTier, rewardedOffersUnlocked } from './progress'
 import type { BallSkinView, LauncherView, SkinAdResult, UseCollections } from './contract'
 
 export const LAUNCHER_COUNT = FIGHTER_ART_MAX
@@ -262,8 +264,9 @@ const buySkin = (id: BallSkinId): boolean => {
   return true
 }
 
-/** Coin-mode builds have no rewarded ads: the coin price is the only way in. */
-const skinAdReady = computed(() => !buffsCostCoins && isRewardedReady.value)
+/** Coin-mode builds have no rewarded ads: the coin price is the only way in.
+ *  Elsewhere: behind the rewarded gate, and only while an ad can fill. */
+const skinAdReady = computed(() => !buffsCostCoins && rewardedOffersUnlocked.value && isRewardedReady.value)
 let adBusy = false
 
 /**

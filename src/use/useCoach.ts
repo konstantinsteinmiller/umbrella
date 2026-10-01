@@ -31,19 +31,34 @@
  *             the board's death sequence, render/death.ts; its first-danger
  *             demo read as "an unexplained red overlay" in still frames.)
  *
- * And SPOTLIGHTS (`components/barrage/lessonSpotlight.ts`, after playtest run
- * 11): short staged moments that pause the game, a tap skips —
- *   threat  — the first time a monster comes within DANGER_PIP_MARCHES: a
- *             ghost of it marches down while its pip and the unit's tick down
- *             together, to the line; then a ghost shot takes it out. Both
- *             losses of run 11 had the '1' and its tether up, unread. The
- *             survive lesson's rescue shot follows on the real board.
- *   speed / luck / bounty — what the three chips nobody could explain do,
- *             once each, a few rows in (UPGRADE_SPOT_ROWS), SPOT_GAP volleys
- *             from any other lesson, never in danger, under a funnel or right
- *             after a boss arrives / falls — and only while the chip is
- *             unbought. Neither they nor the tray lesson frame a chip while
- *             a gift waits on another one (run 13).
+ * And the THREAT CUE and the chip SPOTLIGHTS (after playtest run 11):
+ *   threat  — the first time a monster comes within DANGER_PIP_MARCHES: the
+ *             danger rows and the line flash red three times, and that
+ *             monster's pip and the unit's swell with each flash — drawn by
+ *             the board itself (`render/worldCues.ts`), while play goes on.
+ *             Both losses of run 11 had the '1' and its tether up, unread.
+ *             The survive lesson's rescue shot follows at once (from the
+ *             first boss kill on — Silent Flow, below).
+ *   speed / luck / bounty — what the three chips nobody could explain do
+ *             (`components/barrage/lessonSpotlight.ts`), once each, a few
+ *             rows in (UPGRADE_SPOT_ROWS), SPOT_GAP volleys from any other
+ *             lesson, never in danger, under a funnel or right after a boss
+ *             arrives / falls — and only while the chip is unbought. Neither
+ *             they nor the tray lesson frame a chip while a gift waits on
+ *             another one (run 13). They play over the running game: no
+ *             pause, no dim, taps go through.
+ *
+ * SILENT FLOW (retention-roadmap #2; the scene wires `silent` to "no boss
+ * killed yet"). Minute 1 had 8–10 overlays and 3–4 pauses; testers quit in
+ * it. Until the first boss kill only the shot demo speaks (`pull`, the ghost
+ * finger — the one allowed hand: before the first shot, after 20 quiet
+ * seconds, after two empty taps). Everything else is taught in the world:
+ * the "+1" pulses (the FTUE), a merge plays the tray's own flourish, danger
+ * is the threat cue on the board (with the pips and the line it always had),
+ * each upgrade chip flies in the moment it becomes affordable and the
+ * glowing chip pulses (`chipPulse`, on the chip itself). No bank shot, combo,
+ * rescue-shot demo, tray lessons, chip spotlights or upgrade funnel before
+ * the first boss kill — the overlays that filled the first minute.
  *
  * Beside the lessons runs the UPGRADE FUNNEL (`upgradeFunnel`, its own channel:
  * it lives on the upgrade chips, never over the board, so it may share the
@@ -91,9 +106,10 @@
  * screen; the sentences live only in an sr-only live region.
  *
  * One lesson at a time, exposure-capped, persisted in the blob (`eb_coach`,
- * which also counts the funnel's arrows and the merge lightboxes). Nothing
- * runs in the Daily Barrage except the pull hint — a coach that finds the
- * best shot would hand out the competitive board.
+ * which also counts the funnel's arrows, the first merges and "+1" the
+ * screen reader was told about, the threat cue, and how often each skill's
+ * toast has shown). Nothing runs in the Daily Barrage except the pull hint —
+ * a coach that finds the best shot would hand out the competitive board.
  *
  * Also owns the in-world RULE BADGES' lifetime (the renderer draws them): a
  * monster kind wears its badge from its first appearance until it has been
@@ -114,15 +130,18 @@ import {
 import { tagKeyOf } from '@/barrage/render/ruleMarks'
 import { DANGER_PIP_MARCHES, dangerIds, dangerMarches, marchPlan, marchesToBreach, nextMarchTurn } from '@/barrage/render/danger'
 import { bossBounty, killCoins } from '@/barrage/engine/economy'
+import { flashDanger } from '@/barrage/render/worldCues'
 import type { UpgradeView } from '@/barrage/state/contract'
 import { canSpot, offerSpot, type SpotKind, type ThreatSpot, type UpgradeSpot, type UpgradeSpotKind } from '@/components/barrage/lessonSpotlight'
 
 export type LessonId = 'pull' | 'survive' | 'tray' | 'combo' | 'trayIntro'
 /** Everything the save counts: the lessons, the funnel's Damage arrows, the
- *  merge lightbox (`components/barrage/mergeLightbox.ts`) and the first
- *  "+1"'s spotlight (`components/barrage/pickupSpotlight.ts`). */
+ *  first merges and the first "+1" (`components/barrage/mergeLightbox.ts`,
+ *  `pickupSpotlight.ts` — their screen-reader cues now; the ids keep the
+ *  names of the staged moments they replaced, so old saves carry over). */
 export type ExposureId = LessonId | 'arrows' | 'mergeBox' | 'pickupBox' | SpotExposure
-/** The spotlights' exposures (lessonSpotlight.ts), one per kind. */
+/** One per kind: the threat cue on the board, and the chip spotlights
+ *  (lessonSpotlight.ts). */
 export type SpotExposure = 'threatBox' | 'speedBox' | 'luckBox' | 'bountyBox'
 const EXPOSURE_IDS: readonly ExposureId[] = [
   'pull', 'survive', 'tray', 'combo', 'trayIntro', 'arrows', 'mergeBox', 'pickupBox',
@@ -217,11 +236,17 @@ const SLICE_MS = 6
 
 const SAVING_SKILLS: ReadonlySet<SkillId> = new Set(['meteor', 'execute', 'heal', 'shield'])
 
+/** Silent Flow: a skill's icon toast shows at most once a session, and not at
+ *  all once this many have shown for it (the in-world effect says the rest). */
+export const SKILL_TOAST_CAP = 3
+
 // ─── Persistence ─────────────────────────────────────────────────────────────
 interface CoachSave {
   v: 1
   shown: Partial<Record<ExposureId, number>>
   kinds: Record<string, number>
+  /** Icon toasts shown per skill id (BarrageBanners). */
+  toasts: Record<string, number>
 }
 
 const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0)
@@ -242,7 +267,9 @@ const migrated = (): Record<string, number> => {
   return kinds
 }
 
-/** Merges that get the lightbox on every profile (then discoveries only). */
+/** A profile's first merges whose sentence reaches screen readers (then
+ *  discoveries only) — every merge shows as the tray's own flourish. The
+ *  name remains from the paused merge lightbox these replaced. */
 export const MERGE_BOX_FIRST = 3
 /** Best row past which a save without a merge-lightbox count has merged far
  *  more than MERGE_BOX_FIRST times already (the first boss sits at row 10). */
@@ -258,7 +285,7 @@ const readSave = (): CoachSave => {
           mergeBox: MERGE_BOX_FIRST, pickupBox: 1, threatBox: 1
         }
       : best > MERGE_BOX_VETERAN_ROW ? { mergeBox: MERGE_BOX_FIRST, pickupBox: 1 } : {}
-    return { v: 1, shown, kinds: migrated() }
+    return { v: 1, shown, kinds: migrated(), toasts: {} }
   }
   const shown: Partial<Record<ExposureId, number>> = {}
   for (const id of EXPOSURE_IDS) {
@@ -275,7 +302,11 @@ const readSave = (): CoachSave => {
   if (raw.kinds && typeof raw.kinds === 'object') {
     for (const [k, v] of Object.entries(raw.kinds)) if (count(v) > 0) kinds[k] = count(v)
   }
-  return { v: 1, shown, kinds }
+  const toasts: Record<string, number> = {}
+  if (raw.toasts && typeof raw.toasts === 'object') {
+    for (const [k, v] of Object.entries(raw.toasts)) if (count(v) > 0) toasts[k] = count(v)
+  }
+  return { v: 1, shown, kinds, toasts }
 }
 
 const save: Ref<CoachSave> = ref(readSave())
@@ -290,7 +321,9 @@ const rehydrate = (): void => {
   for (const [k, v] of Object.entries(fresh.shown) as [ExposureId, number][]) shown[k] = Math.max(shown[k] ?? 0, v)
   const kinds = { ...cur.kinds }
   for (const [k, v] of Object.entries(fresh.kinds)) kinds[k] = Math.max(kinds[k] ?? 0, v)
-  save.value = { v: 1, shown, kinds }
+  const toasts = { ...cur.toasts }
+  for (const [k, v] of Object.entries(fresh.toasts)) toasts[k] = Math.max(toasts[k] ?? 0, v)
+  save.value = { v: 1, shown, kinds, toasts }
 }
 watch(saveDataVersion, rehydrate)
 watch(prismState, rehydrate, { deep: false })
@@ -301,6 +334,41 @@ export const lessonShown = (id: ExposureId): number => save.value.shown[id] ?? 0
 export const bumpExposure = (id: ExposureId): void => {
   save.value = { ...save.value, shown: { ...save.value.shown, [id]: lessonShown(id) + 1 } }
   persist()
+}
+
+// ─── Skill toasts: not every time (Silent Flow) ──────────────────────────────
+/** Skills whose toast already showed this page session. */
+const toastedThisSession = new Set<string>()
+
+/** Should this skill's icon toast show now: not yet this session, and fewer
+ *  than SKILL_TOAST_CAP ever. */
+export const skillToastDue = (skill: string): boolean =>
+  !toastedThisSession.has(skill) && (save.value.toasts[skill] ?? 0) < SKILL_TOAST_CAP
+
+/** Its toast showed: count it (this session and for good). */
+export const noteSkillToast = (skill: string): void => {
+  toastedThisSession.add(skill)
+  save.value = { ...save.value, toasts: { ...save.value.toasts, [skill]: (save.value.toasts[skill] ?? 0) + 1 } }
+  persist()
+}
+
+// ─── Cues for screen readers (Silent Flow) ───────────────────────────────────
+/**
+ * The in-world lessons (a merge's own flourish in the tray, the first "+1"
+ * joining it, the threat cue on the board) show without a word; their
+ * sentence still reaches screen readers through the coach overlay's `cue`
+ * live region — the sentences the staged lessons used to carry.
+ */
+export type CueDraft =
+  | { kind: 'pickup' }
+  | { kind: 'merge'; from: number; to: number; discovery: boolean }
+  | { kind: 'threat' }
+export type CoachCue = CueDraft & { seq: number }
+/** The last cue said (CoachOverlay reads it into its live region). */
+export const coachCue = shallowRef<CoachCue | null>(null)
+let cueSeq = 0
+export const sayCue = (c: CueDraft): void => {
+  coachCue.value = { ...c, seq: ++cueSeq }
 }
 
 /** Badge keys that have done their TAG_TURNS aim phases — the renderer
@@ -625,10 +693,13 @@ export interface CoachWiring {
   funnelCalm?: Readonly<Ref<boolean>>
   /** The player's best row: past FUNNEL_LAST_ROW the upgrade funnel retires. */
   bestRow?: Readonly<Ref<number>>
-  /** Nothing else owns the screen for a spotlight: no modal, unlock, reveal,
-   *  coin rain, lightbox, FTUE mark, and no finger on the board. Absent = no
-   *  spotlights (tests about other lessons). */
+  /** Nothing else owns the screen for a spotlight or the threat cue: no
+   *  modal, unlock, reveal, coin rain, FTUE mark, and no finger on the board.
+   *  Absent = neither (tests about other lessons). */
   spotCalm?: Readonly<Ref<boolean>>
+  /** Silent Flow: no boss killed yet — only the shot demo speaks, and the
+   *  threat cue is drawn on the board (see the header). Absent = never silent. */
+  silent?: Readonly<Ref<boolean>>
   /** SPOT_DELAY_MS by default (tests pass 0). */
   spotDelayMs?: number
   /** Run `fn` when the browser has a moment (tests pass a synchronous runner). */
@@ -777,6 +848,8 @@ export const installCoach = (w: CoachWiring): (() => void) => {
   }
   const spotDelay = w.spotDelayMs ?? SPOT_DELAY_MS
   const spotCalmNow = (): boolean => !!w.spotCalm?.value && canSpot()
+  /** Silent Flow (the header): no boss killed yet. */
+  const silentNow = (): boolean => w.silent?.value ?? false
   /** Volleys since the last lesson (the shot hint aside) or spotlight on screen. */
   const sinceAnyLesson = (): number => currentVolleys() - Math.max(lastTeachVolley, lastSpotVolley)
   const bossEnraged = (s: BoardState): boolean => s.monsters.some((m) => m.kind === 'boss' && m.enraged)
@@ -801,26 +874,51 @@ export const installCoach = (w: CoachWiring): (() => void) => {
     return null
   }
 
-  /** Play `draft` SPOT_DELAY_MS into this aim phase, if the calm still holds
-   *  then; otherwise this aim's other lessons run (`fallback`). `after` runs
-   *  when it ends inside the same aim phase. */
-  const trySpot = (draft: ThreatSpot | UpgradeSpot, after: (() => void) | null, fallback: () => void): void => {
+  /** Run `go` SPOT_DELAY_MS into this aim phase (the march settles, the
+   *  launcher lands) — only if it is still the same aim phase of the same board. */
+  const inThisAim = (go: () => void): void => {
     const aim = aimNo
     const gen = w.engineGen.value
     const same = (): boolean => aim === aimNo && gen === w.engineGen.value && w.engine.value.state.phase === 'aim'
-    const go = (): void => {
+    const run = (): void => {
       spotTimer = null
-      if (!same()) return
-      if (!spotCalmNow() || !offerSpot(draft, () => { if (same()) after?.() })) {
+      if (same()) go()
+    }
+    stopSpotTimer()
+    if (spotDelay <= 0) run()
+    else spotTimer = setTimeout(run, spotDelay)
+  }
+
+  /** Play the chip spotlight `draft`, if the calm still holds then; otherwise
+   *  this aim's other lessons run (`fallback`). */
+  const trySpot = (draft: UpgradeSpot, fallback: () => void): void => {
+    inThisAim(() => {
+      if (!spotCalmNow() || !offerSpot(draft)) {
         fallback()
         return
       }
       bumpExposure(spotExposure(draft.kind))
       lastSpotVolley = currentVolleys()
-    }
-    stopSpotTimer()
-    if (spotDelay <= 0) go()
-    else spotTimer = setTimeout(go, spotDelay)
+    })
+  }
+
+  /** The threat cue: the board flashes the danger rows (render/worldCues.ts)
+   *  while play goes on, if the stage is still calm — then the rescue shot
+   *  follows at once (Silent Flow keeps that demo for after the first boss
+   *  kill). Not calm: this aim's other lessons run (`fallback`) and the cue
+   *  waits for a calm aim phase. */
+  const tryThreatCue = (draft: ThreatSpot, fallback: () => void): void => {
+    inThisAim(() => {
+      if (!w.spotCalm?.value) {
+        fallback()
+        return
+      }
+      flashDanger(draft.monsterId)
+      bumpExposure('threatBox')
+      lastSpotVolley = currentVolleys()
+      sayCue({ kind: 'threat' })
+      aimLessons(w.engine.value.state, { spots: false, afterThreat: true })
+    })
   }
 
   // ─── The upgrade funnel ──────────────────────────────────────────────────
@@ -863,7 +961,12 @@ export const installCoach = (w: CoachWiring): (() => void) => {
    *  even when it points at the same chip for the same reason. */
   const evaluateFunnel = (fresh: boolean): void => {
     let next: Omit<FunnelShow, 'seq'> | null = null
-    if (w.mode.value === 'endless' && w.ftueDone.value && w.engine.value.state.phase === 'aim' && !funnelHeld && !funnelRetired()) {
+    // Silent Flow: no funnel before the first boss kill — the chip that became
+    // affordable flies in and the glowing one pulses on its own (`chipPulse`).
+    if (
+      w.mode.value === 'endless' && w.ftueDone.value && !silentNow() && w.engine.value.state.phase === 'aim'
+      && !funnelHeld && !funnelRetired()
+    ) {
       const damage = damageFunnelDue({
         mode: w.mode.value,
         freeOffer: w.freeOffer?.value ?? false,
@@ -946,8 +1049,10 @@ export const installCoach = (w: CoachWiring): (() => void) => {
     // is auto-collected whatever the aim, so no beat is lost by angling). The
     // FTUE overlay steps aside for it (TutorialOverlay). It is the combo
     // lesson's first showing: a player who has seen one never gets it.
+    // Silent Flow retires it (the first session is always before the first
+    // boss kill): the FTUE's own ghost finger is the one hand on screen.
     if (
-      s.config.ftue && w.mode.value === 'endless' && BANK_TURNS.includes(s.turn)
+      !silentNow() && s.config.ftue && w.mode.value === 'endless' && BANK_TURNS.includes(s.turn)
       && !(w.ftuePressBeat?.value ?? false) && lessonShown('combo') === 0
     ) {
       search('bank')
@@ -959,15 +1064,25 @@ export const installCoach = (w: CoachWiring): (() => void) => {
       showPullIfDue()
       return
     }
-    const spots = (o.spots ?? true) && spotCalmNow() && aimNo !== quietAim
+    const quiet = aimNo === quietAim
+    const spots = (o.spots ?? true) && spotCalmNow() && !quiet
     const rest = (): void => aimLessons(w.engine.value.state, { spots: false })
-    // The countdown on the launcher, staged the first time one shows (run 11).
-    if (spots && inDanger(s) && lessonShown('threatBox') === 0) {
+    // The countdown on the launcher, flashed on the board the first time one
+    // shows (run 11) — Silent Flow too: it is drawn in the world, play goes on.
+    if ((o.spots ?? true) && !!w.spotCalm?.value && !quiet && inDanger(s) && lessonShown('threatBox') === 0) {
       const d = threatSpotDraft(s)
       if (d) {
-        trySpot(d, () => aimLessons(w.engine.value.state, { spots: false, afterThreat: true }), rest)
+        tryThreatCue(d, rest)
         return
       }
+    }
+    // Silent Flow: nothing else speaks before the first boss kill but the shot
+    // demo — danger is the board's own (the threat cue, the pips, the line),
+    // the tray, the chips and the funnel are taught in the world.
+    if (silentNow()) {
+      pendingTray = false
+      showPullIfDue()
+      return
     }
     const sinceLesson = currentVolleys() - lastLessonVolley
     if (inDanger(s) && lessonShown('survive') < MAX_SHOWS.survive && (o.afterThreat || sinceLesson >= SURVIVE_GAP)) {
@@ -999,7 +1114,7 @@ export const installCoach = (w: CoachWiring): (() => void) => {
     if (spots && !inDanger(s) && !upgradeFunnel.value && !bossEnraged(s) && sinceAnyLesson() >= SPOT_GAP) {
       const d = upgradeSpotDraft(s)
       if (d) {
-        trySpot(d, null, rest)
+        trySpot(d, rest)
         return
       }
     }
@@ -1037,7 +1152,9 @@ export const installCoach = (w: CoachWiring): (() => void) => {
         upgradeFunnel.value = null
         break
       case 'trayOverflow':
-        pendingTray = true
+        // Silent Flow: a spill is no lesson before the first boss kill (and a
+        // stale one must not play the moment the silence ends).
+        if (!silentNow()) pendingTray = true
         break
       // The two moments a wallet fills up (a bounty) or a player is ready to
       // rethink (a restart): the arrows come back on the glowing chip.
@@ -1095,7 +1212,7 @@ export const installCoach = (w: CoachWiring): (() => void) => {
   // volley later — unless the calm broke (a chest's coin rain, a gift modal):
   // then the next calm aim phase.
   offs.push(watch(
-    () => [w.upgrades?.value, w.freeOffer?.value, w.glowingUpgrade?.value, w.ftueDone.value],
+    () => [w.upgrades?.value, w.freeOffer?.value, w.glowingUpgrade?.value, w.ftueDone.value, w.silent?.value],
     () => evaluateFunnel(false)
   ))
   // Synchronously: the coin rain / modal / unlock must not share a frame with it.
@@ -1129,13 +1246,14 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
     engine: () => wiring?.engine.value ?? null,
     retired: () => [...retiredTags.value],
     shown: (id: ExposureId) => lessonShown(id),
-    /** Stage a spotlight now, off the live board (visual checks). */
+    /** Stage a spotlight (or the threat cue) now, off the live board (visual checks). */
     spot: (kind: SpotKind): boolean => {
       const st = wiring?.engine.value.state
       if (!st) return false
       if (kind === 'threat') {
         const d = threatSpotDraft(st)
-        return !!d && offerSpot(d)
+        if (d) flashDanger(d.monsterId)
+        return !!d
       }
       const view = wiring?.upgrades?.value.find((v) => v.id === kind)
       const d = view ? chipSpotDraft(kind, view, st) : null

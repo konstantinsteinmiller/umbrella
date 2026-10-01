@@ -93,6 +93,29 @@ describe('the first-session beats', () => {
     off()
   })
 
+  // Silent Flow: the pickup lesson is in the world — the board pulses every
+  // "+1" (render/worldCues.ts) until the first merge; nothing pauses.
+  it('the "+1" pulses on the board through the "+1" beats, and stops at the first merge', async () => {
+    const { emit } = await boot()
+    const { worldCues } = await import('@/barrage/render/worldCues')
+    expect(worldCues.plusPulse).toBe(true) // aim
+    emit(FIRE)
+    expect(worldCues.plusPulse).toBe(true) // pickup
+    emit(BALL)
+    await nextTick()
+    expect(worldCues.plusPulse).toBe(true) // merge
+    emit(MERGE)
+    await nextTick()
+    expect(worldCues.plusPulse).toBe(false) // upgrade: the "+1" is not what it wants any more
+  })
+
+  it('a veteran never sees the "+1" pulse', async () => {
+    await boot({}, 12)
+    await nextTick()
+    const { worldCues } = await import('@/barrage/render/worldCues')
+    expect(worldCues.plusPulse).toBe(false)
+  })
+
   it('persists the beat, so a reload resumes the same coach mark', async () => {
     const first = await boot()
     first.emit(FIRE)

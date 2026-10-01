@@ -406,20 +406,20 @@ except the pull hint):
     flight started that instant, and she read them as "the first tap only arms it");
   - the whole funnel (arrows, hand, idle chip pulse) RETIRES once the player has been past row 25 (best row or
     this run's row, `FUNNEL_LAST_ROW`): by then they have learnt that coins buy power. The glowing chip stays.
-- *merge lightbox* (`components/barrage/mergeLightbox.ts`): the first 3 merges of a profile and every
-  discovery pause the game (`acquireAppPause`) and stage the merge in the tray (twins fly together, fuse,
-  comet into the launcher; a discovery peeks its codex entry), tap to skip; the NEW BALL reveal is
-  deferred until it ends. Count: `eb_coach.shown.mergeBox`. Later merges animate in the tray unpaused.
-- *first "+1" spotlight* (`components/barrage/pickupSpotlight.ts`, the designer's call after run 8: "+1 means more
-  balls = more damage" was never shown): the first collected "+1" that becomes a ball (auto-collected ones
-  included) pauses the game; a soft spotlight follows the bubble from the board into the tray socket it filled,
-  where it turns into the ball, then a comet runs into the launcher. Wordless (sr-only `barrage.tray.pickupSr`),
-  tap to skip, once per profile (`eb_coach.shown.pickupBox`; veterans past row 10 never see it).
+- *merge lightbox* (`components/barrage/mergeLightbox.ts`): **Silent Flow (retention-roadmap #2) — no
+  pause.** Every merge plays the tray's own flourish while play goes on; a discovery adds the NEW BALL reveal
+  (≤ 1.5 s, non-blocking). The first 3 merges and every discovery still say their sentence to screen readers
+  and are counted (`eb_coach.shown.mergeBox`). `offerMerge` never takes the moment.
+- *first "+1"* (`components/barrage/pickupSpotlight.ts`): **Silent Flow — no pause.** Every "+1" on the board
+  pulses in the FTUE (`render/worldCues.ts` `plusPulse`) and the tray plays its own flight into the socket it
+  fills. Counted once per profile (`eb_coach.shown.pickupBox`), sr-only `barrage.tray.pickupSr`.
 - *spotlights* (`components/barrage/lessonSpotlight.ts` + `LessonSpotlight.vue`, the designer's call after
-  run 11): short staged lessons that PAUSE the game (a tap skips; wordless — sr-only `barrage.coach.spot.*`),
+  run 11): short staged lessons (Silent Flow: none before the first boss kill, and none pauses or dims — the demo
+  plays over the running aim phase and a shot ends it; wordless — sr-only `barrage.coach.spot.*`),
   scheduled by the coach SPOT_DELAY_MS (380 ms) into a calm aim phase (`spotCalm`: no modal, unlock, reveal,
   coin rain, lightbox, FTUE mark, death scene or finger on the board), never on the aim a boss arrived or fell:
-  - *threat* — the countdown on the launcher, the first time a monster comes within 3 marches (once per
+  - *threat* — **Silent Flow: now a board cue, not a staged lesson** (`useCoach.flashDanger` → the danger row
+    flashes in `render/worldCues.ts`). History: the countdown on the launcher, the first time a monster comes within 3 marches (once per
     profile, `eb_coach.shown.threatBox`; veterans past row 30 never see it): the monster with the fewest
     marches (nearest the unit on a tie) and the unit are lit, both wearing the same pip N and a tether; a ghost
     of it marches down at its real pace (`render/danger.ts` `marchPlan`), both pips ticking down together

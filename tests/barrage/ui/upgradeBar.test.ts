@@ -367,6 +367,27 @@ describe('upgrade chips', () => {
     w.unmount()
   })
 
+  // Silent Flow: a chip not earned yet holds its slot invisibly (no price, no
+  // pulse, no tap); once it has flown in (useFeatureUnlocks) it shows for good.
+  it('Silent Flow: an unearned chip holds its slot hidden; an earned one shows', async () => {
+    const { setState } = await import('@/use/useEpicState')
+    const { EB_UNLOCKS_KEY } = await import('@/barrage/keys')
+    const w = render()
+    await nextTick()
+    const ids: UpgradeId[] = ['damage', 'capacity', 'speed', 'luck', 'bounty']
+    for (const id of ids) {
+      expect(chip(w, id).exists(), id).toBe(true) // the slot is there…
+      expect(chip(w, id).classes(), id).toContain('chip--hidden') // …the chip is not
+      expect(chip(w, id).attributes('data-feature')).toBe(`chip:${id}`)
+    }
+    setState(EB_UNLOCKS_KEY, { v: 1, n: 0, losses: 0, seen: [], chips: ['capacity'] })
+    await nextTick()
+    await nextTick()
+    expect(chip(w, 'capacity').classes()).not.toContain('chip--hidden')
+    for (const id of ids.filter((x) => x !== 'capacity')) expect(chip(w, id).classes(), id).toContain('chip--hidden')
+    w.unmount()
+  })
+
   it('the denied sound resolves to a file that ships', async () => {
     const { SFX_FALLBACKS } = await vi.importActual<typeof import('@/use/useSound')>('@/use/useSound')
     const file = SFX_FALLBACKS['upgrade-denied']

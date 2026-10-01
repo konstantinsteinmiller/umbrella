@@ -21,6 +21,17 @@
  * no in-game mute on CrazyGames, screenshake on the scene root, battle music,
  * the DEV clean feed and video seam, and the achievement toast held back while
  * a new-tier reveal owns the moment.
+ *
+ * SILENT FLOW (retention-roadmap #2) — until the first boss kill (`silentFlow`,
+ * progress.ts `isFtueActive`) the HUD is earned, not given. A first-timer's
+ * frame 1 is the board, the launcher, "Tap to Shoot" with its ghost finger,
+ * the boss countdown and the options gear. Then, in the world's own time:
+ * the tray appears as the first "+1" flies into it, the wallet with the first
+ * coin, each upgrade chip the first time it is affordable (flown in,
+ * useFeatureUnlocks), and at the first boss kill the row badge, the mute and
+ * the rank plaque (the plaque with an earned fly-in). Every hidden piece keeps
+ * its box (visibility), so nothing — least of all the board — ever resizes
+ * when it arrives. A returning player sees the whole HUD from the first frame.
  */
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -48,11 +59,7 @@ import HudTip from '@/components/barrage/HudTip.vue'
 import { rankTip, showHudTip } from '@/components/barrage/hudTip'
 import FeatureSlot from '@/components/barrage/FeatureSlot.vue'
 import FeatureUnlockFx from '@/components/barrage/FeatureUnlockFx.vue'
-import MergeLightbox from '@/components/barrage/MergeLightbox.vue'
-import PickupSpotlight from '@/components/barrage/PickupSpotlight.vue'
 import LessonSpotlight from '@/components/barrage/LessonSpotlight.vue'
-import { mergeBox } from '@/components/barrage/mergeLightbox'
-import { pickupBox } from '@/components/barrage/pickupSpotlight'
 import { lessonSpot } from '@/components/barrage/lessonSpotlight'
 
 import useBarrage from '@/barrage/state/useBarrage'
@@ -72,11 +79,11 @@ import { artSrc } from '@/use/useArtOverrides'
 import { backdropSrc } from '@/barrage/render/backdropArt'
 import { installBarrageTutorial, tutorialActive, tutorialStep } from '@/use/useTutorial'
 import { installCoach, noteMisfire } from '@/use/useCoach'
-import { featureReady, featureShown, installFeatureUnlocks, unlocking } from '@/use/useFeatureUnlocks'
+import { CHIP_IDS, chipStates, featureReady, featureShown, installFeatureUnlocks, rankState, unlocking } from '@/use/useFeatureUnlocks'
 import { isAnyModalOpen } from '@/use/useModalState'
 import { isFtueActive, stats as barrageStats } from '@/barrage/state/progress'
 import { upgradeLevels } from '@/barrage/state/upgradeLevels'
-import { activeReveal } from '@/use/useTierReveal'
+import { activeReveal, setRevealGate, silentRevealAllowed } from '@/use/useTierReveal'
 import useAchievements, { ACHIEVEMENTS, achievementToast } from '@/use/useAchievements'
 import { rankedBest, installWaveLeaderboard } from '@/use/useWaveLeaderboard'
 import { leaderboardEnabled } from '@/use/useLeaderboard'
@@ -146,16 +153,39 @@ const isDaily = computed(() => barrage.mode.value === 'daily')
 /** Next undiscovered ball tier — ghosts as a silhouette on the codex button. */
 const nextUndiscovered = computed(() =>
   barrage.maxBallTier.value < FIGHTER_ART_MAX ? barrage.maxBallTier.value + 1 : 0)
+// ─── Silent Flow: the HUD a first-timer earns (see the header) ───────────────
+/** No boss killed yet (progress.ts `isFtueActive`: reactive through its refs). */
+const silentFlow = computed(() => isFtueActive())
+/** The row badge (and its record line) arrive with the first boss kill: until
+ *  then "Boss in N" says everything a first-timer needs. */
+const rowShown = computed(() => !silentFlow.value)
+/** The tray arrives as the first "+1" flies into it (the FTUE's pickup beat
+ *  is over: a ball has joined it). */
+const trayShown = computed(() => !silentFlow.value || (tutorialStep.value !== 'aim' && tutorialStep.value !== 'pickup'))
+/** The wallet arrives with the first coin — and stays, whatever is spent. */
+const coinsSeen = ref(walletCoins.value > 0 || Object.values(upgradeLevels.value).some((l) => l > 0))
+watch(walletCoins, (c) => { if (c > 0) coinsSeen.value = true })
+const coinsShown = computed(() => !silentFlow.value || coinsSeen.value)
+/** One control on frame 1 — the options gear (its sliders hold the sound
+ *  too); the mute joins it at the first boss kill. */
+const muteShown = computed(() => !silentFlow.value)
+/** Nothing on the control deck yet: its plate stays away too. */
+const deckBare = computed(() => !trayShown.value && CHIP_IDS.every((id) => chipStates.value[id] === 'hidden'))
+
 /** A best of 0 / 1 on a fresh profile is noise, not a record to beat. */
-const showBest = computed(() => (isDaily.value ? daily.todayBest.value : barrage.bestRow.value) > 1)
-/** The global rank plaque sits on the board's top rim on EVERY device and from
- *  the first second (the game is competitive; it is not an earned feature). */
-const showRank = computed(() => leaderboardEnabled && !CLEAN_FEED)
+const showBest = computed(() => rowShown.value && (isDaily.value ? daily.todayBest.value : barrage.bestRow.value) > 1)
+/** The global rank plaque sits on the board's top rim on every device — once
+ *  EARNED: it stays hidden until the first boss kill and then flies in
+ *  (useFeatureUnlocks `rankState`). User decision 2026-09-27, reversing "it
+ *  shows from the first second": testers did not understand it in minute 1. */
+const rankOnBuild = leaderboardEnabled && !CLEAN_FEED
+const showRank = computed(() => rankOnBuild && rankState.value !== 'hidden')
 /** The strip reserved above the board for the plaque. The plaque is a little
  *  taller and overlaps the board's own top margin (the band a boss peeks in
- *  through) — never row 0, where new monsters enter. Reserved whenever a board
- *  exists, so the board never shrinks the moment the first rank arrives. */
-const rankReserve = computed(() => (!showRank.value ? 0
+ *  through) — never row 0, where new monsters enter. Reserved whenever the
+ *  build has a plaque, earned or not, so the board never shrinks the moment
+ *  the rank arrives. */
+const rankReserve = computed(() => (!rankOnBuild ? 0
   : isUltraCompactHud.value ? 16 : isCompactHud.value ? 18 : isRoomyHud.value ? 26 : 20))
 /** Earned features only (useFeatureUnlocks): the landscape utility plate is
  *  not drawn at all while it would be an empty frame. */
@@ -165,7 +195,7 @@ const anyUtility = computed(() =>
  *  nothing else is asking for the player's eyes. */
 const unlockCalm = computed(() =>
   barrage.phase.value === 'aim' && !barrage.holdSim.value && !isAnyModalOpen.value && !activeReveal.value
-  && !playerAiming.value && !mergeBox.value && !pickupBox.value && !lessonSpot.value)
+  && !playerAiming.value && !lessonSpot.value)
 /** …and for a spotlight lesson (useCoach): no unlock flying in, no coin rain,
  *  no FTUE mark, no death scene either. */
 const spotCalm = computed(() =>
@@ -425,14 +455,22 @@ onMounted(() => {
   // Idempotent and a no-op on builds without a board; mounted here because the
   // scene mounts after the save hydrate, so `bestRow` is already the player's.
   installWaveLeaderboard()
-  // Depth features are earned one at a time (useFeatureUnlocks.ts).
+  // Depth features, the upgrade chips and the rank plaque are earned one at a
+  // time (useFeatureUnlocks.ts).
   uninstallUnlocks = installFeatureUnlocks({
     bestRow: barrage.bestRow,
     mode: barrage.mode,
     onEngineEvent: barrage.onEngineEvent,
     ftueDone: computed(() => !tutorialActive.value),
-    calm: unlockCalm
+    calm: unlockCalm,
+    chips: upgrades.list,
+    freeChip: upgrades.freeId,
+    silent: silentFlow,
+    rankEnabled: rankOnBuild
   })
+  // Silent Flow: before the first boss kill only the first discovery gets the
+  // NEW BALL reveal (wordless); later ones are the tray's own flourish.
+  setRevealGate((tier) => !silentFlow.value || silentRevealAllowed(tier))
   // A save whose trophy is already earned: anything left unclaimed pays out now.
   sweepAchievements()
   // The wordless coach picks up where the FTUE hands over (useCoach.ts).
@@ -460,8 +498,11 @@ onMounted(() => {
     funnelCalm: computed(() => !isAnyModalOpen.value && !unlocking.value && !coinRain.value),
     // Past row 25 the player has learnt that coins buy power: no funnel.
     bestRow: barrage.bestRow,
-    // After run 11: the threat countdown and the speed / luck / bounty chips, staged.
-    spotCalm
+    // After run 11: the threat cue on the board and the speed / luck / bounty chips.
+    spotCalm,
+    // Silent Flow: before the first boss kill only the shot demo speaks (and
+    // the threat cue is drawn on the board).
+    silent: silentFlow
   })
   uninstallTutorial = installBarrageTutorial({
     bestRow: barrage.bestRow,
@@ -499,6 +540,7 @@ onUnmounted(() => {
   uninstallTutorial?.()
   uninstallCoach?.()
   uninstallUnlocks?.()
+  setRevealGate(null)
   topBarRo?.disconnect()
   areaRo?.disconnect()
   topBarRo = null
@@ -553,7 +595,8 @@ onUnmounted(() => {
             :class="[isCompactHud ? 'gap-0.5' : 'gap-1', stackFill ? 'flex-1' : 'shrink']"
           )
             div.flex.items-center.min-w-0(:class="isCompactHud ? 'gap-1' : 'gap-1.5'")
-              div.relative.shrink-0
+              //- Silent Flow: the row badge arrives with the first boss kill (its box stays).
+              div.relative.shrink-0.hud-earned(:class="{ 'is-hidden': !rowShown }")
                 div.absolute.inset-0.rounded-xl(
                   :class="[isDaily ? 'bg-[#0d4d52]' : 'bg-[#7a1c1c]', isCompactHud ? 'translate-y-0.5' : 'translate-y-1']"
                 )
@@ -594,12 +637,15 @@ onUnmounted(() => {
               :class="isCompactHud ? 'ms-1.5' : 'ms-2'"
             )
         div.flex-1(v-if="sideBySide")
-        //- Rank · wallet · mute · options.
+        //- Wallet · mute · options. Silent Flow: the wallet arrives with the
+        //- first coin, the mute with the first boss kill (both keep their box —
+        //- the wallet is the coins' flight target even while hidden).
         div.flex.items-center.shrink-0.pointer-events-auto(:class="isCompactHud ? 'gap-1' : 'gap-1.5'")
-          CoinBadge(ref="coinBadgeRef" :land-ms="coinLandMs")
+          div.hud-earned(:class="{ 'is-hidden': !coinsShown }")
+            CoinBadge(ref="coinBadgeRef" :land-ms="coinLandMs")
           //- CrazyGames owns the sound toggle on their build (their toolbar mute
           //- must win; a second in-game switch reads as two competing mutes).
-          div.hud-wrap(v-if="!isCrazyWeb")
+          div.hud-wrap.hud-earned(v-if="!isCrazyWeb" :class="{ 'is-hidden': !muteShown }")
             FMuteButton
           HudButton(tone="blue" :aria-label="t('options.title')" @click="showOptions = true")
             BarrageGlyph.w-full.h-full(name="gear")
@@ -651,10 +697,12 @@ onUnmounted(() => {
         //- Words over the board (the canvas draws numbers only), boxed to the
         //- letterboxed board rect so they centre on the board, not the area.
         div.board-overlay.absolute.pointer-events-none(v-if="!CLEAN_FEED" :style="boardBoxStyle")
-          //- The global rank: a runic plaque on the board's top rim, every layout.
+          //- The global rank: a runic plaque on the board's top rim, every layout —
+          //- earned by the first boss kill, then flown in (FeatureUnlockFx).
           div.rank-rim.absolute.left-0.right-0.flex.justify-center(v-if="showRank" :style="{ top: -rankReserve + 'px' }")
             //- Run 8: named on the plaque itself (a tap still names it too).
-            RankBadge(:score="rankedBest" :label="t('barrage.hud.rank')" tappable @tap="onRankTap")
+            div.rank-rim__slot(data-feature="rank" :class="{ 'is-arriving': rankState === 'arriving' }")
+              RankBadge(:score="rankedBest" :label="t('barrage.hud.rank')" tappable @tap="onRankTap")
           BarrageBanners
           //- A first-time player's "Tap to Shoot", pulsing until the first shot.
           ShootPrompt
@@ -668,7 +716,7 @@ onUnmounted(() => {
       //- ── PORTRAIT bottom panel ──
       div.bottom-panel.shrink-0.w-full.mx-auto.flex.flex-col(
         v-if="!sideBySide && !CLEAN_FEED"
-        :class="[panelTier === 'roomy' ? 'max-w-[640px]' : 'max-w-[520px]', panelTier === 'normal' || panelTier === 'roomy' ? 'gap-1.5 pt-1.5' : 'gap-1 pt-1', { 'panel-plate panel-plate--deck': plateSrc }]"
+        :class="[panelTier === 'roomy' ? 'max-w-[640px]' : 'max-w-[520px]', panelTier === 'normal' || panelTier === 'roomy' ? 'gap-1.5 pt-1.5' : 'gap-1 pt-1', { 'panel-plate panel-plate--deck': plateSrc, 'panel-plate--bare': deckBare }]"
       )
         //- [codex] tray [supply] — a 3 px gutter each side: the deck clips its
         //- overflow, and an edge button's "new" ring must not be cut there.
@@ -678,7 +726,8 @@ onUnmounted(() => {
               BarrageGlyph.w-full.h-full(name="codex")
               template(#corner)
                 img.codex-ghost.absolute(v-if="nextUndiscovered" :src="fighterSrc(nextUndiscovered)" alt="" draggable="false")
-          BallTray.flex-1.h-full
+          //- Silent Flow: laid out but hidden until the first "+1" flies into it.
+          BallTray.flex-1.h-full.hud-earned(:class="{ 'is-hidden': !trayShown }")
           FeatureSlot(id="supply")
             SupplyDropButton(:coin-target="coinBadgeEl")
         div(:style="{ height: rows.upg + 'px' }")
@@ -707,8 +756,8 @@ onUnmounted(() => {
         :style="{ width: sideW + 'px', paddingTop: topReserve }"
         :class="isRoomyHud ? 'justify-center' : 'justify-end'"
       )
-        div.flex.flex-col.gap-2(:class="{ 'panel-plate': plateSrc }")
-          BallTray.w-full(:style="{ height: sideTrayH + 'px' }")
+        div.flex.flex-col.gap-2(:class="{ 'panel-plate': plateSrc, 'panel-plate--bare': deckBare }")
+          BallTray.w-full.hud-earned(:class="{ 'is-hidden': !trayShown }" :style="{ height: sideTrayH + 'px' }")
           div.w-full(:style="{ height: sideUpgH + 'px' }")
             UpgradeBar(:cols="sideChipCols")
           div.flex.items-center.justify-center(:style="{ height: rows.ctrl + 'px' }")
@@ -724,12 +773,11 @@ onUnmounted(() => {
     //- An earned feature flies in (useFeatureUnlocks).
     FeatureUnlockFx(v-if="!CLEAN_FEED")
     //- New-tier discovery moment (teleports itself; follows `[data-slot=i] .unit-holder`).
+    //- The merges themselves play the tray's own flourish, the first "+1" its
+    //- own flight and the threat lesson flashes on the board: nothing stops
+    //- the game for them any more (Silent Flow).
     TierRevealFx
-    //- The first merges and every discovery, on a paused stage (runs before the reveal).
-    MergeLightbox(v-if="!CLEAN_FEED")
-    //- The first "+1" that becomes a ball, on a stage (paused, once per profile).
-    PickupSpotlight(v-if="!CLEAN_FEED")
-    //- The countdown and the speed / luck / bounty chips, staged (paused; the coach decides when).
+    //- The speed / luck / bounty chips' spotlight — over the running game (the coach decides when).
     LessonSpotlight(v-if="!CLEAN_FEED")
 
     //- The death sequence's "WASTED" — then the death screen.
@@ -765,6 +813,10 @@ onUnmounted(() => {
     pointer-events: none
     border: var(--plate-b) solid transparent
     border-image: var(--plate-img) 21% fill / var(--plate-b) stretch
+    transition: opacity 0.4s ease
+// Silent Flow: an empty deck (no tray, no chip yet) shows no plate either.
+.panel-plate--bare::before
+  opacity: 0
 // The utility grid hugs its buttons instead of spanning the whole column.
 .util-grid.panel-plate
   align-self: center
@@ -816,6 +868,22 @@ onUnmounted(() => {
 // The rank plaque on the board's top rim — above the banners, below modals.
 .rank-rim
   z-index: 26
+// Its fly-in (FeatureUnlockFx) owns the moment: the real plaque waits unseen.
+.rank-rim__slot.is-arriving
+  visibility: hidden
+
+// Silent Flow: a HUD piece not earned yet keeps its box (nothing resizes when
+// it arrives) and simply is not there; it pops in when it is.
+.hud-earned
+  transition: opacity 0.35s ease, scale 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)
+.hud-earned.is-hidden
+  visibility: hidden
+  opacity: 0
+  scale: 0.6
+  transition: none
+@media (prefers-reduced-motion: reduce)
+  .hud-earned
+    transition: opacity 0.35s ease
 
 // ── Codex button: the next undiscovered tier as a dark silhouette ──
 .codex-ghost

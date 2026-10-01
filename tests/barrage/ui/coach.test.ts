@@ -11,6 +11,15 @@ import { board, mon, pick } from '../engine/helpers'
 const STATE_KEY = 'elemental-barrage_state'
 const UP = Math.PI / 2
 
+// Silent Flow (retention-roadmap #2): no coach moment takes an app pause any
+// more — every call is counted here (and still reaches the real gate).
+const pauses = vi.hoisted(() => ({ n: 0 }))
+vi.mock('@/use/useGamePause', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/use/useGamePause')>()
+  return { ...mod, acquireAppPause: () => { pauses.n++; return mod.acquireAppPause() } }
+})
+beforeEach(() => { pauses.n = 0 })
+
 interface BootOpts {
   state?: Record<string, unknown>
   /** Keep the tray-intro / upgrade lessons pending (off by default: they
@@ -45,6 +54,11 @@ interface BootOpts {
   /** A spotlight view is mounted and the stage is calm (the spotlight
    *  lessons may play, at once — no delay). */
   spots?: boolean
+  /** The stage is calm (the threat cue may play, at once) but no spotlight
+   *  view is mounted — the clean feed, the lab. */
+  spotCalmOnly?: boolean
+  /** Silent Flow: no boss killed yet (the scene's `silent`). */
+  silent?: Ref<boolean>
 }
 
 /** The five chips, Damage as asked (the rest unaffordable). */
@@ -96,7 +110,8 @@ const boot = async (engine: BarrageEngine, o: BootOpts = {}) => {
     funnelCalm: o.calm ?? ref(true),
     bestRow: ref(o.bestRow ?? 0),
     schedule: (fn: () => void) => fn(),
-    ...(o.spots ? { spotCalm: ref(true), spotDelayMs: 0 } : {})
+    ...(o.spots || o.spotCalmOnly ? { spotCalm: ref(true), spotDelayMs: 0 } : {}),
+    ...(o.silent ? { silent: o.silent } : {})
   }
   const off = coach.installCoach(w)
   return { coach, w, off, spot }
@@ -1073,15 +1088,20 @@ describe('spotlight lessons', () => {
     expect(coach.threatSpotDraft(board({ monsters: [mon('slime', 3, 1, 3)] }).state)).toBeNull()
   })
 
-  it('the first danger plays the threat spotlight — once — and its rescue shot follows the moment it ends', async () => {
+  // Silent Flow reversed the staged threat spotlight (a ghost march on a paused,
+  // dimmed stage, ≈ 4.7 s): the danger rows flash on the board itself
+  // (render/worldCues.ts) while play goes on, and the rescue shot follows at once.
+  it('the first danger flashes the danger rows on the board — once, no pause — and the rescue shot follows at once', async () => {
     const { e, threat } = dangerBoard()
     const { coach, spot } = await boot(e, { spots: true })
-    expect(spot.lessonSpot.value?.kind).toBe('threat')
-    expect(spot.lessonSpot.value?.kind === 'threat' && spot.lessonSpot.value.monsterId).toBe(threat.id)
+    const { worldCues } = await import('@/barrage/render/worldCues')
+    expect(worldCues.danger).toEqual({ seq: 1, monsterId: threat.id })
     expect(coach.lessonShown('threatBox')).toBe(1)
-    // Nothing else talks over it.
-    expect(coach.coachLesson.value).toBeNull()
-    spot.finishSpot()
+    // Its sentence reaches screen readers (the coach overlay's cue region).
+    expect(coach.coachCue.value?.kind).toBe('threat')
+    // Nothing staged, nothing paused: the rescue shot is up on the real board.
+    expect(spot.lessonSpot.value).toBeNull()
+    expect(pauses.n).toBe(0)
     const l = coach.coachLesson.value
     expect(l?.id).toBe('survive')
     if (l?.id === 'survive') expect(l.threats).toContain(threat.id)
@@ -1090,16 +1110,28 @@ describe('spotlight lessons', () => {
   it('a profile that has seen it goes straight to the survive lesson', async () => {
     const { e } = dangerBoard()
     const { coach, spot } = await boot(e, { spots: true, state: { eb_coach: { v: 1, shown: { threatBox: 1 }, kinds: {} } } })
+    const { worldCues } = await import('@/barrage/render/worldCues')
+    expect(worldCues.danger.seq).toBe(0)
     expect(spot.lessonSpot.value).toBeNull()
     expect(coach.coachLesson.value?.id).toBe('survive')
   })
 
-  it('no mounted view (the lab, the clean feed): no spotlight, the survive lesson as ever', async () => {
-    const { e } = dangerBoard()
-    const { coach, spot } = await boot(e)
-    expect(spot.lessonSpot.value).toBeNull()
+  it('the cue needs no spotlight view — the board draws it (the clean feed, the lab)', async () => {
+    const { e, threat } = dangerBoard()
+    const { coach } = await boot(e, { spotCalmOnly: true })
+    const { worldCues } = await import('@/barrage/render/worldCues')
+    expect(worldCues.danger.monsterId).toBe(threat.id)
+    expect(coach.lessonShown('threatBox')).toBe(1)
     expect(coach.coachLesson.value?.id).toBe('survive')
-    expect(coach.lessonShown('threatBox')).toBe(0)
+  })
+
+  it('not while something else owns the screen: the rescue shot runs, the cue waits for a calm aim', async () => {
+    const { e } = dangerBoard()
+    const r = await boot(e)
+    const { worldCues } = await import('@/barrage/render/worldCues')
+    expect(worldCues.danger.seq).toBe(0)
+    expect(r.coach.coachLesson.value?.id).toBe('survive')
+    expect(r.coach.lessonShown('threatBox')).toBe(0)
   })
 
   it('speed from row 12, luck from 17, bounty from 22 — each once, only while the chip is unbought', async () => {
@@ -1195,20 +1227,162 @@ describe('spotlight lessons', () => {
     r.off()
   })
 
-  it('the pause is held while it plays and released when it ends; the view gone ends it', async () => {
+  // Silent Flow reversed "the pause is held while it plays": a chip spotlight
+  // plays over the running game now.
+  it('never pauses: it plays over the running game, one at a time; the view gone ends it', async () => {
     const { spot } = await boot(board({ monsters: [mon('slime', 3, 2)] }))
     const pause = await import('@/use/useGamePause')
     const unregister = spot.registerSpotView()
     const done = vi.fn()
     expect(spot.offerSpot({ kind: 'speed', value: 1, next: 1.12 }, done)).toBe(true)
-    expect(pause.isGamePaused.value).toBe(true)
+    expect(pause.isGamePaused.value).toBe(false)
+    expect(pauses.n).toBe(0)
     // One at a time.
     expect(spot.offerSpot({ kind: 'luck', value: 0, next: 0.05 })).toBe(false)
     spot.finishSpot()
     expect(done).toHaveBeenCalledTimes(1)
-    expect(pause.isGamePaused.value).toBe(false)
     expect(spot.lessonSpot.value).toBeNull()
     unregister()
     expect(spot.canSpot()).toBe(false)
+  })
+
+  it('ends on its own after UPGRADE_SPOT_MS', async () => {
+    vi.useFakeTimers()
+    try {
+      const { spot } = await boot(board({ monsters: [mon('slime', 3, 2)] }))
+      const unregister = spot.registerSpotView()
+      expect(spot.offerSpot({ kind: 'bounty', value: 1, next: 1.2 })).toBe(true)
+      vi.advanceTimersByTime(spot.UPGRADE_SPOT_MS - 1)
+      expect(spot.lessonSpot.value).not.toBeNull()
+      vi.advanceTimersByTime(1)
+      expect(spot.lessonSpot.value).toBeNull()
+      unregister()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+// Silent Flow (retention-roadmap #2): until the first boss kill only the shot
+// demo, the rescue shot and the threat cue speak; everything else is taught in
+// the world (the "+1" pulses, merges flourish in the tray, chips fly in).
+describe('Silent Flow: before the first boss kill', () => {
+  beforeEach(() => { window.localStorage.clear() })
+
+  const chipsAt0 = (): UpgradeView[] =>
+    (['damage', 'capacity', 'speed', 'luck', 'bounty'] as const).map((id) => ({
+      id, level: id === 'damage' || id === 'capacity' ? 1 : 0, maxed: false, cost: 20, affordable: false,
+      glowing: false, value: id === 'luck' ? 0 : 1, nextValue: id === 'luck' ? 0.05 : id === 'bounty' ? 1.2 : 1.12
+    }))
+  const quiet = () => board({ monsters: [mon('slime', 3, 2, 1e9)], launcherX: 3.5 })
+
+  it('no bank shot on the first session: the FTUE\'s ghost finger is the one hand', async () => {
+    const e = createEngine(defaultConfig({ seed: 7, ftue: true }))
+    const { coach } = await boot(e, { ftueDone: false, volleys: 0, silent: ref(true) })
+    play(e, UP) // turn 2: where the bank shot would come
+    expect(coach.coachLesson.value).toBeNull()
+    expect(coach.lessonShown('combo')).toBe(0)
+  })
+
+  it('no tray intro, tray lesson or combo — the shot demo still comes when it is due', async () => {
+    const a = await boot(quiet(), { freshIntro: true, shotRecent: false, silent: ref(true) })
+    expect(a.coach.coachLesson.value?.id).toBe('pull')
+    a.off()
+    const b = await boot(gapBoard(), { silent: ref(true) })
+    expect(b.coach.coachLesson.value).toBeNull()
+    b.off()
+    const t = board({ pickups: [pick('ball', 3, 5)], launcherX: 3.5, tray: [3, 2], config: { trayCapacity: 2 } })
+    const c = await boot(t, { silent: ref(true) })
+    play(t, UP) // spills into coins
+    expect(c.coach.coachLesson.value).toBeNull()
+  })
+
+  it('no chip spotlight, even a few rows in with a view mounted', async () => {
+    const e = board({ monsters: [mon('slime', 3, 2, 30, { spawnRow: 12 })], row: 12, launcherX: 3.5 })
+    const { coach, spot } = await boot(e, { spots: true, chips: chipsAt0(), silent: ref(true) })
+    expect(spot.lessonSpot.value).toBeNull()
+    expect(coach.lessonShown('speedBox')).toBe(0)
+  })
+
+  it('no upgrade funnel — the glowing chip pulses on the chip itself instead', async () => {
+    const e = quiet()
+    const { coach } = await boot(e, { damage: { affordable: true }, glowing: 'damage', silent: ref(true) })
+    expect(coach.upgradeFunnel.value).toBeNull()
+    play(e, UP)
+    expect(coach.upgradeFunnel.value).toBeNull()
+    expect(coach.chipPulse.value?.id).toBe('damage')
+  })
+
+  it('danger is the board\'s own: the threat cue flashes, no pause — the rescue-shot demo waits for the first boss kill', async () => {
+    const { e, threat } = dangerBoard()
+    const silent = ref(true)
+    const { coach } = await boot(e, { spots: true, silent })
+    const { worldCues } = await import('@/barrage/render/worldCues')
+    expect(worldCues.danger.monsterId).toBe(threat.id)
+    expect(coach.lessonShown('threatBox')).toBe(1)
+    expect(coach.coachLesson.value).toBeNull()
+    expect(pauses.n).toBe(0)
+    // The first boss down: the next danger aim gets the rescue shot.
+    silent.value = false
+    emit(e, { type: 'phase', phase: 'aim' })
+    expect(coach.coachLesson.value?.id).toBe('survive')
+  })
+
+  it('the shot demo is the one hand that stays: two empty taps on the unit still bring it', async () => {
+    const e = quiet()
+    const { coach } = await boot(e, { silent: ref(true), shotRecent: false })
+    coach.coachLesson.value = null
+    coach.noteMisfire()
+    coach.noteMisfire()
+    expect(coach.coachLesson.value?.id).toBe('pull')
+  })
+
+  it('the first boss kill ends the silence: the coach speaks again from the next aim', async () => {
+    const e = quiet()
+    const silent = ref(true)
+    const { coach } = await boot(e, { freshIntro: true, silent })
+    expect(coach.coachLesson.value).toBeNull()
+    silent.value = false
+    play(e, UP)
+    expect(coach.coachLesson.value?.id).toBe('trayIntro')
+  })
+
+  it('a spill heard during the silence is not acted out once it ends', async () => {
+    const e = board({ pickups: [pick('ball', 3, 5)], launcherX: 3.5, tray: [3, 2], config: { trayCapacity: 2 } })
+    const silent = ref(true)
+    const { coach } = await boot(e, { silent })
+    play(e, UP) // spills
+    silent.value = false
+    play(e, UP)
+    expect(coach.coachLesson.value?.id).not.toBe('tray')
+  })
+
+  it('once it ends the funnel is back (the Damage arrows)', async () => {
+    const silent = ref(true)
+    const { coach } = await boot(quiet(), { damage: { affordable: true }, silent })
+    expect(coach.upgradeFunnel.value).toBeNull()
+    silent.value = false
+    await nextTick()
+    expect(coach.upgradeFunnel.value).toMatchObject({ target: 'damage', reason: 'damage' })
+  })
+})
+
+describe('skill toasts: not every time (Silent Flow)', () => {
+  beforeEach(() => { window.localStorage.clear() })
+
+  it('once a session per skill, SKILL_TOAST_CAP times ever — counted in the coach blob', async () => {
+    const { coach } = await boot(board({ monsters: [mon('slime', 3, 2)] }))
+    expect(coach.skillToastDue('meteor')).toBe(true)
+    coach.noteSkillToast('meteor')
+    expect(coach.skillToastDue('meteor')).toBe(false) // this session
+    expect(coach.skillToastDue('heal')).toBe(true) // another skill
+    const { flushPersist } = await import('@/use/useEpicState')
+    flushPersist()
+    const blob = JSON.parse(window.localStorage.getItem(STATE_KEY) ?? '{}')
+    expect(blob.eb_coach.toasts).toEqual({ meteor: 1 })
+    // A later session: due again, until the cap.
+    const again = await boot(board({ monsters: [mon('slime', 3, 2)] }), { state: { eb_coach: { v: 1, shown: {}, kinds: {}, toasts: { meteor: coach.SKILL_TOAST_CAP } } } })
+    expect(again.coach.skillToastDue('meteor')).toBe(false)
+    expect(again.coach.skillToastDue('shield')).toBe(true)
   })
 })

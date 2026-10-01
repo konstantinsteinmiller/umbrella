@@ -38,12 +38,15 @@ import { HOP_LEFT, HOP_RIGHT, healsNeighbour, hopSides, restsNext, spitCell } fr
 import { DEATH_HIT, DEATH_LOOM, DEATH_STAGGER, DEATH_SURGE, DEATH_SURGE_SIDE, SHARD_ASH, SHARD_N, deathLunge, pickStriker, stepShards, strikeOffset, tearUnit, type Shard } from './death'
 import { DANGER_PIP_MARCHES, marchesToBreach, nextMarchTurn } from './danger'
 import { DamageWatch, GoldVolley, newUnitPose, unitPose, UnitLooks } from './unit'
+import { DANGER_FLASH_S, dangerFlashK, worldCues } from './worldCues'
 
 const TAU = Math.PI * 2
 /** Seconds a meteor falls (vfx.meteor's `dur`). */
 const METEOR_FALL = 0.42
 /** Rows before a depth band starts that its floor painting begins loading. */
 const FIELD_PREFETCH_ROWS = 6
+/** Seconds between two rings of the FTUE's "+1" cue (worldCues.ts). */
+const PLUS_PULSE_S = 1.1
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v)
 const easeOutBack = (t: number): number => {
   const c1 = 1.9
@@ -475,6 +478,13 @@ export class BoardRenderer {
   /** A breach: the line flashes red and its skulls flash big (the rule, as it is broken). */
   private lineFlash = 0
   private skullFlash = 0
+  /** Silent Flow's threat cue (worldCues.ts): the last cue seen, when its
+   *  flash started (board time, -1 = none), whose pip swells with the unit's,
+   *  and this frame's flash strength (0..1). */
+  private dangerCueSeq = worldCues.danger.seq
+  private dangerFlashAt = -1
+  private dangerFlashId = -1
+  private dangerFlashNow = 0
   /** The death sequence (render/death.ts), the monsters past the line (ids)
    *  and the torn unit's pieces. */
   private readonly death: DeathScene = {
@@ -680,6 +690,10 @@ export class BoardRenderer {
     this.flashWhite = this.flashRed = this.flashGold = this.flashBlue = 0
     this.danger = this.dangerKick = this.breach = 0
     this.skullLit = this.lineFlash = this.skullFlash = 0
+    // A new board never replays a cue raised for the old one.
+    this.dangerCueSeq = worldCues.danger.seq
+    this.dangerFlashAt = -1
+    this.dangerFlashNow = 0
     this.endDeath()
     this.unitFear = this.unitFlare = 0
     // A swap (reload, restart, the daily run) is never a purchase: adopt its damage silently.
@@ -856,6 +870,15 @@ export class BoardRenderer {
       }
     }
     if (this.plusPending) this.flushPlus()
+    // Silent Flow's threat cue: the coach asked for the danger rows to flash.
+    if (worldCues.danger.seq !== this.dangerCueSeq) {
+      this.dangerCueSeq = worldCues.danger.seq
+      this.dangerFlashAt = this.time
+      this.dangerFlashId = worldCues.danger.monsterId
+    }
+    this.dangerFlashNow = this.dangerFlashAt < 0 ? 0
+      : dangerFlashK((this.time - this.dangerFlashAt) / DANGER_FLASH_S, this.reducedMotion)
+    if (this.dangerFlashAt >= 0 && this.time - this.dangerFlashAt >= DANGER_FLASH_S) this.dangerFlashAt = -1
     // Every event burst ran inside engine.update(), before this frame.
     this.heldKill = null
     const pop = this.synced
@@ -1284,6 +1307,18 @@ export class BoardRenderer {
       ctx.fillRect(ox, oy + ROWS * c - 1.5, COLS * c, 3)
       ctx.globalAlpha = 1
     }
+    // Silent Flow's threat cue (worldCues.ts): the danger rows and the line
+    // flash red, the first time danger comes. The game never stops for it.
+    const flash = this.dangerFlashNow
+    if (flash > 0.01 && this.dangerGrad) {
+      const top = oy + (ROWS - 3.2) * c
+      ctx.globalAlpha = clamp01(0.95 * flash)
+      ctx.drawImage(this.dangerGrad, ox, top, COLS * c, oy + FLOOR_Y * c - top)
+      ctx.fillStyle = '#ff3848'
+      const lw = Math.max(3, c * 0.12)
+      ctx.fillRect(ox, oy + ROWS * c - lw / 2, COLS * c, lw)
+      ctx.globalAlpha = 1
+    }
 
     // The line's skulls sit UNDER everything, so they never hide a pip, a
     // plate or the launcher; a breach's flash draws them again on top.
@@ -1349,6 +1384,18 @@ export class BoardRenderer {
         const glow = this.vfx.dot('#7dff9a')
         ctx.globalAlpha = 0.35 + 0.2 * Math.sin(t * 4.2 + v.phase)
         ctx.drawImage(glow, cx - r * 1.5, cy - r * 1.5, r * 3, r * 3)
+        // Silent Flow's "+1" cue (worldCues.ts): through the FTUE's "+1"
+        // beats a slow green ring goes out from every "+1", so the eye (and
+        // the ghost finger's aim) finds it. Reduced motion: a steady ring.
+        if (worldCues.plusPulse && v.spawn >= 1) {
+          const q = this.reducedMotion ? 0.2 : ((t + v.phase) % PLUS_PULSE_S) / PLUS_PULSE_S
+          ctx.globalAlpha = this.reducedMotion ? 0.75 : 0.9 * (1 - q)
+          ctx.strokeStyle = '#7dff9a'
+          ctx.lineWidth = Math.max(1.5, c * 0.06)
+          ctx.beginPath()
+          ctx.arc(cx, cy, r * (1.15 + 1.6 * q), 0, TAU)
+          ctx.stroke()
+        }
         ctx.globalAlpha = 1
         ctx.drawImage(bub, cx - r, cy - r, r * 2, r * 2)
         glyphs('plus').draw(ctx, '+1', cx, cy, r * 0.95)
@@ -2683,7 +2730,9 @@ export class BoardRenderer {
       const n = v.marches
       if (!v.m || v.dieAt >= 0 || !v.bake || n < 1 || n > DANGER_PIP_MARCHES) continue
       const last = n === 1
-      const pulse = this.reducedMotion ? 1 : 1 + (last ? 0.13 : 0.05) * Math.sin(t * (last ? 9 : 4) + v.phase)
+      let pulse = this.reducedMotion ? 1 : 1 + (last ? 0.13 : 0.05) * Math.sin(t * (last ? 9 : 4) + v.phase)
+      // The threat cue's monster: its pip swells with every flash, in step with the unit's.
+      if (this.dangerFlashNow > 0 && v.m.id === this.dangerFlashId) pulse *= 1 + 0.4 * this.dangerFlashNow
       const at = this.pipCentre(v, pulse)
       const drop = this.pipDrop(ctx, at.x, at.y, at.s, n, v.pipFrom, v.pipDropAt, t)
       const ps = at.s * drop
@@ -2767,7 +2816,8 @@ export class BoardRenderer {
     const c = l.cell
     const last = n === 1
     const pulse = this.reducedMotion ? 1 : 1 + (last ? 0.14 : 0.05) * Math.sin(t * (last ? 9 : 4))
-    const base = c * 0.62 * pulse
+    // The threat cue: the unit's pip swells with the monster's (worldCues.ts).
+    const base = c * 0.62 * pulse * (1 + 0.4 * this.dangerFlashNow)
     // The unit's right shoulder; its left one when it stands at the right wall.
     const ux = l.ox + this.lx * c
     let cx = ux + c * 0.58

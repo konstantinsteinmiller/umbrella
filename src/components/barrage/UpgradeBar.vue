@@ -23,6 +23,12 @@
  * Capacity is on offer, a refused tap on any other chip is no denial at all —
  * run 7: it claims the gift instead. Run 13: a chip the player CAN afford buys
  * itself and the gift waits (the tap buys what it touched).
+ *
+ * Silent Flow (retention-roadmap #2): frame 1 used to show all five chips with
+ * prices, before a single coin. A chip is EARNED now (`useFeatureUnlocks`
+ * `chipStates`): it holds its slot invisibly — no pulse, no price — until the
+ * first moment it is affordable (or free), then flies in (FeatureUnlockFx)
+ * and stays. A save that has played before sees all five, as before.
  */
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -34,6 +40,7 @@ import { isCompactHud, isRoomyHud, isUltraCompactHud } from '@/use/useUser'
 import useScreenshake from '@/use/useScreenshake'
 import useEpicConfig from '@/use/useEpicConfig'
 import { chipPulse } from '@/use/useCoach'
+import { chipStates } from '@/use/useFeatureUnlocks'
 import IconCoin from '@/components/icons/IconCoin.vue'
 import RuneFrame from '@/components/atoms/RuneFrame.vue'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
@@ -359,7 +366,7 @@ const costClass = computed(() => isCompactHud.value ? 'text-[11px]' : isRoomyHud
 const glyphClass = computed(() => isCompactHud.value ? 'w-3.5 h-3.5' : isRoomyHud.value ? 'w-5 h-5' : 'w-4 h-4')
 const coinClass = computed(() => isCompactHud.value ? 'w-3 h-3' : isRoomyHud.value ? 'w-4 h-4' : 'w-3.5 h-3.5')
 
-// The FTUE hand presses whichever chip the tutorial names.
+// The FTUE's upgrade beat: the glowing (free) chip presses itself.
 const tutTarget = computed(() => tutorialStep.value === 'upgrade')
 
 // ─── Shrink-to-fit labels ────────────────────────────────────────────────────
@@ -431,13 +438,14 @@ onUnmounted(() => {
       v-for="c in chips"
       :key="c.id"
       type="button"
-      :class="['chip--' + c.state, { 'chip--glow': c.glow, 'chip--afford': c.afford, 'chip--pulse': pulseId === c.id, 'chip--free': c.free, 'chip--compact': isCompactHud, 'chip--flare': flareIds.includes(c.id), 'chip--shake': shakeId === c.id, 'chip--tut': tutTarget && c.glow, 'flex-1': cols >= 5 }]"
+      :class="['chip--' + c.state, { 'chip--hidden': chipStates[c.id] !== 'shown', 'chip--glow': c.glow, 'chip--afford': c.afford, 'chip--pulse': pulseId === c.id, 'chip--free': c.free, 'chip--compact': isCompactHud, 'chip--flare': flareIds.includes(c.id), 'chip--shake': shakeId === c.id, 'chip--tut': tutTarget && c.glow, 'flex-1': cols >= 5 }]"
       :style="{ '--accent': ACCENT[c.id], '--rune-zone': runeZone, flexBasis: chipBasis, height: cols < 5 ? chipH + 'px' : undefined }"
       :aria-disabled="c.state === 'locked' || c.view.maxed ? 'true' : undefined"
       :aria-label="ariaFor(c)"
       :title="titleFor(c)"
       :data-tut="'upgrade-' + c.id"
       :data-upgrade-id="c.id"
+      :data-feature="'chip:' + c.id"
       @click="onChip(c, $event)"
       @pointerdown="onChipDown(c, $event)"
       @pointerup="press.cancel"
@@ -681,8 +689,9 @@ onUnmounted(() => {
   100%
     scale: 1
 
-// The coach hand presses this chip in the FTUE's upgrade beat — in step with
-// UpgradeDemo's 3.8 s loop (its hand is down from 13 % to 20 %).
+// The FTUE's upgrade beat: the free chip presses itself on a 3.8 s rhythm (the
+// dimmed stage with a hand pressing it is gone — Silent Flow; UpgradeDemo keeps
+// the same loop for the funnel's hand, down from 13 % to 20 %).
 .chip--tut
   animation: chip-glow 1.1s ease-in-out infinite alternate, chip-tut-press 3.8s ease-in-out infinite
 @keyframes chip-tut-press
@@ -778,4 +787,13 @@ onUnmounted(() => {
     color: #ff3b3b
   .chip--glow
     box-shadow: inset 0 0 0 2px rgba(255, 230, 120, 1), 0 3px 0 var(--plate)
+
+// Silent Flow: not earned yet (or its clone is flying in) — the slot stays, so
+// no chip ever moves when another arrives; nothing shows, nothing takes a tap,
+// and no glow keeps animating out of sight.
+.chip.chip--hidden
+  visibility: hidden
+  animation: none
+  &::after
+    animation: none
 </style>

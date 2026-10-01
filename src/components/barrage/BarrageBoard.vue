@@ -14,6 +14,9 @@
  *     fired / misfire('tap');
  *   • `beginAimFrom(e)`: the same aim from a finger that went down OUTSIDE the
  *     canvas (the tray's ball orbs), tracked through window listeners;
+ *   • a mouse released past a portal iframe's edge (no pointerup reaches the
+ *     frame) still fires its last preview, once the frame hears from it again
+ *     (`releasedUnseen`); a touch that loses capture is cancelled;
  *   • a TAP-fire (press + release without a drag) flashes the bounce path the
  *     drag preview shows for ~0.3 s as the ball leaves (run 5: tap players
  *     never saw the preview, which shows only while a finger is down);
@@ -303,9 +306,18 @@ const trackTo = (e: PointerEvent): void => {
 
 const release = (e: PointerEvent): void => {
   trackTo(e)
+  finishAim()
+}
+
+/** End the aim the way a release does: fire what the preview shows (a drag let
+ *  go back on the unit fires nothing). */
+const finishAim = (): void => {
+  // A release the frame never saw can leave the capture behind, and the next
+  // click on the HUD would land on the canvas: drop it (after a pointerup it is
+  // going anyway). End the aim before the lostpointercapture that follows is
+  // dispatched, so it finds nothing active.
+  releaseCapture()
   detachOutside()
-  // Capture is released implicitly after pointerup; end the aim first so the
-  // trailing lostpointercapture finds nothing active.
   const angle = aim.end()
   syncAim()
   const tapped = tap.isTap(performance.now())
@@ -321,8 +333,23 @@ const release = (e: PointerEvent): void => {
   }
 }
 
+/**
+ * A mouse (or pen) let go where this frame never saw it (T0.4). In a
+ * cross-origin portal iframe Chrome delivered no pointerup for a drag released
+ * past the frame's edge: the capture dangled until the mouse came back in, and
+ * only then arrived as a lostpointercapture or a move with the button up
+ * (Firefox delivers the pointerup). A release always fires what the preview
+ * shows, so this IS that release — at the last angle the preview showed, never
+ * the point where the mouse came back in. A touch always sees its pointerup.
+ */
+const releasedUnseen = (e: PointerEvent): boolean => e.pointerType !== 'touch' && (e.buttons & 1) === 0
+
 const onMove = (e: PointerEvent): void => {
   if (outside || !aim.active || e.pointerId !== aim.pointerId) return
+  if (releasedUnseen(e)) {
+    finishAim()
+    return
+  }
   trackTo(e)
   syncAim()
   e.preventDefault()
@@ -333,14 +360,28 @@ const onUp = (e: PointerEvent): void => {
   release(e)
 }
 
-/** pointercancel / lost capture: the system took the touch — no shot, no misfire. */
+/** pointercancel: the system took the pointer — no shot, no misfire. */
 const onCancel = (e: PointerEvent): void => {
   if (!outside && aim.active && e.pointerId === aim.pointerId) cancelAim(true)
 }
 
-// Window-level tracking for an aim begun outside the canvas.
+/** Capture lost before any pointerup. A touch: the system took it (as
+ *  pointercancel). A mouse or pen: released where the frame never saw it
+ *  (`releasedUnseen`) — the release fires. */
+const onLostCapture = (e: PointerEvent): void => {
+  if (outside || !aim.active || e.pointerId !== aim.pointerId) return
+  if (e.pointerType === 'touch') cancelAim(true)
+  else finishAim()
+}
+
+// Window-level tracking for an aim begun outside the canvas. (Its capture is
+// best-effort, so a lost capture proves nothing here; a button-up move does.)
 const onWinMove = (e: PointerEvent): void => {
   if (!outside || !aim.active || e.pointerId !== aim.pointerId) return
+  if (releasedUnseen(e)) {
+    finishAim()
+    return
+  }
   trackTo(e)
   syncAim()
 }
@@ -471,7 +512,7 @@ defineExpose({ launcherClientPoint, cellToClient, boardClientRect, beginAimFrom,
       @pointermove="onMove"
       @pointerup="onUp"
       @pointercancel="onCancel"
-      @lostpointercapture="onCancel"
+      @lostpointercapture="onLostCapture"
       @contextmenu.prevent
     )
 </template>

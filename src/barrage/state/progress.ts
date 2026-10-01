@@ -12,7 +12,7 @@
  * a counter or watermark only ever takes the higher of local vs hydrated, so a
  * late cloud read can never regress a session that already played past it.
  */
-import { ref, watch, type Ref } from 'vue'
+import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
 import { getState, setState } from '@/use/useEpicState'
 import { saveDataVersion } from '@/use/useSaveStatus'
 import type { GameMode, SkillId } from '../engine/types'
@@ -53,11 +53,29 @@ export const toCount = (v: unknown, fallback = 0): number => {
   return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : fallback
 }
 
-const readStats = (): { stats: BarrageStats; maxBallTier: number } => {
+/**
+ * Play clock, lifetime half (`playClock.ts` owns the ticking): whole seconds of
+ * ACTIVE gameplay across every session, stored beside the stats in the same
+ * blob (`eb_stats.playSeconds`) and hydrated the same forward-only way.
+ *
+ * A save from before the clock has no such field. It is credited with
+ * LEGACY_SECONDS_PER_VOLLEY per volley it ever fired, so a veteran who long
+ * since played past the rewarded gate is not locked out of every rewarded
+ * offer for three minutes after the update. The rate is the bot sim's quickest
+ * turn (`scripts/barrage-sim.mjs`: 7 s; the human bot takes 9.5 s), so the
+ * credit under-counts: it can delay an offer, never open one early.
+ */
+export const LEGACY_SECONDS_PER_VOLLEY = 7
+
+const readStats = (): { stats: BarrageStats; maxBallTier: number; playSeconds: number } => {
   const raw = getState<Record<string, unknown> | null>(EB_STATS_KEY, null) ?? {}
   const stats = defaultStats()
   for (const k of STAT_KEYS) stats[k] = toCount(raw[k])
-  return { stats, maxBallTier: Math.max(1, toCount(raw.maxBallTier, 1)) }
+  return {
+    stats,
+    maxBallTier: Math.max(1, toCount(raw.maxBallTier, 1)),
+    playSeconds: toCount(raw.playSeconds, stats.volleys * LEGACY_SECONDS_PER_VOLLEY)
+  }
 }
 
 // ─── Checkpoint / FTUE / segment one-shots ───────────────────────────────────
@@ -143,6 +161,9 @@ const boot = readStats()
 export const stats: Ref<BarrageStats> = ref(boot.stats)
 /** Highest ball tier ever created (codex / launcher unlocks / leaderboard flair). */
 export const maxBallTier: Ref<number> = ref(boot.maxBallTier)
+/** Lifetime seconds of active gameplay (see LEGACY_SECONDS_PER_VOLLEY). Raised
+ *  by `playClock.ts` through `addPlaySeconds`; persisted with the stats. */
+export const lifetimePlaySeconds: Ref<number> = ref(boot.playSeconds)
 /** Deepest endless row ever reached (the leaderboard score). */
 export const bestRow: Ref<number> = ref(toCount(getState(EB_BEST_ROW_KEY, 0)))
 export const checkpoint: Ref<Checkpoint> = ref(readCheckpoint())
@@ -160,7 +181,15 @@ export const runEndSeq: Ref<number> = ref(0)
 
 // ─── Writers ─────────────────────────────────────────────────────────────────
 export const persistStats = (): void => {
-  setState(EB_STATS_KEY, { ...stats.value, maxBallTier: maxBallTier.value })
+  setState(EB_STATS_KEY, { ...stats.value, maxBallTier: maxBallTier.value, playSeconds: lifetimePlaySeconds.value })
+}
+
+/** Add whole seconds of active play. Reactive immediately; persisted by the
+ *  play clock's throttle and at every turn boundary (`persistStats`). */
+export const addPlaySeconds = (seconds: number): void => {
+  const s = Math.floor(seconds)
+  if (!Number.isFinite(s) || s <= 0) return
+  lifetimePlaySeconds.value += s
 }
 
 /** Add to counters / raise watermarks. Reactive immediately; persisted by the
@@ -241,6 +270,29 @@ export const oweSkill = (skill: SkillId): void => {
  *  it) must never replay the tutorial board to a player who has beaten bosses. */
 export const isFtueActive = (): boolean => !ftue.value.done && stats.value.bossKills === 0
 
+// ─── The rewarded gate ───────────────────────────────────────────────────────
+/** Boss kills a player needs before any rewarded offer appears. */
+export const REWARDED_MIN_BOSS_KILLS = 1
+/** Lifetime seconds of active play a player needs before any rewarded offer
+ *  appears (3:00). */
+export const REWARDED_MIN_PLAY_SECONDS = 180
+
+/**
+ * THE rewarded gate, one predicate for every rewarded placement (the Meteor
+ * continue, the ▶ 3× boss chest, the +5 balls, the skin ads, and any added
+ * later): the first boss kill AND 3:00 of lifetime active play (user decision
+ * 2026-09-27). Poki's playtests opened with a "Rewarded Break" because the
+ * rewarded ad is ready from the first frame there, so no rewarded CTA may show
+ * in a player's opening minutes.
+ *
+ * A locked offer is HIDDEN, never shown disabled. Each placement still applies
+ * its own conditions on top (ad readiness, once per segment, "only where it
+ * helps"). Both inputs are lifetime values, so a returning player who already
+ * qualifies sees offers from the first frame.
+ */
+export const rewardedOffersUnlocked: ComputedRef<boolean> = computed(() =>
+  stats.value.bossKills >= REWARDED_MIN_BOSS_KILLS && lifetimePlaySeconds.value >= REWARDED_MIN_PLAY_SECONDS)
+
 // ─── Hydration (forward-only) ────────────────────────────────────────────────
 export const refreshProgressFromBlob = (): void => {
   const saved = readStats()
@@ -251,6 +303,7 @@ export const refreshProgressFromBlob = (): void => {
   }
   if (changed) stats.value = merged
   if (saved.maxBallTier > maxBallTier.value) maxBallTier.value = saved.maxBallTier
+  if (saved.playSeconds > lifetimePlaySeconds.value) lifetimePlaySeconds.value = saved.playSeconds
 
   const savedBest = toCount(getState(EB_BEST_ROW_KEY, 0))
   if (savedBest > bestRow.value) bestRow.value = savedBest

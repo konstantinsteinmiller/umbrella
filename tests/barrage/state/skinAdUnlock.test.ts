@@ -27,8 +27,13 @@ vi.mock('@/use/useAds', async () => {
 })
 
 const STATE_KEY = 'elemental-barrage_state'
+/** Past the rewarded gate (T0.2, user decision 2026-09-27: every rewarded offer
+ *  needs the first boss kill AND 3:00 of lifetime play). The specs below are
+ *  about the skin ads' own mechanics, so every seed starts past it unless it
+ *  brings its own `eb_stats`; the gate has its own describe. */
+const QUALIFIED_STATS = { bossKills: 1, playSeconds: 180 }
 const seed = (blob: Record<string, unknown>): void => {
-  localStorage.setItem(STATE_KEY, JSON.stringify(blob))
+  localStorage.setItem(STATE_KEY, JSON.stringify({ eb_stats: QUALIFIED_STATS, ...blob }))
 }
 const load = async () => (await import('@/barrage/state/useCollections')).default()
 
@@ -151,6 +156,7 @@ describe('ball skins: rewarded-ad unlock', () => {
     const c = await load()
     ctl.grant = false
     expect(await c.watchSkinAd('gale')).toBe('none')
+    expect(ctl.showRewardedAd).toHaveBeenCalledTimes(1)
     expect(c.skins.value.find((s) => s.id === 'gale')).toMatchObject({ adsWatched: 0, owned: false })
   })
 
@@ -198,5 +204,27 @@ describe('ball skins: rewarded-ad unlock', () => {
     expect(view('lava').adsWatched).toBe(1)
     expect(view('gale').adsWatched).toBe(1)
     expect(view('eclipse').owned).toBe(true)
+  })
+})
+
+describe('ball skins: behind the rewarded gate (first boss kill + 3:00 of play)', () => {
+  it('no skin ad before the first boss kill, however long the player has played, even with an ad ready', async () => {
+    seed({ epic_coins: 0, eb_stats: { bossKills: 0, playSeconds: 900 } })
+    const c = await load()
+    expect(c.skinAdReady.value).toBe(false)
+    expect(await c.watchSkinAd('stone')).toBe('none')
+    expect(ctl.showRewardedAd).not.toHaveBeenCalled()
+  })
+
+  it('no skin ad before 3:00 of play, even past a boss; it opens live when the clock gets there', async () => {
+    seed({ epic_coins: 0, eb_stats: { bossKills: 3, playSeconds: 179 } })
+    const c = await load()
+    const progress = await import('@/barrage/state/progress')
+    expect(c.skinAdReady.value).toBe(false)
+    expect(await c.watchSkinAd('stone')).toBe('none')
+    expect(ctl.showRewardedAd).not.toHaveBeenCalled()
+    progress.addPlaySeconds(1)
+    expect(c.skinAdReady.value).toBe(true)
+    expect(await c.watchSkinAd('stone')).toBe('unlocked')
   })
 })

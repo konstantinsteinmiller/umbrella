@@ -18,6 +18,10 @@
  * races our debounced blob write can never rewind the player by a turn.
  *
  * ─── Ads ─────────────────────────────────────────────────────────────────────
+ * Every rewarded offer below stays HIDDEN until `rewardedOffersUnlocked`
+ * (progress.ts): the first boss kill AND 3:00 of lifetime active play (the
+ * play clock). No rewarded CTA may appear in a player's opening minutes. Each
+ * offer's own conditions apply on top of that gate.
  *   • Rewarded Meteor continue — once per checkpoint segment, ad FIRST.
  *   • Rewarded 3× boss chest (`CHEST_AD_MULT`) — ad FIRST, then the tripled
  *     payout (ad-before-result); declining, or an ad that does not complete,
@@ -32,6 +36,13 @@
  *     of a session, ≥ 3 min apart, played BEFORE the new board appears.
  * A "segment" is one attempt at the stretch after a checkpoint: a boss kill
  * starts a new one, and so does a checkpoint restart.
+ *
+ * ─── Play clock + drop-off funnel (retention roadmap T0.1 / T0.2) ────────────
+ * This module installs the play clock (`playClock.ts`) with its half of
+ * "active": the player has fired this page session and nothing holds the
+ * board. It also reports the funnel milestones (`funnel.ts`) from the engine
+ * events it already handles: the first shot, rows 5 and 20, the first boss
+ * spawn and kill, and the first loss. The session clock supplies 3/5/8 min.
  *
  * ─── Boss mercy (adaptive difficulty) ────────────────────────────────────────
  * A checkpoint restart after a breach with the boss on the board counts a
@@ -72,9 +83,11 @@ import {
 import { EB_RUN_KEY } from '../keys'
 import {
   bestRow, bumpStats, checkpoint, ftue, isFtueActive, maxBallTier, mode, noteBallTier, noteBestRow, noteBossDeath,
-  patchFtue, patchSegment, pending, persistStats, runEndSeq, sanitizeTray, segment, setCheckpoint,
-  setPending, stats, toCount
+  patchFtue, patchSegment, pending, persistStats, rewardedOffersUnlocked, runEndSeq, sanitizeTray, segment,
+  setCheckpoint, setPending, stats, toCount
 } from './progress'
+import { installPlayClock, sessionPlaySeconds } from './playClock'
+import { funnelMilestone, funnelPlayTime, funnelRow, setFunnelCohortResolver } from './funnel'
 import { upgradeLevels } from './upgradeLevels'
 import { recordDailyAttempt, recordDailyRow, dailyRecord, todaySeed } from './useDailyBarrage'
 import type { BossChestOffer, BossHud, BreachCulprit, BreachOffer, DailyResult, RunRecap, UseBarrage } from './contract'
@@ -241,6 +254,9 @@ let bossRefreshQueued = false
 let revealTier = 0
 let revealQueued = false
 let busy = false
+/** The player has fired a shot this page session. The play clock opens here:
+ *  the first act of play on every build (see playClock.ts). Never persisted. */
+const firedThisSession = ref(false)
 
 const eng = (): IBarrageEngine => {
   if (!engineRef) throw new Error('[barrage] engine not initialised')
@@ -655,6 +671,12 @@ const onEvent = (e: EngineEvent): void => {
       else if (e.phase === 'volley') fever.value = eng().state.fever
       break
     case 'fire':
+      // The session's first milestone decides the funnel's new/returning
+      // cohort from the save, so it goes out BEFORE this shot is counted.
+      if (!firedThisSession.value) {
+        funnelMilestone('first_shot')
+        firedThisSession.value = true
+      }
       bumpStats({ volleys: 1 })
       syncTray()
       resumeGameplayAfterWaveBreak()
@@ -725,15 +747,19 @@ const onEvent = (e: EngineEvent): void => {
       nextBossRow.value = eng().state.nextBossRow
       bumpStats({ rowsTotal: 1 })
       pendingXp += BARRAGE_XP_SOURCES.row
-      if (mode.value === 'endless') noteBestRow(e.row)
-      else if (recordDailyRow(e.row)) dailyNewBest = true
+      if (mode.value === 'endless') {
+        noteBestRow(e.row)
+        funnelRow(e.row)
+      } else if (recordDailyRow(e.row)) dailyNewBest = true
       break
     case 'bossSpawn':
     case 'bossEnrage':
       boss.value = readBoss(eng())
+      if (e.type === 'bossSpawn') funnelMilestone('boss1_spawn')
       break
     case 'bossDefeated':
       onBossDefeated(e)
+      funnelMilestone('boss1_kill')
       break
     case 'shieldBlock':
     case 'continued':
@@ -741,6 +767,7 @@ const onEvent = (e: EngineEvent): void => {
       break
     case 'breach':
       onBreach()
+      funnelMilestone('first_loss')
       break
     default:
       break
@@ -754,13 +781,15 @@ const onEvent = (e: EngineEvent): void => {
 const holdSim = computed(() =>
   breachRaw.value !== null || chestRaw.value !== null || dailyResult.value !== null || transition.value)
 
+/** A rewarded ad (or, on coin-mode builds, its coin price) can run right now.
+ *  Readiness only: every placement ANDs the rewarded gate in beside it. */
 const rewardReady = computed(() => canRedeem(REWARD_COIN_COST))
 
 const breach = computed<BreachOffer | null>(() => {
   const b = breachRaw.value
   if (!b) return null
   return {
-    meteorAvailable: !segment.value.meteor && rewardReady.value,
+    meteorAvailable: rewardedOffersUnlocked.value && !segment.value.meteor && rewardReady.value,
     reviveAvailable: revives.value > 0,
     isDaily: false,
     checkpointRow: checkpoint.value.row,
@@ -776,7 +805,7 @@ const bossChest = computed<BossChestOffer | null>(() => {
   // In coin-priced builds the "3×" costs REWARD_COIN_COST: only offer it when
   // the extra bounty is worth more than the price — never a trade at a loss.
   const worthIt = !buffsCostCoins || c.bounty * (CHEST_AD_MULT - 1) > REWARD_COIN_COST
-  return { ...c, boostMult: CHEST_AD_MULT, boostAvailable: worthIt && rewardReady.value }
+  return { ...c, boostMult: CHEST_AD_MULT, boostAvailable: rewardedOffersUnlocked.value && worthIt && rewardReady.value }
 })
 
 /** The +5 balls only where they help (see the module header): a boss on the
@@ -790,9 +819,11 @@ const bonusBallsUseful = (): boolean => {
   return s.bossId !== null || dangerMarches(s) <= DANGER_PIP_MARCHES
 }
 
+/** The rewarded gate replaces the old `ftue.done` check: its first-boss-kill
+ *  half is the same condition, read from the lifetime counter. */
 const bonusBallsAvailable = computed(() =>
-  mode.value === 'endless' && phase.value === 'aim' && !segment.value.bonusBalls && !holdSim.value && rewardReady.value &&
-  ftue.value.done && bonusBallsUseful())
+  rewardedOffersUnlocked.value && mode.value === 'endless' && phase.value === 'aim' && !segment.value.bonusBalls &&
+  !holdSim.value && rewardReady.value && bonusBallsUseful())
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
 const fire = (angle: number): boolean => {
@@ -1003,7 +1034,15 @@ const installWatchers = (): void => {
     flushTurn()
     flushPersist()
   })
+  // The funnel's 3 / 5 / 8 min milestones ride the session play clock.
+  watch(sessionPlaySeconds, (s) => funnelPlayTime(s), { flush: 'sync' })
 }
+
+/** The save shows play from an earlier session: the funnel's "returning"
+ *  cohort. Read once, at the session's first milestone (the first shot), before
+ *  that shot is counted into the stats. */
+const hadPriorPlay = (): boolean =>
+  stats.value.volleys > 0 || stats.value.bossKills > 0 || bestRow.value > 0
 
 // ─── The singleton ───────────────────────────────────────────────────────────
 let api: UseBarrage | null = null
@@ -1012,6 +1051,9 @@ const init = (): UseBarrage => {
   swapEngine(bootEndless())
   persistRun()
   installWatchers()
+  setFunnelCohortResolver(() => (hadPriorPlay() ? 'returning' : 'new'))
+  // The run owner's half of "active play": fired this session, board not held.
+  installPlayClock(() => firedThisSession.value && !holdSim.value)
   const engine = engineRef as ShallowRef<IBarrageEngine>
   return {
     engine,

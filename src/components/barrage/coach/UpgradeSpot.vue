@@ -3,8 +3,10 @@
  * A chip spotlight (`lessonSpotlight.ts`, kinds speed / luck / bounty): what
  * the chip does, shown twice on the player's own board — BEFORE (its value
  * now) and AFTER (its value one level up), the chip's glyph flying from the
- * chip into the demo between the two. The game is paused; wordless — the only
- * text is the chip's own value format and the board's coin "+N".
+ * chip into the demo between the two. It plays over the running game (Silent
+ * Flow: no pause, no dim — the chip's lit frame and the demo itself carry the
+ * eye); wordless — the only text is the chip's own value format and the
+ * board's coin "+N".
  *
  *   speed  — a ball flies from the unit to the monster above it and hits
  *            ("×1"); then one flies twice as fast, streaking, and hits harder
@@ -30,8 +32,7 @@ import { coinSrc, skillSrc } from '@/barrage/art'
 import { COLS, ROWS } from '@/barrage/engine/types'
 import { boardApi, fmtCoins, upgradeValueKey, upgradeValueNumber } from '@/components/barrage/barrageUi'
 import BarrageGlyph from '@/components/barrage/BarrageGlyph.vue'
-import SpotMask from '@/components/barrage/coach/SpotMask.vue'
-import type { Spot, SpotHole, UpgradeSpot } from '@/components/barrage/lessonSpotlight'
+import type { Spot, UpgradeSpot } from '@/components/barrage/lessonSpotlight'
 
 const props = defineProps<{ spot: Spot & UpgradeSpot; now: number; reduced: boolean }>()
 const { t } = useI18n()
@@ -117,7 +118,6 @@ onUnmounted(() => window.removeEventListener('resize', measure))
 // ─── Clock ───────────────────────────────────────────────────────────────────
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v)
 const seg = (a: number, b: number): number => clamp01((props.now - a) / Math.max(1, b - a))
-const easeOut = (x: number): number => 1 - (1 - x) * (1 - x)
 const easeInOut = (x: number): number => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2)
 const easeOutBack = (x: number): number => {
   const c = 1.7
@@ -327,33 +327,10 @@ const preyFlash = computed<Record<string, string> | null>(() => {
   return { left: `${p.x}px`, top: `${p.y}px`, width: `${p.w}px`, height: `${p.h}px`, opacity: String(o) }
 })
 
-// ─── The stage's windows ─────────────────────────────────────────────────────
-const holes = computed<SpotHole[]>(() => {
-  const g = geo.value
-  if (!g) return []
-  const k = props.reduced ? 1 : easeOut(seg(0, B.open))
-  const pad = 6
-  const out: SpotHole[] = [{ x: g.chip.x - pad, y: g.chip.y - pad, w: g.chip.w + pad * 2, h: g.chip.h + pad * 2, k }]
-  const c = g.cell
-  if (props.spot.kind === 'speed') {
-    const x0 = Math.min(g.unit.x, g.target.x) - c * 1.1
-    const x1 = Math.max(g.unit.x, g.target.x) + c * 1.1
-    out.push({ x: x0, y: g.target.y - c * 1.6, w: x1 - x0, h: g.unit.y - g.target.y + c * 2.4, k })
-  } else if (props.spot.kind === 'luck') {
-    const a = toC(0, 0)
-    const b = toC(COLS, 2)
-    out.push({ x: a.x - 4, y: a.y - 4, w: b.x - a.x + 8, h: b.y - a.y + c * 2.4, k })
-  } else {
-    if (g.prey) out.push({ x: g.prey.x - c * 1.2, y: g.prey.y - c * 1.1, w: g.prey.w + c * 2.4, h: g.prey.h + c * 1.6, k })
-    if (g.wallet) out.push({ x: g.wallet.x - 8, y: g.wallet.y - 8, w: g.wallet.w + 16, h: g.wallet.h + 16, k })
-  }
-  return out
-})
 </script>
 
 <template lang="pug">
   div.upgrade-spot.absolute.inset-0(v-if="geo")
-    SpotMask(:id="'us-' + spot.seq" :holes="holes")
     div.us-chip.absolute.rounded-xl(v-if="chipFrame" :style="chipFrame" :class="'is-' + spot.kind")
     svg.absolute.inset-0(width="100%" height="100%" aria-hidden="true")
       template(v-for="b in speedBalls" :key="b.key")

@@ -28,22 +28,23 @@
  *
  * Everything is pointer-events: none and gets out of the way the moment a
  * finger is on the board. The sentence for each lesson exists only in the
- * sr-only live region.
+ * sr-only live region — and so does the sentence of each in-world cue (Silent
+ * Flow: the first "+1" joining the tray, the first merges and every
+ * discovery, the threat cue on the board — `coachCue`).
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useBarrage from '@/barrage/state/useBarrage'
+import { ballAbility } from '@/barrage/engine/balls'
 import { FLOOR_Y, MIN_AIM, ROWS } from '@/barrage/engine/types'
 import {
-  coachLesson, isShotLesson, noteFunnelVisible, noteLessonVisible, upgradeFunnel, type CoachLesson
+  coachCue, coachLesson, isShotLesson, noteFunnelVisible, noteLessonVisible, upgradeFunnel, type CoachLesson
 } from '@/use/useCoach'
 import { tutorialActive, tutorialPreview } from '@/use/useTutorial'
-import { unlocking } from '@/use/useFeatureUnlocks'
+import { chipShown, unlocking } from '@/use/useFeatureUnlocks'
 import { isAnyModalOpen } from '@/use/useModalState'
 import { activeReveal } from '@/use/useTierReveal'
 import { boardApi, playerAiming } from '@/components/barrage/barrageUi'
-import { mergeBox } from '@/components/barrage/mergeLightbox'
-import { pickupBox } from '@/components/barrage/pickupSpotlight'
 import { lessonSpot } from '@/components/barrage/lessonSpotlight'
 import FingerDemo from '@/components/barrage/coach/FingerDemo.vue'
 import TrayDemo from '@/components/barrage/coach/TrayDemo.vue'
@@ -53,14 +54,14 @@ import UpgradeFunnel from '@/components/barrage/coach/UpgradeFunnel.vue'
 interface Pt { x: number; y: number }
 interface Box { left: number; top: number; width: number; height: number }
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const barrage = useBarrage()
 
-// An earned feature flying in (FeatureUnlockFx) and the merge lightbox own the
+// An earned feature flying in (FeatureUnlockFx) and a chip spotlight own the
 // moment too.
 const blocked = computed(() =>
   isAnyModalOpen.value || !!activeReveal.value || barrage.holdSim.value || barrage.phase.value !== 'aim'
-  || !!unlocking.value || !!mergeBox.value || !!pickupBox.value || !!lessonSpot.value)
+  || !!unlocking.value || !!lessonSpot.value)
 /** The FTUE's own hand is on screen: never two coaches at once. (It steps
  *  aside by itself for the early bank shot — see TutorialOverlay.) */
 const ftueShowing = computed(() => tutorialActive.value && tutorialPreview.value !== null)
@@ -100,9 +101,11 @@ watch(() => upgradeFunnel.value?.target ?? null, (target) => {
   dutyTick()
   if (!dutyPoll) dutyPoll = window.setInterval(dutyTick, 250)
 }, { immediate: true })
-/** Danger first: a survive lesson on screen takes the funnel off it. */
+/** Danger first: a survive lesson on screen takes the funnel off it. And
+ *  never on a chip that has not flown in yet (Silent Flow's earned chips). */
 const funnelVisible = computed(() =>
   !!upgradeFunnel.value && !funnelResting.value && !blocked.value && !playerAiming.value && !ftueShowing.value
+  && chipShown(upgradeFunnel.value.target)
   && !(lessonVisible.value && coachLesson.value?.id === 'survive'))
 /** A shot lesson has the ghost finger: the funnel keeps its arrows and drops
  *  its own hand (one hand on screen at a time). */
@@ -227,6 +230,35 @@ const srText = computed(() => {
   return t(`barrage.coach.${l.id}`)
 })
 
+// ─── The in-world cues' sentences (Silent Flow) ─────────────────────────────
+/** A merge's sentence — and a discovery's codex line (the ball's name and the
+ *  ability it brings, as the retired merge lightbox read them out). */
+const mergeLine = (from: number, to: number, discovery: boolean): string => {
+  const line = t('barrage.merge.sr', { from, to })
+  if (!discovery) return line
+  const nameKey = `battle.codex.names.t${Math.min(50, to)}`
+  const ability = ballAbility(to)
+  const name = te(nameKey) ? t(nameKey) : t('barrage.tray.tierOnly', { n: to })
+  return `${line} ${t('barrage.merge.discovery', {
+    name, ability: t(`barrage.abilities.${ability}.name`), desc: t(`barrage.abilities.${ability}.desc`)
+  })}`
+}
+const cueLine = (): string => {
+  const c = coachCue.value
+  if (!c) return ''
+  if (c.kind === 'pickup') return t('barrage.tray.pickupSr')
+  if (c.kind === 'threat') return t('barrage.coach.spot.threat')
+  return mergeLine(c.from, c.to, c.discovery)
+}
+/** Cleared first, so the same sentence twice in a row is announced twice. */
+const cueSr = ref('')
+let cueTimer = 0
+watch(() => coachCue.value?.seq, () => {
+  cueSr.value = ''
+  window.clearTimeout(cueTimer)
+  cueTimer = window.setTimeout(() => { cueSr.value = cueLine() }, 60)
+})
+
 // The launcher glides into place after a volley and the board can re-layout:
 // re-measure on every change and on a slow poll while anything shows.
 let poll = 0
@@ -239,6 +271,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.clearInterval(poll)
   window.clearInterval(dutyPoll)
+  window.clearTimeout(cueTimer)
   window.removeEventListener('resize', measure)
 })
 </script>
@@ -249,6 +282,7 @@ onUnmounted(() => {
     //- coach's sentences by (no behaviour of its own).
     div.sr-only(aria-live="polite" data-coach-live="lesson") {{ srText }}
     div.sr-only(aria-live="polite" data-coach-live="funnel") {{ funnelSr }}
+    div.sr-only(aria-live="polite" data-coach-live="cue") {{ cueSr }}
     Transition(name="coach-fade")
       UpgradeFunnel(
         v-if="funnelVisible && upgradeFunnel"

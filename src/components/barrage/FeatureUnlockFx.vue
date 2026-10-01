@@ -1,20 +1,26 @@
 <script setup lang="ts">
 /**
- * The unlock moment — a new HUD feature arrives as a REWARD, wordless.
+ * The unlock moment — a new HUD piece arrives as a REWARD, wordless.
  *
- * `useFeatureUnlocks` picks a calm aim phase and marks one feature
- * `arriving`; its FeatureSlot is then laid out but invisible. This takes a
- * clone of that very button (so the icon is exactly the one the player will
- * tap), pops it up big over the board with a burst of light, holds it a beat,
- * then flies it down into its slot — where the real button lands with
- * confetti and starts to glow.
+ * `useFeatureUnlocks` picks a calm aim phase and marks one arrival; its slot
+ * is then laid out but invisible. This takes a clone of that very element (so
+ * the icon is exactly the one the player will tap) and flies it in:
  *
- * Pointer-events none throughout; ~2 s; the sentence lives in an sr-only
- * live region.
+ *   • a ladder feature and the rank plaque (the first boss kill's earned
+ *     reveal) — popped up big over the board with a burst of light, held a
+ *     beat, then flown down into the slot, where the real one lands with
+ *     confetti;
+ *   • an upgrade chip (Silent Flow: it arrives the first time it becomes
+ *     affordable) — the small version: it rises just above its own slot and
+ *     drops in, no rays, a soft chime. Five of these in a session, so it is
+ *     quick and stays out of the board.
+ *
+ * Pointer-events none throughout — the game never waits for it; the sentence
+ * lives in an sr-only live region.
  */
 import { nextTick, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { finishArrival, unlocking, type FeatureId } from '@/use/useFeatureUnlocks'
+import { finishArrival, unlocking, type ArrivalId, type FeatureId } from '@/use/useFeatureUnlocks'
 import { boardApi } from '@/components/barrage/barrageUi'
 import useSounds from '@/use/useSound'
 import { emitConfetti, emitSparkle } from '@/use/usePrismParticles'
@@ -31,6 +37,10 @@ const NAME_KEY: Record<FeatureId, string> = {
   achievements: 'barrageMeta.achievements.title',
   dailyRun: 'barrageMeta.daily.title'
 }
+const nameOf = (id: ArrivalId): string =>
+  id === 'rank' ? t('barrage.hud.rank')
+    : id.startsWith('chip:') ? t(`barrage.upgrades.${id.slice(5)}.name`)
+      : t(NAME_KEY[id as FeatureId])
 
 const layer = ref<HTMLElement | null>(null)
 const rays = ref<{ x: number; y: number; size: number } | null>(null)
@@ -38,11 +48,25 @@ const raysOn = ref(false)
 const announcement = ref('')
 
 const reduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+/** The big fly-in (ladder features, the rank plaque). */
 const DURATION = reduced ? 1400 : 2000
+/** A chip's small one. */
+const CHIP_DURATION = reduced ? 500 : 800
 
 let clone: HTMLElement | null = null
 let anim: Animation | null = null
 let raysTimer = 0
+
+/** A Vue <Transition>'s own state classes (`rank-hang-enter-from`…). The
+ *  element may still be entering when it is cloned (the rank plaque mounts
+ *  with an `appear` transition), and a clone frozen at `-enter-from` would fly
+ *  in invisible: the classes never come off a copy. */
+const TRANSITION_CLASS = /-(enter|leave)-(from|active|to)$/
+const settleTransitions = (root: HTMLElement): void => {
+  for (const el of [root, ...root.querySelectorAll<HTMLElement>('*')]) {
+    for (const c of [...el.classList]) if (TRANSITION_CLASS.test(c)) el.classList.remove(c)
+  }
+}
 
 const cleanup = (): void => {
   anim?.cancel()
@@ -53,11 +77,12 @@ const cleanup = (): void => {
   raysOn.value = false
 }
 
-const play = async (id: FeatureId): Promise<void> => {
-  announcement.value = t('barrage.unlock.announce', { name: t(NAME_KEY[id]) })
+const play = async (id: ArrivalId): Promise<void> => {
+  announcement.value = t('barrage.unlock.announce', { name: nameOf(id) })
   await nextTick()
   // One frame so the slot (visibility: hidden) has its real box.
   await new Promise<void>((r) => requestAnimationFrame(() => r()))
+  if (unlocking.value !== id) return
   const target = document.querySelector<HTMLElement>(`[data-feature="${id}"]`)
   const board = boardApi.value?.boardClientRect()
   const host = layer.value
@@ -66,10 +91,15 @@ const play = async (id: FeatureId): Promise<void> => {
     return
   }
   const tr = target.getBoundingClientRect()
+  if (tr.width <= 0 || tr.height <= 0) {
+    finishArrival(id)
+    return
+  }
   cleanup()
   const c = target.cloneNode(true) as HTMLElement
   c.removeAttribute('data-feature')
-  c.classList.remove('is-arriving')
+  c.classList.remove('is-arriving', 'chip--hidden')
+  settleTransitions(c)
   Object.assign(c.style, {
     position: 'fixed', left: `${tr.left}px`, top: `${tr.top}px`, width: `${tr.width}px`, height: `${tr.height}px`,
     margin: '0', visibility: 'visible', pointerEvents: 'none', zIndex: '1', transformOrigin: 'center'
@@ -77,18 +107,42 @@ const play = async (id: FeatureId): Promise<void> => {
   c.setAttribute('aria-hidden', 'true')
   host.appendChild(c)
   clone = c
+  const at = (x: number, y: number, s: number): string => `translate(${x}px, ${y}px) scale(${s})`
+  const land = (): void => {
+    cleanup()
+    finishArrival(id)
+    const r = target.getBoundingClientRect()
+    emitConfetti(r.left + r.width / 2, r.top + r.height / 2, id.startsWith('chip:') ? 12 : 26, 1)
+    playSound('merge-pop', 0.05, 1.2)
+  }
+
+  if (id.startsWith('chip:')) {
+    // Up from its own slot, a small pop, and down into it.
+    const rise = -Math.max(18, Math.min(46, tr.height * 0.8))
+    playSound('anchor-swap', 0.04, 1.25)
+    emitSparkle(tr.left + tr.width / 2, tr.top, '#ffe27a', 8)
+    anim = c.animate([
+      { transform: at(0, rise, 0.2), opacity: 0, offset: 0, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
+      { transform: at(0, rise, 1.25), opacity: 1, offset: 0.45, easing: 'cubic-bezier(0.5, 0, 0.3, 1)' },
+      { transform: at(0, 0, 1), opacity: 1, offset: 1 }
+    ], { duration: CHIP_DURATION, fill: 'forwards' })
+    anim.onfinish = land
+    return
+  }
 
   const cx = board.left + board.width / 2
   const cy = board.top + board.height * 0.42
   const dx = cx - (tr.left + tr.width / 2)
   const dy = cy - (tr.top + tr.height / 2)
-  const S = Math.max(2, Math.min(3, (board.width * 0.3) / Math.max(24, tr.width)))
-  rays.value = { x: cx, y: cy, size: tr.width * S * 2.6 }
+  // A button pops up 2–3× its size; the plaque (as wide as a good part of the
+  // board already) a little over its own, never past the board's width.
+  const S = id === 'rank'
+    ? Math.max(1, Math.min(1.3, (board.width * 0.95) / Math.max(24, tr.width)))
+    : Math.max(2, Math.min(3, (board.width * 0.3) / Math.max(24, tr.width)))
+  rays.value = { x: cx, y: cy, size: Math.min(board.width * 1.1, tr.width * S * 2.6) }
   raysOn.value = true
   playSound('new-tier-reveal', 0.07)
   emitSparkle(cx, cy, '#ffe27a', 14)
-
-  const at = (x: number, y: number, s: number): string => `translate(${x}px, ${y}px) scale(${s})`
   anim = c.animate([
     { transform: at(dx, dy, 0), opacity: 0, offset: 0, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
     { transform: at(dx, dy, S), opacity: 1, offset: 0.2 },
@@ -97,13 +151,7 @@ const play = async (id: FeatureId): Promise<void> => {
     { transform: at(0, 0, 1), opacity: 1, offset: 1 }
   ], { duration: DURATION, fill: 'forwards' })
   raysTimer = window.setTimeout(() => { raysOn.value = false }, DURATION * 0.58)
-  anim.onfinish = () => {
-    cleanup()
-    finishArrival(id)
-    const r = target.getBoundingClientRect()
-    emitConfetti(r.left + r.width / 2, r.top + r.height / 2, 26, 1)
-    playSound('merge-pop', 0.05, 1.2)
-  }
+  anim.onfinish = land
 }
 
 watch(unlocking, (id) => { if (id) void play(id) })

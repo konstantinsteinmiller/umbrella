@@ -28,6 +28,8 @@ vi.mock('@/platforms/leaderboard', () => ({ submitBestRow: () => {}, submitBestW
 const STATE_KEY = 'elemental-barrage_state'
 
 const boot = async () => {
+  // A case that boots twice must not leave the first graph's play clock ticking.
+  ;(await import('@/barrage/state/playClock')).__resetPlayClockForTests()
   vi.resetModules()
   const b = (await import('@/barrage/state/useBarrage')).default()
   const state = await import('@/use/useEpicState')
@@ -46,7 +48,10 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
-  (await import('@/use/useEpicState')).flushPersist()
+  // The play clock's interval must not outlive the case: its throttled persist
+  // would write this case's blob over the next case's seed.
+  (await import('@/barrage/state/playClock')).__resetPlayClockForTests()
+  ;(await import('@/use/useEpicState')).flushPersist()
 })
 
 describe('useBarrage on the real engine', () => {

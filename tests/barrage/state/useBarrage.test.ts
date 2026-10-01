@@ -76,6 +76,13 @@ vi.mock('@/platforms/leaderboard', () => {
 const STATE_KEY = 'elemental-barrage_state'
 const T0 = new Date('2026-09-23T10:00:00').getTime()
 
+/** A save past the rewarded gate (T0.2, user decision 2026-09-27: every
+ *  rewarded offer needs the first boss kill AND 3:00 of lifetime active play).
+ *  Specs about an offer's OWN mechanics seed it; the gate has its own describe. */
+const QUALIFIED = { eb_stats: { bossKills: 1, playSeconds: 180 } }
+/** 3:00 played, no boss killed yet: the first kill opens the gate. */
+const PLAYED_3_MIN = { eb_stats: { playSeconds: 180 } }
+
 const flush = async (): Promise<void> => {
   await Promise.resolve()
   await nextTick()
@@ -84,6 +91,9 @@ const flush = async (): Promise<void> => {
 
 /** Fresh module graph over an optional pre-seeded save blob. */
 const boot = async (blob?: Record<string, unknown>) => {
+  // A case that boots twice must not leave the first graph's play clock
+  // ticking (see afterEach).
+  ;(await import('@/barrage/state/playClock')).__resetPlayClockForTests()
   vi.resetModules()
   ctl.order.length = 0
   ctl.engineGenAtAd = -1
@@ -135,9 +145,12 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  // The play clock's interval must not outlive the case either: its throttled
+  // persist would write this case's blob over the next case's seed.
+  (await import('@/barrage/state/playClock')).__resetPlayClockForTests()
   // Cancel this case's debounced blob write before the next case installs a
   // fresh store — a late write would overwrite the next case's seed.
-  (await import('@/use/useEpicState')).flushPersist()
+  ;(await import('@/use/useEpicState')).flushPersist()
   vi.useRealTimers()
 })
 
@@ -259,7 +272,7 @@ describe('breach flow', () => {
   }
 
   it('offers the Meteor continue once per checkpoint segment, ad first', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true }, ...QUALIFIED })
     await breachAt(h)
     expect(h.b.breach.value).toMatchObject({ meteorAvailable: true, isDaily: false, checkpointRow: 10 })
     expect(h.b.holdSim.value).toBe(true)
@@ -307,7 +320,7 @@ describe('breach flow', () => {
   })
 
   it('the one-shot survives a reload (it is saved, not session state)', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true }, ...QUALIFIED })
     await breachAt(h)
     await h.b.continueWithMeteor()
     const blob = h.blobNow()
@@ -319,7 +332,7 @@ describe('breach flow', () => {
   })
 
   it('a boss kill starts a new segment — the Meteor is back', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true }, ...QUALIFIED })
     await breachAt(h)
     await h.b.continueWithMeteor()
     const e = h.eng()
@@ -333,7 +346,7 @@ describe('breach flow', () => {
   })
 
   it('hides the Meteor when no rewarded ad can run (readiness gating), live', async () => {
-    const h = await boot()
+    const h = await boot(QUALIFIED)
     ctl.rewardReady.value = false
     await breachAt(h)
     expect(h.b.breach.value!.meteorAvailable).toBe(false)
@@ -342,10 +355,12 @@ describe('breach flow', () => {
   })
 
   it('a declined / failed ad does not continue the run', async () => {
-    const h = await boot()
+    // Past the rewarded gate, so it is the ad that says no, not the gate.
+    const h = await boot(QUALIFIED)
     await breachAt(h)
     ctl.adGrants = false
     expect(await h.b.continueWithMeteor()).toBe(false)
+    expect(ctl.redeem).toHaveBeenCalledTimes(1)
     expect(h.eng().calls.continued).toEqual([])
     expect(h.b.breach.value).not.toBeNull()
   })
@@ -554,7 +569,7 @@ describe('boss mercy — every restart lost to the boss takes 25% off it, down t
   })
 
   it('a continue is not a death — only the restart that follows counts, once', async () => {
-    const h = await boot(CP)
+    const h = await boot({ ...CP, ...QUALIFIED })
     await loseToBoss(h)
     expect(await h.b.continueWithMeteor()).toBe(true)
     expect(h.progress.checkpoint.value.deaths).toBe(0)
@@ -745,7 +760,9 @@ describe('boss chest', () => {
     // Balls still in flight: no modal over the kill yet.
     expect(h.b.bossChest.value).toBeNull()
     h.eng().endTurn()
-    expect(h.b.bossChest.value).toMatchObject({ bounty: 250, first: true, boostAvailable: true, boostMult: 3 })
+    // T0.2 (2026-09-27): a brand-new player's first chest lands inside the
+    // opening 3:00 of play, so it has no ▶ 3× (it used to offer one here).
+    expect(h.b.bossChest.value).toMatchObject({ bounty: 250, first: true, boostAvailable: false, boostMult: 3 })
     expect(h.b.holdSim.value).toBe(true)
   })
 
@@ -762,7 +779,7 @@ describe('boss chest', () => {
   })
 
   it('3×: the rewarded ad runs FIRST, then the tripled payout', async () => {
-    const h = await boot()
+    const h = await boot(PLAYED_3_MIN)
     killBoss(h, 300)
     h.eng().endTurn()
     const before = h.wallet.coins.value
@@ -777,16 +794,17 @@ describe('boss chest', () => {
   })
 
   it('an ad that does not complete still pays 1×', async () => {
-    const h = await boot()
+    const h = await boot(PLAYED_3_MIN)
     killBoss(h, 300)
     h.eng().endTurn()
     ctl.adGrants = false
     expect(await h.b.claimBossChest(true)).toBe(300)
+    expect(ctl.redeem).toHaveBeenCalledTimes(1)
   })
 
   it('coin-priced builds only offer the 3× when the extra bounty is worth more than its price', async () => {
     ctl.coinMode = true
-    const h = await boot()
+    const h = await boot(PLAYED_3_MIN)
     killBoss(h, 400) // +800 < 1000
     h.eng().endTurn()
     expect(h.b.bossChest.value!.boostAvailable).toBe(false)
@@ -836,7 +854,7 @@ describe('rewarded +5 balls', () => {
     await flush()
     expect(h.b.bonusBallsAvailable.value).toBe(false)
     // A veteran on a calm board: nothing to rescue.
-    const v = await boot({ eb_ftue: { done: true } })
+    const v = await boot({ eb_ftue: { done: true }, ...QUALIFIED })
     expect(v.b.bonusBallsAvailable.value).toBe(false)
     v.eng().spawnBoss(80)
     await flush()
@@ -844,7 +862,7 @@ describe('rewarded +5 balls', () => {
   })
 
   it('once per checkpoint segment, aim phase only', async () => {
-    const h = await boot({ eb_ftue: { done: true } })
+    const h = await boot({ eb_ftue: { done: true }, ...QUALIFIED })
     h.eng().spawnBoss(80)
     await flush()
     expect(h.b.bonusBallsAvailable.value).toBe(true)
@@ -913,7 +931,8 @@ describe('Daily Barrage isolation', () => {
   })
 
   it('has no continues and no +5 balls', async () => {
-    const h = await boot()
+    // Past the rewarded gate, so it is the daily board that says no.
+    const h = await boot(QUALIFIED)
     h.b.startDaily()
     expect(h.b.bonusBallsAvailable.value).toBe(false)
     h.eng().fire(1)
@@ -1181,7 +1200,7 @@ describe('loss recap (BreachOffer.recap)', () => {
   })
 
   it('a continue keeps counting; a checkpoint restart starts a new run at zero', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true }, ...QUALIFIED })
     h.eng().fire(1)
     kill(h.eng(), 3)
     h.eng().breachNow()
@@ -1202,7 +1221,7 @@ describe('loss recap (BreachOffer.recap)', () => {
   })
 
   it('boss chests count at what they paid (3× included)', async () => {
-    const h = await boot()
+    const h = await boot(PLAYED_3_MIN)
     const e = h.eng()
     e.fire(1)
     e.spawnBoss()
@@ -1237,5 +1256,224 @@ describe('loss recap (BreachOffer.recap)', () => {
     h.b.exitDaily()
     await breachAt(h)
     expect(h.b.breach.value!.recap).toMatchObject({ kills: 1, coins: 2 })
+  })
+})
+
+// T0.2, user decision 2026-09-27: every rewarded CTA needs the first boss kill
+// AND 3:00 of lifetime active play. A locked offer is HIDDEN: its flag is false
+// (each modal renders the button only while it is true), and its action is
+// refused without asking for an ad.
+describe('rewarded gate: first boss kill AND 3:00 of lifetime play', () => {
+  const CP10 = { eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } }
+  const breachAt = async (h: Awaited<ReturnType<typeof boot>>) => {
+    h.eng().fire(1)
+    h.eng().breachNow()
+    await flush()
+  }
+  const killBoss = (h: Awaited<ReturnType<typeof boot>>, bounty: number) => {
+    const e = h.eng()
+    e.fire(1)
+    e.spawnBoss()
+    e.killBoss(bounty)
+    e.endTurn()
+  }
+
+  it('no Meteor before the first boss kill, however long the player has played', async () => {
+    const h = await boot({ eb_stats: { playSeconds: 900 } })
+    await breachAt(h)
+    expect(h.b.breach.value!.meteorAvailable).toBe(false)
+    expect(await h.b.continueWithMeteor()).toBe(false)
+    expect(ctl.redeem).not.toHaveBeenCalled()
+  })
+
+  it('no Meteor before 3:00 of play, even past a boss — and it appears live when the clock gets there', async () => {
+    const h = await boot({ ...CP10, eb_stats: { bossKills: 2, playSeconds: 179 } })
+    await breachAt(h)
+    expect(h.b.breach.value!.meteorAvailable).toBe(false)
+    expect(await h.b.continueWithMeteor()).toBe(false)
+    expect(ctl.redeem).not.toHaveBeenCalled()
+    h.progress.addPlaySeconds(1)
+    expect(h.b.breach.value!.meteorAvailable).toBe(true)
+    expect(await h.b.continueWithMeteor()).toBe(true)
+  })
+
+  it('a brand-new player\'s first chest has no ▶ 3× (inside the opening minutes); Collect still pays', async () => {
+    const h = await boot()
+    killBoss(h, 250)
+    expect(h.b.bossChest.value).toMatchObject({ first: true, boostAvailable: false })
+    expect(await h.b.claimBossChest(true)).toBe(250)
+    expect(ctl.redeem).not.toHaveBeenCalled()
+  })
+
+  it('a first kill after 3:00 of play offers the ▶ 3× on that very chest', async () => {
+    const h = await boot(PLAYED_3_MIN)
+    killBoss(h, 250)
+    expect(h.b.bossChest.value).toMatchObject({ first: true, boostAvailable: true })
+  })
+
+  it('no +5 balls before 3:00 of play, even past a boss with one on the board', async () => {
+    const h = await boot({ eb_ftue: { done: true }, eb_stats: { bossKills: 1, playSeconds: 60 } })
+    h.eng().spawnBoss(80)
+    await flush()
+    expect(h.b.bonusBallsAvailable.value).toBe(false)
+    expect(await h.b.claimBonusBalls()).toBe(false)
+    expect(ctl.redeem).not.toHaveBeenCalled()
+    h.progress.addPlaySeconds(120)
+    expect(h.b.bonusBallsAvailable.value).toBe(true)
+  })
+
+  it('a returning player who already qualifies sees the offers at once, with no play this session', async () => {
+    const h = await boot({ ...CP10, ...QUALIFIED })
+    expect(h.progress.rewardedOffersUnlocked.value).toBe(true)
+    await breachAt(h)
+    expect(h.b.breach.value!.meteorAvailable).toBe(true)
+  })
+
+  it('a save from before the play clock qualifies on its volleys (7 s each, an under-count)', async () => {
+    const veteran = await boot({ ...CP10, eb_stats: { bossKills: 1, volleys: 30 } })
+    expect(veteran.progress.lifetimePlaySeconds.value).toBe(210)
+    await breachAt(veteran)
+    expect(veteran.b.breach.value!.meteorAvailable).toBe(true)
+    const brief = await boot({ ...CP10, eb_stats: { bossKills: 1, volleys: 20 } })
+    expect(brief.progress.lifetimePlaySeconds.value).toBe(140)
+    await breachAt(brief)
+    expect(brief.b.breach.value!.meteorAvailable).toBe(false)
+  })
+
+  it('the clock is persisted with the stats (a reload keeps the gate open)', async () => {
+    const h = await boot({ eb_stats: { bossKills: 1, playSeconds: 170 } })
+    h.progress.addPlaySeconds(15)
+    turn(h.eng())
+    expect(h.blobNow().eb_stats).toMatchObject({ bossKills: 1, playSeconds: 185 })
+    const again = await boot()
+    expect(again.progress.lifetimePlaySeconds.value).toBe(185)
+    expect(again.progress.rewardedOffersUnlocked.value).toBe(true)
+  })
+})
+
+describe('play clock: active play only (the gameplay bracket)', () => {
+  it('opens on the first shot, stops while the board is held, and feeds both clocks', async () => {
+    const h = await boot()
+    const clock = await import('@/barrage/state/playClock')
+    ;(await import('@/use/useGamePause')).isVisibilityHidden.value = false
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(T0)
+    vi.advanceTimersByTime(5_000)
+    // A live board nobody has shot at is not play.
+    expect(clock.sessionPlaySeconds.value).toBe(0)
+    h.eng().fire(1)
+    vi.advanceTimersByTime(3_000)
+    expect(clock.sessionPlaySeconds.value).toBe(3)
+    h.eng().endTurn() // back in 'aim': still play
+    vi.advanceTimersByTime(2_000)
+    expect(clock.sessionPlaySeconds.value).toBe(5)
+    h.eng().fire(1)
+    h.eng().breachNow() // the death scene and the breach screen hold the board
+    vi.advanceTimersByTime(10_000)
+    expect(clock.sessionPlaySeconds.value).toBe(5)
+    await h.b.restartFromCheckpoint()
+    vi.advanceTimersByTime(2_000)
+    expect(clock.sessionPlaySeconds.value).toBe(7)
+    expect(h.progress.lifetimePlaySeconds.value).toBe(7)
+  })
+})
+
+describe('drop-off funnel (T0.1)', () => {
+  type Call = [string, string, string]
+  const withSink = async (): Promise<Call[]> => {
+    const calls: Call[] = []
+    ;(await import('@/barrage/state/funnel')).__setFunnelSinkForTests((c, w, a) => { calls.push([c, w, a]) })
+    return calls
+  }
+  const whats = (calls: Call[]): string[] => calls.filter(([, , a]) => a === 'start').map(([, w]) => w)
+
+  it('a new player\'s session reports each milestone once, as start + complete, under funnel_new', async () => {
+    const h = await boot()
+    const calls = await withSink()
+    const e = h.eng()
+    turn(e) // the first shot; row 2
+    turn(e)
+    turn(e)
+    turn(e) // row 5
+    e.fire(1)
+    e.spawnBoss(50)
+    e.killBoss(80)
+    e.endTurn()
+    await h.b.claimBossChest(false)
+    e.fire(1)
+    e.breachNow()
+    await flush()
+    await h.b.restartFromCheckpoint()
+    const e2 = h.eng()
+    e2.state.row = 19
+    turn(e2) // row 20
+    // A second boss and a second loss add nothing: once per page session.
+    e2.fire(1)
+    e2.spawnBoss(50)
+    e2.killBoss(80)
+    e2.endTurn()
+    await h.b.claimBossChest(false)
+    e2.fire(1)
+    e2.breachNow()
+    await flush()
+    expect(whats(calls)).toEqual(['first_shot', 'row_5', 'boss1_spawn', 'boss1_kill', 'first_loss', 'row_20'])
+    expect(calls).toHaveLength(12)
+    for (let i = 0; i < calls.length; i += 2) {
+      expect(calls[i]![2]).toBe('start')
+      expect(calls[i + 1]).toEqual([calls[i]![0], calls[i]![1], 'complete'])
+    }
+    // The cohort was read before the first shot was counted into the stats.
+    expect(new Set(calls.map(([c]) => c))).toEqual(new Set(['funnel_new']))
+    expect(h.progress.stats.value.volleys).toBeGreaterThan(0)
+  })
+
+  it('a player with play from an earlier session lands in funnel_returning', async () => {
+    const h = await boot({ eb_stats: { volleys: 12 } })
+    const calls = await withSink()
+    turn(h.eng())
+    expect(calls).toEqual([
+      ['funnel_returning', 'first_shot', 'start'],
+      ['funnel_returning', 'first_shot', 'complete']
+    ])
+  })
+
+  it('row milestones count the endless board only', async () => {
+    const h = await boot()
+    const calls = await withSink()
+    h.b.startDaily()
+    for (let i = 0; i < 6; i++) turn(h.eng()) // daily rows 2-7
+    expect(whats(calls)).toEqual(['first_shot'])
+    h.b.exitDaily()
+    for (let i = 0; i < 4; i++) turn(h.eng()) // endless rows 2-5
+    expect(whats(calls)).toEqual(['first_shot', 'row_5'])
+  })
+
+  it('the session clock reports 3, 5 and 8 minutes of active play', async () => {
+    const h = await boot()
+    const calls = await withSink()
+    ;(await import('@/use/useGamePause')).isVisibilityHidden.value = false
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
+    vi.setSystemTime(T0)
+    h.eng().fire(1)
+    vi.advanceTimersByTime(179_000)
+    expect(whats(calls)).toEqual(['first_shot'])
+    vi.advanceTimersByTime(1_000)
+    expect(whats(calls)).toEqual(['first_shot', 'played_180s'])
+    vi.advanceTimersByTime(300_000)
+    expect(whats(calls)).toEqual(['first_shot', 'played_180s', 'played_300s', 'played_480s'])
+  })
+
+  it('a measure call that throws never breaks the run', async () => {
+    const h = await boot()
+    ;(await import('@/barrage/state/funnel')).__setFunnelSinkForTests(() => { throw new Error('sdk down') })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      turn(h.eng())
+      expect(h.b.row.value).toBe(2)
+      expect(h.progress.stats.value.volleys).toBe(1)
+      expect(warn).toHaveBeenCalled()
+    } finally {
+      warn.mockRestore()
+    }
   })
 })

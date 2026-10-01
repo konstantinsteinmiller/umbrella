@@ -1,40 +1,29 @@
 /**
- * The merge lightbox — WHEN a tray merge is put on a stage (the look lives in
- * `MergeLightbox.vue`).
+ * A merge in the tray — its own flourish, while play goes on.
  *
- * Play-test run 2: merging went unnoticed. "The portraits kept flipping", "the
- * roster changed with no visible merge" — the tray re-sorts in one frame and a
- * squish on the result is over before anyone looks down. So the first
- * MERGE_BOX_FIRST merges of a profile, and every merge that makes a tier the
- * player has never had, PAUSE the game (`acquireAppPause`) and dim everything
- * but the tray: the twins fly together, fuse with a flash into the next tier,
- * and a short trail runs from the tray into the launcher — these balls ARE the
- * shots. A discovery then peeks its codex entry (ability icon + name). Tap to
- * skip. Every later merge animates in the tray without pausing.
+ * Play-test run 2: merging went unnoticed ("the portraits kept flipping").
+ * So the first MERGE_BOX_FIRST merges of a profile, and every merge that made
+ * a tier the player had never had, PAUSED the game on a dimmed stage for
+ * 2–2.7 s. Silent Flow (retention-roadmap #2) ended every pause: the first
+ * three sat in the first minute, where 40 % of plays end. Every merge now
+ * plays the tray's own flourish — the twins fly together into the ball they
+ * make, it squishes, confetti (BallTray) — and a discovery gets the NEW BALL
+ * reveal on top (`useTierReveal`: ≤ 1.5 s, never in the way). The engine's
+ * forced first merge (the FTUE's turn 3) stays; only the freeze is gone.
  *
- * The discovery reveal (`useTierReveal`, TierRevealFx) is announced by the
- * state layer the moment the merge happens. It would spotlight the tray under
- * the lightbox, so the lightbox takes it off the stage and announces the same
- * discovery again when it ends: the lightbox is the first act, the reveal the
- * second — with its full five seconds, and the sting it was due.
- *
- * The count lives in the coach's save (`eb_coach`, exposure `mergeBox`), so it
- * hydrates and never runs backwards with the rest of the coach's bookkeeping.
+ * So `offerMerge` never takes the moment. The profile's first merges and
+ * every discovery still say their sentence to screen readers (the coach's cue
+ * region), and the first ones are counted (`eb_coach` exposure `mergeBox`,
+ * which hydrates and never runs backwards with the rest of the coach's
+ * bookkeeping).
  */
 import { shallowRef } from 'vue'
-import { acquireAppPause } from '@/use/useGamePause'
-import { activeReveal, announceNewTier, endReveal, type RevealTarget } from '@/use/useTierReveal'
-import { MERGE_BOX_FIRST, bumpExposure, lessonShown } from '@/use/useCoach'
+import { MERGE_BOX_FIRST, bumpExposure, lessonShown, sayCue } from '@/use/useCoach'
 
 export { MERGE_BOX_FIRST }
 
-/** One routine lightbox (the first merges), ms. */
-export const MERGE_BOX_MS = 2000
-/** A discovery's lightbox: the same, plus the codex peek. */
-export const MERGE_BOX_DISCOVERY_MS = 2700
-
-/** Pure rule: the first MERGE_BOX_FIRST merges, then discoveries only. */
-export const shouldLightbox = (shown: number, discovery: boolean): boolean =>
+/** Pure rule: the first MERGE_BOX_FIRST merges are told, then discoveries only. */
+export const shouldAnnounce = (shown: number, discovery: boolean): boolean =>
   shown < MERGE_BOX_FIRST || discovery
 
 export interface MergeBox {
@@ -44,39 +33,12 @@ export interface MergeBox {
   /** Tray index of the ball the merge made (`[data-slot=idx] .unit-holder`). */
   idx: number
   discovery: boolean
-  /** Whole duration, ms. */
   ms: number
 }
 
-/** The lightbox on screen, or null. */
+/** Always null: nothing is staged any more. Kept because the tray hides the
+ *  ball a stage draws (`BallTray`'s `boxedIdx`). */
 export const mergeBox = shallowRef<MergeBox | null>(null)
-
-let seq = 0
-/** Mounted lightbox views: without one (the DEV clean feed, the lab) a pause
- *  would freeze the game behind nothing. */
-let views = 0
-let release: (() => void) | null = null
-let endTimer: ReturnType<typeof setTimeout> | null = null
-/** The discovery the lightbox took off the stage, re-announced at its end. */
-let deferred: { tier: number; target: RevealTarget } | null = null
-/** Called with the re-announced reveal (the view plays its sting). */
-let onRevealResumed: ((tier: number, target: RevealTarget) => void) | null = null
-
-/** A lightbox view mounted; returns its unregister. */
-export const registerMergeBoxView = (): (() => void) => {
-  views++
-  let done = false
-  return () => {
-    if (done) return
-    done = true
-    views = Math.max(0, views - 1)
-  }
-}
-
-/** The view registers what to do when a deferred discovery resumes. */
-export const setRevealResumeHook = (fn: ((tier: number, target: RevealTarget) => void) | null): void => {
-  onRevealResumed = fn
-}
 
 export interface MergeOffer {
   fromTier: number
@@ -89,53 +51,15 @@ export interface MergeOffer {
 }
 
 /**
- * A merge just landed in the tray. Returns true when the lightbox takes it —
- * the tray then skips its own merge juice (the lightbox plays it).
+ * A merge just landed in the tray. Never takes the moment (returns false: the
+ * tray plays its own flourish, and a discovery's reveal runs as announced);
+ * the first merges of a profile and every discovery are told to screen readers.
  */
 export const offerMerge = (o: MergeOffer): boolean => {
-  if (!o.allowed || views === 0 || mergeBox.value) return false
-  if (!shouldLightbox(lessonShown('mergeBox'), o.discovery)) return false
-  const reveal = activeReveal.value
-  deferred = null
-  if (o.discovery && reveal && reveal.tier === o.toTier) {
-    deferred = { tier: reveal.tier, target: reveal.target }
-    endReveal(reveal.id)
+  const shown = lessonShown('mergeBox')
+  if (shouldAnnounce(shown, o.discovery)) {
+    if (shown < MERGE_BOX_FIRST) bumpExposure('mergeBox')
+    sayCue({ kind: 'merge', from: o.fromTier, to: o.toTier, discovery: o.discovery })
   }
-  bumpExposure('mergeBox')
-  release = acquireAppPause()
-  const ms = o.discovery ? MERGE_BOX_DISCOVERY_MS : MERGE_BOX_MS
-  mergeBox.value = { seq: ++seq, fromTier: o.fromTier, toTier: o.toTier, idx: o.idx, discovery: o.discovery, ms }
-  if (endTimer !== null) clearTimeout(endTimer)
-  endTimer = setTimeout(finishMerge, ms)
-  return true
-}
-
-/** End the lightbox now (its timer, a tap, or the view going away): the game
- *  runs again and a deferred discovery takes the stage. */
-export const finishMerge = (): void => {
-  if (endTimer !== null) clearTimeout(endTimer)
-  endTimer = null
-  if (!mergeBox.value) return
-  mergeBox.value = null
-  const r = release
-  release = null
-  r?.()
-  const d = deferred
-  deferred = null
-  if (d) {
-    announceNewTier(d.tier, d.target)
-    onRevealResumed?.(d.tier, d.target)
-  }
-}
-
-/** Test-only. */
-export const __resetMergeBox = (): void => {
-  if (endTimer !== null) clearTimeout(endTimer)
-  endTimer = null
-  mergeBox.value = null
-  release?.()
-  release = null
-  deferred = null
-  onRevealResumed = null
-  views = 0
+  return false
 }

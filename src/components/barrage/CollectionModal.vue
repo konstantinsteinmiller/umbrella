@@ -12,9 +12,11 @@
  *               what will fly, on the balls they actually make. Every skin
  *               past stone is ad-only: its card shows a lock (and n/N for the
  *               multi-ad rarities) instead of a price, and the "▶ Unlock"
- *               button under it is the way in — always there, disabled while
- *               no rewarded ad can fill. Stone keeps its coin price with the
- *               same button beside it, shown only while an ad can fill. Coin-
+ *               button under it is the way in — there from the moment the
+ *               rewarded gate opens (first boss kill + 3:00 of play; hidden
+ *               before), disabled while no rewarded ad can fill. Stone keeps
+ *               its coin price with the same button beside it, shown only
+ *               while an ad can fill. Coin-
  *               mode builds have no rewarded ads: every skin keeps its price.
  *
  * NEW badges: opening a tab marks its items seen at once (STATE's
@@ -33,7 +35,7 @@ import type { BallSkinView, LauncherView } from '@/barrage/state/contract'
 import { BALL_SKINS, type BallSkinId, type BallSkinRarity } from '@/barrage/ballSkins'
 import { fighterSrc, ballColors, FIGHTER_ART_MAX } from '@/barrage/art'
 import { ballPreview } from '@/barrage/render/balls'
-import { maxBallTier } from '@/barrage/state/progress'
+import { maxBallTier, rewardedOffersUnlocked } from '@/barrage/state/progress'
 import useSounds from '@/use/useSound'
 import { buffsCostCoins } from '@/use/useUser'
 import { fmtCoins } from '@/components/barrage/barrageUi'
@@ -155,9 +157,12 @@ const onSkin = (s: BallSkinView, ev: MouseEvent): void => {
 const adBusy = ref(false)
 /** An ad-only skin always shows its button (disabled while no ad can fill: it
  *  is the only way in); stone's only while an ad can fill or one was watched.
- *  Only on builds that have rewarded ads at all. */
+ *  Only on builds that have rewarded ads at all, and never before the rewarded
+ *  gate opens (first boss kill + 3:00 of play): a locked offer is hidden, not
+ *  shown disabled. */
 const showSkinAd = (s: BallSkinView): boolean =>
-  !buffsCostCoins && !s.owned && s.adsNeeded > 0 && (s.adOnly || col.skinAdReady.value || s.adsWatched > 0)
+  !buffsCostCoins && rewardedOffersUnlocked.value && !s.owned && s.adsNeeded > 0 &&
+  (s.adOnly || col.skinAdReady.value || s.adsWatched > 0)
 
 const onSkinAd = async (s: BallSkinView, ev: MouseEvent): Promise<void> => {
   if (adBusy.value || !col.skinAdReady.value) return

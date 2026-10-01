@@ -1,23 +1,26 @@
 <script setup lang="ts">
 /**
- * The spotlight lessons on stage (`lessonSpotlight.ts` holds the moment and
- * its pause; the coach decides when): the threat countdown (ThreatSpot) and
- * the speed / luck / bounty chips (UpgradeSpot). This shell owns the clock,
- * the fade in and out, the tap that skips and the screen-reader sentence.
+ * The chip spotlights on screen (`lessonSpotlight.ts` holds the moment; the
+ * coach decides when): speed / luck / bounty (UpgradeSpot). This shell owns
+ * the clock, the fade in and out and the screen-reader sentence.
+ *
+ * Silent Flow: it plays over the running game — no pause, no dim, and
+ * pointer-events none, so every tap still reaches the board. A shot ends it
+ * at once (the volley changes the very board it was showing).
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useSounds from '@/use/useSound'
-import ThreatSpot from '@/components/barrage/coach/ThreatSpot.vue'
+import useBarrage from '@/barrage/state/useBarrage'
+import { isAnyModalOpen } from '@/use/useModalState'
 import UpgradeSpot from '@/components/barrage/coach/UpgradeSpot.vue'
-import { finishSpot, lessonSpot, registerSpotView, type Spot, type ThreatSpot as ThreatDraft, type UpgradeSpot as UpgradeDraft } from '@/components/barrage/lessonSpotlight'
+import { finishSpot, lessonSpot, registerSpotView, type Spot } from '@/components/barrage/lessonSpotlight'
 
 const { t } = useI18n()
 const { playSound } = useSounds()
+const barrage = useBarrage()
 
 const spot = computed<Spot | null>(() => lessonSpot.value)
-const threat = computed(() => (spot.value?.kind === 'threat' ? (spot.value as Spot & ThreatDraft) : null))
-const upgrade = computed(() => (spot.value && spot.value.kind !== 'threat' ? (spot.value as Spot & UpgradeDraft) : null))
 
 const reduced = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 const now = ref(0)
@@ -36,6 +39,10 @@ const start = (): void => {
   playSound('anchor-swap', 0.04, 0.9)
 }
 watch(() => spot.value?.seq, (s) => { if (s) start(); else cancelAnimationFrame(raf) })
+// A shot (or anything else leaving the aim phase) ends it, and so does a menu
+// opening over the board.
+watch(() => barrage.phase.value, (p) => { if (p !== 'aim' && spot.value) finishSpot() })
+watch(isAnyModalOpen, (open) => { if (open && spot.value) finishSpot() })
 
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v)
 const layerOpacity = computed(() => {
@@ -46,32 +53,17 @@ const layerOpacity = computed(() => {
 
 const srText = computed(() => {
   const s = spot.value
-  if (!s) return ''
-  return s.kind === 'threat'
-    ? t('barrage.coach.spot.threat')
-    : t(`barrage.coach.spot.${s.kind}`, { name: t(`barrage.upgrades.${s.kind}.name`) })
+  return s ? t(`barrage.coach.spot.${s.kind}`, { name: t(`barrage.upgrades.${s.kind}.name`) }) : ''
 })
-
-const skip = (): void => { finishSpot() }
-const onKey = (e: KeyboardEvent): void => {
-  if (!spot.value) return
-  if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault()
-    skip()
-  }
-}
 
 let unregister: (() => void) | null = null
 onMounted(() => {
   unregister = registerSpotView()
-  window.addEventListener('keydown', onKey)
   if (spot.value) start()
 })
 onUnmounted(() => {
   cancelAnimationFrame(raf)
-  window.removeEventListener('keydown', onKey)
   unregister?.()
-  // Never leave the game paused behind a view that is gone.
   finishSpot()
 })
 </script>
@@ -80,26 +72,18 @@ onUnmounted(() => {
   Teleport(to="body")
     //- `data-coach-live`: the playtest harness's moment marker.
     div.sr-only(aria-live="polite" data-coach-live="spot") {{ srText }}
-    div.lesson-spot.hud-digits.fixed.inset-0(
+    div.lesson-spot.hud-digits.fixed.inset-0.pointer-events-none(
       v-if="spot"
       :key="spot.seq"
       :style="{ opacity: layerOpacity }"
-      role="button"
-      tabindex="0"
-      :aria-label="t('barrage.coach.skipAria')"
-      @pointerdown.prevent
-      @click="skip"
+      aria-hidden="true"
     )
-      ThreatSpot(v-if="threat" :spot="threat" :now="now" :reduced="reduced")
-      UpgradeSpot(v-else-if="upgrade" :spot="upgrade" :now="now" :reduced="reduced")
+      UpgradeSpot(:spot="spot" :now="now" :reduced="reduced")
 </template>
 
 <style scoped lang="sass">
-// With the merge lightbox and the "+1" spotlight, above everything (the game is paused).
+// Over the scene and the teleported top bar (55), under the modals' own layer
+// rules: taps go straight through (pointer-events none on the whole layer).
 .lesson-spot
-  z-index: 80
-  cursor: pointer
-  touch-action: none
-  -webkit-tap-highlight-color: transparent
-  outline: none
+  z-index: 60
 </style>

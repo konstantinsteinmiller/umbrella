@@ -1,31 +1,34 @@
 <script setup lang="ts">
 /**
- * ─── "NEW BALL!" — the stage for a new-tier discovery ───────────────────────
+ * ─── "NEW BALL!" — the moment of a new-tier discovery ───────────────────────
  *
  * Mounted once in GameScene, teleported to <body>, and following whichever unit
  * `useTierReveal` names (a grid slot, the drag ghost while that unit is carried,
  * or a fighter in the arena). Everything here is `pointer-events: none` and
- * local to the unit — no full-screen dim — so the merge grid and the battle
- * stay fully playable through the whole moment.
+ * local to the unit — no dim at all — so the tray and the board stay fully
+ * playable through the whole moment.
+ *
+ * Silent Flow (retention-roadmap #2): the moment is REVEAL_MS = 1.5 s (it was
+ * 5 s with a spotlight dimming the unit's neighbourhood), and before the first
+ * boss kill it is WORDLESS — the unit's own light, no "NEW BALL!" label (and
+ * only the first discovery gets one then: the scene's gate in useTierReveal).
  *
  * The timeline, synced to the reveal sting (whose bloom lands at 0.35 s):
  *
- *   0 – 0.35 s   WIND-UP  the neighbourhood dims into a small spotlight, a thin
- *                ring IMPLODES onto the unit, faint rays start turning, the
- *                unit sinks (MergeGrid / BattleArena own the unit's own motion).
- *                Deliberately no confetti yet — the hush is what makes the
- *                burst land.
- *   0.35 s       BLOOM    white flash + a shockwave ring, the rays and the halo
- *                slam to full, a confetti + sparkle burst in the unit's own
- *                colours, the label pops in, the unit pops.
- *   0.35 – 4.4 s PRESENT  a stage beam from above, a light pool under the unit,
- *                two counter-rotating ray fans, and a halo that BREATHES while
- *                its colour walks the unit's palette (glow → accent → gold →
- *                white); twinkles keep spawning around it.
- *   4.4 – 5 s    EXIT     everything eases out together; the dim lifts last.
+ *   0 – 0.35 s    WIND-UP  a thin ring IMPLODES onto the unit, faint rays start
+ *                 turning. Deliberately no confetti yet — the hush is what
+ *                 makes the burst land.
+ *   0.35 s        BLOOM    white flash + a shockwave ring, the rays and the halo
+ *                 slam to full, a confetti + sparkle burst in the unit's own
+ *                 colours, the label pops in (after the first boss kill).
+ *   0.35 – 1.15 s PRESENT  a stage beam from above, a light pool under the unit,
+ *                 two counter-rotating ray fans, and a halo whose colour walks
+ *                 the unit's palette (glow → accent → gold).
+ *   1.15 – 1.5 s  EXIT     everything eases out together.
  *
- * Every keyframe is on a 5 s clock keyed to the reveal's start (`--t0`), so a
- * remount or a retarget mid-moment continues where it was instead of replaying.
+ * Every keyframe is on one clock (`--dur`, REVEAL_MS) keyed to the reveal's
+ * start (`--t0`), so a remount or a retarget mid-moment continues where it was
+ * instead of replaying.
  */
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -34,7 +37,7 @@ import {
 } from '@/use/useTierReveal'
 import { getIngredient } from '@/game/ingredients'
 import { emitConfetti, emitSparkle } from '@/use/usePrismParticles'
-import { tutorialActive } from '@/use/useTutorial'
+import { isFtueActive } from '@/barrage/state/progress'
 import useBarrage from '@/barrage/state/useBarrage'
 
 const { t, te } = useI18n()
@@ -60,6 +63,8 @@ const rootEl = ref<HTMLElement | null>(null)
 const labelEl = ref<HTMLElement | null>(null)
 /** Label side, decided once per reveal (flipping mid-moment would jar). */
 const labelBelow = ref(false)
+/** Silent Flow: no words before the first boss kill — decided once per reveal. */
+const wordless = ref(false)
 /** Negative ms into the reveal at mount — the shared CSS clock offset. */
 const t0 = ref('0ms')
 
@@ -152,7 +157,7 @@ const bloom = (): void => {
 
 /** A few motes around the unit, every beat of the presentation phase. */
 const twinkle = (startedAt: number): void => {
-  if (Date.now() - startedAt > REVEAL_MS - 700 || lastX < 0) return
+  if (Date.now() - startedAt > REVEAL_MS * 0.7 || lastX < 0) return
   const { glow, accent } = palette.value
   const rad = Math.max(lastR, 16)
   const a = Math.random() * Math.PI * 2
@@ -177,24 +182,20 @@ const start = (r: TierReveal): void => {
   const elapsed = Math.max(0, Date.now() - r.startedAt)
   t0.value = `${-elapsed}ms`
 
-  // Label side. During the tutorial the coach-mark bubble sits ABOVE a target in
-  // the lower half of the screen (TutorialOverlay's own rule), so ours goes on
-  // the other side; otherwise above, unless the unit is too near the top.
+  // Label side: above, unless the unit is too near the top.
   const el = targetEl(r)
   const b = el?.getBoundingClientRect()
-  if (b) {
-    const cy = b.top + b.height / 2
-    labelBelow.value = tutorialActive.value ? cy > window.innerHeight * 0.55 : b.top < 96
-  } else {
-    labelBelow.value = false
-  }
+  labelBelow.value = !!b && b.top < 96
 
   // Place it now, before the first paint (this runs post-flush), so it never
   // shows a frame at the viewport's top-left corner; `frame` keeps itself going.
   frame()
   if (elapsed < REVEAL_BLOOM_MS) bloomTimer = window.setTimeout(bloom, REVEAL_BLOOM_MS - elapsed)
-  if (!reducedMotion) twinkleTimer = window.setInterval(() => twinkle(r.startedAt), 420)
+  if (!reducedMotion) twinkleTimer = window.setInterval(() => twinkle(r.startedAt), 260)
 }
+
+// Words or none, decided before the moment renders (never a frame of label).
+watch(() => reveal.value?.id, () => { wordless.value = isFtueActive() }, { immediate: true })
 
 // A new discovery (new id) restarts the show; a retarget (same id) only moves
 // it — the rAF loop already reads the target fresh every frame.
@@ -205,65 +206,62 @@ watch(() => reveal.value?.id, (id) => {
 }, { flush: 'post', immediate: true })
 
 onUnmounted(stopTimers)
-
-/** Above the tutorial's dim while it runs, so its first discovery is not
- *  muddied by the coach-mark lightbox; otherwise under modals (z-50). */
-const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
 </script>
 
 <template lang="pug">
   Teleport(to="body")
-    Transition(name="trf-out")
-      div.trf(
-        v-if="reveal"
-        :key="reveal.id"
-        ref="rootEl"
-        aria-hidden="true"
-        :style="{\
-          zIndex,\
-          '--t0': t0,\
-          '--c-glow': palette.glow,\
-          '--c-accent': palette.accent,\
-          '--c-light': palette.light\
-        }"
-      )
-        //- Small local spotlight: darkens a ring around the unit, never the screen.
-        div.trf-layer.trf-dim
-        //- Stage beam from above + the pool of light it lands in.
-        div.trf-layer.trf-beam
-          div.trf-beam__warm
-          div.trf-beam__tint
-        div.trf-layer.trf-pool
-        //- Two counter-rotating ray fans (warm white, and the unit's own glow).
-        div.trf-layer.trf-rays.trf-rays--a
-        div.trf-layer.trf-rays.trf-rays--b
-        //- The halo: an intro swell wrapping a breathing ring stack whose colour
-        //- walks the unit's palette.
-        div.trf-layer.trf-halo
-          div.trf-halo__breath
-            div.trf-ring.trf-aura
-            div.trf-ring.trf-ring--glow
-            div.trf-ring.trf-ring--accent
-            div.trf-ring.trf-ring--gold
-            div.trf-ring.trf-ring--white
-            div.trf-ring.trf-ring--outer
-        //- Wind-up implosion, then the bloom's flash and shockwave.
-        div.trf-layer.trf-implode
-        div.trf-layer.trf-flash
-        div.trf-layer.trf-shock
-        //- "NEW BALL!" + name + tier.
-        div.trf-label(ref="labelEl" :class="labelBelow ? 'is-below' : 'is-above'")
-          div.trf-label__pop
-            div.trf-label__title.game-text {{ t('tierReveal.title') }}
-            div.trf-label__name.game-text(v-if="unitName") {{ unitName }}
-            div.trf-label__tier {{ t('tierReveal.tier', { n: reveal.tier }) }}
+    //- No leave transition: at its natural end every layer has already faded
+    //- (the moment is exactly REVEAL_MS on screen), and an early end — the ball
+    //- merged away — has nothing left to spotlight.
+    div.trf(
+      v-if="reveal"
+      :key="reveal.id"
+      ref="rootEl"
+      aria-hidden="true"
+      :style="{\
+        '--t0': t0,\
+        '--dur': REVEAL_MS + 'ms',\
+        '--c-glow': palette.glow,\
+        '--c-accent': palette.accent,\
+        '--c-light': palette.light\
+      }"
+    )
+      //- Stage beam from above + the pool of light it lands in.
+      div.trf-layer.trf-beam
+        div.trf-beam__warm
+        div.trf-beam__tint
+      div.trf-layer.trf-pool
+      //- Two counter-rotating ray fans (warm white, and the unit's own glow).
+      div.trf-layer.trf-rays.trf-rays--a
+      div.trf-layer.trf-rays.trf-rays--b
+      //- The halo: an intro swell wrapping a breathing ring stack whose colour
+      //- walks the unit's palette.
+      div.trf-layer.trf-halo
+        div.trf-halo__breath
+          div.trf-ring.trf-aura
+          div.trf-ring.trf-ring--glow
+          div.trf-ring.trf-ring--accent
+          div.trf-ring.trf-ring--gold
+          div.trf-ring.trf-ring--white
+          div.trf-ring.trf-ring--outer
+      //- Wind-up implosion, then the bloom's flash and shockwave.
+      div.trf-layer.trf-implode
+      div.trf-layer.trf-flash
+      div.trf-layer.trf-shock
+      //- "NEW BALL!" + name + tier — after the first boss kill (Silent Flow).
+      div.trf-label(v-if="!wordless" ref="labelEl" :class="labelBelow ? 'is-below' : 'is-above'")
+        div.trf-label__pop
+          div.trf-label__title.game-text {{ t('tierReveal.title') }}
+          div.trf-label__name.game-text(v-if="unitName") {{ unitName }}
+          div.trf-label__tier {{ t('tierReveal.tier', { n: reveal.tier }) }}
 </template>
 
 <style scoped lang="sass">
 // Sizes are multiples of --r, the unit's half-size, measured every frame from
 // the element being followed. All motion is transform/opacity (independent
 // `scale` / `rotate` / `translate` properties, so each layer's centring
-// transform is never fought by its animation).
+// transform is never fought by its animation). One clock, `--dur` (1.5 s):
+// 23 % is the bloom (0.35 s), 77 % the start of the exit (1.15 s).
 .trf
   position: fixed
   left: 0
@@ -271,7 +269,10 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   width: 0
   height: 0
   pointer-events: none
+  // Under the modals (z-50): a menu opened mid-moment covers it.
+  z-index: 46
   --r: 36px
+  --dur: 1500ms
   will-change: transform
 
 .trf-layer
@@ -283,34 +284,6 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   animation-delay: var(--t0, 0ms)
   animation-fill-mode: both
 
-// ── The local spotlight ──
-.trf-dim
-  width: calc(var(--r) * 8)
-  height: calc(var(--r) * 8)
-  border-radius: 50%
-  // Clear over the unit and its aura, darkest just outside, gone by ~4R: the
-  // neighbours stay visible (and tappable — it is pointer-events: none), but
-  // the eye has nowhere to go except the unit.
-  background: radial-gradient(circle closest-side, rgba(2, 4, 12, 0) 0 30%, rgba(2, 4, 12, 0.8) 42%, rgba(2, 4, 12, 0.62) 60%, rgba(2, 4, 12, 0.25) 80%, rgba(2, 4, 12, 0) 100%)
-  animation: trf-dim 5s ease-out both
-  animation-delay: var(--t0, 0ms)
-@keyframes trf-dim
-  0%
-    opacity: 0
-    scale: 1.3
-  7%
-    opacity: 1
-    scale: 1
-  30%
-    opacity: 0.82
-  55%
-    opacity: 0.95
-  80%
-    opacity: 0.78
-  100%
-    opacity: 0
-    scale: 1.12
-
 // ── Stage beam ──
 // A soft trapezoid of light falling onto the unit from above, bottom edge a
 // little below its centre so the pool reads as the floor it lands on.
@@ -320,7 +293,7 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   translate: -50% calc(-100% + var(--r) * 0.7)
   transform-origin: 50% 0
   clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%)
-  animation: trf-beam 5s ease-in-out both, trf-sway 3.1s ease-in-out infinite alternate
+  animation: trf-beam var(--dur) ease-in-out both, trf-sway 3.1s ease-in-out infinite alternate
   animation-delay: var(--t0, 0ms), 0ms
 .trf-beam__warm, .trf-beam__tint
   position: absolute
@@ -330,32 +303,26 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
 .trf-beam__tint
   background: linear-gradient(to bottom, transparent 10%, var(--c-glow) 100%)
   opacity: 0.35
-  animation: trf-beam-tint 5s linear both
+  animation: trf-beam-tint var(--dur) linear both
   animation-delay: var(--t0, 0ms)
 @keyframes trf-beam
-  0%, 5%
+  0%, 18%
     opacity: 0
-  9%
+  28%
     opacity: 1
-  30%
-    opacity: 0.7
-  50%
-    opacity: 0.95
-  70%
-    opacity: 0.72
-  88%
-    opacity: 0.85
+  60%
+    opacity: 0.8
+  78%
+    opacity: 0.9
   100%
     opacity: 0
 @keyframes trf-beam-tint
-  0%, 20%
+  0%, 30%
     opacity: 0.45
-  45%
-    opacity: 0.1
-  70%
-    opacity: 0.5
-  100%
+  60%
     opacity: 0.2
+  100%
+    opacity: 0.3
 @keyframes trf-sway
   from
     rotate: -3deg
@@ -369,7 +336,7 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   border-radius: 50%
   background: radial-gradient(closest-side, rgba(255, 246, 210, 0.6), var(--c-glow) 45%, transparent 100%)
   opacity: 0.8
-  animation: trf-beam 5s ease-in-out both
+  animation: trf-beam var(--dur) ease-in-out both
   animation-delay: var(--t0, 0ms)
 
 // ── God rays ──
@@ -383,72 +350,62 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   width: calc(var(--r) * 6.6)
   height: calc(var(--r) * 6.6)
   background: repeating-conic-gradient(from 0deg, rgba(255, 244, 200, 0) 0deg 10deg, rgba(255, 244, 200, 0.75) 13.5deg, rgba(255, 244, 200, 0) 17deg 25.714deg)
-  animation: trf-rays-a 5s linear both
+  animation: trf-rays-a var(--dur) linear both
   animation-delay: var(--t0, 0ms)
 @keyframes trf-rays-a
   0%
     opacity: 0
-    rotate: -30deg
+    rotate: -20deg
     scale: 0.6
-  6%
+  20%
     opacity: 0.35
-  7%
+  24%
     opacity: 1
     scale: 1.12
-  12%
+  34%
     scale: 1
-  30%
-    opacity: 0.6
-  50%
-    opacity: 0.95
-  70%
-    opacity: 0.62
-  88%
+  78%
     opacity: 0.85
   100%
     opacity: 0
-    rotate: 62deg
+    rotate: 40deg
     scale: 1.05
 .trf-rays--b
   width: calc(var(--r) * 5.4)
   height: calc(var(--r) * 5.4)
   background: repeating-conic-gradient(from 12deg, transparent 0deg 22deg, var(--c-glow) 28deg, transparent 34deg 40deg)
-  animation: trf-rays-b 5s linear both
+  animation: trf-rays-b var(--dur) linear both
   animation-delay: var(--t0, 0ms)
 @keyframes trf-rays-b
-  0%, 6%
+  0%, 20%
     opacity: 0
     rotate: 20deg
-  8%
+  27%
     opacity: 0.9
-  35%
-    opacity: 0.45
-  60%
-    opacity: 0.8
-  85%
-    opacity: 0.5
+  75%
+    opacity: 0.6
   100%
     opacity: 0
-    rotate: -48deg
+    rotate: -30deg
 
 // ── Halo ──
 .trf-halo
   width: calc(var(--r) * 3.2)
   height: calc(var(--r) * 3.2)
-  animation: trf-halo-in 5s cubic-bezier(0.3, 1.4, 0.5, 1) both
+  animation: trf-halo-in var(--dur) cubic-bezier(0.3, 1.4, 0.5, 1) both
   animation-delay: var(--t0, 0ms)
 @keyframes trf-halo-in
-  0%, 5%
+  0%, 20%
     opacity: 0
     scale: 0.3
-  8%
+  26%
     opacity: 1
     scale: 1.3
-  13%
+  34%
     scale: 0.95
-  18%
+  42%
     scale: 1
-  90%
+  82%
     opacity: 1
     scale: 1
   100%
@@ -457,7 +414,7 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
 .trf-halo__breath
   position: absolute
   inset: 0
-  animation: trf-breathe 1.15s ease-in-out infinite alternate
+  animation: trf-breathe 0.6s ease-in-out infinite alternate
 @keyframes trf-breathe
   from
     scale: 0.95
@@ -469,7 +426,7 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   position: absolute
   inset: 0
   border-radius: 50%
-  animation-duration: 5s
+  animation-duration: var(--dur)
   animation-timing-function: ease-in-out
   animation-fill-mode: both
   animation-delay: var(--t0, 0ms)
@@ -481,22 +438,18 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   opacity: 0.55
   animation-name: trf-aura
 @keyframes trf-aura
-  0%, 6%
+  0%, 20%
     opacity: 0
-  8%
+  26%
     opacity: 0.95
-  30%
-    opacity: 0.5
-  50%
-    opacity: 0.75
-  70%
-    opacity: 0.45
-  88%
+  60%
+    opacity: 0.6
+  80%
     opacity: 0.7
   100%
     opacity: 0
-// The four colour layers cross-fade on the 5 s clock: the unit's glow, its
-// accent, gold, then white-hot — the halo visibly "cooks" through the palette.
+// The colour layers cross-fade on the clock: the unit's glow, its accent,
+// then gold — the halo visibly "cooks" through the palette; white is the bloom.
 .trf-ring--glow
   background: radial-gradient(circle closest-side, transparent 0 55%, var(--c-glow) 63%, rgba(255, 255, 255, 0.85) 66%, var(--c-glow) 69%, transparent 80%)
   animation-name: trf-c-glow
@@ -514,50 +467,42 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   background: radial-gradient(circle closest-side, transparent 0 72%, rgba(255, 238, 170, 0.55) 78%, transparent 88%)
   animation-name: trf-c-outer
 @keyframes trf-c-glow
-  0%, 6%
+  0%, 20%
     opacity: 0
-  8%, 26%
+  26%, 45%
     opacity: 1
-  36%, 72%
+  55%, 100%
     opacity: 0
-  82%, 100%
-    opacity: 1
 @keyframes trf-c-accent
-  0%, 24%
+  0%, 43%
     opacity: 0
-  34%, 46%
+  53%, 63%
     opacity: 1
-  56%, 100%
+  73%, 100%
     opacity: 0
 @keyframes trf-c-gold
-  0%, 44%
+  0%, 61%
     opacity: 0
-  54%, 66%
+  71%, 85%
     opacity: 1
-  76%, 100%
+  95%, 100%
     opacity: 0
 @keyframes trf-c-white
-  0%, 5%
+  0%, 20%
     opacity: 0
-  7%
+  23%
     opacity: 1
-  11%, 64%
-    opacity: 0
-  72%, 78%
-    opacity: 0.9
-  86%, 100%
+  30%, 100%
     opacity: 0
 @keyframes trf-c-outer
-  0%, 6%
+  0%, 20%
     opacity: 0
-  9%
+  27%
     opacity: 1
-  40%
-    opacity: 0.35
   60%
-    opacity: 0.9
+    opacity: 0.5
   85%
-    opacity: 0.4
+    opacity: 0.7
   100%
     opacity: 0
 
@@ -568,18 +513,18 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   height: calc(var(--r) * 2.2)
   border-radius: 50%
   box-shadow: 0 0 0 2px rgba(255, 248, 220, 0.95), 0 0 14px 3px var(--c-glow)
-  animation: trf-implode 5s ease-in both
+  animation: trf-implode var(--dur) ease-in both
   animation-delay: var(--t0, 0ms)
 @keyframes trf-implode
   0%
     opacity: 0
     scale: 2.6
-  5%
+  8%
     opacity: 1
-  7%
+  21%
     opacity: 1
     scale: 0.55
-  8%, 100%
+  24%, 100%
     opacity: 0
     scale: 0.5
 // …then the flash that fills it,
@@ -588,19 +533,19 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   height: calc(var(--r) * 3)
   border-radius: 50%
   background: radial-gradient(circle closest-side, #ffffff 0%, rgba(255, 252, 235, 0.95) 32%, var(--c-glow) 58%, transparent 100%)
-  animation: trf-flash 5s ease-out both
+  animation: trf-flash var(--dur) ease-out both
   animation-delay: var(--t0, 0ms)
 @keyframes trf-flash
-  0%, 6.6%
+  0%, 22%
     opacity: 0
     scale: 0.25
-  7%
+  24%
     opacity: 1
     scale: 0.6
-  11%
+  33%
     opacity: 0.45
     scale: 1.8
-  15%, 100%
+  42%, 100%
     opacity: 0
     scale: 2.3
 // …and the shockwave it throws.
@@ -609,16 +554,16 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   height: calc(var(--r) * 2)
   border-radius: 50%
   background: radial-gradient(circle closest-side, transparent 0 78%, rgba(255, 250, 230, 0.95) 88%, var(--c-glow) 94%, transparent 100%)
-  animation: trf-shock 5s cubic-bezier(0.1, 0.7, 0.3, 1) both
+  animation: trf-shock var(--dur) cubic-bezier(0.1, 0.7, 0.3, 1) both
   animation-delay: var(--t0, 0ms)
 @keyframes trf-shock
-  0%, 6.8%
+  0%, 22.5%
     opacity: 0
     scale: 0.5
-  7%
+  24%
     opacity: 1
     scale: 0.7
-  21%, 100%
+  55%, 100%
     opacity: 0
     scale: 4.4
 
@@ -638,30 +583,28 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   flex-direction: column
   align-items: center
   gap: 1px
-  animation: trf-label 5s ease-out both
+  animation: trf-label var(--dur) ease-out both
   animation-delay: var(--t0, 0ms)
   transform-origin: 50% 100%
 .is-below .trf-label__pop
   transform-origin: 50% 0
 @keyframes trf-label
-  0%, 6.8%
+  0%, 22.5%
     opacity: 0
     scale: 0.2
-  7%
+  24%
     opacity: 1
     scale: 0.5
-  11%
+  31%
     scale: 1.2
-  15%
+  37%
     scale: 0.94
-  19%
+  43%
     scale: 1
     translate: 0 0
-  45%
-    translate: 0 -3px
   70%
-    translate: 0 0
-  88%
+    translate: 0 -3px
+  85%
     opacity: 1
     translate: 0 -2px
   100%
@@ -677,12 +620,6 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   color: #fff3a0
   // game-text's hard outline, plus a hot glow so it reads as light, not ink.
   text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 12px rgba(255, 210, 60, 0.95)
-  animation: trf-title-glint 1.15s ease-in-out infinite alternate
-@keyframes trf-title-glint
-  from
-    color: #fff3a0
-  to
-    color: #ffffff
 .trf-label__name
   font-weight: 900
   line-height: 1.05
@@ -702,21 +639,14 @@ const zIndex = computed(() => (tutorialActive.value ? 71 : 46))
   text-transform: uppercase
   letter-spacing: 0.06em
 
-// An early end (the unit was merged away, fed to a fighter, or died) bows out
-// quickly; the natural end at 5 s has already faded every layer to nothing.
-.trf-out-leave-active
-  transition: opacity 0.3s ease
-.trf-out-leave-to
-  opacity: 0
-
 // Reduced motion: keep the light, the colour walk and the label — lose the
 // spin, the sway, the implosion and the shockwave.
 @media (prefers-reduced-motion: reduce)
   .trf-rays, .trf-implode, .trf-shock, .trf-flash
     display: none
   .trf-beam
-    animation: trf-beam 5s ease-in-out both
+    animation: trf-beam var(--dur) ease-in-out both
     animation-delay: var(--t0, 0ms)
-  .trf-halo__breath, .trf-label__title
+  .trf-halo__breath
     animation: none
 </style>
