@@ -16,6 +16,9 @@ vi.mock('@/use/useLeaderboard', async () => {
   lb.total = ref(0)
   return {
     leaderboardEnabled: true,
+    leaderboardAllowed: computed(() => true),
+    leaderboardSignInOffered: computed(() => false),
+    requestLeaderboardSignIn: () => {},
     leaderboardFailed: computed(() => false),
     playerTotal: computed(() => lb.total.value),
     rankFor: () => lb.rank.value

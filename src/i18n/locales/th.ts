@@ -238,7 +238,9 @@ export default {
     'rank': '#{n}',
     'of': 'จาก {n}',
     'aria': 'อันดับ {rank} จาก {n}',
-    'ariaRank': 'อันดับ {rank}'
+    'ariaRank': 'อันดับ {rank}',
+    'signIn': 'ลงชื่อเข้าใช้เพื่อเข้าร่วม',
+    'signInAria': 'ลงชื่อเข้าใช้เพื่อเข้าร่วมกระดานอันดับ'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

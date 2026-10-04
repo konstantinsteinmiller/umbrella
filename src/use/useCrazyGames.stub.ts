@@ -31,6 +31,10 @@ export const isSdkMuted: Ref<boolean | null> = ref(null)
 export const crazyPlayerName: Ref<string | null> = ref(null)
 export const isCrazyAdsBlocked: Ref<boolean> = ref(false)
 export const crazyLocale: Ref<string | null> = ref(null)
+// No accounts off this platform: `null` is "no account concept", never "guest".
+export const isCrazyLoggedIn: Ref<boolean | null> = ref(null)
+export const isCrazyAccountAvailable: Ref<boolean> = ref(false)
+export const requestCrazySignIn = async (): Promise<void> => {}
 
 // Async initialisers — resolve immediately to nothing.
 export const initCrazyGames = async (): Promise<void> => {}
@@ -75,6 +79,9 @@ const useCrazyGames = () => ({
   crazyPlayerName,
   isCrazyAdsBlocked,
   crazyLocale,
+  isCrazyLoggedIn,
+  isCrazyAccountAvailable,
+  requestCrazySignIn,
   triggerHappytime,
   startLoading,
   stopLoading,

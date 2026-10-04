@@ -175,7 +175,7 @@ describe('gameMonetize rewarded fill gating', () => {
 
     const adP = plugin.showRewardedAdGM()
     // No SDK_GAME_PAUSE → after NO_FILL_MS the show resolves false (no fill).
-    await vi.advanceTimersByTimeAsync(3_000)
+    await vi.advanceTimersByTimeAsync(plugin.NO_FILL_MS)
     const granted = await adP
     expect(granted).toBe(false)
 

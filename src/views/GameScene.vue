@@ -76,6 +76,7 @@ import useEpicConfig from '@/use/useEpicConfig'
 import useScreenshake from '@/use/useScreenshake'
 import { isMobileLandscape, isCompactHud, isUltraCompactHud, isRoomyHud, isWideCompactHud, windowWidth, windowHeight, isCrazyWeb, androidNavBarPx } from '@/use/useUser'
 import { artSrc } from '@/use/useArtOverrides'
+import { cssVarUrl } from '@/utils/function'
 import { backdropSrc } from '@/barrage/render/backdropArt'
 import { installBarrageTutorial, tutorialActive, tutorialStep } from '@/use/useTutorial'
 import { installCoach, noteMisfire } from '@/use/useCoach'
@@ -334,7 +335,9 @@ const sceneBgStyle = computed<Record<string, string>>(() => {
     style.backgroundSize = 'cover'
     style.backgroundPosition = 'center'
   }
-  if (plateSrc.value) style['--plate-img'] = `url(${plateSrc.value})`
+  // Absolute: a relative url() in a custom property resolves against the
+  // stylesheet that reads it (assets/), not the document — see `cssVarUrl`.
+  if (plateSrc.value) style['--plate-img'] = cssVarUrl(plateSrc.value)
   return style
 })
 

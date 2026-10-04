@@ -63,11 +63,13 @@ import useEpicConfig from '@/use/useEpicConfig'
 import useReward, { REWARD_COIN_COST } from '@/use/useReward'
 import { isInterstitialReady, showMidgameAd } from '@/use/useAds'
 import { noteExternalInterstitial } from '@/use/useBreakInterstitial'
+import { lastInterstitialAtFor, markInterstitialShown } from '@/use/adTiming'
 import { resumeGameplayAfterWaveBreak, stopGameplayForWaveBreak } from '@/use/useCrazyWaveGameplay'
 import { onGameSuspended } from '@/use/useGamePause'
 import { announceNewTier } from '@/use/useTierReveal'
 import useBattlePass, { BARRAGE_XP_SOURCES } from '@/use/useBattlePass'
 import { submitBestRow } from '@/platforms/leaderboard'
+import { noteBossKillMoment } from '@/platforms/bossKillMoment'
 import { restartTray } from '../engine/balls'
 import { createEngine, createEngineAtRow, restoreEngine } from '../engine/engine'
 import { DEATH_SCENE_MS, pickStriker } from '../render/death'
@@ -100,10 +102,10 @@ export const BONUS_BALLS = 5
 export const CHEST_AD_MULT = 3
 /** The first N checkpoint restarts of a session never show an interstitial. */
 export const RESTART_AD_GRACE = 2
-/** Minimum wall-clock gap between two restart interstitials — and between the
- *  session start and the first one, which stands in for any first-load /
- *  first-play interstitial the portal build already showed (those record no
- *  timestamp of their own). */
+/** Minimum wall-clock gap between two interstitials on the shared clock
+ *  (`adTiming.ts` — the first-load ad starts it too). Before any ad this
+ *  session the build's early-ad grace stands in for the last one: the full gap
+ *  on most portals, 0 on GameMonetize. */
 export const RESTART_AD_MIN_GAP_MS = 3 * 60 * 1000
 /** Ceiling on any ad this module awaits. Every provider resolves from SDK
  *  callbacks, and a callback that never fires (a tracking blocker, a dead ad
@@ -245,7 +247,6 @@ let hydratePending = false
 let dailyNewBest = false
 /** Session-scoped restart-interstitial bookkeeping. */
 let sessionRestarts = 0
-let lastInterstitialAt = Date.now()
 /** Pass XP accumulated since the last flush (flushed per turn, not per kill). */
 let pendingXp = 0
 /** Boss HP HUD throttle: at most one refresh per animation frame. */
@@ -624,6 +625,8 @@ const onBossDefeated = (e: Extract<EngineEvent, { type: 'bossDefeated' }>): void
   const first = stats.value.bossKills === 0
   bumpStats({ bossKills: 1 })
   pendingXp += BARRAGE_XP_SOURCES.boss
+  // The platform's celebration hook (CG `happytime()`); a no-op elsewhere.
+  noteBossKillMoment()
   // The engine already applied the Coin Bounty multiplier to `bounty`, and pays
   // none of it itself — the chest below is the only place it reaches the wallet.
   const bounty = Math.max(1, Math.round(e.bounty))
@@ -920,8 +923,8 @@ const restartFromCheckpoint = async (): Promise<void> => {
     sessionRestarts++
     payChestIfPending()
     const nowMs = Date.now()
-    if (restartAdDue(sessionRestarts, nowMs, lastInterstitialAt, isInterstitialReady.value)) {
-      lastInterstitialAt = nowMs
+    if (restartAdDue(sessionRestarts, nowMs, lastInterstitialAtFor(RESTART_AD_MIN_GAP_MS), isInterstitialReady.value)) {
+      markInterstitialShown(nowMs)
       // Keep the break-cadence clock honest about an ad it did not play.
       noteExternalInterstitial()
       // BEFORE the new board: the ad sits between the breach and the fresh run,

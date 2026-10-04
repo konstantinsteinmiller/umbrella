@@ -182,6 +182,23 @@ describe('buildCsp', () => {
       expect(csp).toContain('https://*.gamemonetize.com')
     })
 
+    it('ships the GameMonetize hosts on the GameMonetize build ONLY', () => {
+      // A foreign portal host in another build's index.html is the string
+      // class Yandex moderation and the Poki release gate both flag.
+      for (const other of [
+        {},
+        { VITE_APP_CRAZY_WEB: 'true' },
+        { VITE_APP_GAME_DISTRIBUTION: 'true' },
+        { VITE_APP_ITCH: 'true' },
+        { VITE_APP_GLITCH: 'true' },
+        { VITE_APP_WAVEDASH: 'true' },
+        { VITE_APP_GAMEPIX: 'true' },
+        { VITE_APP_YANDEX: 'true' }
+      ] as Record<string, string>[]) {
+        expect(buildCsp(other)).not.toContain('gamemonetize')
+      }
+    })
+
     it('opens script-src / img-src / frame-src to https: for the Google-IMA bidder chain', () => {
       const csp = buildCsp(env())
       const scriptSrc = csp.match(/script-src ([^;]+)/)![1]!

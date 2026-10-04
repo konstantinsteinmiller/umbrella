@@ -21,6 +21,10 @@ import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygam
 import { glitchLicenseStatus } from '@/use/useGlitchLicense'
 import { resolveCapabilities } from '@/platforms/capabilities'
 import { getPlattformText } from '@/platforms/plattformText'
+import { installPlatformPauseSource } from '@/use/useGamePause'
+// Stub-aliased on every non-GameMonetize build (vite.config.ts resolve.alias),
+// so the SDK URL never rides along with this static import.
+import { isGameMonetizeAdShowing } from '@/utils/gameMonetizePlugin'
 
 const { t } = useI18n()
 // Only `initMusic` — pause/continue are the audio orchestrator's job now
@@ -47,6 +51,15 @@ installDebugUnlock()
 // but without CALLING it the keydown listeners were never attached at all
 // (it was previously only imported for `installDebugUnlock`, never invoked).
 useCheats()
+
+// GameMonetize's SDK_GAME_PAUSE / SDK_GAME_START ("an ad is starting — mute and
+// pause" / "resume") arrive as the plugin's `isGameMonetizeAdShowing` ref. THIS
+// is the one watcher that turns it into a stopped game loop + silent audio
+// (the platform pause gate). The plugin lowers the ref itself on any cycle
+// that ends on a timer. Static env literal, so other builds DCE the branch.
+if (import.meta.env.VITE_APP_GAME_MONETIZE === 'true') {
+  installPlatformPauseSource(isGameMonetizeAdShowing)
+}
 
 initMusic()
 

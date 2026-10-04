@@ -47,10 +47,6 @@ const BASE_HOSTS: ReadonlyArray<string> = [
   'https://gamepix.com',
   'https://*.gamepix.com',
   'https://integration.gamepix.com',
-  'https://gamemonetize.com',
-  'https://*.gamemonetize.com',
-  'https://api.gamemonetize.com',
-  'https://html5.gamemonetize.com',
   // Yandex Games — telemetry / ads beacon through *.yandex.ru / .com / .net,
   // and the iframe wrapper itself is on yandex.com/games (yandex.ru/games /
   // .com.tr for regional TLDs). The SDK is loaded via the RELATIVE `/sdk.js`
@@ -100,6 +96,18 @@ const GD_PARTNER_HOSTS: ReadonlyArray<string> = [
   'https://*.openx.net',
   'https://*.pubmatic.com',
   'https://*.rubiconproject.com'
+]
+
+/** GameMonetize hosts — the SDK script (`api.gamemonetize.com/sdk.js`) and the
+ *  portal's own iframe origins. GameMonetize-build ONLY: on any other build they
+ *  would be a foreign portal host in the shipped index.html, the string class
+ *  Yandex moderation and the Poki release gate both flag. (The IMA / bidder
+ *  chain behind it is covered by the ad-waterfall `https:` openings below.) */
+const GM_HOSTS: ReadonlyArray<string> = [
+  'https://gamemonetize.com',
+  'https://*.gamemonetize.com',
+  'https://api.gamemonetize.com',
+  'https://html5.gamemonetize.com'
 ]
 
 /** CrazyGames ad-stack hosts. The portal's `rafvertizing.js` (loaded from
@@ -262,6 +270,7 @@ export const buildCsp = (env: Record<string, string>): string => {
     : [
       ...BASE_HOSTS,
       ...(isGameDistribution ? GD_PARTNER_HOSTS : []),
+      ...(isGameMonetize ? GM_HOSTS : []),
       ...(isCrazyWeb ? CG_PARTNER_HOSTS : [])
     ]
 

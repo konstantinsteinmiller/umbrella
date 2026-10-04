@@ -319,7 +319,9 @@ export default {
     'rank': '#{n}',
     'of': 'toplam {n}',
     'aria': 'Sıralama: {n} oyuncu içinde {rank}. sıra',
-    'ariaRank': 'Sıralama: {rank}. sıra'
+    'ariaRank': 'Sıralama: {rank}. sıra',
+    'signIn': 'Katılmak için giriş yap',
+    'signInAria': 'Sıralamaya katılmak için giriş yap'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

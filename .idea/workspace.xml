@@ -4,16 +4,64 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- skin ads">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- retention update">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/alternative-concepts.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/game-implementation-plan.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/non-strategy-concepts.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/poki-qa-report.json" beforeDir="false" afterPath="$PROJECT_DIR$/poki-qa-report.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/components/organisms/ParticleCanvas.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/organisms/ParticleCanvas.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/pokiPlaytestStage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/pokiPlaytestStage.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/platforms/pokiPlaytestStage.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/pokiPlaytestStage.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/App.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/App.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/barrage/state/useBarrage.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/barrage/state/useBarrage.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/RankBadge.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/RankBadge.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/platforms/csp.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/platforms/csp.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/platforms/gamemonetize/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/platforms/gamemonetize/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/ads/CrazyGamesProvider.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/ads/CrazyGamesProvider.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/ads/GameMonetizeProvider.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/ads/GameMonetizeProvider.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useAssets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAssets.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useBreakInterstitial.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useBreakInterstitial.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useCrazyGames.stub.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCrazyGames.stub.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useCrazyGames.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCrazyGames.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useCrazyMuteSync.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useCrazyMuteSync.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useFirstLoadInterstitial.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useFirstLoadInterstitial.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useFirstStartInterstitial.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useGamePause.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useGamePause.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useLeaderboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useLeaderboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useWaveLeaderboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useWaveLeaderboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/function.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/function.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/gameMonetizePlugin.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/gameMonetizePlugin.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/pokiPlugin.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/pokiPlugin.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/views/GameScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/GameScene.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/state/useBarrage.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/state/useBarrage.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/barrage/ui/rankTip.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/barrage/ui/rankTip.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/leaderboard/rankBadge.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/leaderboard/rankBadge.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/csp.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/csp.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/firstStartInterstitial.test.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/gameMonetizeFill.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/gameMonetizeFill.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/platforms/platformMuteOverridesSettings.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/platforms/platformMuteOverridesSettings.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/save/CrazyMuteToggle.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/save/CrazyMuteToggle.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/wavedash.toml" beforeDir="false" afterPath="$PROJECT_DIR$/wavedash.toml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,7 +102,9 @@
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;npm.build:gamemonetize.executor&quot;: &quot;Run&quot;,
     &quot;npm.build:poki.executor&quot;: &quot;Run&quot;,
+    &quot;npm.build:wavedash.executor&quot;: &quot;Run&quot;,
     &quot;npm.deploy:poki.executor&quot;: &quot;Run&quot;,
     &quot;npm.dev.executor&quot;: &quot;Run&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
@@ -67,12 +117,32 @@
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage\public\enemies" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.deploy:poki">
+  <component name="RunManager" selected="npm.build:gamemonetize">
+    <configuration name="build:gamemonetize" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="build:gamemonetize" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
     <configuration name="build:poki" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
         <script value="build:poki" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="build:wavedash" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="build:wavedash" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
@@ -100,6 +170,8 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="npm.build:gamemonetize" />
+        <item itemvalue="npm.build:wavedash" />
         <item itemvalue="npm.deploy:poki" />
         <item itemvalue="npm.dev" />
         <item itemvalue="npm.build:poki" />
@@ -118,7 +190,10 @@
       <workItem from="1790169209346" duration="62075000" />
       <workItem from="1790446887495" duration="3885000" />
       <workItem from="1790547053097" duration="158000" />
-      <workItem from="1790850351026" duration="3523000" />
+      <workItem from="1790850351026" duration="5225000" />
+      <workItem from="1790873599026" duration="3844000" />
+      <workItem from="1791022779299" duration="3499000" />
+      <workItem from="1791130900327" duration="1584000" />
     </task>
     <task id="LOCAL-00001" summary="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
       <option name="closed" value="true" />
@@ -168,19 +243,30 @@
       <option name="project" value="LOCAL" />
       <updated>1790443253773</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="- retention update">
+      <option name="closed" value="true" />
+      <created>1790865775459</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1790865775459</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
+    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
+    <option name="CHECK_NEW_TODO" value="false" />
     <MESSAGE value="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies" />
     <MESSAGE value="- gameplay stop change" />
     <MESSAGE value="- gameplay fixes&#10;- onboarding fixes" />
     <MESSAGE value="- rebalance difficulty&#10;- fix onboarding" />
     <MESSAGE value="- tap counter" />
     <MESSAGE value="- skin ads" />
-    <option name="LAST_COMMIT_MESSAGE" value="- skin ads" />
+    <MESSAGE value="- retention update" />
+    <option name="LAST_COMMIT_MESSAGE" value="- retention update" />
   </component>
 </project>

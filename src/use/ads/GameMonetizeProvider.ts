@@ -5,12 +5,12 @@
 // DYNAMIC-import version (`computed(() => gmModule?.isGmSdkActive.value)`) had a
 // reactivity race: `gmModule` is null until the provider's lazy import resolves
 // (post-mount, via `init()`), so a reader that evaluates the computed BEFORE
-// then — e.g. the first-play interstitial fired on the first click-to-start —
+// then — e.g. the first-load interstitial's readiness watcher —
 // gets the `false` fallback AND, because the `?.` short-circuits before reading
 // the real ref, only ever tracks the fallback. The later non-reactive
 // `gmModule = …` assignment never invalidates it, so `isGmSdkActive` flipping
 // true (on SDK_READY) stays invisible and `isInterstitialReady` is stuck false —
-// the first-play ad never fires on a fast click. A static import references the
+// the first-load ad never fires. A static import references the
 // real refs from module-eval time, so the computeds track them correctly.
 //
 // Safe for the `2mdn.net` ad-block-probe URL inside `gameMonetizePlugin`: on

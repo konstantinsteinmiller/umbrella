@@ -52,7 +52,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useAssets from '@/use/useAssets'
-import { prependBaseUrl } from '@/utils/function'
+import { cssVarUrl, prependBaseUrl } from '@/utils/function'
 import { stopLoading } from '@/use/useCrazyGames'
 import { armFirstLoadInterstitial, notifySplashGone } from '@/use/useFirstLoadInterstitial'
 
@@ -68,8 +68,8 @@ const logoSrc = prependBaseUrl('images/logo/logo_256x256.webp')
 // the one the media query picks is fetched. The `.splash-backdrop` colour stays
 // as the fallback and shows through until the bitmap decodes.
 const backdropStyle = {
-  '--splash-portrait': `url(${prependBaseUrl('images/backdrops/scene-portrait.webp')})`,
-  '--splash-landscape': `url(${prependBaseUrl('images/backdrops/scene-landscape.webp')})`
+  '--splash-portrait': cssVarUrl(prependBaseUrl('images/backdrops/scene-portrait.webp')),
+  '--splash-landscape': cssVarUrl(prependBaseUrl('images/backdrops/scene-landscape.webp'))
 }
 
 const { loadingProgress, preloadAssets } = useAssets()
@@ -77,16 +77,20 @@ const progress = computed(() => loadingProgress.value)
 
 void preloadAssets()
 
-// First-load interstitial — kept ON for GamePix only. GameDistribution and
-// GameMonetize were intentionally removed: the post-splash ad placement on
-// those networks was producing borderline-incidental-click impressions (the
-// player taps "play" expecting the game and lands on an ad). Their required
-// placement is the first-play one in `useFirstStartInterstitial`.
-// GamePix portal QA requires the post-load ad, so its arm stays.
+// First-load interstitial — the builds `adTiming.ts` marks `FIRST_LOAD_AD`:
+// GameMonetize (moderation rejects a build without it: "Ads should be shown
+// the first time after the game loads") and GamePix (its QA asks for the same
+// post-load ad). It is the ONLY first-ad path: this game boots straight into a
+// live board with no Play button, so the old first-PLAY placement for
+// GameMonetize was never called by anything and the build shipped with no
+// first ad at all. `adTiming.test.ts` pins this arm list against `FIRST_LOAD_AD`.
 // Every env read is a static literal so Rollup DCEs the entire branch (helper
 // module included) on other platform builds — same pattern as the Playgama /
 // GamePix loading signals further down.
-if (import.meta.env.VITE_APP_GAMEPIX === 'true') {
+if (
+  import.meta.env.VITE_APP_GAMEPIX === 'true'
+  || import.meta.env.VITE_APP_GAME_MONETIZE === 'true'
+) {
   armFirstLoadInterstitial()
 }
 
@@ -316,9 +320,8 @@ watch(done, (isDone) => {
       signalGameReadyToYandex()
       signalGameReadyToPoki()
       signalGameLiveToBracket()
-      // Triggers the GamePix first-load interstitial (no-op on other builds
-      // — the orchestrator was never armed). GD / GameMonetize used to share
-      // this fire but were removed above. Runs alongside the platform
+      // Triggers the GameMonetize / GamePix first-load interstitial (no-op on
+      // other builds — the orchestrator was never armed). Runs alongside the platform
       // `game_ready` / `gameLoaded` signals so the ad lands immediately once
       // the splash is gone and the SDK is fillable.
       notifySplashGone()

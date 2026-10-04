@@ -516,8 +516,8 @@ export const __resetPokiGameplayBracketForTests = (): void => {
  *
  * POSITION IS IMPLICIT: the SDK reports this as a PREROLL until the first
  * `gameplayStart()` and a MIDROLL after it (`__gameStarted ? midroll : preroll`
- * in the core). This build fires no first-play interstitial on Poki (see
- * `useFirstStartInterstitial`), so every break here lands as a midroll.
+ * in the core). This build fires no first-load interstitial on Poki (see
+ * `FIRST_LOAD_AD` in `adTiming.ts`), so every break here lands as a midroll.
  *
  * `onImpression` is invoked ONLY when a video ad genuinely opens. A no-fill
  * resolves without calling it — which is what `managesMidgameAudio: true` on the

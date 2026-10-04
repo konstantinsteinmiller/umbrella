@@ -1,4 +1,4 @@
-import { computed, ref, type ComputedRef, type Ref } from 'vue'
+import { computed, ref, shallowRef, watch, type ComputedRef, type Ref } from 'vue'
 import { getState, setState } from '@/use/useEpicState'
 import { POSTED_NAME_KEY, SUBMITTED_SCORE_KEY } from '@/keys'
 import { resolveIdentity, type PlayerIdentity } from '@/use/usePlayerIdentity'
@@ -61,6 +61,90 @@ const LIVE: boolean = ENDPOINT.length > 0
  * than broken: the badge never renders and `rankFor` returns 0.
  */
 export const leaderboardEnabled: boolean = LIVE || boardSnapshot !== null
+
+// ─── The account gate (CrazyGames) ────────────────────────────────────────
+//
+// CG QA, verbatim (a sibling game's rejection): "a guest can enter the
+// leaderboard with a random name, then after logging in, that entry changes to
+// the account username. This can eventually create duplicate or disappearing
+// entries when switching between guest and logged-in states." It applies to
+// OUR backend too: the row is keyed by a per-device id and labelled with
+// whatever name the session can resolve, so a guest who signs in relabels it.
+//
+// INJECTED and opt-in, like the SDK name source, because most portals have no
+// accounts at all (Poki, GamePix, Playgama, itch, Y8, GameMonetize, …): a
+// blanket "only when logged in" would delete the board from every build but
+// the one that asked. Unset — or a getter answering `null` — means "this
+// platform has no account concept" and stays fully enabled; only `false`
+// closes it. Collapsing `null` into `false` is the regression that ships every
+// other portal with no board (pinned by a test).
+//
+// Never `import` the SDK module from here: Vite resolves dynamic specifiers at
+// transform time, and it would drag the SDK into every platform's graph. The
+// CG boot branch in `main.ts` calls `setLeaderboardAuthGate` instead.
+export type LeaderboardAuthGate = () => boolean | null
+
+/** A shallowRef, not a plain variable, so `leaderboardAllowed` re-evaluates
+ *  when the gate is installed after something already read it. */
+const authGate = shallowRef<LeaderboardAuthGate | null>(null)
+
+/** Called from the platform's own boot branch, never from shared code. */
+export const setLeaderboardAuthGate = (gate: LeaderboardAuthGate | null): void => {
+  authGate.value = gate
+}
+
+const gateOpen = (): boolean => {
+  const gate = authGate.value
+  if (!gate) return true
+  try {
+    const v = gate()
+    return v === null || v === true
+  } catch {
+    // Fail CLOSED: a broken SDK is not an authorisation.
+    return false
+  }
+}
+
+/**
+ * May THIS player have a board right now? Reactive (the getter reads the SDK's
+ * login ref), and deliberately split from `leaderboardEnabled`: that one is a
+ * build-time constant ("does this build have a board"), this one changes
+ * mid-session when the player signs in through the portal chrome. UI binds
+ * this; every read and write checks it.
+ */
+export const leaderboardAllowed: ComputedRef<boolean> = computed(() => leaderboardEnabled && gateOpen())
+
+/**
+ * An optional way to invite a blocked guest in (CG: `showAuthPrompt`). Also
+ * injected by the platform's boot branch; `available` is read reactively.
+ */
+export interface LeaderboardSignIn {
+  available: () => boolean
+  request: () => void | Promise<void>
+}
+const signIn = shallowRef<LeaderboardSignIn | null>(null)
+
+export const setLeaderboardSignIn = (s: LeaderboardSignIn | null): void => {
+  signIn.value = s
+}
+
+/** Show the guest the "sign in to join" invite instead of a rank: the build
+ *  has a board, this player is gated out of it, and the portal can sign in. */
+export const leaderboardSignInOffered: ComputedRef<boolean> = computed(() => {
+  if (!leaderboardEnabled || leaderboardAllowed.value) return false
+  const s = signIn.value
+  if (!s) return false
+  try { return s.available() === true } catch { return false }
+})
+
+/** Open the portal's sign-in prompt. Never throws, never awaited by callers. */
+export const requestLeaderboardSignIn = (): void => {
+  const s = signIn.value
+  if (!s) return
+  try {
+    void Promise.resolve(s.request()).catch(() => undefined)
+  } catch { /* the prompt is a courtesy */ }
+}
 
 /**
  * 6 s, matching the worker's own budget note.
@@ -133,6 +217,10 @@ export const boardProvenance = (): 'live' | 'cache' | 'snapshot' | null => board
  */
 let identityPromise: Promise<PlayerIdentity> | null = null
 const identity = (): Promise<PlayerIdentity> => (identityPromise ??= resolveIdentity())
+
+// A gate flip (sign-in, sign-out) can change who the name belongs to, so the
+// next post resolves it afresh instead of reusing the guest-era answer.
+watch(leaderboardAllowed, () => { identityPromise = null })
 
 // ─── Transport ──────────────────────────────────────────────────────────────
 
@@ -326,7 +414,8 @@ export const ensureBoard = async (): Promise<void> => {
   // `fetched`, not `board.value !== null` — the offline ladder has usually
   // already put a board on screen, and testing the value would mean a device
   // with a cache never refreshed it again.
-  if (!LIVE || fetched || pending.value || Date.now() < retryAt) return
+  // A gated guest may not even SEE the board — no read for them at all.
+  if (!LIVE || !leaderboardAllowed.value || fetched || pending.value || Date.now() < retryAt) return
   pending.value = true
   try {
     // No headers at all, on purpose: any request header beyond the CORS-safelist
@@ -367,7 +456,7 @@ export const ensureBoard = async (): Promise<void> => {
  * instead of being silently forgotten.
  */
 export const submitScore = async (score: number, flair: number): Promise<boolean> => {
-  if (!LIVE) return false
+  if (!LIVE || !leaderboardAllowed.value) return false
   pending.value = true
   try {
     const { id, name } = await identity()
@@ -456,6 +545,11 @@ export const reportRun = async (
   // snapshot, which no run can change, so this is the one entry point that stays
   // switched off where `leaderboardEnabled` is true.
   if (!LIVE) return
+  // A gated guest's run is DROPPED, not queued, and the local posted-record
+  // bookkeeping is left exactly as it was: signing in later posts one clean
+  // row at the then-current best instead of replaying a guest history that was
+  // never on the board.
+  if (!leaderboardAllowed.value) return
   try {
     // Both numbers come off the save blob, which a cloud restore can hand back
     // anything for, and the worker rejects a non-integer outright.
@@ -647,7 +741,7 @@ const pinEstimate = (score: number, rank: number): number => {
  *   player can read.
  */
 export const rankFor = (score: number): number => {
-  if (!leaderboardEnabled) return 0
+  if (!leaderboardEnabled || !leaderboardAllowed.value) return 0
   // EXACT match, not `>=`. The server's answer belongs to the score it counted
   // and to no other, and the difference only becomes visible once the client
   // stops posting on every single clear: with `>=`, a player who posted at 10

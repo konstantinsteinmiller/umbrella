@@ -13,6 +13,21 @@ export const prependBaseUrl = (url: string): string => {
   const clean = url.startsWith('/') ? url.slice(1) : url
   return `${baseURL}/${clean}`
 }
+/**
+ * `url(...)` for a value set on a CSS CUSTOM PROPERTY. A relative url() inside a
+ * custom property is resolved against the stylesheet whose rule substitutes the
+ * `var()`, not against the element's document — so on a `--base=./` portal
+ * build `url(./images/x.webp)` used from `assets/*.css` became
+ * `assets/images/x.webp`, a 404 in the console and a missing painting. Resolve
+ * it against the document first, so the value is absolute wherever it lands.
+ */
+export const cssVarUrl = (href: string): string => {
+  try {
+    return `url("${new URL(href, document.baseURI).href}")`
+  } catch {
+    return `url(${href})`
+  }
+}
 export const repeat = (n: number, callback: (_: any, i: number) => string): string[] => [...new Array(n)].map(callback)
 
 export const mergeObjectsRecursive = (obj1: any, obj2: any) => {

@@ -1,6 +1,6 @@
 {
   "name": "elemental-barrage",
-  "version": "1.2.4",
+  "version": "1.3.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,7 +15,7 @@
     "build:game-distribution": "vite build --mode game-distribution --base=./",
     "build:playgama": "vite build --mode playgama --base=./ && cd dist && tar -a -cf ../elemental-barrage-playgama.zip * && cd .. && move elemental-barrage-playgama.zip dist\\",
     "build:gamepix": "vite build --mode gamepix --base=./ && cd dist && tar -a -cf ../elemental-barrage-gamepix.zip * && cd .. && move elemental-barrage-gamepix.zip dist\\",
-    "build:gamemonetize": "vite build --mode gamemonetize --base=./ && cd dist && tar -a -cf ../elemental-barrage-gamemonetize.zip * && cd .. && move elemental-barrage-gamemonetize.zip dist\\",
+    "build:gamemonetize": "vite build --mode gamemonetize --base=./ && node tools/zip-dist.mjs elemental-barrage-gamemonetize.zip",
     "build:yandex": "vite build --mode yandex --base=./ && cd dist && tar -a -cf ../elemental-barrage-yandex.zip * && cd .. && move elemental-barrage-yandex.zip dist\\",
     "build:poki": "vite build --mode poki --base=./ && cd dist && tar -a -cf ../elemental-barrage-poki.zip * && cd .. && move elemental-barrage-poki.zip dist\\",
     "deploy:poki": "node tools/poki-deploy/deploy.mjs",

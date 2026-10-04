@@ -319,7 +319,9 @@ export default {
     'rank': '#{n}',
     'of': 'su {n}',
     'aria': 'Classifica: posizione {rank} su {n}',
-    'ariaRank': 'Classifica: posizione {rank}'
+    'ariaRank': 'Classifica: posizione {rank}',
+    'signIn': 'Accedi per partecipare',
+    'signInAria': 'Accedi per entrare in classifica'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

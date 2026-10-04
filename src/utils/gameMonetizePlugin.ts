@@ -22,10 +22,13 @@
 //      timeout). The single `SDK_OPTIONS.onEvent` callback is fanned out to a
 //      listener bus so multiple concerns can subscribe.
 //
-//   2. Pause/resume bridging — `SDK_GAME_PAUSE` → `pauseGame()` + mute via
-//      `isAdShowing`; `SDK_GAME_START` → `resumeGame()`. `pauseGame`/`resumeGame`
-//      are idempotent (see useGamePause), so unbalanced SDK callbacks can't
-//      latch the game paused.
+//   2. Pause/resume SIGNAL — `SDK_GAME_PAUSE` raises `isGameMonetizeAdShowing`,
+//      `SDK_GAME_START` lowers it. This module does NOT drive the pause gate
+//      itself: ONE watcher in the app shell (`App.vue` →
+//      `installPlatformPauseSource`) turns the ref into a stopped loop + silent
+//      audio, so there is a single owner of that edge. Every cycle that ends on
+//      a TIMER instead of on `SDK_GAME_START` (a hard cap, a dead SDK) lowers
+//      the ref here, or the game would stay frozen behind an ad that is gone.
 //
 //   3. `showRewardedAdGM()` / `showMidgameAdGM()` — Promise-based wrappers.
 //      Rewarded resolves `true` ONLY when the ad played to the end (the IMA
@@ -57,19 +60,26 @@
 import { ref } from 'vue'
 import { isGameMonetize } from '@/use/useUser'
 import { isDebug } from '@/use/useMatch'
-import { isAdShowing, pauseGame, resumeGame } from '@/use/useGamePause'
 import { GameMonetizeStrategy } from '@/utils/save/GameMonetizeStrategy'
 import type { SaveStrategy } from '@/utils/save/types'
 
 const SDK_SRC = 'https://api.gamemonetize.com/sdk.js'
 const SDK_SCRIPT_ID = 'gamemonetize-sdk'
 const SDK_READY_TIMEOUT_MS = 10_000
-// If `SDK_GAME_PAUSE` hasn't fired this soon after a show call, treat it as a
-// no-fill and resolve immediately so the game doesn't sit frozen behind a
-// non-existent ad. Once an ad HAS started, the hard timeouts below apply.
-const NO_FILL_MS = 3_000
-const REWARDED_HARD_TIMEOUT_MS = 60_000
-const INTERSTITIAL_HARD_TIMEOUT_MS = 45_000
+// Two caps on every ad await, because "no answer" and "a real 30 s video" must
+// be told apart:
+//   • NEVER OPENED — if `SDK_GAME_PAUSE` (the impression edge) hasn't fired
+//     this soon after a show call, treat it as a no-fill and hand the game
+//     back. Seconds, not sub-second: the IMA waterfall (and the TCF consent
+//     wall in the test env) routinely opens the ad after 2–4 s.
+//   • OPENED, NEVER FINISHED — once an ad HAS opened, a ceiling no honest ad
+//     reaches, in case `SDK_GAME_START` never arrives.
+// The impression edge cancels the short cap, so a real rewarded video is
+// never guillotined by it.
+export const NO_FILL_MS = 6_000
+export const AD_OPEN_CAP_MS = 60_000
+const REWARDED_HARD_TIMEOUT_MS = AD_OPEN_CAP_MS
+const INTERSTITIAL_HARD_TIMEOUT_MS = AD_OPEN_CAP_MS
 // Minimum spacing between rewarded offers. After an ad plays we cool down for
 // this long before re-arming fill — this is the anti-no-fill guard: requesting
 // rewarded ads back-to-back is exactly what makes the SDK silently no-fill, so
@@ -111,6 +121,35 @@ declare global {
 
 /** Reactive: true once the GameMonetize SDK has loaded and reported ready. */
 export const isGmSdkActive = ref(false)
+
+/** Reactive: true between the SDK's `SDK_GAME_PAUSE` ("an ad is starting —
+ *  mute and pause") and `SDK_GAME_START` ("resume"). Published, not acted on:
+ *  the app shell's single watcher maps it onto the platform pause gate. Also
+ *  lowered by every timer-ended cycle (see `lowerAdShowing`). */
+export const isGameMonetizeAdShowing = ref(false)
+
+// Page-lifetime safety net for the ref above: an SDK that raised the pause and
+// then never sent the resume (ad CDN died mid-creative, a blocker cut the
+// stream) must not freeze the game for the rest of the session.
+let adShowingSafetyTimer: ReturnType<typeof setTimeout> | null = null
+const raiseAdShowing = (): void => {
+  isGameMonetizeAdShowing.value = true
+  if (adShowingSafetyTimer !== null) clearTimeout(adShowingSafetyTimer)
+  adShowingSafetyTimer = setTimeout(() => {
+    adShowingSafetyTimer = null
+    if (isGameMonetizeAdShowing.value) {
+      console.warn(`[gamemonetize] no SDK_GAME_START ${AD_OPEN_CAP_MS / 1000}s after SDK_GAME_PAUSE — resuming the game`)
+    }
+    isGameMonetizeAdShowing.value = false
+  }, AD_OPEN_CAP_MS)
+}
+const lowerAdShowing = (): void => {
+  if (adShowingSafetyTimer !== null) {
+    clearTimeout(adShowingSafetyTimer)
+    adShowingSafetyTimer = null
+  }
+  isGameMonetizeAdShowing.value = false
+}
 
 /** Reactive: true once the SDK reports (via `SDK_ERROR`) that a partner ad
  *  script was blocked by the player's browser (uBlock / AdGuard / Brave
@@ -204,28 +243,21 @@ export const gameMonetizePlugin = (): Promise<void> => {
 
     // `SDK_OPTIONS` MUST be on `window` before the SDK script executes — the
     // script reads it synchronously. `onEvent` fans every SDK event out to the
-    // listener bus. `tagForChildDirectedTreatment` mirrors the GameDistribution
-    // child-directed hint; harmless if this SDK build ignores it.
+    // listener bus. No child-directed flag (owner decision 2026-10-02: those
+    // are for app-store builds only; no web portal build sets one).
     window.SDK_OPTIONS = {
       gameId,
-      tagForChildDirectedTreatment: true,
       onEvent: (event: any) => {
         if (event && typeof event.name === 'string') dispatchEvent(event.name, event)
       }
     }
 
-    // Page-lifetime pause/resume bridge. The SDK brackets every ad with
-    // SDK_GAME_PAUSE (mute + freeze) / SDK_GAME_START (resume). `isAdShowing`
-    // drives the synchronous audio/sim freeze (see useGamePause); pauseGame/
-    // resumeGame are idempotent so duplicate callbacks can't latch.
-    onSdkEvent(EVT_GAME_PAUSE, () => {
-      isAdShowing.value = true
-      pauseGame()
-    })
-    onSdkEvent(EVT_GAME_START, () => {
-      isAdShowing.value = false
-      resumeGame()
-    })
+    // Page-lifetime pause/resume SIGNAL. The SDK brackets every ad (and, in
+    // its iframe, the consent wall) with SDK_GAME_PAUSE (mute + freeze) /
+    // SDK_GAME_START (resume). Only the ref moves here; the app shell's one
+    // watcher owns the pause gate. `isAdShowing` stays `useAds`' alone.
+    onSdkEvent(EVT_GAME_PAUSE, () => raiseAdShowing())
+    onSdkEvent(EVT_GAME_START, () => lowerAdShowing())
 
     // Page-lifetime frequency-cap guard. GameMonetize enforces a GLOBAL min-gap
     // between ads — request one too soon and the SDK rejects it ("The
@@ -235,7 +267,7 @@ export const gameMonetizePlugin = (): Promise<void> => {
     // GENUINE ad-completion signal so the rewarded button hides for
     // REWARDED_MIN_GAP_MS after any ad actually finished — even when the per-call
     // show promise already settled early on the NO_FILL_MS short-circuit (the
-    // test-env TCF consent wall can delay the ad past 3s) and missed it.
+    // test-env TCF consent wall can delay the ad past the cap) and missed it.
     //
     // We key on the IMA terminal event ALL_ADS_COMPLETED, NOT on the
     // SDK_GAME_PAUSE → SDK_GAME_START pause/resume cycle: in the iframe test env
@@ -395,6 +427,12 @@ export const showRewardedAdGM = (): Promise<boolean> => {
       unsubStart()
       clearTimeout(noFillTimer)
       clearTimeout(hardTimer)
+      // An ad this cycle OPENED is over as far as the game is concerned,
+      // whatever ended it (resume, cap, throw): a cycle the SDK never closed
+      // must not leave the pause signal up. A cycle that never opened leaves
+      // the ref alone — a pause raised by something else (the consent wall)
+      // is not ours to drop.
+      if (adStarted) lowerAdShowing()
       if (isDebug.value) {
         console.info(
           `[gamemonetize] rewarded finish → granted=${granted} (adStarted=${adStarted}, completed=${completed})`
@@ -458,6 +496,7 @@ export const showMidgameAdGM = (): Promise<void> => {
       unsubStart()
       clearTimeout(noFillTimer)
       clearTimeout(hardTimer)
+      if (adStarted) lowerAdShowing()
       // An interstitial that actually played trips the SAME global frequency-cap
       // cooldown a rewarded ad does — the SDK's cap is shared across ad types,
       // so a midgame interstitial must hide the watch-ad buttons too (the bug
@@ -704,6 +743,7 @@ const isAdBlockerError = (text: unknown): boolean => {
 
 const useGameMonetize = () => ({
   isGmSdkActive,
+  isGameMonetizeAdShowing,
   isGmAdsBlocked,
   isGmRewardedFilled,
   isGmAdCoolingDown,

@@ -319,7 +319,9 @@ export default {
     'rank': '#{n}',
     'of': '{n} tadan',
     'aria': 'Reyting: {n} tadan {rank}-oʻrin',
-    'ariaRank': 'Reyting: {rank}-oʻrin'
+    'ariaRank': 'Reyting: {rank}-oʻrin',
+    'signIn': 'Qoʻshilish uchun kiring',
+    'signInAria': 'Reytingga qoʻshilish uchun kiring'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

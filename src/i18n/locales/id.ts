@@ -238,7 +238,9 @@ export default {
     'rank': '#{n}',
     'of': 'dari {n}',
     'aria': 'Papan peringkat: peringkat {rank} dari {n}',
-    'ariaRank': 'Papan peringkat: peringkat {rank}'
+    'ariaRank': 'Papan peringkat: peringkat {rank}',
+    'signIn': 'Masuk untuk ikut',
+    'signInAria': 'Masuk untuk ikut papan peringkat'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

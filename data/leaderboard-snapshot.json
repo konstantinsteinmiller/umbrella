@@ -1,0 +1,350 @@
+{
+  "source": "https://elemental-barrage-leaderboard.rodent-race.workers.dev",
+  "fetchedAt": 1791132436062,
+  "updatedAt": 1791132265552,
+  "total": 44,
+  "entries": [
+    {
+      "rank": 1,
+      "name": "Vanguard823701",
+      "score": 331,
+      "flair": 15
+    },
+    {
+      "rank": 2,
+      "name": "Warlord919404",
+      "score": 272,
+      "flair": 6
+    },
+    {
+      "rank": 3,
+      "name": "Gladiator856767",
+      "score": 246,
+      "flair": 10
+    },
+    {
+      "rank": 4,
+      "name": "Captain603709",
+      "score": 173,
+      "flair": 10
+    },
+    {
+      "rank": 5,
+      "name": "Vanguard446631",
+      "score": 171,
+      "flair": 8
+    },
+    {
+      "rank": 6,
+      "name": "Ranger425884",
+      "score": 111,
+      "flair": 7
+    },
+    {
+      "rank": 7,
+      "name": "Ranger411597",
+      "score": 109,
+      "flair": 7
+    },
+    {
+      "rank": 7,
+      "name": "Legionary900458",
+      "score": 109,
+      "flair": 5
+    },
+    {
+      "rank": 9,
+      "name": "Gladiator750915",
+      "score": 81,
+      "flair": 8
+    },
+    {
+      "rank": 10,
+      "name": "Ranger306335",
+      "score": 51,
+      "flair": 4
+    },
+    {
+      "rank": 11,
+      "name": "Warlord520577",
+      "score": 50,
+      "flair": 5
+    },
+    {
+      "rank": 12,
+      "name": "Ranger616631",
+      "score": 42,
+      "flair": 4
+    },
+    {
+      "rank": 13,
+      "name": "Knight220028",
+      "score": 29,
+      "flair": 4
+    },
+    {
+      "rank": 14,
+      "name": "Knight917334",
+      "score": 19,
+      "flair": 3
+    },
+    {
+      "rank": 15,
+      "name": "Knight740401",
+      "score": 18,
+      "flair": 3
+    },
+    {
+      "rank": 16,
+      "name": "Sentinel603174",
+      "score": 14,
+      "flair": 3
+    },
+    {
+      "rank": 17,
+      "name": "Legionary773846",
+      "score": 13,
+      "flair": 3
+    },
+    {
+      "rank": 18,
+      "name": "Knight357698",
+      "score": 11,
+      "flair": 3
+    },
+    {
+      "rank": 19,
+      "name": "Gladiator832661",
+      "score": 3,
+      "flair": 1
+    },
+    {
+      "rank": 19,
+      "name": "Vanguard636076",
+      "score": 3,
+      "flair": 1
+    },
+    {
+      "rank": 19,
+      "name": "Marshal977957",
+      "score": 3,
+      "flair": 1
+    },
+    {
+      "rank": 19,
+      "name": "Ranger443032",
+      "score": 3,
+      "flair": 1
+    },
+    {
+      "rank": 19,
+      "name": "Warden866754",
+      "score": 3,
+      "flair": 1
+    },
+    {
+      "rank": 19,
+      "name": "Warden335299",
+      "score": 3,
+      "flair": 1
+    },
+    {
+      "rank": 19,
+      "name": "Warden228744",
+      "score": 3,
+      "flair": 1
+    },
+    {
+      "rank": 19,
+      "name": "Legionary392066",
+      "score": 3,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Legionary536350",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Ranger128508",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Vanguard595965",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Knight330689",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Ranger993348",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Warlord341348",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Warden609932",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Gladiator996887",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Vanguard969775",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Knight377097",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Warden651773",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Ranger868166",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "User1",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "User1",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "User1",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "User1",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Ranger464945",
+      "score": 2,
+      "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "Warlord820117",
+      "score": 2,
+      "flair": 1
+    }
+  ],
+  "dist": [
+    [
+      331,
+      1
+    ],
+    [
+      272,
+      1
+    ],
+    [
+      246,
+      1
+    ],
+    [
+      173,
+      1
+    ],
+    [
+      171,
+      1
+    ],
+    [
+      111,
+      1
+    ],
+    [
+      109,
+      2
+    ],
+    [
+      81,
+      1
+    ],
+    [
+      51,
+      1
+    ],
+    [
+      50,
+      1
+    ],
+    [
+      42,
+      1
+    ],
+    [
+      29,
+      1
+    ],
+    [
+      19,
+      1
+    ],
+    [
+      18,
+      1
+    ],
+    [
+      14,
+      1
+    ],
+    [
+      13,
+      1
+    ],
+    [
+      11,
+      1
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      2,
+      18
+    ]
+  ]
+}

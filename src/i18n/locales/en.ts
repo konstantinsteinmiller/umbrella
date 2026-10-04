@@ -338,7 +338,9 @@ export default {
     'rank': '#{n}',
     'of': 'of {n}',
     'aria': 'Leaderboard rank {rank} of {n}',
-    'ariaRank': 'Leaderboard rank {rank}'
+    'ariaRank': 'Leaderboard rank {rank}',
+    'signIn': 'Sign in to join',
+    'signInAria': 'Sign in to join the leaderboard'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

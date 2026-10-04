@@ -238,7 +238,9 @@ export default {
     'rank': '#{n}',
     'of': '{n} ішінен',
     'aria': 'Рейтинг: {n} ішінен {rank}-орын',
-    'ariaRank': 'Рейтинг: {rank}-орын'
+    'ariaRank': 'Рейтинг: {rank}-орын',
+    'signIn': 'Қосылу үшін кіріңіз',
+    'signInAria': 'Рейтингке қосылу үшін кіріңіз'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

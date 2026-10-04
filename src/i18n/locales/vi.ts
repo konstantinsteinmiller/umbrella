@@ -323,7 +323,9 @@ export default {
     'rank': '#{n}',
     'of': 'trên {n}',
     'aria': 'Bảng xếp hạng: hạng {rank} trên {n}',
-    'ariaRank': 'Bảng xếp hạng: hạng {rank}'
+    'ariaRank': 'Bảng xếp hạng: hạng {rank}',
+    'signIn': 'Đăng nhập để tham gia',
+    'signInAria': 'Đăng nhập để tham gia bảng xếp hạng'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

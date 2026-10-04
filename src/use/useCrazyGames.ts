@@ -27,6 +27,7 @@
 
 import { ref } from 'vue'
 import { isCrazyWeb } from '@/use/useUser'
+import { setPlatformAudioMuted } from '@/use/useGamePauseAudio'
 import type { SaveStrategy } from '@/utils/save/types'
 
 // The CrazyGames SDK is loaded globally via a script tag in index.html.
@@ -57,6 +58,25 @@ export const isSdkMuted = ref<boolean | null>(null)
  * should default to a generic label like "You".
  */
 export const crazyPlayerName = ref<string | null>(null)
+
+/**
+ * Reactive: is a CrazyGames ACCOUNT signed in right now?
+ *
+ * CG QA rejects a game that lets a guest see or post to any leaderboard —
+ * including our own backend — because a guest posts under a random name, then
+ * signs in and relabels the same row ("duplicate or disappearing entries").
+ * Tracked SEPARATELY from `crazyPlayerName`: the name is deliberately
+ * remembered across sessions, so `name !== null` would let a signed-out guest
+ * keep posting under the account handle.
+ *
+ * `null` until the SDK has answered (and on every non-CG build). The CG boot
+ * branch hands the leaderboard `=== true`, so on CG "unknown" stays closed.
+ */
+export const isCrazyLoggedIn = ref<boolean | null>(null)
+
+/** `sdk.user.isUserAccountAvailable` — false on domains / wrappers where CG
+ *  offers no login at all (then there is no sign-in to invite the player to). */
+export const isCrazyAccountAvailable = ref(false)
 
 /**
  * Reactive: true once we've detected that the player's browser is blocking
@@ -147,8 +167,54 @@ export const initCrazyGames = async (): Promise<void> => {
   isSdkActive.value = true
 
   await captureSdkProfile()
+  registerAuthListener()
   registerMuteListener()
+  // The platform mute drives the ENGINE-level hard mute only — never the
+  // player's persisted volume settings (those used to be zeroed here, so a
+  // reload under an unmuted CG frame stayed silent). Subscribed right here,
+  // before the App mounts, so a game booting into a muted CG frame is silent
+  // from its very first sound; `onCrazyMuteChange` replays the initial
+  // `settings.muteAudio` read synchronously.
+  onCrazyMuteChange(setPlatformAudioMuted)
   probeAdBlocker()
+}
+
+/** The login prompt lives in the CG chrome, so a player signs in WITHOUT the
+ *  iframe reloading. A boot-time `getUser()` alone would leave the leaderboard
+ *  gate stuck until reload — and QA signs in mid-session. */
+const registerAuthListener = (): void => {
+  const add = sdk?.user?.addAuthListener
+  if (typeof add !== 'function') return
+  try {
+    add.call(sdk.user, (user: any) => applyCrazyUser(user))
+  } catch (e) {
+    console.warn('[crazygames] addAuthListener failed', e)
+  }
+}
+
+/** One place that turns an SDK user object (or null) into our refs. The name
+ *  is only ever filled, never cleared — login state is what gates. */
+const applyCrazyUser = (user: any): void => {
+  isCrazyLoggedIn.value = user !== null && user !== undefined
+  const name = typeof user?.username === 'string' ? user.username.trim() : ''
+  if (name) crazyPlayerName.value = name
+}
+
+/**
+ * Open CG's own sign-in prompt (the guest leaderboard plaque's tap). Never
+ * throws and never logs: the SDK rejects with `userCancelled` /
+ * `showAuthPromptInProgress` / `userAlreadySignedIn`, all of them ordinary
+ * player outcomes. A successful sign-in also fires the auth listener; the
+ * resolved user is applied here too in case it fires late.
+ */
+export const requestCrazySignIn = async (): Promise<void> => {
+  if (!sdk || !isSdkActive.value || !isCrazyAccountAvailable.value) return
+  const show = sdk.user?.showAuthPrompt
+  if (typeof show !== 'function') return
+  try {
+    const user = await show.call(sdk.user)
+    if (user) applyCrazyUser(user)
+  } catch { /* cancelled / already open / already signed in */ }
 }
 
 /**
@@ -202,9 +268,11 @@ const captureSdkProfile = async (): Promise<void> => {
   // anonymous sessions, so we only fill the ref when a real username comes
   // back.
   try {
+    isCrazyAccountAvailable.value = sdk?.user?.isUserAccountAvailable === true
+  } catch { /* property getter threw — no accounts */ }
+  try {
     const u = await sdk?.user?.getUser?.()
-    const name = typeof u?.username === 'string' ? u.username.trim() : ''
-    if (name) crazyPlayerName.value = name
+    applyCrazyUser(u)
   } catch (e) {
     console.warn('[crazygames] getUser failed', e)
   }
@@ -607,6 +675,9 @@ const useCrazyGames = () => ({
   isSdkActive,
   isSdkMuted,
   crazyPlayerName,
+  isCrazyLoggedIn,
+  isCrazyAccountAvailable,
+  requestCrazySignIn,
   crazyLocale,
   initCrazyGames,
   createCrazyGamesSaveStrategy,

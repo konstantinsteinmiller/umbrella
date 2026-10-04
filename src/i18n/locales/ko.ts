@@ -319,7 +319,9 @@ export default {
     'rank': '{n}위',
     'of': '/ {n}명',
     'aria': '순위표: {n}명 중 {rank}위',
-    'ariaRank': '순위표: {rank}위'
+    'ariaRank': '순위표: {rank}위',
+    'signIn': '로그인하고 참여하기',
+    'signInAria': '로그인하고 순위표에 참여하기'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

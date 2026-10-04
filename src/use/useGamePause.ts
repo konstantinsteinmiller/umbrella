@@ -40,7 +40,7 @@
 // placements, so `isAdShowing` is the ONLY signal that mutes audio
 // for them.
 
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type Ref } from 'vue'
 
 /** True while a rewarded / midgame ad is currently on screen. Flipped
  *  by `useAds.showRewardedAd` / `useAds.showMidgameAd` set/reset. */
@@ -91,6 +91,28 @@ export const pauseGame = (): void => {
 }
 export const resumeGame = (): void => {
   if (isPlatformPaused.value) isPlatformPaused.value = false
+}
+
+/**
+ * Bind a portal SDK's published "pause me" ref onto the platform pause gate —
+ * THE single place such a ref turns into a stopped loop + silent audio
+ * (`isPlatformPaused` ORs into both `isGamePaused` and `isAudioPaused`).
+ *
+ * Plugins that use this (GameMonetize) never call `pauseGame()` /
+ * `resumeGame()` themselves; they raise and lower their ref, and lower it on
+ * every cycle that ends on a timer. The ref is a pure signal, so muting here is
+ * never a write into the player's volume settings.
+ *
+ * `flush: 'sync'` for the same reason as the audio fanout below: an ad overlay
+ * opens in the same call stack as the SDK event, and a deferred flush would
+ * leave a tick of sound and simulation under it. Returns a stop function.
+ */
+export const installPlatformPauseSource = (source: Ref<boolean>): (() => void) => {
+  if (source.value) pauseGame()
+  return watch(source, (paused) => {
+    if (paused) pauseGame()
+    else resumeGame()
+  }, { flush: 'sync' })
 }
 
 /** SIM gate — OR of all four sources. Drives the renderer's early-return,

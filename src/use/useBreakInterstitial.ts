@@ -43,6 +43,7 @@
 import { adProviderName, isInterstitialReady, showMidgameAd } from '@/use/useAds'
 import { isAdShowing } from '@/use/useGamePause'
 import { isDebug } from '@/use/useMatch'
+import { markInterstitialShown } from '@/use/adTiming'
 
 /** Seconds of active play before the FIRST interstitial of a session. */
 export const BREAK_AD_FIRST_GAP_S = 150
@@ -120,6 +121,9 @@ const runBreakAd = async (reason: string): Promise<void> => {
   firing = true
   elapsed = 0
   gap = rollGap()
+  // Start the shared wall clock too, so the restart placement owes the full
+  // gap from here instead of requesting inside the SDK's rate-limit window.
+  markInterstitialShown()
   dueLogged = false
   log(`▶ ${reason} interstitial (provider=${adProviderName}); next in ${gap.toFixed(0)}s of play`)
   try {

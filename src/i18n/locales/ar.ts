@@ -238,7 +238,9 @@ export default {
     'rank': '#{n}',
     'of': 'من {n}',
     'aria': 'لوحة الصدارة: المركز {rank} من {n}',
-    'ariaRank': 'لوحة الصدارة: المركز {rank}'
+    'ariaRank': 'لوحة الصدارة: المركز {rank}',
+    'signIn': 'سجّل الدخول للانضمام',
+    'signInAria': 'سجّل الدخول للانضمام إلى لوحة الصدارة'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

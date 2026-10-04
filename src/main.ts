@@ -120,6 +120,22 @@ const bootstrap = async () => {
   if (isCrazyWeb) {
     const cg = await import('@/use/useCrazyGames')
     await cg.initCrazyGames()
+    // CG-only: guests may neither see nor post to ANY leaderboard there (CG
+    // QA rejected a sibling game for a guest row relabelled on sign-in). Set
+    // from THIS branch alone — every other portal leaves the gate unset, which
+    // means "no account concept" and keeps their board fully enabled. `=== true`
+    // so an SDK that never answered stays closed. Dynamic imports, so the
+    // leaderboard module (and its baked snapshot) stays out of the entry chunk.
+    const lb = await import('@/use/useLeaderboard')
+    lb.setLeaderboardAuthGate(() => cg.isCrazyLoggedIn.value === true)
+    lb.setLeaderboardSignIn({
+      available: () => cg.isCrazyAccountAvailable.value,
+      request: () => cg.requestCrazySignIn()
+    })
+    // Boss kills celebrate on the portal (`happytime()`, a non-ad call that
+    // also runs on the Basic Launch).
+    const { setBossKillMomentSink } = await import('@/platforms/bossKillMoment')
+    setBossKillMomentSink(cg.triggerHappytime)
     // Explicit `loadingStart` immediately after SDK init. The SDK
     // technically auto-enters the "loading" state on init, but CG QA's
     // tooling does NOT register the load window unless we fire the

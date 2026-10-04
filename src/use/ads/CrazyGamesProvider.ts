@@ -32,7 +32,14 @@ export const createCrazyGamesProvider = (): AdProvider => {
     ownsAdBlockUi: true,
     init: async () => {
     },
-    showRewardedAd,
-    showMidgameAd
+    // Basic Launch (`VITE_APP_CRAZY_GAMES_FULL_RELEASE` not 'true'): CG
+    // disables monetization, so no `requestAd` may ever leave the game. Every
+    // placement already gates on `isReady` (false here); this is the floor
+    // under them, so a placement that slips past its gate settles instantly
+    // (no reward, no ad, no wait) instead of reaching the SDK.
+    showRewardedAd: (): Promise<boolean> =>
+      isCrazyGamesFullRelease ? showRewardedAd() : Promise.resolve(false),
+    showMidgameAd: (): Promise<void> =>
+      isCrazyGamesFullRelease ? showMidgameAd() : Promise.resolve()
   }
 }

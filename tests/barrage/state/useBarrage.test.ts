@@ -749,6 +749,32 @@ describe('boss chest', () => {
     e.killBoss(bounty)
   }
 
+  it('reports every boss kill to the platform celebration hook (CG happytime), and nothing else does', async () => {
+    const h = await boot()
+    const moment = await import('@/platforms/bossKillMoment')
+    const sink = vi.fn()
+    moment.setBossKillMomentSink(sink)
+    const e = h.eng()
+    e.fire(1)
+    e.spawnBoss()
+    turn(e)
+    expect(sink).not.toHaveBeenCalled() // a spawn, a shot, a turn: no celebration
+    e.killBoss(100)
+    expect(sink).toHaveBeenCalledTimes(1)
+    h.eng().endTurn()
+    h.eng().fire(1)
+    h.eng().spawnBoss()
+    h.eng().killBoss(100)
+    expect(sink).toHaveBeenCalledTimes(2)
+    // A throwing sink must never break the kill that earned it.
+    moment.setBossKillMomentSink(() => { throw new Error('sdk exploded') })
+    h.eng().endTurn()
+    h.eng().fire(1)
+    h.eng().spawnBoss()
+    expect(() => h.eng().killBoss(100)).not.toThrow()
+    moment.setBossKillMomentSink(null)
+  })
+
   it('sets the checkpoint at the kill, and presents the chest once the volley settles', async () => {
     const h = await boot()
     h.eng().state.tray = [3, 2]

@@ -319,7 +319,9 @@ export default {
     'rank': '第{n}名',
     'of': '共{n}人',
     'aria': '排行榜：共{n}人，第{rank}名',
-    'ariaRank': '排行榜：第{rank}名'
+    'ariaRank': '排行榜：第{rank}名',
+    'signIn': '登录即可参与',
+    'signInAria': '登录以加入排行榜'
   },
   // New-tier discovery moment (TierRevealFx.vue): the label over the unit a
   // merge just created for the first time. {n} is the tier number.

@@ -2,7 +2,7 @@ import { computed, watch, type ComputedRef } from 'vue'
 import { bestRow, maxBallTier, runEndSeq } from '@/barrage/state/progress'
 import { onGameSuspended } from '@/use/useGamePause'
 import { crazyPlayerName } from '@/use/useCrazyGames'
-import { leaderboardEnabled, reportRun } from '@/use/useLeaderboard'
+import { leaderboardAllowed, leaderboardEnabled, reportRun } from '@/use/useLeaderboard'
 import { setSdkNameSource } from '@/use/usePlayerIdentity'
 
 /**
@@ -74,6 +74,10 @@ export const installWaveLeaderboard = (): void => {
   watch(rankedBest, () => report(false))
   watch(runEndSeq, () => report(true))
   onGameSuspended(() => report(true))
+  // A guest who signs in mid-session (CG's prompt lives in the portal chrome,
+  // no reload) gets their current best on the board right away. `reportRun`
+  // itself drops every report while the gate is closed.
+  watch(leaderboardAllowed, (ok) => { if (ok) report(true) })
 }
 
 /** Barrage-named alias — same install. */

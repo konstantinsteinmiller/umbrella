@@ -87,36 +87,38 @@ describe('setPlatformAudioMuted — hard mute that outranks in-game settings', (
 describe('CrazyGames mute bridge → hard mute', () => {
   /** Mount `useCrazyMuteSync` with a controllable SDK, and hand back the
    *  listener it subscribed so the test can fire a platform mute event. */
-  const mountBridge = async (dbReady: boolean) => {
+  const mountBridge = async () => {
     vi.resetModules()
     const platformMuteSpy = vi.fn()
+    const settingSpy = vi.fn()
     let sdkListener: ((muted: boolean) => void) | null = null
 
-    vi.doMock('@/use/useMatch', async () => {
-      const actual = await vi.importActual<typeof import('@/use/useMatch')>('@/use/useMatch')
-      const { ref } = await import('vue')
-      return { ...actual, isDbInitialized: ref(dbReady) }
-    })
     vi.doMock('@/use/useCrazyGames', async () => {
       const { ref } = await import('vue')
       return {
         isSdkActive: ref(true),
-        setCrazyMuted: vi.fn(),
         onCrazyMuteChange: (fn: (m: boolean) => void) => { sdkListener = fn; return () => {} }
       }
     })
     vi.doMock('@/use/useGamePauseAudio', () => ({ setPlatformAudioMuted: platformMuteSpy }))
+    vi.doMock('@/use/useUser', async () => {
+      const actual = await vi.importActual<typeof import('@/use/useUser')>('@/use/useUser')
+      return {
+        ...actual,
+        default: () => ({ ...actual.default(), setSettingValue: settingSpy })
+      }
+    })
 
     const { useCrazyMuteSync } = await import('@/use/useCrazyMuteSync')
     const { defineComponent, h } = await import('vue')
     const { mount } = await import('@vue/test-utils')
     mount(defineComponent({ setup: () => { useCrazyMuteSync(); return () => h('div') } }))
 
-    return { platformMuteSpy, fire: (m: boolean) => sdkListener?.(m) }
+    return { platformMuteSpy, settingSpy, fire: (m: boolean) => sdkListener?.(m) }
   }
 
-  it('hard-mutes when the CG toolbar mutes', async () => {
-    const { platformMuteSpy, fire } = await mountBridge(true)
+  it('hard-mutes when the CG toolbar mutes, and lifts it on unmute', async () => {
+    const { platformMuteSpy, fire } = await mountBridge()
 
     fire(true)
     expect(platformMuteSpy).toHaveBeenCalledWith(true)
@@ -125,14 +127,11 @@ describe('CrazyGames mute bridge → hard mute', () => {
     expect(platformMuteSpy).toHaveBeenLastCalledWith(false)
   })
 
-  it('hard-mutes even before IndexedDB has hydrated the volume settings', async () => {
-    // The volume-zeroing half defers on `isDbInitialized` so it doesn't fight
-    // the settings loader. The hard mute touches no saved state, so it must NOT
-    // wait — a game booting into a muted CG frame is silent from frame one,
-    // not from whenever hydration lands.
-    const { platformMuteSpy, fire } = await mountBridge(false)
-
+  it('never touches the persisted volume settings', async () => {
+    const { settingSpy, fire } = await mountBridge()
     fire(true)
-    expect(platformMuteSpy).toHaveBeenCalledWith(true)
+    fire(false)
+    fire(true)
+    expect(settingSpy).not.toHaveBeenCalled()
   })
 })

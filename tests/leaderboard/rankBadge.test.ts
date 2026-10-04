@@ -13,15 +13,24 @@ import en from '@/i18n/locales/en'
  * count them yet).
  */
 
-const lb = vi.hoisted(() => ({ rank: { value: 0 }, total: { value: 0 }, failed: { value: false } }))
+const lb = vi.hoisted(() => ({
+  rank: { value: 0 }, total: { value: 0 }, failed: { value: false },
+  allowed: { value: true }, offer: { value: false }, signIn: null as unknown as ReturnType<typeof vi.fn>
+}))
 
 vi.mock('@/use/useLeaderboard', async () => {
   const { ref } = await import('vue')
   lb.rank = ref(0)
   lb.total = ref(0)
   lb.failed = ref(false)
+  lb.allowed = ref(true)
+  lb.offer = ref(false)
+  lb.signIn = vi.fn()
   return {
     leaderboardEnabled: true,
+    leaderboardAllowed: computed(() => lb.allowed.value),
+    leaderboardSignInOffered: computed(() => lb.offer.value),
+    requestLeaderboardSignIn: lb.signIn,
     leaderboardFailed: computed(() => lb.failed.value),
     playerTotal: computed(() => lb.total.value),
     rankFor: () => lb.rank.value
@@ -92,5 +101,53 @@ describe('the rank tag', () => {
     const w = render(0)
     await nextTick()
     expect(w.find('.rank-badge').exists()).toBe(false)
+  })
+})
+
+describe('the CrazyGames guest gate', () => {
+  beforeEach(() => {
+    lb.rank.value = 0
+    lb.total.value = 0
+    lb.failed.value = false
+    lb.allowed.value = true
+    lb.offer.value = false
+    lb.signIn.mockClear()
+  })
+
+  it('a gated guest sees no placing and no population, even when a board could rank them', async () => {
+    lb.rank.value = 7
+    lb.total.value = 99
+    lb.allowed.value = false
+    const w = render(12)
+    await nextTick()
+    expect(w.find('.rank-badge').exists()).toBe(false)
+  })
+
+  it('offers the sign-in invite instead, and a tap opens the portal prompt', async () => {
+    lb.rank.value = 7
+    lb.total.value = 99
+    lb.allowed.value = false
+    lb.offer.value = true
+    const w = render(12)
+    await nextTick()
+    expect(w.find('.rank-badge__invite').text()).toBe(en.leaderboard.signIn)
+    expect(w.find('.rank-badge__rank').exists()).toBe(false)
+    expect(w.find('.rank-badge').attributes('aria-label')).toBe(en.leaderboard.signInAria)
+    await w.find('.rank-badge').trigger('click')
+    expect(lb.signIn).toHaveBeenCalledTimes(1)
+  })
+
+  it('swaps to the real placing the moment the player signs in', async () => {
+    lb.rank.value = 7
+    lb.total.value = 99
+    lb.allowed.value = false
+    lb.offer.value = true
+    const w = render(12)
+    await nextTick()
+    lb.allowed.value = true
+    lb.offer.value = false
+    await nextTick()
+    expect(w.find('.rank-badge__invite').exists()).toBe(false)
+    expect(text(w)).toBe('#7 of 99')
   })
 })

@@ -35,6 +35,15 @@ export const getAudioContext = (): AudioContext | null => {
   } catch {
     return null
   }
+  // Born under a suspend (an ad is up, the portal paused us): a fresh context
+  // on a page that has seen a gesture — or under an autoplay policy that
+  // allows it — starts `running`, i.e. AUDIBLE underneath the ad. Measured on
+  // the GameMonetize build: the first-load interstitial opened before the
+  // first SFX, and the lazily created context came up running mid-ad. The
+  // matching `resumeAllAudio()` resumes it when the last suspend drops.
+  if (suspendDepth > 0 && sharedAudioCtx.state !== 'suspended') {
+    void sharedAudioCtx.suspend().catch(() => { /* closed / unsupported */ })
+  }
   armResumeOnGesture()
   return sharedAudioCtx
 }

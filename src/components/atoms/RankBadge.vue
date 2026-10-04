@@ -40,7 +40,8 @@ import { useI18n } from 'vue-i18n'
 import RuneFrame from '@/components/atoms/RuneFrame.vue'
 import { runeZoneFor } from '@/game/runes'
 import {
-  leaderboardEnabled, leaderboardFailed, playerTotal, rankFor
+  leaderboardAllowed, leaderboardFailed, leaderboardSignInOffered, playerTotal, rankFor,
+  requestLeaderboardSignIn
 } from '@/use/useLeaderboard'
 
 const props = defineProps<{
@@ -58,14 +59,20 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 
+// `leaderboardAllowed`, not the build constant: on CrazyGames a GUEST may
+// neither see nor post to the board, and the gate opens mid-session on sign-in.
 const rank = computed<number>(() =>
-  leaderboardEnabled && props.score > 0 ? rankFor(props.score) : 0)
+  leaderboardAllowed.value && props.score > 0 ? rankFor(props.score) : 0)
+
+/** A gated guest (CrazyGames) sees an invite instead of a placing — never a
+ *  rank, never the population. A tap opens the portal's sign-in prompt. */
+const signInOffer = computed<boolean>(() => leaderboardSignInOffered.value && props.score > 0)
 
 /** `…` while the first answer is still on its way. Once the endpoint has
  *  actually failed the slot is given back — a permanent ellipsis on a player
  *  with no connection reads as a broken game. */
 const waiting = computed<boolean>(() =>
-  leaderboardEnabled && props.score > 0 && rank.value === 0 && !leaderboardFailed.value)
+  leaderboardAllowed.value && props.score > 0 && rank.value === 0 && !leaderboardFailed.value)
 
 /**
  * The "of N" — never smaller than the player's own rank.
@@ -96,13 +103,17 @@ const num = (n: number): string => numberFormat.value?.format(n) ?? String(n)
 // the pug template, where `#{…}` is interpolation rather than a hash sign.
 const rankText = computed(() => t('leaderboard.rank', { n: num(rank.value) }))
 const ofText = computed(() => t('leaderboard.of', { n: num(population.value) }))
-const ariaLabel = computed(() => showTotal.value
+const ariaLabel = computed(() => signInOffer.value ? t('leaderboard.signInAria') : showTotal.value
   ? t('leaderboard.aria', { rank: num(rank.value), n: num(population.value) })
   : t('leaderboard.ariaRank', { rank: num(rank.value) }))
 
 /** Tappable only while there is a placing to name (never the "…"). */
-const live = computed(() => !!props.tappable && rank.value > 0)
+const live = computed(() => (!!props.tappable && rank.value > 0) || signInOffer.value)
 const onTap = (ev: Event): void => {
+  if (signInOffer.value) {
+    requestLeaderboardSignIn()
+    return
+  }
   const el = ev.currentTarget as HTMLElement | null
   if (!live.value || !el) return
   emit('tap', el, { rank: rankText.value, of: showTotal.value ? ofText.value : null, aria: ariaLabel.value })
@@ -154,14 +165,14 @@ const runeZone = computed(() => (runes.value ? `${runeZoneFor(plaqueH.value).toF
 <template lang="pug">
   Transition(name="rank-hang" appear)
     div.rank-badge(
-      v-if="rank > 0 || waiting"
+      v-if="rank > 0 || waiting || signInOffer"
       ref="plaqueEl"
       :class="{ 'rank-badge--glint': glint, 'rank-badge--tappable': live }"
       :style="{ '--rune-zone': runeZone }"
       :role="live ? 'button' : 'img'"
       :tabindex="live ? 0 : undefined"
-      :aria-label="rank > 0 ? ariaLabel : undefined"
-      :aria-hidden="rank > 0 ? undefined : 'true'"
+      :aria-label="rank > 0 || signInOffer ? ariaLabel : undefined"
+      :aria-hidden="rank > 0 || signInOffer ? undefined : 'true'"
       @click="onTap"
       @keydown="onKey"
     )
@@ -171,8 +182,10 @@ const runeZone = computed(() => (runes.value ? `${runeZoneFor(plaqueH.value).toF
         svg.rank-badge__icon(viewBox="0 0 24 24" fill="currentColor" aria-hidden="true")
           path(d="M6 3h12v2h3v3a5 5 0 0 1-4.6 5A6 6 0 0 1 13 16.9V19h3.5v2h-9v-2H11v-2.1a6 6 0 0 1-3.4-3.9A5 5 0 0 1 3 8V5h3V3Zm0 4H5v1a3 3 0 0 0 1.6 2.7A8 8 0 0 1 6 8V7Zm12 0v1a8 8 0 0 1-.6 2.7A3 3 0 0 0 19 8V7h-1Z")
         span.rank-badge__label.game-text(v-if="label") {{ label }}
-        span.rank-badge__rank.game-text {{ rank > 0 ? rankText : '…' }}
-        span.rank-badge__of.game-text(v-if="showTotal") {{ ofText }}
+        span.rank-badge__invite.game-text(v-if="signInOffer") {{ t('leaderboard.signIn') }}
+        template(v-else)
+          span.rank-badge__rank.game-text {{ rank > 0 ? rankText : '…' }}
+          span.rank-badge__of.game-text(v-if="showTotal") {{ ofText }}
 </template>
 
 <style scoped lang="sass">
@@ -239,6 +252,12 @@ const runeZone = computed(() => (runes.value ? `${runeZoneFor(plaqueH.value).toF
   font-weight: 900
   font-variant-numeric: tabular-nums
   text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000
+
+.rank-badge__invite
+  color: #fff
+  font-weight: 900
+  font-size: max(9px, 0.72em)
+  text-shadow: 1px 1px 0 #000
 
 .rank-badge__of
   color: #ffe6a0

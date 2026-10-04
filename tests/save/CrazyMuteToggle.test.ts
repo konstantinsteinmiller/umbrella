@@ -40,33 +40,38 @@ describe('useCrazyMuteSync.toggleMute', () => {
     expect(getState(SOUND_KEY)).toBe(DEFAULT_SOUND_VOLUME)
   })
 
-  it('CG toolbar mute/unmute stays in sync with the in-game state', async () => {
+  it('a CG toolbar mute never writes the persisted volumes (reload under an unmuted CG is not silent)', async () => {
+    // The old bridge zeroed the stored volumes on a CG mute. They persist —
+    // cloud save included — so a reload under an UNMUTED CG frame came back at
+    // sliders 0/0 and stayed silent. The platform mute is the engine's hard
+    // mute only; the player's own settings are theirs.
+    const { setState, getState } = await import('@/use/useEpicState')
+    setState(MUSIC_KEY, 0.4)
+    setState(SOUND_KEY, 0.5)
+    const audio = await import('@/use/useGamePauseAudio')
     const { isMuted, applyPlatformMute } = await import('@/use/useCrazyMuteSync')
-    expect(isMuted.value).toBe(false) // audible defaults
 
-    applyPlatformMute(true)  // player clicks mute in the CG toolbar
-    expect(isMuted.value).toBe(true) // → in-game button shows muted
+    applyPlatformMute(true)
+    expect(audio.isPlatformAudioMuted.value).toBe(true)  // engine is silent…
+    expect(getState(MUSIC_KEY)).toBe(0.4)               // …the settings are not touched
+    expect(getState(SOUND_KEY)).toBe(0.5)
+    expect(isMuted.value).toBe(false)                   // the in-game mute is the player's
 
-    applyPlatformMute(false) // player clicks unmute in the CG toolbar
-    expect(isMuted.value).toBe(false) // → in-game button shows unmuted
+    applyPlatformMute(false)
+    expect(audio.isPlatformAudioMuted.value).toBe(false)
+    expect(getState(MUSIC_KEY)).toBe(0.4)
+    expect(getState(SOUND_KEY)).toBe(0.5)
   })
 
-  it('CG toolbar can STILL mute after the player used the in-game button (regression)', async () => {
-    // Booted muted from a cloud-saved 0/0; player unmutes in-game. The CG
-    // toolbar must remain able to mute afterwards — the persisted "in-game
-    // wins" override used to swallow this event, which broke the sync.
-    const { setState } = await import('@/use/useEpicState')
-    setState(MUSIC_KEY, 0)
-    setState(SOUND_KEY, 0)
-
+  it('the in-game button cannot lift a CG mute — the platform outranks it', async () => {
+    const audio = await import('@/use/useGamePauseAudio')
     const { isMuted, toggleMute, applyPlatformMute } = await import('@/use/useCrazyMuteSync')
-    expect(isMuted.value).toBe(true)
-
-    toggleMute() // player unmutes in-game
+    applyPlatformMute(true)
+    toggleMute() // in-game mute
+    toggleMute() // in-game unmute
     expect(isMuted.value).toBe(false)
-
-    applyPlatformMute(true) // CG toolbar mute — now syncs again
-    expect(isMuted.value).toBe(true)
+    expect(audio.isPlatformAudioMuted.value).toBe(true)
+    applyPlatformMute(false)
   })
 
   it('mute → unmute restores the exact prior volumes via the snapshot', async () => {
