@@ -17,7 +17,7 @@ import { useCrazyMuteSync } from '@/use/useCrazyMuteSync'
 import { installModalGameplayGate } from '@/use/useModalGameplayGate'
 import { installPortalGameplayBracket } from '@/use/usePortalGameplay'
 import useCheats, { installDebugUnlock } from '@/use/useCheats'
-import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isNative, orientation } from '@/use/useUser'
+import { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isGamePush, isNative, orientation } from '@/use/useUser'
 import { glitchLicenseStatus } from '@/use/useGlitchLicense'
 import { resolveCapabilities } from '@/platforms/capabilities'
 import { getPlattformText } from '@/platforms/plattformText'
@@ -35,7 +35,7 @@ const { resourceCache } = useAssets()
 useCrazyMuteSync()
 // Freeze the sim while any menu is open and resume on close (every build).
 installModalGameplayGate()
-// THE gameplayStart/Stop bracket for CrazyGames, Poki, Playgama and Yandex —
+// THE gameplayStart/Stop bracket for CrazyGames, Poki, Playgama, Yandex and GamePush —
 // the only caller of those SDK events. It opens on the player's first
 // interaction with the live game, closes for menus, lost runs and ads (before
 // the ad request), and never repeats a call. Dead code on builds without a
@@ -142,7 +142,7 @@ onUnmounted(() => {
 const hostname = window.location.hostname
 const parentOrigin = window.location.ancestorOrigins?.[0] ?? document.referrer ?? ''
 const platformFlags = {
-  isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki
+  isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isGamePush
 }
 const capabilities = computed(() => resolveCapabilities({
   flags: platformFlags,
@@ -162,6 +162,7 @@ const isGameShowAllowed = computed(() =>
   capabilities.value.allowedToShowOnGameMonetize ||
   capabilities.value.allowedToShowOnYandex ||
   capabilities.value.allowedToShowOnPoki ||
+  capabilities.value.allowedToShowOnGamePush ||
   location.hostname.includes('localhost')
 )
 const isGlitchDenied = computed(() => capabilities.value.isGlitchDenied)

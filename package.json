@@ -17,6 +17,7 @@
     "build:gamepix": "vite build --mode gamepix --base=./ && cd dist && tar -a -cf ../elemental-barrage-gamepix.zip * && cd .. && move elemental-barrage-gamepix.zip dist\\",
     "build:gamemonetize": "vite build --mode gamemonetize --base=./ && node tools/zip-dist.mjs elemental-barrage-gamemonetize.zip",
     "build:yandex": "vite build --mode yandex --base=./ && cd dist && tar -a -cf ../elemental-barrage-yandex.zip * && cd .. && move elemental-barrage-yandex.zip dist\\",
+    "build:gamepush": "vite build --mode gamepush --base=./ && node tools/zip-dist.mjs elemental-barrage-gamepush.zip",
     "build:poki": "vite build --mode poki --base=./ && cd dist && tar -a -cf ../elemental-barrage-poki.zip * && cd .. && move elemental-barrage-poki.zip dist\\",
     "deploy:poki": "node tools/poki-deploy/deploy.mjs",
     "build:poki-playtest": "vite build --mode poki-playtest --base=./ && cd dist && tar -a -cf ../elemental-barrage-poki-playtest.zip * && cd .. && move elemental-barrage-poki-playtest.zip dist\\",

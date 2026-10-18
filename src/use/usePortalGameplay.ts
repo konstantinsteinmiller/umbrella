@@ -1,4 +1,4 @@
-// ─── The gameplay bracket (CrazyGames, Poki, Playgama, Yandex) ──────────────
+// ─── The gameplay bracket (CrazyGames, Poki, Playgama, Yandex, GamePush) ──────────────
 //
 // ONE module answers "is the player actually playing right now?" for every
 // portal that wants to know, and it is the ONLY place that calls a portal's
@@ -63,7 +63,7 @@
 //   • CrazyGames — no tab-hidden / portal-pause input (CG has no pause API and
 //     never asked for one). The BASIC launch gets the single start and no stops,
 //     as before; the full release stops for menus, lost runs and ads.
-//   • Poki, Playgama, Yandex — everything above, plus a hidden tab and the
+//   • Poki, Playgama, Yandex, GamePush — everything above, plus a hidden tab and the
 //     portal's own pause.
 
 import { computed, ref, watch } from 'vue'
@@ -168,7 +168,7 @@ export const setRunBreak = (held: boolean): void => {
   isRunBreak.value = held
 }
 
-// ─── Lazy portal arms (Playgama, Yandex) ───────────────────────────────────
+// ─── Lazy portal arms (Playgama, Yandex, GamePush) ───────────────────────────────────
 //
 // Both imports are DYNAMIC and behind an `import.meta.env` literal on purpose:
 // each plugin statically imports its save strategy, so a static import here
@@ -209,6 +209,11 @@ const playgamaArm = lazyArm(async () => {
   return { start: m.playgamaGameplayStart, stop: m.playgamaGameplayStop }
 }, 'playgama')
 
+const gamePushArm = lazyArm(async () => {
+  const m = await import('@/utils/gamePushPlugin')
+  return { start: m.gamePushGameplayStart, stop: m.gamePushGameplayStop }
+}, 'gamepush')
+
 const yandexArm = lazyArm(async () => {
   const m = await import('@/utils/yandexPlugin')
   return { start: m.yandexGameplayStart, stop: m.yandexGameplayStop }
@@ -227,6 +232,7 @@ export const installPortalGameplayBracket = (): void => {
     && import.meta.env.VITE_APP_POKI !== 'true'
     && import.meta.env.VITE_APP_PLAYGAMA !== 'true'
     && import.meta.env.VITE_APP_YANDEX !== 'true'
+    && import.meta.env.VITE_APP_GAMEPUSH !== 'true'
   ) return
   installed = true
   startGestureWatch()
@@ -240,11 +246,13 @@ export const installPortalGameplayBracket = (): void => {
 
   if (import.meta.env.VITE_APP_PLAYGAMA === 'true') playgamaArm.preload()
   if (import.meta.env.VITE_APP_YANDEX === 'true') yandexArm.preload()
+  if (import.meta.env.VITE_APP_GAMEPUSH === 'true') gamePushArm.preload()
 
   if (
     import.meta.env.VITE_APP_POKI === 'true'
     || import.meta.env.VITE_APP_PLAYGAMA === 'true'
     || import.meta.env.VITE_APP_YANDEX === 'true'
+    || import.meta.env.VITE_APP_GAMEPUSH === 'true'
   ) {
     watch(isPortalGameplayLive, (live) => {
       if (import.meta.env.VITE_APP_POKI === 'true') {
@@ -253,6 +261,7 @@ export const installPortalGameplayBracket = (): void => {
       }
       if (import.meta.env.VITE_APP_PLAYGAMA === 'true') playgamaArm.sync(live)
       if (import.meta.env.VITE_APP_YANDEX === 'true') yandexArm.sync(live)
+      if (import.meta.env.VITE_APP_GAMEPUSH === 'true') gamePushArm.sync(live)
     }, { flush: 'sync' })
   }
 }

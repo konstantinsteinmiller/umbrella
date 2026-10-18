@@ -36,6 +36,7 @@ import { createGamepixProvider } from '@/use/ads/GamepixProvider'
 import { createGameMonetizeProvider } from '@/use/ads/GameMonetizeProvider'
 import { createYandexProvider } from '@/use/ads/YandexProvider'
 import { createPokiProvider } from '@/use/ads/PokiProvider'
+import { createGamePushProvider } from '@/use/ads/GamePushProvider'
 import { createNoopProvider } from '@/use/ads/NoopProvider'
 import type { AdProvider } from '@/use/ads/types'
 import type { PlatformFlags } from './capabilities'
@@ -56,5 +57,6 @@ export const resolveAdProvider = (input: AdResolverInput): AdProvider => {
   if (import.meta.env.VITE_APP_GAME_MONETIZE === 'true') return createGameMonetizeProvider()
   if (import.meta.env.VITE_APP_YANDEX === 'true') return createYandexProvider()
   if (import.meta.env.VITE_APP_POKI === 'true') return createPokiProvider()
+  if (import.meta.env.VITE_APP_GAMEPUSH === 'true') return createGamePushProvider()
   return createNoopProvider()
 }

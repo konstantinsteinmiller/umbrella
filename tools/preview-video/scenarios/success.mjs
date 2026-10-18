@@ -1,135 +1,101 @@
 /**
- * ─── SUCCESS (10 s): "one merge turns the fight" ────────────────────────────
+ * ─── SUCCESS (CrazyGames, 16 s): the boss at the line, killed with the last volley ─
  *
- * WHAT THE VIEWER SEES — with NO interface, so the field is the score
+ * WHAT THE VIEWER SEES
+ *   A full board — walkers with HP plates, the Silver Dragon boss coiled in the
+ *   middle — and a finger already aiming. Two volleys bounce through the walkers
+ *   while the dragon walks down. The third cracks it: it ENRAGES and lunges two
+ *   rows, its bottom edge one row off the red line, the warning pips and the
+ *   red floor up. A slow, deliberate aim — and the fourth volley kills it with
+ *   one row to spare: the death blast wipes the bottom rows and the board empties.
+ *   Then straight back in: the next row arrives and the next shot flies.
  *
- * A thin line of fighters is being shoved back onto the Lab Gate by a crowd
- * and a boss dragon; more monsters pour out of a portal. Down in the merge
- * grid two dark crystal golems slam together into a butterfly, and that
- * butterfly into a second one — a unit this army has never had: the grid
- * dims around it, a beam drops, rays turn, the bloom goes off. The new unit is
- * carried straight up to the front line; its chain lightning forks through the
- * crowd, a Meteor Storm lands on top, and the dragon shatters in a storm of
- * confetti. The last seconds are the army standing and one more merge below.
+ * WITH NO INTERFACE
+ *   No HP bar, no banner. The stakes read from the board: the dragon's size and
+ *   its HP plate, how close it stands to the red line (the floor glows, the
+ *   pips count down), and the board emptying when it dies.
  *
- * WITH NO INTERFACE the stakes read from the field: monsters AT the gate, a
- * fighter falling; then the crowd thinning and the boss breaking apart.
+ * BEAT SHEET  (16 s @ 30 fps = 480 frames)
+ *   0.0–1.0   the aim already up on a full board; the finger settles, fires
+ *   1.0–~7    the opener and volley 1 — walkers drop, the dragon walks down
+ *   ~7–~10    volley 2 — the dragon enrages and charges to the line
+ *   ~10–~12   the tension: a slow aim at the dragon a row from the line
+ *   ~12–~14   THE PAYOFF: the kill, the blast, the board clears
+ *   ~14–16    back in: the next shot — motion to the last frame
  *
- * BEAT SHEET  (10 s @ 30 fps = 300 frames; seconds into `record`)
- *
- *   0.00  released mid-shove — the crowd is on the guard line, portal open
- *   0.25  drag: golem (slot 9) onto golem (slot 10)      → merge pop, a butterfly
- *   1.25  drag: butterfly (10) onto butterfly (slot 1)   → NEW TIER — the reveal
- *   2.35  the bloom (REVEAL_BLOOM_MS after the merge)
- *   3.50  drag: the new unit up into the arena's front    → deploy shockwave
- *   4.70  Meteor Storm
- *   5–7.5 THE PAYOFF: lightning + meteors thin the crowd, the boss shatters
- *   8.40  drag: a small merge in the grid — the last second still moves
+ * Staging (_drive.mjs `stageBossFight`): the next row is made the boss row,
+ * five weak turns walk it down, and the four volleys (one tray, four angles)
+ * are searched on engine clones so the recorded run plays exactly that plan.
  */
 
 import * as g from './_drive.mjs'
 
-// Grid slots, row by row (0-3 top row, the one against the arena).
-const GOLEM_A = 9
-const GOLEM_B = 10
-const BUTTERFLY = 1
-const SMALL_A = 4 //   T12 onto T12 (slot 11) → T13
-const SMALL_B = 11
-const TWIN = 6 //      the T13 already on the board
-
-export const PLAN = {
-  wave: 90,
-  gate: 45,
-  grid: [
-    11, 18, 0, 9,
-    12, 0, 13, 0,
-    10, 17, 17, 12,
-    0, 14, 0, 11
-  ],
-  // T18 is known; the merge that makes T19 is a discovery.
-  maxTier: 18,
-  // The line stands out in the field, not on the gate: the fight happens in the
-  // middle of the frame, with the gate open behind it.
-  army: [
-    { tier: 16, x: 26, y: 44, hp: 0.7 },
-    { tier: 13, x: 30, y: 26, hp: 0.55 },
-    { tier: 14, x: 36, y: 46, hp: 0.45 },
-    { tier: 15, x: 28, y: 64, hp: 0.6 },
-    { tier: 14, x: 35, y: 74, hp: 0.4 }
-  ],
-  // The crowd fills the field from the line to the portals, so the first
-  // seconds read as a horde closing on a thin line.
-  foes: [
-    { kind: 'boss', x: 64, y: 50, hp: 0.45 },
-    { kind: 'brute', x: 42, y: 42 },
-    { kind: 'brute', x: 45, y: 64 },
-    { kind: 'runner', x: 40, y: 30 },
-    { kind: 'runner', x: 41, y: 74 },
-    { kind: 'slime', x: 54, y: 58 },
-    { kind: 'slime', x: 58, y: 34 },
-    { kind: 'spitter', x: 72, y: 24 },
-    { kind: 'warlock', x: 76, y: 72 },
-    { kind: 'slime', x: 84, y: 42 },
-    { kind: 'runner', x: 88, y: 62 }
-  ],
-  spawns: [
-    { kind: 'slime', at: 0.6, portal: 2 },
-    { kind: 'runner', at: 0.9, portal: 2 },
-    { kind: 'brute', at: 2.2, portal: 0 },
-    { kind: 'slime', at: 2.6, portal: 0 },
-    // Stragglers after the boss: the portal opens again and the new unit's
-    // lightning meets them — the last seconds are a fight, not a hold. `at` is
-    // ENGINE time, and the boss kill (~7.0) slows the engine to 0.22× for two
-    // seconds, so these land around 7.2-8.6 of video.
-    { kind: 'runner', at: 6.9, portal: 1 },
-    { kind: 'slime', at: 7.1, portal: 1 },
-    { kind: 'runner', at: 7.3, portal: 1 }
-  ],
-  ult: 100,
-  skills: true
-}
+/** @type {any} */
+let plan = null
 
 export default {
   id: 'success',
-  label: 'One merge turns the fight',
+  label: 'The enraged boss one row from the line, killed by the last volley',
 
   async setup(ctx) {
     await g.boot(ctx)
-    await g.stage(ctx, PLAN)
+    plan = await g.stageBossFight(ctx, 'success', { primeTurns: 5 })
+    // Frame 0: the finger is already down and the aim preview is drawn.
+    await ctx.evaluate((a) => { window.__vid.down(Math.PI / 2); window.__vid.aim(a, 1) }, (Math.PI / 2 + plan.aO) / 2)
+    await ctx.wait(600)
+    await g.pinAmbientAnimations(ctx)
+    await g.logState(ctx, 'staged')
   },
 
   async record(ctx) {
-    const wait = g.budget(ctx)
-    await g.release(ctx)
-    g.trace(ctx, 500)
+    const atAim = (ms = 7000) => ctx.stepUntil(() => window.__vid.eng().state.phase === 'aim' && !window.__vid.b().holdSim.value, { timeoutMs: ms, label: 'aim' })
     ctx.beat('open')
-    if (!(await wait(250))) return //                                   0.25
-    await g.drag(ctx, GOLEM_A, { slot: GOLEM_B }, 700)
-    if (!(await wait(1000))) return //                                  1.25
-    await g.drag(ctx, GOLEM_B, { slot: BUTTERFLY }, 750)
-    ctx.beat('merge')
-    if (!(await wait(750))) return //                                   2.00
-    await g.logState(ctx, 'reveal')
-    if (!(await wait(900))) return //                                   2.90
-    // The poster: past the bloom's white, the beam and rays on the new unit
-    // with the fight still raging above it.
-    ctx.beat('poster')
-    if (!(await wait(600))) return //                                   3.50
-    await g.drag(ctx, BUTTERFLY, { arena: [44, 50] }, 800)
-    ctx.beat('deploy')
-    if (!(await wait(1200))) return //                                  4.70
-    await g.cast(ctx, 'meteor')
-    ctx.beat('meteor')
-    if (!(await wait(2300))) return //                                  7.00
-    await g.logState(ctx, 'payoff')
+
+    // — volley 1: the finger finishes its sweep and fires —
+    const from = (Math.PI / 2 + plan.aO) / 2
+    for (let i = 1; i <= 12; i++) {
+      await ctx.evaluate(([a, b, k]) => window.__vid.aim(a + (b - a) * k, 1), [from, plan.aO, i / 12])
+      await ctx.wait(1000 / ctx.fps)
+    }
+    await ctx.wait(150)
+    await ctx.evaluate((a) => window.__vid.release(a), plan.aO)
+    ctx.beat('opener')
+    await atAim()
+    await g.logState(ctx, 'after the opener')
+
+    await ctx.wait(200)
+    await g.shoot(ctx, plan.a0, { aimMs: 550, holdMs: 150 })
+    ctx.beat('volley1')
+    await atAim()
+    await g.logState(ctx, 'after volley 1')
+
+    // — volley 2: the dragon enrages and charges —
+    await ctx.wait(250)
+    await g.shoot(ctx, plan.a1, { aimMs: 650, holdMs: 200 })
+    ctx.beat('volley2')
+    await atAim()
+    await g.logState(ctx, 'after volley 2 (enraged, at the line)')
+
+    // — the tension: a slow, deliberate aim —
+    await ctx.wait(400)
+    ctx.beat('tension')
+    await g.shoot(ctx, plan.a2, { aimMs: 1100, holdMs: 450 })
+    ctx.beat('volley3')
+    await ctx.stepUntil(() => !window.__vid.bossOf(window.__vid.eng().state), { timeoutMs: 4000, label: 'boss dead' })
     ctx.beat('payoff')
-    if (!(await wait(1400))) return //                                  8.40
-    await g.drag(ctx, SMALL_A, { slot: SMALL_B }, 650)
-    if (!(await wait(800))) return //                                   9.20
-    // …and the unit it made straight onto its twin: the last second moves.
-    await g.drag(ctx, SMALL_B, { slot: TWIN }, 600)
-    if (!(await wait(700))) return //                                   9.90
-    await g.logState(ctx, 'end')
-    await wait(100)
+    await g.logState(ctx, 'boss dead')
+    await ctx.wait(450)
+    ctx.beat('poster')
+    await atAim(8000)
+    await g.logState(ctx, 'after the kill')
+
+    // — back in: keep shooting until the clip ends —
+    while (ctx.frame() < (ctx.durationMs / 1000) * ctx.fps - 5) {
+      await ctx.wait(300)
+      const a = await ctx.evaluate(() => window.__vid.bestShot())
+      await g.shoot(ctx, a, { aimMs: 500, holdMs: 150 })
+      await atAim(6000)
+      await g.logState(ctx, 'next shot')
+    }
   }
 }

@@ -23,13 +23,14 @@ const PORTALS: Record<string, Record<string, string>> = {
   crazygames: { VITE_APP_CRAZY_WEB: 'true' },
   playgama: { VITE_APP_PLAYGAMA: 'true' },
   yandex: { VITE_APP_YANDEX: 'true' },
+  gamepush: { VITE_APP_GAMEPUSH: 'true' },
   gamepix: { VITE_APP_GAMEPIX: 'true' },
   gamemonetize: { VITE_APP_GAME_MONETIZE: 'true' },
   web: {}
 }
 
 describe('adTimingFor — the per-portal matrix', () => {
-  it.each(['poki', 'crazygames', 'playgama', 'yandex', 'web'])('%s keeps the early-ad grace and fires no first-load ad', (portal) => {
+  it.each(['poki', 'crazygames', 'playgama', 'yandex', 'gamepush', 'web'])('%s keeps the early-ad grace and fires no first-load ad', (portal) => {
     expect(adTimingFor(PORTALS[portal]!)).toEqual({ firstLoadAd: false, earlyAds: false, graceMs: EARLY_AD_GRACE_MS })
   })
 

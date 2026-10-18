@@ -81,6 +81,12 @@ export const resolveSaveStrategy = async (_flags: PlatformFlags): Promise<SaveSt
     const { YandexStrategy } = await import('@/utils/save/YandexStrategy')
     return new YandexStrategy()
   }
+  if (import.meta.env.VITE_APP_GAMEPUSH === 'true') {
+    // GamePush `player.sync()` cloud save with a local fallback. `gamePushPlugin()`
+    // is AWAITED from main.ts BEFORE this resolver runs (gp + player.ready).
+    const { GamePushStrategy } = await import('@/utils/save/GamePushStrategy')
+    return new GamePushStrategy()
+  }
   if (import.meta.env.VITE_APP_POKI === 'true') {
     // Poki has NO cloud-save API. Its wrapper mirrors the iframe's whole
     // localStorage + IndexedDB across devices for logged-in players, with no

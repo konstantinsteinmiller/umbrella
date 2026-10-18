@@ -2,196 +2,318 @@
  * ─── Driving Elemental Barrage ─────────────────────────────────────────────────
  *
  * Everything game-specific the scenarios share, so each scenario reads as a
- * beat sheet. The game side is `window.__video` (src/dev/videoSeam.ts, DEV
- * only):
+ * beat sheet. There is no dedicated video seam in `src/`: the DEV server serves
+ * the game's own modules at stable URLs, so `window.__vid` (installed below,
+ * page side) imports `/src/barrage/state/useBarrage.ts` and
+ * `/src/barrage/engine/shotFinder.ts` — the SAME module instances the app runs
+ * (hot reload is muted for the recording page, so no stale HMR copy).
  *
- *   stage(plan)          the fight and the merge grid at an exact state, frozen
- *   freeze(on)           hold / release the battle simulation
- *   drag(from, to, ms)   a scripted drag from a grid slot — real pointer events
- *                        through MergeGrid, so merges, deploys, field merges and
- *                        the new-tier reveal are the game's own
- *   cast(skill)          'meteor' | 'warcry' | 'legion' | … via the arena's handlers
- *   skipRally()          the OVERRUN screen's Skip, so the retry comes sooner
- *   state()              { wave, phase, gate, army, foes, boss, grid, reveal }
+ *   __vid.state()          one-line snapshot: phase, row, tray, boss, lowest row
+ *   __vid.jumpToBoss()     rebuild the endless run so the NEXT row is a boss
+ *   __vid.prime(n)         n weak turns (one tier-1 ball, settled in real time)
+ *                          — walkers march in and the boss walks down
+ *   __vid.plan(kind)       search four volleys on engine CLONES (one tray —
+ *                          tier × count — and four angles; see plan() below):
+ *                          'success' → the third enrages the boss, the fourth
+ *                                      kills it one row from the line
+ *                          'fail'    → the fourth leaves it a sliver and the
+ *                                      line breaks
+ *   __vid.bestShot()       the most destructive angle on the live board now
+ *   __vid.aim(angle, k)    one frame of a scripted finger: real pointer events on
+ *                          the canvas, so the game draws its own aim preview
+ *   __vid.release(angle)   ends the drag and fires the EXACT planned angle (a
+ *                          pointer's pixel-rounded angle would play a different
+ *                          volley than the one the clone planned)
  *
- * Arena coordinates are percent of the arena box: x 0 → 100 is the Lab Gate
- * (x≈13, fighters hold at x≈16) → the enemy portals (x=92, y = 16 / 50 / 84).
- * Grid slots are 0-15, row by row, four to a row.
+ * The engine is deterministic (same snapshot + same angle ⇒ same volley), so
+ * the planned clones and the recorded volleys agree; the log lines prove it.
  *
  * Files starting with `_` are helpers and are never loaded as scenarios.
  */
 
-/** The save blob a scenario boots into. Every "have you seen this" flag is set:
- *  the tutorial, the first-boss Meteor coaching, every spell's explanation
- *  toast (they stop after five casts), and no `battle_last_seen`, so no
- *  offline-earnings modal. Automation (the merge imp) stays at 0: nothing on
- *  the grid may move unless a scenario moves it. The army and grid are empty —
- *  `stage()` places both. */
+const STATE_KEY = 'elemental-barrage_state'
+const LESSONS = ['pull', 'survive', 'tray', 'combo', 'trayIntro', 'arrows', 'mergeBox', 'pickupBox', 'threatBox', 'speedBox', 'luckBox', 'bountyBox']
+const SKILLS = ['meteor', 'warcry', 'legion', 'pact', 'shield', 'execute', 'heal', 'revive']
+const TAGS = ['caterpillar', 'goblin', 'ogre', 'centaur', 'dryad', 'imp', 'treant', 'carbuncle', 'cyclops', 'corrupted',
+  'boss:slime-tower', 'boss:worm', 'boss:fire-dragon', 'boss:silver-dragon', 'boss:troll', 'boss:orc']
+const many = (ids) => Object.fromEntries(ids.map((k) => [k, 99]))
+
+/** A veteran's save: tutorial and FTUE done, every wordless lesson, rule badge
+ *  and skill toast already shown (the coach must not draw a demo hand into the
+ *  clip), a checkpoint behind row 30, mid upgrades. The run itself is rebuilt
+ *  by `jumpToBoss`. */
 export const saveFixture = (over = {}) => ({
-  prism_tutorial_step: 4,
-  battle_best_wave: 40,
-  battle_wave: 30,
-  battle_first_boss_coached: true,
-  battle_mutation_ceiling: 9999,
-  battle_spell_casts: {
-    meteor: 9, heal: 9, reviveGuard: 9, defender: 9,
-    warcry: 9, legionCall: 9, executionerMark: 9, soulPact: 9
-  },
-  battle_upgrades: { attack: 30, vitality: 30, bounty: 10, automation: 0, recruit: 8 },
-  // Under REWARD_COIN_COST (1000): an overrun's RALLY offer holds the red
-  // screen for 5 s when the player can pay for it, and a clean feed hides the
-  // button that would end the hold — so the offer must never come up.
+  eb_tutorial_step: 4,
+  eb_ftue: { done: true, firstMerge: true, freeCapacity: true, freeDamageOffer: true, freeDamage: true, sockets: 0 },
+  eb_coach: { v: 1, shown: many(LESSONS), kinds: many(TAGS), toasts: many(SKILLS) },
+  eb_best_row: 52,
+  eb_checkpoint: { row: 30, tray: [5, 5, 4, 4, 4, 3, 3, 3], deaths: 0, bossHp: 0 },
+  eb_upgrades: { damage: 20, capacity: 8, speed: 10, luck: 4, bounty: 4 },
   epic_coins: 500,
-  // A veteran has killed bosses before: the kill is the ordinary 0.9 s
-  // slow-motion, not the first-ever kill's 2 s at 0.22× — a fifth of a 10 s clip.
-  prism_stats: { bossKills: 17 },
-  battle_army: [],
-  prism_grid: [],
-  prism_max_tier: 12,
   ...over
 })
 
-const STATE_KEY = 'elemental-barrage_state'
-
-/** Written into the page BEFORE any script runs, so the game boots into it. */
 const seedSaveScript = (save) => `
   try {
-    localStorage.clear()
-    localStorage.setItem(${JSON.stringify(STATE_KEY)}, ${JSON.stringify(JSON.stringify(save))})
+    if (!sessionStorage.getItem('__pv_seeded')) {
+      localStorage.clear()
+      localStorage.setItem(${JSON.stringify(STATE_KEY)}, ${JSON.stringify(JSON.stringify(save))})
+      sessionStorage.setItem('__pv_seeded', '1')
+    }
   } catch (e) {}
 `
 
-/** Real time: until every <img> on the page has decoded — the painted units,
- *  boss and gate are bitmaps, and one still loading on frame 0 is a hole. */
-const imagesSettled = async (ctx) => {
-  await ctx.waitFor(() => [...document.images].every((i) => i.complete), undefined, { timeout: 20_000 })
-  await ctx.evaluate(() => Promise.all([...document.images].map((i) => i.decode().catch(() => {}))))
-  await ctx.evaluate(() => document.fonts.ready.then(() => true))
+/** Page side. Serialised with toString(), so it must be self-contained. */
+function installVid () {
+  const w = window
+  if (w.__vid) return
+  const vid = {
+    B: null, SF: null,
+    async init () {
+      this.B = await import('/src/barrage/state/useBarrage.ts')
+      this.SF = await import('/src/barrage/engine/shotFinder.ts')
+      return true
+    },
+    b () { return this.B.default() },
+    eng () { return this.b().engine.value },
+    board () { return document.querySelector('.barrage-board')?.__vueParentComponent?.exposed ?? null },
+    canvas () { return document.querySelector('canvas.barrage-board__canvas') },
+    bossOf (s) { return s.monsters.find((m) => m.kind === 'boss') ?? null },
+    rowsLeft (s) {
+      let bottom = -Infinity
+      for (const m of s.monsters) bottom = Math.max(bottom, m.row + m.h)
+      return bottom === -Infinity ? 10 : 10 - bottom
+    },
+    state () {
+      const s = this.eng().state
+      const boss = this.bossOf(s)
+      return {
+        phase: s.phase, row: s.row, tray: `${s.tray.length}×t${s.tray[0] ?? 0}`, foes: s.monsters.length,
+        boss: boss ? `${boss.bossKind} ${(boss.hp / boss.maxHp).toFixed(2)} bottom=${boss.row + boss.h}${boss.enraged ? ' ENRAGED' : ''}` : null,
+        rowsLeft: this.rowsLeft(s), shields: s.shields, revives: s.revives, held: this.b().holdSim.value, death: this.b().deathScene.value, breach: !!this.b().breach.value
+      }
+    },
+    calm () { this.eng().state.chestTimer = 1e6 },
+    jumpToBoss () { this.B.barrageCheats.jumpToNextBoss(); this.calm() },
+    prime (n, angle = Math.PI / 2) {
+      for (let i = 0; i < n; i++) {
+        const e = this.eng()
+        if (e.state.phase !== 'aim') break
+        e.state.tray = [1]
+        this.b().fire(angle)
+        e.settle(60)
+      }
+      this.calm()
+      return this.state()
+    },
+    /** Play one volley on a clone with `tray`; returns the clone after it settles. */
+    trial (src, tray, angle) {
+      const c = src.clone()
+      c.state.tray = tray.slice()
+      c.state.chestTimer = 1e6
+      c.fire(angle)
+      c.settle(120)
+      return c
+    },
+    /**
+     * Search four volleys on clones, one tray (tier × count) for all of them:
+     *   vO  the opener — this tray's best kill shot that leaves the boss healthy;
+     *   v0  the opener — a combo that clears walkers and only grazes the boss;
+     *   v1  success: ENRAGES the boss (< 30 %), so it marches two rows and
+     *       stands at the line; fail: hurts it without enraging it while
+     *       something is left one march from the line;
+     *   v2  success: kills it (with its neighbouring angles too — robust);
+     *       fail: leaves it a sliver and the line breaks (one exact angle).
+     * The game's hidden savior boost doubles the damage of a volley fired with
+     * the boss one march from breaching, so a fail by the boss alone is nearly
+     * unplannable; the fail clip's breach usually comes from the boss AND the
+     * walker row beside it.
+     */
+    plan (kind) {
+      const SF = this.SF
+      const live = this.eng()
+      const fan = SF.aimFan(45)
+      const fan0 = SF.aimFan(17)
+      const cap = live.state.config.trayCapacity
+      const trays = []
+      for (const t of [2, 3, 4, 5, 6, 7, 8]) for (const n of [8, 10, 12, 14, 16]) if (n <= cap) trays.push({ t, n })
+      const out = []
+      const diag = { v0: 0, v1: 0, v2: 0 }
+      const t0 = performance.now()
+      for (const { t, n } of trays) {
+        if (performance.now() - t0 > 150_000) break
+        const tray = Array.from({ length: n }, () => t)
+        // The opener: this tray's most destructive shot that leaves the boss
+        // healthy — the clip's first seconds, before the planned three.
+        let open = null
+        for (const aO of SF.aimFan(21)) {
+          const cO = this.trial(live, tray, aO)
+          const bO = this.bossOf(cO.state)
+          if (cO.state.phase !== 'aim' || !bO || bO.enraged || bO.hp / bO.maxHp < 0.5) continue
+          const k = live.state.monsters.filter((m) => !cO.state.monsters.some((x) => x.id === m.id)).length
+          if (!open || k > open.k) open = { aO, cO, k }
+        }
+        if (!open || open.k < 2) continue
+        diag.open = (diag.open ?? 0) + 1
+        const src = open.cO
+        for (const a0 of fan0) {
+          const c0 = this.trial(src, src.state.tray, a0)
+          const boss0 = this.bossOf(c0.state)
+          if (c0.state.phase !== 'aim' || !boss0) continue
+          const killed0 = src.state.monsters.filter((m) => !c0.state.monsters.some((x) => x.id === m.id)).length
+          if (killed0 < 1 || boss0.enraged) continue
+          diag.v0++
+          for (const a1 of fan) {
+            const c1 = this.trial(c0, c0.state.tray, a1)
+            if (c1.state.phase !== 'aim') continue
+            const boss1 = this.bossOf(c1.state)
+            if (!boss1) continue
+            const frac1 = boss1.hp / boss1.maxHp
+            const left1 = this.rowsLeft(c1.state)
+            const killed1 = c0.state.monsters.filter((m) => !c1.state.monsters.some((x) => x.id === m.id)).length
+            if (kind === 'success' ? (!boss1.enraged || frac1 < 0.08 || left1 > 1) : (boss1.enraged || frac1 < 0.3 || left1 !== 0)) continue
+            diag.v1++
+            const res = fan.map((a2) => {
+              const c2 = this.trial(c1, c1.state.tray, a2)
+              const boss2 = this.bossOf(c2.state)
+              return { a2, phase: c2.state.phase, boss2: boss2 ? boss2.hp / boss2.maxHp : 0 }
+            })
+            for (let i = 1; i < res.length - 1; i++) {
+              const r = res[i], l = res[i - 1], rr = res[i + 1]
+              const base = (open.k + killed0 + killed1) * 2 + t + n * 0.5 + (kind === 'success' && left1 === 0 ? 8 : 0)
+              let score = -1
+              if (kind === 'success') {
+                const ok = (x) => x.boss2 === 0 && x.phase === 'aim'
+                if (ok(r) && ok(l) && ok(rr)) score = base
+              } else if (r.phase === 'breach' && r.boss2 > 0 && r.boss2 < 0.3) {
+                score = base + (0.3 - r.boss2) * 60
+              }
+              if (score > 0) { diag.v2++; out.push({ t, n, aO: open.aO, a0, a1, a2: r.a2, killed0, killed1, frac1, left1, boss2: r.boss2, score }) }
+            }
+          }
+        }
+      }
+      diag.ms = Math.round(performance.now() - t0)
+      out.sort((x, y) => y.score - x.score)
+      return { n: out.length, diag, best: out[0] ?? null, top: out.slice(0, 4) }
+    },
+    setTray (t, n) {
+      const e = this.eng()
+      e.state.tray = Array.from({ length: n }, () => t)
+      this.b().tray.value = e.state.tray.slice()
+    },
+    /** The most satisfying shot on the live board right now: kills, hits and
+     *  pickups ('+1' balls, perk orbs), with its neighbours. Never a breach. */
+    bestShot () {
+      const SF = this.SF
+      const live = this.eng()
+      const trials = SF.aimFan(41).map((a) => SF.trialShot(live, a))
+      const i = SF.pickBest(trials, (t) => (t.breach ? -100 : t.kills * 4 + t.hits * 0.2 + t.balls * 2))
+      return trials[i]?.angle ?? Math.PI / 2
+    },
+    /** The finger, in client px, `k` (0..1) of the way from the launcher along `angle`. */
+    fingerAt (angle, k) {
+      const bd = this.board()
+      const s = this.eng().state
+      const from = bd.cellToClient(s.launcherX, 11.15 - 0.45)
+      const to = bd.cellToClient(s.launcherX + Math.cos(angle) * 6, 11.15 - 0.45 - Math.sin(angle) * 6)
+      return { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k }
+    },
+    ptr (type, p) {
+      this.canvas().dispatchEvent(new PointerEvent(type, {
+        bubbles: true, cancelable: true, pointerId: 7, pointerType: 'touch', isPrimary: true,
+        clientX: p.x, clientY: p.y, button: 0, buttons: type === 'pointerup' || type === 'pointercancel' ? 0 : 1
+      }))
+    },
+    down (angle) { this.ptr('pointerdown', this.fingerAt(angle, 0.55)) },
+    aim (angle, k = 1) { this.ptr('pointermove', this.fingerAt(angle, k)) },
+    /** End the drag and fire the planned angle exactly (see the header). */
+    release (angle) {
+      this.ptr('pointercancel', this.fingerAt(angle, 1))
+      return this.b().fire(angle)
+    },
+    restart () { void this.b().restartFromCheckpoint() }
+  }
+  w.__vid = vid
 }
 
-/**
- * Boot to the game scene with the fixture save. Reuses the runner's URL — the
- * port and every URL param, `clean=1` included — and bounces through
- * about:blank so the init scripts run on a real navigation.
- */
+/** Boot to a veteran's endless run and install `__vid`. */
 export const boot = async (ctx, { save = saveFixture() } = {}) => {
-  const url = ctx.page.url()
+  const url = ctx.page.url().split('#')[0]
   await ctx.page.addInitScript(seedSaveScript(save))
   await ctx.page.goto('about:blank')
-  await ctx.page.goto(url, { waitUntil: 'domcontentloaded' })
-  await ctx.waitFor(() => !!window.__video && window.__video.ready(), undefined, { timeout: 60_000 })
-  // Assert the boot, don't hope for it: a tutorial or a modal on frame 0 is a
-  // clip of the wrong thing that every log line would call a success.
-  const blockers = await ctx.evaluate(() => [
-    ...document.querySelectorAll('[role="dialog"], .modal, .tutorial-overlay, .welcome-back')
-  ].filter((el) => el.getBoundingClientRect().width > 0).map((el) => el.className || el.tagName))
-  if (blockers.length) throw new Error(`boot: something is covering the scene: ${blockers.join(' | ')}`)
+  await ctx.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 180_000 })
+  await ctx.waitFor(() => !!document.querySelector('canvas.barrage-board__canvas') && !!(/** @type {any} */ (window)).__coach?.engine?.(), undefined, { timeout: 120_000 })
+  await ctx.evaluate(`(${installVid.toString()})()`)
+  await ctx.evaluate(() => window.__vid.init())
+  await ctx.waitFor(() => window.__vid.eng().state.phase === 'aim' && !window.__vid.b().holdSim.value, undefined, { timeout: 60_000 })
+  await ctx.wait(1500) // splash / fonts / painted art settle
 }
 
-/**
- * Put the page's seeded Math.random back at a known point. The recorder seeds
- * it at document start, but the REAL-time boot and setup consume it for as
- * many frames as they happen to run — so staging and the release each start
- * from a fixed point instead, and two takes are the same fight. (No-op with
- * `--seed off`.)
- */
-const reseed = (ctx, salt) =>
+/** Reset the page's seeded Math.random to a fixed point (no-op with --seed off). */
+export const reseed = (ctx, salt = 0) =>
   ctx.evaluate(([base, s]) => window.__vseed?.reseed(base + s), [Number(ctx.config.seedRandom ?? 7), salt])
 
-/**
- * Give every looping CSS animation (the idle bob and march of each unit, the
- * portal's spin) a fixed phase by document order, and pause it there. Their
- * phase is otherwise however much real time setup took, so two takes of the
- * same fight differed in every frame by a few pixels of bob. The recorder's
- * clock adopts a paused animation's currentTime as it arms and drives it from
- * there, so the phases hold exactly. Finite animations are left alone.
- */
-const pinAmbientAnimations = (ctx) => ctx.evaluate(() => {
+/** Pin every looping CSS animation to a fixed phase — the last thing setup does. */
+export const pinAmbientAnimations = (ctx) => ctx.evaluate(() => {
   let i = 0
   for (const a of document.getAnimations()) {
-    const timing = a.effect?.getTiming?.()
-    if (!timing || timing.iterations !== Infinity) continue
-    const period = typeof timing.duration === 'number' && timing.duration > 0 ? timing.duration : 1000
-    a.currentTime = ((i++ * 211) % 997) / 997 * period + (Number(timing.delay) || 0)
+    const t = a.effect?.getTiming?.()
+    if (!t || t.iterations !== Infinity) continue
+    const period = typeof t.duration === 'number' && t.duration > 0 ? t.duration : 1000
+    a.currentTime = ((i++ * 211) % 997) / 997 * period + (Number(t.delay) || 0)
     a.pause()
   }
   return i
 })
 
-/** Stage the fight and grid (frozen), then let the art settle — REAL time. */
-export const stage = async (ctx, plan) => {
-  await reseed(ctx, 0)
-  await ctx.evaluate((p) => window.__video.stage(p), plan)
-  await imagesSettled(ctx)
-  // One real beat so the staged scene has painted, and every entrance
-  // transition (unit pop-ins) has finished before frame 0.
-  await ctx.wait(700)
-  await pinAmbientAnimations(ctx)
-  const s = await snapshot(ctx)
-  ctx.log.info(`staged wave ${s.wave} · army ${s.army.map((f) => 'T' + f.tier).join(' ')} · ` +
-    `foes ${s.foes.length}${s.boss !== null ? ' + boss' : ''} · grid ${s.grid.filter(Boolean).join(',')}` +
-    `${ctx.clean ? ' (clean feed)' : ''}`)
-  return s
-}
-
-/** Release the battle. Call at the very top of `record()` so frame 1 moves. */
-export const release = async (ctx) => {
-  await reseed(ctx, 1)
-  await ctx.evaluate(() => window.__video.freeze(false))
-}
-export const hold = (ctx) => ctx.evaluate(() => window.__video.freeze(true))
-
-/** Fire a drag and return at once — it animates on the page's (virtual) rAF.
- *  Pace the beat with `wait`; never await the drag itself. */
-export const drag = (ctx, from, to, ms = 620) =>
-  ctx.evaluate(([f, t, m]) => window.__video.drag(f, t, m), [from, to, ms])
-
-/** Drag slot `from` onto the first fighter of `tier` — a field merge. The drop
- *  tracks the fighter as it moves. With no such fighter standing (the fight is
- *  emergent — it may have fallen), it deploys at `fallback` (arena %) instead,
- *  or does nothing and resolves false without one. */
-export const dragOnto = (ctx, from, tier, ms = 700, fallback = null) =>
-  ctx.evaluate(([f, t, m, fb]) => {
-    const target = window.__video.state().army.find((a) => a.tier === t && !a.spectral)
-    if (target) return window.__video.drag(f, { fighter: target.id }, m)
-    return fb ? window.__video.drag(f, { arena: fb }, m) : false
-  }, [from, tier, ms, fallback])
-
-/** A spell, through the arena's own button handler (sound, shake, VFX). */
-export const cast = (ctx, skill) => ctx.evaluate((s) => window.__video.cast(s), skill)
-
-/** Tap the OVERRUN screen's Skip: the field resets 0.8 s of game time later
- *  instead of holding the red screen while the RALLY offer waits. */
-export const skipRally = (ctx) => ctx.evaluate(() => window.__video.skipRally())
-
-export const snapshot = (ctx) => ctx.evaluate(() => window.__video.state())
-
-/** A one-line verdict for the log, so two takes can be compared by eye. */
-export const logState = async (ctx, label) => {
-  const s = await snapshot(ctx)
-  const army = s.army.filter((f) => !f.spectral).map((f) => `T${f.tier}@${f.hp}`).join(' ')
-  ctx.log.info(`${label}: phase ${s.phase} · gate ${s.gate} · army [${army}] · foes ${s.foes.length}` +
-    `${s.boss !== null ? ` · boss ${s.boss}` : ''}${s.reveal ? ` · reveal T${s.reveal.tier}` : ''}`)
-  return s
-}
-
-/** Authoring aid: with PV_TRACE=1 in the environment, log the fight every
- *  `everyMs` of video alongside the beats — how a staging is tuned. */
-export const trace = (ctx, everyMs = 1000) => {
-  if (!process.env.PV_TRACE) return
-  void (async () => {
-    for (let t = everyMs; t < ctx.durationMs; t += everyMs) {
-      await ctx.wait(everyMs)
-      await logState(ctx, `t=${(t / 1000).toFixed(1)}s`)
-    }
-  })()
+/**
+ * Stage the boss fight: next row is the boss, `primeTurns` weak turns walk it
+ * (and the walker row below it) down to the danger zone, then search the four
+ * volleys for `kind`. Throws when no plan exists — a clip without its payoff
+ * is worse than no clip.
+ */
+export const stageBossFight = async (ctx, kind, { primeTurns = 6 } = {}) => {
+  await reseed(ctx)
+  await ctx.evaluate(() => window.__vid.jumpToBoss())
+  await ctx.wait(300)
+  const primed = await ctx.evaluate((n) => window.__vid.prime(n), primeTurns)
+  ctx.log.info(`primed: ${JSON.stringify(primed)}`)
+  const plan = await ctx.evaluate((k) => window.__vid.plan(k), kind)
+  ctx.log.info(`plan(${kind}): ${plan.n} candidates ${JSON.stringify(plan.diag)}; best ${JSON.stringify(plan.best)}`)
+  if (!plan.best) throw new Error(`stageBossFight: no ${kind} plan from this board — change primeTurns`)
+  await ctx.evaluate(([t, n]) => window.__vid.setTray(t, n), [plan.best.t, plan.best.n])
+  await ctx.wait(800) // let the renderer settle onto the staged board
+  return plan.best
 }
 
 /**
- * Clamp every wait to what is left of the clip, so `--duration 6` ends cleanly
- * instead of scheduling beats past the last frame. Returns false once the clip
- * is spent — a beat list stops on it.
+ * One scripted shot inside record(): the finger goes down, sweeps to the aim
+ * over `aimMs` (the game draws its own preview), holds, and fires the exact
+ * planned angle. Paced by ctx.wait — virtual time.
  */
+export const shoot = async (ctx, angle, { aimMs = 700, holdMs = 250, from = Math.PI / 2 } = {}) => {
+  const frames = Math.max(2, Math.round(aimMs / (1000 / ctx.fps)))
+  await ctx.evaluate((a) => window.__vid.down(a), from)
+  for (let i = 1; i <= frames; i++) {
+    const k = i / frames
+    const e = k * k * (3 - 2 * k)
+    await ctx.evaluate(([a, b, t]) => window.__vid.aim(a + (b - a) * t, 1), [from, angle, e])
+    await ctx.wait(1000 / ctx.fps)
+  }
+  await ctx.wait(holdMs)
+  const ok = await ctx.evaluate((a) => window.__vid.release(a), angle)
+  if (!ok) ctx.log.warn(`shoot: fire(${angle.toFixed(3)}) refused`)
+  return ok
+}
+
+export const logState = async (ctx, label) => {
+  const s = await ctx.evaluate(() => window.__vid?.state() ?? null)
+  ctx.log.info(`${label} @${(ctx.frame() / ctx.fps).toFixed(1)}s: ${JSON.stringify(s)}`)
+  return s
+}
+
+/** Clamp waits to the clip. */
 export const budget = (ctx) => {
   let spent = 0
   const wait = async (ms) => {
@@ -200,6 +322,6 @@ export const budget = (ctx) => {
     if (take > 0) await ctx.wait(take)
     return spent < ctx.durationMs
   }
-  wait.at = () => spent
+  wait.left = () => Math.max(0, ctx.durationMs - spent)
   return wait
 }

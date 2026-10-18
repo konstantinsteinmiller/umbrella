@@ -117,6 +117,7 @@ export const isGamepix = import.meta.env.VITE_APP_GAMEPIX === 'true'
 export const isGameMonetize = import.meta.env.VITE_APP_GAME_MONETIZE === 'true'
 export const isYandex = import.meta.env.VITE_APP_YANDEX === 'true'
 export const isPoki = import.meta.env.VITE_APP_POKI === 'true'
+export const isGamePush = import.meta.env.VITE_APP_GAMEPUSH === 'true'
 export const showMediatorAds = import.meta.env.VITE_APP_SHOW_MEDIATOR_ADS === 'true'
 export const isNative = import.meta.env.VITE_APP_NATIVE === 'true'
 export const isWeb = import.meta.env.VITE_APP_NATIVE !== 'true'
@@ -127,7 +128,7 @@ export const isDemo = import.meta.env.VITE_APP_DEMO === 'true'
 // placements can never fill.
 export const isBasicLaunch =
   !isCrazyWeb && !isWaveDash && !isItch && !isGlitch && !isGameDistribution &&
-  !isPlaygama && !isGamepix && !isGameMonetize && !isYandex && !isPoki
+  !isPlaygama && !isGamepix && !isGameMonetize && !isYandex && !isPoki && !isGamePush
 
 // Rewarded BUFFS/REWARDS are BOUGHT WITH COINS instead of a rewarded ad on the
 // basic launch (no ad SDK) and on any CrazyGames build that is NOT flagged as a

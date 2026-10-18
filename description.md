@@ -6,7 +6,7 @@ Pull back, release, and watch elemental balls ricochet through marching monsters
 
 ## Long Description (max 500 chars)
 
-Elemental Barrage is a casual volley shooter. Monsters march down the board row by row — drag back, aim and release a barrage of elemental balls that bounce through them. Grab +1 pickups: when your ball tray overflows, twin balls merge into mightier elementals with burn, freeze, chain lightning and more. Every 10 rows a boss enrages; beat it to set a checkpoint. Buy the glowing upgrade, collect launchers and ball skins, and chase the Daily Barrage.
+Elemental Barrage is a casual volley shooter, the real Disco shows when you land a Combo and the Fever lights up the screen. Monsters march down the board row by row — drag back, aim and release a barrage of elemental balls that bounce through them. Grab +1 pickups: when your ball tray overflows, twin balls merge into mightier elementals with burn, freeze, chain lightning and more. Every 10 rows a boss enrages; beat it to set a checkpoint. Buy the glowing upgrade, collect launchers and ball skins, and chase the Daily Barrage.
 
 ## Controls
 

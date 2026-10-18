@@ -234,6 +234,12 @@ export const buildCsp = (env: Record<string, string>): string => {
   // builds make, for their own reasons.
   if (env.VITE_APP_PLAYGAMA === 'true') return ''
 
+  // GAMEPUSH: no policy either. GamePush fans the ONE archive out to many
+  // portals (CrazyGames, Poki, GamePix, Playgama, Yandex, VK, ...) and injects
+  // its own SDK + each portal's ad stack into our document; a meta CSP would
+  // silently break whichever host list we forgot. Same call as Playgama.
+  if (env.VITE_APP_GAMEPUSH === 'true') return ''
+
   const isGameDistribution = env.VITE_APP_GAME_DISTRIBUTION === 'true'
   const isGlitch = env.VITE_APP_GLITCH === 'true'
   const isCrazyWeb = env.VITE_APP_CRAZY_WEB === 'true'

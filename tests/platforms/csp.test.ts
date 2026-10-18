@@ -318,6 +318,28 @@ describe('buildCsp', () => {
     })
   })
 
+  describe('GamePush build (one archive fanned out to many portals)', () => {
+    it('emits NO policy at all', () => {
+      // GamePush injects its own SDK and each host portal's ad stack into our
+      // document; a meta CSP would silently break whichever host we forgot.
+      expect(buildCsp({ VITE_APP_GAMEPUSH: 'true' })).toBe('')
+    })
+
+    it('stays empty even when another flag leaks in from the base .env', () => {
+      expect(buildCsp({ VITE_APP_GAMEPUSH: 'true', VITE_APP_CRAZY_WEB: 'true' })).toBe('')
+    })
+
+    it('still emits a policy when the flag is off', () => {
+      expect(buildCsp({ VITE_APP_GAMEPUSH: 'false' })).not.toBe('')
+    })
+
+    it('never names gamepush on any other build', () => {
+      for (const env of [{}, { VITE_APP_CRAZY_WEB: 'true' }, { VITE_APP_YANDEX: 'true' }, { VITE_APP_GAMEPIX: 'true' }]) {
+        expect(buildCsp(env)).not.toContain('gamepush')
+      }
+    })
+  })
+
   describe('directive ordering and shape', () => {
     it('emits all 8 standard directives separated by "; "', () => {
       const csp = buildCsp(baseEnv())

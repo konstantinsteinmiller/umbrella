@@ -28,7 +28,8 @@ const ALL_PLATFORM_ENVS = [
   'VITE_APP_GAME_MONETIZE',
   'VITE_APP_YANDEX',
   'VITE_APP_GLITCH',
-  'VITE_APP_POKI'
+  'VITE_APP_POKI',
+  'VITE_APP_GAMEPUSH'
 ] as const
 
 const clearEnv = () => {
@@ -91,6 +92,16 @@ describe('resolveSaveStrategy', () => {
     const resolveSaveStrategy = await loadResolver()
     const strategy = await resolveSaveStrategy({ ...allOff, isYandex: true } as any)
     expect(strategy.name).toBe('yandex')
+  })
+
+  it('returns GamePushStrategy (player fields + local fallback) when VITE_APP_GAMEPUSH is set', async () => {
+    vi.stubEnv('VITE_APP_GAMEPUSH', 'true')
+    const resolveSaveStrategy = await loadResolver()
+    const strategy = await resolveSaveStrategy({ ...allOff, isGamePush: true } as any)
+    expect(strategy.name).toBe('gamepush')
+    // A remote-mirroring strategy: it must start un-hydrated so nothing is
+    // pushed before the first authoritative read.
+    expect(strategy.hydrateState).toBe('pending')
   })
 
   it('returns PokiStrategy (local-only) when isPoki env is set', async () => {

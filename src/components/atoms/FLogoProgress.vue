@@ -268,6 +268,20 @@ const signalGameReadyToYandex = () => {
   })
 }
 
+// GamePush's `gp.gameStart()` ("the game is fully loaded") — some portals behind
+// GamePush (PlayDeck, Playdia) require it. Same splash-resolved edge; the plugin
+// guards it internally. Same env-literal pattern so other builds DCE the import.
+let gamePushLoadSignaled = false
+const signalGameReadyToGamePush = () => {
+  if (gamePushLoadSignaled) return
+  if (import.meta.env.VITE_APP_GAMEPUSH !== 'true') return
+  gamePushLoadSignaled = true
+  void import('@/utils/gamePushPlugin').then(({ gamePushGameStart }) => {
+    try { gamePushGameStart() }
+    catch (e) { console.warn('[FLogoProgress] GamePush gameStart failed', e) }
+  })
+}
+
 // Poki's `gameLoadingFinished()` is the ONE strictly-required SDK call — every
 // byte transferred before it counts toward the load-size metric P4D reports.
 // Same splash-resolved edge as CG's `loadingStop` / Playgama's `game_ready` /
@@ -302,6 +316,7 @@ const signalGameLiveToBracket = () => {
     && import.meta.env.VITE_APP_POKI !== 'true'
     && import.meta.env.VITE_APP_PLAYGAMA !== 'true'
     && import.meta.env.VITE_APP_YANDEX !== 'true'
+    && import.meta.env.VITE_APP_GAMEPUSH !== 'true'
   ) return
   bracketLiveSignaled = true
   void import('@/use/usePortalGameplay').then(({ notifyPortalGameLive }) => {
@@ -319,6 +334,7 @@ watch(done, (isDone) => {
       signalGameReadyToGamepix()
       signalGameReadyToYandex()
       signalGameReadyToPoki()
+      signalGameReadyToGamePush()
       signalGameLiveToBracket()
       // Triggers the GameMonetize / GamePix first-load interstitial (no-op on
       // other builds — the orchestrator was never armed). Runs alongside the platform

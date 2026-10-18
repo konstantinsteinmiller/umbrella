@@ -17,7 +17,7 @@ import { LANGUAGES } from '@/utils/enums'
 import { initAds } from '@/use/useAds'
 import { installGamePauseAudio } from '@/use/useGamePauseAudio'
 import { onGameSuspended, USES_PAGE_VISIBILITY } from '@/use/useGamePause'
-import useUser, { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki } from '@/use/useUser'
+import useUser, { isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isGamePush } from '@/use/useUser'
 import { isDebug } from '@/use/useMatch.ts'
 import { hasState, reloadEpicState } from '@/use/useEpicState'
 import { SaveManager } from '@/utils/save/SaveManager'
@@ -117,6 +117,7 @@ const bootstrap = async () => {
   let yaLocale: string | null = null
   let pgLocale: string | null = null
   let pkLocale: string | null = null
+  let gpLocale: string | null = null
   if (isCrazyWeb) {
     const cg = await import('@/use/useCrazyGames')
     await cg.initCrazyGames()
@@ -203,6 +204,15 @@ const bootstrap = async () => {
     await playgamaPlugin()
     playgamaLoadingStart()
     pgLocale = playgamaLocale.value
+  } else if (isGamePush) {
+    // **Awaited** init — must finish BEFORE `saveManager.init()` runs hydrate:
+    // `GamePushStrategy.hydrate()` reads the synced `gp.player` fields, and
+    // `gamePushPlugin()` only resolves after `gp.player.ready`. Same reasoning
+    // as Yandex / Playgama. The plugin never rejects (blocked script, missing
+    // project id) — the game then boots offline on localStorage.
+    const { gamePushPlugin, gamePushLocale } = await import('@/utils/gamePushPlugin')
+    await gamePushPlugin()
+    gpLocale = gamePushLocale.value
   } else if (isPoki) {
     // **PARALLEL** init — deliberately NOT awaited, unlike GamePix / Yandex /
     // Playgama above. Those three await because their save strategy has to read
@@ -238,7 +248,7 @@ const bootstrap = async () => {
   // unit-testable in isolation. Adding a platform = add an arm there,
   // not edit this file.
   const strategy = await resolveSaveStrategy({
-    isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki
+    isCrazyWeb, isWaveDash, isItch, isGlitch, isGameDistribution, isPlaygama, isGamepix, isGameMonetize, isYandex, isPoki, isGamePush
   })
 
   // CrazyGames cloud-only mode: gameplay state and our save bookkeeping
@@ -435,7 +445,7 @@ const bootstrap = async () => {
   // null on other builds. Yandex returns ISO-639-1 (`en`, `ru`, `tr`, etc.);
   // Playgama's `platform.language` is normalised to two letters in the plugin.
   // Anything we don't ship maps to the resolver's fallback chain.
-  const portalLocaleHint = cgLocale ?? yaLocale ?? pgLocale ?? pkLocale
+  const portalLocaleHint = cgLocale ?? yaLocale ?? pgLocale ?? pkLocale ?? gpLocale
   const portalLocale = portalLocaleHint && LANGUAGES.includes(portalLocaleHint) ? portalLocaleHint : null
 
   // Resolve and LOAD just the initial locale bundle before creating the
@@ -470,7 +480,7 @@ const bootstrap = async () => {
   // Standalone web builds keep the browser guess, where no portal contract
   // applies and it is the best available default.
   const isPortalBuild = isCrazyWeb || isGameDistribution || isPlaygama
-    || isGamepix || isGameMonetize || isYandex || isWaveDash || isPoki
+    || isGamepix || isGameMonetize || isYandex || isWaveDash || isPoki || isGamePush
   const initial = resolveInitialLocale(portalLocale, {
     allowNavigatorFallback: !isPortalBuild
   })
@@ -549,6 +559,16 @@ const bootstrap = async () => {
     if (import.meta.env.VITE_APP_PLAYGAMA === 'true') {
       void import('@/utils/playgamaPlugin').then(({ playgamaLocale }) => {
         watch(playgamaLocale, (code) => {
+          if (code) applyPortalLocale(code)
+        })
+      })
+    }
+
+    // GamePush: the host portal's language can differ per portal it fans out to
+    // and flips with the portal UI; republish through the same applier.
+    if (import.meta.env.VITE_APP_GAMEPUSH === 'true') {
+      void import('@/utils/gamePushPlugin').then(({ gamePushLocale }) => {
+        watch(gamePushLocale, (code) => {
           if (code) applyPortalLocale(code)
         })
       })

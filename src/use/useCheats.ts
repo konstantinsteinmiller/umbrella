@@ -4,6 +4,7 @@ import { setState } from '@/use/useEpicState'
 import { toggleDebug } from '@/use/useMatch'
 import { EB_SUPPLY_KEY } from '@/barrage/keys'
 import type { SkillId } from '@/barrage/engine/types'
+import { loadBarrageCheats, type BarrageCheats } from '@/use/barrageCheatsLoader'
 
 // `cheat` stays a top-level localStorage flag — it's an explicit dev toggle
 // that gates the whole keyboard-shortcut module, so we don't want it living
@@ -72,12 +73,11 @@ installDebugUnlock()
 // The run owner is imported LAZILY: this module is loaded by App.vue on every
 // build, and a static import would drag the whole barrage engine into the entry
 // chunk just to serve a dev shortcut. The first cheat press pays the import.
-type BarrageCheats = typeof import('@/barrage/state/useBarrage')['barrageCheats']
+// The `import()` itself lives in barrageCheatsLoader.ts — keep it there: this
+// file is obfuscated in production builds and the obfuscator breaks dynamic
+// import specifiers (see the loader's header).
 const withBarrage = (fn: (c: BarrageCheats) => void): void => {
-  void import('@/barrage/state/useBarrage').then((m) => {
-    m.default() // make sure the singleton (and its engine) exists
-    fn(m.barrageCheats)
-  })
+  void loadBarrageCheats().then(fn)
 }
 
 const barrageActions = {

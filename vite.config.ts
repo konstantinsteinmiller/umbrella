@@ -521,6 +521,12 @@ export default defineConfig(({ mode, command }) => {
           // the import lives there rather than in the ~500-line plugin —
           // only this leaf file loses obfuscation.
           /utils[\\/]playgamaBridgeLoader\.ts$/,
+          // The QA cheats' lazy `import('@/barrage/state/useBarrage')`.
+          // Without this exclude the specifier shipped unresolved and every
+          // `__barrage.*` console cheat threw "Failed to resolve module
+          // specifier". Leaf loader so useCheats.ts stays obfuscated.
+          // tests/build/obfuscatorDynamicImports.test.ts guards the pattern.
+          /use[\\/]barrageCheatsLoader\.ts$/,
           // usePortalGameplay dynamic-imports `@/utils/playgamaPlugin` to
           // fire the gameplay_started / gameplay_stopped bracket. Same
           // obfuscator-vs-dynamic-import constraint as FLogoProgress.
@@ -672,7 +678,11 @@ export default defineConfig(({ mode, command }) => {
   // sets its own frame policy. `buildCsp` returns '' for this build too, so
   // the decision is unit-testable in `csp.test.ts`.
   const isPlaygama = env.VITE_APP_PLAYGAMA === 'true'
-  const skipCspMeta = isYandexBuild || isGamepixBuild || isPokiBuild || isPlaygama
+  // GAMEPUSH: no meta tag, for the Playgama/Poki reason multiplied: GamePush
+  // fans this ONE archive out to a dozen portals and injects its own SDK plus
+  // each portal's ad stack into our document. `buildCsp` returns '' for it too.
+  const isGamePushBuild = env.VITE_APP_GAMEPUSH === 'true'
+  const skipCspMeta = isYandexBuild || isGamepixBuild || isPokiBuild || isPlaygama || isGamePushBuild
   const cspValue = buildCsp(env)
 
   // ─── Exactly-one-platform guard ─────────────────────────────────────────
@@ -698,7 +708,8 @@ export default defineConfig(({ mode, command }) => {
     'VITE_APP_GLITCH',
     'VITE_APP_ITCH',
     'VITE_APP_WAVEDASH',
-    'VITE_APP_POKI'
+    'VITE_APP_POKI',
+    'VITE_APP_GAMEPUSH'
   ] as const
   const activePlatforms = PLATFORM_FLAGS.filter(f => env[f] === 'true')
   if (activePlatforms.length > 1) {
@@ -1134,6 +1145,14 @@ export default defineConfig(({ mode, command }) => {
           // warning on 1.1.2. Same failure, same fix as pokiPlugin above.
           '@/utils/yandexPlugin': fileURLToPath(new URL('./src/utils/yandexPlugin.stub.ts', import.meta.url))
         }),
+        ...(env.VITE_APP_GAMEPUSH === 'true' ? {} : {
+          // gamePushPlugin is STATICALLY imported by `platforms/gamepush`,
+          // `GamePushStrategy` and `GamePushProvider` (all reachable from every
+          // build's resolvers), and hardcodes the GamePush SDK URL. Same
+          // failure, same fix as yandexPlugin / pokiPlugin above.
+          '@/use/ads/GamePushProvider': fileURLToPath(new URL('./src/use/ads/GamePushProvider.stub.ts', import.meta.url)),
+          '@/utils/gamePushPlugin': fileURLToPath(new URL('./src/utils/gamePushPlugin.stub.ts', import.meta.url))
+        }),
         '@': fileURLToPath(new URL('./src', import.meta.url)),
         '@/': fileURLToPath(new URL('./src/', import.meta.url)),
         '#': fileURLToPath(new URL('./src/assets', import.meta.url))
@@ -1154,7 +1173,7 @@ export default defineConfig(({ mode, command }) => {
       // original source next to it. Minified-but-readable is the sweet spot —
       // QA still gets a greppable file+line, which is all the last rejection
       // was missing.
-      sourcemap: !shouldObfuscate && !isPlaygama,
+      sourcemap: !shouldObfuscate && !isPlaygama && !isGamePushBuild,
       rollupOptions: {
         output: {
           // Foreign-portal chunk NAMES. The stubs above keep other portals'

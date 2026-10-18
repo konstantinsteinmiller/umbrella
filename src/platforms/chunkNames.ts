@@ -14,6 +14,7 @@ const PORTAL_TOKENS: ReadonlyArray<readonly [RegExp, string]> = [
   [/gamepix/i, 'VITE_APP_GAMEPIX'],
   [/playgama/i, 'VITE_APP_PLAYGAMA'],
   [/yandex/i, 'VITE_APP_YANDEX'],
+  [/gamepush/i, 'VITE_APP_GAMEPUSH'],
   [/monetize/i, 'VITE_APP_GAME_MONETIZE'],
   [/gamedistribution/i, 'VITE_APP_GAME_DISTRIBUTION'],
   [/glitch/i, 'VITE_APP_GLITCH'],

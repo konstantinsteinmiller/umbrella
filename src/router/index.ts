@@ -85,6 +85,7 @@ const isPortalBuild =
   || import.meta.env.VITE_APP_GAME_MONETIZE === 'true'
   || import.meta.env.VITE_APP_YANDEX === 'true'
   || import.meta.env.VITE_APP_POKI === 'true'
+  || import.meta.env.VITE_APP_GAMEPUSH === 'true'
 
 const historyMode: 'memory' | 'hash' = isPortalBuild ? 'memory' : 'hash'
 

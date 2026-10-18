@@ -22,6 +22,7 @@ export interface PlatformFlags {
   isGameMonetize: boolean
   isYandex: boolean
   isPoki: boolean
+  isGamePush: boolean
 }
 
 export type GlitchLicenseStatus = 'pending' | 'ok' | 'denied'
@@ -74,6 +75,10 @@ export interface ResolvedCapabilities {
    *  moderator flags foreign hostnames here). Flag-only, like Playgama /
    *  GameMonetize / Yandex. */
   allowedToShowOnPoki: boolean
+  /** Always true on GamePush builds. The same archive is fanned out by
+   *  GamePush to many portals (and runs on its own hosting draft link), so a
+   *  hostname gate would block legitimate embeds. Flag-only, like Playgama. */
+  allowedToShowOnGamePush: boolean
   /** True when Glitch was selected but their license API rejected the player. */
   isGlitchDenied: boolean
   /** True when the build targets a platform AND the license check has settled.
@@ -144,7 +149,7 @@ export const resolveCapabilities = (input: CapabilitiesInput): ResolvedCapabilit
   const parentOrigin = input.parentOrigin ?? ''
 
   const isNotPlatformBuild =
-    !flags.isCrazyWeb && !flags.isWaveDash && !flags.isItch && !flags.isGlitch && !flags.isGameDistribution && !flags.isPlaygama && !flags.isGamepix && !flags.isGameMonetize && !flags.isYandex && !flags.isPoki
+    !flags.isCrazyWeb && !flags.isWaveDash && !flags.isItch && !flags.isGlitch && !flags.isGameDistribution && !flags.isPlaygama && !flags.isGamepix && !flags.isGameMonetize && !flags.isYandex && !flags.isPoki && !flags.isGamePush
 
   // Each `allowedToShowOnX` gate is wrapped in an `import.meta.env.VITE_APP_X`
   // env-literal `if`-block (NOT a ternary — empirically esbuild folds
@@ -205,8 +210,12 @@ export const resolveCapabilities = (input: CapabilitiesInput): ResolvedCapabilit
   // *.poki-gdn.com origin. Flag-only, like Playgama / GameMonetize / Yandex.
   const allowedToShowOnPoki = flags.isPoki || isNotPlatformBuild
 
+  // GamePush: NO hostname check — one archive runs on GamePush hosting and on
+  // every portal it fans out to. Flag only, like Playgama.
+  const allowedToShowOnGamePush = flags.isGamePush || isNotPlatformBuild
+
   const anyPlatform =
-    flags.isCrazyWeb || flags.isWaveDash || flags.isItch || flags.isGlitch || flags.isGameDistribution || flags.isPlaygama || flags.isGamepix || flags.isGameMonetize || flags.isYandex || flags.isPoki
+    flags.isCrazyWeb || flags.isWaveDash || flags.isItch || flags.isGlitch || flags.isGameDistribution || flags.isPlaygama || flags.isGamepix || flags.isGameMonetize || flags.isYandex || flags.isPoki || flags.isGamePush
   const showOnlyAvailableText = anyPlatform && glitchLicenseStatus !== 'pending'
 
   // `plattformText` moved to App.vue (env-literal ladder) so per-platform
@@ -225,6 +234,7 @@ export const resolveCapabilities = (input: CapabilitiesInput): ResolvedCapabilit
     allowedToShowOnGameMonetize,
     allowedToShowOnYandex,
     allowedToShowOnPoki,
+    allowedToShowOnGamePush,
     isGlitchDenied,
     showOnlyAvailableText
   }

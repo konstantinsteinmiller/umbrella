@@ -1,8 +1,8 @@
 {
   "source": "https://elemental-barrage-leaderboard.rodent-race.workers.dev",
-  "fetchedAt": 1791132436062,
-  "updatedAt": 1791132265552,
-  "total": 44,
+  "fetchedAt": 1791134581023,
+  "updatedAt": 1791134560288,
+  "total": 45,
   "entries": [
     {
       "rank": 1,
@@ -42,15 +42,15 @@
     },
     {
       "rank": 7,
+      "name": "Legionary900458",
+      "score": 110,
+      "flair": 5
+    },
+    {
+      "rank": 8,
       "name": "Ranger411597",
       "score": 109,
       "flair": 7
-    },
-    {
-      "rank": 7,
-      "name": "Legionary900458",
-      "score": 109,
-      "flair": 5
     },
     {
       "rank": 9,
@@ -267,6 +267,12 @@
       "name": "Warlord820117",
       "score": 2,
       "flair": 1
+    },
+    {
+      "rank": 27,
+      "name": "_N3XuS_",
+      "score": 2,
+      "flair": 1
     }
   ],
   "dist": [
@@ -295,8 +301,12 @@
       1
     ],
     [
+      110,
+      1
+    ],
+    [
       109,
-      2
+      1
     ],
     [
       81,
@@ -344,7 +354,7 @@
     ],
     [
       2,
-      18
+      19
     ]
   ]
 }
