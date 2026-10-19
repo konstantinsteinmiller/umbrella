@@ -1,3 +1,3 @@
-game_id = "j9718rwref7fszz5pkbjtdjg4n8ffeg8"
+game_id = "" # TODO: new Wavedash game id for Umbrella
 upload_dir = "./wavedash-dist"
 entrypoint = "index.html"

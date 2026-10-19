@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/ja'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "レベル {n}",
+    'finish': "ゴール",
+    'controls': "←/→ または A/D で移動 · スペースで傘を開閉 · R でリスタート",
+    'broken': "傘が壊れた！",
+    'prevLevel': "前のレベル",
+    'nextLevel': "次のレベル",
+    'restart': "レベルをリスタート"
+  },
   'ads': {
     'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': '収集家', 'desc': '合計250個のアイテムボックスを取る。' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'キャンセル',
   'close': '閉じる',
   'ok': 'OK',

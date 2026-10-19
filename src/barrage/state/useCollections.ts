@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — launchers + ball skins (contract: `UseCollections`).
+ * Umbrella — launchers + ball skins (contract: `UseCollections`).
  *
  * Both are pure cosmetics (casual contract rule 1): nothing here reaches the
  * engine, so owning or equipping one can never change a run's outcome.

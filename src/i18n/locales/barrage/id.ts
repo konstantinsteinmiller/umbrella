@@ -1,4 +1,4 @@
-// Elemental Barrage gameplay + UI strings ('barrage' namespace).
+// Umbrella gameplay + UI strings ('barrage' namespace).
 // Mirrors the shape of ./en.ts — translated from English.
 export default {
   hud: {

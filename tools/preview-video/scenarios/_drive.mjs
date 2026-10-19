@@ -1,5 +1,5 @@
 /**
- * ─── Driving Elemental Barrage ─────────────────────────────────────────────────
+ * ─── Driving Umbrella ─────────────────────────────────────────────────
  *
  * Everything game-specific the scenarios share, so each scenario reads as a
  * beat sheet. There is no dedicated video seam in `src/`: the DEV server serves
@@ -31,7 +31,7 @@
  * Files starting with `_` are helpers and are never loaded as scenarios.
  */
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 const LESSONS = ['pull', 'survive', 'tray', 'combo', 'trayIntro', 'arrows', 'mergeBox', 'pickupBox', 'threatBox', 'speedBox', 'luckBox', 'bountyBox']
 const SKILLS = ['meteor', 'warcry', 'legion', 'pact', 'shield', 'execute', 'heal', 'revive']
 const TAGS = ['caterpillar', 'goblin', 'ogre', 'centaur', 'dryad', 'imp', 'treant', 'carbuncle', 'cyclops', 'corrupted',

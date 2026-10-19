@@ -98,7 +98,7 @@ const seedSaveScript = (blob) => `(() => {
   try {
     if (!sessionStorage.getItem('__perfSeeded')) {
       localStorage.clear()
-      localStorage.setItem('elemental-barrage_state', ${JSON.stringify(JSON.stringify(blob))})
+      localStorage.setItem('umbrella_state', ${JSON.stringify(JSON.stringify(blob))})
       sessionStorage.setItem('__perfSeeded', '1')
     }
   } catch (e) {}
@@ -193,7 +193,7 @@ const runOnce = async (cdp, origin, label, spec, repIdx) => {
       infinite: document.getAnimations().filter((a) => a.effect && a.effect.getTiming && a.effect.getTiming().iterations === Infinity).length })`).catch(() => ({}))
     if (SHOTS) await shot(S, `${SHOTS}/${SCENE_NAME}-t${THROTTLE}-${label}-r${repIdx}-end.jpg`)
     if (DUMP_SAVE) {
-      const blob = await evaluate(cdp, sessionId, `localStorage.getItem('elemental-barrage_state')`)
+      const blob = await evaluate(cdp, sessionId, `localStorage.getItem('umbrella_state')`)
       writeFileSync(DUMP_SAVE, blob || 'null')
     }
     const mm = (m) => Object.fromEntries(m.metrics.map((x) => [x.name, x.value]))

@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage balance sim — the policy bot the row-HP curve and the
+ * Umbrella balance sim — the policy bot the row-HP curve and the
  * economy are tuned against (CONTRACT §2 / §6 / §7).
  *
  *   node --import ./scripts/art/ts-resolve.mjs scripts/barrage-sim.mjs [flags]

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 import type { EngineEvent, EngineListener } from '@/barrage/engine/types'
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 
 const boot = async (state: Record<string, unknown> = {}, bestRow = 1) => {
   vi.resetModules()

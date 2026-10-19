@@ -16,7 +16,7 @@ import { bestRow, maxBallTier, oweBall } from '@/barrage/state/progress'
  * the player's own ball ladder (see `bpBallTier`), dropped into the endless
  * run's tray. Unclaimed tiers stay claimable until tapped. The 30-day season
  * resets from its first XP tick (no server needed). State persists inside the
- * consolidated `elemental-barrage_state` blob.
+ * consolidated `umbrella_state` blob.
  */
 
 export const BP_TOTAL_STAGES = 30

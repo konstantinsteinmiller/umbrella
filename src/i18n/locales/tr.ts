@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/tr'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Seviye {n}",
+    'finish': "BİTİŞ",
+    'controls': "←/→ veya A/D hareket · Boşluk şemsiyeyi açar/kapatır · R yeniden başlat",
+    'broken': "Şemsiye kırıldı!",
+    'prevLevel': "Önceki seviye",
+    'nextLevel': "Sonraki seviye",
+    'restart': "Seviyeyi yeniden başlat"
+  },
   'ads': {
     'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'İstifçi', 'desc': 'Toplam 250 eşya kutusu yakala.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'İptal',
   'close': 'Kapat',
   'ok': 'Tamam',

@@ -17,7 +17,7 @@ vi.mock('@/utils/gamePushPlugin', () => ({
   getGamePush: () => gpHandle.current
 }))
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 
 const makeLocal = (seed: Record<string, string> = {}) => {
   const map = new Map<string, string>(Object.entries(seed))

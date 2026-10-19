@@ -1,5 +1,5 @@
 /**
- * useTutorial — Elemental Barrage's first-session FTUE (CONTRACT §7).
+ * useTutorial — Umbrella's first-session FTUE (CONTRACT §7).
  *
  * Four beats, each advanced by the REAL engine event that proves the player
  * did it (no scripted fake state — the engine's `config.ftue` board supplies
@@ -20,7 +20,7 @@
  * by the board); the upgrade beat is the free chip flying in and glowing on
  * its own (UpgradeBar), no hand pressing it under a dim.
  *
- * Progress persists as a step index in the state blob (`eb_tutorial_step`);
+ * Progress persists as a step index in the state blob (`umb_tutorial_step`);
  * veterans — a best row past 1 and no tutorial progress on record — skip it.
  *
  * This module must stay leaf-level (state-blob imports only): the wiring to the
@@ -37,7 +37,7 @@ export type TutorialStep = 'aim' | 'pickup' | 'merge' | 'upgrade' | 'done'
 const STEP_ORDER: TutorialStep[] = ['aim', 'pickup', 'merge', 'upgrade', 'done']
 export const TUTORIAL_STEP_COUNT = STEP_ORDER.length - 1
 
-/** Inside the `elemental-barrage_state` blob, beside the state layer's `eb_*` keys. */
+/** Inside the `umbrella_state` blob, beside the state layer's `eb_*` keys. */
 const TUTORIAL_KEY = EB_TUTORIAL_STEP_KEY
 
 const savedIndex = (): number => Math.floor(Number(getState(TUTORIAL_KEY, 0))) || 0

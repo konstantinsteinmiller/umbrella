@@ -24,7 +24,7 @@ vi.mock('@/use/useAds', async () => {
 vi.mock('@/barrage/render/balls', () => ({ ballPreview: () => 'data:image/png;base64,' }))
 vi.mock('@/use/useSound', () => ({ default: () => ({ playSound: () => null }) }))
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 const FModal = defineComponent({ setup: (_, { slots }) => () => hh('div', slots.default?.()) })
 
@@ -32,7 +32,7 @@ const FModal = defineComponent({ setup: (_, { slots }) => () => hh('div', slots.
 const openSkins = async (stats: Record<string, number>) => {
   vi.resetModules()
   if (ctl.ready) ctl.ready.value = true
-  localStorage.setItem(STATE_KEY, JSON.stringify({ epic_coins: 0, eb_stats: stats }))
+  localStorage.setItem(STATE_KEY, JSON.stringify({ epic_coins: 0, umb_stats: stats }))
   const CollectionModal = (await import('@/components/barrage/CollectionModal.vue')).default
   const w = mount(CollectionModal, { props: { modelValue: true }, global: { plugins: [i18n], stubs: { FModal } } })
   await w.findAll('.col-tab')[1]!.trigger('click')

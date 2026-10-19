@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/ko'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "레벨 {n}",
+    'finish': "도착",
+    'controls': "←/→ 또는 A/D 이동 · 스페이스로 우산 열기/닫기 · R 다시 시작",
+    'broken': "우산이 망가졌어요!",
+    'prevLevel': "이전 레벨",
+    'nextLevel': "다음 레벨",
+    'restart': "레벨 다시 시작"
+  },
   'ads': {
     'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': '수집광', 'desc': '총 250개의 아이템 상자를 획득하세요.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': '취소',
   'close': '닫기',
   'ok': '확인',

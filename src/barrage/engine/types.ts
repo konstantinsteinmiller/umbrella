@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — ENGINE CONTRACT (shared by engine, renderer and state layer).
+ * Umbrella — ENGINE CONTRACT (shared by engine, renderer and state layer).
  *
  * This file is the seam between three independently-built layers:
  *   • engine  (src/barrage/engine/*)  — pure TS, deterministic, no DOM/Vue

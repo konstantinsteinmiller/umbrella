@@ -9,11 +9,11 @@ import { bestRow, maxBallTier, stats } from '@/barrage/state/progress'
 // ─── Barrage achievements (retention-roadmap #10) ───────────────────────────
 //
 // Lifetime milestones keyed off the counters the barrage state layer ALREADY
-// keeps (`eb_stats` via `progress.stats`, plus the best-row and max-ball-tier
+// keeps (`umb_stats` via `progress.stats`, plus the best-row and max-ball-tier
 // watermarks) — no extra instrumentation. Each grants a one-time coin payout on
 // claim in the AchievementsModal; completing one mid-run fires a toast
 // (`achievementToast`, rendered by the scene). Claim state lives in the single
-// `elemental-barrage_state` blob under `ACHIEVEMENTS_KEY`: { claimed: string[] }.
+// `umbrella_state` blob under `ACHIEVEMENTS_KEY`: { claimed: string[] }.
 //
 // Names: `barrageMeta.achievements.items.<id>`; descriptions are one template
 // per metric (`barrageMeta.achievements.desc.<metric>`, `{n}` = the target), so

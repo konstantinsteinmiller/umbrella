@@ -73,15 +73,15 @@ vi.mock('@/platforms/leaderboard', () => {
   return { submitBestRow: ctl.submitBestRow, submitBestWave: ctl.submitBestRow }
 })
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 const T0 = new Date('2026-09-23T10:00:00').getTime()
 
 /** A save past the rewarded gate (T0.2, user decision 2026-09-27: every
  *  rewarded offer needs the first boss kill AND 3:00 of lifetime active play).
  *  Specs about an offer's OWN mechanics seed it; the gate has its own describe. */
-const QUALIFIED = { eb_stats: { bossKills: 1, playSeconds: 180 } }
+const QUALIFIED = { umb_stats: { bossKills: 1, playSeconds: 180 } }
 /** 3:00 played, no boss killed yet: the first kill opens the gate. */
-const PLAYED_3_MIN = { eb_stats: { playSeconds: 180 } }
+const PLAYED_3_MIN = { umb_stats: { playSeconds: 180 } }
 
 const flush = async (): Promise<void> => {
   await Promise.resolve()
@@ -167,8 +167,8 @@ describe('boot', () => {
 
   it('a player past the first boss starts at the checkpoint with the checkpoint tray, no FTUE', async () => {
     const { fx } = await boot({
-      eb_checkpoint: { row: 20, tray: [3, 2, 2] },
-      eb_ftue: { done: true, firstMerge: true, freeCapacity: true }
+      umb_checkpoint: { row: 20, tray: [3, 2, 2] },
+      umb_ftue: { done: true, firstMerge: true, freeCapacity: true }
     })
     const m = fx.made[0]!
     expect(m.kind).toBe('createAtRow')
@@ -183,10 +183,10 @@ describe('boot', () => {
     turn(first.eng())
     expect(first.b.row.value).toBe(3)
     const blob = first.blobNow()
-    const run = blob.eb_run as { snap: { row: number } }
+    const run = blob.umb_run as { snap: { row: number } }
     expect(run.snap.row).toBe(3)
 
-    localStorage.setItem(STATE_KEY, JSON.stringify({ ...blob, eb_upgrades: { damage: 2, capacity: 1, speed: 0, luck: 0, bounty: 0 } }))
+    localStorage.setItem(STATE_KEY, JSON.stringify({ ...blob, umb_upgrades: { damage: 2, capacity: 1, speed: 0, luck: 0, bounty: 0 } }))
     const second = await boot()
     const m = second.fx.made[0]!
     expect(m.kind).toBe('restore')
@@ -197,13 +197,13 @@ describe('boot', () => {
   })
 
   it('a run that ended in an uncontinued breach restarts at the checkpoint instead of rewinding a turn', async () => {
-    const first = await boot({ eb_checkpoint: { row: 10, tray: [2, 1] }, eb_ftue: { done: true } })
+    const first = await boot({ umb_checkpoint: { row: 10, tray: [2, 1] }, umb_ftue: { done: true } })
     turn(first.eng())
     first.eng().fire(1)
     first.eng().breachNow()
     expect(first.b.breach.value).not.toBeNull()
     const blob = first.blobNow()
-    expect((blob.eb_run as { breached?: boolean }).breached).toBe(true)
+    expect((blob.umb_run as { breached?: boolean }).breached).toBe(true)
 
     const second = await boot()
     expect(second.fx.made[0]!.kind).toBe('createAtRow')
@@ -272,7 +272,7 @@ describe('breach flow', () => {
   }
 
   it('offers the Meteor continue once per checkpoint segment, ad first', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true }, ...QUALIFIED })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true }, ...QUALIFIED })
     await breachAt(h)
     expect(h.b.breach.value).toMatchObject({ meteorAvailable: true, isDaily: false, checkpointRow: 10 })
     expect(h.b.holdSim.value).toBe(true)
@@ -293,7 +293,7 @@ describe('breach flow', () => {
 
   it('run 7: a live breach holds its death screen for the death sequence; a new board ends it at once', async () => {
     const { DEATH_SCENE_MS } = await import('@/barrage/render/death')
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true } })
     expect(h.b.deathScene.value).toBe(false)
     vi.useFakeTimers()
     try {
@@ -320,19 +320,19 @@ describe('breach flow', () => {
   })
 
   it('the one-shot survives a reload (it is saved, not session state)', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true }, ...QUALIFIED })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true }, ...QUALIFIED })
     await breachAt(h)
     await h.b.continueWithMeteor()
     const blob = h.blobNow()
     const again = await boot()
     expect(again.progress.segment.value.meteor).toBe(true)
-    expect(blob.eb_segment).toMatchObject({ meteor: true })
+    expect(blob.umb_segment).toMatchObject({ meteor: true })
     await breachAt(again)
     expect(again.b.breach.value!.meteorAvailable).toBe(false)
   })
 
   it('a boss kill starts a new segment — the Meteor is back', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true }, ...QUALIFIED })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true }, ...QUALIFIED })
     await breachAt(h)
     await h.b.continueWithMeteor()
     const e = h.eng()
@@ -414,7 +414,7 @@ describe('breach flow', () => {
   })
 
   it('restart rebuilds a fresh board at checkpoint + 1 with the checkpoint tray, keeping every coin', async () => {
-    const h = await boot({ eb_checkpoint: { row: 30, tray: [5, 4, 4, 1] }, eb_ftue: { done: true }, epic_coins: 1234 })
+    const h = await boot({ umb_checkpoint: { row: 30, tray: [5, 4, 4, 1] }, umb_ftue: { done: true }, epic_coins: 1234 })
     turn(h.eng())
     await breachAt(h)
     const gen = h.b.engineGen.value
@@ -445,7 +445,7 @@ describe('checkpoint restart keeps the stronger tray', () => {
   }
 
   it('the tray at the breach, when it is stronger than the checkpoint tray (run 4: [3,2] vs [4,2,2])', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [3, 2] }, eb_ftue: { done: true }, epic_coins: 234 })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [3, 2] }, umb_ftue: { done: true }, epic_coins: 234 })
     turn(h.eng())
     await breachWith(h, [4, 2, 2])
     await h.b.restartFromCheckpoint()
@@ -459,7 +459,7 @@ describe('checkpoint restart keeps the stronger tray', () => {
   })
 
   it('the checkpoint tray, when the breach left a weaker one (balls spilled or a wrong turn)', async () => {
-    const h = await boot({ eb_checkpoint: { row: 20, tray: [5, 4, 4, 1] }, eb_ftue: { done: true } })
+    const h = await boot({ umb_checkpoint: { row: 20, tray: [5, 4, 4, 1] }, umb_ftue: { done: true } })
     turn(h.eng())
     await breachWith(h, [5, 4, 2, 2, 2, 1])
     await h.b.restartFromCheckpoint()
@@ -467,7 +467,7 @@ describe('checkpoint restart keeps the stronger tray', () => {
   })
 
   it('weighs power, not ball count: one higher tier beats two of the tier below', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2, 2, 1] }, eb_ftue: { done: true } })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2, 2, 1] }, umb_ftue: { done: true } })
     turn(h.eng())
     await breachWith(h, [3, 1])
     await h.b.restartFromCheckpoint()
@@ -476,13 +476,13 @@ describe('checkpoint restart keeps the stronger tray', () => {
   })
 
   it('a reload after the uncontinued breach restarts with the same tray (saved with the breach)', async () => {
-    const first = await boot({ eb_checkpoint: { row: 10, tray: [3, 2] }, eb_ftue: { done: true } })
+    const first = await boot({ umb_checkpoint: { row: 10, tray: [3, 2] }, umb_ftue: { done: true } })
     turn(first.eng())
     first.eng().state.tray = [3, 3, 2] // the last aim's tray
     turn(first.eng())
     await breachWith(first, [4, 2, 2]) // a merge in the breaching volley
     const blob = first.blobNow()
-    expect(blob.eb_run).toMatchObject({ breached: true, breachTray: [4, 2, 2] })
+    expect(blob.umb_run).toMatchObject({ breached: true, breachTray: [4, 2, 2] })
 
     const second = await boot()
     const m = second.fx.made[0]!
@@ -492,21 +492,21 @@ describe('checkpoint restart keeps the stronger tray', () => {
   })
 
   it('a breached save from before the field weighs its last-aim tray', async () => {
-    const first = await boot({ eb_checkpoint: { row: 10, tray: [3, 2] }, eb_ftue: { done: true } })
+    const first = await boot({ umb_checkpoint: { row: 10, tray: [3, 2] }, umb_ftue: { done: true } })
     turn(first.eng())
     first.eng().state.tray = [3, 3, 2]
     turn(first.eng())
     await breachWith(first, [3, 3, 2])
     const blob = first.blobNow()
-    const run = { ...(blob.eb_run as Record<string, unknown>) }
+    const run = { ...(blob.umb_run as Record<string, unknown>) }
     delete run.breachTray
-    localStorage.setItem(STATE_KEY, JSON.stringify({ ...blob, eb_run: run }))
+    localStorage.setItem(STATE_KEY, JSON.stringify({ ...blob, umb_run: run }))
     const second = await boot()
     expect(second.fx.made[0]!.tray).toEqual([3, 3, 2])
   })
 
   it('a fresh start at the checkpoint (no breach behind it) takes the checkpoint tray', async () => {
-    const h = await boot({ eb_checkpoint: { row: 30, tray: [5, 4] }, eb_ftue: { done: true } })
+    const h = await boot({ umb_checkpoint: { row: 30, tray: [5, 4] }, umb_ftue: { done: true } })
     expect(h.fx.made[0]).toMatchObject({ kind: 'createAtRow', row: 31, tray: [5, 4] })
   })
 })
@@ -514,7 +514,7 @@ describe('checkpoint restart keeps the stronger tray', () => {
 // Adaptive difficulty: meeting the boss that just beat you at full HP again
 // relieves nothing for a player who did not upgrade well enough.
 describe('boss mercy — every restart lost to the boss takes 25% off it, down to 50%', () => {
-  const CP = { eb_checkpoint: { row: 20, tray: [3, 2] }, eb_ftue: { done: true } }
+  const CP = { umb_checkpoint: { row: 20, tray: [3, 2] }, umb_ftue: { done: true } }
 
   /** Breach this turn with the boss on the board (it arrived an earlier row). */
   const loseToBoss = async (h: Awaited<ReturnType<typeof boot>>) => {
@@ -628,7 +628,7 @@ describe('boss mercy — every restart lost to the boss takes 25% off it, down t
     const second = await boot()
     expect(second.fx.made[0]).toMatchObject({ kind: 'createAtRow', row: 21 })
     expect(second.fx.made[0]!.config.bossHpMult).toBe(0.75)
-    expect(second.blobNow().eb_checkpoint).toMatchObject({ row: 20, deaths: 1 })
+    expect(second.blobNow().umb_checkpoint).toMatchObject({ row: 20, deaths: 1 })
 
     // The rebuilt run was saved: reloading again resumes it, no second death.
     turn(second.eng())
@@ -647,12 +647,12 @@ describe('boss mercy — every restart lost to the boss takes 25% off it, down t
 
   it('a hydrate at the same checkpoint keeps the higher count; a deeper checkpoint brings its own', async () => {
     const h = await boot(CP)
-    await h.hydrate({ eb_checkpoint: { row: 20, tray: [3, 2], deaths: 2 } })
+    await h.hydrate({ umb_checkpoint: { row: 20, tray: [3, 2], deaths: 2 } })
     expect(h.progress.checkpoint.value.deaths).toBe(2)
     expect(h.eng().state.config.bossHpMult).toBe(0.5)
-    await h.hydrate({ eb_checkpoint: { row: 20, tray: [3, 2], deaths: 1 } })
+    await h.hydrate({ umb_checkpoint: { row: 20, tray: [3, 2], deaths: 1 } })
     expect(h.progress.checkpoint.value.deaths).toBe(2)
-    await h.hydrate({ eb_checkpoint: { row: 30, tray: [4, 2], deaths: 0 } })
+    await h.hydrate({ umb_checkpoint: { row: 30, tray: [4, 2], deaths: 0 } })
     expect(h.progress.checkpoint.value).toMatchObject({ row: 30, deaths: 0 })
   })
 
@@ -851,7 +851,7 @@ describe('boss chest', () => {
 
 describe('run 9: the culprit', () => {
   it('the breach offer names the monster past the line nearest the unit — the death sequence\'s striker', async () => {
-    const h = await boot({ eb_ftue: { done: true } })
+    const h = await boot({ umb_ftue: { done: true } })
     const e = h.eng()
     e.spawnBoss(300)
     const boss = e.state.monsters.at(-1)!
@@ -880,7 +880,7 @@ describe('rewarded +5 balls', () => {
     await flush()
     expect(h.b.bonusBallsAvailable.value).toBe(false)
     // A veteran on a calm board: nothing to rescue.
-    const v = await boot({ eb_ftue: { done: true }, ...QUALIFIED })
+    const v = await boot({ umb_ftue: { done: true }, ...QUALIFIED })
     expect(v.b.bonusBallsAvailable.value).toBe(false)
     v.eng().spawnBoss(80)
     await flush()
@@ -888,7 +888,7 @@ describe('rewarded +5 balls', () => {
   })
 
   it('once per checkpoint segment, aim phase only', async () => {
-    const h = await boot({ eb_ftue: { done: true }, ...QUALIFIED })
+    const h = await boot({ umb_ftue: { done: true }, ...QUALIFIED })
     h.eng().spawnBoss(80)
     await flush()
     expect(h.b.bonusBallsAvailable.value).toBe(true)
@@ -908,7 +908,7 @@ describe('rewarded +5 balls', () => {
 describe('Daily Barrage isolation', () => {
   it('runs the seeded fixed-kit board and gives the endless run back untouched', async () => {
     const { dailySeed, DAILY_CONFIG } = await import('@/barrage/engine/economy')
-    const h = await boot({ eb_upgrades: { damage: 9, capacity: 9, speed: 9, luck: 9, bounty: 9 }, eb_ftue: { done: true } })
+    const h = await boot({ umb_upgrades: { damage: 9, capacity: 9, speed: 9, luck: 9, bounty: 9 }, umb_ftue: { done: true } })
     turn(h.eng())
     turn(h.eng())
     const endless = h.eng()
@@ -997,9 +997,9 @@ describe('persistence', () => {
     e.emit({ type: 'fever' })
     e.endTurn(55)
     const blob = h.blobNow()
-    expect((blob.eb_run as { snap: { row: number } }).snap.row).toBe(2)
-    expect(blob.eb_best_row).toBe(2)
-    expect(blob.eb_stats).toMatchObject({ kills: 1, volleys: 1, hits: 55, bestCombo: 55, fevers: 1, rowsTotal: 1 })
+    expect((blob.umb_run as { snap: { row: number } }).snap.row).toBe(2)
+    expect(blob.umb_best_row).toBe(2)
+    expect(blob.umb_stats).toMatchObject({ kills: 1, volleys: 1, hits: 55, bestCombo: 55, fevers: 1, rowsTotal: 1 })
     // Mirrored for the cloud merge policy's progress score.
     expect(blob.epic_stage).toBe(2)
   })
@@ -1016,7 +1016,7 @@ describe('persistence', () => {
         turn: 60, rng: 3, nextId: 9
       }
     }
-    await h.hydrate({ eb_run: foreign, eb_best_row: 42, eb_checkpoint: { row: 40, tray: [5, 5] }, eb_ftue: { done: true } })
+    await h.hydrate({ umb_run: foreign, umb_best_row: 42, umb_checkpoint: { row: 40, tray: [5, 5] }, umb_ftue: { done: true } })
     expect(h.b.row.value).toBe(42)
     expect(h.b.tray.value).toEqual([6, 5, 5])
     expect(h.b.bestRow.value).toBe(42)
@@ -1032,7 +1032,7 @@ describe('persistence', () => {
       snap: { v: 1, config: { ...h.eng().state.config }, row: 17, nextBossRow: 20, monsters: [], pickups: [], hazards: [],
         tray: [3], launcherX: 3, shields: 0, revives: 0, warcryArmed: false, chestTimer: 50, turn: 20, rng: 3, nextId: 9 }
     }
-    await h.hydrate({ eb_run: foreign })
+    await h.hydrate({ umb_run: foreign })
     expect(h.b.row.value).toBe(1) // not under the balls
     h.eng().endTurn()
     expect(h.b.row.value).toBe(17)
@@ -1041,16 +1041,16 @@ describe('persistence', () => {
   it('a hydrate that hands back one of OUR older snapshots never rewinds the live run', async () => {
     const h = await boot()
     turn(h.eng())
-    const stale = h.blobNow().eb_run
+    const stale = h.blobNow().umb_run
     turn(h.eng())
     turn(h.eng())
     expect(h.b.row.value).toBe(4)
     const built = h.fx.made.length
-    await h.hydrate({ eb_run: stale })
+    await h.hydrate({ umb_run: stale })
     expect(h.b.row.value).toBe(4)
     expect(h.fx.made.length).toBe(built)
     // …and the live run is written back over the stale copy.
-    expect((h.blobNow().eb_run as { snap: { row: number } }).snap.row).toBe(4)
+    expect((h.blobNow().umb_run as { snap: { row: number } }).snap.row).toBe(4)
   })
 
   it('a hydrate never lowers a watermark or a counter', async () => {
@@ -1058,7 +1058,7 @@ describe('persistence', () => {
     turn(h.eng())
     turn(h.eng())
     h.progress.persistStats()
-    await h.hydrate({ eb_best_row: 1, eb_stats: { kills: 0, volleys: 0, maxBallTier: 1 } })
+    await h.hydrate({ umb_best_row: 1, umb_stats: { kills: 0, volleys: 0, maxBallTier: 1 } })
     expect(h.b.bestRow.value).toBe(3)
     expect(h.progress.stats.value.volleys).toBe(2)
   })
@@ -1106,7 +1106,7 @@ describe('engine events survive engine swaps', () => {
     expect(h.eng().state.shields).toBe(1)
     expect(h.progress.pending.value.skills).toEqual([])
     // …and it is part of the saved run.
-    expect((h.blobNow().eb_run as { snap: { shields: number } }).snap.shields).toBe(1)
+    expect((h.blobNow().umb_run as { snap: { shields: number } }).snap.shields).toBe(1)
   })
 
   it('a skill that triggers is mirrored for the toast', async () => {
@@ -1182,11 +1182,11 @@ describe('safety net (config.assist) for players who have not bought upgrades �
   })
 
   it('a save boots with the fade its paid levels earned (its gifted capacity level not counted)', async () => {
-    const two = await boot({ eb_upgrades: { damage: 1, capacity: 1, speed: 1, luck: 0, bounty: 0 }, eb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
+    const two = await boot({ umb_upgrades: { damage: 1, capacity: 1, speed: 1, luck: 0, bounty: 0 }, umb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
     expect(two.fx.made[0]!.config.assist).toBe(0.75)
-    const one = await boot({ eb_upgrades: { damage: 1, capacity: 1, speed: 0, luck: 0, bounty: 0 }, eb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
+    const one = await boot({ umb_upgrades: { damage: 1, capacity: 1, speed: 0, luck: 0, bounty: 0 }, umb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
     expect(one.fx.made[0]!.config.assist).toBe(1)
-    const five = await boot({ eb_upgrades: { damage: 2, capacity: 2, speed: 2, luck: 0, bounty: 0 }, eb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
+    const five = await boot({ umb_upgrades: { damage: 2, capacity: 2, speed: 2, luck: 0, bounty: 0 }, umb_ftue: { done: true, firstMerge: true, freeCapacity: true } })
     expect(five.fx.made[0]!.config.assist).toBe(0)
   })
 
@@ -1212,7 +1212,7 @@ describe('loss recap (BreachOffer.recap)', () => {
   }
 
   it('counts the run\'s kills and earned coins (never the boss bounty event) up to the breach row', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true } })
     const e = h.eng()
     e.fire(1)
     kill(e, 4)
@@ -1226,7 +1226,7 @@ describe('loss recap (BreachOffer.recap)', () => {
   })
 
   it('a continue keeps counting; a checkpoint restart starts a new run at zero', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true }, ...QUALIFIED })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true }, ...QUALIFIED })
     h.eng().fire(1)
     kill(h.eng(), 3)
     h.eng().breachNow()
@@ -1259,11 +1259,11 @@ describe('loss recap (BreachOffer.recap)', () => {
   })
 
   it('survives a reload mid-run (saved with the run snapshot)', async () => {
-    const first = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const first = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true } })
     first.eng().fire(1)
     kill(first.eng(), 7)
     first.eng().endTurn()
-    expect((first.blobNow().eb_run as { tally?: unknown }).tally).toEqual({ kills: 1, coins: 7 })
+    expect((first.blobNow().umb_run as { tally?: unknown }).tally).toEqual({ kills: 1, coins: 7 })
     const second = await boot()
     expect(second.fx.made[0]!.kind).toBe('restore')
     await breachAt(second)
@@ -1271,7 +1271,7 @@ describe('loss recap (BreachOffer.recap)', () => {
   })
 
   it('a daily run never adds to the endless run\'s recap', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true } })
     h.eng().fire(1)
     kill(h.eng(), 2)
     h.eng().endTurn()
@@ -1290,7 +1290,7 @@ describe('loss recap (BreachOffer.recap)', () => {
 // (each modal renders the button only while it is true), and its action is
 // refused without asking for an ad.
 describe('rewarded gate: first boss kill AND 3:00 of lifetime play', () => {
-  const CP10 = { eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } }
+  const CP10 = { umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true } }
   const breachAt = async (h: Awaited<ReturnType<typeof boot>>) => {
     h.eng().fire(1)
     h.eng().breachNow()
@@ -1305,7 +1305,7 @@ describe('rewarded gate: first boss kill AND 3:00 of lifetime play', () => {
   }
 
   it('no Meteor before the first boss kill, however long the player has played', async () => {
-    const h = await boot({ eb_stats: { playSeconds: 900 } })
+    const h = await boot({ umb_stats: { playSeconds: 900 } })
     await breachAt(h)
     expect(h.b.breach.value!.meteorAvailable).toBe(false)
     expect(await h.b.continueWithMeteor()).toBe(false)
@@ -1313,7 +1313,7 @@ describe('rewarded gate: first boss kill AND 3:00 of lifetime play', () => {
   })
 
   it('no Meteor before 3:00 of play, even past a boss — and it appears live when the clock gets there', async () => {
-    const h = await boot({ ...CP10, eb_stats: { bossKills: 2, playSeconds: 179 } })
+    const h = await boot({ ...CP10, umb_stats: { bossKills: 2, playSeconds: 179 } })
     await breachAt(h)
     expect(h.b.breach.value!.meteorAvailable).toBe(false)
     expect(await h.b.continueWithMeteor()).toBe(false)
@@ -1338,7 +1338,7 @@ describe('rewarded gate: first boss kill AND 3:00 of lifetime play', () => {
   })
 
   it('no +5 balls before 3:00 of play, even past a boss with one on the board', async () => {
-    const h = await boot({ eb_ftue: { done: true }, eb_stats: { bossKills: 1, playSeconds: 60 } })
+    const h = await boot({ umb_ftue: { done: true }, umb_stats: { bossKills: 1, playSeconds: 60 } })
     h.eng().spawnBoss(80)
     await flush()
     expect(h.b.bonusBallsAvailable.value).toBe(false)
@@ -1356,21 +1356,21 @@ describe('rewarded gate: first boss kill AND 3:00 of lifetime play', () => {
   })
 
   it('a save from before the play clock qualifies on its volleys (7 s each, an under-count)', async () => {
-    const veteran = await boot({ ...CP10, eb_stats: { bossKills: 1, volleys: 30 } })
+    const veteran = await boot({ ...CP10, umb_stats: { bossKills: 1, volleys: 30 } })
     expect(veteran.progress.lifetimePlaySeconds.value).toBe(210)
     await breachAt(veteran)
     expect(veteran.b.breach.value!.meteorAvailable).toBe(true)
-    const brief = await boot({ ...CP10, eb_stats: { bossKills: 1, volleys: 20 } })
+    const brief = await boot({ ...CP10, umb_stats: { bossKills: 1, volleys: 20 } })
     expect(brief.progress.lifetimePlaySeconds.value).toBe(140)
     await breachAt(brief)
     expect(brief.b.breach.value!.meteorAvailable).toBe(false)
   })
 
   it('the clock is persisted with the stats (a reload keeps the gate open)', async () => {
-    const h = await boot({ eb_stats: { bossKills: 1, playSeconds: 170 } })
+    const h = await boot({ umb_stats: { bossKills: 1, playSeconds: 170 } })
     h.progress.addPlaySeconds(15)
     turn(h.eng())
-    expect(h.blobNow().eb_stats).toMatchObject({ bossKills: 1, playSeconds: 185 })
+    expect(h.blobNow().umb_stats).toMatchObject({ bossKills: 1, playSeconds: 185 })
     const again = await boot()
     expect(again.progress.lifetimePlaySeconds.value).toBe(185)
     expect(again.progress.rewardedOffersUnlocked.value).toBe(true)
@@ -1454,7 +1454,7 @@ describe('drop-off funnel (T0.1)', () => {
   })
 
   it('a player with play from an earlier session lands in funnel_returning', async () => {
-    const h = await boot({ eb_stats: { volleys: 12 } })
+    const h = await boot({ umb_stats: { volleys: 12 } })
     const calls = await withSink()
     turn(h.eng())
     expect(calls).toEqual([
@@ -1546,7 +1546,7 @@ describe('Boss at 75 s: the first boss\'s entrance checkpoint (retention-roadmap
   })
 
   it('only the FTUE\'s first boss sets one — never a later boss, never past a kill', async () => {
-    const h = await boot({ ...QUALIFIED, eb_ftue: { done: true } })
+    const h = await boot({ ...QUALIFIED, umb_ftue: { done: true } })
     const e = h.eng()
     e.state.row = 20
     e.spawnBoss(60)
@@ -1558,7 +1558,7 @@ describe('One-Tap Comeback (retention-roadmap #4)', () => {
   it('a loss is an aimable board again in ≤ 2 s with one tap — gameplay resumes on the tap, never before', async () => {
     const { DEATH_SCENE_MS } = await import('@/barrage/render/death')
     expect(DEATH_SCENE_MS).toBeLessThanOrEqual(1500)
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true } })
     vi.useFakeTimers()
     try {
       const t0 = Date.now()
@@ -1585,7 +1585,7 @@ describe('One-Tap Comeback (retention-roadmap #4)', () => {
   })
 
   it('the offer carries the near miss: the boss\'s HP left at the breach', async () => {
-    const h = await boot({ eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true } })
     const e = h.eng()
     e.state.row = 15
     const id = e.spawnBoss(200)
@@ -1598,12 +1598,12 @@ describe('One-Tap Comeback (retention-roadmap #4)', () => {
 
 describe('Shoot-to-Choose: the run\'s perks (retention-roadmap #5)', () => {
   it('a pick rides the checkpoint: a restart keeps it, the save carries it', async () => {
-    const h = await boot({ ...QUALIFIED, eb_checkpoint: { row: 10, tray: [2] }, eb_ftue: { done: true } })
+    const h = await boot({ ...QUALIFIED, umb_checkpoint: { row: 10, tray: [2] }, umb_ftue: { done: true } })
     const e = h.eng()
     e.state.config.perks = { power: 1 }
     e.emit({ type: 'perkPick', perk: 'power', stacks: 1, x: 1, y: 1 })
     expect(h.progress.checkpoint.value.perks).toEqual({ power: 1 })
-    expect(h.blobNow().eb_checkpoint).toMatchObject({ row: 10, perks: { power: 1 } })
+    expect(h.blobNow().umb_checkpoint).toMatchObject({ row: 10, perks: { power: 1 } })
     e.fire(1)
     e.breachNow()
     await flush()
@@ -1621,7 +1621,7 @@ describe('Shoot-to-Choose: the run\'s perks (retention-roadmap #5)', () => {
   it('a fresh row-1 run has none, and the Daily never gets the endless perks', async () => {
     const h = await boot()
     expect(h.fx.made[0]!.config.perks ?? {}).toEqual({})
-    const q = await boot({ ...QUALIFIED, eb_checkpoint: { row: 10, tray: [2], perks: { splash: 2 } }, eb_ftue: { done: true } })
+    const q = await boot({ ...QUALIFIED, umb_checkpoint: { row: 10, tray: [2], perks: { splash: 2 } }, umb_ftue: { done: true } })
     expect(q.eng().state.config.perks).toEqual({ splash: 2 })
     q.b.startDaily()
     expect(q.eng().state.config.perks ?? {}).toEqual({})

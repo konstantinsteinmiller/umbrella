@@ -1,5 +1,5 @@
 /**
- * BoardRenderer — the Canvas-2D view of an Elemental Barrage board.
+ * BoardRenderer — the Canvas-2D view of an Umbrella board.
  *
  * Reads `engine.state` every frame (never writes it), reacts to engine events
  * with VFX/SFX, and keeps its own DISPLAY state per entity (eased positions,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * First-session coach marks for Elemental Barrage — TEXTLESS, like MIW's.
+ * First-session coach marks for Umbrella — TEXTLESS, like MIW's.
  *
  * Play-testers skim instruction bubbles, so every beat is SHOWN: the step's
  * sentence lives on only in a screen-reader live region.

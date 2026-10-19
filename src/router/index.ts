@@ -53,7 +53,7 @@ import {
 /** Exported so the regression spec can drive the REAL table through a
  *  host-shaped location without pulling the view components into its graph. */
 export const routes: RouteRecordRaw[] = [
-  { path: '/', name: 'main', component: () => import('@/views/GameScene.vue') },
+  { path: '/', name: 'main', component: () => import('@/views/UmbrellaScene.vue') },
 
   // ─── Catch-all → main menu ───────────────────────────────────────────────
   //

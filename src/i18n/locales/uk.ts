@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/uk'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Рівень {n}",
+    'finish': "ФІНІШ",
+    'controls': "←/→ або A/D — рух · Пробіл — відкрити/закрити парасольку · R — заново",
+    'broken': "Парасолька зламалася!",
+    'prevLevel': "Попередній рівень",
+    'nextLevel': "Наступний рівень",
+    'restart': "Перезапустити рівень"
+  },
   'ads': {
     'watch': 'Дивитися', 'revive': 'Відродити', 'secondChance': 'Другий шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Накопичувач', 'desc': 'Зберіть загалом 250 скринь з предметами.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Скасувати',
   'close': 'Закрити',
   'ok': 'Ок',

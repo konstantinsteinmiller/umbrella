@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — the play clock: seconds of ACTIVE gameplay.
+ * Umbrella — the play clock: seconds of ACTIVE gameplay.
  *
  * Two clocks share one tick:
  *   • `sessionPlaySeconds` — this page session only, never persisted. It drives

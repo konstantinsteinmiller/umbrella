@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/fr'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Niveau {n}",
+    'finish': "ARRIVÉE",
+    'controls': "←/→ ou Q/D se déplacer · Espace ouvre/ferme le parapluie · R recommencer",
+    'broken': "Parapluie cassé !",
+    'prevLevel': "Niveau précédent",
+    'nextLevel': "Niveau suivant",
+    'restart': "Recommencer le niveau"
+  },
   'ads': {
     'watch': 'Regarder', 'revive': 'Revivre', 'secondChance': 'Seconde chance', 'doubleCoins': '2× pièces', 'plusCoins': '+{n} pièces'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Accumulateur', 'desc': 'Attrapez 250 boîtes d\'objets au total.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Annuler',
   'close': 'Fermer',
   'ok': 'Ok',

@@ -7,7 +7,7 @@ import { nextTick } from 'vue'
  * chest, the re-pointed achievements, and the save-field names.
  */
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 
 const seed = (blob: Record<string, unknown>): void => {
   localStorage.setItem(STATE_KEY, JSON.stringify(blob))
@@ -34,9 +34,9 @@ describe('save-field names are load-bearing', () => {
       daily: k.EB_DAILY_KEY, supply: k.EB_SUPPLY_KEY, pending: k.EB_PENDING_KEY, merge: k.EB_MERGE_SCORE_KEY,
       tut: k.EB_TUTORIAL_STEP_KEY, monsters: k.EB_MONSTERS_SEEN_KEY
     }).toEqual({
-      run: 'eb_run', best: 'eb_best_row', cp: 'eb_checkpoint', up: 'eb_upgrades', stats: 'eb_stats',
-      seg: 'eb_segment', ftue: 'eb_ftue', coll: 'eb_collections', daily: 'eb_daily', supply: 'eb_supply',
-      pending: 'eb_pending', merge: 'epic_stage', tut: 'eb_tutorial_step', monsters: 'eb_ui_monsters_seen'
+      run: 'umb_run', best: 'umb_best_row', cp: 'umb_checkpoint', up: 'umb_upgrades', stats: 'umb_stats',
+      seg: 'umb_segment', ftue: 'umb_ftue', coll: 'umb_collections', daily: 'umb_daily', supply: 'umb_supply',
+      pending: 'umb_pending', merge: 'epic_stage', tut: 'umb_tutorial_step', monsters: 'umb_ui_monsters_seen'
     })
   })
 })
@@ -90,7 +90,7 @@ describe('upgrades: exactly one glows', () => {
     const { glowTrack, upgradeCost, upgradeValue } = await import('@/barrage/engine/economy')
     const levels = { damage: 1, capacity: 1, speed: 0, luck: 0, bounty: 0 }
     const price = upgradeCost('capacity', 1)
-    seed({ epic_coins: price, eb_upgrades: levels })
+    seed({ epic_coins: price, umb_upgrades: levels })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
     const wallet = (await import('@/use/useEpicConfig')).default()
     const glowing = () => up.list.value.filter((v) => v.glowing).map((v) => v.id)
@@ -115,7 +115,7 @@ describe('upgrades: exactly one glows', () => {
 
   it('run 10: a buy is one level — the glowing chip too (the multi-buy is gone)', async () => {
     const levels = { damage: 1, capacity: 1, speed: 0, luck: 0, bounty: 0 }
-    seed({ epic_coins: 400, eb_upgrades: levels })
+    seed({ epic_coins: 400, umb_upgrades: levels })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
     const first = up.glowingId.value!
     const before = up.list.value.find((v) => v.id === first)!.level
@@ -125,7 +125,7 @@ describe('upgrades: exactly one glows', () => {
   })
 
   it('run 8: the free first Damage level — armed by the coach, one gift at a time, claimed once', async () => {
-    seed({ epic_coins: 50, eb_upgrades: { damage: 0, capacity: 1, speed: 0, luck: 0, bounty: 0 }, eb_ftue: { firstMerge: true, freeCapacity: true } })
+    seed({ epic_coins: 50, umb_upgrades: { damage: 0, capacity: 1, speed: 0, luck: 0, bounty: 0 }, umb_ftue: { firstMerge: true, freeCapacity: true } })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
     const wallet = (await import('@/use/useEpicConfig')).default()
     expect(up.freeDamageOffer.value).toBe(false)
@@ -143,7 +143,7 @@ describe('upgrades: exactly one glows', () => {
   })
 
   it('run 8: the Capacity gift comes first — no free Damage while it is open', async () => {
-    seed({ epic_coins: 50, eb_upgrades: { damage: 0, capacity: 0, speed: 0, luck: 0, bounty: 0 }, eb_ftue: { firstMerge: true } })
+    seed({ epic_coins: 50, umb_upgrades: { damage: 0, capacity: 0, speed: 0, luck: 0, bounty: 0 }, umb_ftue: { firstMerge: true } })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
     up.offerFreeDamage()
     expect(up.freeId.value).toBe('capacity')
@@ -153,7 +153,7 @@ describe('upgrades: exactly one glows', () => {
   })
 
   it('Instant Barrage: FTUE sockets move the gift to Damage and never count as paid', async () => {
-    seed({ epic_coins: 0, eb_upgrades: { damage: 0, capacity: 3, speed: 0, luck: 0, bounty: 0 }, eb_ftue: { sockets: 3 } })
+    seed({ epic_coins: 0, umb_upgrades: { damage: 0, capacity: 3, speed: 0, luck: 0, bounty: 0 }, umb_ftue: { sockets: 3 } })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
     const { patchFtue } = await import('@/barrage/state/progress')
     // Before the first merge: no gift yet (the same beat the Capacity gift had).
@@ -170,7 +170,7 @@ describe('upgrades: exactly one glows', () => {
   })
 
   it('a maxed track never glows, reports no next value, and cannot be bought', async () => {
-    seed({ epic_coins: 1e12, eb_upgrades: { damage: 0, capacity: 15, speed: 10, luck: 10, bounty: 0 } })
+    seed({ epic_coins: 1e12, umb_upgrades: { damage: 0, capacity: 15, speed: 10, luck: 10, bounty: 0 } })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
     const cap = up.list.value.find((v) => v.id === 'capacity')!
     expect(cap).toMatchObject({ maxed: true, nextValue: null, glowing: false, cost: 0, value: 40 })
@@ -180,7 +180,7 @@ describe('upgrades: exactly one glows', () => {
 
   it('the FTUE free capacity is offered on its own state, whatever glows', async () => {
     const { upgradeCost } = await import('@/barrage/engine/economy')
-    seed({ epic_coins: upgradeCost('capacity', 0), eb_ftue: { firstMerge: true } })
+    seed({ epic_coins: upgradeCost('capacity', 0), umb_ftue: { firstMerge: true } })
     const up = (await import('@/barrage/state/useBarrageUpgrades')).default()
     expect(up.freeCapacityOffer.value).toBe(true)
     up.claimFreeCapacity()
@@ -191,7 +191,7 @@ describe('upgrades: exactly one glows', () => {
 
 describe('collections', () => {
   it('launchers: tier 1 owned; a tier is seen once a ball of it was made; buying needs both sight and coins', async () => {
-    seed({ epic_coins: 5000, eb_stats: { maxBallTier: 3 } })
+    seed({ epic_coins: 5000, umb_stats: { maxBallTier: 3 } })
     const c = (await import('@/barrage/state/useCollections')).default()
     const { launcherPrice } = await import('@/barrage/state/useCollections')
     expect(c.launchers.value).toHaveLength(50)
@@ -227,7 +227,7 @@ describe('collections', () => {
   it('retired skins are paid back once at their old price, and an equipped one falls back to orb', async () => {
     seed({
       epic_coins: 100,
-      eb_collections: { skins: ['orb', 'baseball', 'lava', 'rainbow', 'bogus'], selectedSkin: 'rainbow', launchers: [1], selectedLauncher: 1 }
+      umb_collections: { skins: ['orb', 'baseball', 'lava', 'rainbow', 'bogus'], selectedSkin: 'rainbow', launchers: [1], selectedLauncher: 1 }
     })
     const c = (await import('@/barrage/state/useCollections')).default()
     const wallet = (await import('@/use/useEpicConfig')).default()
@@ -243,14 +243,14 @@ describe('collections', () => {
   })
 
   it('a hydrated save that still lists a retired skin pays only if its own ledger has not', async () => {
-    seed({ epic_coins: 0, eb_collections: { skins: ['orb', 'pot'], refunded: ['pot'] } })
+    seed({ epic_coins: 0, umb_collections: { skins: ['orb', 'pot'], refunded: ['pot'] } })
     await import('@/barrage/state/useCollections')
     const wallet = (await import('@/use/useEpicConfig')).default()
     expect(wallet.coins.value).toBe(0)
   })
 
   it('NEW badges: a discovered launcher / a newly affordable skin, until looked at', async () => {
-    seed({ epic_coins: 0, eb_stats: { maxBallTier: 1 } })
+    seed({ epic_coins: 0, umb_stats: { maxBallTier: 1 } })
     const c = (await import('@/barrage/state/useCollections')).default()
     const progress = await import('@/barrage/state/progress')
     const wallet = (await import('@/use/useEpicConfig')).default()
@@ -309,7 +309,7 @@ describe('treasure chest (small gift at 3 min, big at 10)', () => {
   it('arrives filled to the small gift, then refills: small at 3 min, big at 10', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(T0)
-    seed({ eb_best_row: 40 })
+    seed({ umb_best_row: 40 })
     const s = await import('@/barrage/state/useSupplyDrop')
     const wallet = (await import('@/use/useEpicConfig')).default()
     const api = s.default()
@@ -340,7 +340,7 @@ describe('treasure chest (small gift at 3 min, big at 10)', () => {
   it('arming is a first-sight thing only: it never refills a claimed chest', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(T0)
-    seed({ eb_supply: T0 - 60_000 }) // claimed a minute ago
+    seed({ umb_supply: T0 - 60_000 }) // claimed a minute ago
     const s = await import('@/barrage/state/useSupplyDrop')
     const api = s.default()
     api.arm()
@@ -351,7 +351,7 @@ describe('treasure chest (small gift at 3 min, big at 10)', () => {
   it('the big gift is four times the small one; only the big one can carry a skill charge', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(T0)
-    seed({ eb_best_row: 30, eb_supply: T0 - 4 * MIN })
+    seed({ umb_best_row: 30, umb_supply: T0 - 4 * MIN })
     const s = await import('@/barrage/state/useSupplyDrop')
     const progress = await import('@/barrage/state/progress')
     vi.spyOn(Math, 'random').mockReturnValue(0.01) // would always roll a charge
@@ -379,7 +379,7 @@ describe('treasure chest (small gift at 3 min, big at 10)', () => {
 
 describe('achievements run on barrage stats', () => {
   it('completes, claims once, and toasts the moment a counter crosses its target', async () => {
-    seed({ eb_stats: { kills: 99 } })
+    seed({ umb_stats: { kills: 99 } })
     const a = await import('@/use/useAchievements')
     const progress = await import('@/barrage/state/progress')
     const wallet = (await import('@/use/useEpicConfig')).default()
@@ -399,7 +399,7 @@ describe('achievements run on barrage stats', () => {
   })
 
   it('reads the best row and the max ball tier', async () => {
-    seed({ eb_best_row: 31, eb_stats: { maxBallTier: 5 } })
+    seed({ umb_best_row: 31, umb_stats: { maxBallTier: 5 } })
     const a = (await import('@/use/useAchievements')).default()
     const byId = (id: string) => a.list.value.find((x) => x.id === id)!
     expect(byId('row30').complete).toBe(true)
@@ -414,7 +414,7 @@ describe('achievements run on barrage stats', () => {
     const save = await import('@/use/useSaveStatus')
     await import('@/barrage/state/progress')
     a.default()
-    localStorage.setItem(STATE_KEY, JSON.stringify({ eb_stats: { kills: 5000, bossKills: 12 } }))
+    localStorage.setItem(STATE_KEY, JSON.stringify({ umb_stats: { kills: 5000, bossKills: 12 } }))
     state.reloadEpicState()
     save.saveDataVersion.value++
     await nextTick()

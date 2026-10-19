@@ -88,7 +88,7 @@ const budgetNow = () => {
   return lost ? Math.min(EXTEND, Math.max(BUDGET, lostAt + GRACE)) : EXTEND
 }
 const blob = async () => {
-  try { return JSON.parse(await page.evaluate(() => localStorage.getItem('elemental-barrage_state')) || '{}') } catch { return {} }
+  try { return JSON.parse(await page.evaluate(() => localStorage.getItem('umbrella_state')) || '{}') } catch { return {} }
 }
 const tele = (b) => {
   const run = b.eb_run?.snap ?? {}

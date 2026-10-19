@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — UI-side shared helpers (owned by the UI layer).
+ * Umbrella — UI-side shared helpers (owned by the UI layer).
  *
  * Kept free of component imports so the tutorial composable, the scene and the
  * overlays can all share the board seam and the number formatting without

@@ -1,4 +1,4 @@
-// Elemental Barrage meta strings ('barrageMeta' namespace: achievements, pass, collections, daily, supply drop).
+// Umbrella meta strings ('barrageMeta' namespace: achievements, pass, collections, daily, supply drop).
 // Mirrors the shape of ./en.ts — translated from English.
 export default {
   'achievements': {

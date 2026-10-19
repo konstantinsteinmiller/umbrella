@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/zh'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "第 {n} 关",
+    'finish': "终点",
+    'controls': "←/→ 或 A/D 移动 · 空格键开/合伞 · R 重新开始",
+    'broken': "伞坏了！",
+    'prevLevel': "上一关",
+    'nextLevel': "下一关",
+    'restart': "重新开始本关"
+  },
   'ads': {
     'watch': '观看', 'revive': '复活', 'secondChance': '第二次机会', 'doubleCoins': '2× 金币', 'plusCoins': '+{n} 金币'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': '囤积者', 'desc': '累计获取 250 个道具箱。' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': '取消',
   'close': '关闭',
   'ok': '确定',

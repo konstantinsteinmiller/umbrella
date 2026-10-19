@@ -1,6 +1,6 @@
 {
-  "name": "elemental-barrage",
-  "short_name": "elemental-barrage",
+  "name": "umbrella",
+  "short_name": "umbrella",
   "display": "standalone",
   "display_override": [
     "fullscreen",

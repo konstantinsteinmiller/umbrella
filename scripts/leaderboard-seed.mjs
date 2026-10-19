@@ -56,7 +56,7 @@ const STATED_AT = Date.UTC(2026, 8, 23)
  * The retention curve for everyone below the top two:
  * `best row → fraction whose best is ≥ it`.
  *
- * Elemental Barrage's score is the deepest ROW reached (one row per turn,
+ * Umbrella's score is the deepest ROW reached (one row per turn,
  * ~7 s a turn). The population is the one the live board holds — players who
  * got past the first row (the client posts nothing before that), so it starts
  * at 2. Anchored on the balance sim (`scripts/barrage-sim.mjs`): a

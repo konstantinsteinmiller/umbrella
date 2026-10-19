@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — shared asset paths (lead-owned seam; additive edits OK).
+ * Umbrella — shared asset paths (lead-owned seam; additive edits OK).
  *
  * Every sprite the new game draws comes from Merge Idle War's shipped art:
  * the 50 fighter portraits (balls + launchers), the 6 walkers (monster bricks),

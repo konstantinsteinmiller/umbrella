@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/uz'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "{n}-daraja",
+    'finish': "MARRA",
+    'controls': "←/→ yoki A/D — yurish · Probel — soyabonni ochish/yopish · R — qayta boshlash",
+    'broken': "Soyabon sindi!",
+    'prevLevel': "Oldingi daraja",
+    'nextLevel': "Keyingi daraja",
+    'restart': "Darajani qayta boshlash"
+  },
   'ads': {
     'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Yig\'uvchi', 'desc': 'Jami 250 ta buyum qutisini oling.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Bekor qilish',
   'close': 'Yopish',
   'ok': 'Ok',

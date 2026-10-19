@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — the persisted meta-progress every retention system reads.
+ * Umbrella — the persisted meta-progress every retention system reads.
  *
  * Deliberately ENGINE-FREE: the battle pass, achievements, leaderboard, GamePix
  * plugin and cheats all need "best row / lifetime stats / max ball tier", and
@@ -56,7 +56,7 @@ export const toCount = (v: unknown, fallback = 0): number => {
 /**
  * Play clock, lifetime half (`playClock.ts` owns the ticking): whole seconds of
  * ACTIVE gameplay across every session, stored beside the stats in the same
- * blob (`eb_stats.playSeconds`) and hydrated the same forward-only way.
+ * blob (`umb_stats.playSeconds`) and hydrated the same forward-only way.
  *
  * A save from before the clock has no such field. It is credited with
  * LEGACY_SECONDS_PER_VOLLEY per volley it ever fired, so a veteran who long

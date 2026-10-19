@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — STATE LAYER CONTRACT (lead-owned; STATE implements, UI + RENDER consume).
+ * Umbrella — STATE LAYER CONTRACT (lead-owned; STATE implements, UI + RENDER consume).
  *
  * Implementations live next to this file:
  *   useBarrage.ts          → `export default function useBarrage(): UseBarrage` (module singleton)

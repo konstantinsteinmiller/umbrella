@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/vi'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Màn {n}",
+    'finish': "ĐÍCH",
+    'controls': "←/→ hoặc A/D di chuyển · Space mở/đóng ô · R chơi lại",
+    'broken': "Ô bị hỏng!",
+    'prevLevel': "Màn trước",
+    'nextLevel': "Màn sau",
+    'restart': "Chơi lại màn"
+  },
   'ads': {
     'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Kẻ tích trữ', 'desc': 'Lấy tổng cộng 250 hộp vật phẩm.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Hủy',
   'close': 'Đóng',
   'ok': 'Đồng ý',

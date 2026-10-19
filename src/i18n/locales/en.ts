@@ -7,7 +7,16 @@ import barrageMeta from './barrageMeta/en'
 export default {
   barrage,
   barrageMeta,
-  'gameName': 'Elemental Barrage',
+  'umbrella': {
+    'level': "Level {n}",
+    'finish': "FINISH",
+    'controls': "←/→ or A/D move · Space opens/closes the umbrella · R restart",
+    'broken': "Umbrella broke!",
+    'prevLevel': "Previous level",
+    'nextLevel': "Next level",
+    'restart': "Restart level"
+  },
+  'gameName': 'Umbrella',
   // ─── Merge Legion UI chrome (source locale; en is the runtime fallback for
   // every other locale via vue-i18n `fallbackLocale`). Unit & boss
   // proper-nouns live in the data files — full content localisation is a

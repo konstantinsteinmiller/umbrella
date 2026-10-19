@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/it'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Livello {n}",
+    'finish': "ARRIVO",
+    'controls': "←/→ o A/D muoversi · Spazio apre/chiude l'ombrello · R ricomincia",
+    'broken': "Ombrello rotto!",
+    'prevLevel': "Livello precedente",
+    'nextLevel': "Livello successivo",
+    'restart': "Ricomincia livello"
+  },
   'ads': {
     'watch': 'Guarda', 'revive': 'Rinasci', 'secondChance': 'Seconda chance', 'doubleCoins': '2× monete', 'plusCoins': '+{n} monete'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Accumulatore', 'desc': 'Afferra 250 casse oggetto in totale.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Annulla',
   'close': 'Chiudi',
   'ok': 'Ok',

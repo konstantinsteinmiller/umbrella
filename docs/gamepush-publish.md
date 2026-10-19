@@ -1,4 +1,4 @@
-# Publishing Elemental Barrage through GamePush
+# Publishing Umbrella through GamePush
 
 GamePush (gamepush.com) is a publishing hub: ONE archive, uploaded once to GamePush
 Game Hosting, is fanned out to many portals. The build is `pnpm build:gamepush`
@@ -22,13 +22,13 @@ common-features) and the "Publishing the game on platforms" tutorial.
   and a later change re-applies it.
 - No CSP meta tag, no obfuscation, no sourcemaps, no live leaderboard endpoint in
   this build (it runs on portals that forbid each of those).
-- `pnpm build:gamepush` -> `dist/elemental-barrage-gamepush.zip` (about 5 MB,
+- `pnpm build:gamepush` -> `dist/umbrella-gamepush.zip` (about 5 MB,
   `index.html` at the archive root, real PKZIP; limit is 200 MB).
 
 ## 1. Prerequisites you must do by hand
 
 1. **Create the game in the panel** (gamepush.com/panel/projects -> add game, name
-   "Elemental Barrage"). Optional: default avatar generator, Yandex.Metrica /
+   "Umbrella"). Optional: default avatar generator, Yandex.Metrica /
    Google Analytics counter.
 2. **Copy the Install Code values** (game -> Install code): the numeric
    `projectId` and the `publicToken`. Paste them into `.env.gamepush.local`:
@@ -54,11 +54,11 @@ common-features) and the "Publishing the game on platforms" tutorial.
 6. **Allowed origins** (get-start -> Allowed sites): the draft/hosting origin is
    added on first open. Add `http://localhost:<port>` and mark it as a *test site*
    if you want to test locally so test players do not pollute statistics.
-7. Build: `pnpm build:gamepush`. Output: `dist/elemental-barrage-gamepush.zip`.
+7. Build: `pnpm build:gamepush`. Output: `dist/umbrella-gamepush.zip`.
 
 ## 2. Hosting upload (nothing is uploaded by the repo)
 
-1. Panel -> your game -> **Game Hosting** -> upload `elemental-barrage-gamepush.zip`.
+1. Panel -> your game -> **Game Hosting** -> upload `umbrella-gamepush.zip`.
    Rules: `.zip` up to 200 MB, `index.html` at the archive ROOT (not in a folder -
    already guaranteed by `tools/zip-dist.mjs`). HTTPS and CDN included.
 2. The upload becomes a **draft**. Open the draft link and play it to check ads,

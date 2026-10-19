@@ -54,7 +54,7 @@ export const serveDir = (root, o = {}) => new Promise((resolveP, reject) => {
 })
 
 /** Throws unless `url` serves a page whose <title> matches `re`. Returns the title. */
-export const assertTitle = async (url, re = /elemental barrage/i) => {
+export const assertTitle = async (url, re = /umbrella/i) => {
   const html = await (await fetch(url)).text()
   const title = /<title>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? ''
   if (!re.test(title)) throw new Error(`refusing to measure: ${url} serves <title>${title}</title>, not ${re}`)

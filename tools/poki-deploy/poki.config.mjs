@@ -6,15 +6,15 @@
 
 export default {
   team: 'hyperg8',
-  // Elemental Barrage's P4D game id. The previous id was survivalist's — a deploy
+  // Umbrella's P4D game id. The previous id was survivalist's — a deploy
   // with it would upload THIS build to THAT game. deploy.mjs refuses to run
   // until it is set.
   gameId: '09c611d5-0f4c-468e-a4d9-50190b05a725',
-  gameName: 'Elemental Barrage',
+  gameName: 'Umbrella',
 
   build: 'pnpm build:poki',
   dist: 'dist',
-  zip: 'dist/elemental-barrage-poki.zip',
+  zip: 'dist/umbrella-poki.zip',
 
   /** Pack `dist` into `zip` with the pipeline's own zip writer instead of
    *  trusting the build script's `tar -a -cf`, which silently produces a TAR
@@ -26,7 +26,7 @@ export default {
 
   /** What the version is called in P4D. Keep the version number in it — it is
    *  the only thing tying a live build back to a commit. */
-  versionName: version => `Elemental Barrage ${version}`,
+  versionName: version => `Umbrella ${version}`,
 
   /** Extra hosts the gates and the runtime sweep should accept. Anything here
    *  needs a matching per-URL approval in P4D → Settings → CSP. */

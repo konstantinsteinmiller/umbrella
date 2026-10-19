@@ -122,7 +122,7 @@ const startLog = startLogOf(RUN)
 
 const data = {
   meta: {
-    game: 'Elemental Barrage', run: LABEL,
+    game: 'Umbrella', run: LABEL,
     build: '0.1.0 (production build, unobfuscated, leaderboard writes off)',
     date: new Date().toISOString().slice(0, 10), viewport: '390 × 844 phone (touch + iPhone user agent)',
     ...budgetOf(startLog), thinkSec: startLog?.think ?? 2, testers: 'Claude Sonnet agents, one per persona, each in its own headed Chrome'

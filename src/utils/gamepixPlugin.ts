@@ -439,7 +439,7 @@ const installScoreLevelWatchers = (): void => {
   if (scoreWatchersInstalled) return
   scoreWatchersInstalled = true
 
-  // Elemental Barrage: score = the deepest endless row (the same number the
+  // Umbrella: score = the deepest endless row (the same number the
   // leaderboards rank), level = the boss zone that row sits in (zone 1 = rows
   // 1-10, zone 2 = rows 11-20, …). Read from the engine-free progress module so
   // this boot-path plugin never pulls the game engine into the entry chunk.

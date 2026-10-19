@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Elemental Barrage — the single game scene. Boots straight into the board.
+ * Umbrella — the single game scene. Boots straight into the board.
  *
  * MOBILE PORTRAIT FIRST (360–430 px wide):
  *

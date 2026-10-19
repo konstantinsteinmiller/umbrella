@@ -148,9 +148,9 @@ export const version: string = APP_VERSION
 // Replaces the old `useUserDb` IndexedDB layer. CG QA flagged the
 // `user_db` / `user_os` store as "data saved locally" — and it was
 // holding a pile of CardQuest relics (userHand, userCollection,
-// userCampaign, userQuestCards, etc.) that elemental-barrage never reads.
+// userCampaign, userQuestCards, etc.) that umbrella never reads.
 //
-// elemental-barrage only persists FOUR user settings:
+// umbrella only persists FOUR user settings:
 //   • difficulty / sound volume / music volume / locale
 //
 // They live in localStorage under the keys below. On a CrazyGames build

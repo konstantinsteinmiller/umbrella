@@ -3,7 +3,7 @@ import { nextTick } from 'vue'
 import { SUBMITTED_SCORE_KEY } from '@/keys'
 
 /**
- * ─── Elemental Barrage ⇄ the global board ───────────────────────────────────
+ * ─── Umbrella ⇄ the global board ───────────────────────────────────
  *
  * `useLeaderboard` is pinned by its own suites; this one pins the GAME side:
  * which number is ranked (the best endless row, floored at "one turn

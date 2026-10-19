@@ -255,7 +255,7 @@ export default {
 }
 ```
 
-## Game-side seams this project provides (Elemental Barrage; not part of the generic core)
+## Game-side seams this project provides (Umbrella; not part of the generic core)
 
 The game is DOM (Vue), not a canvas: `clean.keep` is `[]` and `clean.hide`
 lists the interface that floats over the playfield by selector.

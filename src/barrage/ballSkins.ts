@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — the ball-skin catalogue (lead-owned seam; additive edits OK).
+ * Umbrella — the ball-skin catalogue (lead-owned seam; additive edits OK).
  *
  * A skin is a SHELL, never a replacement. The first catalogue swapped the
  * whole ball for one of the 14 round sprites Merge Idle War never shipped —

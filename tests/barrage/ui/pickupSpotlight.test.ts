@@ -6,7 +6,7 @@
 // The first one of a profile is still counted and told to screen readers.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 
 const pauses = vi.hoisted(() => ({ n: 0 }))
 vi.mock('@/use/useGamePause', async (importOriginal) => {
@@ -54,7 +54,7 @@ describe('the first "+1" — in the world, no pause', () => {
   })
 
   it('a veteran save (best row past 10) is not told again', async () => {
-    const { ps, coach } = await load({ eb_best_row: 30, eb_coach: { v: 1, shown: { mergeBox: 3 }, kinds: {} } })
+    const { ps, coach } = await load({ umb_best_row: 30, umb_coach: { v: 1, shown: { mergeBox: 3 }, kinds: {} } })
     ps.offerPickup({ from: { x: 1, y: 1 }, idx: 0, tier: 1, allowed: true })
     expect(coach.coachCue.value).toBeNull()
   })

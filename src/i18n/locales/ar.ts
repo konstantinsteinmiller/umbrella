@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/ar'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "المستوى {n}",
+    'finish': "النهاية",
+    'controls': "←/→ أو A/D للحركة · المسافة لفتح/إغلاق المظلة · R لإعادة البدء",
+    'broken': "انكسرت المظلة!",
+    'prevLevel': "المستوى السابق",
+    'nextLevel': "المستوى التالي",
+    'restart': "إعادة المستوى"
+  },
   'ads': {
     'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'المكتنز', 'desc': 'احصل على 250 صندوق عناصر إجمالاً.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'إلغاء',
   'close': 'إغلاق',
   'ok': 'موافق',

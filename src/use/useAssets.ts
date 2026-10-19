@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { prependBaseUrl } from '@/utils/function'
 
-// elemental-barrage draws all gameplay art programmatically (via Canvas 2D)
+// umbrella draws all gameplay art programmatically (via Canvas 2D)
 // and uses inline SVG for HUD icons, so the asset preloader is intentionally
 // empty. SFX are decoded on first play (see `useSound.ts`); the splash
 // screen exits as soon as the JS bundle is parsed.
@@ -217,7 +217,7 @@ export const loadAudioBuffer = async (src: string): Promise<AudioBuffer | null> 
 }
 
 // ─── Critical art-asset preload ────────────────────────────────────────
-// The only bitmaps ElementalBarrage needs decoded BEFORE first paint. Everything
+// The only bitmaps Umbrella needs decoded BEFORE first paint. Everything
 // else in the HUD/arena is DOM + inline SVG (or a drop-in override that renders
 // a vector fallback until its bitmap is confirmed), so this list stays tiny.
 const CRITICAL_IMAGE_SRCS: ReadonlyArray<string> = [
@@ -252,7 +252,7 @@ const decodeImage = (src: string): Promise<void> => {
 // (they decode on first play anyway; this just smooths the opening burst).
 //
 // The old Epicrolla renderer warm-up (iso grid-tiles / props / ball skins /
-// parchment ribbon via useEpicArt + useEpicSkins) was removed: ElementalBarrage
+// parchment ribbon via useEpicArt + useEpicSkins) was removed: Umbrella
 // renders the arena in the DOM, none of those bitmaps ship, and warming them
 // only fired a wall of 404s that CrazyGames' resource audit flagged. The
 // parchment ribbon that IS used (FReward) loads via its own CSS background.
@@ -275,7 +275,7 @@ export default () => {
     areAllAssetsLoaded.value = false
     // Drop-in art overrides (art-todo.md) — probed in parallel, never awaited:
     // the vector fallbacks render until a bitmap is confirmed decodable. These
-    // are ElementalBarrage's OWN optional unit/projectile art, not Epicrolla props.
+    // are Umbrella's OWN optional unit/projectile art, not Epicrolla props.
     void import('@/use/useArtOverrides')
       .then((m) => m.probeArtOverrides())
       .catch(() => { /* non-critical: vector art stays */ })

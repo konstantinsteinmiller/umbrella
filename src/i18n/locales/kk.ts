@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/kk'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "{n}-деңгей",
+    'finish': "МӘРЕ",
+    'controls': "←/→ немесе A/D — қозғалу · Бос орын — қолшатырды ашу/жабу · R — қайта бастау",
+    'broken': "Қолшатыр сынды!",
+    'prevLevel': "Алдыңғы деңгей",
+    'nextLevel': "Келесі деңгей",
+    'restart': "Деңгейді қайта бастау"
+  },
   'ads': {
     'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Жинаушы', 'desc': 'Барлығы 250 зат жәшігін алыңыз.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Бас тарту',
   'close': 'Жабу',
   'ok': 'Жарайды',

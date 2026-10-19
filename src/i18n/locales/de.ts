@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/de'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Level {n}",
+    'finish': "ZIEL",
+    'controls': "←/→ oder A/D laufen · Leertaste öffnet/schließt den Schirm · R Neustart",
+    'broken': "Schirm kaputt!",
+    'prevLevel': "Vorheriges Level",
+    'nextLevel': "Nächstes Level",
+    'restart': "Level neu starten"
+  },
   'ads': {
     'watch': 'Ansehen', 'revive': 'Wiederbeleben', 'secondChance': 'Zweite Chance', 'doubleCoins': '2× Münzen', 'plusCoins': '+{n} Münzen'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Hamsterer', 'desc': 'Schnapp dir insgesamt 250 Item-Boxen.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Abbrechen',
   'close': 'Schließen',
   'ok': 'Ok',

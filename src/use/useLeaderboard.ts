@@ -319,7 +319,7 @@ let boardSource: BoardSource = null
 let fetched = false
 
 /**
- * Deliberately NOT a field inside `elemental-barrage_state`, and not an `epic_` /
+ * Deliberately NOT a field inside `umbrella_state`, and not an `epic_` /
  * `spinner_` / `ca_`-prefixed key.
  *
  * All of those round-trip to the platform's cloud save (see `isPayloadKey`),
@@ -328,7 +328,7 @@ let fetched = false
  * save, against Poki's 1 MB ceiling — to protect a device that has its own copy
  * anyway. It is a per-device cache, so it lives per-device.
  */
-const BOARD_CACHE_KEY = 'elemental-barrage_board_cache'
+const BOARD_CACHE_KEY = 'umbrella_board_cache'
 
 const readBoardCache = (): Board | null => {
   try {

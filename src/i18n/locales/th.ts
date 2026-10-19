@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/th'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "ด่าน {n}",
+    'finish': "เส้นชัย",
+    'controls': "←/→ หรือ A/D เดิน · Space กาง/หุบร่ม · R เริ่มใหม่",
+    'broken': "ร่มพัง!",
+    'prevLevel': "ด่านก่อนหน้า",
+    'nextLevel': "ด่านถัดไป",
+    'restart': "เริ่มด่านใหม่"
+  },
   'ads': {
     'watch': 'ดู', 'revive': 'ชุบชีวิต', 'secondChance': 'โอกาสที่สอง', 'doubleCoins': '2× เหรียญ', 'plusCoins': '+{n} เหรียญ'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'นักกักตุน', 'desc': 'เก็บกล่องไอเทมรวม 250 กล่อง' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'ยกเลิก',
   'close': 'ปิด',
   'ok': 'ตกลง',

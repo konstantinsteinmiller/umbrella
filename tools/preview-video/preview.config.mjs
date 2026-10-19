@@ -1,5 +1,5 @@
 /**
- * ─── Elemental Barrage — preview-video configuration ───────────────────────────
+ * ─── Umbrella — preview-video configuration ───────────────────────────
  *
  *   pnpm preview:video                          # the CrazyGames set (4 clips)
  *   pnpm preview:video --scenarios success      # one scenario, both orientations
@@ -13,7 +13,7 @@
 
 export default {
   // The port-ownership check: the served <title> must contain this.
-  title: 'elemental-barrage',
+  title: 'umbrella',
 
   // The DEV server, not a production build: the scenarios import the game's own
   // modules by URL (`/src/barrage/...`) and `?clean=1` (src/game/cleanFeed.ts) is

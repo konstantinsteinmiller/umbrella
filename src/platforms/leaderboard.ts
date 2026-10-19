@@ -1,5 +1,5 @@
 /**
- * Best-row leaderboard submission (retention-roadmap #16) — Elemental Barrage
+ * Best-row leaderboard submission (retention-roadmap #16) — Umbrella
  * ranks the deepest endless row; the portal-side board is still named `bestWave`.
  *
  * Platform-gated, defensive, fire-and-forget:
@@ -66,7 +66,7 @@ const submitPlaygama = (w: number): void => {
 }
 
 /**
- * Submit the player's best ENDLESS ROW (Elemental Barrage's score). Called by
+ * Submit the player's best ENDLESS ROW (Umbrella's score). Called by
  * `useBarrage` at a run's natural edges — a boss checkpoint, a breach, a
  * checkpoint restart — not on every new row: a record run sets a new best every
  * turn, and a portal SDK round-trip per turn is exactly the spam the

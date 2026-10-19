@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/hi'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "स्तर {n}",
+    'finish': "फ़िनिश",
+    'controls': "←/→ या A/D चलें · स्पेस छाता खोलें/बंद करें · R फिर से शुरू",
+    'broken': "छाता टूट गया!",
+    'prevLevel': "पिछला स्तर",
+    'nextLevel': "अगला स्तर",
+    'restart': "स्तर फिर से शुरू करें"
+  },
   'ads': {
     'watch': 'देखें', 'revive': 'पुनर्जीवित', 'secondChance': 'दूसरा मौका', 'doubleCoins': '2× सिक्के', 'plusCoins': '+{n} सिक्के'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'जमाखोर', 'desc': 'कुल 250 आइटम बक्से पकड़ें।' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'रद्द करें',
   'close': 'बंद करें',
   'ok': 'ठीक है',

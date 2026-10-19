@@ -17,7 +17,7 @@
  *   node --import ./scripts/art/ts-resolve.mjs scripts/art/art-prompts.mjs
  *
  * (From the art-generation-pipeline skill, glyphyx template, adapted to
- * elemental-barrage's manifest: `ART_DRAWABLES`, one reference per drawable.)
+ * umbrella's manifest: `ART_DRAWABLES`, one reference per drawable.)
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'

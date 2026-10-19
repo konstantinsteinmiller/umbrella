@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — the run owner (contract: `UseBarrage`, a module singleton).
+ * Umbrella — the run owner (contract: `UseBarrage`, a module singleton).
  *
  * Owns the live engine and everything that has to survive it: the saved run,
  * the checkpoint, the one-shot rewarded offers, the daily/endless switch, the

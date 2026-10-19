@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/pl'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Poziom {n}",
+    'finish': "META",
+    'controls': "←/→ lub A/D ruch · Spacja otwiera/zamyka parasol · R restart",
+    'broken': "Parasol zepsuty!",
+    'prevLevel': "Poprzedni poziom",
+    'nextLevel': "Następny poziom",
+    'restart': "Zrestartuj poziom"
+  },
   'ads': {
     'watch': 'Obejrzyj', 'revive': 'Wskrześ', 'secondChance': 'Druga szansa', 'doubleCoins': '2× monety', 'plusCoins': '+{n} monet'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Zbieracz', 'desc': 'Złap łącznie 250 skrzyń z przedmiotami.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Anuluj',
   'close': 'Zamknij',
   'ok': 'Ok',

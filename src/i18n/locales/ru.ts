@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/ru'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Уровень {n}",
+    'finish': "ФИНИШ",
+    'controls': "←/→ или A/D — движение · Пробел — открыть/закрыть зонт · R — заново",
+    'broken': "Зонт сломался!",
+    'prevLevel': "Предыдущий уровень",
+    'nextLevel': "Следующий уровень",
+    'restart': "Перезапустить уровень"
+  },
   'ads': {
     'watch': 'Смотреть', 'revive': 'Возродить', 'secondChance': 'Второй шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Накопитель', 'desc': 'Соберите всего 250 ящиков с предметами.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Отмена',
   'close': 'Закрыть',
   'ok': 'Ок',

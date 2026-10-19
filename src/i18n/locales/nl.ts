@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/nl'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Level {n}",
+    'finish': "FINISH",
+    'controls': "←/→ of A/D lopen · Spatie opent/sluit de paraplu · R opnieuw",
+    'broken': "Paraplu kapot!",
+    'prevLevel': "Vorig level",
+    'nextLevel': "Volgend level",
+    'restart': "Level opnieuw starten"
+  },
   'ads': {
     'watch': 'Bekijk', 'revive': 'Herleven', 'secondChance': 'Tweede kans', 'doubleCoins': '2× munten', 'plusCoins': '+{n} munten'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Hamsteraar', 'desc': 'Pak in totaal 250 itemkisten.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Annuleren',
   'close': 'Sluiten',
   'ok': 'Ok',

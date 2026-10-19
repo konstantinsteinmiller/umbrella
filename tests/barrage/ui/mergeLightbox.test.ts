@@ -7,7 +7,7 @@
 // screen readers instead.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 
 const pauses = vi.hoisted(() => ({ n: 0 }))
 vi.mock('@/use/useGamePause', async (importOriginal) => {
@@ -73,7 +73,7 @@ describe('a merge: the tray\'s own flourish, no pause', () => {
   })
 
   it('the count is in the saved coach blob: a profile that has heard three is told discoveries only', async () => {
-    const { box, coach } = await load({ eb_coach: { v: 1, shown: { mergeBox: 3 }, kinds: {} } })
+    const { box, coach } = await load({ umb_coach: { v: 1, shown: { mergeBox: 3 }, kinds: {} } })
     box.offerMerge(merge(2))
     expect(coach.coachCue.value).toBeNull()
     box.offerMerge(merge(3, true))
@@ -81,7 +81,7 @@ describe('a merge: the tray\'s own flourish, no pause', () => {
   })
 
   it('a save from past the first boss without a count is treated as having heard them', async () => {
-    const { box, coach } = await load({ eb_best_row: 25, eb_coach: { v: 1, shown: {}, kinds: {} } })
+    const { box, coach } = await load({ umb_best_row: 25, umb_coach: { v: 1, shown: {}, kinds: {} } })
     box.offerMerge(merge(2))
     expect(coach.coachCue.value).toBeNull()
   })

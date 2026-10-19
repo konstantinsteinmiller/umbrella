@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/id'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Level {n}",
+    'finish': "FINIS",
+    'controls': "←/→ atau A/D bergerak · Spasi buka/tutup payung · R ulang",
+    'broken': "Payung rusak!",
+    'prevLevel': "Level sebelumnya",
+    'nextLevel': "Level berikutnya",
+    'restart': "Ulangi level"
+  },
   'ads': {
     'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Penimbun', 'desc': 'Ambil total 250 kotak item.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Batal',
   'close': 'Tutup',
   'ok': 'Ok',

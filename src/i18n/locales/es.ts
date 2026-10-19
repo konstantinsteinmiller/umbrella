@@ -4,6 +4,15 @@ import barrageMeta from './barrageMeta/es'
 export default {
   barrage,
   barrageMeta,
+  'umbrella': {
+    'level': "Nivel {n}",
+    'finish': "META",
+    'controls': "←/→ o A/D moverse · Espacio abre/cierra el paraguas · R reiniciar",
+    'broken': "¡Paraguas roto!",
+    'prevLevel': "Nivel anterior",
+    'nextLevel': "Nivel siguiente",
+    'restart': "Reiniciar nivel"
+  },
   'ads': {
     'watch': 'Ver', 'revive': 'Revivir', 'secondChance': 'Segunda oportunidad', 'doubleCoins': '2× monedas', 'plusCoins': '+{n} monedas'
   },
@@ -48,7 +57,7 @@ export default {
       'items250': { 'name': 'Acaparador', 'desc': 'Consigue 250 cajas de objetos en total.' }
     }
   },
-  'gameName': 'Elemental Barrage',
+  'gameName': 'Umbrella',
   'cancel': 'Cancelar',
   'close': 'Cerrar',
   'ok': 'Ok',

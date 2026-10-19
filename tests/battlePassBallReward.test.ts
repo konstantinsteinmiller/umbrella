@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * The pass re-pointed at Elemental Barrage: every 5th tier pays a free BALL off
+ * The pass re-pointed at Umbrella: every 5th tier pays a free BALL off
  * the player's own ball ladder (third-best on the 5s, second-best on the 10s,
  * the outright best at the end of the pass) — never above the watermark, so a
  * gift can never skip the tier-reveal the player is merging towards. The claim
@@ -29,8 +29,8 @@ const withProgress = async (maxBallTier: number, bestRow = 1) => {
   localStorage.clear()
   vi.resetModules()
   const { setState } = await import('@/use/useEpicState')
-  setState('eb_stats', { maxBallTier })
-  setState('eb_best_row', bestRow)
+  setState('umb_stats', { maxBallTier })
+  setState('umb_best_row', bestRow)
   const bp = await import('@/use/useBattlePass')
   const progress = await import('@/barrage/state/progress')
   return { bp, progress }
@@ -95,7 +95,7 @@ describe('battle-pass ball reward', () => {
     expect(coins.value - before).toBe(res!.coins)
     expect(progress.pending.value.balls).toEqual([4])
     const { getState } = await import('@/use/useEpicState')
-    expect(getState('eb_pending')).toMatchObject({ balls: [4] })
+    expect(getState('umb_pending')).toMatchObject({ balls: [4] })
     // A plain coin tier owes nothing.
     pass.claimStage(1)
     expect(progress.pending.value.balls).toEqual([4])

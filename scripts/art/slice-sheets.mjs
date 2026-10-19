@@ -11,7 +11,7 @@
  *   pnpm art:slice                         # every image in art-sheets/painted/
  *   pnpm art:slice -- --dry                # print the plan, write nothing
  *
- * ELEMENTAL-BARRAGE ADAPTATION (art-generation-pipeline template, tower-siege /
+ * UMBRELLA ADAPTATION (art-generation-pipeline template, tower-siege /
  * glyphyx origin). Every transparent drawable here arrives in the index as a
  * `walk` — N panels of one thing, never trimmed, keyed, registered onto the box
  * the bench measured on the reference — because that is the one path with
@@ -255,7 +255,7 @@ const TARGETS = [
     // Both `bg-mountains-far` and a plain `mountains-far` are accepted: the
     // prefix is a convenience of the export, not something a painter should
     // have to preserve through a chat window and a download folder.
-    // elemental-barrage: plus the catalogue keys (`scene-bg.png` → arena-scene-bg).
+    // umbrella: plus the catalogue keys (`scene-bg.png` → arena-scene-bg).
     stems: [a.file.replace(/\.png$/, ''), a.id, ...(a.aliases ?? [])],
     width: a.width, height: a.height,
     tileable: a.tileable,
@@ -281,16 +281,16 @@ const TARGETS = [
     // weapon bolted to it — so a return is fitted INSIDE it in both axes. A
     // creature's box is not: it stands on open ground, and shrinking it
     // because a painted arm swings wider would lift its feet off the line.
-    // elemental-barrage: the manifest says so per drawable (the merge-slot tile).
+    // umbrella: the manifest says so per drawable (the merge-slot tile).
     tight: a.tight ?? a.kind === 'fixture',
     // `walk-grumpling` and a bare `grumpling` both land; longest stem wins, so
-    // the prefixed form is never mistaken for anything else. elemental-barrage
+    // the prefixed form is never mistaken for anything else. umbrella
     // adds the catalogue keys as aliases, so `fighter-10.png` lands on
     // `unit-fighter-10` (longest wins, so `fighter-1` never claims it).
     stems: [a.file.replace(/\.png$/, ''), a.id, ...(a.aliases ?? [])],
     width: a.width, height: a.height,
     frames: a.frames, cols: a.cols, rows: a.rows,
-    // elemental-barrage: 3×3 VFX sheets compose back into their grid; impact
+    // umbrella: 3×3 VFX sheets compose back into their grid; impact
     // sheets skip the measured-grid refusal (see the header).
     layout: a.layout ?? 'strip',
     gridCheck: a.gridCheck ?? 'measure',
@@ -763,7 +763,7 @@ try {
           + ' touch each other or the background is not one flat colour.')
         console.warn(`    Cutting the nominal ${wantCols}x${wantRows} anyway.`)
       } else if (sheet.gridCheck === 'nominal') {
-        // elemental-barrage: an impact sheet fades to near-empty panels and the
+        // umbrella: an impact sheet fades to near-empty panels and the
         // wings overlay has an empty gap down its middle, BY DESIGN — both
         // read as a different grid. The lattice is trusted instead; the
         // aspect guard above still refuses a re-composed sheet.
@@ -894,7 +894,7 @@ try {
         const FIT_REF = ${JSON.stringify(NO_FIT ? null : (sheet.fit ?? null))};
         const FIT_TIGHT = ${sheet.tight ? 'true' : 'false'};
         const ANCHOR_REF = ${JSON.stringify(sheet.anchor ?? 'feet')};
-        // elemental-barrage: compose a multi-panel sheet back into its lattice.
+        // umbrella: compose a multi-panel sheet back into its lattice.
         const LAYOUT = ${JSON.stringify(sheet.layout === 'grid' ? { cols: sheet.cols, rows: sheet.rows } : null)};
         const out = [];
         // Walk-cycle panels, held back so they can be composed into one strip.
@@ -1471,7 +1471,7 @@ try {
               const byFeet = ANCHOR_REF !== 'centre';
               const gotMidY = (by0 + by1) / 2;
               const fromY = FIT_TIGHT ? gotMidY : byFeet ? gotBottom : gotMidY;
-              // elemental-barrage: a centred sprite goes back to where the
+              // umbrella: a centred sprite goes back to where the
               // reference's OWN middle was (the index records cy), not to
               // the panel's — a sprite drawn a touch high stays a touch high.
               const toY = FIT_TIGHT ? 0.5 : byFeet ? FIT.bottom
@@ -1494,7 +1494,7 @@ try {
               }
             }
             const cv = document.createElement('canvas');
-            // elemental-barrage: a 3×3 VFX sheet goes back into its lattice
+            // umbrella: a 3×3 VFX sheet goes back into its lattice
             // (the arena steps through it left→right, top→bottom); everything
             // else is the template's one horizontal strip.
             const gcols = LAYOUT ? LAYOUT.cols : strip.length;
@@ -1600,7 +1600,7 @@ try {
             + ` of ${r.frames} came back EMPTY — the walk will hitch there.`)
         }
         const spread = (xs) => (xs?.length ? Math.max(...xs) - Math.min(...xs) : 0)
-        // elemental-barrage: the bob / drift / scale checks below are about a WALK.
+        // umbrella: the bob / drift / scale checks below are about a WALK.
         // A 3×3 VFX sheet is a burst that grows and fades on purpose, and a
         // flight loop that shimmers — for those, "frame sizes vary" is the art
         // working. A missing (empty) frame is still reported above.
@@ -1671,7 +1671,7 @@ try {
     + `${skipped ? `, skipped ${skipped} empty` : ''}`
     + `${failed ? `, ${failed} FAILED` : ''}`)
   if (written && !DRY) {
-    // elemental-barrage: painted art is ON by default (useArtOverrides.ts); the
+    // umbrella: painted art is ON by default (useArtOverrides.ts); the
     // flag exists to turn it OFF for an A/B, never to turn it on.
     console.log('\nTo see it: pnpm dev, then  /#/playground  — its button flips painted ⇄ drawn.')
     console.log('Already open? Run  __art.refresh()  in the dev console to re-read from disk.')

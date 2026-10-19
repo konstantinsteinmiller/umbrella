@@ -6,7 +6,7 @@ import { leaderboardAllowed, leaderboardEnabled, reportRun } from '@/use/useLead
 import { setSdkNameSource } from '@/use/usePlayerIdentity'
 
 /**
- * ─── Elemental Barrage ⇄ the global board ───────────────────────────────────
+ * ─── Umbrella ⇄ the global board ───────────────────────────────────
  *
  * The game-side half of the leaderboard: WHICH number is ranked, and WHEN it is
  * reported. `useLeaderboard` knows nothing about rows; this file knows nothing

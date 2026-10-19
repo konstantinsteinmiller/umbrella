@@ -12,7 +12,7 @@
 //           first boss (row 10) by ~30 s.
 //
 // A `busy` (40-ball volley) scene needs a seeded veteran save: `save: () => blob`
-// (the object stored under `elemental-barrage_state`). Not built yet.
+// (the object stored under `umbrella_state`). Not built yet.
 
 export const SCENES = {
   early: {

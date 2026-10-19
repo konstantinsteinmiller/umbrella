@@ -13,7 +13,7 @@
  *
  * So `offerMerge` never takes the moment. The profile's first merges and
  * every discovery still say their sentence to screen readers (the coach's cue
- * region), and the first ones are counted (`eb_coach` exposure `mergeBox`,
+ * region), and the first ones are counted (`umb_coach` exposure `mergeBox`,
  * which hydrates and never runs backwards with the rest of the coach's
  * bookkeeping).
  */

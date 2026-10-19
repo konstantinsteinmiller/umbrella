@@ -1,4 +1,4 @@
-# Elemental Barrage — build contract
+# Umbrella — build contract
 
 Source concept: `non-strategy-concepts.md` §4 (Concept B). This file turns it into binding rules for the
 parallel build. `engine/types.ts` is the code-level contract; this file is the behavioural one.
@@ -338,7 +338,7 @@ heal: every monster moves back up one row where free (bottom rows first) · revi
   reads it through `engine.saviorView`. Sim (48 seeds × 220 turns, off → on): boss kills landed in the very
   last volley human 120 → 178, random 195 → 247; row-30 boss first try human 39 → 45/48, row-20 boss first try
   humanlow 38 → 46/48; a player far behind still loses (noup row-20 boss by the 2nd try 5 → 9/48).
-- Persist (inside the `elemental-barrage_state` blob via `getState/setState`, keys prefixed `eb_`):
+- Persist (inside the `umbrella_state` blob via `getState/setState`, keys prefixed `eb_`):
   run snapshot (saved each time the engine enters `aim`), best row, checkpoint (+ tray, boss deaths), upgrade levels,
   lifetime stats, collections, daily record, meteor-continue-used-this-checkpoint flag, FTUE step.
 
@@ -347,7 +347,7 @@ heal: every monster moves back up one row where free (bottom rows first) · revi
 |---|---|
 | 0 s | Row 1: three slimes, HP 1, in columns 2,3,4. Ghost hand drags back and releases (straight up is fine). Tray = [1], capacity 2. |
 | ~10 s | Turn 2: a "+1" pickup sits straight above the launcher, in the preview line. |
-| ~20 s | **Instant Barrage** (retention-roadmap #1): every FTUE row 1–5 carries an extra "+1"; a "+1" that meets a full tray grows a socket (`traySocket`, capacity 2 → 3 → 4 → 6, booked as free capacity levels, `eb_ftue.sockets`) instead of merging. |
+| ~20 s | **Instant Barrage** (retention-roadmap #1): every FTUE row 1–5 carries an extra "+1"; a "+1" that meets a full tray grows a socket (`traySocket`, capacity 2 → 3 → 4 → 6, booked as free capacity levels, `umb_ftue.sockets`) instead of merging. |
 | ~30 s | Row 4 arrives as a swarm (every free top cell a slime). Turn 4 is **overcharged**: a gold glow under the unit while aiming, then the tray fires three times over (the copies are ghosts, fanned ±0.3 rad) and FEVER ignites on its first hit. FTUE FEVER otherwise needs 20 hits (not 50). |
 | after the first merge | The gift: one free Ball Damage level when the sockets grew the tray (otherwise the old free "Tray Capacity 3"). |
 | ~45–70 s | Row 5: Slime Tower (Boss at 75 s), 2–3 volleys, shards on every hit. Win = coin fountain + CHECKPOINT banner. |
@@ -356,7 +356,7 @@ volley ends is auto-collected, so the tray grows whatever the aim. FTUE ends at 
 Before the first boss, a breach restart keeps the tray from the last aim (a fresh row-1 board).
 
 **After the FTUE — the wordless coach** (`use/useCoach.ts`; nothing typed on screen, sentences only in
-sr-only live regions; one lesson at a time, exposure-capped, persisted as `eb_coach`; endless mode only
+sr-only live regions; one lesson at a time, exposure-capped, persisted as `umb_coach`; endless mode only
 except the pull hint):
 - *pull* (now the aim hint): a ghost finger inside the board drags toward the monsters while the dotted
   line grows from the launcher (playtest run 1: every blind tester's first drag went toward the monsters,
@@ -382,7 +382,7 @@ except the pull hint):
 - *upgrade funnel* (run 2: nobody bought a paid upgrade; its own channel `upgradeFunnel`, never over the
   board): once Ball Damage is affordable after the free Tray Capacity, runic gold arrows point at its chip,
   coins fly from the wallet into it and the hand presses it — every aim phase until Damage is bought
-  (≤ 6 showings, `eb_coach.shown.arrows`); after every boss kill / breach the arrows return on the
+  (≤ 6 showings, `umb_coach.shown.arrows`); after every boss kill / breach the arrows return on the
   glowing chip for 2 aim phases (or until any purchase); an aim that opens with something affordable and
   no purchase for 2 aims pulses the glowing chip. Every other affordable chip wears a quiet gold glow;
   short prices are grey; a refused tap = red price + "need N more" callout + wallet pulse + small shake.
@@ -428,10 +428,10 @@ except the pull hint):
 - *merge lightbox* (`components/barrage/mergeLightbox.ts`): **Silent Flow (retention-roadmap #2) — no
   pause.** Every merge plays the tray's own flourish while play goes on; a discovery adds the NEW BALL reveal
   (≤ 1.5 s, non-blocking). The first 3 merges and every discovery still say their sentence to screen readers
-  and are counted (`eb_coach.shown.mergeBox`). `offerMerge` never takes the moment.
+  and are counted (`umb_coach.shown.mergeBox`). `offerMerge` never takes the moment.
 - *first "+1"* (`components/barrage/pickupSpotlight.ts`): **Silent Flow — no pause.** Every "+1" on the board
   pulses in the FTUE (`render/worldCues.ts` `plusPulse`) and the tray plays its own flight into the socket it
-  fills. Counted once per profile (`eb_coach.shown.pickupBox`), sr-only `barrage.tray.pickupSr`.
+  fills. Counted once per profile (`umb_coach.shown.pickupBox`), sr-only `barrage.tray.pickupSr`.
 - *spotlights* (`components/barrage/lessonSpotlight.ts` + `LessonSpotlight.vue`, the designer's call after
   run 11): short staged lessons (Silent Flow: none before the first boss kill, and none pauses or dims — the demo
   plays over the running aim phase and a shot ends it; wordless — sr-only `barrage.coach.spot.*`),
@@ -439,7 +439,7 @@ except the pull hint):
   coin rain, lightbox, FTUE mark, death scene or finger on the board), never on the aim a boss arrived or fell:
   - *threat* — **Silent Flow: now a board cue, not a staged lesson** (`useCoach.flashDanger` → the danger row
     flashes in `render/worldCues.ts`). History: the countdown on the launcher, the first time a monster comes within 3 marches (once per
-    profile, `eb_coach.shown.threatBox`; veterans past row 30 never see it): the monster with the fewest
+    profile, `umb_coach.shown.threatBox`; veterans past row 30 never see it): the monster with the fewest
     marches (nearest the unit on a tie) and the unit are lit, both wearing the same pip N and a tether; a ghost
     of it marches down at its real pace (`render/danger.ts` `marchPlan`), both pips ticking down together
     as each step lands; the last step crosses the line — the line flares, the unit's pip turns to a skull; then
@@ -447,7 +447,7 @@ except the pull hint):
     rescue shot follows on the real board the moment it ends (its spacing waived). Run 11: both losses had the
     '1' and the tether up and the tester shot straight up.
   - *speed / luck / bounty* — what the three chips nobody could explain do, once each
-    (`eb_coach.shown.<id>Box`) from rows 12 / 17 / 22 (`UPGRADE_SPOT_ROWS`), only while that chip is
+    (`umb_coach.shown.<id>Box`) from rows 12 / 17 / 22 (`UPGRADE_SPOT_ROWS`), only while that chip is
     unbought, never in danger, under an upgrade funnel or while a boss is enraged, and ≥ `SPOT_GAP` (3)
     volleys from any other lesson or spotlight. The chip is lit and its effect shown twice — before (its value
     now) and after (one level up), its glyph flying from the chip into the demo between: speed — a ball flies
@@ -464,7 +464,7 @@ except the pull hint):
   while the player aims (BoardRenderer) — the pip alone went unread in a crowded boss frame.
 - *overrun* — RETIRED in run 7: its first-danger ghost demo read as "an unexplained red overlay" in still
   frames (on the enraged boss: "a sprite glitch"). The loss itself teaches the line now (the death sequence,
-  §1 Breach). Old saves' `eb_coach.shown.overrun` is ignored.
+  §1 Breach). Old saves' `umb_coach.shown.overrun` is ignored.
 - *HUD name tips* (run 3: the chest's countdown / gift pill and the tray's shield charge went unexplained):
   tapping a tray status icon (shield / revive / warcry), a still-filling treasure chest or (run 4) the rank
   plaque ("Global rank" + its placing) shows a small plate beside it — its glyph, its name and its value (the chest: countdown + the gift it fills toward) — gone
@@ -505,7 +505,7 @@ The global rank is NOT on the ladder: the game is competitive, so its runic plaq
 testers still asked what "#15,396 of 15,876" is): it names itself — "GLOBAL RANK" before the placing
 (`label` prop, `barrage.hud.rank`); a tap still shows the name plate.
 
-**Treasure chest** (`state/useSupplyDrop.ts`, `eb_supply` = last claim, epoch ms): a small gift 3 min after
+**Treasure chest** (`state/useSupplyDrop.ts`, `umb_supply` = last claim, epoch ms): a small gift 3 min after
 a claim, a big one (4× the coins, 40 % chance of a skill charge) at 10 min; coins scale with best row. The
 chest arrives filled to the small gift the first time it is shown (`arm()`). Run 4 (its "3:00" after a claim
 read as a buff timer): while it refills it stands EMPTY — lid open, dimmed, a dark mouth where small coins
@@ -514,7 +514,7 @@ keep trickling in and a gold hoard rises with the fill — so the countdown read
 **Ball skins** (`ballSkins.ts`, `render/balls.ts`): a skin is a shell, never a replacement — the tier's
 face, body colour and halo stay in a window (`SHELL_IN` = 0.72 r), the material fills the band around it,
 the tier's accent colour lines the window. `rainbow` is FEVER only (`feverSrc`), not for sale. Retired
-ids (`RETIRED_SKIN_PRICES`) are refunded at their price once (`eb_collections.refunded`).
+ids (`RETIRED_SKIN_PRICES`) are refunded at their price once (`umb_collections.refunded`).
 
 ## 8. Monetization (state + UI)
 - Rewarded **Meteor continue** at a breach, once per checkpoint.
@@ -539,7 +539,7 @@ ids (`RETIRED_SKIN_PRICES`) are refunded at their price once (`eb_collections.re
   always shown, disabled while no rewarded ad can fill. Stone keeps its coin price with the same button beside
   it, shown only while an ad can fill. Common 1 ad, every rarer skin 2 — never more than 2 per skin
   (`MAX_SKIN_ADS`; epics were 3 and legendaries 5, and a save already holding 2+ towards one owns it). The
-  count is kept per skin (`eb_collections.adViews`, max-merged on hydrate) and the last ad unlocks + equips
+  count is kept per skin (`umb_collections.adViews`, max-merged on hydrate) and the last ad unlocks + equips
   it. Ad FIRST: the count moves only on a granted reward. Coin-mode builds have no rewarded ads: there every
   skin keeps its coin price (`adOnly` is ignored), or ten skins would be unobtainable.
 - Interstitials ONLY on checkpoint restarts, never the first two restarts of a session, ≥ 3 min apart.

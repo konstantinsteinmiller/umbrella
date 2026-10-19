@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage — the drop-off funnel (retention roadmap T0.1).
+ * Umbrella — the drop-off funnel (retention roadmap T0.1).
  *
  * Each milestone goes out at most once per page session, as a `start` +
  * `complete` pair, to the platform's measure API. Today that is Poki's

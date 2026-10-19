@@ -1,4 +1,4 @@
-// Elemental Barrage meta strings ('barrageMeta' namespace: achievements, pass, collections, daily, supply drop).
+// Umbrella meta strings ('barrageMeta' namespace: achievements, pass, collections, daily, supply drop).
 // English is the source: add keys here first, then mirror them into every other locale.
 export default {
   'achievements': {

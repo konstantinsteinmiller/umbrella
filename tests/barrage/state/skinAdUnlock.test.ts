@@ -26,14 +26,14 @@ vi.mock('@/use/useAds', async () => {
   return { isRewardedReady: ctl.ready, showRewardedAd: ctl.showRewardedAd }
 })
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 /** Past the rewarded gate (T0.2, user decision 2026-09-27: every rewarded offer
  *  needs the first boss kill AND 3:00 of lifetime play). The specs below are
  *  about the skin ads' own mechanics, so every seed starts past it unless it
- *  brings its own `eb_stats`; the gate has its own describe. */
+ *  brings its own `umb_stats`; the gate has its own describe. */
 const QUALIFIED_STATS = { bossKills: 1, playSeconds: 180 }
 const seed = (blob: Record<string, unknown>): void => {
-  localStorage.setItem(STATE_KEY, JSON.stringify({ eb_stats: QUALIFIED_STATS, ...blob }))
+  localStorage.setItem(STATE_KEY, JSON.stringify({ umb_stats: QUALIFIED_STATS, ...blob }))
 }
 const load = async () => (await import('@/barrage/state/useCollections')).default()
 
@@ -66,7 +66,7 @@ describe('ball skins: rewarded-ad unlock', () => {
   })
 
   it('a save that already watched 2+ ads towards a skin (old 3- and 5-ad counts) owns it', async () => {
-    seed({ epic_coins: 0, eb_collections: { skins: ['orb'], adViews: { lava: 2, eclipse: 4, glow: 1 } } })
+    seed({ epic_coins: 0, umb_collections: { skins: ['orb'], adViews: { lava: 2, eclipse: 4, glow: 1 } } })
     const c = await load()
     const view = (id: string) => c.skins.value.find((s) => s.id === id)!
     expect(view('lava').owned).toBe(true)
@@ -107,7 +107,7 @@ describe('ball skins: rewarded-ad unlock', () => {
   })
 
   it('an ad-only skin a save already bought with coins stays owned', async () => {
-    seed({ epic_coins: 0, eb_collections: { skins: ['orb', 'lava'], selectedSkin: 'lava' } })
+    seed({ epic_coins: 0, umb_collections: { skins: ['orb', 'lava'], selectedSkin: 'lava' } })
     const c = await load()
     expect(c.skins.value.find((s) => s.id === 'lava')).toMatchObject({ owned: true, selected: true })
   })
@@ -191,13 +191,13 @@ describe('ball skins: rewarded-ad unlock', () => {
   })
 
   it('hydrate keeps the higher ad count per skin (an ad watched on either device stays watched)', async () => {
-    seed({ epic_coins: 0, eb_collections: { skins: ['orb'], adViews: { lava: 1 } } })
+    seed({ epic_coins: 0, umb_collections: { skins: ['orb'], adViews: { lava: 1 } } })
     const c = await load()
     const { setState } = await import('@/use/useEpicState')
     const { saveDataVersion } = await import('@/use/useSaveStatus')
     const { nextTick } = await import('vue')
     // The other device ran a build that still asked 5 ads for eclipse: 3 watched there owns it here.
-    setState('eb_collections', { skins: ['orb'], adViews: { eclipse: 3, gale: 1, bogus: 9 } })
+    setState('umb_collections', { skins: ['orb'], adViews: { eclipse: 3, gale: 1, bogus: 9 } })
     saveDataVersion.value++
     await nextTick()
     const view = (id: string) => c.skins.value.find((s) => s.id === id)!
@@ -209,7 +209,7 @@ describe('ball skins: rewarded-ad unlock', () => {
 
 describe('ball skins: behind the rewarded gate (first boss kill + 3:00 of play)', () => {
   it('no skin ad before the first boss kill, however long the player has played, even with an ad ready', async () => {
-    seed({ epic_coins: 0, eb_stats: { bossKills: 0, playSeconds: 900 } })
+    seed({ epic_coins: 0, umb_stats: { bossKills: 0, playSeconds: 900 } })
     const c = await load()
     expect(c.skinAdReady.value).toBe(false)
     expect(await c.watchSkinAd('stone')).toBe('none')
@@ -217,7 +217,7 @@ describe('ball skins: behind the rewarded gate (first boss kill + 3:00 of play)'
   })
 
   it('no skin ad before 3:00 of play, even past a boss; it opens live when the clock gets there', async () => {
-    seed({ epic_coins: 0, eb_stats: { bossKills: 3, playSeconds: 179 } })
+    seed({ epic_coins: 0, umb_stats: { bossKills: 3, playSeconds: 179 } })
     const c = await load()
     const progress = await import('@/barrage/state/progress')
     expect(c.skinAdReady.value).toBe(false)

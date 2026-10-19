@@ -1,13 +1,13 @@
 // ─── Game-progress field catalogue ──────────────────────────────────────────
 //
-// Field names INSIDE the single `elemental-barrage_state` blob (see `useEpicState.ts`).
+// Field names INSIDE the single `umbrella_state` blob (see `useEpicState.ts`).
 // These are not separate localStorage keys — they're properties of the one
 // persisted object — but they're still a contract with the player base:
 // renaming any of them strands existing players' progress on the old field.
 // Treat them as load-bearing constants.
 
 // ─── Merge Idle War legacy fields (merge grid + auto-battler) ─────────────────
-// Elemental Barrage's own fields live in `src/barrage/keys.ts` (`eb_*`); these
+// Umbrella's own fields live in `src/barrage/keys.ts` (`eb_*`); these
 // stay for the shared systems that still read a few of them.
 // Gold wallet (shared `useEpicConfig` wallet — kept as `epic_coins` so the
 // reused CoinBadge / coin-explosion VFX bind to it without a migration).
@@ -84,7 +84,7 @@ export const BATTLE_MUTATION_CEILING_KEY = 'battle_mutation_ceiling'
 export const BATTLE_LAST_SEEN_KEY = 'battle_last_seen'
 // ─── Global leaderboard (the Cloudflare board, see `useLeaderboard.ts`) ──────
 // The player's stable leaderboard id. Also mirrored to a standalone
-// localStorage key OUTSIDE the state blob (`elemental-barrage_uid`) — see
+// localStorage key OUTSIDE the state blob (`umbrella_uid`) — see
 // `usePlayerIdentity`: a cloud hydrate carrying an older blob must never be able
 // to erase it, because a lost id is a duplicate row that cannot be repaired.
 export const PLAYER_ID_KEY = 'lb_player_id'

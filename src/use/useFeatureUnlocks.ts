@@ -20,7 +20,7 @@
  *   • the five UPGRADE CHIPS (Silent Flow, retention-roadmap #2: frame 1 used
  *     to show all five with prices, before a coin was earned) — each flies in
  *     the first time it becomes affordable (or free, or owns a level) and
- *     stays for good (`eb_unlocks.chips`).
+ *     stays for good (`umb_unlocks.chips`).
  *   • the RANK PLAQUE — hidden until the first boss kill, then it flies in
  *     once, the earned reveal of the kill (user decision 2026-09-27: testers
  *     did not understand "#15,667 of 15,876" in their first minute).
@@ -35,7 +35,7 @@
  * A chip and the rank plaque are simply hidden · arriving · shown (nothing
  * locked may pulse or show a dot; a shown chip glows by its own rules).
  *
- * Persisted in the blob as `eb_unlocks`. A save written before the ladder
+ * Persisted in the blob as `umb_unlocks`. A save written before the ladder
  * existed unlocks silently everything its best row has passed, and one written
  * before earned chips shows every chip if it has played before — a veteran
  * never sees their HUD disappear or a celebration for something they use.

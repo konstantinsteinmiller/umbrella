@@ -1,4 +1,4 @@
-// Elemental Barrage gameplay + UI strings ('barrage' namespace).
+// Umbrella gameplay + UI strings ('barrage' namespace).
 // English is the source: add keys here first, then mirror them into every other locale.
 // Numbers are always passed in as {params} (formatted by the UI, Latin digits) —
 // never concatenated onto a translated word.

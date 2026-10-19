@@ -25,7 +25,7 @@ vi.mock('@/use/useAds', async () => {
 vi.mock('@/use/useCrazyWaveGameplay', () => ({ stopGameplayForWaveBreak: () => {}, resumeGameplayAfterWaveBreak: () => {} }))
 vi.mock('@/platforms/leaderboard', () => ({ submitBestRow: () => {}, submitBestWave: () => {} }))
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 
 const boot = async () => {
   // A case that boots twice must not leave the first graph's play clock ticking.
@@ -70,8 +70,8 @@ describe('useBarrage on the real engine', () => {
     expect(h.wallet.coins.value).toBeGreaterThan(0)
 
     h.state.flushPersist()
-    const blob = JSON.parse(localStorage.getItem(STATE_KEY) ?? '{}') as { eb_run?: { snap: { row: number } } }
-    expect(blob.eb_run?.snap.row).toBe(2)
+    const blob = JSON.parse(localStorage.getItem(STATE_KEY) ?? '{}') as { umb_run?: { snap: { row: number } } }
+    expect(blob.umb_run?.snap.row).toBe(2)
   })
 
   it('a reload resumes the exact board', async () => {
@@ -106,7 +106,7 @@ describe('useBarrage on the real engine', () => {
       tray: [3, 2, 2], launcherX: 3.5, shields: 0, revives: 0, warcryArmed: false, chestTimer: 60, turn: 6,
       rng: 11, nextId: 50
     }
-    localStorage.setItem(STATE_KEY, JSON.stringify({ eb_run: { v: 1, stamp: 'earlier', snap, breached: true } }))
+    localStorage.setItem(STATE_KEY, JSON.stringify({ umb_run: { v: 1, stamp: 'earlier', snap, breached: true } }))
     const h = await boot()
     const s = h.real().state
     expect(s.row).toBe(1)

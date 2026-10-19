@@ -8,7 +8,7 @@ import { COLS, type EngineEvent, type GameMode, type IBarrageEngine, type Upgrad
 import type { UpgradeView } from '@/barrage/state/contract'
 import { board, mon, pick } from '../engine/helpers'
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 const UP = Math.PI / 2
 
 // Silent Flow (retention-roadmap #2): no coach moment takes an app pause any
@@ -79,10 +79,10 @@ const boot = async (engine: BarrageEngine, o: BootOpts = {}) => {
   window.localStorage.clear()
   const state: Record<string, unknown> = { ...(o.state ?? {}) }
   if (!o.raw && !o.freshIntro) {
-    const c = (state.eb_coach as { v: 1; shown?: Record<string, number>; kinds?: Record<string, number> } | undefined)
+    const c = (state.umb_coach as { v: 1; shown?: Record<string, number>; kinds?: Record<string, number> } | undefined)
       ?? { v: 1, shown: {}, kinds: {} }
     const defaults: Record<string, number> = { trayIntro: 2 }
-    state.eb_coach = { ...c, shown: { ...defaults, ...(c.shown ?? {}) }, kinds: c.kinds ?? {} }
+    state.umb_coach = { ...c, shown: { ...defaults, ...(c.shown ?? {}) }, kinds: c.kinds ?? {} }
   }
   if (Object.keys(state).length > 0) window.localStorage.setItem(STATE_KEY, JSON.stringify(state))
   const coach = await import('@/use/useCoach')
@@ -192,7 +192,7 @@ describe('survive lesson', () => {
     expect(ftue.coach.coachLesson.value).toBeNull()
     ftue.off()
     const c = dangerBoard()
-    const capped = await boot(c.e, { state: { eb_coach: { v: 1, shown: { survive: 4 }, kinds: {} } } })
+    const capped = await boot(c.e, { state: { umb_coach: { v: 1, shown: { survive: 4 }, kinds: {} } } })
     expect(capped.coach.coachLesson.value).toBeNull()
   })
 })
@@ -262,7 +262,7 @@ describe('tray lesson', () => {
     expect(grown.coach.coachLesson.value).toBeNull()
     grown.off()
     const e = board({ pickups: [pick('ball', 3, 5)], launcherX: 3.5, tray: [3, 2], config: { trayCapacity: 2 } })
-    const capped = await boot(e, { state: { eb_coach: { v: 1, shown: { tray: 3 }, kinds: {} } } })
+    const capped = await boot(e, { state: { umb_coach: { v: 1, shown: { tray: 3 }, kinds: {} } } })
     play(e, UP)
     expect(capped.coach.coachLesson.value).toBeNull()
   })
@@ -478,7 +478,7 @@ describe('early bank shot (first session, turn 2–3)', () => {
     late.off()
 
     const c = ftueBoard()
-    const seen = await boot(c, { ftueDone: false, volleys: 0, state: { eb_coach: { v: 1, shown: { combo: 1 }, kinds: {} } } })
+    const seen = await boot(c, { ftueDone: false, volleys: 0, state: { umb_coach: { v: 1, shown: { combo: 1 }, kinds: {} } } })
     play(c, UP)
     expect(seen.coach.coachLesson.value).toBeNull()
   })
@@ -522,7 +522,7 @@ describe('rule badges', () => {
     const { coach } = await boot(e, {
       ftueDone: false,
       raw: true,
-      state: { eb_ui_monsters_seen: ['slime', 'goblin', 'ogre'], eb_best_row: 25 }
+      state: { umb_ui_monsters_seen: ['slime', 'goblin', 'ogre'], umb_best_row: 25 }
     })
     expect(coach.retiredTags.value.has('goblin')).toBe(true)
     expect(coach.retiredTags.value.has('ogre')).toBe(true)
@@ -589,7 +589,7 @@ describe('tray intro lesson', () => {
 
   it('a veteran save never gets it', async () => {
     const e = board({ monsters: [mon('slime', 3, 2, 1e9)] })
-    const { coach } = await boot(e, { raw: true, state: { eb_best_row: 80 } })
+    const { coach } = await boot(e, { raw: true, state: { umb_best_row: 80 } })
     expect(coach.coachLesson.value?.id).not.toBe('trayIntro')
   })
 
@@ -1002,7 +1002,7 @@ describe('run 4: the rich-wallet funnel', () => {
       damage: { affordable: true },
       glowing: 'damage',
       coins: 24,
-      state: { eb_coach: { v: 1, shown: { arrows: 6 }, kinds: {} } }
+      state: { umb_coach: { v: 1, shown: { arrows: 6 }, kinds: {} } }
     })
     expect(coach.upgradeFunnel.value).toBeNull()
     nextAim(e)
@@ -1109,7 +1109,7 @@ describe('spotlight lessons', () => {
 
   it('a profile that has seen it goes straight to the survive lesson', async () => {
     const { e } = dangerBoard()
-    const { coach, spot } = await boot(e, { spots: true, state: { eb_coach: { v: 1, shown: { threatBox: 1 }, kinds: {} } } })
+    const { coach, spot } = await boot(e, { spots: true, state: { umb_coach: { v: 1, shown: { threatBox: 1 }, kinds: {} } } })
     const { worldCues } = await import('@/barrage/render/worldCues')
     expect(worldCues.danger.seq).toBe(0)
     expect(spot.lessonSpot.value).toBeNull()
@@ -1149,7 +1149,7 @@ describe('spotlight lessons', () => {
     // Row 22, speed seen, luck bought: bounty — with the demo kill's coins.
     const chips = chips0().map((c) => (c.id === 'luck' ? { ...c, level: 2 } : c))
     const e = quiet(22)
-    r = await boot(e, { spots: true, chips, state: { eb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
+    r = await boot(e, { spots: true, chips, state: { umb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
     const b = r.spot.lessonSpot.value
     expect(b?.kind).toBe('bounty')
     if (b?.kind === 'bounty') {
@@ -1202,7 +1202,7 @@ describe('spotlight lessons', () => {
     // In danger: the threat spotlight (seen) is out, the chip one waits too.
     const { e } = dangerBoard()
     e.state.row = 14
-    let r = await boot(e, { spots: true, chips: chips0(), state: { eb_coach: { v: 1, shown: { threatBox: 1 }, kinds: {} } } })
+    let r = await boot(e, { spots: true, chips: chips0(), state: { umb_coach: { v: 1, shown: { threatBox: 1 }, kinds: {} } } })
     expect(r.spot.lessonSpot.value).toBeNull()
     r.off()
     // A funnel up (Ball Damage affordable, never bought): it has the aim.
@@ -1213,11 +1213,11 @@ describe('spotlight lessons', () => {
     r.off()
     // A boss arriving: its aim phase is its own; the next one may speak.
     const e2 = board({ monsters: [mon('slime', 3, 2)], row: 14, tray: [1] })
-    r = await boot(e2, { spots: true, chips: chips0(), volleys: 0, state: { eb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
+    r = await boot(e2, { spots: true, chips: chips0(), volleys: 0, state: { umb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
     expect(r.spot.lessonSpot.value).toBeNull() // row 14: luck waits for 17
     r.off()
     const e3 = board({ monsters: [mon('slime', 3, 1)], row: 17, tray: [1] })
-    r = await boot(e3, { spots: true, chips: chips0(), volleys: 10, state: { eb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
+    r = await boot(e3, { spots: true, chips: chips0(), volleys: 10, state: { umb_coach: { v: 1, shown: { speedBox: 1 }, kinds: {} } } })
     expect(r.spot.lessonSpot.value?.kind).toBe('luck')
     r.spot.finishSpot()
     // The next aim phase: 0 volleys since (SPOT_GAP): nothing.
@@ -1379,9 +1379,9 @@ describe('skill toasts: not every time (Silent Flow)', () => {
     const { flushPersist } = await import('@/use/useEpicState')
     flushPersist()
     const blob = JSON.parse(window.localStorage.getItem(STATE_KEY) ?? '{}')
-    expect(blob.eb_coach.toasts).toEqual({ meteor: 1 })
+    expect(blob.umb_coach.toasts).toEqual({ meteor: 1 })
     // A later session: due again, until the cap.
-    const again = await boot(board({ monsters: [mon('slime', 3, 2)] }), { state: { eb_coach: { v: 1, shown: {}, kinds: {}, toasts: { meteor: coach.SKILL_TOAST_CAP } } } })
+    const again = await boot(board({ monsters: [mon('slime', 3, 2)] }), { state: { umb_coach: { v: 1, shown: {}, kinds: {}, toasts: { meteor: coach.SKILL_TOAST_CAP } } } })
     expect(again.coach.skillToastDue('meteor')).toBe(false)
     expect(again.coach.skillToastDue('shield')).toBe(true)
   })

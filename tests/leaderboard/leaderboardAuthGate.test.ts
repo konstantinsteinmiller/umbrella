@@ -94,7 +94,7 @@ describe('leaderboard account gate', () => {
   })
 
   it('a guest is never shown a rank, even with a cached board on the device', async () => {
-    localStorage.setItem('elemental-barrage_board_cache', JSON.stringify(BOARD))
+    localStorage.setItem('umbrella_board_cache', JSON.stringify(BOARD))
     vi.resetModules()
     vi.stubEnv('VITE_LEADERBOARD_URL', ENDPOINT)
     const lb = await import('@/use/useLeaderboard')

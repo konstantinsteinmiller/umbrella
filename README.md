@@ -1,4 +1,4 @@
-# Elemental Barrage
+# Umbrella
 
 A mobile-first casual volley shooter: monsters march down a 7-column board, you drag back and release a
 barrage of elemental balls, and when the ball tray overflows, twin balls merge into mightier elementals.
@@ -19,4 +19,4 @@ pnpm test
 pnpm build:poki     # or build:crazy-web, build:playgama, build:gamepix, …
 ```
 
-Saves live in one localStorage blob, `elemental-barrage_state` (mirrored to each portal's cloud save).
+Saves live in one localStorage blob, `umbrella_state` (mirrored to each portal's cloud save).

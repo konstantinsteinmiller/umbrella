@@ -14,7 +14,7 @@
  *     where it was collected into the socket it fills and that ball bounces.
  *
  * So `offerPickup` never takes the moment (the tray keeps its own juice). The
- * first one of a profile is still counted (`eb_coach` exposure `pickupBox`)
+ * first one of a profile is still counted (`umb_coach` exposure `pickupBox`)
  * and says its sentence to screen readers (the coach's cue region).
  */
 import { shallowRef } from 'vue'

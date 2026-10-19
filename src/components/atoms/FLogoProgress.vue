@@ -36,7 +36,7 @@
       div(:style="sizeStyle")
         img(
           :src="logoSrc"
-          alt="elemental-barrage"
+          alt="umbrella"
           class="w-full h-full object-contain"
           draggable="false"
         )
@@ -64,7 +64,7 @@ const logoSrc = prependBaseUrl('images/logo/logo_256x256.webp')
 // behind the board, picked by the same side-by-side rule (see the media query
 // in the <style> block), so the splash fades into an identical backdrop. Both
 // URLs are bound inline (not CSS urls) so they go through `prependBaseUrl` and
-// resolve on base-path builds (e.g. GitHub Pages `/elemental-barrage/`); only
+// resolve on base-path builds (e.g. GitHub Pages `/umbrella/`); only
 // the one the media query picks is fetched. The `.splash-backdrop` colour stays
 // as the fallback and shows through until the bitmap decodes.
 const backdropStyle = {

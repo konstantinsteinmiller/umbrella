@@ -32,7 +32,7 @@ const frameEl = await page.waitForSelector('#game')
 const frame = await frameEl.contentFrame()
 await frame.waitForSelector('.barrage-board__canvas', { timeout: 120000 })
 await sleep(3000)
-const volleys = async () => JSON.parse((await frame.evaluate(() => localStorage.getItem('elemental-barrage_state'))) || '{}').eb_stats?.volleys ?? 0
+const volleys = async () => JSON.parse((await frame.evaluate(() => localStorage.getItem('umbrella_state'))) || '{}').eb_stats?.volleys ?? 0
 const fb = await frameEl.boundingBox()
 const cb = await frame.$eval('.barrage-board__canvas', (c) => { const r = c.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height } })
 // The launcher: bottom centre of the board.

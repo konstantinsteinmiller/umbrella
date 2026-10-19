@@ -1,5 +1,5 @@
 /**
- * Ingredient catalogue — the merge-tier fighters of Elemental Barrage (GDD §3.2):
+ * Ingredient catalogue — the merge-tier fighters of Umbrella (GDD §3.2):
  * 1-11 authored below, 12-20 reusing the top look, 21-50 the ELEMENTALS.
  * The merge ladder climbs through the elements: molten fire, ice, living stone,
  * water, the cosmic void, and finally the reborn phoenix. Each tier has an

@@ -1,5 +1,5 @@
 /**
- * Elemental Barrage engine: the turn state machine
+ * Umbrella engine: the turn state machine
  *   aim → fire → volley → resolve → advance → (breach) → aim
  * Pure TS, deterministic (seeded RNG, fixed step, no Date/Math.random).
  *

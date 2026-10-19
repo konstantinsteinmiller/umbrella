@@ -105,7 +105,7 @@
  * never shows a shot that does not work here. Nothing is ever typed on
  * screen; the sentences live only in an sr-only live region.
  *
- * One lesson at a time, exposure-capped, persisted in the blob (`eb_coach`,
+ * One lesson at a time, exposure-capped, persisted in the blob (`umb_coach`,
  * which also counts the funnel's arrows, the first merges and "+1" the
  * screen reader was told about, the threat cue, and how often each skill's
  * toast has shown). Nothing runs in the Daily Barrage except the pull hint —

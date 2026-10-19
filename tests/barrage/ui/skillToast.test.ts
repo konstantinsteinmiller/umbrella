@@ -9,7 +9,7 @@ import { nextTick, type Ref } from 'vue'
 import { createI18n } from 'vue-i18n'
 import en from '@/i18n/locales/en'
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 
 vi.mock('@/barrage/state/useBarrage', async () => {
   const { ref, shallowRef } = await import('vue')
@@ -102,7 +102,7 @@ describe('skill toasts', () => {
     const first = await setup()
     const cap = first.coach.SKILL_TOAST_CAP
     first.w.unmount()
-    const { w, fire } = await setup({ eb_coach: { v: 1, shown: {}, kinds: {}, toasts: { meteor: cap } } })
+    const { w, fire } = await setup({ umb_coach: { v: 1, shown: {}, kinds: {}, toasts: { meteor: cap } } })
     await fire('meteor')
     expect(w.find('.bb-toast').exists()).toBe(false)
     w.unmount()

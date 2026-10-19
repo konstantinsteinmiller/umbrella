@@ -26,17 +26,17 @@ export interface PlayerIdentity {
 }
 
 /**
- * The id's own localStorage key, deliberately OUTSIDE the `elemental-barrage_state`
+ * The id's own localStorage key, deliberately OUTSIDE the `umbrella_state`
  * blob.
  *
  * That blob is exactly what the cloud save layer mirrors (see `isPayloadKey`),
  * so a hydrate from an older cloud blob can hand the game a save with no id in
  * it — and the game would mint a second one, and the player would have two
  * rows. This copy exists to be the one thing a cloud round-trip cannot
- * overwrite. (`elemental-barrage_*` matches none of the payload prefixes.)
+ * overwrite. (`umbrella_*` matches none of the payload prefixes.)
  */
-const DEVICE_UID_KEY = 'elemental-barrage_uid'
-const DEVICE_NAME_KEY = 'elemental-barrage_name'
+const DEVICE_UID_KEY = 'umbrella_uid'
+const DEVICE_NAME_KEY = 'umbrella_name'
 
 /** The shape the worker validates against. Keep the two in step. */
 const ID_RE = /^[a-zA-Z0-9_-]{8,64}$/

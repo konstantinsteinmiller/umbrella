@@ -5,7 +5,7 @@ import { nextTick, ref, type Ref } from 'vue'
 import type { EngineEvent, EngineListener, GameMode, UpgradeId } from '@/barrage/engine/types'
 import type { ChipView } from '@/use/useFeatureUnlocks'
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 
 interface BootOpts {
   state?: Record<string, unknown>
@@ -195,7 +195,7 @@ describe('the unlock ladder', () => {
   })
 
   it('a save from before the ladder keeps everything its best row has passed, silently', async () => {
-    const { u } = await boot({ state: { eb_best_row: 30 } })
+    const { u } = await boot({ state: { umb_best_row: 30 } })
     expect(u.featureStates.value.supply).toBe('open')
     expect(u.featureStates.value.battlePass).toBe('open') // row 26
     expect(u.featureStates.value.achievements).toBe('locked') // row 31
@@ -275,7 +275,7 @@ describe('earned upgrade chips', () => {
     const { flushPersist } = await import('@/use/useEpicState')
     flushPersist()
     const blob = JSON.parse(window.localStorage.getItem(STATE_KEY) ?? '{}')
-    expect(blob.eb_unlocks.chips).toEqual(['luck'])
+    expect(blob.umb_unlocks.chips).toEqual(['luck'])
     const b = await boot({ state: blob, chips: ref(views()) })
     expect(b.u.chipShown('luck')).toBe(true)
     expect(hidden(b.u)).toEqual(['damage', 'capacity', 'speed', 'bounty'])
@@ -283,10 +283,10 @@ describe('earned upgrade chips', () => {
 
   it('a returning player — or one who owns levels — sees every chip, as before, with no fly-in', async () => {
     for (const state of [
-      { eb_best_row: 12 },
-      { eb_upgrades: { damage: 0, capacity: 1, speed: 0, luck: 0, bounty: 0 } },
-      { eb_stats: { bossKills: 1 } },
-      { eb_ftue: { done: true } }
+      { umb_best_row: 12 },
+      { umb_upgrades: { damage: 0, capacity: 1, speed: 0, luck: 0, bounty: 0 } },
+      { umb_stats: { bossKills: 1 } },
+      { umb_ftue: { done: true } }
     ]) {
       const { u } = await boot({ state, chips: ref(views()) })
       expect(hidden(u), JSON.stringify(state)).toEqual([])
@@ -297,7 +297,7 @@ describe('earned upgrade chips', () => {
   it("the migration is written at once: a first-timer's first shot (best row 2) does not reveal them all", async () => {
     const { u, w } = await boot({ chips: ref(views()) })
     const { setState } = await import('@/use/useEpicState')
-    setState('eb_best_row', 2) // what the first shot writes
+    setState('umb_best_row', 2) // what the first shot writes
     w.bestRow.value = 2
     await nextTick()
     expect(hidden(u)).toHaveLength(5)

@@ -27,7 +27,7 @@ interface Particle {
   color: string
   wobble: number
   wobbleAmp: number
-  // Coin flight (Elemental Barrage board → wallet): quadratic Bézier start →
+  // Coin flight (Umbrella board → wallet): quadratic Bézier start →
   // control → target, held for `delay` ms first so a burst fans out in turn.
   x0: number; y0: number
   cx: number; cy: number
@@ -147,7 +147,7 @@ export const emitBubble = (x: number, y: number, color: string): void => {
   p.wobble = rand(0, Math.PI * 2); p.wobbleAmp = rand(0.2, 0.8)
 }
 
-// ─── Coin flight (additive: Elemental Barrage) ───────────────────────────────
+// ─── Coin flight (additive: Umbrella) ───────────────────────────────
 let coinImage: HTMLImageElement | HTMLCanvasElement | null = null
 /** The bitmap coin flights draw (a gold disc is drawn until it has loaded). */
 export const setCoinFlightImage = (img: HTMLImageElement | HTMLCanvasElement | null): void => {

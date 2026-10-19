@@ -471,7 +471,7 @@ export const promptForCover = (a: CoverAspect): string => [
   ...EXCLUSIONS,
   '',
   'WHAT IT IS',
-  'Cover art for Elemental Barrage, a casual arcade game: you pull back and release a volley of cute',
+  'Cover art for Umbrella, a casual arcade game: you pull back and release a volley of cute',
   'elemental balls — each one a little creature with a face — that ricochet through rows of cartoon',
   'monsters marching down a rune-stone arena. The picture is the most exciting half-second the game has:',
   'the whole volley in flight, and the blazing fireball leading it an instant from smashing into the',

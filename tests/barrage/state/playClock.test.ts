@@ -8,7 +8,7 @@ import { nextTick, ref } from 'vue'
  * with throttled persistence, and it feeds the rewarded gate.
  */
 
-const STATE_KEY = 'elemental-barrage_state'
+const STATE_KEY = 'umbrella_state'
 const T0 = new Date('2026-09-27T10:00:00').getTime()
 
 const seed = (blob: Record<string, unknown>): void => {
@@ -28,7 +28,7 @@ const load = async () => {
   const inRun = ref(false)
   clock.installPlayClock(() => inRun.value)
   /** The stats field as the save blob holds it (in memory; the disk write is debounced on top). */
-  const saved = (): Record<string, unknown> | undefined => state.getState<Record<string, unknown> | undefined>('eb_stats')
+  const saved = (): Record<string, unknown> | undefined => state.getState<Record<string, unknown> | undefined>('umb_stats')
   const secs = () => ({ session: clock.sessionPlaySeconds.value, lifetime: progress.lifetimePlaySeconds.value })
   /** What `useSaveStatus` does on a cloud hydrate. */
   const hydrate = async (patch: Record<string, unknown>): Promise<void> => {
@@ -171,7 +171,7 @@ describe('play clock: persistence', () => {
     vi.advanceTimersByTime(20_000)
     h.inRun.value = false
     h.state.flushPersist()
-    expect(JSON.parse(localStorage.getItem(STATE_KEY)!).eb_stats.playSeconds).toBe(20)
+    expect(JSON.parse(localStorage.getItem(STATE_KEY)!).umb_stats.playSeconds).toBe(20)
     h.clock.__resetPlayClockForTests()
     const again = await load()
     expect(again.secs()).toEqual({ session: 0, lifetime: 20 })
@@ -181,21 +181,21 @@ describe('play clock: persistence', () => {
     const h = await load()
     h.inRun.value = true
     vi.advanceTimersByTime(30_000)
-    await h.hydrate({ eb_stats: { playSeconds: 10 } })
+    await h.hydrate({ umb_stats: { playSeconds: 10 } })
     expect(h.progress.lifetimePlaySeconds.value).toBe(30)
-    await h.hydrate({ eb_stats: { playSeconds: 500 } })
+    await h.hydrate({ umb_stats: { playSeconds: 500 } })
     expect(h.progress.lifetimePlaySeconds.value).toBe(500)
     vi.advanceTimersByTime(5_000)
     expect(h.secs()).toEqual({ session: 35, lifetime: 505 })
   })
 
   it('a save from before the clock is credited 7 s per volley it fired; a recorded value wins', async () => {
-    seed({ eb_stats: { volleys: 40, bossKills: 1 } })
+    seed({ umb_stats: { volleys: 40, bossKills: 1 } })
     let h = await load()
     expect(h.progress.LEGACY_SECONDS_PER_VOLLEY).toBe(7)
     expect(h.progress.lifetimePlaySeconds.value).toBe(280)
     h.clock.__resetPlayClockForTests()
-    seed({ eb_stats: { volleys: 40, bossKills: 1, playSeconds: 12 } })
+    seed({ umb_stats: { volleys: 40, bossKills: 1, playSeconds: 12 } })
     h = await load()
     expect(h.progress.lifetimePlaySeconds.value).toBe(12)
     h.clock.__resetPlayClockForTests()
@@ -212,7 +212,7 @@ describe('the rewarded gate: first boss kill AND 3:00 of lifetime play', () => {
     [{ bossKills: 1, playSeconds: 180 }, true],
     [{ bossKills: 7, playSeconds: 5000 }, true]
   ])('%o → %s', async (stats, open) => {
-    seed({ eb_stats: stats })
+    seed({ umb_stats: stats })
     const h = await load()
     expect(h.progress.rewardedOffersUnlocked.value).toBe(open)
   })
@@ -224,7 +224,7 @@ describe('the rewarded gate: first boss kill AND 3:00 of lifetime play', () => {
   })
 
   it('3:00 of active play opens it live for a player past the first boss', async () => {
-    seed({ eb_stats: { bossKills: 1, playSeconds: 175 } })
+    seed({ umb_stats: { bossKills: 1, playSeconds: 175 } })
     const h = await load()
     expect(h.progress.rewardedOffersUnlocked.value).toBe(false)
     h.inRun.value = true
