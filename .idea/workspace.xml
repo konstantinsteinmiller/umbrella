@@ -4,8 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- implementing umbrella prototype">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- remove backgrounds">
+      <change afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1280x720.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/atoms/FLogoProgress.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useAssets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useAssets.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,12 +25,12 @@
     &quot;assignee&quot;: &quot;konstantinsteinmiller&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/konstantinsteinmiller/umbrella.git",
-    "accountId": "5a39b842-cbd1-44a3-833a-a2b769bec25c"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/konstantinsteinmiller/umbrella.git&quot;,
+    &quot;accountId&quot;: &quot;5a39b842-cbd1-44a3-833a-a2b769bec25c&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
 }</component>
@@ -35,25 +39,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/konst/Documents/__p/tree-smashers",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "pnpm",
-    "npm.build:gamemonetize.executor": "Run",
-    "npm.build:poki.executor": "Run",
-    "npm.build:wavedash.executor": "Run",
-    "npm.deploy:poki.executor": "Run",
-    "npm.dev.executor": "Run",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/tree-smashers&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
+    &quot;npm.build:gamemonetize.executor&quot;: &quot;Run&quot;,
+    &quot;npm.build:poki.executor&quot;: &quot;Run&quot;,
+    &quot;npm.build:wavedash.executor&quot;: &quot;Run&quot;,
+    &quot;npm.deploy:poki.executor&quot;: &quot;Run&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage" />
@@ -141,6 +145,7 @@
       <workItem from="1791130900327" duration="7307000" />
       <workItem from="1791152764171" duration="683000" />
       <workItem from="1792197781256" duration="3001000" />
+      <workItem from="1792453187980" duration="329000" />
     </task>
     <task id="LOCAL-00001" summary="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
       <option name="closed" value="true" />
@@ -214,7 +219,23 @@
       <option name="project" value="LOCAL" />
       <updated>1792446421959</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="- implementing umbrella prototype">
+      <option name="closed" value="true" />
+      <created>1792446733497</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1792446733497</updated>
+    </task>
+    <task id="LOCAL-00011" summary="- implementing umbrella prototype">
+      <option name="closed" value="true" />
+      <created>1792446840736</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1792446840736</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -232,6 +253,7 @@
     <MESSAGE value="- retention update" />
     <MESSAGE value="- game monetize and CG launch prepare" />
     <MESSAGE value="- implementing umbrella prototype" />
-    <option name="LAST_COMMIT_MESSAGE" value="- implementing umbrella prototype" />
+    <MESSAGE value="- remove backgrounds" />
+    <option name="LAST_COMMIT_MESSAGE" value="- remove backgrounds" />
   </component>
 </project>

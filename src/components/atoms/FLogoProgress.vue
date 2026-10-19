@@ -19,7 +19,6 @@
   div.splash-backdrop.no-os-ui(
     v-if="!backdropGone"
     :class="{ 'splash-backdrop--out': backdropHidden }"
-    :style="backdropStyle"
   )
 
   //- Logo only renders during the loading sequence. Once `done` flips
@@ -33,17 +32,9 @@
     :class="{ 'splash-logo--out': done }"
   )
     div(class="relative flex flex-col items-center")
-      div(:style="sizeStyle")
-        img(
-          :src="logoSrc"
-          alt="umbrella"
-          class="w-full h-full object-contain"
-          draggable="false"
-        )
-
-      //- Loading Text
-      div.absolute.-bottom-8(class="mt-0 flex flex-col items-center gap-1")
-        span(class="percentage-text text-shadow font-mono text-amber-500") {{ Math.round(progress) }}%
+      div.splash-title Umbrella
+      div.splash-bar
+        div.splash-bar-fill(:style="{ width: `${Math.round(progress)}%` }")
 
       div.stuck-hint.mt-4(v-if="showStuckHint") {{ t('loading.tooLong') }}
 </template>
@@ -52,25 +43,10 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import useAssets from '@/use/useAssets'
-import { cssVarUrl, prependBaseUrl } from '@/utils/function'
 import { stopLoading } from '@/use/useCrazyGames'
 import { armFirstLoadInterstitial, notifySplashGone } from '@/use/useFirstLoadInterstitial'
 
 const { t } = useI18n()
-
-const logoSrc = prependBaseUrl('images/logo/logo_256x256.webp')
-
-// Full-screen sky behind the loading logo — the scene painting GameScene draws
-// behind the board, picked by the same side-by-side rule (see the media query
-// in the <style> block), so the splash fades into an identical backdrop. Both
-// URLs are bound inline (not CSS urls) so they go through `prependBaseUrl` and
-// resolve on base-path builds (e.g. GitHub Pages `/umbrella/`); only
-// the one the media query picks is fetched. The `.splash-backdrop` colour stays
-// as the fallback and shows through until the bitmap decodes.
-const backdropStyle = {
-  '--splash-portrait': cssVarUrl(prependBaseUrl('images/backdrops/scene-portrait.webp')),
-  '--splash-landscape': cssVarUrl(prependBaseUrl('images/backdrops/scene-landscape.webp'))
-}
 
 const { loadingProgress, preloadAssets } = useAssets()
 const progress = computed(() => loadingProgress.value)
@@ -122,17 +98,11 @@ watch(backdropHidden, (hidden) => {
   backdropGoneId = window.setTimeout(() => { backdropGone.value = true }, BACKDROP_FADE_MS + 80)
 })
 
-const viewportSize = ref(Math.min(window.innerWidth, window.innerHeight))
 const logoRef = ref<HTMLElement | null>(null)
-
-const onResize = () => {
-  viewportSize.value = Math.min(window.innerWidth, window.innerHeight)
-}
 
 let settleFallbackId: number | null = null
 
 onMounted(() => {
-  window.addEventListener('resize', onResize)
 
   const staticSplash = document.getElementById('static-splash')
   if (staticSplash) {
@@ -150,18 +120,11 @@ onMounted(() => {
   }, 10000)
 })
 onUnmounted(() => {
-  window.removeEventListener('resize', onResize)
   if (settleFallbackId !== null) clearTimeout(settleFallbackId)
   if (stuckHintId !== null) clearTimeout(stuckHintId)
   if (logoGoneId !== null) clearTimeout(logoGoneId)
   if (backdropGoneId !== null) clearTimeout(backdropGoneId)
 })
-
-const centeredSize = computed(() => Math.floor(viewportSize.value * 0.4))
-const sizeStyle = computed(() => ({
-  width: `${centeredSize.value}px`,
-  height: `${centeredSize.value}px`
-}))
 
 // `immediate: true` fires the handler with the current value the moment
 // the watcher is set up. Without it, an asset loader that already reports
@@ -357,9 +320,24 @@ watch(done, (isDone) => {
   &, & *
     -webkit-user-drag: none
 
-.percentage-text
-  font-size: 1.2rem
-  font-weight: bold
+.splash-title
+  color: #ffb15a
+  font-weight: 900
+  font-size: clamp(2rem, 9vmin, 4rem)
+  letter-spacing: 0.06em
+
+.splash-bar
+  margin-top: 1rem
+  width: min(60vw, 240px)
+  height: 6px
+  border-radius: 3px
+  background: rgba(255, 255, 255, 0.15)
+  overflow: hidden
+
+.splash-bar-fill
+  height: 100%
+  background: #ffb15a
+  transition: width 0.2s ease-out
 
 // The two fades below are the former `splash-fade` / `logo-fade` <Transition>
 // leaves, re-expressed as state classes. Same durations, same easing, same
@@ -370,14 +348,7 @@ watch(done, (isDone) => {
   inset: 0
   z-index: 150
   background-color: #070a14
-  background-image: var(--splash-portrait)
-  background-repeat: no-repeat
-  background-position: center
-  background-size: cover
   transition: opacity 0.4s ease-out
-  // GameScene's `sideBySide` (≥ 1.15 wide, or a phone held landscape) → the landscape sky.
-  @media (min-aspect-ratio: 23/20), (orientation: landscape) and (pointer: coarse) and (min-width: 501px)
-    background-image: var(--splash-landscape)
 
 .splash-backdrop--out
   opacity: 0

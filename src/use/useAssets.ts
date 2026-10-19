@@ -223,10 +223,7 @@ export const loadAudioBuffer = async (src: string): Promise<AudioBuffer | null> 
 const CRITICAL_IMAGE_SRCS: ReadonlyArray<string> = [
   // Coin sprite — the wallet badge (IconCoin) and coin-fly VFX (useCoinExplosion)
   // paint it immediately.
-  '/images/props/coin_128x128.webp',
-  // Splash logo — decoded before the splash mounts so the FLogoProgress
-  // <img> never paints a blank box on first frame.
-  '/images/logo/logo_256x256.webp'
+  '/images/props/coin_128x128.webp'
 ]
 
 /** Block until `img.complete && naturalWidth > 0` (success) or `error`

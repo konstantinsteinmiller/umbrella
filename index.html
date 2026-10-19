@@ -34,38 +34,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="umbrella">
   <link rel="manifest" href="/manifest.json">
-  <!-- The sky around the keep, per orientation — the same rule (and file) the
-       game scene uses, so the splash fades into an identical backdrop and only
-       the painting this screen shows is fetched. -->
-  <link rel="preload" as="image" href="/images/backdrops/scene-portrait.webp" type="image/webp"
-        media="(max-aspect-ratio: 23/20)">
-  <link rel="preload" as="image" href="/images/backdrops/scene-landscape.webp" type="image/webp"
-        media="(min-aspect-ratio: 23/20), (orientation: landscape) and (pointer: coarse) and (min-width: 501px)">
-  <link rel="preload" as="image" href="/images/logo/logo_256x256.webp" type="image/webp">
   <title>umbrella</title>
   <style>
       body {
           margin: 0;
           background-color: #070a14;
-          background-image: url('/images/backdrops/scene-portrait.webp');
-          background-repeat: no-repeat;
-          background-position: center;
-          background-size: cover;
           outline: none;
       }
       #static-splash {
           position: fixed; inset: 0; z-index: 9999;
           display: flex; align-items: center; justify-content: center;
           background-color: #070a14;
-          background-image: url('/images/backdrops/scene-portrait.webp');
-          background-repeat: no-repeat;
-          background-position: center;
-          background-size: cover;
           transition: opacity 0.4s ease-out;
-      }
-      /* Side-by-side layout (GameScene's `sideBySide`): the landscape sky. */
-      @media (min-aspect-ratio: 23/20), (orientation: landscape) and (pointer: coarse) and (min-width: 501px) {
-          body, #static-splash { background-image: url('/images/backdrops/scene-landscape.webp'); }
       }
       #static-splash.hidden { opacity: 0; pointer-events: none; }
       #static-splash .splash-logo {
