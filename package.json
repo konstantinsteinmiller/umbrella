@@ -49,6 +49,7 @@
     "@playgama/bridge": "^2.1.0",
     "@vueuse/core": "^14.2.1",
     "@wvdsh/sdk-js": "^0.0.38",
+    "lil-gui": "0.20.0",
     "lodash.clonedeep": "^4.5.0",
     "vue": "^3.5.29",
     "vue-i18n": "^11.2.8",

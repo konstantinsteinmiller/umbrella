@@ -11,7 +11,9 @@ export default {
     'broken': "우산이 망가졌어요!",
     'prevLevel': "이전 레벨",
     'nextLevel': "다음 레벨",
-    'restart': "레벨 다시 시작"
+    'restart': "레벨 다시 시작",
+    'selectLevel': "레벨 선택",
+    'close': "닫기"
   },
   'ads': {
     'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인'

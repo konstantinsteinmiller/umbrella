@@ -11,7 +11,9 @@ export default {
     'broken': "Parasol zepsuty!",
     'prevLevel': "Poprzedni poziom",
     'nextLevel': "Następny poziom",
-    'restart': "Zrestartuj poziom"
+    'restart': "Zrestartuj poziom",
+    'selectLevel': "Wybierz poziom",
+    'close': "Zamknij"
   },
   'ads': {
     'watch': 'Obejrzyj', 'revive': 'Wskrześ', 'secondChance': 'Druga szansa', 'doubleCoins': '2× monety', 'plusCoins': '+{n} monet'

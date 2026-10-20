@@ -11,7 +11,9 @@ export default {
     'broken': "Зонт сломался!",
     'prevLevel': "Предыдущий уровень",
     'nextLevel': "Следующий уровень",
-    'restart': "Перезапустить уровень"
+    'restart': "Перезапустить уровень",
+    'selectLevel': "Выбор уровня",
+    'close': "Закрыть"
   },
   'ads': {
     'watch': 'Смотреть', 'revive': 'Возродить', 'secondChance': 'Второй шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'

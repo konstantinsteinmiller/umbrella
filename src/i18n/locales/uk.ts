@@ -11,7 +11,9 @@ export default {
     'broken': "Парасолька зламалася!",
     'prevLevel': "Попередній рівень",
     'nextLevel': "Наступний рівень",
-    'restart': "Перезапустити рівень"
+    'restart': "Перезапустити рівень",
+    'selectLevel': "Вибір рівня",
+    'close': "Закрити"
   },
   'ads': {
     'watch': 'Дивитися', 'revive': 'Відродити', 'secondChance': 'Другий шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'

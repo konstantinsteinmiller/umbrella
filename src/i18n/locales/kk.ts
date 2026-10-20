@@ -11,7 +11,9 @@ export default {
     'broken': "Қолшатыр сынды!",
     'prevLevel': "Алдыңғы деңгей",
     'nextLevel': "Келесі деңгей",
-    'restart': "Деңгейді қайта бастау"
+    'restart': "Деңгейді қайта бастау",
+    'selectLevel': "Деңгейді таңдау",
+    'close': "Жабу"
   },
   'ads': {
     'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын'

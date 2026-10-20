@@ -11,7 +11,9 @@ export default {
     'broken': "傘が壊れた！",
     'prevLevel': "前のレベル",
     'nextLevel': "次のレベル",
-    'restart': "レベルをリスタート"
+    'restart': "レベルをリスタート",
+    'selectLevel': "レベル選択",
+    'close': "閉じる"
   },
   'ads': {
     'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン'

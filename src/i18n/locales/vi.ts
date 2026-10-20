@@ -11,7 +11,9 @@ export default {
     'broken': "Ô bị hỏng!",
     'prevLevel': "Màn trước",
     'nextLevel': "Màn sau",
-    'restart': "Chơi lại màn"
+    'restart': "Chơi lại màn",
+    'selectLevel': "Chọn màn",
+    'close': "Đóng"
   },
   'ads': {
     'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu'

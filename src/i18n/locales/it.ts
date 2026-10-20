@@ -11,7 +11,9 @@ export default {
     'broken': "Ombrello rotto!",
     'prevLevel': "Livello precedente",
     'nextLevel': "Livello successivo",
-    'restart': "Ricomincia livello"
+    'restart': "Ricomincia livello",
+    'selectLevel': "Scegli livello",
+    'close': "Chiudi"
   },
   'ads': {
     'watch': 'Guarda', 'revive': 'Rinasci', 'secondChance': 'Seconda chance', 'doubleCoins': '2× monete', 'plusCoins': '+{n} monete'

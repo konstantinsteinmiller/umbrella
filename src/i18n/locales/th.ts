@@ -11,7 +11,9 @@ export default {
     'broken': "ร่มพัง!",
     'prevLevel': "ด่านก่อนหน้า",
     'nextLevel': "ด่านถัดไป",
-    'restart': "เริ่มด่านใหม่"
+    'restart': "เริ่มด่านใหม่",
+    'selectLevel': "เลือกด่าน",
+    'close': "ปิด"
   },
   'ads': {
     'watch': 'ดู', 'revive': 'ชุบชีวิต', 'secondChance': 'โอกาสที่สอง', 'doubleCoins': '2× เหรียญ', 'plusCoins': '+{n} เหรียญ'

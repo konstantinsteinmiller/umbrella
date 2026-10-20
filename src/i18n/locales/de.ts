@@ -11,7 +11,9 @@ export default {
     'broken': "Schirm kaputt!",
     'prevLevel': "Vorheriges Level",
     'nextLevel': "Nächstes Level",
-    'restart': "Level neu starten"
+    'restart': "Level neu starten",
+    'selectLevel': "Level wählen",
+    'close': "Schließen"
   },
   'ads': {
     'watch': 'Ansehen', 'revive': 'Wiederbeleben', 'secondChance': 'Zweite Chance', 'doubleCoins': '2× Münzen', 'plusCoins': '+{n} Münzen'

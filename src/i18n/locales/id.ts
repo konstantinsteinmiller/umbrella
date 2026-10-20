@@ -11,7 +11,9 @@ export default {
     'broken': "Payung rusak!",
     'prevLevel': "Level sebelumnya",
     'nextLevel': "Level berikutnya",
-    'restart': "Ulangi level"
+    'restart': "Ulangi level",
+    'selectLevel': "Pilih level",
+    'close': "Tutup"
   },
   'ads': {
     'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin'

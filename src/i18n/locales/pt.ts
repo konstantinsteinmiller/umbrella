@@ -11,7 +11,9 @@ export default {
     'broken': "Guarda-chuva quebrou!",
     'prevLevel': "Nível anterior",
     'nextLevel': "Próximo nível",
-    'restart': "Reiniciar nível"
+    'restart': "Reiniciar nível",
+    'selectLevel': "Escolher nível",
+    'close': "Fechar"
   },
   'ads': {
     'watch': 'Assistir', 'revive': 'Reviver', 'secondChance': 'Segunda chance', 'doubleCoins': '2× moedas', 'plusCoins': '+{n} moedas'

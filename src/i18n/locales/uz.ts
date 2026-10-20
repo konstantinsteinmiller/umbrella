@@ -11,7 +11,9 @@ export default {
     'broken': "Soyabon sindi!",
     'prevLevel': "Oldingi daraja",
     'nextLevel': "Keyingi daraja",
-    'restart': "Darajani qayta boshlash"
+    'restart': "Darajani qayta boshlash",
+    'selectLevel': "Darajani tanlash",
+    'close': "Yopish"
   },
   'ads': {
     'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga'

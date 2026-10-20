@@ -11,7 +11,9 @@ export default {
     'broken': "伞坏了！",
     'prevLevel': "上一关",
     'nextLevel': "下一关",
-    'restart': "重新开始本关"
+    'restart': "重新开始本关",
+    'selectLevel': "选择关卡",
+    'close': "关闭"
   },
   'ads': {
     'watch': '观看', 'revive': '复活', 'secondChance': '第二次机会', 'doubleCoins': '2× 金币', 'plusCoins': '+{n} 金币'

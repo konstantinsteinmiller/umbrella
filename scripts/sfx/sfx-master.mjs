@@ -22,7 +22,7 @@ export const CHROME = process.env.CHROME || 'C:/Program Files/Google/Chrome/Appl
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-/** Open `synthHtml` in a private headless Chrome and hand `fn` an evaluator. */
+/** Open `synthHtml` (path or URL) in a private headless Chrome and hand `fn` an evaluator. */
 export const withChrome = async (synthHtml, fn) => {
   const port = 10000 + Math.floor(Math.random() * 2000)
   const profile = mkdtempSync(join(tmpdir(), 'sfx-render-'))
@@ -52,7 +52,9 @@ export const withChrome = async (synthHtml, fn) => {
       pending.set(id, { resolve: res, reject: rej })
       ws.send(JSON.stringify({ id, method, params, sessionId }))
     })
-    const { targetId } = await send('Target.createTarget', { url: pathToFileURL(synthHtml).href })
+    // A file path, or an http(s) URL for pages a dev server has to transform.
+    const url = /^https?:/.test(synthHtml) ? synthHtml : pathToFileURL(synthHtml).href
+    const { targetId } = await send('Target.createTarget', { url })
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
     const evaluate = async (expression) => {
       const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, sessionId)

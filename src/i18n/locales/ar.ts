@@ -11,7 +11,9 @@ export default {
     'broken': "انكسرت المظلة!",
     'prevLevel': "المستوى السابق",
     'nextLevel': "المستوى التالي",
-    'restart': "إعادة المستوى"
+    'restart': "إعادة المستوى",
+    'selectLevel': "اختر المستوى",
+    'close': "إغلاق"
   },
   'ads': {
     'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة'

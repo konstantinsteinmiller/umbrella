@@ -1,0 +1,800 @@
+// ─── Umbrella sound kit: every sound as a Web Audio graph ──────────────────
+//
+// Pure Web Audio, no Vue, no assets: each recipe builds its graph into any
+// BaseAudioContext, so the game plays it live (audio.ts) and the listening
+// page / level report renders the very same code through an
+// OfflineAudioContext (scripts/sfx/umbrella-sounds.html).
+//
+// The palette is air and cloth, not chiptune: filtered noise for wind and
+// fabric, resonant clicks for the umbrella's runner and ribs, modal partials
+// for anything that rings. Pitched sounds sit in the music's key (D major
+// pentatonic) so a stinger never clashes with the score.
+
+export const T60 = 6.9078 // ln(1000): tau = t60 / T60 decays to −60 dB at t60
+
+/** mulberry32 — tiny, fast, seedable. */
+export const prng = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0
+  let t = seed
+  t = Math.imul(t ^ (t >>> 15), t | 1)
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+
+export const midiHz = (m: number): number => 440 * Math.pow(2, (m - 69) / 12)
+const clamp01 = (x: number): number => Math.max(0, Math.min(1, x))
+
+// ─── Kit: one context, one PRNG, shared noise ───────────────────────────────
+
+export interface Kit {
+  ctx: BaseAudioContext
+  rand: () => number
+  /** 2 s of seeded white noise, loop-safe. */
+  white: AudioBuffer
+  /** 4 s of seeded pink noise, crossfaded so the loop seam is inaudible. */
+  pink: AudioBuffer
+}
+
+/** `n` samples whose head is crossfaded with the tail, so looping is seamless. */
+const loopSafe = (ctx: BaseAudioContext, seconds: number, gen: (i: number) => number): AudioBuffer => {
+  const sr = ctx.sampleRate
+  const n = Math.ceil(seconds * sr)
+  const fade = Math.round(0.08 * sr)
+  const raw = new Float32Array(n + fade)
+  for (let i = 0; i < raw.length; i++) raw[i] = gen(i)
+  const buf = ctx.createBuffer(1, n, sr)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < n; i++) {
+    const v = raw[i]!
+    d[i] = i < fade ? v * (i / fade) + raw[n + i]! * (1 - i / fade) : v
+  }
+  return buf
+}
+
+export const createKit = (ctx: BaseAudioContext, seed: number): Kit => {
+  const nr = prng(seed + 7)
+  const white = loopSafe(ctx, 2, () => nr() * 2 - 1)
+  // Paul Kellet's economy pink filter.
+  let b0 = 0, b1 = 0, b2 = 0
+  const pr = prng(seed + 11)
+  const pink = loopSafe(ctx, 4, () => {
+    const w = pr() * 2 - 1
+    b0 = 0.99765 * b0 + w * 0.099046
+    b1 = 0.963 * b1 + w * 0.2965164
+    b2 = 0.57 * b2 + w * 1.0526913
+    return (b0 + b1 + b2 + w * 0.1848) * 0.25
+  })
+  return { ctx, rand: prng(seed), white, pink }
+}
+
+// ─── Primitives ────────────────────────────────────────────────────────────
+
+const between = (k: Kit, a: number, b: number): number => a + (b - a) * k.rand()
+
+export const gainNode = (k: Kit, value = 1): GainNode => {
+  const g = k.ctx.createGain()
+  g.gain.value = value
+  return g
+}
+
+export const filter = (k: Kit, type: BiquadFilterType, freq: number, q = 0.707): BiquadFilterNode => {
+  const f = k.ctx.createBiquadFilter()
+  f.type = type
+  f.frequency.value = freq
+  f.Q.value = q
+  return f
+}
+
+/** A noise source that plays from `t0` for `dur` s at a random offset. */
+export const noise = (k: Kit, t0: number, dur: number, buf: AudioBuffer = k.white): AudioBufferSourceNode => {
+  const s = k.ctx.createBufferSource()
+  s.buffer = buf
+  s.loop = true
+  s.start(t0, k.rand() * (buf.duration - 0.1))
+  s.stop(t0 + dur)
+  return s
+}
+
+export const osc = (k: Kit, type: OscillatorType, freq: number, t0: number, dur: number): OscillatorNode => {
+  const o = k.ctx.createOscillator()
+  o.type = type
+  o.frequency.value = freq
+  o.start(t0)
+  o.stop(t0 + dur)
+  return o
+}
+
+/** Attack to `peak`, then exponential decay to −60 dB at `t60` after the attack. */
+export const envAD = (param: AudioParam, t0: number, peak: number, attack: number, t60: number): void => {
+  param.value = 0
+  param.setValueAtTime(0, t0)
+  param.linearRampToValueAtTime(peak, t0 + attack)
+  param.setTargetAtTime(0, t0 + attack, t60 / T60)
+}
+
+export const gainAD = (k: Kit, t0: number, peak: number, attack: number, t60: number): GainNode => {
+  const g = k.ctx.createGain()
+  envAD(g.gain, t0, peak, attack, t60)
+  return g
+}
+
+/** Exponential sweep of a frequency param from `f0` to `f1` over `dur`. */
+const sweep = (p: AudioParam, t0: number, f0: number, f1: number, dur: number): void => {
+  p.setValueAtTime(f0, t0)
+  p.exponentialRampToValueAtTime(f1, t0 + dur)
+}
+
+/** Where a recipe sends its sound: dry and into the room. */
+export interface Out {
+  dry: AudioNode
+  verb: AudioNode
+}
+
+/** A tiny transient: `ms` of noise through a band — runner ticks, rib clicks, latches. */
+const click = (k: Kit, out: AudioNode, t0: number, freq: number, q: number, peak: number, ms = 3): void => {
+  const n = noise(k, t0, ms / 1000 + 0.03)
+  const g = gainAD(k, t0, peak, 0.0005, ms / 1000 * 4)
+  n.connect(filter(k, 'bandpass', freq, q)).connect(g).connect(out)
+}
+
+/** Modal ring: inharmonic partials with their own decays (metal, glass, bells). */
+const ring = (
+  k: Kit, out: AudioNode, t0: number, f: number, partials: [ratio: number, amp: number, t60: number][], peak: number, attack = 0.001
+): void => {
+  for (const [ratio, amp, t60] of partials) {
+    const o = osc(k, 'sine', f * ratio, t0, t60 + attack + 0.05)
+    o.connect(gainAD(k, t0, peak * amp, attack, t60)).connect(out)
+  }
+}
+
+// ─── Room: generated impulse responses ─────────────────────────────────────
+
+/**
+ * A stereo room with decorrelated sides: bright early energy over a darker,
+ * longer body, after `pre` s of pre-delay. Open sky has no walls, so the sfx
+ * room is short and diffuse; the music room is a long soft hall.
+ */
+export const makeImpulse = (ctx: BaseAudioContext, seed: number, seconds: number, bright: number, dark: number, pre = 0.012): AudioBuffer => {
+  const sr = ctx.sampleRate
+  const n = Math.ceil(seconds * sr)
+  const buf = ctx.createBuffer(2, n, sr)
+  const p0 = Math.round(pre * sr)
+  for (let ch = 0; ch < 2; ch++) {
+    const r = prng(seed + ch * 101)
+    const d = buf.getChannelData(ch)
+    let lp = 0
+    for (let i = p0; i < n; i++) {
+      const t = (i - p0) / sr
+      const w = r() * 2 - 1
+      lp += 0.1 * (w - lp)
+      const build = Math.min(1, t / 0.02)
+      const tail = Math.min(1, (n - i) / (0.05 * sr))
+      d[i] = (0.45 * w * Math.exp((-T60 / bright) * t) + 1.2 * lp * Math.exp((-T60 / dark) * t)) * build * tail
+    }
+  }
+  return buf
+}
+
+// ─── Mix: buses, rooms, limiter, mute ──────────────────────────────────────
+
+export interface Mix {
+  sfx: Out
+  ambience: AudioNode
+  music: Out
+  /** Briefly pulled down under big moments (break, splat, win). */
+  musicDuck: GainNode
+  sfxVol: GainNode
+  ambienceVol: GainNode
+  musicVol: GainNode
+  masterVol: GainNode
+  /** The LAST gain before the speakers: 0 = silent, whatever the buses do. */
+  mute: GainNode
+  /** Tap after the mute gain, for level checks and the mute regression test. */
+  meter: AnalyserNode
+}
+
+export const createMix = (ctx: BaseAudioContext, dest: AudioNode, seed = 1): Mix => {
+  const g = (v = 1) => {
+    const n = ctx.createGain()
+    n.gain.value = v
+    return n
+  }
+  const sum = g()
+  // Safety limiter: only the rare pile-up (splat + slam + whistle) reaches it.
+  const limiter = ctx.createDynamicsCompressor()
+  limiter.threshold.value = -3
+  limiter.knee.value = 0
+  limiter.ratio.value = 20
+  limiter.attack.value = 0.002
+  limiter.release.value = 0.12
+  const masterVol = g(1)
+  const mute = g(1)
+  const meter = ctx.createAnalyser()
+  meter.fftSize = 2048
+  sum.connect(limiter).connect(masterVol).connect(mute).connect(dest)
+  mute.connect(meter)
+
+  // SFX: dry + a short, diffuse "open air" room.
+  const sfxVol = g(1)
+  sfxVol.connect(sum)
+  const sfxDry = g()
+  sfxDry.connect(sfxVol)
+  const sfxRoom = ctx.createConvolver()
+  sfxRoom.buffer = makeImpulse(ctx, seed + 3, 1.3, 0.35, 1.1, 0.018)
+  const sfxVerb = g()
+  sfxVerb.connect(sfxRoom).connect(g(0.55)).connect(sfxVol)
+
+  const ambienceVol = g(1)
+  ambienceVol.connect(sum)
+  const ambience = g()
+  ambience.connect(ambienceVol)
+
+  // Music: its own long hall, ducked and levelled as one.
+  const musicVol = g(1)
+  musicVol.connect(sum)
+  const musicDuck = g(1)
+  musicDuck.connect(musicVol)
+  const musicDry = g()
+  musicDry.connect(musicDuck)
+  const hall = ctx.createConvolver()
+  hall.buffer = makeImpulse(ctx, seed + 5, 4.2, 1.1, 3.6, 0.03)
+  const musicVerb = g()
+  // Keep mud out of the hall: no sub, a gentle top.
+  musicVerb.connect(filterRaw(ctx, 'highpass', 180)).connect(filterRaw(ctx, 'lowpass', 6500)).connect(hall).connect(g(0.8)).connect(musicDuck)
+
+  return {
+    sfx: { dry: sfxDry, verb: sfxVerb },
+    ambience,
+    music: { dry: musicDry, verb: musicVerb },
+    musicDuck,
+    sfxVol,
+    ambienceVol,
+    musicVol,
+    masterVol,
+    mute,
+    meter
+  }
+}
+
+const filterRaw = (ctx: BaseAudioContext, type: BiquadFilterType, freq: number, q = 0.707): BiquadFilterNode => {
+  const f = ctx.createBiquadFilter()
+  f.type = type
+  f.frequency.value = freq
+  f.Q.value = q
+  return f
+}
+
+// ─── One-shot recipes ──────────────────────────────────────────────────────
+//
+// Each takes the kit, where to play (already panned and gained by the
+// caller), the start time and its own parameters, and returns how long it
+// rings — so the caller can retire the voice.
+
+export interface SfxParams {
+  /** 0..1 — how hard: fall speed for open/land, impact for splat. */
+  intensity?: number
+  /** Open/close: toggled again within a moment — a lighter flick. */
+  quick?: boolean
+  /** Close: the automatic fold on landing. */
+  auto?: boolean
+  /** Hit: what was touched. */
+  hazard?: 'pillar' | 'mine' | 'spikes'
+  /** Whistle: seconds to fade to silence. */
+  fade?: number
+}
+
+type Recipe = (k: Kit, o: Out, t: number, p: SfxParams) => number
+
+/**
+ * OPEN — the runner zips up the shaft, the latch clicks, the canopy snaps
+ * taut and swallows a pocket of air. Opened at speed, the catch is a big
+ * "whump" with the brake of the wind behind it.
+ */
+const open: Recipe = (k, o, t, p) => {
+  const v = clamp01(p.intensity ?? 0)
+  const lvl = p.quick ? 0.7 : 1
+  // Runner sliding up the shaft: a short rising zip plus three or four ticks.
+  if (!p.quick) {
+    const zip = noise(k, t, 0.08)
+    const bp = filter(k, 'bandpass', 1800, 2.2)
+    sweep(bp.frequency, t, 1600, 3800, 0.055)
+    zip.connect(bp).connect(gainAD(k, t, 0.09, 0.008, 0.07)).connect(o.dry)
+    const ticks = 3 + Math.floor(k.rand() * 2)
+    for (let i = 0; i < ticks; i++) click(k, o.dry, t + 0.008 + i * between(k, 0.011, 0.015), between(k, 3000, 4800), 3, 0.11 + i * 0.03)
+  }
+  // The latch: a crisp catch with a short metallic ring.
+  const tl = t + (p.quick ? 0 : 0.058)
+  click(k, o.dry, tl, between(k, 4200, 5200), 4, 0.32 * lvl, 2)
+  ring(k, o.dry, tl, between(k, 2850, 3050), [[1, 1, 0.05], [2.41, 0.4, 0.03]], 0.035 * lvl)
+  // Canopy snapping taut: fabric crack, then the fill — a falling low-pass whump.
+  const tc = tl + 0.006
+  const snap = noise(k, tc, 0.06)
+  snap.connect(filter(k, 'bandpass', between(k, 1300, 1700), 0.9)).connect(gainAD(k, tc, 0.36 * lvl, 0.002, 0.05)).connect(o.dry)
+  // …then the air fills it, a beat behind the snap.
+  const tf = tc + 0.012
+  const fill = noise(k, tf, 0.45, k.pink)
+  const lp = filter(k, 'lowpass', 3500, 1.2)
+  sweep(lp.frequency, tf, 3200 + 1200 * v, 380, 0.14 + 0.08 * v)
+  const fillG = gainAD(k, tf, (0.6 + 0.3 * v) * lvl, 0.016, 0.2 + 0.25 * v)
+  fill.connect(lp).connect(fillG)
+  fillG.connect(o.dry)
+  fillG.connect(o.verb)
+  // The air pocket: a soft low thump (A2 falling to A1).
+  const th = osc(k, 'sine', 110, tf, 0.35)
+  sweep(th.frequency, tf, 112, 55, 0.12)
+  th.connect(gainAD(k, tf, (0.16 + 0.18 * v) * lvl, 0.012, 0.2)).connect(o.dry)
+  // Caught at speed: the wind brakes against the canopy.
+  if (v > 0.15) {
+    const brake = noise(k, tc, 0.7, k.pink)
+    const bb = filter(k, 'bandpass', 700, 0.8)
+    sweep(bb.frequency, tc, 900, 260, 0.5)
+    const bg = gainAD(k, tc, 0.3 * v, 0.04, 0.45)
+    brake.connect(bb).connect(bg)
+    bg.connect(o.dry)
+    bg.connect(o.verb)
+  }
+  return 0.75
+}
+
+/** CLOSE — the canopy collapses with a soft "fshh", two ribs fold home. */
+const close: Recipe = (k, o, t, p) => {
+  const lvl = p.auto ? 0.5 : p.quick ? 0.75 : 1
+  const n = noise(k, t, 0.22, k.pink)
+  const bp = filter(k, 'bandpass', 900, 0.8)
+  sweep(bp.frequency, t, 700, 2600, 0.11)
+  const g = k.ctx.createGain()
+  g.gain.setValueAtTime(0, t)
+  g.gain.linearRampToValueAtTime(0.42 * lvl, t + 0.035)
+  g.gain.setTargetAtTime(0, t + 0.05, 0.035)
+  n.connect(bp).connect(g).connect(o.dry)
+  // Air pushed out as the fabric folds: a tiny downward puff.
+  const puff = osc(k, 'sine', 140, t + 0.01, 0.15)
+  sweep(puff.frequency, t + 0.01, 150, 80, 0.08)
+  puff.connect(gainAD(k, t + 0.01, 0.12 * lvl, 0.006, 0.08)).connect(o.dry)
+  // Ribs folding home and the runner sliding down.
+  click(k, o.dry, t + 0.05, between(k, 2000, 2600), 2.5, 0.18 * lvl, 3)
+  click(k, o.dry, t + between(k, 0.075, 0.09), between(k, 1600, 2100), 2.5, 0.14 * lvl, 3)
+  if (!p.auto) ring(k, o.dry, t + 0.08, between(k, 2300, 2450), [[1, 1, 0.035]], 0.02 * lvl)
+  return 0.3
+}
+
+/**
+ * BREAK — reopened at terminal velocity, the canopy blows inside-out: a
+ * cloth crack, ribs snapping, a bent spring wobbling, and the torn fabric
+ * flapping out of control as the air rushes through it.
+ */
+const breakUmbrella: Recipe = (k, o, t) => {
+  // Inside-out crack.
+  const crack = noise(k, t, 0.2)
+  crack.connect(filter(k, 'highpass', 500)).connect(filter(k, 'peaking', 1600, 0.8)).connect(gainAD(k, t, 0.65, 0.001, 0.11)).connect(o.dry)
+  const pop = osc(k, 'sine', 180, t, 0.2)
+  sweep(pop.frequency, t, 190, 60, 0.09)
+  pop.connect(gainAD(k, t, 0.3, 0.002, 0.13)).connect(o.dry)
+  // Ribs snapping: four bright clicks, each with a short inharmonic ring.
+  for (let i = 0; i < 4; i++) {
+    const ti = t + 0.01 + i * between(k, 0.03, 0.06)
+    click(k, o.dry, ti, between(k, 3500, 6000), 3, 0.3, 2)
+    ring(k, o.dry, ti, between(k, 1400, 2600), [[1, 1, 0.09], [2.71, 0.5, 0.06], [5.13, 0.25, 0.04]], 0.05)
+  }
+  // The bent spring: an FM "boing" sagging down a fifth with a wobble.
+  const tb = t + 0.04
+  const car = osc(k, 'sine', 300, tb, 0.8)
+  const mod = osc(k, 'sine', 300 * 1.41, tb, 0.8)
+  const idx = k.ctx.createGain()
+  idx.gain.setValueAtTime(300 * 1.8, tb)
+  idx.gain.exponentialRampToValueAtTime(30, tb + 0.6)
+  mod.connect(idx).connect(car.frequency)
+  sweep(car.frequency, tb, 330, 196, 0.55)
+  sweep(mod.frequency, tb, 330 * 1.41, 196 * 1.41, 0.55)
+  const wob = osc(k, 'sine', 11, tb, 0.8)
+  const wobD = gainNode(k, 14)
+  wob.connect(wobD).connect(car.frequency)
+  const boingG = gainAD(k, tb, 0.14, 0.004, 0.65)
+  car.connect(filter(k, 'lowpass', 2200)).connect(boingG)
+  boingG.connect(o.dry)
+  boingG.connect(o.verb)
+  // Torn canopy flapping in the rush: noise chopped by a slowing flutter.
+  const tf = t + 0.03
+  const flap = noise(k, tf, 0.9, k.pink)
+  const am = gainNode(k, 0.5)
+  const lfo = osc(k, 'triangle', 17, tf, 0.9)
+  lfo.frequency.setValueAtTime(19, tf)
+  lfo.frequency.exponentialRampToValueAtTime(7, tf + 0.8)
+  const lfoD = gainNode(k, 0.5)
+  lfo.connect(lfoD).connect(am.gain)
+  const flapG = gainAD(k, tf, 0.5, 0.01, 0.75)
+  flap.connect(filter(k, 'bandpass', 1100, 0.9)).connect(am).connect(flapG)
+  flapG.connect(o.dry)
+  flapG.connect(o.verb)
+  // Air rushing through the wreck: a falling, sighing whistle.
+  const sigh = noise(k, t, 0.7)
+  const sb = filter(k, 'bandpass', 2000, 7)
+  sweep(sb.frequency, t, 2400, 600, 0.6)
+  sigh.connect(sb).connect(gainAD(k, t, 0.22, 0.03, 0.55)).connect(o.verb)
+  return 1.1
+}
+
+/** LAND — soft shoes on a platform; the harder the drop, the heavier the thud. */
+const land: Recipe = (k, o, t, p) => {
+  const v = clamp01(p.intensity ?? 0.2)
+  const th = osc(k, 'sine', 150, t, 0.2)
+  sweep(th.frequency, t, between(k, 140, 165), 62, 0.07)
+  th.connect(gainAD(k, t, 0.22 + 0.5 * v, 0.002, 0.09 + 0.08 * v)).connect(o.dry)
+  const tap = noise(k, t, 0.06)
+  tap.connect(filter(k, 'lowpass', 1400 + 1000 * v, 0.9)).connect(gainAD(k, t, 0.28 + 0.4 * v, 0.001, 0.035)).connect(o.dry)
+  const scuff = noise(k, t + 0.004, 0.1)
+  scuff.connect(filter(k, 'bandpass', between(k, 2600, 3400), 1)).connect(gainAD(k, t + 0.004, 0.05 + 0.06 * v, 0.004, 0.06)).connect(o.dry)
+  if (v > 0.45) {
+    // A heavy landing: the second foot, and a puff of dust.
+    land2(k, o, t + between(k, 0.035, 0.05), v)
+    const dust = noise(k, t, 0.35, k.pink)
+    dust.connect(filter(k, 'lowpass', 900)).connect(gainAD(k, t, 0.14 * v, 0.01, 0.25)).connect(o.dry)
+  }
+  return 0.4
+}
+const land2 = (k: Kit, o: Out, t: number, v: number) => {
+  const th = osc(k, 'sine', 130, t, 0.15)
+  sweep(th.frequency, t, 130, 60, 0.06)
+  th.connect(gainAD(k, t, 0.3 * v, 0.002, 0.08)).connect(o.dry)
+}
+
+/** STEP — a soft footfall while walking; quiet enough to sit under everything. */
+const step: Recipe = (k, o, t, p) => {
+  const lvl = 0.6 + 0.4 * clamp01(p.intensity ?? 1)
+  const tap = noise(k, t, 0.04)
+  tap.connect(filter(k, 'bandpass', between(k, 1300, 2100), 1.3)).connect(gainAD(k, t, 0.16 * lvl, 0.001, 0.03)).connect(o.dry)
+  const th = osc(k, 'sine', between(k, 170, 200), t, 0.08)
+  th.connect(gainAD(k, t, 0.12 * lvl, 0.002, 0.045)).connect(o.dry)
+  return 0.12
+}
+
+/**
+ * SPLAT — the cartoon pancake: a heavy body thump, a wet resonant "splut"
+ * sweeping down, a scatter of droplets and the umbrella clattering after.
+ */
+const splat: Recipe = (k, o, t) => {
+  const body = osc(k, 'sine', 120, t, 0.45)
+  sweep(body.frequency, t, 135, 38, 0.22)
+  body.connect(gainAD(k, t, 0.6, 0.002, 0.3)).connect(o.dry)
+  const thud = noise(k, t, 0.2, k.pink)
+  thud.connect(filter(k, 'lowpass', 500)).connect(gainAD(k, t, 0.6, 0.001, 0.13)).connect(o.dry)
+  // The wet part: a resonant band falling fast, two formants for the "plut".
+  for (const [f0, f1, q, a] of [[2600, 320, 3, 0.75], [1500, 500, 5, 0.4]] as const) {
+    const s = noise(k, t + 0.004, 0.25)
+    const bp = filter(k, 'bandpass', f0, q)
+    sweep(bp.frequency, t + 0.004, f0, f1, 0.13)
+    const sg = gainAD(k, t + 0.004, a, 0.002, 0.16)
+    s.connect(bp).connect(sg)
+    sg.connect(o.dry)
+    sg.connect(o.verb)
+  }
+  // Droplets: tiny "plip"s, each a sine falling an octave in a few ms.
+  const drops = 5
+  for (let i = 0; i < drops; i++) {
+    const td = t + 0.07 + k.rand() * 0.35
+    const f = between(k, 700, 1500)
+    const d = osc(k, 'sine', f, td, 0.08)
+    d.frequency.setValueAtTime(f * 1.6, td)
+    d.frequency.exponentialRampToValueAtTime(f, td + 0.018)
+    d.connect(gainAD(k, td, between(k, 0.04, 0.09), 0.001, 0.05)).connect(o.dry)
+  }
+  // The umbrella clattering down after him.
+  for (let i = 0; i < 3; i++) {
+    const tc = t + 0.12 + i * between(k, 0.05, 0.09)
+    click(k, o.dry, tc, between(k, 2400, 4000), 3, 0.12 - i * 0.025, 3)
+    ring(k, o.dry, tc, between(k, 1700, 2300), [[1, 1, 0.07], [2.63, 0.5, 0.04]], 0.025)
+  }
+  return 0.9
+}
+
+/**
+ * HIT — touched a creature or spikes: a sharp prick (mines, spikes) or a
+ * rubbery bonk (pillars), then a puff as he vanishes back to the start.
+ */
+const hit: Recipe = (k, o, t, p) => {
+  if (p.hazard === 'pillar') {
+    const b = osc(k, 'sine', 260, t, 0.3)
+    sweep(b.frequency, t, 280, 175, 0.12)
+    b.connect(gainAD(k, t, 0.6, 0.002, 0.2)).connect(o.dry)
+    const b2 = osc(k, 'triangle', 600, t, 0.12)
+    sweep(b2.frequency, t, 640, 420, 0.06)
+    b2.connect(filter(k, 'lowpass', 1500)).connect(gainAD(k, t, 0.2, 0.001, 0.06)).connect(o.dry)
+    const n = noise(k, t, 0.08)
+    n.connect(filter(k, 'lowpass', 900)).connect(gainAD(k, t, 0.5, 0.001, 0.04)).connect(o.dry)
+  } else {
+    click(k, o.dry, t, 5200, 2, 0.7, 2)
+    ring(k, o.dry, t, between(k, 3150, 3300), [[1, 1, 0.16], [1.59, 0.5, 0.12], [2.83, 0.3, 0.07]], 0.09)
+    const ouch = osc(k, 'sine', 420, t + 0.01, 0.25)
+    sweep(ouch.frequency, t + 0.01, 440, 300, 0.15)
+    ouch.connect(gainAD(k, t + 0.01, 0.38, 0.004, 0.16)).connect(o.dry)
+  }
+  // Poof: a puff of air sweeping up.
+  const tp = t + 0.05
+  const puff = noise(k, tp, 0.4, k.pink)
+  const bp = filter(k, 'bandpass', 600, 1.1)
+  sweep(bp.frequency, tp, 500, 2600, 0.22)
+  const pg = gainAD(k, tp, 0.55, 0.012, 0.28)
+  puff.connect(bp).connect(pg)
+  pg.connect(o.dry)
+  pg.connect(o.verb)
+  return 0.7
+}
+
+/** A celesta / music-box note: bright attack, a few partials decaying apart. */
+export const celesta = (k: Kit, out: AudioNode, t: number, f: number, peak: number): void => {
+  ring(k, out, t, f, [[1, 1, 1.6], [2, 0.32, 0.7], [3, 0.1, 0.35], [4.2, 0.07, 0.18]], peak, 0.002)
+  click(k, out, t, Math.min(9000, f * 3), 1.5, peak * 0.35, 2)
+}
+
+/** A wind chime: a tubular bell's inharmonic partials. */
+export const chime = (k: Kit, out: AudioNode, t: number, f: number, peak: number): void => {
+  ring(k, out, t, f, [[1, 1, 3.2], [2.76, 0.45, 1.8], [5.4, 0.22, 0.9], [8.93, 0.08, 0.45]], peak, 0.0015)
+}
+
+// D major pentatonic, the music's scale.
+const PENTA = [0, 2, 4, 7, 9]
+export const pentaNote = (degree: number, base = 62): number =>
+  base + 12 * Math.floor(degree / 5) + PENTA[((degree % 5) + 5) % 5]!
+
+/**
+ * WIN — he lands on the finish: a whoosh of lift, a celesta arpeggio
+ * climbing the D major chord, a warm swell and wind chimes shimmering
+ * through the dance. In key with the score, so it blooms out of it.
+ */
+const win: Recipe = (k, o, t) => {
+  const lift = noise(k, t, 0.6, k.pink)
+  const lb = filter(k, 'bandpass', 500, 1)
+  sweep(lb.frequency, t, 400, 3200, 0.4)
+  const lg = k.ctx.createGain()
+  lg.gain.setValueAtTime(0, t)
+  lg.gain.linearRampToValueAtTime(0.16, t + 0.3)
+  lg.gain.setTargetAtTime(0, t + 0.32, 0.06)
+  lift.connect(lb).connect(lg).connect(o.verb)
+  // D5 F#5 A5 D6 … and an E6 + F#6 bloom on top.
+  const arp = [74, 78, 81, 86]
+  arp.forEach((m, i) => {
+    const g = gainNode(k, 1)
+    g.connect(o.dry)
+    g.connect(o.verb)
+    celesta(k, g, t + 0.05 + i * 0.085, midiHz(m), 0.2)
+  })
+  const tb = t + 0.05 + 4 * 0.085 + 0.04
+  const bloom = gainNode(k, 1)
+  bloom.connect(o.dry)
+  bloom.connect(o.verb)
+  for (const m of [88, 90, 81]) celesta(k, bloom, tb, midiHz(m), 0.13)
+  // A warm Dadd9 swell under it.
+  for (const [m, pan] of [[62, -0.3], [66, 0.3], [69, -0.1], [76, 0.15]] as const) {
+    const o1 = osc(k, 'triangle', midiHz(m), t, 2.6)
+    const pg = k.ctx.createGain()
+    pg.gain.setValueAtTime(0, t)
+    pg.gain.linearRampToValueAtTime(0.05, t + 0.35)
+    pg.gain.setTargetAtTime(0, t + 0.6, 0.45)
+    const pn = k.ctx.createStereoPanner()
+    pn.pan.value = pan
+    o1.connect(filter(k, 'lowpass', 1800)).connect(pg).connect(pn)
+    pn.connect(o.dry)
+    pn.connect(o.verb)
+  }
+  // Wind chimes through the dance.
+  for (let i = 0; i < 7; i++) {
+    const tc = tb + 0.1 + k.rand() * 1.3
+    const pn = k.ctx.createStereoPanner()
+    pn.pan.value = between(k, -0.7, 0.7)
+    pn.connect(o.dry)
+    pn.connect(o.verb)
+    chime(k, pn, tc, midiHz(pentaNote(10 + Math.floor(k.rand() * 7))), 0.04)
+  }
+  return 3.2
+}
+
+/**
+ * WHISTLE — the Looney-Tunes falling whistle as he drops off screen: a
+ * breathy whistle tone (sine plus band-limited breath that tracks it) gliding
+ * down, held, then faded to silence over `fade` s.
+ */
+const whistle: Recipe = (k, o, t, p) => {
+  const fade = Math.max(0.15, p.fade ?? 1.2)
+  const dur = fade + 0.25
+  const f0 = 2000
+  const f1 = 420
+  const tone = osc(k, 'sine', f0, t, dur)
+  sweep(tone.frequency, t, f0, f1, dur)
+  const vib = osc(k, 'sine', 6.2, t, dur)
+  const vibD = gainNode(k, 0)
+  vibD.gain.setValueAtTime(0, t)
+  vibD.gain.linearRampToValueAtTime(18, t + 0.3)
+  vib.connect(vibD).connect(tone.frequency)
+  const h2 = osc(k, 'sine', f0 * 2, t, dur)
+  sweep(h2.frequency, t, f0 * 2, f1 * 2, dur)
+  const breath = noise(k, t, dur)
+  const bb = filter(k, 'bandpass', f0, 22)
+  sweep(bb.frequency, t, f0, f1, dur)
+  const env = k.ctx.createGain()
+  env.gain.setValueAtTime(0, t)
+  env.gain.linearRampToValueAtTime(1, t + 0.05)
+  env.gain.setValueAtTime(1, t + fade * 0.35)
+  env.gain.linearRampToValueAtTime(0, t + fade)
+  tone.connect(gainNode(k, 0.2)).connect(env)
+  h2.connect(gainNode(k, 0.012)).connect(env)
+  breath.connect(bb).connect(gainNode(k, 0.9)).connect(env)
+  env.connect(o.dry)
+  env.connect(o.verb)
+  return dur + 0.1
+}
+
+export const RECIPES = {
+  open,
+  close,
+  break: breakUmbrella,
+  land,
+  step,
+  splat,
+  hit,
+  win,
+  whistle
+} satisfies Record<string, Recipe>
+
+export type SfxName = keyof typeof RECIPES
+
+/** Per-sound trim (linear), set from the level report so the hierarchy holds. */
+export const SFX_TRIM: Record<SfxName, number> = {
+  open: 1.68, // +4.5 dB
+  close: 2.5, // +8 dB
+  break: 2.66, // +8.5 dB
+  land: 2.8, // +9 dB
+  step: 4.5, // +13 dB
+  splat: 2.8, // +9 dB
+  hit: 3.16, // +10 dB
+  win: 0.68, // −3.3 dB
+  whistle: 0.7 // −3 dB
+}
+
+/** Seconds the music ducks under a sound, and how deep (dB). */
+export const SFX_DUCK: Partial<Record<SfxName, [db: number, hold: number]>> = {
+  break: [-7, 0.6],
+  splat: [-8, 0.5],
+  hit: [-7, 0.4],
+  win: [-6, 1.6],
+  whistle: [-4, 0.8]
+}
+
+// ─── Ambience: the wind, continuously ──────────────────────────────────────
+
+/** What the scene reports about the air around the player, each frame. */
+export interface AmbienceState {
+  /** Ordinary current at the player 0..1 (inside, or a hint when close). */
+  wind: number
+  /** Super Stream at the player 0..1. */
+  superWind: number
+  /** Airborne speed as a fraction of terminal velocity. */
+  speed: number
+  /** 0..1 — closed and closing in on the speed where reopening breaks it. */
+  danger: number
+  /** 1 while the open canopy is in the air. */
+  canopy: number
+  /** −1..1, where the nearest current is. */
+  pan: number
+}
+
+export const AMBIENCE_IDLE: AmbienceState = { wind: 0, superWind: 0, speed: 0, danger: 0, canopy: 0, pan: 0 }
+
+export interface Ambience {
+  set: (s: AmbienceState, at: number, smooth?: number) => void
+}
+
+/**
+ * The sky, as layers over two looping noise sources:
+ *   bed     — a soft, always-there breeze, breathing on two slow LFOs;
+ *   stream  — the whoosh of an updraft, brighter the stronger it blows;
+ *   howl    — a narrow resonant whistle riding the stream;
+ *   roar    — a Super Stream's deep rumble and low howl;
+ *   canopy  — the open umbrella's fabric luffing in the current;
+ *   rush    — air tearing past a closed fall, rising with speed;
+ *   rattle  — the closed canopy shuddering near terminal velocity: the
+ *             audible warning that reopening now will break it.
+ */
+export const createAmbience = (k: Kit, out: AudioNode, t0: number): Ambience => {
+  const { ctx } = k
+  const pink = ctx.createBufferSource()
+  pink.buffer = k.pink
+  pink.loop = true
+  pink.start(t0)
+  const white = ctx.createBufferSource()
+  white.buffer = k.white
+  white.loop = true
+  white.start(t0)
+  const lfo = (freq: number, depth: number, target: AudioParam, type: OscillatorType = 'sine') => {
+    const o = ctx.createOscillator()
+    o.type = type
+    o.frequency.value = freq
+    const d = ctx.createGain()
+    d.gain.value = depth
+    o.connect(d).connect(target)
+    o.start(t0)
+    return o
+  }
+
+  // Bed: a breeze that breathes on its own (gusts every ~8–14 s).
+  const bedLp = filter(k, 'lowpass', 420, 0.6)
+  const bed = gainNode(k, 0)
+  bed.gain.setValueAtTime(0, t0)
+  bed.gain.linearRampToValueAtTime(0.09, t0 + 3)
+  const bedBreath = gainNode(k, 1)
+  lfo(0.071, 0.3, bedBreath.gain)
+  lfo(0.123, 0.22, bedBreath.gain)
+  lfo(0.09, 140, bedLp.frequency)
+  pink.connect(bedLp).connect(bedBreath).connect(bed).connect(out)
+  const air = filter(k, 'bandpass', 2600, 0.7)
+  const airG = gainNode(k, 0.012)
+  lfo(0.057, 0.008, airG.gain)
+  white.connect(air).connect(airG).connect(bed)
+
+  // Stream + howl, panned toward the current.
+  const streamPan = ctx.createStereoPanner()
+  streamPan.connect(out)
+  const streamBp = filter(k, 'bandpass', 400, 0.8)
+  const stream = gainNode(k, 0)
+  lfo(0.31, 90, streamBp.frequency)
+  pink.connect(streamBp).connect(stream).connect(streamPan)
+  const howlBp = filter(k, 'bandpass', 800, 18)
+  const howl = gainNode(k, 0)
+  lfo(0.27, 45, howlBp.frequency)
+  lfo(0.83, 18, howlBp.frequency)
+  white.connect(howlBp).connect(howl).connect(streamPan)
+
+  // Super Stream: rumble and a low howl.
+  const roarLp = filter(k, 'lowpass', 240, 0.9)
+  const roar = gainNode(k, 0)
+  pink.connect(roarLp).connect(roar).connect(streamPan)
+  const lowHowlBp = filter(k, 'bandpass', 430, 12)
+  const lowHowl = gainNode(k, 0)
+  lfo(0.19, 30, lowHowlBp.frequency)
+  white.connect(lowHowlBp).connect(lowHowl).connect(streamPan)
+
+  // Canopy luffing: noise chopped by a flutter that quickens with the wind.
+  const canBp = filter(k, 'bandpass', 1800, 1.1)
+  const canAm = gainNode(k, 0.55)
+  const canLfo = lfo(8, 0.45, canAm.gain, 'triangle')
+  const canopy = gainNode(k, 0)
+  white.connect(canBp).connect(canAm).connect(canopy).connect(out)
+
+  // Rush of a closed fall.
+  const rushHp = filter(k, 'highpass', 250)
+  const rushBp = filter(k, 'bandpass', 500, 0.6)
+  const rush = gainNode(k, 0)
+  pink.connect(rushHp).connect(rushBp).connect(rush).connect(out)
+
+  // Near-break rattle.
+  const ratBp = filter(k, 'bandpass', 1250, 2.2)
+  const ratAm = gainNode(k, 0.5)
+  const ratLfo = lfo(23, 0.5, ratAm.gain, 'square')
+  const rattle = gainNode(k, 0)
+  white.connect(ratBp).connect(ratAm).connect(rattle).connect(out)
+
+  const to = (p: AudioParam, v: number, at: number, tc: number) => p.setTargetAtTime(v, at, tc)
+
+  return {
+    set: (s, at, smooth = 0.08) => {
+      const w = clamp01(s.wind)
+      const sw = clamp01(s.superWind)
+      const any = Math.max(w, sw)
+      const sp = clamp01(s.speed)
+      to(streamPan.pan, Math.max(-0.7, Math.min(0.7, s.pan)) * (1 - 0.6 * any), at, 0.2)
+      to(stream.gain, 0.42 * Math.pow(any, 1.3), at, smooth * 2)
+      to(streamBp.frequency, 380 + 800 * w + 500 * sw, at, smooth * 3)
+      to(howl.gain, 0.05 * Math.pow(w, 1.5) + 0.03 * sw, at, smooth * 3)
+      to(howlBp.frequency, 720 + 520 * w + 260 * sw, at, smooth * 4)
+      to(roar.gain, 0.6 * Math.pow(sw, 1.2), at, smooth * 2)
+      to(lowHowl.gain, 0.09 * sw, at, smooth * 3)
+      const c = clamp01(s.canopy)
+      to(canopy.gain, c * (0.012 + 0.07 * w + 0.12 * sw + 0.08 * sp), at, smooth)
+      to(canLfo.frequency, 6 + 8 * any + 10 * sp, at, smooth)
+      to(rush.gain, 0.45 * Math.pow(sp, 2) * (1 - 0.5 * c), at, smooth)
+      to(rushBp.frequency, 380 + 2600 * sp * sp, at, smooth)
+      const d = clamp01(s.danger)
+      to(rattle.gain, 0.2 * d * d, at, smooth * 0.6)
+      to(ratLfo.frequency, 18 + 14 * d, at, smooth)
+    }
+  }
+}

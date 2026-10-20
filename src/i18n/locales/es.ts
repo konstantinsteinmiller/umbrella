@@ -11,7 +11,9 @@ export default {
     'broken': "¡Paraguas roto!",
     'prevLevel': "Nivel anterior",
     'nextLevel': "Nivel siguiente",
-    'restart': "Reiniciar nivel"
+    'restart': "Reiniciar nivel",
+    'selectLevel': "Elegir nivel",
+    'close': "Cerrar"
   },
   'ads': {
     'watch': 'Ver', 'revive': 'Revivir', 'secondChance': 'Segunda oportunidad', 'doubleCoins': '2× monedas', 'plusCoins': '+{n} monedas'

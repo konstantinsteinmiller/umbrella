@@ -11,7 +11,9 @@ export default {
     'broken': "Parapluie cassé !",
     'prevLevel': "Niveau précédent",
     'nextLevel': "Niveau suivant",
-    'restart': "Recommencer le niveau"
+    'restart': "Recommencer le niveau",
+    'selectLevel': "Choisir un niveau",
+    'close': "Fermer"
   },
   'ads': {
     'watch': 'Regarder', 'revive': 'Revivre', 'secondChance': 'Seconde chance', 'doubleCoins': '2× pièces', 'plusCoins': '+{n} pièces'

@@ -14,7 +14,9 @@ export default {
     'broken': "Umbrella broke!",
     'prevLevel': "Previous level",
     'nextLevel': "Next level",
-    'restart': "Restart level"
+    'restart': "Restart level",
+    'selectLevel': "Select level",
+    'close': "Close"
   },
   'gameName': 'Umbrella',
   // ─── Merge Legion UI chrome (source locale; en is the runtime fallback for

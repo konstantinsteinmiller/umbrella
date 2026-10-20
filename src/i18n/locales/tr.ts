@@ -11,7 +11,9 @@ export default {
     'broken': "Şemsiye kırıldı!",
     'prevLevel': "Önceki seviye",
     'nextLevel': "Sonraki seviye",
-    'restart': "Seviyeyi yeniden başlat"
+    'restart': "Seviyeyi yeniden başlat",
+    'selectLevel': "Seviye seç",
+    'close': "Kapat"
   },
   'ads': {
     'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para'

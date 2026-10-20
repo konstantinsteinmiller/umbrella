@@ -1,20 +1,31 @@
 name: Deploy Static Content to Pages
 
+# Publishes:
+#   /umbrella/      → latest main
+#   /umbrella/<N>/  → every GDD revision (N = scripts/revision.mjs)
+#
+# Each push to main moves the tag `revision-<current N>` to that commit, so a
+# revision's URL keeps following main until the GDD opens the next revision;
+# from then on the old tag is frozen and its build is rebuilt from the tag.
+
 on:
   push:
     branches:
       - main
-#      - develop
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # push the revision-<N> tag
   pages: write
   id-token: write
 
 concurrency:
   group: "pages"
   cancel-in-progress: true
+
+env:
+  VITE_APP_TURN_USERNAME: ${{ secrets.VITE_APP_TURN_USERNAME }}
+  VITE_APP_TURN_CREDENTIAL: ${{ secrets.VITE_APP_TURN_CREDENTIAL }}
 
 jobs:
   deploy:
@@ -28,12 +39,7 @@ jobs:
         with:
           ref: main
           path: main
-
-#      - name: Checkout develop
-#        uses: actions/checkout@v4
-#        with:
-#          ref: develop
-#          path: develop
+          fetch-depth: 0 # revision tags
 
       - uses: pnpm/action-setup@v4
         name: Install pnpm
@@ -45,40 +51,52 @@ jobs:
         with:
           node-version: '22.8.0'
 
-      - name: Clean install dependencies (Main)
+      - name: Current revision
+        id: rev
+        working-directory: main
+        run: echo "n=$(node scripts/revision.mjs)" >> "$GITHUB_OUTPUT"
+
+      - name: Tag this commit as the current revision
+        working-directory: main
         run: |
-          rm -rf main/node_modules
-          pnpm install --no-frozen-lockfile
+          git tag -f "revision-${{ steps.rev.outputs.n }}"
+          git push -f origin "refs/tags/revision-${{ steps.rev.outputs.n }}"
+
+      - name: Install dependencies (main)
         working-directory: main
+        run: pnpm install --no-frozen-lockfile
 
-#      - name: Clean install dependencies (Develop)
-#        run: |
-#          rm -rf develop/node_modules
-#          pnpm install --no-frozen-lockfile
-#        working-directory: develop
-
-      - name: Build Main Production
-        run: npm run build-github-main
+      - name: Build latest → /umbrella/
         working-directory: main
-        env:
-          VITE_APP_TURN_USERNAME: ${{ secrets.VITE_APP_TURN_USERNAME }}
-          VITE_APP_TURN_CREDENTIAL: ${{ secrets.VITE_APP_TURN_CREDENTIAL }}
+        run: npx vite build --base=/umbrella/ --outDir="$GITHUB_WORKSPACE/dist"
 
-#      - name: Build Develop Production
-#        run: npm run build-github-develop
-#        working-directory: develop
-#        env:
-#          VITE_APP_TURN_USERNAME: ${{ secrets.VITE_APP_TURN_USERNAME }}
-#          VITE_APP_TURN_CREDENTIAL: ${{ secrets.VITE_APP_TURN_CREDENTIAL }}
+      - name: Build current revision → /umbrella/<N>/
+        working-directory: main
+        run: |
+          N="${{ steps.rev.outputs.n }}"
+          npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N"
 
-      - name: Create Dist Folder
-        run: mkdir dist
+      - name: Build earlier revisions from their tags
+        working-directory: main
+        run: |
+          CUR="${{ steps.rev.outputs.n }}"
+          for TAG in $(git tag --list 'revision-*'); do
+            N="${TAG#revision-}"
+            [ "$N" = "$CUR" ] && continue
+            echo "::group::revision $N ($TAG)"
+            git worktree add --detach "../rev-$N" "$TAG"
+            (cd "../rev-$N" && pnpm install --no-frozen-lockfile \
+              && npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N")
+            echo "::endgroup::"
+          done
 
-      - name: Copy Main Build
-        run: cp -r main/dist/* dist/
-
-#      - name: Copy Develop Build
-#        run: cp -r develop/dist/* dist/develop/
+      - name: Revision index (dist/revisions.json)
+        working-directory: main
+        run: |
+          git tag --list 'revision-*' | sed 's/revision-//' | sort -n \
+            | node -e "const n=require('fs').readFileSync(0,'utf8').trim().split('\n').filter(Boolean).map(Number);console.log(JSON.stringify({latest:${{ steps.rev.outputs.n }},revisions:n}))" \
+            > "$GITHUB_WORKSPACE/dist/revisions.json"
+          cat "$GITHUB_WORKSPACE/dist/revisions.json"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

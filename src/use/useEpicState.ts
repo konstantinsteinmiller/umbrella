@@ -27,7 +27,12 @@ import { onGameSuspended, USES_PAGE_VISIBILITY } from '@/use/useGamePause'
  * the in-memory ref were renamed for the umbrella_state requirement.
  */
 
-export const STATE_KEY = 'umbrella_state'
+// GitHub Pages serves every GDD revision on one origin (/umbrella/1/,
+// /umbrella/2/, …): each revision build keeps its own save so tuning from one
+// revision never leaks into another. Latest (/umbrella/) and portal builds
+// (base ./) keep the plain key.
+const REVISION_BASE = /\/(\d+)\/$/.exec(import.meta.env.BASE_URL ?? '')
+export const STATE_KEY = REVISION_BASE ? `umbrella_state_rev${REVISION_BASE[1]}` : 'umbrella_state'
 
 /** Persisted values may be bare strings ("en"), stringified numbers ("120"),
  *  or stringified JSON. JSON.parse round-trips numbers/objects; bare strings

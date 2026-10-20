@@ -11,7 +11,9 @@ export default {
     'broken': "Paraplu kapot!",
     'prevLevel': "Vorig level",
     'nextLevel': "Volgend level",
-    'restart': "Level opnieuw starten"
+    'restart': "Level opnieuw starten",
+    'selectLevel': "Kies level",
+    'close': "Sluiten"
   },
   'ads': {
     'watch': 'Bekijk', 'revive': 'Herleven', 'secondChance': 'Tweede kans', 'doubleCoins': '2× munten', 'plusCoins': '+{n} munten'
