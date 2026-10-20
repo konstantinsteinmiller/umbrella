@@ -95,6 +95,10 @@ const SOUNDS = {
   'splat': { sfx: 'splat', params: { intensity: 1 }, label: 'Splat', note: 'Terminal-velocity landing or ceiling slam.' },
   'hit-mine': { sfx: 'hit', params: { hazard: 'mine' }, label: 'Hit — spikes / mine', note: 'Sharp prick, then a puff back to the start.' },
   'hit-pillar': { sfx: 'hit', params: { hazard: 'pillar' }, label: 'Hit — pillar creature', note: 'Rubbery bonk, then the puff.' },
+  'lunge': { sfx: 'lunge', params: { intensity: 1, lead: 0.22 }, label: 'Pillar lunge (close)', note: 'Rubbery creak + inhale as a 0.22 s warning, then the strike whoosh.' },
+  'lunge-far': { sfx: 'lunge', params: { intensity: 0.1, lead: 0.22 }, label: 'Pillar lunge (far)', note: 'Same attack across the screen.' },
+  'arrive-mine': { sfx: 'arrive', params: { hazard: 'mine', duration: 2 }, label: 'Mine flies in', note: 'Approaching hiss with a little Doppler, whirr to a hover, glassy ping.' },
+  'arrive-pillar': { sfx: 'arrive', params: { hazard: 'pillar', duration: 1.6 }, label: 'Pillar drops in', note: 'Approaching hiss, then a heavy soft landing.' },
   'win': { sfx: 'win', params: {}, label: 'Win', note: 'Lift, celesta arpeggio in D, chimes through the dance.' },
   'whistle': { sfx: 'whistle', params: { fade: 1.2 }, label: 'Falling whistle', note: 'Off the bottom; fades over tuning.whistleFade.' },
   // Long renders (measurement only).
@@ -102,6 +106,8 @@ const SOUNDS = {
   'wind-calm': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t) } },
   'wind-updraft': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, wind: 1, canopy: 1, speed: 0.12 }, t + 0.1) } },
   'wind-super': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, superWind: 1, canopy: 1, speed: 0.5 }, t + 0.1) } },
+  'enemy-mine': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, mine: 1, mineSpeed: 0.6 }, t + 0.1) } },
+  'enemy-pillar': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, pillar: 1 }, t + 0.1) } },
   'wind-fall': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, speed: 1, danger: 1 }, t + 0.1) } },
   // The game moment: score playing, an open, a landing and a splat on top.
   'mix-check': { seconds: 30, skip: 12, run: (e, t) => {
@@ -222,7 +228,7 @@ for (const [name, def] of Object.entries(SOUNDS)) {
 
 const ambSet = {}
 const pushAmb = () => live?.setAmbience(amb)
-for (const [key, min, max] of [['wind', 0, 1], ['superWind', 0, 1], ['speed', 0, 1], ['danger', 0, 1], ['canopy', 0, 1], ['pan', -1, 1]]) {
+for (const [key, min, max] of [['wind', 0, 1], ['superWind', 0, 1], ['speed', 0, 1], ['danger', 0, 1], ['canopy', 0, 1], ['pan', -1, 1], ['mine', 0, 1], ['mineSpeed', 0, 1], ['pillar', 0, 1], ['enemyPan', -1, 1]]) {
   ambSet[key] = slider($('#amb'), key, () => amb[key], (v) => { amb[key] = v; ensure().then(pushAmb) }, min, max, 0.01)
 }
 const SCENES = {
@@ -232,7 +238,10 @@ const SCENES = {
   'Super Stream': { superWind: 1, canopy: 1, speed: 0.5 },
   'Closed fall': { speed: 0.6 },
   'Near terminal (danger)': { speed: 0.95, danger: 0.9 },
-  'Broken, falling': { speed: 0.7, canopy: 0.6 }
+  'Broken, falling': { speed: 0.7, canopy: 0.6 },
+  'Next to a mine': { canopy: 1, mine: 0.9, mineSpeed: 0.1, enemyPan: 0.4 },
+  'Fast mine passing': { canopy: 1, mine: 0.7, mineSpeed: 1, enemyPan: -0.3 },
+  'Next to a pillar': { canopy: 1, pillar: 0.9, enemyPan: 0.5 }
 }
 for (const [label, s] of Object.entries(SCENES)) {
   const b = document.createElement('button')

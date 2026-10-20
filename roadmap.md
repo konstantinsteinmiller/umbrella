@@ -6,3 +6,5 @@
 - [ ] #2 Do a full on sound pass to create extremely mind-blowingly good sounds for this game and a harmonic background music.
   The sound effects should fit perfectly to the umbrella and wind theme. Not 8-bit sounds.
   Use a expert sound designer from a AAA game studio as a opus 5.5 high effort subagent.
+
+- [ ] #3 add enemy sounds and delete the old ogg files  

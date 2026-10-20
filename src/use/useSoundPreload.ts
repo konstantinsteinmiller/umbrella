@@ -24,38 +24,10 @@ import { probeSfxOverrides } from '@/use/useSound'
 // allSettled covers them all. Order doesn't matter — they decode in
 // parallel and fight for the AudioContext's decoder pool. Adding a new
 // SFX = add the basename here (no `.ogg`, no path prefix).
-const GAMEPLAY_SFX: ReadonlyArray<string> = [
-  'anchor-swap',
-  'obstacle-hit',
-  'coin-pickup',
-  'plastic-torn-1',
-  'plastic-torn-2',
-  'water-splash',
-  'lose',
-  'win',
-  'modal-open',
-  'level-up',
-  'reward-continue',
-  'happy',
-  'celebration-3',
-  // Battle placeholders fired by the arena's event sink.
-  'clash-1', 'clash-2', 'clash-3', 'clash-4', 'clash-5',
-  'unit-shot-1', 'unit-shot-2', 'unit-shot-3',
-  'flesh-hit-1', 'flesh-hit-2',
-  'explosion-1',
-  'crystal-cut',
-  'dodge',
-  'shrapnel',
-  'stone-cut',
-  'barricade',
-  'gravity',
-  'chainsaw-break',
-  'celebration-1',
-  'celebration-2',
-  // The new-tier reveal (sound-todo.md). Rare, but it must hit ON the merge —
-  // a first-play decode would land the bloom late against the halo.
-  'new-tier-reveal'
-]
+// Umbrella synthesizes every sound live (src/umbrella/soundEngine.ts), so no
+// .ogg ships and nothing is preloaded; the old merge-game list was removed with
+// its files (roadmap #3).
+const GAMEPLAY_SFX: ReadonlyArray<string> = []
 
 let preloadStarted = false
 let preloadDone: Promise<void> | null = null

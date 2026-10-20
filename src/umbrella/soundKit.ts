@@ -281,6 +281,10 @@ export interface SfxParams {
   hazard?: 'pillar' | 'mine' | 'spikes'
   /** Whistle: seconds to fade to silence. */
   fade?: number
+  /** Lunge: seconds of wind-up tell before the strike lands. */
+  lead?: number
+  /** Arrive: seconds the enemy takes to glide in. */
+  duration?: number
 }
 
 type Recipe = (k: Kit, o: Out, t: number, p: SfxParams) => number
@@ -520,6 +524,93 @@ const hit: Recipe = (k, o, t, p) => {
   return 0.7
 }
 
+/**
+ * LUNGE — a pillar creature attacks. A rubbery creak and a sharp intake of
+ * breath during the wind-up (`lead` s, the player's warning), then a heavy
+ * air-cut whoosh as it strikes, and a soft slap of its body stopping.
+ * `intensity` is how close it is to the player.
+ */
+const lunge: Recipe = (k, o, t, p) => {
+  const v = 0.35 + 0.65 * clamp01(p.intensity ?? 1)
+  const lead = Math.max(0.08, p.lead ?? 0.22)
+  // Wind-up: a stretched-rubber creak (a pitched, gritty band rising)…
+  const creak = noise(k, t, lead + 0.05)
+  const cb = filter(k, 'bandpass', 380, 9)
+  sweep(cb.frequency, t, 320, 620, lead)
+  const cam = gainNode(k, 0.5)
+  const grit = osc(k, 'square', 38, t, lead + 0.05)
+  grit.connect(gainNode(k, 0.5)).connect(cam.gain)
+  const cg = k.ctx.createGain()
+  cg.gain.setValueAtTime(0, t)
+  cg.gain.linearRampToValueAtTime(0.5 * v, t + lead * 0.85)
+  cg.gain.linearRampToValueAtTime(0, t + lead + 0.03)
+  creak.connect(cb).connect(cam).connect(cg).connect(o.dry)
+  // …and an inhale: breathy noise swelling up into the strike.
+  const inhale = noise(k, t, lead + 0.05, k.pink)
+  const ib = filter(k, 'bandpass', 900, 1.4)
+  sweep(ib.frequency, t, 700, 1800, lead)
+  const ig = k.ctx.createGain()
+  ig.gain.setValueAtTime(0, t)
+  ig.gain.linearRampToValueAtTime(0.35 * v, t + lead)
+  ig.gain.linearRampToValueAtTime(0, t + lead + 0.02)
+  inhale.connect(ib).connect(ig).connect(o.dry)
+  // Strike: a heavy whoosh, the air cut by a big body moving fast.
+  const ts = t + lead
+  const whoosh = noise(k, ts, 0.4, k.pink)
+  const wb = filter(k, 'bandpass', 1400, 1.2)
+  sweep(wb.frequency, ts, 1900, 260, 0.28)
+  const wg = gainAD(k, ts, 0.9 * v, 0.012, 0.3)
+  whoosh.connect(wb).connect(wg)
+  wg.connect(o.dry)
+  wg.connect(o.verb)
+  const body = osc(k, 'sine', 95, ts, 0.3)
+  sweep(body.frequency, ts, 120, 60, 0.2)
+  body.connect(gainAD(k, ts, 0.3 * v, 0.01, 0.2)).connect(o.dry)
+  // It stops dead at full reach: a soft rubbery slap.
+  const tsl = ts + 0.13
+  const slap = noise(k, tsl, 0.06)
+  slap.connect(filter(k, 'bandpass', 700, 1.6)).connect(gainAD(k, tsl, 0.22 * v, 0.001, 0.05)).connect(o.dry)
+  return lead + 0.6
+}
+
+/**
+ * ARRIVE — an enemy flies in: a distant air-hiss growing and falling in
+ * pitch as it closes (a little Doppler), then it settles. A mine whirs up
+ * to a hover with a glassy ping; a pillar lands with a soft heavy thump.
+ */
+const arrive: Recipe = (k, o, t, p) => {
+  const dur = Math.max(0.3, p.duration ?? 1.6)
+  const approach = noise(k, t, dur + 0.1, k.pink)
+  const ab = filter(k, 'bandpass', 2400, 2)
+  sweep(ab.frequency, t, 2600, 700, dur)
+  const ag = k.ctx.createGain()
+  ag.gain.setValueAtTime(0.0001, t)
+  ag.gain.exponentialRampToValueAtTime(0.01, t + 0.05)
+  ag.gain.exponentialRampToValueAtTime(0.4, t + dur * 0.92)
+  ag.gain.linearRampToValueAtTime(0, t + dur + 0.08)
+  approach.connect(ab).connect(ag)
+  ag.connect(o.dry)
+  ag.connect(o.verb)
+  const te = t + dur
+  if (p.hazard === 'pillar') {
+    const thump = osc(k, 'sine', 80, te, 0.35)
+    sweep(thump.frequency, te, 95, 45, 0.25)
+    thump.connect(gainAD(k, te, 0.45, 0.004, 0.28)).connect(o.dry)
+    const dust = noise(k, te, 0.3, k.pink)
+    dust.connect(filter(k, 'lowpass', 700)).connect(gainAD(k, te, 0.35, 0.002, 0.2)).connect(o.dry)
+  } else {
+    // Spin-up whirr into a hover, and a glassy ping as it locks in place.
+    const whirr = osc(k, 'sawtooth', 70, te - 0.25, 0.6)
+    sweep(whirr.frequency, te - 0.25, 60, 190, 0.3)
+    whirr.connect(filter(k, 'bandpass', 1100, 4)).connect(gainAD(k, te - 0.2, 0.25, 0.15, 0.35)).connect(o.dry)
+    const pg = gainNode(k, 1)
+    pg.connect(o.dry)
+    pg.connect(o.verb)
+    ring(k, pg, te + 0.02, midiHz(pentaNote(7, 74)), [[1, 1, 0.9], [2.76, 0.35, 0.4], [5.4, 0.15, 0.2]], 0.12)
+  }
+  return dur + 1
+}
+
 /** A celesta / music-box note: bright attack, a few partials decaying apart. */
 export const celesta = (k: Kit, out: AudioNode, t: number, f: number, peak: number): void => {
   ring(k, out, t, f, [[1, 1, 1.6], [2, 0.32, 0.7], [3, 0.1, 0.35], [4.2, 0.07, 0.18]], peak, 0.002)
@@ -631,6 +722,8 @@ export const RECIPES = {
   step,
   splat,
   hit,
+  lunge,
+  arrive,
   win,
   whistle
 } satisfies Record<string, Recipe>
@@ -646,6 +739,8 @@ export const SFX_TRIM: Record<SfxName, number> = {
   step: 4.5, // +13 dB
   splat: 2.8, // +9 dB
   hit: 3.16, // +10 dB
+  lunge: 2,
+  arrive: 2,
   win: 0.68, // −3.3 dB
   whistle: 0.7 // −3 dB
 }
@@ -675,9 +770,19 @@ export interface AmbienceState {
   canopy: number
   /** −1..1, where the nearest current is. */
   pan: number
+  /** 0..1 — how close the nearest mine is. */
+  mine: number
+  /** 0..1 — how fast that mine is moving (raises its whirr). */
+  mineSpeed: number
+  /** 0..1 — how close the nearest pillar creature is. */
+  pillar: number
+  /** −1..1, where the nearest enemy is. */
+  enemyPan: number
 }
 
-export const AMBIENCE_IDLE: AmbienceState = { wind: 0, superWind: 0, speed: 0, danger: 0, canopy: 0, pan: 0 }
+export const AMBIENCE_IDLE: AmbienceState = {
+  wind: 0, superWind: 0, speed: 0, danger: 0, canopy: 0, pan: 0, mine: 0, mineSpeed: 0, pillar: 0, enemyPan: 0
+}
 
 export interface Ambience {
   set: (s: AmbienceState, at: number, smooth?: number) => void
@@ -692,7 +797,9 @@ export interface Ambience {
  *   canopy  — the open umbrella's fabric luffing in the current;
  *   rush    — air tearing past a closed fall, rising with speed;
  *   rattle  — the closed canopy shuddering near terminal velocity: the
- *             audible warning that reopening now will break it.
+ *             audible warning that reopening now will break it;
+ *   mine    — a spinning, metallic whirr that swells as a mine comes close;
+ *   pillar  — a pillar creature's slow, low breathing when you are near it.
  */
 export const createAmbience = (k: Kit, out: AudioNode, t0: number): Ambience => {
   const { ctx } = k
@@ -772,6 +879,37 @@ export const createAmbience = (k: Kit, out: AudioNode, t0: number): Ambience => 
   const rattle = gainNode(k, 0)
   white.connect(ratBp).connect(ratAm).connect(rattle).connect(out)
 
+  // Enemies, panned toward the nearest one.
+  const enemyPan = ctx.createStereoPanner()
+  enemyPan.connect(out)
+  const mineA = ctx.createOscillator()
+  mineA.type = 'sawtooth'
+  mineA.frequency.value = 98
+  const mineB = ctx.createOscillator()
+  mineB.type = 'sawtooth'
+  mineB.frequency.value = 98 * 1.498 // a slightly beating fifth
+  mineA.start(t0)
+  mineB.start(t0)
+  const mineBp = filter(k, 'bandpass', 1300, 5)
+  const mineAm = gainNode(k, 0.6)
+  const mineSpin = lfo(3.8, 0.4, mineAm.gain, 'triangle') // its 16 spikes going round
+  const mine = gainNode(k, 0)
+  mineA.connect(mineBp)
+  mineB.connect(gainNode(k, 0.7)).connect(mineBp)
+  mineBp.connect(mineAm).connect(mine).connect(enemyPan)
+  const mineHiss = filter(k, 'bandpass', 5200, 3)
+  white.connect(mineHiss).connect(gainNode(k, 0.35)).connect(mineAm)
+  const pilLp = filter(k, 'lowpass', 220, 1.2)
+  const pilBreath = gainNode(k, 0.5)
+  lfo(0.55, 0.5, pilBreath.gain) // a slow in-out breath
+  const pilTone = ctx.createOscillator()
+  pilTone.frequency.value = midiHz(38) // D2, in the score's key
+  pilTone.start(t0)
+  const pillar = gainNode(k, 0)
+  pink.connect(pilLp).connect(pilBreath)
+  pilTone.connect(gainNode(k, 0.25)).connect(pilBreath)
+  pilBreath.connect(pillar).connect(enemyPan)
+
   const to = (p: AudioParam, v: number, at: number, tc: number) => p.setTargetAtTime(v, at, tc)
 
   return {
@@ -795,6 +933,15 @@ export const createAmbience = (k: Kit, out: AudioNode, t0: number): Ambience => 
       const d = clamp01(s.danger)
       to(rattle.gain, 0.2 * d * d, at, smooth * 0.6)
       to(ratLfo.frequency, 18 + 14 * d, at, smooth)
+      const m = clamp01(s.mine)
+      const ms = clamp01(s.mineSpeed)
+      to(enemyPan.pan, Math.max(-0.8, Math.min(0.8, s.enemyPan)), at, 0.1)
+      to(mine.gain, 0.8 * Math.pow(m, 1.6), at, smooth)
+      to(mineBp.frequency, 900 + 900 * m + 1400 * ms, at, smooth)
+      to(mineSpin.frequency, 3.8 + 9 * ms, at, smooth)
+      to(mineA.frequency, 98 + 40 * ms, at, smooth * 2)
+      to(mineB.frequency, (98 + 40 * ms) * 1.498, at, smooth * 2)
+      to(pillar.gain, 0.24 * Math.pow(clamp01(s.pillar), 1.5), at, smooth * 2)
     }
   }
 }

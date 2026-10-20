@@ -140,6 +140,61 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
   }
 }
 
+// ── Enemy sounds: a lunge's wind-up tell, an enemy flying in ──
+/** Seconds of wind-up creak before an attacking pillar's strike lands. */
+const LUNGE_TELL = 0.22
+let lastEnemyTime = 0
+const enemyCues = () => {
+  const prev = lastEnemyTime
+  const now = world.enemyTime
+  lastEnemyTime = now
+  if (now <= prev || world.phase !== 'play') return
+  const pl = world.player
+  const cx = pl.x + pl.w / 2
+  const cy = pl.y + pl.h / 2
+  for (const h of world.hazards) {
+    const m = h.motion
+    if (!m) continue
+    const hx = h.x + h.w / 2
+    const near = clamp01(1 - Math.hypot(hx - cx, h.y + h.h / 2 - cy) / 700)
+    const pan = Math.max(-0.8, Math.min(0.8, (hx - cx) / 500))
+    if (m.kind === 'lunge') {
+      // Fire the tell so the strike (at lungeRest of each cycle) lands on it.
+      const cue = (cycleT: number) => Math.floor((cycleT / m.period) - tuning.lungeRest + LUNGE_TELL * tuning.enemySpeedScale / m.period)
+      if (cue(now) > cue(prev)) {
+        playSfx('lunge', { intensity: near, lead: LUNGE_TELL, pan })
+      }
+    } else if (m.kind === 'arrive' && prev < m.delay && now >= m.delay) {
+      playSfx('arrive', { hazard: h.kind === 'pillar' ? 'pillar' : 'mine', duration: m.duration / Math.max(0.05, tuning.enemySpeedScale), pan })
+    }
+  }
+}
+
+/** How close the nearest mine / pillar is, for their continuous sounds. */
+const enemyNearby = (cx: number, cy: number) => {
+  let mine = 0
+  let mineSpeed = 0
+  let pillar = 0
+  let enemyPan = 0
+  let loudest = 0
+  for (const h of world.hazards) {
+    if (h.kind === 'spikes') continue
+    const hx = h.x + h.w / 2
+    const d = Math.max(0, Math.hypot(hx - cx, h.y + h.h / 2 - cy) - Math.max(h.w, h.h) / 2)
+    const near = clamp01(1 - d / 320)
+    if (h.kind === 'mine' && near > mine) {
+      mine = near
+      mineSpeed = clamp01(Math.hypot(h.dx, h.dy) / DT / 600)
+    }
+    if (h.kind === 'pillar') pillar = Math.max(pillar, near)
+    if (near > loudest) {
+      loudest = near
+      enemyPan = Math.max(-1, Math.min(1, (hx - cx) / 400))
+    }
+  }
+  return { mine, mineSpeed, pillar, enemyPan }
+}
+
 /** The air around the player, for the wind bed (see soundKit `createAmbience`). */
 const ambience = (): AmbienceState => {
   const pl = world.player
@@ -175,7 +230,8 @@ const ambience = (): AmbienceState => {
     speed: airborne ? Math.hypot(pl.vx, pl.vy) / tuning.terminalVelocity : 0,
     danger: airborne && !pl.open && !pl.broken ? clamp01((pl.vy / breakSpeed - 0.72) / 0.28) : 0,
     // A broken canopy keeps flapping on the way down.
-    canopy: airborne ? (pl.open ? 1 : pl.broken ? 0.6 : 0) : 0
+    canopy: airborne ? (pl.open ? 1 : pl.broken ? 0.6 : 0) : 0,
+    ...enemyNearby(cx, cy)
   }
 }
 let ambienceClock = 0
@@ -185,6 +241,7 @@ const tick = () => {
   togglePending = false
   const vyBefore = world.player.vy
   onEvents(step(world, input, DT, tuning), vyBefore)
+  enemyCues()
   // GDD prototype: failure resets the level at the spawn point.
   if (world.phase === 'out') restart()
   else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) restart()
