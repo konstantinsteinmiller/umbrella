@@ -3,6 +3,7 @@ name: Deploy Static Content to Pages
 # Publishes:
 #   /umbrella/      → latest main
 #   /umbrella/<N>/  → every GDD revision (N = scripts/revision.mjs)
+#   /umbrella/sounds/ → sound + music listening page (latest)
 #
 # Each push to main moves the tag `revision-<current N>` to that commit, so a
 # revision's URL keeps following main until the GDD opens the next revision;
@@ -75,6 +76,12 @@ jobs:
         run: |
           N="${{ steps.rev.outputs.n }}"
           npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N"
+
+      - name: Build sound listening page → /umbrella/sounds/
+        working-directory: main
+        run: |
+          npx vite build --config scripts/sfx/vite.sounds.config.mjs --base=/umbrella/sounds/ --outDir="$GITHUB_WORKSPACE/dist/sounds"
+          mv "$GITHUB_WORKSPACE/dist/sounds/umbrella-sounds.html" "$GITHUB_WORKSPACE/dist/sounds/index.html"
 
       - name: Build earlier revisions from their tags
         working-directory: main
