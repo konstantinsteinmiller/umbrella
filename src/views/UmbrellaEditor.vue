@@ -35,6 +35,7 @@ import {
   deleteCustomLevel,
   editorDraft,
   levelsFromFile,
+  campaignFromFile,
   levelToFile,
   libraryToFile,
   saveEditorDraft,
@@ -587,12 +588,13 @@ const onExport = () => {
   const name = levelName.value.trim() || 'untitled'
   download(`umbrella-level-${name.replace(/[^\w-]+/g, '_')}.json`, levelToFile(name, level.value))
 }
-/** Every saved level in one file. */
+/** Every saved level and every edited campaign slot in one file. */
 const onExportLibrary = () => {
   const n = libraryNames.value.length
-  if (!n) { flash('The saved-levels library is empty — Save a level first'); return }
-  download(`umbrella-levels-${n}.json`, libraryToFile(customLevels.value))
-  flash(`Exported ${n} saved level${n === 1 ? '' : 's'}`)
+  const c = Object.keys(campaignOverrides.value).length
+  if (!n && !c) { flash('Nothing to export — Save a level or replace a campaign level first'); return }
+  download(`umbrella-levels-${n}-campaign-${c}.json`, libraryToFile(customLevels.value, campaignOverrides.value))
+  flash(`Exported ${n} saved level${n === 1 ? '' : 's'} and ${c} edited campaign level${c === 1 ? '' : 's'}`)
 }
 const onImportFile = async (e: Event) => {
   const input = e.target as HTMLInputElement
@@ -600,9 +602,22 @@ const onImportFile = async (e: Event) => {
   input.value = ''
   if (!file) return
   try {
-    const found = levelsFromFile(JSON.parse(await file.text()))
-    if (!found.length) { flash('That file has no Umbrella level in it'); return }
-    if (found.length === 1) {
+    const data: unknown = JSON.parse(await file.text())
+    const found = levelsFromFile(data)
+    const campaign = campaignFromFile(data)
+    const ids = Object.keys(campaign).map(Number)
+    if (!found.length && !ids.length) { flash('That file has no Umbrella level in it'); return }
+    let replaced = 0
+    if (ids.length) {
+      const slots = ids.map((id) => LEVELS.findIndex((l) => l.id === id) + 1).sort((a, b) => a - b)
+      if (window.confirm(`This file also replaces campaign level${slots.length === 1 ? '' : 's'} ${slots.join(', ')}. Apply ${slots.length === 1 ? 'it' : 'them'}? (Revert restores an original.)`)) {
+        for (const id of ids) saveCampaignOverride(id, campaign[id]!)
+        replaced = ids.length
+      }
+    }
+    if (!found.length) { flash(replaced ? `Replaced ${replaced} campaign level${replaced === 1 ? '' : 's'}` : 'Nothing imported'); return }
+    const also = replaced ? ` and replaced ${replaced} campaign level${replaced === 1 ? '' : 's'}` : ''
+    if (found.length === 1 && !ids.length) {
       loadIntoEditor(found[0]!.level, found[0]!.name)
       flash(`Imported "${found[0]!.name}"`)
       return
@@ -610,7 +625,7 @@ const onImportFile = async (e: Event) => {
     // A library file: every level goes into the saved levels (same name replaces), the first opens.
     for (const f of found) saveCustomLevel(f.name, f.level)
     loadIntoEditor(found[0]!.level, found[0]!.name)
-    flash(`Imported ${found.length} levels into the saved levels: ${found.map((f) => f.name).join(', ')}`)
+    flash(`Imported ${found.length} level${found.length === 1 ? '' : 's'} into the saved levels: ${found.map((f) => f.name).join(', ')}${also}`)
   } catch {
     flash('Could not read that file')
   }
@@ -888,7 +903,7 @@ onUnmounted(() => {
       <button class="btn" :disabled="!redoStack.length" :title="`Redo (${REDO_KEYS})`" @click="redo">↷ Redo <kbd>{{ REDO_KEYS }}</kbd></button>
       <span class="sep" />
       <button class="btn" title="Export the level on the canvas" @click="onExport">Export .json</button>
-      <button class="btn" title="Export every saved level in one file" @click="onExportLibrary">Export library</button>
+      <button class="btn" title="Export every saved level and every edited campaign level in one file" @click="onExportLibrary">Export library</button>
       <button class="btn" @click="fileInput?.click()">Import .json</button>
       <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
       <span class="grow" />

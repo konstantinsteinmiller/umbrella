@@ -160,20 +160,42 @@ export interface LevelFile {
 export const levelToFile = (name: string, level: LevelDef): LevelFile =>
   ({ game: 'umbrella', kind: 'level', version: 1, name, level: cloneLevel(level) })
 
-/** Several levels in one file: the editor's "Export library". */
+/** Several levels in one file: the editor's "Export library". `campaign` carries the
+ *  edited campaign slots too — editing mostly happens on the deployed site, where the
+ *  overrides live only in that browser's localStorage, so the file is how they get out. */
 export interface LevelLibraryFile {
   game: 'umbrella'
   kind: 'levels'
   version: 1
   levels: { name: string; level: LevelDef }[]
+  campaign?: { id: number; slot: number; level: LevelDef }[]
 }
 
-export const libraryToFile = (library: Record<string, LevelDef>): LevelLibraryFile => ({
+export const libraryToFile = (library: Record<string, LevelDef>, overrides: Record<number, LevelDef> = {}): LevelLibraryFile => ({
   game: 'umbrella',
   kind: 'levels',
   version: 1,
-  levels: Object.keys(library).sort().map((name) => ({ name, level: cloneLevel(library[name]!) }))
+  levels: Object.keys(library).sort().map((name) => ({ name, level: cloneLevel(library[name]!) })),
+  campaign: Object.keys(overrides).map(Number).sort((a, b) => a - b).map((id) => ({
+    id,
+    slot: LEVELS.findIndex((l) => l.id === id) + 1,
+    level: cloneLevel(overrides[id]!)
+  }))
 })
+
+/** The campaign overrides in a library file, keyed by level id; unknown ids are dropped. */
+export const campaignFromFile = (data: unknown): Record<number, LevelDef> => {
+  const out: Record<number, LevelDef> = {}
+  const f = data as Partial<LevelLibraryFile> | null
+  if (!f || typeof f !== 'object' || !Array.isArray(f.campaign)) return out
+  for (const entry of f.campaign) {
+    const id = (entry as { id?: unknown } | null)?.id
+    if (!num(id) || !LEVELS.some((l) => l.id === id)) continue
+    const level = parseLevel((entry as { level?: unknown }).level)
+    if (level) out[id] = { ...level, id }
+  }
+  return out
+}
 
 /** Every level in a file: a library file, a single-level file, or a bare level. */
 export const levelsFromFile = (data: unknown): { name: string; level: LevelDef }[] => {
