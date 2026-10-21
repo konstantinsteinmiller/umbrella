@@ -863,6 +863,8 @@ const paintPhone = (el: HTMLCanvasElement | null, dt: number) => {
 }
 
 onMounted(() => {
+  // Opening the editor always starts from the bucket's newest levels (the game pulled once at boot).
+  void syncBucket()
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   raf = requestAnimationFrame(paint)
