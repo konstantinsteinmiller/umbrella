@@ -219,6 +219,20 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 
 ## Revision 2
 ## Revision 3
+**Tuning**
+· Import the level designer's tuned constants (umbrella-tuning-2026-10-21T00-57-37.json) as the new defaults.
+· Hide the lil-gui on start; typing "cmonc" shows it.
+· On level 4 and 5 the player is pushed to the sides when trying to land on the finish platform.
+
+**Levels**
+· Make the Walldorfs in Level 13 - 14 not dangerous to touch.
+· Have the angry Walldorf in Level 15 charge straight on, not diagonally.
+· Level 22's air current should be a Super Stream.
+· The wind currents in Level 13 - 15: level them with the Start and Finish platform and bring them in closer to both platforms.
+
+**Level Editor**
+· A level editor like Spin&Mow's, with the Umbrella game elements. Typing "cmonc" also shows a semi-big "OPEN EDITOR" button in the bottom left, leading to the /editor page for building and playtesting levels, which can export levels as .json files for importing.
+· In dev mode, campaign overrides saved in the editor are written into the repo (data/campaign-overrides.json).
 ## Revision 4
 ## Revision 5
 ## Revision 6
