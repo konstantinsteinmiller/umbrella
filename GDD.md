@@ -249,6 +249,13 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · Non-hostile: his lunge attack doesn't hurt the player.
 
 ## Revision 5
+**Levels bucket (shared level editing)**
+· Level edits are stored online: the designer edits on the website, and every Save, Delete, Overwrite and Revert uploads at once (editor password, Sync button).
+· The newest edit of each level wins, wherever it was made; the game on the website plays the latest campaign levels right away.
+· Every new build pulls the latest levels first, so a revision ships them.
+· Works offline: edits stay in the browser and upload once the server is reachable again.
+· Export library: one file with every saved level and every changed campaign level, as a manual backup.
+
 ## Revision 6
 ## Revision 
 ## Revision 
