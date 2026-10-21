@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Scegli livello",
     'close': "Chiudi",
     'mute': "Disattiva audio",
-    'unmute': "Attiva audio"
+    'unmute': "Attiva audio",
+    'joystick': "Muoviti a sinistra / destra",
+    'umbrellaButton': "Apri / chiudi l'ombrello"
   },
   'ads': {
     'watch': 'Guarda', 'revive': 'Rinasci', 'secondChance': 'Seconda chance', 'doubleCoins': '2× monete', 'plusCoins': '+{n} monete'

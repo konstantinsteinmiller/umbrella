@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Выбор уровня",
     'close': "Закрыть",
     'mute': "Выключить звук",
-    'unmute': "Включить звук"
+    'unmute': "Включить звук",
+    'joystick': "Движение влево / вправо",
+    'umbrellaButton': "Открыть / закрыть зонт"
   },
   'ads': {
     'watch': 'Смотреть', 'revive': 'Возродить', 'secondChance': 'Второй шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'

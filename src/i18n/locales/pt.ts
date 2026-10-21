@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Escolher nível",
     'close': "Fechar",
     'mute': "Silenciar som",
-    'unmute': "Ativar som"
+    'unmute': "Ativar som",
+    'joystick': "Mover para esquerda / direita",
+    'umbrellaButton': "Abrir / fechar o guarda-chuva"
   },
   'ads': {
     'watch': 'Assistir', 'revive': 'Reviver', 'secondChance': 'Segunda chance', 'doubleCoins': '2× moedas', 'plusCoins': '+{n} moedas'

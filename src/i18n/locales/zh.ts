@@ -15,7 +15,9 @@ export default {
     'selectLevel': "选择关卡",
     'close': "关闭",
     'mute': "静音",
-    'unmute': "取消静音"
+    'unmute': "取消静音",
+    'joystick': "左右移动",
+    'umbrellaButton': "打开 / 收起雨伞"
   },
   'ads': {
     'watch': '观看', 'revive': '复活', 'secondChance': '第二次机会', 'doubleCoins': '2× 金币', 'plusCoins': '+{n} 金币'

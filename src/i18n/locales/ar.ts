@@ -15,7 +15,9 @@ export default {
     'selectLevel': "اختر المستوى",
     'close': "إغلاق",
     'mute': "كتم الصوت",
-    'unmute': "تشغيل الصوت"
+    'unmute': "تشغيل الصوت",
+    'joystick': "التحرك يسارًا / يمينًا",
+    'umbrellaButton': "فتح / إغلاق المظلة"
   },
   'ads': {
     'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة'

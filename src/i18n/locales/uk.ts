@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Вибір рівня",
     'close': "Закрити",
     'mute': "Вимкнути звук",
-    'unmute': "Увімкнути звук"
+    'unmute': "Увімкнути звук",
+    'joystick': "Рух ліворуч / праворуч",
+    'umbrellaButton': "Відкрити / закрити парасольку"
   },
   'ads': {
     'watch': 'Дивитися', 'revive': 'Відродити', 'secondChance': 'Другий шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'

@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Seviye seç",
     'close': "Kapat",
     'mute': "Sesi kapat",
-    'unmute': "Sesi aç"
+    'unmute': "Sesi aç",
+    'joystick': "Sola / sağa hareket et",
+    'umbrellaButton': "Şemsiyeyi aç / kapat"
   },
   'ads': {
     'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para'

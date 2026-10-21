@@ -18,7 +18,9 @@ export default {
     'selectLevel': "Select level",
     'close': "Close",
     'mute': "Mute sound",
-    'unmute': "Unmute sound"
+    'unmute': "Unmute sound",
+    'joystick': "Move left / right",
+    'umbrellaButton': "Open / close the umbrella"
   },
   'gameName': 'Umbrella',
   // ─── Merge Legion UI chrome (source locale; en is the runtime fallback for

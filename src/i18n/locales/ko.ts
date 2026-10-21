@@ -15,7 +15,9 @@ export default {
     'selectLevel': "레벨 선택",
     'close': "닫기",
     'mute': "음소거",
-    'unmute': "음소거 해제"
+    'unmute': "음소거 해제",
+    'joystick': "좌우로 이동",
+    'umbrellaButton': "우산 펴기 / 접기"
   },
   'ads': {
     'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인'

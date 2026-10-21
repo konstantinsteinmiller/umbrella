@@ -251,7 +251,7 @@ const ambience = (): AmbienceState => {
 let ambienceClock = 0
 
 const tick = () => {
-  const input: Input = { left: held.left, right: held.right, toggle: togglePending }
+  const input: Input = { left: held.left || stickDir.value < 0, right: held.right || stickDir.value > 0, toggle: togglePending }
   togglePending = false
   const vyBefore = world.player.vy
   onEvents(step(world, input, DT, tuning), vyBefore)
@@ -334,9 +334,54 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
   e.preventDefault()
   if (down) unlockAudio()
 }
+// ── Touch: a left/right joystick bottom-left, the umbrella button bottom-right ──
+/** Shown on touch screens, and from the first touch on any device. */
+const touchUI = ref(window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
+const onAnyPointer = (e: PointerEvent) => {
+  if (e.pointerType === 'touch') touchUI.value = true
+  unlockAudio()
+}
+const STICK_RANGE = 44
+const STICK_DEAD = 12
+const stickDir = ref(0)
+const knobX = ref(0)
+let stickId = -1
+let stickOrigin = 0
+const onStickDown = (e: PointerEvent) => {
+  stickId = e.pointerId
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  stickOrigin = r.left + r.width / 2
+  onStickMove(e)
+}
+const onStickMove = (e: PointerEvent) => {
+  if (e.pointerId !== stickId) return
+  const dx = Math.max(-STICK_RANGE, Math.min(STICK_RANGE, e.clientX - stickOrigin))
+  knobX.value = dx
+  stickDir.value = Math.abs(dx) < STICK_DEAD ? 0 : Math.sign(dx)
+}
+const onStickUp = (e: PointerEvent) => {
+  if (e.pointerId !== stickId) return
+  stickId = -1
+  knobX.value = 0
+  stickDir.value = 0
+}
+const umbrellaPressed = ref(false)
+const onUmbrellaDown = (e: PointerEvent) => {
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  togglePending = true
+  umbrellaPressed.value = true
+}
+const onUmbrellaUp = () => { umbrellaPressed.value = false }
+
 const onKeyDown = onKey(true)
 const onKeyUp = onKey(false)
-const onBlur = () => { held.left = held.right = false }
+const onBlur = () => {
+  held.left = held.right = false
+  stickId = -1
+  knobX.value = 0
+  stickDir.value = 0
+}
 
 // Every reason the game must be silent: ads, hidden tab, platform pause, and
 // the portal / mobile hard mutes. `sync` so the mute lands in the same call
@@ -375,7 +420,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="umbrella-scene" @pointerdown="unlockAudio">
+  <div class="umbrella-scene" @pointerdown="onAnyPointer">
     <canvas ref="canvas" class="umbrella-canvas" />
 
     <!-- Designer tools behind the "cmonc" cheat: English only, like the lil-gui panel. -->
@@ -393,8 +438,35 @@ onUnmounted(() => {
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
 
-    <button v-if="editorUnlocked && !testing" class="open-editor" @click="openEditor">OPEN EDITOR</button>
-    <div class="hint">{{ t('umbrella.controls') }}</div>
+    <button v-if="editorUnlocked && !testing" class="open-editor" :class="{ 'above-stick': touchUI }" @click="openEditor">OPEN EDITOR</button>
+    <div v-if="!touchUI" class="hint">{{ t('umbrella.controls') }}</div>
+    <template v-else>
+      <div
+        class="stick"
+        role="slider"
+        :aria-label="t('umbrella.joystick')"
+        aria-valuemin="-1"
+        aria-valuemax="1"
+        :aria-valuenow="stickDir"
+        @pointerdown.stop="onStickDown"
+        @pointermove="onStickMove"
+        @pointerup="onStickUp"
+        @pointercancel="onStickUp"
+      >
+        <span class="stick-arrow left">‹</span>
+        <span class="stick-arrow right">›</span>
+        <span class="stick-knob" :style="{ transform: `translateX(${knobX}px)` }" />
+      </div>
+      <button
+        class="umbrella-btn"
+        :class="{ pressed: umbrellaPressed }"
+        :aria-label="t('umbrella.umbrellaButton')"
+        @pointerdown.stop="onUmbrellaDown"
+        @pointerup="onUmbrellaUp"
+        @pointercancel="onUmbrellaUp"
+        @contextmenu.prevent
+      >☂</button>
+    </template>
     <div v-if="brokenFlash" class="toast">{{ t('umbrella.broken') }}</div>
 
     <div v-if="showLevels" class="levels-backdrop" @click.self="showLevels = false">
@@ -484,6 +556,59 @@ onUnmounted(() => {
   z-index: 2;
 }
 .open-editor:hover { filter: brightness(1.1); }
+.open-editor.above-stick { bottom: 170px; }
+.stick,
+.umbrella-btn {
+  position: absolute;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 2;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.stick {
+  left: calc(24px + env(safe-area-inset-left));
+  width: 150px;
+  height: 72px;
+  border-radius: 36px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+}
+.stick-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 30px;
+  opacity: 0.45;
+  pointer-events: none;
+}
+.stick-arrow.left { left: 12px; }
+.stick-arrow.right { right: 12px; }
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+.umbrella-btn {
+  right: calc(24px + env(safe-area-inset-right));
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 44px;
+  line-height: 1;
+  cursor: pointer;
+}
+.umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); transform: scale(0.94); }
 .hud-btn.wide { width: auto; padding: 0 12px; }
 .toast {
   position: absolute;

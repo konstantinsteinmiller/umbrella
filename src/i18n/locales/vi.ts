@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Chọn màn",
     'close': "Đóng",
     'mute': "Tắt âm thanh",
-    'unmute': "Bật âm thanh"
+    'unmute': "Bật âm thanh",
+    'joystick': "Di chuyển trái / phải",
+    'umbrellaButton': "Mở / gập ô"
   },
   'ads': {
     'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu'

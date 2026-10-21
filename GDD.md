@@ -240,6 +240,7 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 
 **Mobile view**
 · A "Toggle Mobile view" button in the editor shows and playtests the level on a portrait and a landscape phone at the same time.
+· Mobile controls: a left/right joystick bottom-left and an open/close umbrella button bottom-right.
 
 ## Revision 5
 ## Revision 6

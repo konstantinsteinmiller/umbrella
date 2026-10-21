@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Wybierz poziom",
     'close': "Zamknij",
     'mute': "Wycisz dźwięk",
-    'unmute': "Włącz dźwięk"
+    'unmute': "Włącz dźwięk",
+    'joystick': "Ruch w lewo / prawo",
+    'umbrellaButton': "Otwórz / zamknij parasol"
   },
   'ads': {
     'watch': 'Obejrzyj', 'revive': 'Wskrześ', 'secondChance': 'Druga szansa', 'doubleCoins': '2× monety', 'plusCoins': '+{n} monet'

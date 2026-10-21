@@ -15,7 +15,9 @@ export default {
     'selectLevel': "レベル選択",
     'close': "閉じる",
     'mute': "ミュート",
-    'unmute': "ミュート解除"
+    'unmute': "ミュート解除",
+    'joystick': "左右に移動",
+    'umbrellaButton': "傘を開く / 閉じる"
   },
   'ads': {
     'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン'

@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Деңгейді таңдау",
     'close': "Жабу",
     'mute': "Дыбысты өшіру",
-    'unmute': "Дыбысты қосу"
+    'unmute': "Дыбысты қосу",
+    'joystick': "Солға / оңға жылжу",
+    'umbrellaButton': "Қолшатырды ашу / жабу"
   },
   'ads': {
     'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын'

@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Choisir un niveau",
     'close': "Fermer",
     'mute': "Couper le son",
-    'unmute': "Activer le son"
+    'unmute': "Activer le son",
+    'joystick': "Aller à gauche / droite",
+    'umbrellaButton': "Ouvrir / fermer le parapluie"
   },
   'ads': {
     'watch': 'Regarder', 'revive': 'Revivre', 'secondChance': 'Seconde chance', 'doubleCoins': '2× pièces', 'plusCoins': '+{n} pièces'

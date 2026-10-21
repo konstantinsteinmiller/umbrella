@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Kies level",
     'close': "Sluiten",
     'mute': "Geluid uit",
-    'unmute': "Geluid aan"
+    'unmute': "Geluid aan",
+    'joystick': "Naar links / rechts bewegen",
+    'umbrellaButton': "Paraplu openen / sluiten"
   },
   'ads': {
     'watch': 'Bekijk', 'revive': 'Herleven', 'secondChance': 'Tweede kans', 'doubleCoins': '2× munten', 'plusCoins': '+{n} munten'

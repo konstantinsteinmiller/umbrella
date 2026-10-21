@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Level wählen",
     'close': "Schließen",
     'mute': "Ton aus",
-    'unmute': "Ton an"
+    'unmute': "Ton an",
+    'joystick': "Nach links / rechts bewegen",
+    'umbrellaButton': "Schirm öffnen / schließen"
   },
   'ads': {
     'watch': 'Ansehen', 'revive': 'Wiederbeleben', 'secondChance': 'Zweite Chance', 'doubleCoins': '2× Münzen', 'plusCoins': '+{n} Münzen'

@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Darajani tanlash",
     'close': "Yopish",
     'mute': "Ovozni o'chirish",
-    'unmute': "Ovozni yoqish"
+    'unmute': "Ovozni yoqish",
+    'joystick': "Chapga / o'ngga yurish",
+    'umbrellaButton': "Soyabonni ochish / yopish"
   },
   'ads': {
     'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga'

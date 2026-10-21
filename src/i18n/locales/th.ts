@@ -15,7 +15,9 @@ export default {
     'selectLevel': "เลือกด่าน",
     'close': "ปิด",
     'mute': "ปิดเสียง",
-    'unmute': "เปิดเสียง"
+    'unmute': "เปิดเสียง",
+    'joystick': "เคลื่อนที่ซ้าย / ขวา",
+    'umbrellaButton': "กาง / หุบร่ม"
   },
   'ads': {
     'watch': 'ดู', 'revive': 'ชุบชีวิต', 'secondChance': 'โอกาสที่สอง', 'doubleCoins': '2× เหรียญ', 'plusCoins': '+{n} เหรียญ'

@@ -15,7 +15,9 @@ export default {
     'selectLevel': "Pilih level",
     'close': "Tutup",
     'mute': "Matikan suara",
-    'unmute': "Nyalakan suara"
+    'unmute': "Nyalakan suara",
+    'joystick': "Bergerak ke kiri / kanan",
+    'umbrellaButton': "Buka / tutup payung"
   },
   'ads': {
     'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin'
