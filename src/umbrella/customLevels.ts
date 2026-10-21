@@ -261,7 +261,7 @@ const send = async (body: Partial<Bucket>): Promise<boolean> => {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${bucketPassword.value}` },
       body: JSON.stringify(body)
     })
-    if (res.status === 401) { report(false, 'Levels bucket: wrong editor password'); return false }
+    if (res.status === 401) { report(false, 'Wrong editor password — nothing uploaded (your edits are kept in this browser)'); return false }
     if (!res.ok) { report(false, `Levels bucket: upload failed (${res.status})`); return false }
     const merged: unknown = await res.json().catch(() => null)
     if (isBucket(merged)) applyBucket(merged)
@@ -276,7 +276,7 @@ const send = async (body: Partial<Bucket>): Promise<boolean> => {
 function pushEntry(section: 'campaign' | 'library', key: string, level: LevelDef | null, editedAt: number) {
   if (!BUCKET_URL) return
   if (!bucketPassword.value) { report(false, 'Not uploaded — enter the editor password to sync'); return }
-  void send({ [section]: { [key]: { editedAt, level } } }).then((ok) => { if (ok) report(true, 'Uploaded to the levels bucket') })
+  void send({ [section]: { [key]: { editedAt, level } } }).then((ok) => { if (ok) report(true, `Uploaded to every player · ${new Date().toLocaleTimeString()}`) })
 }
 
 // Unreachable: retry with backoff (5 s → 5 min) and as soon as the browser is back online.
@@ -321,7 +321,7 @@ const runSync = async (): Promise<boolean> => {
       return false
     }
     retryDelay = 5000
-    report(true, `Levels bucket: pulled ${pulled}, uploaded ${n}`)
+    report(true, `Synced · ${pulled} received, ${n} uploaded · ${new Date().toLocaleTimeString()}`)
     return true
   } catch {
     report(false, 'Levels bucket unreachable — using the levels in this browser')

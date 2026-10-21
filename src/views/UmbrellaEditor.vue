@@ -910,7 +910,7 @@ onUnmounted(() => {
         <span class="sep" />
         <input v-model="passwordDraft" type="password" class="field pw" placeholder="Editor password" autocomplete="off" @change="onPassword" />
         <button class="btn blue" :disabled="syncing" title="Pull the newest levels from the bucket and upload yours" @click="onSync">⇅ Sync</button>
-        <span v-if="bucketStatus" class="sync" :class="{ bad: !bucketStatus.ok }" :title="bucketStatus.text">{{ bucketStatus.ok ? '●' : '▲' }}</span>
+        <span v-if="bucketStatus" class="sync" :class="{ bad: !bucketStatus.ok }" role="status">{{ bucketStatus.ok ? '✓' : '⚠' }} {{ bucketStatus.text }}</span>
       </template>
       <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
       <span class="grow" />
@@ -1122,7 +1122,8 @@ onUnmounted(() => {
 }
 .sync {
   color: #3c3;
-  cursor: help;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 .sync.bad {
   color: #e83;
