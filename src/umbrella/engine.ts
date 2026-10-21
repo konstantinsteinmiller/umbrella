@@ -108,6 +108,13 @@ const placeMover = (p: { x: number; y: number; w: number; h: number; motion?: Mo
   p.y = c.y - p.h / 2
 }
 
+/** Places every mover where it is at time `t` (the level editor's preview). */
+export const poseMovers = (w: World, t: number, tuning?: Tuning): void => {
+  const lunge = tuning ? { rest: tuning.lungeRest, strike: tuning.lungeStrike, hold: tuning.lungeHold } : DEFAULT_LUNGE
+  for (const p of w.platforms) placeMover(p, t * (tuning?.platformSpeedScale ?? 1))
+  for (const h of w.hazards) placeMover(h, t * (tuning?.enemySpeedScale ?? 1), lunge)
+}
+
 export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }): World => {
   const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0 }))
   for (const p of platforms) placeMover(p, 0)
@@ -203,6 +210,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     h.dx = h.x - ox
     h.dy = h.y - oy
   }
+  // Harmless enemies are solid: you bump into and stand on them like platforms.
+  const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => h.harmless)]
 
   const pl = w.player
   // Live hitbox resize from the tuning panel: keep the feet and centre in place.
@@ -215,15 +224,15 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   if (w.phase !== 'play') {
     // The dancer rides their moving finish.
     if (w.phase === 'win' && pl.standing >= 0) {
-      pl.x += w.platforms[pl.standing]!.dx
-      pl.y += w.platforms[pl.standing]!.dy
+      pl.x += solids[pl.standing]!.dx
+      pl.y += solids[pl.standing]!.dy
     }
     return events
   }
 
   // Ride the platform we stood on last tick.
   if (pl.grounded && pl.standing >= 0) {
-    const p = w.platforms[pl.standing]!
+    const p = solids[pl.standing]!
     pl.x += p.dx
     pl.y += p.dy
   }
@@ -304,9 +313,13 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   const wasGrounded = pl.grounded
   const impactSpeed = pl.vy
   let slam = false
+  const prevX = pl.x
   pl.x += pl.vx * dt
-  for (const p of w.platforms) {
+  for (const p of solids) {
     if (!overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
+    // Already in the platform's columns last tick: it met us from above or
+    // below (a rising finish under a lander) — the vertical pass resolves it.
+    if (prevX + pl.w > p.x - p.dx && prevX < p.x - p.dx + p.w) continue
     if (Math.abs(pl.vx - p.dx / dt) >= t.wallSplatSpeed) slam = true
     if (pl.vx > 0 || p.dx < 0) pl.x = p.x - pl.w
     else pl.x = p.x + p.w
@@ -316,8 +329,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   pl.y += pl.vy * dt
   pl.grounded = false
   let standing = -1
-  for (let i = 0; i < w.platforms.length; i++) {
-    const p = w.platforms[i]!
+  for (let i = 0; i < solids.length; i++) {
+    const p = solids[i]!
     if (!overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
     const fromAbove = pl.y + pl.h - p.y <= Math.max(8, pl.vy * dt + Math.abs(p.dy) + 2)
     if (fromAbove) {
@@ -333,7 +346,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   }
   // Still standing on a platform that moved down/away this tick? Snap onto it.
   if (!pl.grounded && wasGrounded && pl.standing >= 0) {
-    const p = w.platforms[pl.standing]!
+    const p = solids[pl.standing]!
     const onTop = pl.x + pl.w > p.x && pl.x < p.x + p.w && Math.abs(pl.y + pl.h - p.y) <= Math.abs(p.dy) + 4
     if (onTop) {
       pl.y = p.y - pl.h
@@ -351,7 +364,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     return events
   }
   for (const h of w.hazards) {
-    if (!touches(pl, h, t.hitboxInset)) continue
+    if (h.harmless || !touches(pl, h, t.hitboxInset)) continue
     setPhase(w, 'splat')
     events.push('hit')
     return events
@@ -368,7 +381,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
       pl.open = false
       events.push('close')
     }
-    if (w.platforms[standing]!.finish) {
+    if (standing < w.platforms.length && w.platforms[standing]!.finish) {
       setPhase(w, 'win')
       events.push('win')
       return events

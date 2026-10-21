@@ -42,9 +42,13 @@ const readOverridesJson = (): Record<string, unknown> => {
   }
 }
 
+/** What the editor's endpoint last wrote: the watcher ignores that echo, so a
+ *  save does not reload the page under the editor (only hand edits reload). */
+let lastOverridesWrite = ''
 const writeOverridesJson = (data: Record<string, unknown>) => {
   ensureOverridesFile()
-  writeFileSync(OVERRIDES_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8')
+  lastOverridesWrite = JSON.stringify(data, null, 2) + '\n'
+  writeFileSync(OVERRIDES_FILE, lastOverridesWrite, 'utf-8')
 }
 
 const readBody = (req: import('node:http').IncomingMessage): Promise<string> =>
@@ -374,6 +378,11 @@ const mawCampaignOverridesPlugin = (): Plugin => ({
     server.watcher.on('change', (path) => {
       if (resolve(path) !== OVERRIDES_FILE) return
       const mod = server.moduleGraph.getModuleById(OVERRIDES_RESOLVED)
+      if (readFileSync(OVERRIDES_FILE, 'utf-8') === lastOverridesWrite) {
+        // Our own save: refresh the module for the next load, keep the page.
+        if (mod) server.moduleGraph.invalidateModule(mod)
+        return
+      }
       if (mod) server.moduleGraph.invalidateModule(mod)
       server.ws.send({ type: 'full-reload', path: '*' })
     })

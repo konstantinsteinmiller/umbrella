@@ -4,12 +4,14 @@
  *
  * A fixed-step simulation (src/umbrella/engine.ts) drawn to one DPR-sharp
  * canvas. Failure resets the level at the spawn point; landing on the finish
- * dances, then moves on. The T key opens the feel-tuning panel the GDD asks
- * designers to send numbers from.
+ * dances, then moves on. Typing "cmonc" opens the hidden feel-tuning panel
+ * the GDD asks designers to send numbers from.
  */
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { LEVELS } from '@/umbrella/levels'
+import { editorUnlocked, setEditorUnlocked, testLevel } from '@/umbrella/customLevels'
 import { createWorld, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { render } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
@@ -22,15 +24,27 @@ import { isPlatformAudioMuted } from '@/use/useGamePauseAudio'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
 
 const { t } = useI18n()
+const router = useRouter()
+
+/** A level handed over by the editor's "Test" button: it loops until you go back. */
+const testing = testLevel.value
+const levelDef = () => testing ?? LEVELS[levelIndex.value]!
+const backToEditor = () => {
+  testLevel.value = null
+  void router.push('/editor')
+}
+const openEditor = () => void router.push('/editor')
 
 const DT = 1 / 120
 
-const tuning = reactive<Tuning>({ ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r1', {}) })
-watch(tuning, () => setState('umb_tuning_r1', { ...tuning }), { deep: true })
+const tuning = reactive<Tuning>({ ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r2', {}) })
+watch(tuning, () => setState('umb_tuning_r2', { ...tuning }), { deep: true })
 // Level edits from the panel (wind speeds, platform periods) persist alongside.
-applyTuning({ levels: getState<TuningExport['levels']>('umb_levels', []) }, tuning, LEVELS)
-const saveLevels = () => setState('umb_levels', exportTuning(tuning, LEVELS).levels)
+applyTuning({ levels: getState<TuningExport['levels']>('umb_levels_r2', []) }, tuning, LEVELS)
+const saveLevels = () => setState('umb_levels_r2', exportTuning(tuning, LEVELS).levels)
 let gui: TuningGui | null = null
+// The "cmonc" cheat shows the tuning panel and the OPEN EDITOR button together.
+watch(editorUnlocked, (on) => gui?.toggle(on))
 
 const levelIndex = ref(Math.min(LEVELS.length - 1, Math.max(0, getState<number>('umb_level', 0))))
 watch(levelIndex, (i) => setState('umb_level', i))
@@ -51,13 +65,13 @@ const pickLevel = (i: number) => {
   loadLevel(i)
 }
 
-let world: World = createWorld(LEVELS[levelIndex.value]!, { w: tuning.playerWidth, h: tuning.playerHeight })
+let world: World = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight })
 const held = { left: false, right: false }
 let togglePending = false
 
 const loadLevel = (i: number) => {
-  levelIndex.value = (i + LEVELS.length) % LEVELS.length
-  world = createWorld(LEVELS[levelIndex.value]!, { w: tuning.playerWidth, h: tuning.playerHeight })
+  if (!testing) levelIndex.value = (i + LEVELS.length) % LEVELS.length
+  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight })
   gui?.setLevel(world.level)
   brokenFlash.value = false
 }
@@ -246,8 +260,11 @@ const tick = () => {
   if (world.phase === 'out') restart()
   else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) restart()
   else if (world.phase === 'win' && world.phaseTime >= tuning.winHold) {
-    markCleared(levelIndex.value)
-    loadLevel(levelIndex.value + 1)
+    if (testing) restart()
+    else {
+      markCleared(levelIndex.value)
+      loadLevel(levelIndex.value + 1)
+    }
   }
 }
 
@@ -292,8 +309,15 @@ const resize = (el: HTMLCanvasElement) => {
 // ── Input (physical keys: WASD sits under the same fingers on any layout) ──
 const LEFT = new Set(['ArrowLeft', 'KeyA'])
 const RIGHT = new Set(['ArrowRight', 'KeyD'])
+// Typed letters (not physical keys): the designer types the word itself.
+const GUI_CODE = 'cmonc'
+let typed = ''
 const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return
+  if (down && e.key.length === 1) {
+    typed = (typed + e.key.toLowerCase()).slice(-GUI_CODE.length)
+    if (typed === GUI_CODE) { typed = ''; setEditorUnlocked(!editorUnlocked.value) }
+  }
   if (down && (e.code === 'KeyL' || (e.code === 'Escape' && showLevels.value))) {
     showLevels.value = !showLevels.value
     held.left = held.right = false
@@ -306,7 +330,6 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
   else if (e.code === 'Space') {
     if (down && !e.repeat) togglePending = true
   } else if (down && e.code === 'KeyR') restart()
-  else if (down && e.code === 'KeyT') gui?.toggle()
   else return
   e.preventDefault()
   if (down) unlockAudio()
@@ -332,6 +355,7 @@ onMounted(() => {
   window.addEventListener('blur', onBlur)
   gui = createTuningGui({ tuning, levels: LEVELS, onLevelsChange: saveLevels })
   gui.setLevel(world.level)
+  gui.toggle(editorUnlocked.value)
   raf = requestAnimationFrame(frame)
 })
 onUnmounted(() => {
@@ -348,7 +372,13 @@ onUnmounted(() => {
   <div class="umbrella-scene" @pointerdown="unlockAudio">
     <canvas ref="canvas" class="umbrella-canvas" />
 
-    <div class="hud">
+    <!-- Designer tools behind the "cmonc" cheat: English only, like the lil-gui panel. -->
+    <div v-if="testing" class="hud">
+      <button class="hud-btn wide" @click="backToEditor">◀ Editor</button>
+      <span class="hud-level">TEST LEVEL</span>
+      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
+    </div>
+    <div v-else class="hud">
       <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="loadLevel(levelIndex - 1)">‹</button>
       <span class="hud-level">{{ t('umbrella.level', { n: levelIndex + 1 }) }}</span>
       <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="loadLevel(levelIndex + 1)">›</button>
@@ -356,6 +386,7 @@ onUnmounted(() => {
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
     </div>
 
+    <button v-if="editorUnlocked && !testing" class="open-editor" @click="openEditor">OPEN EDITOR</button>
     <div class="hint">{{ t('umbrella.controls') }}</div>
     <div v-if="brokenFlash" class="toast">{{ t('umbrella.broken') }}</div>
 
@@ -431,6 +462,22 @@ onUnmounted(() => {
   opacity: 0.6;
   font-size: 14px;
 }
+.open-editor {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  padding: 14px 26px;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  background: #eab308;
+  color: #000;
+  font: 800 20px system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  z-index: 2;
+}
+.open-editor:hover { filter: brightness(1.1); }
+.hud-btn.wide { width: auto; padding: 0 12px; }
 .toast {
   position: absolute;
   top: 64px;

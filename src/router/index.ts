@@ -54,6 +54,8 @@ import {
  *  host-shaped location without pulling the view components into its graph. */
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'main', component: () => import('@/views/UmbrellaScene.vue') },
+  // The level editor, opened from the "cmonc" cheat's OPEN EDITOR button.
+  { path: '/editor', name: 'editor', component: () => import('@/views/UmbrellaEditor.vue') },
 
   // ─── Catch-all → main menu ───────────────────────────────────────────────
   //

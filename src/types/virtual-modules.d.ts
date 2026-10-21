@@ -26,3 +26,10 @@ declare module 'virtual:leaderboard-snapshot' {
   } | null
   export default snapshot
 }
+
+declare module 'virtual:campaign-overrides' {
+  // Map of level id (as string keys, since JSON) → LevelDef: data/campaign-overrides.json,
+  // written by the level editor through the dev-only Vite endpoints.
+  const overrides: Record<string, unknown>
+  export default overrides
+}

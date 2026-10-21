@@ -52,6 +52,8 @@ export interface HazardDef {
   w: number
   h: number
   motion?: Motion
+  /** Not deadly: a solid block you can bump into and stand on. */
+  harmless?: boolean
   /** Spikes only: which way the points face. */
   facing?: 'up' | 'down'
 }
@@ -97,13 +99,13 @@ export const LEVELS: LevelDef[] = [
   {
     id: 3, world: SCREEN, spawn: { x: 140, y: 140 },
     platforms: [P(40, 180), FIN(830, 640)],
-    winds: [UP(320, 220, 900, 340, 220)]
+    winds: [UP(320, 220, 900, 340, 200)]
   },
   // 4 — the finish rides up and down beside the updraft.
   {
     id: 4, world: SCREEN, spawn: { x: 140, y: 280 },
     platforms: [P(40, 320), FIN(0, 0, 160, { kind: 'line', a: { x: 1060, y: 190 }, b: { x: 1060, y: 630 }, period: 6 })],
-    winds: [UP(330, 300, 420, 420, 240)]
+    winds: [UP(330, 300, 420, 420)]
   },
   // 5 — the finish orbits a block.
   {
@@ -113,13 +115,13 @@ export const LEVELS: LevelDef[] = [
       P(900, 330, 60, 60),
       FIN(0, 0, 140, { kind: 'circle', center: { x: 930, y: 360 }, radius: 180, period: 7 })
     ],
-    winds: [UP(320, 300, 260, 420, 230)]
+    winds: [UP(320, 300, 260, 420)]
   },
   // 6 — a gentle updraft slows the descent onto a slowly sliding finish.
   {
     id: 6, world: SCREEN, spawn: { x: 640, y: 100 },
     platforms: [P(540, 140), FIN(0, 0, 160, { kind: 'line', a: { x: 160, y: 640 }, b: { x: 1120, y: 640 }, period: 9 })],
-    winds: [UP(180, 220, 920, 320, 60)]
+    winds: [UP(180, 220, 920, 320, 200)]
   },
   // 7 — no wind: float straight down.
   {
@@ -136,7 +138,7 @@ export const LEVELS: LevelDef[] = [
   // 9 — no wind: the finish darts back and forth fast.
   {
     id: 9, world: SCREEN, spawn: { x: 180, y: 110 },
-    platforms: [P(80, 150), FIN(0, 0, 160, { kind: 'line', a: { x: 400, y: 600 }, b: { x: 1060, y: 420 }, period: 2.6 })],
+    platforms: [P(80, 150), FIN(0, 0, 160, { kind: 'line', a: { x: 400, y: 600 }, b: { x: 1060, y: 420 }, period: 3.2 })],
     winds: []
   },
   // 10 — far away: fall speed builds; land too fast and you splat.
@@ -160,26 +162,26 @@ export const LEVELS: LevelDef[] = [
 
   // ── Enemies, Super Streams (GDD Revision 1 sketches) ──
 
-  // 13 — a static pillar in the updraft: dip under it where the current is short.
+  // 13 — a harmless pillar blocks the updraft: dip under it where the current is short.
   {
     id: 13, world: SCREEN, spawn: { x: 160, y: 400 },
     platforms: [P(60, 440), FIN(1000, 440, 200)],
-    winds: [UP(300, 200, 180, 520), UP(480, 430, 220, 290), UP(700, 200, 200, 520)],
-    hazards: [PILLAR(590, 270, undefined, 40, 220)]
+    winds: [UP(270, 400, 230, 320), UP(500, 470, 220, 250), UP(720, 400, 270, 320)],
+    hazards: [{ ...PILLAR(610, 330, undefined, 40, 220), harmless: true }]
   },
-  // 14 — the pillar rises and sinks: cross over it while it is down.
+  // 14 — the harmless pillar rises and sinks: cross over it while it is down.
   {
     id: 14, world: SCREEN, spawn: { x: 160, y: 400 },
     platforms: [P(60, 440), FIN(1020, 440, 200)],
-    winds: [UP(300, 240, 620, 480)],
-    hazards: [PILLAR(610, 0, { kind: 'line', a: { x: 610, y: 170 }, b: { x: 610, y: 540 }, period: 4.5 })]
+    winds: [UP(270, 400, 740, 320)],
+    hazards: [{ ...PILLAR(610, 0, { kind: 'line', a: { x: 610, y: 170 }, b: { x: 610, y: 540 }, period: 4.5 }), harmless: true }]
   },
-  // 15 — the pillar attacks: it lunges left across your path.
+  // 15 — the pillar attacks: it charges straight left along your flight line.
   {
     id: 15, world: SCREEN, spawn: { x: 160, y: 400 },
     platforms: [P(60, 440), FIN(1020, 440, 200)],
-    winds: [UP(300, 260, 640, 460)],
-    hazards: [PILLAR(0, 0, { kind: 'lunge', a: { x: 760, y: 150 }, b: { x: 470, y: 280 }, period: 3.2 }, 40, 180)]
+    winds: [UP(270, 400, 740, 320)],
+    hazards: [PILLAR(0, 0, { kind: 'lunge', a: { x: 1260, y: 375 }, b: { x: 480, y: 375 }, period: 3.2 }, 40, 110)]
   },
   // 16 — the spike room: updraft, two headwinds, and a pillar that drops in.
   {
@@ -228,13 +230,13 @@ export const LEVELS: LevelDef[] = [
   {
     id: 21, world: SCREEN, spawn: { x: 160, y: 580 },
     platforms: [P(60, 620), P(0, 90, 300, 30), P(300, 90, 300, 30), P(600, 90, 340, 30), P(940, 90, 340, 30), FIN(1000, 420, 200)],
-    winds: [SUPER(340, 120, 900, 600)]
+    winds: [SUPER(340, 120, 900, 600, 1130)]
   },
-  // 22 — a mine arrives to guard the finish.
+  // 22 — a mine arrives to guard the finish, over a Super Stream.
   {
     id: 22, world: SCREEN, spawn: { x: 160, y: 580 },
     platforms: [P(60, 620), CEILING, FIN(880, 420, 200)],
-    winds: [UP(340, 140, 900, 580)],
+    winds: [SUPER(340, 360, 440, 360)],
     hazards: [MINE(0, 0, { kind: 'arrive', a: { x: 1400, y: 300 }, b: { x: 760, y: 380 }, delay: 1.5, duration: 2 })]
   },
   // 23 — Super Stream with two hovering mines.

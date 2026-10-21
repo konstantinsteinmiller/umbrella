@@ -138,7 +138,7 @@ export const createTuningGui = (opts: {
 }): TuningGui => {
   const { tuning, levels, onLevelsChange } = opts
   levels.forEach(rememberLevel)
-  const gui = new GUI({ title: 'Feel tuning (T)', width: 340 })
+  const gui = new GUI({ title: 'Feel tuning (type "cmonc")', width: 340 })
   gui.domElement.style.zIndex = '50'
   // The game's display font is small-caps; keep numbers and names legible.
   const style = document.createElement('style')
@@ -194,7 +194,8 @@ export const createTuningGui = (opts: {
   io.add(actions, 'copyJson').name('Copy JSON')
   io.add(actions, 'reset').name('Reset all to defaults')
 
-  // Visible from the start while the feel is being tuned; T still hides/shows it.
+  // Hidden on start; typing "cmonc" shows/hides it.
+  gui.hide()
   return {
     setLevel: (level) => { current = level; buildLevel() },
     toggle: (show) => gui.show(show ?? gui._hidden),
