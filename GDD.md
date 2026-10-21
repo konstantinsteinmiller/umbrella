@@ -234,6 +234,13 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · A level editor like Spin&Mow's, with the Umbrella game elements. Typing "cmonc" also shows a semi-big "OPEN EDITOR" button in the bottom left, leading to the /editor page for building and playtesting levels, which can export levels as .json files for importing.
 · In dev mode, campaign overrides saved in the editor are written into the repo (data/campaign-overrides.json).
 ## Revision 4
+**Multi-screen levels**
+· Levels can be bigger than one screen: the camera scrolls with the player's movement, clamped to the world edges (level 27 is the first scrolling level, three screens wide).
+· The level editor supports scrolling levels: world size and screen size, the screen grid and start screen, zoom and pan.
+
+**Mobile view**
+· A "Toggle Mobile view" button in the editor shows and playtests the level on a portrait and a landscape phone at the same time.
+
 ## Revision 5
 ## Revision 6
 ## Revision 

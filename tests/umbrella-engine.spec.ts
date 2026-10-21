@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createWorld, step, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { LEVELS } from '@/umbrella/levels'
+import { cameraFor } from '@/umbrella/renderer'
 import { DEFAULT_TUNING as T } from '@/umbrella/tuning'
 
 const DT = 1 / 120
@@ -112,8 +113,8 @@ describe('umbrella engine', () => {
     expect(run(w, 2)).toContain('out')
   })
 
-  it('ships all 26 levels (24 GDD + 2 from the editor), and every spawn is safe', () => {
-    expect(LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 26 }, (_, i) => i + 1))
+  it('ships all 27 levels (24 GDD + 2 from the editor + 1 scrolling), and every spawn is safe', () => {
+    expect(LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 27 }, (_, i) => i + 1))
     for (const lv of LEVELS) {
       const w = createWorld(lv)
       const ev = run(w, 1)
@@ -196,5 +197,24 @@ describe('umbrella engine', () => {
     expect(tuning.gravity).toBe(999)
     expect((LEVELS[14]!.hazards![0]!.motion as { period: number }).period).toBe(9)
     applyTuning({ levels: [{ id: 15, values: { 'hazards.0.motion.period': before } }] }, tuning, LEVELS)
+  })
+
+  it('the scrolling level 27 is winnable walking right and dropping onto each platform, and its camera follows inside the world', () => {
+    const w = level(27)
+    const seen: number[] = []
+    const ev = run(w, 40, (s) => {
+      seen.push(-cameraFor(s, 1280, 720, DT).ox)
+      const cx = s.player.x + s.player.w / 2
+      const over = s.platforms.some((p) => cx > p.x + 30 && cx < p.x + p.w - 30)
+      return { right: s.player.grounded || !over }
+    })
+    expect(ev).toContain('win')
+    expect(Math.min(...seen)).toBeGreaterThanOrEqual(0)
+    expect(Math.max(...seen)).toBeLessThanOrEqual(2780 - 1280 + 1e-6)
+    expect(Math.max(...seen)).toBeGreaterThan(1200)
+    // A portrait phone keeps the screen's full width and is centred vertically.
+    const tall = cameraFor(w, 390, 844)
+    expect(tall.s).toBeCloseTo(390 / 1280)
+    expect(tall.oy).toBeGreaterThan(0)
   })
 })

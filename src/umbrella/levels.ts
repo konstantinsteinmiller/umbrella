@@ -61,6 +61,9 @@ export interface HazardDef {
 export interface LevelDef {
   id: number
   world: { w: number; h: number }
+  /** One screen, in world units: when smaller than the world the camera
+   *  scrolls with the player. Absent: the whole world is shown at once. */
+  view?: { w: number; h: number }
   spawn: Vec
   platforms: PlatformDef[]
   winds: WindDef[]
@@ -289,5 +292,11 @@ export const LEVELS: LevelDef[] = [
       { x: 1100, y: 580, w: 240, h: 320, dir: 'left', speed: 260 }
     ],
     hazards: []
+    },
+  // 27 — the first scrolling level: three updraft hops, the camera follows (Revision 3).
+  {
+    id: 27, world: { w: 2780, h: 720 }, view: SCREEN, spawn: { x: 160, y: 400 },
+    platforms: [P(60, 440), P(880, 440), P(1700, 440), FIN(2520, 440)],
+    winds: [UP(380, 320, 400, 400), UP(1200, 320, 400, 400), UP(2020, 320, 400, 400)]
   }
 ]

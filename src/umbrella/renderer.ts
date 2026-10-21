@@ -16,11 +16,45 @@ export interface Labels {
   finish: string
 }
 
-/** Fit the world into the canvas (letterboxed), returning scale + offset in device px. */
-const camera = (w: World, cw: number, ch: number) => {
+export interface Camera {
+  /** Device px per world unit. */
+  s: number
+  ox: number
+  oy: number
+}
+
+/** Where each world's camera looks (smoothed); a new world (restart) snaps. */
+const followed = new WeakMap<World, { x: number; y: number }>()
+
+/**
+ * The camera. A level without `view` shows its whole world, letterboxed.
+ * With `view` (one screen, in world units) it fits that screen into the
+ * canvas — a portrait phone sees the full screen width and more height —
+ * and scrolls with the player, clamped to the world's edges; an axis where
+ * the world is smaller than what the canvas shows stays centred.
+ */
+export const cameraFor = (w: World, cw: number, ch: number, dt = 0): Camera => {
   const { w: ww, h: wh } = w.level.world
-  const s = Math.min(cw / ww, ch / wh)
-  return { s, ox: (cw - ww * s) / 2, oy: (ch - wh * s) / 2 }
+  const view = w.level.view
+  if (!view || (view.w >= ww && view.h >= wh)) {
+    const s = Math.min(cw / ww, ch / wh)
+    return { s, ox: (cw - ww * s) / 2, oy: (ch - wh * s) / 2 }
+  }
+  const s = Math.min(cw / view.w, ch / view.h)
+  const vw = cw / s
+  const vh = ch / s
+  const pl = w.player
+  const target = { x: pl.x + pl.w / 2, y: pl.y + pl.h / 2 }
+  let c = followed.get(w)
+  if (!c) followed.set(w, (c = { ...target }))
+  else if (dt > 0) {
+    const k = 1 - Math.exp(-dt * 7)
+    c.x += (target.x - c.x) * k
+    c.y += (target.y - c.y) * k
+  }
+  const axis = (centre: number, seen: number, size: number) =>
+    seen >= size ? (seen - size) / 2 : -Math.min(size - seen, Math.max(0, centre - seen / 2))
+  return { s, ox: axis(c.x, vw, ww) * s, oy: axis(c.y, vh, wh) * s }
 }
 
 const drawWind = (ctx: CanvasRenderingContext2D, wind: WindDef, time: number) => {
@@ -216,12 +250,13 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   ctx.restore()
 }
 
-export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, t: Tuning, dt: number): void => {
+/** `cam` overrides the game camera (the editor's own zoom and pan). */
+export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, t: Tuning, dt: number, cam?: Camera): void => {
   const { width: cw, height: ch } = ctx.canvas
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.fillStyle = '#0d1018'
   ctx.fillRect(0, 0, cw, ch)
-  const { s, ox, oy } = camera(w, cw, ch)
+  const { s, ox, oy } = cam ?? cameraFor(w, cw, ch, dt)
   ctx.setTransform(s, 0, 0, s, ox, oy)
   ctx.fillStyle = BG
   ctx.fillRect(0, 0, w.level.world.w, w.level.world.h)
@@ -229,7 +264,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   for (const wind of w.level.winds) drawWind(ctx, wind, w.time)
 
   // Zoomed-out levels scale the labels back up so they stay readable.
-  const zoomOut = w.level.world.w / 1280
+  const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
   for (const p of w.platforms) {
     ctx.fillStyle = FG
     ctx.fillRect(p.x, p.y, p.w, p.h)

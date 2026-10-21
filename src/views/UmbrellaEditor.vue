@@ -11,7 +11,11 @@
  *  - Select: drag to move, the corner square resizes, the round handles move a
  *    mover's path points. Right-click or Del removes.
  * Levels save to a local library, can replace a campaign slot, and export /
- * import as .json files. "Test" plays the edit in the real game.
+ * import as .json files. "Test" plays the edit in the real game; "Mobile view"
+ * playtests it right here on a portrait and a landscape phone at once.
+ * Scrolling levels: a "screen" smaller than the world makes the camera follow
+ * the player; the overlay shows the screen grid and the start screen.
+ * Wheel zooms, middle- or Alt-drag pans, double-click the empty field refits.
  *
  * A designer tool behind a cheat code, like the lil-gui tuning panel — its
  * copy is English only on purpose.
@@ -19,8 +23,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { LEVELS, type HazardDef, type LevelDef, type Motion, type PlatformDef, type Vec, type WindDef, type WindDir } from '@/umbrella/levels'
-import { createWorld, poseMovers, type World } from '@/umbrella/engine'
-import { render } from '@/umbrella/renderer'
+import { createWorld, poseMovers, step, type Input, type World } from '@/umbrella/engine'
+import { cameraFor, render, type Camera } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
 import {
@@ -56,6 +60,7 @@ type Drag =
   | { mode: 'resize'; target: Entity }
   | { mode: 'handle'; target: Entity; key: HandleKey }
   | { mode: 'create'; tool: Tool; start: Vec; now: Vec }
+  | { mode: 'pan'; x: number; y: number }
   | null
 
 const TOOLS: { id: Tool; label: string }[] = [
@@ -73,11 +78,19 @@ const TOOLS: { id: Tool; label: string }[] = [
   { id: 'spikes-up', label: 'Spikes (point up)' },
   { id: 'spikes-down', label: 'Spikes (point down)' }
 ]
-const WORLD_PRESETS = [
+const SCREEN = { w: 1280, h: 720 }
+/** `view`: the presets that scroll; the 2×/3× ones zoom out to show everything. */
+const WORLD_PRESETS: { label: string; w: number; h: number; view?: { w: number; h: number } }[] = [
   { label: '1 screen (1280×720)', w: 1280, h: 720 },
-  { label: '2× (2560×1440)', w: 2560, h: 1440 },
-  { label: '3× (3840×2160)', w: 3840, h: 2160 }
+  { label: '2 screens wide, scrolls (2560×720)', w: 2560, h: 720, view: SCREEN },
+  { label: '3 screens wide, scrolls (3840×720)', w: 3840, h: 720, view: SCREEN },
+  { label: '2 screens tall, scrolls (1280×1440)', w: 1280, h: 1440, view: SCREEN },
+  { label: '2×2 screens, scrolls (2560×1440)', w: 2560, h: 1440, view: SCREEN },
+  { label: '2× zoomed out (2560×1440)', w: 2560, h: 1440 },
+  { label: '3× zoomed out (3840×2160)', w: 3840, h: 2160 }
 ]
+/** Phone screens in CSS px for the mobile preview. */
+const PHONE = { w: 390, h: 844 }
 const MOTION_KINDS: Motion['kind'][] = ['static', 'line', 'circle', 'swing', 'lunge', 'arrive']
 
 const router = useRouter()
@@ -191,7 +204,24 @@ const handlesOf = (m: Motion): { key: HandleKey; v: Vec }[] => {
 
 // ── Canvas mapping: the world fits the canvas with a margin for off-world movers ──
 const MARGIN = 0.1
-let view = { s: 1, ox: 0, oy: 0 }
+let view: Camera = { s: 1, ox: 0, oy: 0 }
+/** Zoom on top of fit-to-canvas, and pan in device px. */
+let zoom = 1
+let pan = { x: 0, y: 0 }
+const fitView = () => { zoom = 1; pan = { x: 0, y: 0 } }
+const onWheel = (e: WheelEvent) => {
+  const el = canvasRef.value!
+  const r = el.getBoundingClientRect()
+  const dpr = el.width / r.width
+  const mx = (e.clientX - r.left) * dpr
+  const my = (e.clientY - r.top) * dpr
+  const next = Math.min(8, Math.max(0.5, zoom * Math.exp(-e.deltaY * 0.0015)))
+  const k = next / zoom
+  // Keep the point under the cursor in place.
+  const cx = el.width / 2, cy = el.height / 2
+  pan = { x: (mx - cx) - ((mx - cx) - pan.x) * k, y: (my - cy) - ((my - cy) - pan.y) * k }
+  zoom = next
+}
 const toWorld = (e: PointerEvent): Vec => {
   const el = canvasRef.value!
   const r = el.getBoundingClientRect()
@@ -280,6 +310,11 @@ const removeSelection = () => {
 const onPointerDown = (e: PointerEvent) => {
   const p = toWorld(e)
   canvasRef.value?.setPointerCapture(e.pointerId)
+  if (e.button === 1 || (e.button === 0 && e.altKey)) {
+    e.preventDefault()
+    drag = { mode: 'pan', x: e.clientX, y: e.clientY }
+    return
+  }
   if (e.button === 2) {
     const hit = hitTest(p)
     if (hit.sel?.type === 'entity') { selection.value = hit.sel; removeSelection() }
@@ -298,6 +333,14 @@ const onPointerDown = (e: PointerEvent) => {
 
 const onPointerMove = (e: PointerEvent) => {
   if (!drag) return
+  if (drag.mode === 'pan') {
+    const el = canvasRef.value!
+    const dpr = el.width / el.getBoundingClientRect().width
+    pan = { x: pan.x + (e.clientX - drag.x) * dpr, y: pan.y + (e.clientY - drag.y) * dpr }
+    drag.x = e.clientX
+    drag.y = e.clientY
+    return
+  }
   const p = toWorld(e)
   if (drag.mode === 'create') { drag.now = p; return }
   if (drag.mode === 'move') {
@@ -349,6 +392,10 @@ const onPointerUp = () => {
   drag = null
 }
 
+const onDoubleClick = (e: MouseEvent) => {
+  if (!hitTest(toWorld(e as PointerEvent)).sel) fitView()
+}
+
 // ── Keys ──
 const isTyping = (el: EventTarget | null) => {
   const tag = (el as HTMLElement | null)?.tagName
@@ -356,6 +403,7 @@ const isTyping = (el: EventTarget | null) => {
 }
 const onKeyDown = (e: KeyboardEvent) => {
   if (isTyping(e.target)) return
+  if (mobileView.value && playKey(e, true)) return
   // The letter typed, not the key position: on QWERTZ the Z key is where QWERTY has Y.
   const mod = e.ctrlKey || e.metaKey
   const letter = e.key.toLowerCase()
@@ -423,9 +471,24 @@ const setRect = (key: 'x' | 'y' | 'w' | 'h', v: number) => {
   if (!ent || !Number.isFinite(v)) return
   ent[key] = key === 'w' || key === 'h' ? Math.max(1, v) : v
 }
+const presetIndex = computed(() => WORLD_PRESETS.findIndex((p) =>
+  p.w === level.value.world.w && p.h === level.value.world.h &&
+  (p.view?.w ?? 0) === (level.value.view?.w ?? 0) && (p.view?.h ?? 0) === (level.value.view?.h ?? 0)))
 const setWorldPreset = (i: number) => {
   const p = WORLD_PRESETS[i]
-  if (p) level.value.world = { w: p.w, h: p.h }
+  if (!p) return
+  level.value.world = { w: p.w, h: p.h }
+  if (p.view) level.value.view = { ...p.view }
+  else delete level.value.view
+  fitView()
+}
+const setWorldSize = (key: 'w' | 'h', v: number) => {
+  if (Number.isFinite(v) && v >= 100) level.value.world[key] = Math.round(v)
+}
+const scrolls = computed(() => !!level.value.view)
+const setScrolls = (on: boolean) => {
+  if (on) level.value.view = { ...SCREEN }
+  else delete level.value.view
 }
 const setFinish = (on: boolean) => {
   const p = selectedPlatform.value
@@ -446,6 +509,7 @@ const problems = computed(() => {
   if (!L.platforms.some((p) => p.finish)) out.push('No finish platform — the level cannot be won.')
   const sp = L.spawn
   if (sp.x < 0 || sp.y < 0 || sp.x > L.world.w || sp.y > L.world.h) out.push('The spawn is outside the world.')
+  if (L.view && L.view.w >= L.world.w && L.view.h >= L.world.h) out.push('The screen covers the whole world — nothing scrolls.')
   return out
 })
 
@@ -572,6 +636,13 @@ const paint = (now: number) => {
   if (!el) return
   const dtReal = Math.min(0.1, (now - (last || now)) / 1000)
   last = now
+  if (mobileView.value) {
+    stepPlay(dtReal)
+    // One shared camera centre: only the first phone advances its smoothing.
+    paintPhone(portraitRef.value, dtReal)
+    paintPhone(landscapeRef.value, 0)
+    return
+  }
   if (animate.value && !drag) previewT += dtReal
   const dpr = window.devicePixelRatio || 1
   const cw = Math.round(el.clientWidth * dpr)
@@ -582,25 +653,31 @@ const paint = (now: number) => {
 
   rebuildWorld()
   const L = level.value
-  // Fit the world plus a margin: render() letterboxes into the box we give it.
-  const s = Math.min(cw / (L.world.w * (1 + 2 * MARGIN)), ch / (L.world.h * (1 + 2 * MARGIN)))
-  view = { s, ox: (cw - L.world.w * s) / 2, oy: (ch - L.world.h * s) / 2 }
-  ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.fillStyle = '#080a10'
-  ctx.fillRect(0, 0, cw, ch)
-  // Draw the game into the world's own box (its renderer fits to the canvas size).
-  const bw = Math.max(1, Math.round(L.world.w * s))
-  const bh = Math.max(1, Math.round(L.world.h * s))
-  if (gameCanvas.width !== bw || gameCanvas.height !== bh) { gameCanvas.width = bw; gameCanvas.height = bh }
-  const gctx = gameCanvas.getContext('2d')
-  if (gctx) {
-    render(gctx, world, { finish: 'FINISH' }, tuning, 0)
-    ctx.drawImage(gameCanvas, Math.round(view.ox), Math.round(view.oy))
-  }
+  // Fit the world plus a margin, then the wheel zoom and the pan on top.
+  const s = Math.min(cw / (L.world.w * (1 + 2 * MARGIN)), ch / (L.world.h * (1 + 2 * MARGIN))) * zoom
+  view = { s, ox: (cw - L.world.w * s) / 2 + pan.x, oy: (ch - L.world.h * s) / 2 + pan.y }
+  render(ctx, world, { finish: 'FINISH' }, tuning, 0, view)
 
   // Overlay in world space.
   ctx.setTransform(s, 0, 0, s, view.ox, view.oy)
   ctx.lineWidth = 1.5 / s
+  // Scrolling level: the screen grid, and the screen the camera starts on.
+  if (L.view) {
+    ctx.strokeStyle = 'rgba(160,200,255,0.18)'
+    ctx.setLineDash([12 / s, 10 / s])
+    ctx.beginPath()
+    for (let x = L.view.w; x < L.world.w; x += L.view.w) { ctx.moveTo(x, 0); ctx.lineTo(x, L.world.h) }
+    for (let y = L.view.h; y < L.world.h; y += L.view.h) { ctx.moveTo(0, y); ctx.lineTo(L.world.w, y) }
+    ctx.stroke()
+    ctx.setLineDash([])
+    const start = startScreen(L)
+    strokeRect(ctx, start, 'rgba(120,200,255,0.8)', [10 / s, 6 / s])
+    ctx.fillStyle = 'rgba(120,200,255,0.9)'
+    ctx.font = `${12 / s}px system-ui, sans-serif`
+    ctx.textBaseline = 'top'
+    ctx.textAlign = 'left'
+    ctx.fillText('start screen', start.x + 6 / s, start.y + 6 / s)
+  }
   // Off-world things (a lunge resting off-screen) still need an outline to grab.
   for (const group of ['platforms', 'winds', 'hazards'] as Group[]) {
     listOf(group).forEach((_, i) => {
@@ -650,14 +727,79 @@ const paint = (now: number) => {
     strokeRect(ctx, { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) }, '#60a5fa', [6 / s, 4 / s])
   }
 }
-const gameCanvas = document.createElement('canvas')
+/** The screen a scrolling level opens on: one view centred on the spawn, kept inside the world. */
+const startScreen = (L: LevelDef) => {
+  const v = L.view ?? L.world
+  const clamp = (c: number, size: number, world: number) => Math.max(0, Math.min(world - size, c - size / 2))
+  return { x: clamp(L.spawn.x, v.w, L.world.w), y: clamp(L.spawn.y - tuning.playerHeight / 2, v.h, L.world.h), w: Math.min(v.w, L.world.w), h: Math.min(v.h, L.world.h) }
+}
+
+// ── Mobile view: one live playtest drawn on a portrait and a landscape phone at once ──
+const mobileView = ref(false)
+const portraitRef = ref<HTMLCanvasElement | null>(null)
+const landscapeRef = ref<HTMLCanvasElement | null>(null)
+const DT = 1 / 120
+let play: World | null = null
+let playAcc = 0
+const playHeld = { left: false, right: false }
+let playToggle = false
+const restartPlay = () => {
+  play = createWorld(cloneLevel(level.value), { w: tuning.playerWidth, h: tuning.playerHeight })
+  playAcc = 0
+}
+const toggleMobileView = () => {
+  mobileView.value = !mobileView.value
+  playHeld.left = playHeld.right = false
+  if (mobileView.value) { selection.value = null; restartPlay() } else play = null
+}
+// Editing the level while previewing restarts the playtest with the change.
+watch(level, () => { if (mobileView.value) restartPlay() }, { deep: true })
+/** The game's controls, while the mobile preview is up. True when the key was the game's. */
+const playKey = (e: KeyboardEvent, down: boolean): boolean => {
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') playHeld.left = down
+  else if (e.code === 'ArrowRight' || e.code === 'KeyD') playHeld.right = down
+  else if (e.code === 'Space') { if (down && !e.repeat) playToggle = true }
+  else if (e.code === 'KeyR') { if (down) restartPlay() }
+  else return false
+  e.preventDefault()
+  return true
+}
+const onKeyUp = (e: KeyboardEvent) => { if (mobileView.value) playKey(e, false) }
+/** A tap on either phone is the game's one button. */
+const onPhoneTap = () => { playToggle = true }
+const stepPlay = (dtReal: number) => {
+  if (!play) return
+  playAcc += dtReal
+  while (playAcc >= DT) {
+    playAcc -= DT
+    const input: Input = { left: playHeld.left, right: playHeld.right, toggle: playToggle }
+    playToggle = false
+    step(play, input, DT, tuning)
+    // Like the game's test mode: any ending restarts the level.
+    if (play.phase === 'out' || (play.phase === 'splat' && play.phaseTime >= tuning.splatReset) || (play.phase === 'win' && play.phaseTime >= tuning.winHold)) {
+      restartPlay()
+      return
+    }
+  }
+}
+const paintPhone = (el: HTMLCanvasElement | null, dt: number) => {
+  if (!el || !play) return
+  const dpr = window.devicePixelRatio || 1
+  const cw = Math.round(el.clientWidth * dpr)
+  const ch = Math.round(el.clientHeight * dpr)
+  if (el.width !== cw || el.height !== ch) { el.width = cw; el.height = ch }
+  const ctx = el.getContext('2d')
+  if (ctx && cw > 0 && ch > 0) render(ctx, play, { finish: 'FINISH' }, tuning, dt, cameraFor(play, cw, ch, dt))
+}
 
 onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('keyup', onKeyUp)
   raf = requestAnimationFrame(paint)
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('keyup', onKeyUp)
   cancelAnimationFrame(raf)
 })
 </script>
@@ -695,6 +837,7 @@ onUnmounted(() => {
       <button class="btn" @click="fileInput?.click()">Import .json</button>
       <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
       <span class="grow" />
+      <button class="btn" :class="{ on: mobileView }" :aria-pressed="mobileView" title="Playtest on a portrait and a landscape phone at once" @click="toggleMobileView">📱 Toggle Mobile view</button>
       <button class="btn yellow" @click="onTest">Test ▶</button>
       <button class="btn" @click="onBack">Back to game</button>
     </div>
@@ -705,11 +848,23 @@ onUnmounted(() => {
         <button v-for="t in TOOLS" :key="t.id" class="tool" :class="{ on: tool === t.id }" @click="tool = t.id">{{ t.label }}</button>
         <label class="check"><input v-model="snap" type="checkbox" /> Snap to 10 px</label>
         <label class="check"><input v-model="animate" type="checkbox" /> Animate movers</label>
-        <p class="hint">Drag to draw boxes; click for pillar, mine, spawn. Select tool: drag to move, green corner resizes, yellow dots move a path. Right-click or Del deletes. Undo {{ UNDO_KEYS }}, redo {{ REDO_KEYS }}.</p>
+        <button class="btn" @click="fitView">Fit to window</button>
+        <p class="hint">Wheel zooms, middle- or Alt-drag pans, double-click empty space refits. Drag to draw boxes; click for pillar, mine, spawn. Select tool: drag to move, green corner resizes, yellow dots move a path. Right-click or Del deletes. Undo {{ UNDO_KEYS }}, redo {{ REDO_KEYS }}.</p>
       </div>
 
       <div class="stage">
+        <div v-if="mobileView" class="phones">
+          <div class="phone portrait" :style="{ aspectRatio: `${PHONE.w} / ${PHONE.h}` }">
+            <canvas ref="portraitRef" class="phone-canvas" @pointerdown="onPhoneTap" />
+            <span class="phone-label">Portrait {{ PHONE.w }}×{{ PHONE.h }}</span>
+          </div>
+          <div class="phone landscape" :style="{ aspectRatio: `${PHONE.h} / ${PHONE.w}` }">
+            <canvas ref="landscapeRef" class="phone-canvas" @pointerdown="onPhoneTap" />
+            <span class="phone-label">Landscape {{ PHONE.h }}×{{ PHONE.w }}</span>
+          </div>
+        </div>
         <canvas
+          v-show="!mobileView"
           ref="canvasRef"
           class="canvas"
           @pointerdown="onPointerDown"
@@ -717,8 +872,11 @@ onUnmounted(() => {
           @pointerup="onPointerUp"
           @pointercancel="onPointerUp"
           @contextmenu.prevent
+          @wheel.prevent="onWheel"
+          @dblclick="onDoubleClick"
         />
         <div class="foot">
+          <span v-if="mobileView" class="status">Playtest: ←/→ or A/D move · Space or tap a phone opens/closes · R restarts · edits restart it</span>
           <span v-for="p in problems" :key="p" class="warn">⚠ {{ p }}</span>
           <span v-if="status" class="status">{{ status }}</span>
         </div>
@@ -726,12 +884,20 @@ onUnmounted(() => {
 
       <div class="panel props">
         <div class="head">Level</div>
-        <label class="row">World
-          <select class="field" :value="WORLD_PRESETS.findIndex((p) => p.w === level.world.w && p.h === level.world.h)" @change="setWorldPreset(+($event.target as HTMLSelectElement).value)">
+        <label class="row col">World
+          <select class="field" :value="presetIndex" @change="setWorldPreset(+($event.target as HTMLSelectElement).value)">
             <option :value="-1" disabled>custom</option>
             <option v-for="(p, i) in WORLD_PRESETS" :key="p.label" :value="i">{{ p.label }}</option>
           </select>
         </label>
+        <label class="row">World w <input class="field num" type="number" min="100" step="10" :value="level.world.w" @change="setWorldSize('w', +($event.target as HTMLInputElement).value)" /></label>
+        <label class="row">World h <input class="field num" type="number" min="100" step="10" :value="level.world.h" @change="setWorldSize('h', +($event.target as HTMLInputElement).value)" /></label>
+        <label class="check"><input type="checkbox" :checked="scrolls" @change="setScrolls(($event.target as HTMLInputElement).checked)" /> Scrolls (camera follows)</label>
+        <template v-if="level.view">
+          <label class="row">Screen w <input v-model.number="level.view.w" class="field num" type="number" min="100" step="10" /></label>
+          <label class="row">Screen h <input v-model.number="level.view.h" class="field num" type="number" min="100" step="10" /></label>
+        </template>
+        <p class="hint">{{ level.view ? 'The camera shows one screen and follows the player. Phones keep the screen width in portrait and the height in landscape.' : 'The whole world is shown at once (zoomed out if it is bigger than a screen).' }}</p>
         <label class="row">Spawn x <input v-model.number="level.spawn.x" class="field num" type="number" /></label>
         <label class="row">Spawn y <input v-model.number="level.spawn.y" class="field num" type="number" /></label>
 
@@ -897,6 +1063,36 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .tool.on { background: #059669; font-weight: 700; }
+.btn.on { background: #059669; font-weight: 700; }
+.phones {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+}
+.phone {
+  position: relative;
+  max-height: 100%;
+  border: 10px solid #222838;
+  border-radius: 22px;
+  background: #000;
+  overflow: hidden;
+}
+/* Portrait sized by height, landscape by the width left over. */
+.phone.portrait { height: 100%; }
+.phone.landscape { flex: 1; max-width: 70%; }
+.phone-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.phone-label {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-size: 11px;
+  opacity: 0.6;
+  pointer-events: none;
+}
 kbd {
   margin-left: 4px;
   padding: 0 4px;

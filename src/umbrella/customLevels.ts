@@ -49,7 +49,10 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (!Array.isArray(l.platforms) || !l.platforms.every(isRect)) return null
   if (!Array.isArray(l.winds) || !l.winds.every((w) => isRect(w) && num(w.speed) && ['up', 'down', 'left', 'right'].includes(w.dir))) return null
   if (l.hazards && (!Array.isArray(l.hazards) || !l.hazards.every((h) => isRect(h) && ['pillar', 'mine', 'spikes'].includes(h.kind)))) return null
-  return cloneLevel({ ...l, id: num(l.id) ? l.id : 0, hazards: l.hazards ?? [] } as LevelDef)
+  const out = cloneLevel({ ...l, id: num(l.id) ? l.id : 0, hazards: l.hazards ?? [] } as LevelDef)
+  // A bad screen size falls back to showing the whole world, like a level without one.
+  if (out.view && (!num(out.view.w) || !num(out.view.h) || out.view.w < 100 || out.view.h < 100)) delete out.view
+  return out
 }
 
 // ── Named library ──
