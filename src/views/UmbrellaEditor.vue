@@ -767,12 +767,44 @@ const playKey = (e: KeyboardEvent, down: boolean): boolean => {
 const onKeyUp = (e: KeyboardEvent) => { if (mobileView.value) playKey(e, false) }
 /** A tap on either phone is the game's one button. */
 const onPhoneTap = () => { playToggle = true }
+// The game's touch controls, drawn on each phone: one shared joystick state.
+const STICK_RANGE = 22
+const STICK_DEAD = 6
+const stickDir = ref(0)
+const knobX = ref(0)
+let stickId = -1
+let stickOrigin = 0
+const onStickDown = (e: PointerEvent) => {
+  stickId = e.pointerId
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  stickOrigin = r.left + r.width / 2
+  onStickMove(e)
+}
+const onStickMove = (e: PointerEvent) => {
+  if (e.pointerId !== stickId) return
+  const dx = Math.max(-STICK_RANGE, Math.min(STICK_RANGE, e.clientX - stickOrigin))
+  knobX.value = dx
+  stickDir.value = Math.abs(dx) < STICK_DEAD ? 0 : Math.sign(dx)
+}
+const onStickUp = (e: PointerEvent) => {
+  if (e.pointerId !== stickId) return
+  stickId = -1
+  knobX.value = 0
+  stickDir.value = 0
+}
+const umbrellaPressed = ref(false)
+const onUmbrellaDown = (e: PointerEvent) => {
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  playToggle = true
+  umbrellaPressed.value = true
+}
 const stepPlay = (dtReal: number) => {
   if (!play) return
   playAcc += dtReal
   while (playAcc >= DT) {
     playAcc -= DT
-    const input: Input = { left: playHeld.left, right: playHeld.right, toggle: playToggle }
+    const input: Input = { left: playHeld.left || stickDir.value < 0, right: playHeld.right || stickDir.value > 0, toggle: playToggle }
     playToggle = false
     step(play, input, DT, tuning)
     // Like the game's test mode: any ending restarts the level.
@@ -856,10 +888,22 @@ onUnmounted(() => {
         <div v-if="mobileView" class="phones">
           <div class="phone portrait" :style="{ aspectRatio: `${PHONE.w} / ${PHONE.h}` }">
             <canvas ref="portraitRef" class="phone-canvas" @pointerdown="onPhoneTap" />
+            <div class="stick" @pointerdown.stop="onStickDown" @pointermove="onStickMove" @pointerup="onStickUp" @pointercancel="onStickUp">
+              <span class="stick-arrow left">‹</span>
+              <span class="stick-arrow right">›</span>
+              <span class="stick-knob" :style="{ transform: `translateX(${knobX}px)` }" />
+            </div>
+            <button class="umbrella-btn" :class="{ pressed: umbrellaPressed }" title="Open / close the umbrella" @pointerdown.stop="onUmbrellaDown" @pointerup="umbrellaPressed = false" @pointercancel="umbrellaPressed = false">☂</button>
             <span class="phone-label">Portrait {{ PHONE.w }}×{{ PHONE.h }}</span>
           </div>
           <div class="phone landscape" :style="{ aspectRatio: `${PHONE.h} / ${PHONE.w}` }">
             <canvas ref="landscapeRef" class="phone-canvas" @pointerdown="onPhoneTap" />
+            <div class="stick" @pointerdown.stop="onStickDown" @pointermove="onStickMove" @pointerup="onStickUp" @pointercancel="onStickUp">
+              <span class="stick-arrow left">‹</span>
+              <span class="stick-arrow right">›</span>
+              <span class="stick-knob" :style="{ transform: `translateX(${knobX}px)` }" />
+            </div>
+            <button class="umbrella-btn" :class="{ pressed: umbrellaPressed }" title="Open / close the umbrella" @pointerdown.stop="onUmbrellaDown" @pointerup="umbrellaPressed = false" @pointercancel="umbrellaPressed = false">☂</button>
             <span class="phone-label">Landscape {{ PHONE.h }}×{{ PHONE.w }}</span>
           </div>
         </div>
@@ -876,7 +920,7 @@ onUnmounted(() => {
           @dblclick="onDoubleClick"
         />
         <div class="foot">
-          <span v-if="mobileView" class="status">Playtest: ←/→ or A/D move · Space or tap a phone opens/closes · R restarts · edits restart it</span>
+          <span v-if="mobileView" class="status">Playtest: the on-screen joystick and ☂ button, or ←/→ / A/D and Space · R restarts · edits restart it</span>
           <span v-for="p in problems" :key="p" class="warn">⚠ {{ p }}</span>
           <span v-if="status" class="status">{{ status }}</span>
         </div>
@@ -1085,10 +1129,62 @@ onUnmounted(() => {
 .phone.portrait { height: 100%; }
 .phone.landscape { flex: 1; max-width: 70%; }
 .phone-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+/* The game's touch controls at half size, as they sit on a phone. */
+.stick,
+.umbrella-btn {
+  position: absolute;
+  bottom: 12px;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.stick {
+  left: 12px;
+  width: 75px;
+  height: 36px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: ew-resize;
+}
+.stick-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.45;
+  pointer-events: none;
+}
+.stick-arrow.left { left: 6px; }
+.stick-arrow.right { right: 6px; }
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+.umbrella-btn {
+  right: 12px;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); }
 .phone-label {
   position: absolute;
   left: 8px;
-  bottom: 6px;
+  top: 6px;
   font-size: 11px;
   opacity: 0.6;
   pointer-events: none;
