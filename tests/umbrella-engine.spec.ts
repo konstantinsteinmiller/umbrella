@@ -217,4 +217,36 @@ describe('umbrella engine', () => {
     expect(tall.s).toBeCloseTo(390 / 1280)
     expect(tall.oy).toBeGreaterThan(0)
   })
+
+  it('a proximity-triggered Walldorf waits, strikes once at an airborne player in range, faster with speed; non-hostile never hurts', () => {
+    const lungeAt = (extra: object, harmless = false) => createWorld({
+      id: 99, world: { w: 1280, h: 720 }, spawn: { x: 160, y: 400 },
+      platforms: [{ x: 60, y: 440, w: 200, h: 20 }], winds: [],
+      hazards: [{ kind: 'pillar', x: 0, y: 0, w: 40, h: 110, harmless,
+        motion: { kind: 'lunge', a: { x: 700, y: 300 }, b: { x: 300, y: 300 }, period: 3.2, trigger: true, radius: 250, ...extra } }]
+    })
+    const cx = (w: World) => w.hazards[0]!.x + 20
+    // Standing on the start platform, far away: no attack.
+    const idle = lungeAt({})
+    run(idle, 3)
+    expect(cx(idle)).toBeCloseTo(700)
+    // In the air within the radius: it strikes, then comes back to rest.
+    const hit = lungeAt({})
+    hit.player.x = 520; hit.player.y = 280; hit.player.grounded = false
+    const ev = run(hit, 3, (s) => { s.player.vy = 0; s.player.y = 280; return {} })
+    expect(ev).toContain('hit')
+    // Speed 3 reaches the far end sooner than speed 1.
+    const reach = (speed: number) => {
+      const w = lungeAt({ speed }, true)
+      w.player.x = 600; w.player.y = 100; w.player.grounded = false
+      let n = 0
+      while (cx(w) > 310 && n < 1000) { step(w, { left: false, right: false, toggle: false }, DT, T); w.player.y = 100; w.player.vy = 0; n++ }
+      return n
+    }
+    expect(reach(3)).toBeLessThan(reach(1))
+    // Non-hostile: the same strike through the player is no hit.
+    const safe = lungeAt({}, true)
+    safe.player.x = 520; safe.player.y = 280; safe.player.grounded = false
+    expect(run(safe, 3, (s) => { s.player.vy = 0; return {} })).not.toContain('hit')
+  })
 })

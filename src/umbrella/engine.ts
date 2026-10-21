@@ -28,7 +28,12 @@ export interface Platform extends PlatformDef {
 export interface Hazard extends HazardDef {
   dx: number
   dy: number
+  /** Proximity-triggered lunge: enemy time of the current attack. */
+  lungeAt?: number
 }
+
+/** A triggered lunge's default reach when the level gives none. */
+export const DEFAULT_TRIGGER_RADIUS = 300
 
 export interface Player {
   x: number
@@ -87,7 +92,7 @@ const platformCenter = (m: Motion, t: number, lunge: LungeShape) => {
       const f = ((t / m.period) % 1 + 1) % 1
       const ease = (x: number) => x * x * (3 - 2 * x)
       const a = lunge.rest
-      const b = Math.min(1, a + lunge.strike)
+      const b = Math.min(1, a + lunge.strike / Math.max(0.05, m.speed ?? 1))
       const c = Math.min(1, b + lunge.hold)
       const k = f < a ? 0 : f < b ? ease((f - a) / (b - a)) : f < c ? 1 : 1 - ease((f - c) / Math.max(1e-6, 1 - c))
       return { x: m.a.x + (m.b.x - m.a.x) * k, y: m.a.y + (m.b.y - m.a.y) * k }
@@ -206,7 +211,16 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   for (const h of w.hazards) {
     const ox = h.x
     const oy = h.y
-    placeMover(h, w.enemyTime, lunge)
+    const m = h.motion
+    if (m?.kind === 'lunge' && m.trigger) {
+      // Thwomp: wait at rest; an airborne player in range sets off one attack.
+      const attack = m.period * (1 - lunge.rest)
+      if (h.lungeAt !== undefined && w.enemyTime - h.lungeAt >= attack) h.lungeAt = undefined
+      const pl = w.player
+      if (h.lungeAt === undefined && w.phase === 'play' && !pl.grounded &&
+          Math.hypot(pl.x + pl.w / 2 - m.a.x, pl.y + pl.h / 2 - m.a.y) <= (m.radius ?? DEFAULT_TRIGGER_RADIUS)) h.lungeAt = w.enemyTime
+      placeMover(h, h.lungeAt === undefined ? 0 : m.period * lunge.rest + (w.enemyTime - h.lungeAt), lunge)
+    } else placeMover(h, w.enemyTime, lunge)
     h.dx = h.x - ox
     h.dy = h.y - oy
   }

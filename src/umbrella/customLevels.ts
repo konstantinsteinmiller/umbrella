@@ -51,6 +51,12 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.hazards && (!Array.isArray(l.hazards) || !l.hazards.every((h) => isRect(h) && ['pillar', 'mine', 'spikes'].includes(h.kind)))) return null
   const out = cloneLevel({ ...l, id: num(l.id) ? l.id : 0, hazards: l.hazards ?? [] } as LevelDef)
   // A bad screen size falls back to showing the whole world, like a level without one.
+  for (const h of out.hazards ?? []) {
+    const m = h.motion
+    if (m?.kind !== 'lunge') continue
+    if (m.speed !== undefined && (!num(m.speed) || m.speed <= 0)) delete m.speed
+    if (m.radius !== undefined && (!num(m.radius) || m.radius < 0)) delete m.radius
+  }
   if (out.view && (!num(out.view.w) || !num(out.view.h) || out.view.w < 100 || out.view.h < 100)) delete out.view
   return out
 }

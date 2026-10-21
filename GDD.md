@@ -242,6 +242,12 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · A "Toggle Mobile view" button in the editor shows and playtests the level on a portrait and a landscape phone at the same time.
 · Mobile controls: a left/right joystick bottom-left and an open/close umbrella button bottom-right.
 
+**Walldorf (lunging pillar) toggles**
+· Lunge speed customization.
+· Proximity trigger: attacks when the player is in the air and nearby (like a Thwomp).
+· Trigger radius, to change the size of the trigger zone.
+· Non-hostile: his lunge attack doesn't hurt the player.
+
 ## Revision 5
 ## Revision 6
 ## Revision 

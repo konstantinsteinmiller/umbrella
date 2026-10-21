@@ -23,7 +23,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { LEVELS, type HazardDef, type LevelDef, type Motion, type PlatformDef, type Vec, type WindDef, type WindDir } from '@/umbrella/levels'
-import { createWorld, poseMovers, step, type Input, type World } from '@/umbrella/engine'
+import { createWorld, DEFAULT_TRIGGER_RADIUS, poseMovers, step, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, render, type Camera } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
@@ -450,7 +450,7 @@ const setMotionKind = (kind: Motion['kind']) => {
   }
   ent.motion = motions[kind]
 }
-const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; max: number; step: number }[]> = {
+const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; max: number; step: number; def?: number; triggerOnly?: boolean }[]> = {
   line: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }],
   circle: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }, { key: 'radius', label: 'Radius', min: 0, max: 800, step: 5 }],
   swing: [
@@ -458,10 +458,22 @@ const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; m
     { key: 'amplitude', label: 'Swing (rad)', min: 0, max: 3, step: 0.05 },
     { key: 'radius', label: 'Rope length', min: 0, max: 900, step: 5 }
   ],
-  lunge: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 10, step: 0.05 }],
+  lunge: [
+    { key: 'period', label: 'Period (s)', min: 0.3, max: 10, step: 0.05 },
+    { key: 'speed', label: 'Lunge speed ×', min: 0.25, max: 4, step: 0.05, def: 1 },
+    { key: 'radius', label: 'Trigger radius', min: 40, max: 1200, step: 10, def: DEFAULT_TRIGGER_RADIUS, triggerOnly: true }
+  ],
   arrive: [{ key: 'delay', label: 'Delay (s)', min: 0, max: 10, step: 0.1 }, { key: 'duration', label: 'Glide (s)', min: 0.1, max: 10, step: 0.1 }]
 }
-const motionFields = computed(() => MOTION_FIELDS[motionKind.value] ?? [])
+const motionFields = computed(() => (MOTION_FIELDS[motionKind.value] ?? []).filter((f) =>
+  !f.triggerOnly || (selectedMotion.value?.kind === 'lunge' && selectedMotion.value.trigger)))
+const fieldValue = (key: string, def?: number) => (selectedMotion.value as Record<string, number> | undefined)?.[key] ?? def
+const setTrigger = (on: boolean) => {
+  const m = selectedMotion.value
+  if (m?.kind !== 'lunge') return
+  if (on) { m.trigger = true; m.radius ??= DEFAULT_TRIGGER_RADIUS }
+  else { delete m.trigger; delete m.radius }
+}
 const setMotionField = (key: string, v: number) => {
   const m = selectedMotion.value as Record<string, unknown> | undefined
   if (m && Number.isFinite(v)) m[key] = v
@@ -707,6 +719,17 @@ const paint = (now: number) => {
       }
       ctx.stroke()
       ctx.setLineDash([])
+      if (m.kind === 'lunge' && m.trigger) {
+        // The trigger zone, around the rest point.
+        ctx.strokeStyle = isSel ? 'rgba(255,90,95,0.85)' : 'rgba(255,90,95,0.35)'
+        ctx.fillStyle = 'rgba(255,90,95,0.06)'
+        ctx.setLineDash([6 / s, 6 / s])
+        ctx.beginPath()
+        ctx.arc(m.a.x, m.a.y, m.radius ?? DEFAULT_TRIGGER_RADIUS, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
       if (isSel) for (const h of handlesOf(m)) dot(ctx, h.v, handleRadius(), h.key === 'b' ? '#ffb347' : '#ffe066')
     })
   }
@@ -969,7 +992,7 @@ onUnmounted(() => {
           </template>
 
           <template v-if="selectedHazard">
-            <label v-if="selectedHazard.kind === 'pillar'" class="check"><input type="checkbox" :checked="!!selectedHazard.harmless" @change="setFlag(selectedHazard, 'harmless', ($event.target as HTMLInputElement).checked)" /> Harmless (solid, safe)</label>
+            <label v-if="selectedHazard.kind === 'pillar'" class="check"><input type="checkbox" :checked="!!selectedHazard.harmless" @change="setFlag(selectedHazard, 'harmless', ($event.target as HTMLInputElement).checked)" /> Non-hostile (touch and lunge don't hurt; solid)</label>
             <label v-if="selectedHazard.kind === 'spikes'" class="row">Points
               <select v-model="selectedHazard.facing" class="field">
                 <option value="up">up</option>
@@ -984,8 +1007,11 @@ onUnmounted(() => {
               <option v-for="k in MOTION_KINDS" :key="k" :value="k">{{ k }}</option>
             </select>
             <label v-for="f in motionFields" :key="f.key" class="row col">
-              <span>{{ f.label }}: {{ (selectedMotion as Record<string, number> | undefined)?.[f.key] }}</span>
-              <input type="range" :min="f.min" :max="f.max" :step="f.step" :value="(selectedMotion as Record<string, number> | undefined)?.[f.key]" @input="setMotionField(f.key, +($event.target as HTMLInputElement).value)" />
+              <span>{{ f.label }}: {{ fieldValue(f.key, f.def) }}</span>
+              <input type="range" :min="f.min" :max="f.max" :step="f.step" :value="fieldValue(f.key, f.def)" @input="setMotionField(f.key, +($event.target as HTMLInputElement).value)" />
+            </label>
+            <label v-if="selectedMotion?.kind === 'lunge'" class="check" title="Like a Thwomp: waits until the player is in the air and within the radius, then attacks once">
+              <input type="checkbox" :checked="!!selectedMotion.trigger" @change="setTrigger(($event.target as HTMLInputElement).checked)" /> Proximity trigger (airborne + near)
             </label>
             <p v-if="motionKind !== 'static'" class="hint">Drag the yellow dots on the canvas to move the path (orange = end).</p>
           </template>

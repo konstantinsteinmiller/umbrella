@@ -15,7 +15,15 @@ export type Motion =
   /** Pendulum hanging from `pivot`, swinging ±`amplitude` radians. */
   | { kind: 'swing'; pivot: Vec; radius: number; amplitude: number; period: number }
   /** Rest at `a`, strike to `b` fast, hold, pull back slowly; repeats every `period`. */
-  | { kind: 'lunge'; a: Vec; b: Vec; period: number }
+  | {
+      kind: 'lunge'; a: Vec; b: Vec; period: number
+      /** Strike speed multiplier (1 = the tuning's strike time; 2 = twice as fast). */
+      speed?: number
+      /** Thwomp mode: rest at `a` until the player is airborne within `radius`
+       *  of it, then strike once (strike, hold, pull back) and wait again. */
+      trigger?: boolean
+      radius?: number
+    }
   /** Wait `delay` s at `a`, glide to `b` over `duration` s, then stay. */
   | { kind: 'arrive'; a: Vec; b: Vec; delay: number; duration: number }
 
