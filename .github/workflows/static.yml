@@ -27,6 +27,9 @@ concurrency:
 env:
   VITE_APP_TURN_USERNAME: ${{ secrets.VITE_APP_TURN_USERNAME }}
   VITE_APP_TURN_CREDENTIAL: ${{ secrets.VITE_APP_TURN_CREDENTIAL }}
+  # The levels bucket (workers/levels-bucket): the Pages editor syncs with it, the
+  # Pages game plays its campaign edits, and every build here pulls it first.
+  VITE_APP_LEVELS_BUCKET_URL: https://umbrella-levels.playtest-circle.workers.dev
 
 jobs:
   deploy:

@@ -34,10 +34,15 @@ import {
   customLevels,
   deleteCustomLevel,
   editorDraft,
-  levelsFromFile,
-  campaignFromFile,
-  levelToFile,
+  applyBucket,
+  BUCKET_URL,
+  bucketFromFile,
+  bucketPassword,
+  bucketStatus,
+  levelFromFile,
   libraryToFile,
+  setBucketPassword,
+  syncBucket,
   saveEditorDraft,
   saveCampaignOverride,
   saveCustomLevel,
@@ -583,17 +588,12 @@ const download = (fileName: string, data: unknown) => {
   a.click()
   URL.revokeObjectURL(a.href)
 }
-/** The level on the canvas. */
-const onExport = () => {
-  const name = levelName.value.trim() || 'untitled'
-  download(`umbrella-level-${name.replace(/[^\w-]+/g, '_')}.json`, levelToFile(name, level.value))
-}
-/** Every saved level and every edited campaign slot in one file. */
+/** Every saved level, edited campaign slot and deletion in one file — the fallback
+ *  when the levels bucket is unreachable. */
 const onExportLibrary = () => {
   const n = libraryNames.value.length
   const c = Object.keys(campaignOverrides.value).length
-  if (!n && !c) { flash('Nothing to export — Save a level or replace a campaign level first'); return }
-  download(`umbrella-levels-${n}-campaign-${c}.json`, libraryToFile(customLevels.value, campaignOverrides.value))
+  download(`umbrella-levels-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`, libraryToFile())
   flash(`Exported ${n} saved level${n === 1 ? '' : 's'} and ${c} edited campaign level${c === 1 ? '' : 's'}`)
 }
 const onImportFile = async (e: Event) => {
@@ -603,33 +603,33 @@ const onImportFile = async (e: Event) => {
   if (!file) return
   try {
     const data: unknown = JSON.parse(await file.text())
-    const found = levelsFromFile(data)
-    const campaign = campaignFromFile(data)
-    const ids = Object.keys(campaign).map(Number)
-    if (!found.length && !ids.length) { flash('That file has no Umbrella level in it'); return }
-    let replaced = 0
-    if (ids.length) {
-      const slots = ids.map((id) => LEVELS.findIndex((l) => l.id === id) + 1).sort((a, b) => a - b)
-      if (window.confirm(`This file also replaces campaign level${slots.length === 1 ? '' : 's'} ${slots.join(', ')}. Apply ${slots.length === 1 ? 'it' : 'them'}? (Revert restores an original.)`)) {
-        for (const id of ids) saveCampaignOverride(id, campaign[id]!)
-        replaced = ids.length
-      }
-    }
-    if (!found.length) { flash(replaced ? `Replaced ${replaced} campaign level${replaced === 1 ? '' : 's'}` : 'Nothing imported'); return }
-    const also = replaced ? ` and replaced ${replaced} campaign level${replaced === 1 ? '' : 's'}` : ''
-    if (found.length === 1 && !ids.length) {
-      loadIntoEditor(found[0]!.level, found[0]!.name)
-      flash(`Imported "${found[0]!.name}"`)
+    const bucket = bucketFromFile(data)
+    if (bucket) {
+      // Newest wins, same as a sync: pull first so the file cannot undo a newer bucket edit.
+      await syncBucket()
+      const changed = applyBucket(bucket)
+      if (changed) await syncBucket()
+      const total = Object.keys(bucket.campaign ?? {}).length + Object.keys(bucket.library ?? {}).length
+      flash(`Imported ${changed} of ${total} level${total === 1 ? '' : 's'} (the rest are older than the copies here)`)
       return
     }
-    // A library file: every level goes into the saved levels (same name replaces), the first opens.
-    for (const f of found) saveCustomLevel(f.name, f.level)
-    loadIntoEditor(found[0]!.level, found[0]!.name)
-    flash(`Imported ${found.length} level${found.length === 1 ? '' : 's'} into the saved levels: ${found.map((f) => f.name).join(', ')}${also}`)
+    const one = levelFromFile(data)
+    if (!one) { flash('That file has no Umbrella level in it'); return }
+    loadIntoEditor(one.level, one.name)
+    flash(`Opened "${one.name}" — Save or Overwrite to keep it`)
   } catch {
     flash('Could not read that file')
   }
 }
+const syncing = ref(false)
+const onSync = async () => {
+  syncing.value = true
+  await syncBucket()
+  syncing.value = false
+  if (bucketStatus.value) flash(bucketStatus.value.text)
+}
+const passwordDraft = ref(bucketPassword.value)
+const onPassword = () => { setBucketPassword(passwordDraft.value); void onSync() }
 const onTest = () => {
   testLevel.value = cloneLevel(level.value)
   void router.push('/')
@@ -902,9 +902,14 @@ onUnmounted(() => {
       <button class="btn" :disabled="!undoStack.length" :title="`Undo (${UNDO_KEYS})`" @click="undo">↶ Undo <kbd>{{ UNDO_KEYS }}</kbd></button>
       <button class="btn" :disabled="!redoStack.length" :title="`Redo (${REDO_KEYS})`" @click="redo">↷ Redo <kbd>{{ REDO_KEYS }}</kbd></button>
       <span class="sep" />
-      <button class="btn" title="Export the level on the canvas" @click="onExport">Export .json</button>
       <button class="btn" title="Export every saved level and every edited campaign level in one file" @click="onExportLibrary">Export library</button>
-      <button class="btn" @click="fileInput?.click()">Import .json</button>
+      <button class="btn" title="Bring in a library file: newer levels replace older ones" @click="fileInput?.click()">Import .json</button>
+      <template v-if="BUCKET_URL">
+        <span class="sep" />
+        <input v-model="passwordDraft" type="password" class="field pw" placeholder="Editor password" autocomplete="off" @change="onPassword" />
+        <button class="btn blue" :disabled="syncing" title="Pull the newest levels from the bucket and upload yours" @click="onSync">⇅ Sync</button>
+        <span v-if="bucketStatus" class="sync" :class="{ bad: !bucketStatus.ok }" :title="bucketStatus.text">{{ bucketStatus.ok ? '●' : '▲' }}</span>
+      </template>
       <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
       <span class="grow" />
       <button class="btn" :class="{ on: mobileView }" :aria-pressed="mobileView" title="Playtest on a portrait and a landscape phone at once" @click="toggleMobileView">📱 Toggle Mobile view</button>
@@ -1110,6 +1115,16 @@ onUnmounted(() => {
 .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .row.col { flex-direction: column; align-items: stretch; }
 .check { display: flex; align-items: center; gap: 6px; }
+.pw {
+  width: 9rem;
+}
+.sync {
+  color: #3c3;
+  cursor: help;
+}
+.sync.bad {
+  color: #e83;
+}
 .field {
   padding: 3px 6px;
   border-radius: 4px;

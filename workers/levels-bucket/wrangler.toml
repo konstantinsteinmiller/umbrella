@@ -1,0 +1,7 @@
+name = "umbrella-levels"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[[kv_namespaces]]
+binding = "LEVELS"
+id = "a5fb48b8f34c43c8be56ec5e2319949b"

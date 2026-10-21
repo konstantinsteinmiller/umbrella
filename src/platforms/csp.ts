@@ -308,6 +308,8 @@ export const buildCsp = (env: Record<string, string>): string => {
       // independently. (Poki / Playgama / GamePix emit no meta tag at all.)
       ...(isYandex ? [] : [leaderboardOrigin(env.VITE_LEADERBOARD_URL)]
         .filter((o): o is string => o !== null)),
+      // The levels bucket (`customLevels.ts`): set only for GitHub Pages and dev.
+      ...[leaderboardOrigin(env.VITE_APP_LEVELS_BUCKET_URL)].filter((o): o is string => o !== null),
       // GD / Playgama partner analytics / ad telemetry beacons.
       ...(adWaterfallBuild ? ['https:', 'wss:'] : [])
     ],

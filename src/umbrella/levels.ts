@@ -76,6 +76,9 @@ export interface LevelDef {
   platforms: PlatformDef[]
   winds: WindDef[]
   hazards?: HazardDef[]
+  /** When the editor last saved this level (ms since epoch). Edits made in several
+   *  places (the levels bucket, a JSON file, the repo) merge by it: the newest wins. */
+  editedAt?: number
 }
 
 const P = (x: number, y: number, w = 200, h = 20, extra: Partial<PlatformDef> = {}): PlatformDef => ({ x, y, w, h, ...extra })

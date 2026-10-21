@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 
 import { execFileSync } from 'node:child_process'
 
 import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { pullLevels } from './scripts/levels-pull.mjs'
 
 // ─── Campaign-overrides on-disk persistence ────────────────────────────
 // The level editor writes back into `data/campaign-overrides.json` so the
@@ -362,8 +363,15 @@ const artBenchPlugin = (): Plugin => ({
   }
 })
 
-const mawCampaignOverridesPlugin = (): Plugin => ({
+const mawCampaignOverridesPlugin = (bucketUrl: string): Plugin => ({
   name: 'maw-campaign-overrides',
+  // A build ships the designer's newest edits: pull the levels bucket into the repo file first.
+  async buildStart() {
+    if (!bucketUrl) return
+    const r = await pullLevels(bucketUrl, OVERRIDES_FILE)
+    if (r.ok) this.info(r.message)
+    else this.warn(r.message)
+  },
   resolveId(id) {
     if (id === OVERRIDES_VIRTUAL_ID) return OVERRIDES_RESOLVED
     return null
@@ -462,7 +470,10 @@ export default defineConfig(({ mode, command }) => {
 
   // Campaign-overrides plugin — virtual module + dev write endpoints so
   // editor saves persist to `data/campaign-overrides.json` in the repo.
-  plugins.push(mawCampaignOverridesPlugin())
+  // Every build (portal builds too) pulls the bucket into the repo file; only the Pages
+  // and dev builds also read it at runtime (their env files carry the URL).
+  const levelsBucketUrl = (env.VITE_APP_LEVELS_BUCKET_URL || loadEnv('production', process.cwd(), '').VITE_APP_LEVELS_BUCKET_URL || '').trim()
+  plugins.push(mawCampaignOverridesPlugin(command === 'build' ? levelsBucketUrl : ''))
 
   // Drop-in override manifest — so the runtime probes only request art/SFX
   // files that actually exist (no 404s for unfilled slots).
