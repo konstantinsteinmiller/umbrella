@@ -22,6 +22,7 @@ import { LEVELS, type LevelDef } from './levels'
 const LIBRARY_KEY = 'umb_custom_levels_v1'
 const OVERRIDES_KEY = 'umb_level_overrides_v1'
 const EDITOR_UNLOCKED_KEY = 'umb_editor_unlocked'
+const DRAFT_KEY = 'umb_editor_draft'
 
 export const cloneLevel = (l: LevelDef): LevelDef => JSON.parse(JSON.stringify(l)) as LevelDef
 
@@ -120,7 +121,16 @@ export const clearCampaignOverride = (id: number) => {
 /** Set by the editor right before it navigates to the game; the scene plays it. */
 export const testLevel = ref<LevelDef | null>(null)
 /** The editor's working copy, so coming back from a playtest resumes the edit. */
-export const editorDraft = ref<{ name: string; level: LevelDef } | null>(null)
+/** Persisted, so a reload or a later visit reopens the edit instead of a blank level. */
+const storedDraft = getState<{ name?: unknown; level?: unknown } | null>(DRAFT_KEY, null)
+const draftLevel = storedDraft && parseLevel(storedDraft.level)
+export const editorDraft = ref<{ name: string; level: LevelDef } | null>(
+  draftLevel ? { name: typeof storedDraft.name === 'string' ? storedDraft.name : 'untitled', level: draftLevel } : null
+)
+export const saveEditorDraft = (name: string, level: LevelDef) => {
+  editorDraft.value = { name, level: cloneLevel(level) }
+  setState(DRAFT_KEY, editorDraft.value)
+}
 
 // ── The "cmonc" cheat: tuning panel + editor button, kept across the editor round trip ──
 export const editorUnlocked = ref(getState<boolean>(EDITOR_UNLOCKED_KEY, false))
@@ -140,6 +150,34 @@ export interface LevelFile {
 
 export const levelToFile = (name: string, level: LevelDef): LevelFile =>
   ({ game: 'umbrella', kind: 'level', version: 1, name, level: cloneLevel(level) })
+
+/** Several levels in one file: the editor's "Export library". */
+export interface LevelLibraryFile {
+  game: 'umbrella'
+  kind: 'levels'
+  version: 1
+  levels: { name: string; level: LevelDef }[]
+}
+
+export const libraryToFile = (library: Record<string, LevelDef>): LevelLibraryFile => ({
+  game: 'umbrella',
+  kind: 'levels',
+  version: 1,
+  levels: Object.keys(library).sort().map((name) => ({ name, level: cloneLevel(library[name]!) }))
+})
+
+/** Every level in a file: a library file, a single-level file, or a bare level. */
+export const levelsFromFile = (data: unknown): { name: string; level: LevelDef }[] => {
+  const f = data as Partial<LevelLibraryFile> | null
+  if (f && typeof f === 'object' && Array.isArray(f.levels)) {
+    return f.levels.flatMap((entry) => {
+      const one = levelFromFile(entry)
+      return one ? [one] : []
+    })
+  }
+  const one = levelFromFile(data)
+  return one ? [one] : []
+}
 
 /** Accepts the editor's own file shape or a bare level object. */
 export const levelFromFile = (data: unknown): { name: string; level: LevelDef } | null => {

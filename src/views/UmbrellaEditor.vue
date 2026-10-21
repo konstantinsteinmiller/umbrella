@@ -30,8 +30,10 @@ import {
   customLevels,
   deleteCustomLevel,
   editorDraft,
-  levelFromFile,
+  levelsFromFile,
   levelToFile,
+  libraryToFile,
+  saveEditorDraft,
   saveCampaignOverride,
   saveCustomLevel,
   testLevel
@@ -116,7 +118,7 @@ const flash = (msg: string) => {
 }
 
 // Keep the draft, so a playtest round trip (or a reload of the route) resumes the edit.
-watch([level, levelName], () => { editorDraft.value = { name: levelName.value, level: cloneLevel(level.value) } }, { deep: true, immediate: true })
+watch([level, levelName], () => saveEditorDraft(levelName.value, level.value), { deep: true, immediate: true })
 
 // ── Undo / redo: snapshots of the whole level, drags coalesced ──
 const UNDO_LIMIT = 100
@@ -496,14 +498,25 @@ const onRevert = () => {
   clearCampaignOverride(id)
   flash('Campaign level restored to the original')
 }
-const onExport = () => {
-  const name = levelName.value.trim() || 'untitled'
-  const blob = new Blob([JSON.stringify(levelToFile(name, level.value), null, 2)], { type: 'application/json' })
+const download = (fileName: string, data: unknown) => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `umbrella-level-${name.replace(/[^\w-]+/g, '_')}.json`
+  a.download = fileName
   a.click()
   URL.revokeObjectURL(a.href)
+}
+/** The level on the canvas. */
+const onExport = () => {
+  const name = levelName.value.trim() || 'untitled'
+  download(`umbrella-level-${name.replace(/[^\w-]+/g, '_')}.json`, levelToFile(name, level.value))
+}
+/** Every saved level in one file. */
+const onExportLibrary = () => {
+  const n = libraryNames.value.length
+  if (!n) { flash('The saved-levels library is empty — Save a level first'); return }
+  download(`umbrella-levels-${n}.json`, libraryToFile(customLevels.value))
+  flash(`Exported ${n} saved level${n === 1 ? '' : 's'}`)
 }
 const onImportFile = async (e: Event) => {
   const input = e.target as HTMLInputElement
@@ -511,10 +524,17 @@ const onImportFile = async (e: Event) => {
   input.value = ''
   if (!file) return
   try {
-    const parsed = levelFromFile(JSON.parse(await file.text()))
-    if (!parsed) { flash('That file is not an Umbrella level'); return }
-    loadIntoEditor(parsed.level, parsed.name)
-    flash(`Imported "${parsed.name}"`)
+    const found = levelsFromFile(JSON.parse(await file.text()))
+    if (!found.length) { flash('That file has no Umbrella level in it'); return }
+    if (found.length === 1) {
+      loadIntoEditor(found[0]!.level, found[0]!.name)
+      flash(`Imported "${found[0]!.name}"`)
+      return
+    }
+    // A library file: every level goes into the saved levels (same name replaces), the first opens.
+    for (const f of found) saveCustomLevel(f.name, f.level)
+    loadIntoEditor(found[0]!.level, found[0]!.name)
+    flash(`Imported ${found.length} levels into the saved levels: ${found.map((f) => f.name).join(', ')}`)
   } catch {
     flash('Could not read that file')
   }
@@ -670,7 +690,8 @@ onUnmounted(() => {
       <button class="btn" :disabled="!undoStack.length" :title="`Undo (${UNDO_KEYS})`" @click="undo">↶ Undo <kbd>{{ UNDO_KEYS }}</kbd></button>
       <button class="btn" :disabled="!redoStack.length" :title="`Redo (${REDO_KEYS})`" @click="redo">↷ Redo <kbd>{{ REDO_KEYS }}</kbd></button>
       <span class="sep" />
-      <button class="btn" @click="onExport">Export .json</button>
+      <button class="btn" title="Export the level on the canvas" @click="onExport">Export .json</button>
+      <button class="btn" title="Export every saved level in one file" @click="onExportLibrary">Export library</button>
       <button class="btn" @click="fileInput?.click()">Import .json</button>
       <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
       <span class="grow" />
