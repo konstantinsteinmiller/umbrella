@@ -255,5 +255,39 @@ export const LEVELS: LevelDef[] = [
     platforms: [P(60, 500), CEILING, FIN(980, 420, 200)],
     winds: [SUPER(320, 120, 220, 600), SUPER(760, 120, 520, 600)],
     hazards: [MINE(0, 0, { kind: 'circle', center: { x: 1080, y: 400 }, radius: 120, period: 2.4 })]
+  },
+  // 25 — "level 55" from the level editor (designer, Revision 3).
+  {
+    id: 25, world: { w: 1280, h: 720 }, spawn: { x: 180, y: 210 },
+    platforms: [
+      { x: 60, y: 440, w: 200, h: 20 },
+      { x: 1020, y: 440, w: 200, h: 20, finish: true },
+      { x: 640, y: 330, w: 200, h: 20, motion: { kind: 'swing', pivot: { x: 579, y: 233 }, radius: 220, amplitude: 0.8, period: 1.5 } }
+    ],
+    winds: [
+      { x: 270, y: 400, w: 740, h: 320, dir: 'up', speed: 260 },
+      { x: 310, y: 40, w: 240, h: 320, dir: 'up', speed: 260 },
+      { x: 810, y: 30, w: 430, h: 230, dir: 'left', speed: 260 },
+      { x: 50, y: 350, w: 220, h: 240, dir: 'up', speed: 760, super: true },
+      { x: 700, y: 130, w: 560, h: 620, dir: 'up', speed: 760, super: true }
+    ],
+    hazards: [
+      { kind: 'spikes', x: 440, y: 370, w: 200, h: 26, facing: 'up' },
+      { kind: 'mine', x: 574, y: 264, w: 52, h: 52 }
+    ]
+  },
+  // 26 — "level 56" from the level editor (designer, Revision 3).
+  {
+    id: 26, world: { w: 1280, h: 720 }, spawn: { x: 160, y: 400 },
+    platforms: [
+      { x: 60, y: 440, w: 200, h: 20 },
+      { x: 1020, y: 440, w: 200, h: 20, finish: true }
+    ],
+    winds: [
+      { x: 250, y: 30, w: 740, h: 320, dir: 'up', speed: 260 },
+      { x: 640, y: 520, w: 240, h: 320, dir: 'down', speed: 260 },
+      { x: 1100, y: 580, w: 240, h: 320, dir: 'left', speed: 260 }
+    ],
+    hazards: []
   }
 ]

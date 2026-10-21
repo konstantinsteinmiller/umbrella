@@ -112,8 +112,8 @@ describe('umbrella engine', () => {
     expect(run(w, 2)).toContain('out')
   })
 
-  it('ships all 24 GDD levels, and every spawn is safe', () => {
-    expect(LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 24 }, (_, i) => i + 1))
+  it('ships all 26 levels (24 GDD + 2 from the editor), and every spawn is safe', () => {
+    expect(LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 26 }, (_, i) => i + 1))
     for (const lv of LEVELS) {
       const w = createWorld(lv)
       const ev = run(w, 1)
