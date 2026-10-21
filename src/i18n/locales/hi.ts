@@ -13,7 +13,9 @@ export default {
     'nextLevel': "अगला स्तर",
     'restart': "स्तर फिर से शुरू करें",
     'selectLevel': "लेवल चुनें",
-    'close': "बंद करें"
+    'close': "बंद करें",
+    'mute': "ध्वनि बंद करें",
+    'unmute': "ध्वनि चालू करें"
   },
   'ads': {
     'watch': 'देखें', 'revive': 'पुनर्जीवित', 'secondChance': 'दूसरा मौका', 'doubleCoins': '2× सिक्के', 'plusCoins': '+{n} सिक्के'

@@ -13,7 +13,9 @@ export default {
     'nextLevel': "المستوى التالي",
     'restart': "إعادة المستوى",
     'selectLevel': "اختر المستوى",
-    'close': "إغلاق"
+    'close': "إغلاق",
+    'mute': "كتم الصوت",
+    'unmute': "تشغيل الصوت"
   },
   'ads': {
     'watch': 'مشاهدة', 'revive': 'إحياء', 'secondChance': 'فرصة ثانية', 'doubleCoins': 'عملات ×2', 'plusCoins': '+{n} عملة'

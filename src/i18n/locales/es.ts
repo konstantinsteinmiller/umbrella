@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Nivel siguiente",
     'restart': "Reiniciar nivel",
     'selectLevel': "Elegir nivel",
-    'close': "Cerrar"
+    'close': "Cerrar",
+    'mute': "Silenciar sonido",
+    'unmute': "Activar sonido"
   },
   'ads': {
     'watch': 'Ver', 'revive': 'Revivir', 'secondChance': 'Segunda oportunidad', 'doubleCoins': '2× monedas', 'plusCoins': '+{n} monedas'

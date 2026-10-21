@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Келесі деңгей",
     'restart': "Деңгейді қайта бастау",
     'selectLevel': "Деңгейді таңдау",
-    'close': "Жабу"
+    'close': "Жабу",
+    'mute': "Дыбысты өшіру",
+    'unmute': "Дыбысты қосу"
   },
   'ads': {
     'watch': 'Көру', 'revive': 'Тірілту', 'secondChance': 'Екінші мүмкіндік', 'doubleCoins': '2× тиын', 'plusCoins': '+{n} тиын'

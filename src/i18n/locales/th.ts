@@ -13,7 +13,9 @@ export default {
     'nextLevel': "ด่านถัดไป",
     'restart': "เริ่มด่านใหม่",
     'selectLevel': "เลือกด่าน",
-    'close': "ปิด"
+    'close': "ปิด",
+    'mute': "ปิดเสียง",
+    'unmute': "เปิดเสียง"
   },
   'ads': {
     'watch': 'ดู', 'revive': 'ชุบชีวิต', 'secondChance': 'โอกาสที่สอง', 'doubleCoins': '2× เหรียญ', 'plusCoins': '+{n} เหรียญ'

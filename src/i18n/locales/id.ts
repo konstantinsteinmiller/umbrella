@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Level berikutnya",
     'restart': "Ulangi level",
     'selectLevel': "Pilih level",
-    'close': "Tutup"
+    'close': "Tutup",
+    'mute': "Matikan suara",
+    'unmute': "Nyalakan suara"
   },
   'ads': {
     'watch': 'Tonton', 'revive': 'Hidupkan', 'secondChance': 'Kesempatan Kedua', 'doubleCoins': '2× koin', 'plusCoins': '+{n} koin'

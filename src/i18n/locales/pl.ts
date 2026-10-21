@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Następny poziom",
     'restart': "Zrestartuj poziom",
     'selectLevel': "Wybierz poziom",
-    'close': "Zamknij"
+    'close': "Zamknij",
+    'mute': "Wycisz dźwięk",
+    'unmute': "Włącz dźwięk"
   },
   'ads': {
     'watch': 'Obejrzyj', 'revive': 'Wskrześ', 'secondChance': 'Druga szansa', 'doubleCoins': '2× monety', 'plusCoins': '+{n} monet'

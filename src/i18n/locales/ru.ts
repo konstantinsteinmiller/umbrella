@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Следующий уровень",
     'restart': "Перезапустить уровень",
     'selectLevel': "Выбор уровня",
-    'close': "Закрыть"
+    'close': "Закрыть",
+    'mute': "Выключить звук",
+    'unmute': "Включить звук"
   },
   'ads': {
     'watch': 'Смотреть', 'revive': 'Возродить', 'secondChance': 'Второй шанс', 'doubleCoins': '2× монет', 'plusCoins': '+{n} монет'

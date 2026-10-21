@@ -13,7 +13,9 @@ export default {
     'nextLevel': "次のレベル",
     'restart': "レベルをリスタート",
     'selectLevel': "レベル選択",
-    'close': "閉じる"
+    'close': "閉じる",
+    'mute': "ミュート",
+    'unmute': "ミュート解除"
   },
   'ads': {
     'watch': '見る', 'revive': '復活', 'secondChance': 'セカンドチャンス', 'doubleCoins': '2× コイン', 'plusCoins': '+{n} コイン'

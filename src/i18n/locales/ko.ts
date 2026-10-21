@@ -13,7 +13,9 @@ export default {
     'nextLevel': "다음 레벨",
     'restart': "레벨 다시 시작",
     'selectLevel': "레벨 선택",
-    'close': "닫기"
+    'close': "닫기",
+    'mute': "음소거",
+    'unmute': "음소거 해제"
   },
   'ads': {
     'watch': '시청', 'revive': '부활', 'secondChance': '두 번째 기회', 'doubleCoins': '2× 코인', 'plusCoins': '+{n} 코인'

@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Sonraki seviye",
     'restart': "Seviyeyi yeniden başlat",
     'selectLevel': "Seviye seç",
-    'close': "Kapat"
+    'close': "Kapat",
+    'mute': "Sesi kapat",
+    'unmute': "Sesi aç"
   },
   'ads': {
     'watch': 'İzle', 'revive': 'Canlandır', 'secondChance': 'İkinci Şans', 'doubleCoins': '2× Para', 'plusCoins': '+{n} para'

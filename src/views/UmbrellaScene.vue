@@ -341,7 +341,13 @@ const onBlur = () => { held.left = held.right = false }
 // Every reason the game must be silent: ads, hidden tab, platform pause, and
 // the portal / mobile hard mutes. `sync` so the mute lands in the same call
 // stack that opens an ad (see useGamePause.ts).
-const audioMuted = computed(() => isAudioPaused.value || isPlatformAudioMuted.value || isMobileAudioMuted.value)
+// The player's own mute button, remembered across visits.
+const userMuted = ref(getState<boolean>('umb_muted', false))
+const toggleMute = () => {
+  userMuted.value = !userMuted.value
+  setState('umb_muted', userMuted.value)
+}
+const audioMuted = computed(() => userMuted.value || isAudioPaused.value || isPlatformAudioMuted.value || isMobileAudioMuted.value)
 watch(audioMuted, (m) => setAudioMuted(m), { immediate: true, flush: 'sync' })
 watch(
   () => [tuning.masterVolume, tuning.musicVolume, tuning.sfxVolume, tuning.windVolume],
@@ -384,6 +390,7 @@ onUnmounted(() => {
       <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="loadLevel(levelIndex + 1)">›</button>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
+      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
 
     <button v-if="editorUnlocked && !testing" class="open-editor" @click="openEditor">OPEN EDITOR</button>

@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Keyingi daraja",
     'restart': "Darajani qayta boshlash",
     'selectLevel': "Darajani tanlash",
-    'close': "Yopish"
+    'close': "Yopish",
+    'mute': "Ovozni o'chirish",
+    'unmute': "Ovozni yoqish"
   },
   'ads': {
     'watch': 'Koʻrish', 'revive': 'Tiriltirish', 'secondChance': 'Ikkinchi imkon', 'doubleCoins': '2× tanga', 'plusCoins': '+{n} tanga'

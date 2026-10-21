@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Màn sau",
     'restart': "Chơi lại màn",
     'selectLevel': "Chọn màn",
-    'close': "Đóng"
+    'close': "Đóng",
+    'mute': "Tắt âm thanh",
+    'unmute': "Bật âm thanh"
   },
   'ads': {
     'watch': 'Xem', 'revive': 'Hồi sinh', 'secondChance': 'Cơ hội thứ hai', 'doubleCoins': '2× xu', 'plusCoins': '+{n} xu'

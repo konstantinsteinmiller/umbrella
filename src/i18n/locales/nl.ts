@@ -13,7 +13,9 @@ export default {
     'nextLevel': "Volgend level",
     'restart': "Level opnieuw starten",
     'selectLevel': "Kies level",
-    'close': "Sluiten"
+    'close': "Sluiten",
+    'mute': "Geluid uit",
+    'unmute': "Geluid aan"
   },
   'ads': {
     'watch': 'Bekijk', 'revive': 'Herleven', 'secondChance': 'Tweede kans', 'doubleCoins': '2× munten', 'plusCoins': '+{n} munten'

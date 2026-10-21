@@ -16,7 +16,9 @@ export default {
     'nextLevel': "Next level",
     'restart': "Restart level",
     'selectLevel': "Select level",
-    'close': "Close"
+    'close': "Close",
+    'mute': "Mute sound",
+    'unmute': "Unmute sound"
   },
   'gameName': 'Umbrella',
   // ─── Merge Legion UI chrome (source locale; en is the runtime fallback for
