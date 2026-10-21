@@ -105,6 +105,11 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 let drag: Drag = null
 let previewT = 0
 
+/** Shortcut hints in the keyboard's own words: "Strg" on German keyboards, ⌘ on a Mac. */
+const MOD_KEY = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : navigator.language.toLowerCase().startsWith('de') ? 'Strg' : 'Ctrl'
+const UNDO_KEYS = `${MOD_KEY}+Z`
+const REDO_KEYS = `${MOD_KEY}+Y / ${MOD_KEY}+Shift+Z`
+
 const flash = (msg: string) => {
   status.value = msg
   window.setTimeout(() => { if (status.value === msg) status.value = '' }, 2500)
@@ -349,9 +354,11 @@ const isTyping = (el: EventTarget | null) => {
 }
 const onKeyDown = (e: KeyboardEvent) => {
   if (isTyping(e.target)) return
+  // The letter typed, not the key position: on QWERTZ the Z key is where QWERTY has Y.
   const mod = e.ctrlKey || e.metaKey
-  if (mod && e.code === 'KeyZ') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return }
-  if (mod && e.code === 'KeyY') { e.preventDefault(); redo(); return }
+  const letter = e.key.toLowerCase()
+  if (mod && letter === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return }
+  if (mod && letter === 'y') { e.preventDefault(); redo(); return }
   if (e.code === 'Delete' || e.code === 'Backspace') { e.preventDefault(); removeSelection(); return }
   if (e.code === 'Escape') { selection.value = null; tool.value = 'select' }
   if (e.code === 'KeyV') tool.value = 'select'
@@ -660,8 +667,8 @@ onUnmounted(() => {
       <button class="btn orange" :disabled="overwriteSlot === ''" title="Replace this campaign level with the current edit" @click="onOverwrite">Overwrite</button>
       <button class="btn" :disabled="overwriteSlot === '' || !campaignOverrides[overwriteSlot]" title="Restore the original level in this slot" @click="onRevert">Revert</button>
       <span class="sep" />
-      <button class="btn" :disabled="!undoStack.length" title="Undo (Ctrl+Z)" @click="undo">↶ Undo</button>
-      <button class="btn" :disabled="!redoStack.length" title="Redo (Ctrl+Shift+Z)" @click="redo">↷ Redo</button>
+      <button class="btn" :disabled="!undoStack.length" :title="`Undo (${UNDO_KEYS})`" @click="undo">↶ Undo <kbd>{{ UNDO_KEYS }}</kbd></button>
+      <button class="btn" :disabled="!redoStack.length" :title="`Redo (${REDO_KEYS})`" @click="redo">↷ Redo <kbd>{{ REDO_KEYS }}</kbd></button>
       <span class="sep" />
       <button class="btn" @click="onExport">Export .json</button>
       <button class="btn" @click="fileInput?.click()">Import .json</button>
@@ -677,7 +684,7 @@ onUnmounted(() => {
         <button v-for="t in TOOLS" :key="t.id" class="tool" :class="{ on: tool === t.id }" @click="tool = t.id">{{ t.label }}</button>
         <label class="check"><input v-model="snap" type="checkbox" /> Snap to 10 px</label>
         <label class="check"><input v-model="animate" type="checkbox" /> Animate movers</label>
-        <p class="hint">Drag to draw boxes; click for pillar, mine, spawn. Select tool: drag to move, green corner resizes, yellow dots move a path. Right-click or Del deletes. Ctrl+Z / Ctrl+Shift+Z.</p>
+        <p class="hint">Drag to draw boxes; click for pillar, mine, spawn. Select tool: drag to move, green corner resizes, yellow dots move a path. Right-click or Del deletes. Undo {{ UNDO_KEYS }}, redo {{ REDO_KEYS }}.</p>
       </div>
 
       <div class="stage">
@@ -869,6 +876,14 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .tool.on { background: #059669; font-weight: 700; }
+kbd {
+  margin-left: 4px;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  font-size: 11px;
+  opacity: 0.8;
+}
 .sep { width: 1px; height: 22px; background: rgba(255, 255, 255, 0.15); margin: 0 2px; }
 .grow { flex: 1; }
 </style>
