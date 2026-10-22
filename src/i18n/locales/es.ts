@@ -25,6 +25,12 @@ export default {
     'rateLevel': "Valorar este nivel",
     'myLevels': "Mis niveles",
     'myLevelsEmpty': "Aquí aparecen los niveles que abres desde un enlace compartido o creas en el editor.",
+    'pause': {
+      'open': "Pausa",
+      'title': "En pausa",
+      'resume': "Continuar",
+      'settings': "Ajustes"
+    },
     'community': {
       'button': "Comunidad",
       'open': "Niveles de la comunidad",

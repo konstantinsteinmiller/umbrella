@@ -18,6 +18,7 @@ import { communityEnabled, countPlay } from '@/umbrella/community'
 import { editorAllowed } from '@/umbrella/editorAccess'
 import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
 import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
+import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import { render } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
@@ -44,6 +45,16 @@ const openEditor = () => void router.push('/editor')
 
 // ── Player levels: share links, the community list, stars ──
 const showCommunity = ref(false)
+/** The pause menu (Resume, Restart, Settings → General → language). */
+const showPause = ref(false)
+const openPause = () => {
+  showPause.value = true
+  held.left = held.right = false
+}
+const restartFromPause = () => {
+  showPause.value = false
+  restart()
+}
 /** Stars are asked for once the player has finished or failed the level. */
 const canRate = ref(false)
 const showRate = ref(false)
@@ -361,7 +372,7 @@ const frame = (now: number) => {
   if (!el) return
   const dtReal = Math.min(0.1, (now - (last || now)) / 1000)
   last = now
-  if (!isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value) {
+  if (!isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
     acc += dtReal
     while (acc >= DT) {
       tick()
@@ -407,7 +418,12 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
     e.preventDefault()
     return
   }
-  if (showLevels.value || showCommunity.value || showRate.value) return
+  if (down && e.code === 'Escape' && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
+    openPause()
+    e.preventDefault()
+    return
+  }
+  if (showLevels.value || showCommunity.value || showRate.value || showPause.value) return
   if (LEFT.has(e.code)) held.left = down
   else if (RIGHT.has(e.code)) held.right = down
   else if (e.code === 'Space') {
@@ -513,12 +529,14 @@ onUnmounted(() => {
       <button class="hud-btn wide" @click="backToEditor">◀ Editor</button>
       <span class="hud-level">TEST LEVEL</span>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
+      <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
     </div>
     <div v-else-if="playing" class="hud">
       <button class="hud-btn" :aria-label="t('umbrella.back')" @click="leaveCustom">‹</button>
       <span class="hud-level custom" :title="playing.name">{{ playing.name }}</span>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
+      <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
       <button v-if="playing.communityId && canRate" class="hud-btn" :aria-label="t('umbrella.rateLevel')" @click="showRate = true">★</button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
@@ -528,6 +546,7 @@ onUnmounted(() => {
       <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="loadLevel(levelIndex + 1)">›</button>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
+<button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
       <button v-if="communityEnabled" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 {{ t('umbrella.community.button') }}</button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
@@ -535,6 +554,7 @@ onUnmounted(() => {
     <button v-if="showRevive" class="revive-restart" @click="restart">↻ {{ t('umbrella.reviveRestart') }}</button>
     <div v-if="notice" class="toast info" role="status">{{ notice }}</div>
 
+    <PauseMenu v-if="showPause" @resume="showPause = false" @restart="restartFromPause" />
     <CommunityLevelsModal v-if="showCommunity" @close="showCommunity = false" @play="playCustom" />
     <RateLevelCard
       v-if="showRate && playing?.communityId"

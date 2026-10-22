@@ -25,6 +25,12 @@ export default {
     'rateLevel': "为本关评分",
     'myLevels': "我的关卡",
     'myLevelsEmpty': "通过分享链接打开或在编辑器中制作的关卡会显示在这里。",
+    'pause': {
+      'open': "暂停",
+      'title': "已暂停",
+      'resume': "继续",
+      'settings': "设置"
+    },
     'community': {
       'button': "社区",
       'open': "社区关卡",

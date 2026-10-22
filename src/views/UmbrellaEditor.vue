@@ -33,6 +33,7 @@ import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
 import { encodeLevel, shareLink } from '@/umbrella/levelCode'
 import { communityEnabled, getQuota, submitLevel } from '@/umbrella/community'
+import LanguageSelect from '@/components/umbrella/LanguageSelect.vue'
 import {
   campaignEntries,
   campaignOrder,
@@ -1285,6 +1286,7 @@ onUnmounted(() => {
       </div>
       <span class="grow" />
       <span v-if="designer && BUCKET_URL && bucketStatus" class="sync" :class="{ bad: !bucketStatus.ok }" role="status">{{ bucketStatus.ok ? '✓' : '⚠' }} {{ bucketStatus.text }}</span>
+      <LanguageSelect compact />
       <button class="btn" @click="runCmd('back')">✕ {{ t('umbrellaEditor.cmd.back') }}</button>
       <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
     </header>

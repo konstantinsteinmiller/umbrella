@@ -25,6 +25,12 @@ export default {
     'rateLevel': "इस स्तर को रेट करें",
     'myLevels': "मेरे स्तर",
     'myLevelsEmpty': "शेयर लिंक से खोले गए या एडिटर में बनाए गए स्तर यहाँ दिखते हैं।",
+    'pause': {
+      'open': "रोकें",
+      'title': "रुका हुआ",
+      'resume': "जारी रखें",
+      'settings': "सेटिंग्स"
+    },
     'community': {
       'button': "समुदाय",
       'open': "समुदाय के स्तर",

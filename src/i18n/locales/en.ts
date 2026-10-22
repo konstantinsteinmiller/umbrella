@@ -28,6 +28,12 @@ export default {
     'rateLevel': "Rate this level",
     'myLevels': "My levels",
     'myLevelsEmpty': "Levels you open from a share link or build in the editor show up here.",
+    'pause': {
+      'open': "Pause",
+      'title': "Paused",
+      'resume': "Resume",
+      'settings': "Settings"
+    },
     'community': {
       'button': "Community",
       'open': "Community levels",

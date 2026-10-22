@@ -1,6 +1,8 @@
 Umbrella — changelog (newest first)
 
 == Revision 7 — 2026-10-23 ==
+[x] Pause menu in the game (⏸ button or Esc): Resume, Restart level, Settings → General → Language
+[x] Language dropdown in the level editor's top bar; every language listed by its own name, the choice is remembered
 [x] Wind catches the open umbrella: a separate umbrella hitbox (the drawn canopy, 60 × 40 px above the head) used for air currents only; platforms and hazards still hit the body (playtester: "the umbrella was in the current")
 [x] Reorder dialog: rename campaign levels (✎ or double-click) by mechanic or theme; the name shows in Open and as the editor name, and syncs with the order
 [x] Checkpoints: touch the flag, die, respawn there; a "Restart from the beginning" button stays up for 3 s after a checkpoint revive

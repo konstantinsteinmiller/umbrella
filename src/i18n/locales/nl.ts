@@ -25,6 +25,12 @@ export default {
     'rateLevel': "Beoordeel dit level",
     'myLevels': "Mijn levels",
     'myLevelsEmpty': "Levels die je via een gedeelde link opent of in de editor bouwt, staan hier.",
+    'pause': {
+      'open': "Pauze",
+      'title': "Gepauzeerd",
+      'resume': "Verder",
+      'settings': "Instellingen"
+    },
     'community': {
       'button': "Community",
       'open': "Communitylevels",

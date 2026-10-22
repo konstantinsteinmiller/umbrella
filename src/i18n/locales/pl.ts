@@ -25,6 +25,12 @@ export default {
     'rateLevel': "Oceń ten poziom",
     'myLevels': "Moje poziomy",
     'myLevelsEmpty': "Tu pojawiają się poziomy otwarte z udostępnionego linku lub zbudowane w edytorze.",
+    'pause': {
+      'open': "Pauza",
+      'title': "Wstrzymano",
+      'resume': "Wznów",
+      'settings': "Ustawienia"
+    },
     'community': {
       'button': "Społeczność",
       'open': "Poziomy społeczności",

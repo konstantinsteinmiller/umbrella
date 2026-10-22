@@ -25,6 +25,12 @@ export default {
     'rateLevel': "Đánh giá màn này",
     'myLevels': "Màn của tôi",
     'myLevelsEmpty': "Các màn bạn mở từ liên kết chia sẻ hoặc tạo trong trình chỉnh sửa sẽ hiện ở đây.",
+    'pause': {
+      'open': "Tạm dừng",
+      'title': "Đã tạm dừng",
+      'resume': "Tiếp tục",
+      'settings': "Cài đặt"
+    },
     'community': {
       'button': "Cộng đồng",
       'open': "Màn cộng đồng",

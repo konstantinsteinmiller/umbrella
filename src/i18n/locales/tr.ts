@@ -25,6 +25,12 @@ export default {
     'rateLevel': "Bu seviyeyi puanla",
     'myLevels': "Seviyelerim",
     'myLevelsEmpty': "Paylaşım bağlantısından açtığın veya editörde yaptığın seviyeler burada görünür.",
+    'pause': {
+      'open': "Duraklat",
+      'title': "Duraklatıldı",
+      'resume': "Devam et",
+      'settings': "Ayarlar"
+    },
     'community': {
       'button': "Topluluk",
       'open': "Topluluk seviyeleri",

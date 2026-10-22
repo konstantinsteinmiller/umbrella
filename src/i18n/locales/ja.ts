@@ -25,6 +25,12 @@ export default {
     'rateLevel': "このレベルを評価",
     'myLevels': "マイレベル",
     'myLevelsEmpty': "共有リンクから開いたレベルやエディターで作ったレベルがここに表示されます。",
+    'pause': {
+      'open': "一時停止",
+      'title': "一時停止中",
+      'resume': "再開",
+      'settings': "設定"
+    },
     'community': {
       'button': "コミュニティ",
       'open': "コミュニティのレベル",

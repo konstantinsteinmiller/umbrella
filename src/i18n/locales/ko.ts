@@ -25,6 +25,12 @@ export default {
     'rateLevel': "이 레벨 평가하기",
     'myLevels': "내 레벨",
     'myLevelsEmpty': "공유 링크로 연 레벨과 에디터에서 만든 레벨이 여기에 표시됩니다.",
+    'pause': {
+      'open': "일시정지",
+      'title': "일시정지됨",
+      'resume': "계속하기",
+      'settings': "설정"
+    },
     'community': {
       'button': "커뮤니티",
       'open': "커뮤니티 레벨",

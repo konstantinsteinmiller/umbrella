@@ -25,6 +25,12 @@ export default {
     'rateLevel': "Beri nilai level ini",
     'myLevels': "Level saya",
     'myLevelsEmpty': "Level yang kamu buka dari tautan berbagi atau buat di editor muncul di sini.",
+    'pause': {
+      'open': "Jeda",
+      'title': "Dijeda",
+      'resume': "Lanjutkan",
+      'settings': "Pengaturan"
+    },
     'community': {
       'button': "Komunitas",
       'open': "Level komunitas",

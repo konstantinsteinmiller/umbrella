@@ -25,6 +25,12 @@ export default {
     'rateLevel': "Darajani baholash",
     'myLevels': "Mening darajalarim",
     'myLevelsEmpty': "Ulashish havolasidan ochgan yoki muharrirda yaratgan darajalaringiz shu yerda chiqadi.",
+    'pause': {
+      'open': "Pauza",
+      'title': "Pauzada",
+      'resume': "Davom etish",
+      'settings': "Sozlamalar"
+    },
     'community': {
       'button': "Hamjamiyat",
       'open': "Hamjamiyat darajalari",

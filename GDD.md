@@ -277,6 +277,8 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · Community levels: browse best rated, newest or most played; submit up to 5 levels per week; rate 0–5 stars after winning or failing a level.
 · Poki and YouTube Playables: share links only — no community and no editor.
 · Designer: rename campaign levels in the Reorder dialog by mechanic or theme.
+**Settings**
+· Pause menu in the game (⏸ or Esc): Resume, Restart, Settings → General → Language. The level editor has the same language dropdown in its top bar.
 
 ## Revision 
 ## Revision 
