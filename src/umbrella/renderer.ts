@@ -1,8 +1,12 @@
 // ─── Canvas renderer (prototype look: white blocks on a dark field) ─────────
 
-import type { Hazard, World } from './engine'
+import { channelOn, checkpointBox, liveWind, platformActive, type Hazard, type World } from './engine'
 import type { Tuning } from './tuning'
-import type { WindDef } from './levels'
+import type { ButtonDef, CheckpointDef, WindDef } from './levels'
+
+/** One colour per button channel: a button and everything it switches share it. */
+export const CHANNEL_COLORS = ['#f59e0b', '#22d3ee', '#a78bfa', '#4ade80', '#f472b6', '#f87171']
+export const channelColor = (c: number) => CHANNEL_COLORS[((c % CHANNEL_COLORS.length) + CHANNEL_COLORS.length) % CHANNEL_COLORS.length]!
 
 const BG = '#1b2130'
 const FG = '#ffffff'
@@ -95,7 +99,49 @@ const drawWind = (ctx: CanvasRenderingContext2D, wind: WindDef, time: number) =>
   ctx.restore()
 }
 
-const drawEyes = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) => {
+/** A floor button in its channel's colour: raised when off, pressed flat when on.
+ *  A timed one shows the seconds left above it. */
+const drawButton = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, left: number) => {
+  const col = channelColor(b.channel)
+  const capH = on ? b.h * 0.35 : b.h
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'
+  ctx.fillRect(b.x - 4, b.y + b.h - 4, b.w + 8, 4)
+  ctx.fillStyle = col
+  ctx.beginPath()
+  ctx.roundRect(b.x, b.y + b.h - capH - 2, b.w, capH, 4)
+  ctx.fill()
+  if (on && b.duration && Number.isFinite(left)) {
+    ctx.fillStyle = col
+    ctx.font = '700 14px system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(Math.ceil(left).toString(), b.x + b.w / 2, b.y - 4)
+  } else if (!b.duration) {
+    // A toggle shows its state as a small dot.
+    ctx.fillStyle = on ? FG : BG
+    ctx.beginPath()
+    ctx.arc(b.x + b.w / 2, b.y + b.h - capH / 2 - 2, 3, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+/** A checkpoint flag: grey until touched, green and waving once it is yours. */
+const drawCheckpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: boolean, time: number) => {
+  const box = checkpointBox(c)
+  const poleX = box.x + 6
+  ctx.fillStyle = FG
+  ctx.fillRect(poleX - 2, box.y, 4, box.h)
+  const wave = reached ? Math.sin(time * 6) * 3 : 0
+  ctx.fillStyle = reached ? '#4ade80' : 'rgba(255, 255, 255, 0.45)'
+  ctx.beginPath()
+  ctx.moveTo(poleX + 2, box.y + 2)
+  ctx.lineTo(poleX + 30, box.y + 12 + wave)
+  ctx.lineTo(poleX + 2, box.y + 24)
+  ctx.closePath()
+  ctx.fill()
+}
+
+const drawEyes =(ctx: CanvasRenderingContext2D, x: number, y: number, r: number) => {
   for (const dy of [-r * 1.1, r * 1.1]) {
     ctx.fillStyle = FG
     ctx.beginPath()
@@ -261,13 +307,45 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   ctx.fillStyle = BG
   ctx.fillRect(0, 0, w.level.world.w, w.level.world.h)
 
-  for (const wind of w.level.winds) drawWind(ctx, wind, w.time)
+  for (const def of w.level.winds) {
+    const wind = liveWind(w, def)
+    if (wind.speed > 0) drawWind(ctx, wind, w.time)
+    if (def.channel !== undefined && def.switched) {
+      // A switchable current wears its channel's colour as a dashed frame.
+      ctx.save()
+      ctx.strokeStyle = channelColor(def.channel)
+      ctx.globalAlpha = wind.speed > 0 ? 0.7 : 0.35
+      ctx.lineWidth = 3
+      ctx.setLineDash([12, 8])
+      ctx.strokeRect(def.x + 1.5, def.y + 1.5, def.w - 3, def.h - 3)
+      ctx.restore()
+    }
+  }
+  for (const c of w.level.checkpoints ?? []) drawCheckpoint(ctx, c, (w.level.checkpoints ?? []).indexOf(c) === w.checkpoint, w.time)
 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
   for (const p of w.platforms) {
-    ctx.fillStyle = FG
-    ctx.fillRect(p.x, p.y, p.w, p.h)
+    if (p.channel !== undefined) {
+      const on = platformActive(w, p)
+      ctx.save()
+      ctx.strokeStyle = channelColor(p.channel)
+      ctx.fillStyle = channelColor(p.channel)
+      if (on) {
+        ctx.fillRect(p.x, p.y, p.w, p.h)
+      } else {
+        // Switched off: a dashed ghost of where it will appear.
+        ctx.globalAlpha = 0.55
+        ctx.lineWidth = 2
+        ctx.setLineDash([8, 6])
+        ctx.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2)
+      }
+      ctx.restore()
+      if (!on || !p.finish) continue
+    } else {
+      ctx.fillStyle = FG
+      ctx.fillRect(p.x, p.y, p.w, p.h)
+    }
     if (p.finish) {
       ctx.textAlign = 'center'
       if (zoomOut <= 1) {
@@ -284,6 +362,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     }
   }
 
+  for (const b of w.level.buttons ?? []) drawButton(ctx, b, channelOn(w, b.channel), (w.channels[b.channel] ?? 0) - w.time)
   for (const h of w.hazards) drawHazard(ctx, h, w.time)
 
   drawPlayer(ctx, w, t, dt)

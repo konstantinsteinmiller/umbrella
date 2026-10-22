@@ -34,7 +34,28 @@ export interface PlatformDef {
   h: number
   finish?: boolean
   motion?: Motion
+  /** Switched by the buttons of this channel: solid only while the channel is on
+   *  (or only while it is off, with `whenOff`). Absent: always there. */
+  channel?: number
+  whenOff?: boolean
 }
+
+/** A floor button: touching it switches its channel. Without `duration` each press
+ *  toggles the channel; with it the channel turns on for `duration` s, then off. */
+export interface ButtonDef {
+  x: number
+  y: number
+  w: number
+  h: number
+  channel: number
+  duration?: number
+}
+
+/** A checkpoint flag standing on (x, y): touch it and a death respawns you there. */
+export interface CheckpointDef { x: number; y: number }
+
+/** How many button channels the editor offers (each has its own colour). */
+export const CHANNELS = 6
 
 export type WindDir = 'up' | 'down' | 'left' | 'right'
 
@@ -48,6 +69,10 @@ export interface WindDef {
   speed: number
   /** Super Stream: much faster, builds up slowly, can splat you on a ceiling. */
   super?: boolean
+  /** While this button channel is on the current takes `switched`'s direction and/or
+   *  speed instead (speed 0: the current stops). */
+  channel?: number
+  switched?: { dir?: WindDir; speed?: number }
 }
 
 /** Touching any hazard resets the level. Mines are circles inscribed in their box. */
@@ -76,6 +101,8 @@ export interface LevelDef {
   platforms: PlatformDef[]
   winds: WindDef[]
   hazards?: HazardDef[]
+  buttons?: ButtonDef[]
+  checkpoints?: CheckpointDef[]
   /** When the editor last saved this level (ms since epoch). Edits made in several
    *  places (the levels bucket, a JSON file, the repo) merge by it: the newest wins. */
   editedAt?: number

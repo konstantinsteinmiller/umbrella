@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * Umbrella level editor (/editor) — reached from the "cmonc" cheat's
- * OPEN EDITOR button.
+ * Umbrella level editor (/editor) — players build, save and share levels here
+ * (reached from the community levels dialog); the "cmonc" cheat adds the
+ * designer's campaign tools (overwrite / revert / reorder, the levels bucket).
  *
  * The canvas draws the level with the game's own renderer, so what you see is
  * what plays; selection boxes, motion paths and handles are an overlay on top.
@@ -18,21 +19,26 @@
  * the player; the overlay shows the screen grid and the start screen.
  * Wheel zooms, middle- or Alt-drag pans, double-click the empty field refits.
  *
- * A designer tool behind a cheat code, like the lil-gui tuning panel — its
- * copy is English only on purpose.
+ * Menus, the tool palette and the quick buttons are driven by one command list,
+ * so every shortcut is shown where its button is. Player-facing copy goes
+ * through i18n (umbrellaEditor.*); the designer-only campaign tools stay English.
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { LEVELS, type HazardDef, type LevelDef, type Motion, type PlatformDef, type Vec, type WindDef, type WindDir } from '@/umbrella/levels'
-import { createWorld, DEFAULT_TRIGGER_RADIUS, poseMovers, step, type Input, type World } from '@/umbrella/engine'
-import { cameraFor, render, type Camera } from '@/umbrella/renderer'
+import { CHANNELS, LEVELS, type ButtonDef, type CheckpointDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type Vec, type WindDef, type WindDir } from '@/umbrella/levels'
+import { checkpointBox, createWorld, DEFAULT_TRIGGER_RADIUS, poseMovers, step, type Input, type World } from '@/umbrella/engine'
+import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
+import { encodeLevel, shareLink } from '@/umbrella/levelCode'
+import { communityEnabled, getQuota, submitLevel } from '@/umbrella/community'
 import {
   campaignEntries,
   campaignOrder,
   campaignOverrides,
   nextCustomId,
+  slotTitle,
   saveCampaignOrder,
   type OrderEntry,
   clearCampaignOverride,
@@ -40,6 +46,7 @@ import {
   customLevels,
   deleteCustomLevel,
   editorDraft,
+  editorUnlocked,
   applyBucket,
   BUCKET_URL,
   bucketFromFile,
@@ -56,11 +63,11 @@ import {
 } from '@/umbrella/customLevels'
 
 type Tool =
-  | 'select' | 'platform' | 'finish' | 'spawn'
+  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'spikes-up' | 'spikes-down'
 
-type Group = 'platforms' | 'winds' | 'hazards'
+type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints'
 type Entity = { group: Group; i: number }
 type HandleKey = 'a' | 'b' | 'center' | 'pivot'
 type Selection =
@@ -75,37 +82,54 @@ type Drag =
   | { mode: 'pan'; x: number; y: number }
   | null
 
-const TOOLS: { id: Tool; label: string }[] = [
-  { id: 'select', label: 'Select / move' },
-  { id: 'platform', label: 'Platform' },
-  { id: 'finish', label: 'Finish platform' },
-  { id: 'spawn', label: 'Player spawn' },
-  { id: 'wind-up', label: 'Wind ↑ (updraft)' },
-  { id: 'wind-down', label: 'Wind ↓' },
-  { id: 'wind-left', label: 'Wind ←' },
-  { id: 'wind-right', label: 'Wind →' },
-  { id: 'super', label: 'Super Stream ↑' },
-  { id: 'pillar', label: 'Walldorf (pillar)' },
-  { id: 'mine', label: 'Mine' },
-  { id: 'spikes-up', label: 'Spikes (point up)' },
-  { id: 'spikes-down', label: 'Spikes (point down)' }
+/** A keyboard shortcut: the typed key (so letters follow the player's layout), plus modifiers. */
+interface Keys { key: string; mod?: boolean; shift?: boolean; alt?: boolean }
+
+/** The tool palette, grouped by purpose; every tool has a one-key shortcut. */
+const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys }[] }[] = [
+  { id: 'build', tools: [
+    { id: 'select', icon: '⬚', keys: { key: 'v' } },
+    { id: 'platform', icon: '▬', keys: { key: 'b' } },
+    { id: 'finish', icon: '🏁', keys: { key: 'f' } },
+    { id: 'spawn', icon: '☺', keys: { key: 's' } },
+    { id: 'checkpoint', icon: '⚑', keys: { key: 'c' } }
+  ] },
+  { id: 'currents', tools: [
+    { id: 'wind-up', icon: '↑', keys: { key: '1' } },
+    { id: 'wind-down', icon: '↓', keys: { key: '2' } },
+    { id: 'wind-left', icon: '←', keys: { key: '3' } },
+    { id: 'wind-right', icon: '→', keys: { key: '4' } },
+    { id: 'super', icon: '⇈', keys: { key: '5' } }
+  ] },
+  { id: 'hazards', tools: [
+    { id: 'pillar', icon: '▮', keys: { key: 'p' } },
+    { id: 'mine', icon: '✹', keys: { key: 'm' } },
+    { id: 'spikes-up', icon: '▲', keys: { key: 'x' } },
+    { id: 'spikes-down', icon: '▼', keys: { key: 'x', shift: true } }
+  ] },
+  { id: 'switches', tools: [
+    { id: 'button', icon: '◉', keys: { key: 't' } }
+  ] }
 ]
+const TOOLS = TOOL_GROUPS.flatMap((g) => g.tools)
+
 const SCREEN = { w: 1280, h: 720 }
 /** `view`: the presets that scroll; the 2×/3× ones zoom out to show everything. */
-const WORLD_PRESETS: { label: string; w: number; h: number; view?: { w: number; h: number } }[] = [
-  { label: '1 screen (1280×720)', w: 1280, h: 720 },
-  { label: '2 screens wide, scrolls (2560×720)', w: 2560, h: 720, view: SCREEN },
-  { label: '3 screens wide, scrolls (3840×720)', w: 3840, h: 720, view: SCREEN },
-  { label: '2 screens tall, scrolls (1280×1440)', w: 1280, h: 1440, view: SCREEN },
-  { label: '2×2 screens, scrolls (2560×1440)', w: 2560, h: 1440, view: SCREEN },
-  { label: '2× zoomed out (2560×1440)', w: 2560, h: 1440 },
-  { label: '3× zoomed out (3840×2160)', w: 3840, h: 2160 }
+const WORLD_PRESETS: { key: string; w: number; h: number; view?: { w: number; h: number } }[] = [
+  { key: 'one', w: 1280, h: 720 },
+  { key: 'wide2', w: 2560, h: 720, view: SCREEN },
+  { key: 'wide3', w: 3840, h: 720, view: SCREEN },
+  { key: 'tall2', w: 1280, h: 1440, view: SCREEN },
+  { key: 'grid2', w: 2560, h: 1440, view: SCREEN },
+  { key: 'zoom2', w: 2560, h: 1440 },
+  { key: 'zoom3', w: 3840, h: 2160 }
 ]
 /** Phone screens in CSS px for the mobile preview. */
 const PHONE = { w: 390, h: 844 }
 const MOTION_KINDS: Motion['kind'][] = ['static', 'line', 'circle', 'swing', 'lunge', 'arrive']
 
 const router = useRouter()
+const { t } = useI18n()
 const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r3', {}) }
 
 const blankLevel = (): LevelDef => ({
@@ -118,14 +142,12 @@ const blankLevel = (): LevelDef => ({
 })
 
 const level = ref<LevelDef>(editorDraft.value ? cloneLevel(editorDraft.value.level) : blankLevel())
-const levelName = ref(editorDraft.value?.name ?? 'untitled')
+const levelName = ref(editorDraft.value?.name ?? t('umbrellaEditor.untitled'))
 const tool = ref<Tool>('select')
 const selection = ref<Selection>(null)
 const status = ref('')
 const snap = ref(true)
 const animate = ref(false)
-const libraryPick = ref('')
-const campaignPick = ref<number | ''>('')
 const overwriteSlot = ref<number | ''>('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -134,8 +156,19 @@ let previewT = 0
 
 /** Shortcut hints in the keyboard's own words: "Strg" on German keyboards, ⌘ on a Mac. */
 const MOD_KEY = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : navigator.language.toLowerCase().startsWith('de') ? 'Strg' : 'Ctrl'
-const UNDO_KEYS = `${MOD_KEY}+Z`
-const REDO_KEYS = `${MOD_KEY}+Y / ${MOD_KEY}+Shift+Z`
+const KEY_NAMES: Record<string, string> = {
+  enter: '↵', delete: 'Del', backspace: '⌫', escape: 'Esc', '+': '+', '-': '−', '=': '=', '?': '?',
+  arrowup: '↑', arrowdown: '↓', arrowleft: '←', arrowright: '→'
+}
+const fmtKeys = (k: Keys): string =>
+  [k.mod && MOD_KEY, k.shift && 'Shift', k.alt && 'Alt', KEY_NAMES[k.key] ?? k.key.toUpperCase()].filter(Boolean).join('+')
+/** Symbols like + and ? need Shift on many layouts: for them only the typed character counts. */
+const matches = (k: Keys, e: KeyboardEvent): boolean => {
+  const symbol = k.key.length === 1 && !/[a-z0-9]/.test(k.key)
+  // With Alt held some layouts type a different character: compare the physical letter then.
+  const typed = e.altKey && /^Key[A-Z]$/.test(e.code) ? e.code.slice(3).toLowerCase() : e.key.toLowerCase()
+  return typed === k.key && (e.ctrlKey || e.metaKey) === !!k.mod && e.altKey === !!k.alt && (symbol || e.shiftKey === !!k.shift)
+}
 
 const flash = (msg: string) => {
   status.value = msg
@@ -184,11 +217,13 @@ const redo = () => {
 }
 
 // ── Geometry helpers ──
+const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef)[] =>
+  g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= []) : (L.checkpoints ??= [])
+const listOf = (g: Group) => listIn(level.value, g)
 const hazards = () => (level.value.hazards ??= [])
-const listOf = (g: Group): (PlatformDef | WindDef | HazardDef)[] =>
-  g === 'platforms' ? level.value.platforms : g === 'winds' ? level.value.winds : hazards()
 const entityOf = (e: Entity) => listOf(e.group)[e.i]
-const motionOf = (e: Entity): Motion | undefined => e.group === 'winds' ? undefined : (entityOf(e) as PlatformDef | HazardDef | undefined)?.motion
+const motionOf = (e: Entity): Motion | undefined =>
+  e.group === 'platforms' || e.group === 'hazards' ? (entityOf(e) as PlatformDef | HazardDef | undefined)?.motion : undefined
 const snapV = (v: number, step = 10) => (snap.value ? Math.round(v / step) * step : Math.round(v))
 
 /** The world as it plays at the preview time: movers posed, player at spawn. */
@@ -198,8 +233,12 @@ const rebuildWorld = () => {
   poseMovers(world, previewT, tuning)
 }
 /** Where an entity is drawn right now (movers follow their motion). */
-const shownRect = (e: Entity) =>
-  e.group === 'winds' ? level.value.winds[e.i]! : e.group === 'platforms' ? world.platforms[e.i]! : world.hazards[e.i]!
+const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
+  e.group === 'winds' ? level.value.winds[e.i]!
+    : e.group === 'platforms' ? world.platforms[e.i]!
+      : e.group === 'hazards' ? world.hazards[e.i]!
+        : e.group === 'buttons' ? level.value.buttons![e.i]!
+          : checkpointBox(level.value.checkpoints![e.i]!)
 
 const translateMotion = (m: Motion, dx: number, dy: number) => {
   const mv = (v: Vec) => { v.x += dx; v.y += dy }
@@ -247,16 +286,16 @@ const handleRadius = () => 9 / view.s
 
 const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean } => {
   const cur = selection.value
-  if (cur?.type === 'entity') {
+  if (cur?.type === 'entity' && entityOf(cur)) {
     const r = shownRect(cur)
-    if (Math.hypot(p.x - (r.x + r.w), p.y - (r.y + r.h)) <= handleRadius() * 1.4) return { sel: cur, resize: true }
+    if (cur.group !== 'checkpoints' && Math.hypot(p.x - (r.x + r.w), p.y - (r.y + r.h)) <= handleRadius() * 1.4) return { sel: cur, resize: true }
     const m = motionOf(cur)
     for (const h of m ? handlesOf(m) : []) if (Math.hypot(p.x - h.v.x, p.y - h.v.y) <= handleRadius() * 1.4) return { sel: cur, handle: h.key }
   }
   const sp = level.value.spawn
   if (inside(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, 4)) return { sel: { type: 'spawn' } }
   // Small things first: hazards, then platforms, then (big) winds.
-  for (const group of ['hazards', 'platforms', 'winds'] as Group[]) {
+  for (const group of ['checkpoints', 'buttons', 'hazards', 'platforms', 'winds'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) if (inside(p, shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
@@ -301,6 +340,19 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       const r = 26
       hazards().push({ kind: 'mine', x: snapV(a.x) - r, y: snapV(a.y) - r, w: r * 2, h: r * 2 })
       sel = { type: 'entity', group: 'hazards', i: hazards().length - 1 }
+      break
+    }
+    case 'button': {
+      // Its bottom on the click: drop it onto a platform's top edge.
+      const list = (L.buttons ??= [])
+      list.push({ x: snapV(a.x - 30), y: snapV(a.y) - 14, w: 60, h: 14, channel: 1 })
+      sel = { type: 'entity', group: 'buttons', i: list.length - 1 }
+      break
+    }
+    case 'checkpoint': {
+      const list = (L.checkpoints ??= [])
+      list.push({ x: snapV(a.x), y: snapV(a.y) })
+      sel = { type: 'entity', group: 'checkpoints', i: list.length - 1 }
       break
     }
     case 'spikes-up': case 'spikes-down':
@@ -362,7 +414,7 @@ const onPointerMove = (e: PointerEvent) => {
     if (t?.type === 'spawn') {
       level.value.spawn = { x: drag.snapshot.spawn.x + dx, y: drag.snapshot.spawn.y + dy }
     } else if (t?.type === 'entity') {
-      const orig = (t.group === 'platforms' ? drag.snapshot.platforms : t.group === 'winds' ? drag.snapshot.winds : drag.snapshot.hazards ?? [])[t.i]!
+      const orig = listIn(drag.snapshot, t.group)[t.i]!
       const ent = entityOf(t)!
       ent.x = orig.x + dx
       ent.y = orig.y + dy
@@ -376,7 +428,8 @@ const onPointerMove = (e: PointerEvent) => {
     return
   }
   if (drag.mode === 'resize') {
-    const ent = entityOf(drag.target)!
+    if (drag.target.group === 'checkpoints') return
+    const ent = entityOf(drag.target)! as PlatformDef
     const shown = shownRect(drag.target)
     const nw = Math.max(10, snapV(p.x - shown.x))
     const nh = Math.max(10, snapV(p.y - shown.y))
@@ -415,17 +468,134 @@ const isTyping = (el: EventTarget | null) => {
 }
 const onKeyDown = (e: KeyboardEvent) => {
   if (orderOpen.value) { if (e.key === 'Escape') closeOrder(); return }
+  if (dialog.value) { if (e.key === 'Escape') dialog.value = null; return }
+  if (openMenu.value && e.key === 'Escape') { openMenu.value = null; return }
   if (isTyping(e.target)) return
   if (mobileView.value && playKey(e, true)) return
-  // The letter typed, not the key position: on QWERTZ the Z key is where QWERTY has Y.
-  const mod = e.ctrlKey || e.metaKey
-  const letter = e.key.toLowerCase()
-  if (mod && letter === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return }
-  if (mod && letter === 'y') { e.preventDefault(); redo(); return }
-  if (e.code === 'Delete' || e.code === 'Backspace') { e.preventDefault(); removeSelection(); return }
-  if (e.code === 'Escape') { selection.value = null; tool.value = 'select' }
-  if (e.code === 'KeyV') tool.value = 'select'
+  for (const id of visibleCommands.value) {
+    const c = commands[id]!
+    if (!c.keys?.some((k) => matches(k, e))) continue
+    e.preventDefault()
+    openMenu.value = null
+    if (!c.enabled || c.enabled()) c.run()
+    return
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return
+  const picked = TOOLS.find((x) => matches(x.keys, e))
+  if (picked) { e.preventDefault(); tool.value = picked.id; return }
+  // Arrows nudge the selection a pixel (Shift: 10).
+  const dirs: Record<string, [number, number]> = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }
+  const d = dirs[e.key.toLowerCase()]
+  if (d && selection.value) {
+    e.preventDefault()
+    const k = e.shiftKey ? 10 : 1
+    moveSelection(d[0] * k, d[1] * k)
+  }
 }
+
+/** Moves the selection (and a mover's whole path) by dx, dy. */
+const moveSelection = (dx: number, dy: number) => {
+  const s = selection.value
+  if (s?.type === 'spawn') { level.value.spawn.x += dx; level.value.spawn.y += dy; return }
+  if (s?.type !== 'entity') return
+  const ent = entityOf(s)
+  if (!ent) return
+  ent.x += dx
+  ent.y += dy
+  const m = motionOf(s)
+  if (m && m.kind !== 'static') translateMotion(m, dx, dy)
+}
+/** A copy of the selection, a little down and to the right. */
+const duplicateSelection = () => {
+  const s = selection.value
+  if (s?.type !== 'entity') return
+  const ent = entityOf(s)
+  if (!ent) return
+  const copy = JSON.parse(JSON.stringify(ent)) as PlatformDef
+  delete copy.finish
+  const list = listOf(s.group) as unknown[]
+  list.push(copy)
+  selection.value = { type: 'entity', group: s.group, i: list.length - 1 }
+  moveSelection(20, 20)
+}
+
+// ── Commands: one list drives the menus, the shortcuts and their hints ──
+interface Command { keys?: Keys[]; run: () => void; enabled?: () => boolean; checked?: () => boolean; designer?: boolean }
+const hasEntity = () => selection.value?.type === 'entity'
+const zoomBy = (k: number) => { zoom = Math.min(8, Math.max(0.5, zoom * k)) }
+const commands: Record<string, Command> = {
+  new: { keys: [{ key: 'n', alt: true }], run: () => onNew() },
+  open: { keys: [{ key: 'o', mod: true }], run: () => openDialog('open') },
+  save: { keys: [{ key: 's', mod: true }], run: () => onSave() },
+  importLevel: { keys: [{ key: 'i', mod: true }], run: () => fileInput.value?.click() },
+  exportLevel: { keys: [{ key: 'e', mod: true }], run: () => onExportLevel() },
+  back: { run: () => onBack() },
+  undo: { keys: [{ key: 'z', mod: true }], run: () => undo(), enabled: () => undoStack.value.length > 0 },
+  redo: { keys: [{ key: 'y', mod: true }, { key: 'z', mod: true, shift: true }], run: () => redo(), enabled: () => redoStack.value.length > 0 },
+  duplicate: { keys: [{ key: 'd', mod: true }], run: () => duplicateSelection(), enabled: hasEntity },
+  delete: { keys: [{ key: 'delete' }, { key: 'backspace' }], run: () => removeSelection(), enabled: hasEntity },
+  deselect: { keys: [{ key: 'escape' }], run: () => { selection.value = null; tool.value = 'select' } },
+  fit: { keys: [{ key: '0' }], run: () => fitView() },
+  zoomIn: { keys: [{ key: '+' }, { key: '=' }], run: () => zoomBy(1.25) },
+  zoomOut: { keys: [{ key: '-' }], run: () => zoomBy(0.8) },
+  snap: { keys: [{ key: 'g' }], run: () => { snap.value = !snap.value }, checked: () => snap.value },
+  animate: { keys: [{ key: 'a', shift: true }], run: () => { animate.value = !animate.value }, checked: () => animate.value },
+  mobile: { keys: [{ key: 'm', shift: true }], run: () => toggleMobileView(), checked: () => mobileView.value },
+  test: { keys: [{ key: 'enter' }], run: () => onTest() },
+  share: { keys: [{ key: 'l', mod: true, shift: true }], run: () => void onShare() },
+  submit: { keys: [{ key: 'u', mod: true, shift: true }], run: () => void openSubmit() },
+  shortcuts: { keys: [{ key: '?' }], run: () => openDialog('keys') },
+  // The designer's campaign tools ("cmonc"): English only, like the tuning panel.
+  campaignOverwrite: { run: () => onOverwrite(), enabled: () => overwriteSlot.value !== '', designer: true },
+  campaignReplace: { run: () => onReplaceSlot(), designer: true },
+  campaignRevert: { run: () => onRevert(), enabled: () => overwriteSlot.value !== '' && !!campaignOverrides.value[overwriteSlot.value], designer: true },
+  reorder: { run: () => openOrder(), designer: true },
+  sync: { run: () => void onSync(), enabled: () => !!BUCKET_URL && !syncing.value, designer: true },
+  password: { run: () => onPasswordPrompt(), enabled: () => !!BUCKET_URL, designer: true },
+  exportLibrary: { run: () => onExportLibrary(), designer: true },
+  importLibrary: { run: () => fileInput.value?.click(), designer: true }
+}
+const DESIGNER_LABELS: Record<string, () => string> = {
+  campaignOverwrite: () => overwriteSlot.value === '' ? 'Overwrite campaign level' : `Overwrite campaign level ${slotNumber(overwriteSlot.value)}`,
+  campaignReplace: () => 'Replace another campaign level…',
+  campaignRevert: () => 'Revert to the original',
+  reorder: () => 'Reorder campaign…',
+  sync: () => '⇅ Sync levels bucket',
+  password: () => 'Editor password…',
+  exportLibrary: () => 'Export library (all levels)',
+  importLibrary: () => 'Import library file…'
+}
+const cmdLabel = (id: string) => DESIGNER_LABELS[id]?.() ?? t(`umbrellaEditor.cmd.${id}`)
+const designer = computed(() => editorUnlocked.value)
+const menus = computed(() => [
+  { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
+  { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'deselect'] },
+  { id: 'view', items: ['fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile'] },
+  { id: 'level', items: ['test', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
+  ...(designer.value ? [{ id: 'campaign', items: ['campaignOverwrite', 'campaignReplace', 'campaignRevert', 'reorder', '-', 'sync', 'password', '-', 'exportLibrary', 'importLibrary'] }] : []),
+  { id: 'help', items: ['shortcuts'] }
+])
+/** Commands reachable now: the designer's only after "cmonc", Submit only where the community exists. */
+const visibleCommands = computed(() => Object.keys(commands).filter((id) =>
+  (!commands[id]!.designer || designer.value) && (id !== 'submit' || communityEnabled)))
+const cmdKeys = (id: string) => (commands[id]?.keys?.[0] ? fmtKeys(commands[id]!.keys![0]!) : '')
+const cmdEnabled = (id: string) => commands[id]?.enabled?.() ?? true
+const runCmd = (id: string) => {
+  openMenu.value = null
+  if (cmdEnabled(id)) commands[id]?.run()
+}
+const openMenu = ref<string | null>(null)
+const toggleMenu = (id: string) => { openMenu.value = openMenu.value === id ? null : id }
+/** Once a menu is open, pointing at another opens that one (like a desktop menu bar). */
+const hoverMenu = (id: string) => { if (openMenu.value) openMenu.value = id }
+const onDocPointer = (e: PointerEvent) => {
+  if (openMenu.value && !(e.target as HTMLElement | null)?.closest('.menus')) openMenu.value = null
+}
+
+// ── Dialogs ──
+const dialog = ref<null | 'open' | 'share' | 'submit' | 'keys'>(null)
+const openTab = ref<'mine' | 'campaign'>('mine')
+const openDialog = (d: 'open' | 'share' | 'submit' | 'keys') => { openMenu.value = null; dialog.value = d }
 
 // ── Properties panel ──
 const selected = computed(() => {
@@ -494,7 +664,7 @@ const setMotionField = (key: string, v: number) => {
 const setRect = (key: 'x' | 'y' | 'w' | 'h', v: number) => {
   const ent = selected.value?.ent
   if (!ent || !Number.isFinite(v)) return
-  ent[key] = key === 'w' || key === 'h' ? Math.max(1, v) : v
+  ;(ent as unknown as Record<string, number>)[key] = key === 'w' || key === 'h' ? Math.max(1, v) : v
 }
 const presetIndex = computed(() => WORLD_PRESETS.findIndex((p) =>
   p.w === level.value.world.w && p.h === level.value.world.h &&
@@ -521,20 +691,56 @@ const setFinish = (on: boolean) => {
   if (on) { level.value.platforms.forEach((x) => { delete x.finish }); p.finish = true }
   else delete p.finish
 }
-const setFlag = (ent: object, key: 'super' | 'harmless', on: boolean) => {
+const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff', on: boolean) => {
   const o = ent as Record<string, unknown>
   if (on) o[key] = true
   else delete o[key]
 }
 
+// ── Switches: platforms and currents on a button channel ──
+const setChannel = (ent: PlatformDef | WindDef, v: string) => {
+  if (v === '') { delete ent.channel; delete (ent as PlatformDef).whenOff; delete (ent as WindDef).switched; return }
+  ent.channel = Number(v)
+  if ('dir' in ent) ent.switched ??= { speed: 0 }
+}
+const setSwitchedDir = (w: WindDef, v: string) => {
+  w.switched ??= {}
+  if (v === '') delete w.switched.dir
+  else w.switched.dir = v as WindDir
+}
+const setSwitchedSpeed = (w: WindDef, v: string) => {
+  w.switched ??= {}
+  const n = Number(v)
+  if (v === '' || !Number.isFinite(n)) delete w.switched.speed
+  else w.switched.speed = Math.max(0, n)
+}
+const setButtonMode = (b: ButtonDef, timed: boolean) => {
+  if (timed) b.duration ??= 5
+  else delete b.duration
+}
+const selectedButton = computed(() => (selected.value?.group === 'buttons' ? (selected.value.ent as ButtonDef) : null))
+const selectedCheckpoint = computed(() => (selected.value?.group === 'checkpoints' ? (selected.value.ent as CheckpointDef) : null))
+const rectKeys = computed(() => (selected.value?.group === 'checkpoints' ? (['x', 'y'] as const) : (['x', 'y', 'w', 'h'] as const)))
+const selectedKind = computed(() => {
+  const s = selected.value
+  if (!s) return ''
+  if (s.group === 'hazards') return (s.ent as HazardDef).kind
+  if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
+  if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : 'platform'
+  return s.group === 'buttons' ? 'button' : 'checkpoint'
+})
+
 // ── Checks shown under the canvas, so a broken level is visible before testing ──
 const problems = computed(() => {
   const L = level.value
   const out: string[] = []
-  if (!L.platforms.some((p) => p.finish)) out.push('No finish platform — the level cannot be won.')
+  if (!L.platforms.some((p) => p.finish)) out.push(t('umbrellaEditor.problem.noFinish'))
   const sp = L.spawn
-  if (sp.x < 0 || sp.y < 0 || sp.x > L.world.w || sp.y > L.world.h) out.push('The spawn is outside the world.')
-  if (L.view && L.view.w >= L.world.w && L.view.h >= L.world.h) out.push('The screen covers the whole world — nothing scrolls.')
+  if (sp.x < 0 || sp.y < 0 || sp.x > L.world.w || sp.y > L.world.h) out.push(t('umbrellaEditor.problem.spawnOutside'))
+  if (L.view && L.view.w >= L.world.w && L.view.h >= L.world.h) out.push(t('umbrellaEditor.problem.noScroll'))
+  const used = new Set((L.buttons ?? []).map((b) => b.channel))
+  const switched = [...L.platforms, ...L.winds].some((x) => x.channel !== undefined && !used.has(x.channel))
+  if (switched) out.push(t('umbrellaEditor.problem.noButton'))
   return out
 })
 
@@ -542,9 +748,10 @@ const problems = computed(() => {
 const libraryNames = computed(() => Object.keys(customLevels.value).sort())
 const campaignOptions = computed(() => {
   void campaignOrder.value // LEVELS is rebuilt in place when the order changes
-  const names = new Map(campaignEntries().map((e) => [e.id, e.custom]))
-  return LEVELS.map((l, i) => ({ id: l.id, label: `Level ${i + 1}${names.get(l.id) ? ` · ★ ${names.get(l.id)}` : ''}${campaignOverrides.value[l.id] ? ' (edited)' : ''}` }))
+  const names = new Map(campaignEntries().map((e) => [e.id, e.name ?? (e.custom && `★ ${e.custom}`)]))
+  return LEVELS.map((l, i) => ({ id: l.id, label: `${t('umbrella.level', { n: i + 1 })}${names.get(l.id) ? ` · ${names.get(l.id)}` : ''}${designer.value && campaignOverrides.value[l.id] ? ' (edited)' : ''}` }))
 })
+const slotNumber = (id: number) => LEVELS.findIndex((l) => l.id === id) + 1
 
 // ── Reorder dialog: drag the campaign into a new order, drag saved levels in ──
 const orderOpen = ref(false)
@@ -554,13 +761,31 @@ const dragging = ref<{ row: number } | { lib: string } | null>(null)
 const dropAt = ref<number | null>(null)
 /** The authored levels' ids in authored order, for "Original level N" and Reset. */
 const AUTHORED_IDS = campaignEntries().filter((e) => !e.custom).map((e) => e.id).sort((a, b) => a - b)
-const orderLabel = (e: OrderEntry) =>
+/** Where the slot comes from: an authored level's original number, or the saved level added. */
+const orderOrigin = (e: OrderEntry) =>
   e.custom ? `★ ${e.custom}` : `Original level ${AUTHORED_IDS.indexOf(e.id) + 1}${campaignOverrides.value[e.id] ? ' (edited)' : ''}`
+const orderLabel = (e: OrderEntry) => e.name ?? orderOrigin(e)
+// Rename: the slot's mechanic or theme instead of its number.
+const renaming = ref<number | null>(null)
+const renameDraft = ref('')
+const startRename = (i: number) => {
+  renaming.value = i
+  renameDraft.value = orderDraft.value[i]?.name ?? ''
+}
+const commitRename = () => {
+  const e = renaming.value === null ? undefined : orderDraft.value[renaming.value]
+  if (e) {
+    const v = renameDraft.value.trim().slice(0, 40)
+    if (v) e.name = v
+    else delete e.name
+  }
+  renaming.value = null
+}
 const orderPool = computed(() => libraryNames.value.filter((n) => !orderDraft.value.some((e) => e.custom === n)))
-const orderKey = (list: OrderEntry[]) => JSON.stringify(list.map((e) => [e.id, e.custom]))
+const orderKey = (list: OrderEntry[]) => JSON.stringify(list.map((e) => [e.id, e.custom, e.name ?? '']))
 const orderChanged = computed(() => orderKey(orderDraft.value) !== orderKey(campaignEntries()))
 
-const openOrder = () => { orderDraft.value = campaignEntries(); dragging.value = null; dropAt.value = null; orderOpen.value = true }
+const openOrder = () => { orderDraft.value = campaignEntries(); dragging.value = null; dropAt.value = null; renaming.value = null; orderOpen.value = true }
 const closeOrder = () => {
   if (orderChanged.value && !window.confirm('Discard the new order?')) return
   orderOpen.value = false
@@ -606,38 +831,50 @@ const loadIntoEditor = (l: LevelDef, name: string) => {
   selection.value = null
   previewT = 0
 }
-const onNew = () => { loadIntoEditor(blankLevel(), 'untitled'); overwriteSlot.value = ''; flash('New level') }
+const onNew = () => { loadIntoEditor(blankLevel(), t('umbrellaEditor.untitled')); overwriteSlot.value = ''; flash(t('umbrellaEditor.msg.newLevel')) }
 const onSave = () => {
-  const name = levelName.value.trim() || 'untitled'
+  const name = levelName.value.trim() || t('umbrellaEditor.untitled')
   levelName.value = name
   saveCustomLevel(name, level.value)
-  flash(`Saved "${name}"`)
+  flash(t('umbrellaEditor.msg.saved', { name }))
 }
-const onLoad = () => {
-  const l = customLevels.value[libraryPick.value]
-  if (l) { loadIntoEditor(l, libraryPick.value); flash(`Loaded "${libraryPick.value}"`) }
-}
-const onDelete = () => {
-  if (!libraryPick.value || !window.confirm(`Delete saved level "${libraryPick.value}"?`)) return
-  deleteCustomLevel(libraryPick.value)
-  flash(`Deleted "${libraryPick.value}"`)
-  libraryPick.value = ''
-}
-const onImportCampaign = () => {
-  const l = LEVELS.find((x) => x.id === campaignPick.value)
+const openSaved = (name: string) => {
+  const l = customLevels.value[name]
   if (!l) return
-  const n = LEVELS.indexOf(l) + 1
-  loadIntoEditor(l, `level-${n}`)
-  overwriteSlot.value = l.id
-  flash(`Opened campaign level ${n}`)
+  loadIntoEditor(l, name)
+  overwriteSlot.value = ''
+  dialog.value = null
+  flash(t('umbrellaEditor.msg.opened', { name }))
+}
+const deleteSaved = (name: string) => {
+  if (!window.confirm(t('umbrellaEditor.confirmDelete', { name }))) return
+  deleteCustomLevel(name)
+  flash(t('umbrellaEditor.msg.deleted', { name }))
+}
+const openCampaign = (id: number) => {
+  const l = LEVELS.find((x) => x.id === id)
+  if (!l) return
+  const n = slotNumber(id)
+  // A player's copy is theirs: it gets a name of its own and never touches the campaign.
+  loadIntoEditor(l, designer.value ? slotTitle(id) ?? `level-${n}` : t('umbrellaEditor.campaignCopy', { n }))
+  overwriteSlot.value = designer.value ? id : ''
+  dialog.value = null
+  flash(t('umbrellaEditor.msg.openedCampaign', { n }))
 }
 const onOverwrite = () => {
   const id = overwriteSlot.value
   if (id === '') return
-  const n = LEVELS.findIndex((l) => l.id === id) + 1
+  const n = slotNumber(id)
   if (!window.confirm(`Replace campaign level ${n} with this edit? (Revert restores the original.)`)) return
   saveCampaignOverride(id, level.value)
   flash(`Campaign level ${n} replaced`)
+}
+const onReplaceSlot = () => {
+  const n = Number(window.prompt(`Replace which campaign level (1–${LEVELS.length})?`, ''))
+  const l = Number.isInteger(n) ? LEVELS[n - 1] : undefined
+  if (!l) return
+  overwriteSlot.value = l.id
+  onOverwrite()
 }
 const onRevert = () => {
   const id = overwriteSlot.value
@@ -653,8 +890,15 @@ const download = (fileName: string, data: unknown) => {
   a.click()
   URL.revokeObjectURL(a.href)
 }
-/** Every saved level, edited campaign slot and deletion in one file — the fallback
- *  when the levels bucket is unreachable. */
+const fileSafe = (s: string) => s.trim().replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '') || 'level'
+/** The open level as a .json file (what Import reads back). */
+const onExportLevel = () => {
+  const name = levelName.value.trim() || t('umbrellaEditor.untitled')
+  download(`umbrella-${fileSafe(name)}.json`, { game: 'umbrella', kind: 'level', version: 1, name, level: cloneLevel(level.value) })
+  flash(t('umbrellaEditor.msg.exported', { name }))
+}
+/** Every saved level, edited campaign slot and deletion in one file — the designer's
+ *  fallback when the levels bucket is unreachable. */
 const onExportLibrary = () => {
   const n = libraryNames.value.length
   const c = Object.keys(campaignOverrides.value).length
@@ -668,7 +912,8 @@ const onImportFile = async (e: Event) => {
   if (!file) return
   try {
     const data: unknown = JSON.parse(await file.text())
-    const bucket = bucketFromFile(data)
+    // Library files touch the campaign: the designer's only.
+    const bucket = designer.value ? bucketFromFile(data) : null
     if (bucket) {
       // Newest wins, same as a sync: pull first so the file cannot undo a newer bucket edit.
       await syncBucket()
@@ -679,11 +924,12 @@ const onImportFile = async (e: Event) => {
       return
     }
     const one = levelFromFile(data)
-    if (!one) { flash('That file has no Umbrella level in it'); return }
+    if (!one) { flash(t('umbrellaEditor.msg.noLevelInFile')); return }
     loadIntoEditor(one.level, one.name)
-    flash(`Opened "${one.name}" — Save or Overwrite to keep it`)
+    overwriteSlot.value = ''
+    flash(t('umbrellaEditor.msg.imported', { name: one.name }))
   } catch {
-    flash('Could not read that file')
+    flash(t('umbrellaEditor.msg.fileBroken'))
   }
 }
 const syncing = ref(false)
@@ -693,8 +939,62 @@ const onSync = async () => {
   syncing.value = false
   if (bucketStatus.value) flash(bucketStatus.value.text)
 }
-const passwordDraft = ref(bucketPassword.value)
-const onPassword = () => { setBucketPassword(passwordDraft.value); void onSync() }
+const onPasswordPrompt = () => {
+  const pw = window.prompt('Editor password (kept in this browser only):', bucketPassword.value)
+  if (pw === null) return
+  setBucketPassword(pw)
+  void onSync()
+}
+
+// ── Share link ──
+const shareUrl = ref('')
+const shareCopied = ref(false)
+const onShare = async () => {
+  const name = levelName.value.trim() || t('umbrellaEditor.untitled')
+  shareUrl.value = shareLink(await encodeLevel(level.value, name))
+  shareCopied.value = false
+  openDialog('share')
+  await copyShare()
+}
+const copyShare = async () => {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    shareCopied.value = true
+  } catch {
+    shareCopied.value = false // the link stays selectable in the dialog
+  }
+}
+
+// ── Submit to the community ──
+const AUTHOR_KEY = 'umb_author'
+const author = ref((() => { try { return localStorage.getItem(AUTHOR_KEY) ?? '' } catch { return '' } })())
+const quota = ref<{ used: number; limit: number; resetAt: number | null } | null>(null)
+const submitState = ref<'idle' | 'sending' | 'done' | 'limit' | 'error'>('idle')
+const submitLeft = computed(() => (quota.value ? Math.max(0, quota.value.limit - quota.value.used) : null))
+const openSubmit = async () => {
+  if (!communityEnabled) return
+  submitState.value = 'idle'
+  openDialog('submit')
+  quota.value = await getQuota().catch(() => null)
+}
+const onSubmit = async () => {
+  const name = levelName.value.trim()
+  if (!name || problems.value.length) return
+  try { localStorage.setItem(AUTHOR_KEY, author.value.trim()) } catch { /* private mode */ }
+  submitState.value = 'sending'
+  // A submitted level is also the player's own: kept in their library.
+  saveCustomLevel(name, level.value)
+  const res = await submitLevel({ name, author: author.value.trim(), code: await encodeLevel(level.value, name) })
+  if (res.ok) {
+    submitState.value = 'done'
+    if (quota.value) quota.value = { ...quota.value, used: quota.value.used + 1 }
+  } else if (res.reason === 'weekly-limit') {
+    submitState.value = 'limit'
+    quota.value = { limit: quota.value?.limit ?? 5, used: res.used, resetAt: res.resetAt }
+  } else submitState.value = 'error'
+}
+const resetDate = computed(() => (quota.value?.resetAt ? new Date(quota.value.resetAt).toLocaleDateString() : ''))
+
 const onTest = () => {
   testLevel.value = cloneLevel(level.value)
   void router.push('/')
@@ -748,7 +1048,7 @@ const paint = (now: number) => {
   // Fit the world plus a margin, then the wheel zoom and the pan on top.
   const s = Math.min(cw / (L.world.w * (1 + 2 * MARGIN)), ch / (L.world.h * (1 + 2 * MARGIN))) * zoom
   view = { s, ox: (cw - L.world.w * s) / 2 + pan.x, oy: (ch - L.world.h * s) / 2 + pan.y }
-  render(ctx, world, { finish: 'FINISH' }, tuning, 0, view)
+  render(ctx, world, { finish: t('umbrella.finish') }, tuning, 0, view)
 
   // Overlay in world space.
   ctx.setTransform(s, 0, 0, s, view.ox, view.oy)
@@ -768,10 +1068,10 @@ const paint = (now: number) => {
     ctx.font = `${12 / s}px system-ui, sans-serif`
     ctx.textBaseline = 'top'
     ctx.textAlign = 'left'
-    ctx.fillText('start screen', start.x + 6 / s, start.y + 6 / s)
+    ctx.fillText(t('umbrellaEditor.startScreen'), start.x + 6 / s, start.y + 6 / s)
   }
   // Off-world things (a lunge resting off-screen) still need an outline to grab.
-  for (const group of ['platforms', 'winds', 'hazards'] as Group[]) {
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints'] as Group[]) {
     listOf(group).forEach((_, i) => {
       const r = shownRect({ group, i })
       const off = r.x < 0 || r.y < 0 || r.x + r.w > L.world.w || r.y + r.h > L.world.h
@@ -819,7 +1119,7 @@ const paint = (now: number) => {
     strokeRect(ctx, r, '#4ade80')
     ctx.fillStyle = '#4ade80'
     const hs = handleRadius()
-    ctx.fillRect(r.x + r.w - hs, r.y + r.h - hs, hs * 2, hs * 2)
+    if (sel.group !== 'checkpoints') ctx.fillRect(r.x + r.w - hs, r.y + r.h - hs, hs * 2, hs * 2)
   } else if (sel?.type === 'spawn') {
     const sp = L.spawn
     strokeRect(ctx, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, '#4ade80')
@@ -911,7 +1211,13 @@ const stepPlay = (dtReal: number) => {
     playToggle = false
     step(play, input, DT, tuning)
     // Like the game's test mode: any ending restarts the level.
-    if (play.phase === 'out' || (play.phase === 'splat' && play.phaseTime >= tuning.splatReset) || (play.phase === 'win' && play.phaseTime >= tuning.winHold)) {
+    if (play.phase === 'out' || (play.phase === 'splat' && play.phaseTime >= tuning.splatReset)) {
+      const cp = play.checkpoint
+      if (cp >= 0) play = createWorld(cloneLevel(level.value), { w: tuning.playerWidth, h: tuning.playerHeight }, cp)
+      else restartPlay()
+      return
+    }
+    if (play.phase === 'win' && play.phaseTime >= tuning.winHold) {
       restartPlay()
       return
     }
@@ -924,12 +1230,12 @@ const paintPhone = (el: HTMLCanvasElement | null, dt: number) => {
   const ch = Math.round(el.clientHeight * dpr)
   if (el.width !== cw || el.height !== ch) { el.width = cw; el.height = ch }
   const ctx = el.getContext('2d')
-  if (ctx && cw > 0 && ch > 0) render(ctx, play, { finish: 'FINISH' }, tuning, dt, cameraFor(play, cw, ch, dt))
+  if (ctx && cw > 0 && ch > 0) render(ctx, play, { finish: t('umbrella.finish') }, tuning, dt, cameraFor(play, cw, ch, dt))
 }
 
 onMounted(() => {
-  // Opening the editor always starts from the bucket's newest levels (the game pulled once at boot).
-  void syncBucket()
+  // The designer's editor always starts from the bucket's newest levels (the game pulled once at boot).
+  if (designer.value) void syncBucket()
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   raf = requestAnimationFrame(paint)
@@ -942,60 +1248,69 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="editor">
-    <div class="bar">
-      <input v-model="levelName" class="field name" placeholder="Level name" />
-      <button class="btn green" @click="onSave">Save</button>
-      <select v-model="libraryPick" class="field">
-        <option value="">— saved levels —</option>
-        <option v-for="n in libraryNames" :key="n" :value="n">{{ n }}</option>
-      </select>
-      <button class="btn blue" :disabled="!libraryPick" @click="onLoad">Load</button>
-      <button class="btn red" :disabled="!libraryPick" @click="onDelete">Delete</button>
-      <button class="btn" @click="onNew">New</button>
-      <span class="sep" />
-      <select v-model.number="campaignPick" class="field">
-        <option value="">— campaign level —</option>
-        <option v-for="c in campaignOptions" :key="c.id" :value="c.id">{{ c.label }}</option>
-      </select>
-      <button class="btn indigo" :disabled="campaignPick === ''" @click="onImportCampaign">Open</button>
-      <select v-model.number="overwriteSlot" class="field">
-        <option value="">— replace slot —</option>
-        <option v-for="c in campaignOptions" :key="c.id" :value="c.id">{{ c.label }}</option>
-      </select>
-      <button class="btn orange" :disabled="overwriteSlot === ''" title="Replace this campaign level with the current edit" @click="onOverwrite">Overwrite</button>
-      <button class="btn" :disabled="overwriteSlot === '' || !campaignOverrides[overwriteSlot]" title="Restore the original level in this slot" @click="onRevert">Revert</button>
-      <button class="btn indigo" title="Drag the campaign levels into a new order and add saved levels to it" @click="openOrder">⇵ Reorder</button>
-      <span class="sep" />
-      <button class="btn" :disabled="!undoStack.length" :title="`Undo (${UNDO_KEYS})`" @click="undo">↶ Undo <kbd>{{ UNDO_KEYS }}</kbd></button>
-      <button class="btn" :disabled="!redoStack.length" :title="`Redo (${REDO_KEYS})`" @click="redo">↷ Redo <kbd>{{ REDO_KEYS }}</kbd></button>
-      <span class="sep" />
-      <button class="btn" title="Export every saved level and every edited campaign level in one file" @click="onExportLibrary">Export library</button>
-      <button class="btn" title="Bring in a library file: newer levels replace older ones" @click="fileInput?.click()">Import .json</button>
-      <template v-if="BUCKET_URL">
-        <span class="sep" />
-        <input v-model="passwordDraft" type="password" class="field pw" placeholder="Editor password" autocomplete="off" @change="onPassword" />
-        <button class="btn blue" :disabled="syncing" title="Pull the newest levels from the bucket and upload yours" @click="onSync">⇅ Sync</button>
-        <span v-if="bucketStatus" class="sync" :class="{ bad: !bucketStatus.ok }" role="status">{{ bucketStatus.ok ? '✓' : '⚠' }} {{ bucketStatus.text }}</span>
-      </template>
-      <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
+  <div class="editor" @pointerdown.capture="onDocPointer">
+    <header class="topbar">
+      <div class="brand">☂ <span>{{ t('umbrellaEditor.title') }}</span><em v-if="designer" class="badge">designer</em></div>
+      <nav class="menus" role="menubar">
+        <div v-for="m in menus" :key="m.id" class="menu">
+          <button
+            class="menu-btn"
+            :class="{ open: openMenu === m.id }"
+            role="menuitem"
+            aria-haspopup="true"
+            :aria-expanded="openMenu === m.id"
+            @click="toggleMenu(m.id)"
+            @pointerenter="hoverMenu(m.id)"
+          >{{ m.id === 'campaign' ? 'Campaign' : t(`umbrellaEditor.menu.${m.id}`) }}</button>
+          <div v-if="openMenu === m.id" class="menu-list" role="menu">
+            <template v-for="(id, i) in m.items" :key="`${m.id}-${i}`">
+              <div v-if="id === '-'" class="menu-sep" role="separator" />
+              <button v-else class="menu-item" role="menuitem" :disabled="!cmdEnabled(id)" @click="runCmd(id)">
+                <span class="menu-check">{{ commands[id]?.checked?.() ? '✓' : '' }}</span>
+                <span class="menu-label">{{ cmdLabel(id) }}</span>
+                <kbd v-if="cmdKeys(id)">{{ cmdKeys(id) }}</kbd>
+              </button>
+            </template>
+          </div>
+        </div>
+      </nav>
+      <input v-model="levelName" class="field name" :placeholder="t('umbrellaEditor.namePlaceholder')" :aria-label="t('umbrellaEditor.namePlaceholder')" />
+      <div class="quick">
+        <button class="btn" :disabled="!cmdEnabled('undo')" :title="cmdLabel('undo')" @click="runCmd('undo')">↶ <kbd>{{ cmdKeys('undo') }}</kbd></button>
+        <button class="btn" :disabled="!cmdEnabled('redo')" :title="cmdLabel('redo')" @click="runCmd('redo')">↷ <kbd>{{ cmdKeys('redo') }}</kbd></button>
+        <button class="btn green" @click="runCmd('save')">💾 {{ t('umbrellaEditor.cmd.save') }} <kbd>{{ cmdKeys('save') }}</kbd></button>
+        <button class="btn blue" @click="runCmd('share')">🔗 {{ t('umbrellaEditor.share') }} <kbd>{{ cmdKeys('share') }}</kbd></button>
+        <button v-if="communityEnabled" class="btn indigo" @click="runCmd('submit')">🌐 {{ t('umbrellaEditor.submitShort') }} <kbd>{{ cmdKeys('submit') }}</kbd></button>
+        <button class="btn yellow" @click="runCmd('test')">▶ {{ t('umbrellaEditor.cmd.test') }} <kbd>{{ cmdKeys('test') }}</kbd></button>
+      </div>
       <span class="grow" />
-      <button class="btn" :class="{ on: mobileView }" :aria-pressed="mobileView" title="Playtest on a portrait and a landscape phone at once" @click="toggleMobileView">📱 Toggle Mobile view</button>
-      <button class="btn yellow" @click="onTest">Test ▶</button>
-      <button class="btn" @click="onBack">Back to game</button>
-    </div>
+      <span v-if="designer && BUCKET_URL && bucketStatus" class="sync" :class="{ bad: !bucketStatus.ok }" role="status">{{ bucketStatus.ok ? '✓' : '⚠' }} {{ bucketStatus.text }}</span>
+      <button class="btn" @click="runCmd('back')">✕ {{ t('umbrellaEditor.cmd.back') }}</button>
+      <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
+    </header>
 
     <div class="body">
-      <div class="panel tools">
-        <div class="head">Tools</div>
-        <button v-for="t in TOOLS" :key="t.id" class="tool" :class="{ on: tool === t.id }" @click="tool = t.id">{{ t.label }}</button>
-        <label class="check"><input v-model="snap" type="checkbox" /> Snap to 10 px</label>
-        <label class="check"><input v-model="animate" type="checkbox" /> Animate movers</label>
-        <button class="btn" @click="fitView">Fit to window</button>
-        <p class="hint">Wheel zooms, middle- or Alt-drag pans, double-click empty space refits. Drag to draw boxes; click for pillar, mine, spawn. Select tool: drag to move, green corner resizes, yellow dots move a path. Right-click or Del deletes. Undo {{ UNDO_KEYS }}, redo {{ REDO_KEYS }}.</p>
-      </div>
+      <aside class="panel tools" :aria-label="t('umbrellaEditor.toolsTitle')">
+        <section v-for="g in TOOL_GROUPS" :key="g.id" class="tool-group">
+          <div class="head">{{ t(`umbrellaEditor.toolGroup.${g.id}`) }}</div>
+          <button
+            v-for="tl in g.tools"
+            :key="tl.id"
+            class="tool"
+            :class="{ on: tool === tl.id }"
+            :aria-pressed="tool === tl.id"
+            @click="tool = tl.id"
+          >
+            <span class="tool-icon">{{ tl.icon }}</span>
+            <span class="tool-label">{{ t(`umbrellaEditor.tool.${tl.id}`) }}</span>
+            <kbd>{{ fmtKeys(tl.keys) }}</kbd>
+          </button>
+        </section>
+        <p class="hint">{{ t(`umbrellaEditor.toolHint.${tool}`) }}</p>
+        <p class="hint">{{ t('umbrellaEditor.canvasHint') }}</p>
+      </aside>
 
-      <div class="stage">
+      <main class="stage">
         <div v-if="mobileView" class="phones">
           <div class="phone portrait" :style="{ aspectRatio: `${PHONE.w} / ${PHONE.h}` }">
             <canvas ref="portraitRef" class="phone-canvas" @pointerdown="onPhoneTap" />
@@ -1004,8 +1319,8 @@ onUnmounted(() => {
               <span class="stick-arrow right">›</span>
               <span class="stick-knob" :style="{ transform: `translateX(${knobX}px)` }" />
             </div>
-            <button class="umbrella-btn" :class="{ pressed: umbrellaPressed }" title="Open / close the umbrella" @pointerdown.stop="onUmbrellaDown" @pointerup="umbrellaPressed = false" @pointercancel="umbrellaPressed = false">☂</button>
-            <span class="phone-label">Portrait {{ PHONE.w }}×{{ PHONE.h }}</span>
+            <button class="umbrella-btn" :class="{ pressed: umbrellaPressed }" :aria-label="t('umbrella.umbrellaButton')" @pointerdown.stop="onUmbrellaDown" @pointerup="umbrellaPressed = false" @pointercancel="umbrellaPressed = false">☂</button>
+            <span class="phone-label">{{ t('umbrellaEditor.portrait') }} {{ PHONE.w }}×{{ PHONE.h }}</span>
           </div>
           <div class="phone landscape" :style="{ aspectRatio: `${PHONE.h} / ${PHONE.w}` }">
             <canvas ref="landscapeRef" class="phone-canvas" @pointerdown="onPhoneTap" />
@@ -1014,8 +1329,8 @@ onUnmounted(() => {
               <span class="stick-arrow right">›</span>
               <span class="stick-knob" :style="{ transform: `translateX(${knobX}px)` }" />
             </div>
-            <button class="umbrella-btn" :class="{ pressed: umbrellaPressed }" title="Open / close the umbrella" @pointerdown.stop="onUmbrellaDown" @pointerup="umbrellaPressed = false" @pointercancel="umbrellaPressed = false">☂</button>
-            <span class="phone-label">Landscape {{ PHONE.h }}×{{ PHONE.w }}</span>
+            <button class="umbrella-btn" :class="{ pressed: umbrellaPressed }" :aria-label="t('umbrella.umbrellaButton')" @pointerdown.stop="onUmbrellaDown" @pointerup="umbrellaPressed = false" @pointercancel="umbrellaPressed = false">☂</button>
+            <span class="phone-label">{{ t('umbrellaEditor.landscape') }} {{ PHONE.h }}×{{ PHONE.w }}</span>
           </div>
         </div>
         <canvas
@@ -1031,80 +1346,224 @@ onUnmounted(() => {
           @dblclick="onDoubleClick"
         />
         <div class="foot">
-          <span v-if="mobileView" class="status">Playtest: the on-screen joystick and ☂ button, or ←/→ / A/D and Space · R restarts · edits restart it</span>
+          <span v-if="mobileView" class="status">{{ t('umbrellaEditor.mobileHint') }}</span>
           <span v-for="p in problems" :key="p" class="warn">⚠ {{ p }}</span>
           <span v-if="status" class="status">{{ status }}</span>
         </div>
-      </div>
+      </main>
 
-      <div class="panel props">
-        <div class="head">Level</div>
-        <label class="row col">World
+      <aside class="panel props">
+        <div class="head">{{ t('umbrellaEditor.levelTitle') }}</div>
+        <label class="row col">{{ t('umbrellaEditor.prop.world') }}
           <select class="field" :value="presetIndex" @change="setWorldPreset(+($event.target as HTMLSelectElement).value)">
-            <option :value="-1" disabled>custom</option>
-            <option v-for="(p, i) in WORLD_PRESETS" :key="p.label" :value="i">{{ p.label }}</option>
+            <option :value="-1" disabled>{{ t('umbrellaEditor.world.custom') }}</option>
+            <option v-for="(p, i) in WORLD_PRESETS" :key="p.key" :value="i">{{ t(`umbrellaEditor.world.${p.key}`) }}</option>
           </select>
         </label>
-        <label class="row">World w <input class="field num" type="number" min="100" step="10" :value="level.world.w" @change="setWorldSize('w', +($event.target as HTMLInputElement).value)" /></label>
-        <label class="row">World h <input class="field num" type="number" min="100" step="10" :value="level.world.h" @change="setWorldSize('h', +($event.target as HTMLInputElement).value)" /></label>
-        <label class="check"><input type="checkbox" :checked="scrolls" @change="setScrolls(($event.target as HTMLInputElement).checked)" /> Scrolls (camera follows)</label>
-        <template v-if="level.view">
-          <label class="row">Screen w <input v-model.number="level.view.w" class="field num" type="number" min="100" step="10" /></label>
-          <label class="row">Screen h <input v-model.number="level.view.h" class="field num" type="number" min="100" step="10" /></label>
-        </template>
-        <p class="hint">{{ level.view ? 'The camera shows one screen and follows the player. Phones keep the screen width in portrait and the height in landscape.' : 'The whole world is shown at once (zoomed out if it is bigger than a screen).' }}</p>
-        <label class="row">Spawn x <input v-model.number="level.spawn.x" class="field num" type="number" /></label>
-        <label class="row">Spawn y <input v-model.number="level.spawn.y" class="field num" type="number" /></label>
+        <div class="pair">
+          <label class="row">{{ t('umbrellaEditor.prop.worldW') }} <input class="field num" type="number" min="100" step="10" :value="level.world.w" @change="setWorldSize('w', +($event.target as HTMLInputElement).value)" /></label>
+          <label class="row">{{ t('umbrellaEditor.prop.worldH') }} <input class="field num" type="number" min="100" step="10" :value="level.world.h" @change="setWorldSize('h', +($event.target as HTMLInputElement).value)" /></label>
+        </div>
+        <label class="check"><input type="checkbox" :checked="scrolls" @change="setScrolls(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.scrolls') }}</label>
+        <div v-if="level.view" class="pair">
+          <label class="row">{{ t('umbrellaEditor.prop.screenW') }} <input v-model.number="level.view.w" class="field num" type="number" min="100" step="10" /></label>
+          <label class="row">{{ t('umbrellaEditor.prop.screenH') }} <input v-model.number="level.view.h" class="field num" type="number" min="100" step="10" /></label>
+        </div>
+        <p class="hint">{{ t(level.view ? 'umbrellaEditor.scrollHint' : 'umbrellaEditor.wholeHint') }}</p>
 
-        <div class="head">Selection</div>
-        <p v-if="!selected" class="hint">{{ selection?.type === 'spawn' ? 'Player spawn (feet position).' : 'Nothing selected.' }}</p>
-        <template v-else>
-          <div class="kind">{{ selectedHazard ? selectedHazard.kind : selected.group === 'winds' ? 'wind' : selectedPlatform?.finish ? 'finish platform' : 'platform' }}</div>
-          <label v-for="k in (['x', 'y', 'w', 'h'] as const)" :key="k" class="row">{{ k }}
-            <input class="field num" type="number" :value="Math.round(selected.ent[k])" @change="setRect(k, +($event.target as HTMLInputElement).value)" />
-          </label>
+        <div class="head">{{ t('umbrellaEditor.selectionTitle') }}</div>
+        <p v-if="!selected" class="hint">{{ t(selection?.type === 'spawn' ? 'umbrellaEditor.spawnSelected' : 'umbrellaEditor.nothingSelected') }}</p>
+        <template v-if="selection?.type === 'spawn'">
+          <div class="pair">
+            <label class="row">x <input v-model.number="level.spawn.x" class="field num" type="number" /></label>
+            <label class="row">y <input v-model.number="level.spawn.y" class="field num" type="number" /></label>
+          </div>
+        </template>
+        <template v-if="selected">
+          <div class="kind">{{ t(`umbrellaEditor.kind.${selectedKind}`) }}</div>
+          <div class="pair">
+            <label v-for="k in rectKeys" :key="k" class="row">{{ k }}
+              <input class="field num" type="number" :value="Math.round((selected.ent as unknown as Record<string, number>)[k]!)" @change="setRect(k, +($event.target as HTMLInputElement).value)" />
+            </label>
+          </div>
 
           <template v-if="selectedPlatform">
-            <label class="check"><input type="checkbox" :checked="!!selectedPlatform.finish" @change="setFinish(($event.target as HTMLInputElement).checked)" /> Finish</label>
+            <label class="check"><input type="checkbox" :checked="!!selectedPlatform.finish" @change="setFinish(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.finish') }}</label>
           </template>
 
           <template v-if="selectedWind">
-            <label class="row">Direction
+            <label class="row">{{ t('umbrellaEditor.prop.direction') }}
               <select v-model="selectedWind.dir" class="field">
-                <option v-for="d in ['up', 'down', 'left', 'right']" :key="d" :value="d">{{ d }}</option>
+                <option v-for="d in (['up', 'down', 'left', 'right'] as const)" :key="d" :value="d">{{ t(`umbrellaEditor.dir.${d}`) }}</option>
               </select>
             </label>
-            <label class="row">Speed <input v-model.number="selectedWind.speed" class="field num" type="number" min="0" step="10" /></label>
-            <input v-model.number="selectedWind.speed" type="range" min="0" max="1500" step="10" />
-            <label class="check"><input type="checkbox" :checked="!!selectedWind.super" @change="setFlag(selectedWind, 'super', ($event.target as HTMLInputElement).checked)" /> Super Stream</label>
+            <label class="row">{{ t('umbrellaEditor.prop.speed') }} <input v-model.number="selectedWind.speed" class="field num" type="number" min="0" step="10" /></label>
+            <input v-model.number="selectedWind.speed" type="range" min="0" max="1500" step="10" :aria-label="t('umbrellaEditor.prop.speed')" />
+            <label class="check"><input type="checkbox" :checked="!!selectedWind.super" @change="setFlag(selectedWind, 'super', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.kind.super') }}</label>
+          </template>
+
+          <template v-if="selectedPlatform || selectedWind">
+            <div class="head">{{ t('umbrellaEditor.switchTitle') }}</div>
+            <label class="row">{{ t('umbrellaEditor.prop.switchedBy') }}
+              <select class="field" :value="(selectedPlatform ?? selectedWind)!.channel ?? ''" @change="setChannel((selectedPlatform ?? selectedWind)!, ($event.target as HTMLSelectElement).value)">
+                <option value="">{{ t('umbrellaEditor.prop.noSwitch') }}</option>
+                <option v-for="c in CHANNELS" :key="c" :value="c" :style="{ color: channelColor(c) }">● {{ t('umbrellaEditor.prop.channel', { n: c }) }}</option>
+              </select>
+            </label>
+            <template v-if="selectedPlatform && selectedPlatform.channel !== undefined">
+              <label class="row">{{ t('umbrellaEditor.prop.platformShows') }}
+                <select class="field" :value="selectedPlatform.whenOff ? 'off' : 'on'" @change="setFlag(selectedPlatform, 'whenOff', ($event.target as HTMLSelectElement).value === 'off')">
+                  <option value="on">{{ t('umbrellaEditor.prop.whileOn') }}</option>
+                  <option value="off">{{ t('umbrellaEditor.prop.whileOff') }}</option>
+                </select>
+              </label>
+            </template>
+            <template v-if="selectedWind && selectedWind.channel !== undefined">
+              <p class="hint">{{ t('umbrellaEditor.switchedWindHint') }}</p>
+              <label class="row">{{ t('umbrellaEditor.prop.direction') }}
+                <select class="field" :value="selectedWind.switched?.dir ?? ''" @change="setSwitchedDir(selectedWind, ($event.target as HTMLSelectElement).value)">
+                  <option value="">{{ t('umbrellaEditor.prop.same') }}</option>
+                  <option v-for="d in (['up', 'down', 'left', 'right'] as const)" :key="d" :value="d">{{ t(`umbrellaEditor.dir.${d}`) }}</option>
+                </select>
+              </label>
+              <label class="row">{{ t('umbrellaEditor.prop.speed') }}
+                <input class="field num" type="number" min="0" step="10" :placeholder="t('umbrellaEditor.prop.same')" :value="selectedWind.switched?.speed ?? ''" @change="setSwitchedSpeed(selectedWind, ($event.target as HTMLInputElement).value)" />
+              </label>
+              <p class="hint">{{ t('umbrellaEditor.speedZeroHint') }}</p>
+            </template>
+          </template>
+
+          <template v-if="selectedButton">
+            <label class="row">{{ t('umbrellaEditor.prop.channelLabel') }}
+              <select v-model.number="selectedButton.channel" class="field">
+                <option v-for="c in CHANNELS" :key="c" :value="c" :style="{ color: channelColor(c) }">● {{ t('umbrellaEditor.prop.channel', { n: c }) }}</option>
+              </select>
+            </label>
+            <label class="row">{{ t('umbrellaEditor.prop.mode') }}
+              <select class="field" :value="selectedButton.duration ? 'timed' : 'toggle'" @change="setButtonMode(selectedButton, ($event.target as HTMLSelectElement).value === 'timed')">
+                <option value="toggle">{{ t('umbrellaEditor.prop.toggle') }}</option>
+                <option value="timed">{{ t('umbrellaEditor.prop.timed') }}</option>
+              </select>
+            </label>
+            <label v-if="selectedButton.duration" class="row">{{ t('umbrellaEditor.prop.seconds') }}
+              <input v-model.number="selectedButton.duration" class="field num" type="number" min="0.5" step="0.5" />
+            </label>
+            <p class="hint">{{ t(selectedButton.duration ? 'umbrellaEditor.timedHint' : 'umbrellaEditor.toggleHint', { s: selectedButton.duration ?? 0 }) }}</p>
+          </template>
+
+          <template v-if="selectedCheckpoint">
+            <p class="hint">{{ t('umbrellaEditor.checkpointHint') }}</p>
           </template>
 
           <template v-if="selectedHazard">
-            <label v-if="selectedHazard.kind === 'pillar'" class="check"><input type="checkbox" :checked="!!selectedHazard.harmless" @change="setFlag(selectedHazard, 'harmless', ($event.target as HTMLInputElement).checked)" /> Non-hostile (touch and lunge don't hurt; solid)</label>
-            <label v-if="selectedHazard.kind === 'spikes'" class="row">Points
+            <label v-if="selectedHazard.kind === 'pillar'" class="check"><input type="checkbox" :checked="!!selectedHazard.harmless" @change="setFlag(selectedHazard, 'harmless', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.harmless') }}</label>
+            <label v-if="selectedHazard.kind === 'spikes'" class="row">{{ t('umbrellaEditor.prop.points') }}
               <select v-model="selectedHazard.facing" class="field">
-                <option value="up">up</option>
-                <option value="down">down</option>
+                <option value="up">{{ t('umbrellaEditor.dir.up') }}</option>
+                <option value="down">{{ t('umbrellaEditor.dir.down') }}</option>
               </select>
             </label>
           </template>
 
           <template v-if="selectedMover">
-            <div class="head">Motion</div>
-            <select class="field" :value="motionKind" @change="setMotionKind(($event.target as HTMLSelectElement).value as Motion['kind'])">
-              <option v-for="k in MOTION_KINDS" :key="k" :value="k">{{ k }}</option>
+            <div class="head">{{ t('umbrellaEditor.motionTitle') }}</div>
+            <select class="field" :value="motionKind" :aria-label="t('umbrellaEditor.motionTitle')" @change="setMotionKind(($event.target as HTMLSelectElement).value as Motion['kind'])">
+              <option v-for="k in MOTION_KINDS" :key="k" :value="k">{{ t(`umbrellaEditor.motion.${k}`) }}</option>
             </select>
             <label v-for="f in motionFields" :key="f.key" class="row col">
-              <span>{{ f.label }}: {{ fieldValue(f.key, f.def) }}</span>
+              <span>{{ t(`umbrellaEditor.motionField.${f.key}`) }}: {{ fieldValue(f.key, f.def) }}</span>
               <input type="range" :min="f.min" :max="f.max" :step="f.step" :value="fieldValue(f.key, f.def)" @input="setMotionField(f.key, +($event.target as HTMLInputElement).value)" />
             </label>
-            <label v-if="selectedMotion?.kind === 'lunge'" class="check" title="Like a Thwomp: waits until the player is in the air and within the radius, then attacks once">
-              <input type="checkbox" :checked="!!selectedMotion.trigger" @change="setTrigger(($event.target as HTMLInputElement).checked)" /> Proximity trigger (airborne + near)
+            <label v-if="selectedMotion?.kind === 'lunge'" class="check" :title="t('umbrellaEditor.triggerHint')">
+              <input type="checkbox" :checked="!!selectedMotion.trigger" @change="setTrigger(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.trigger') }}
             </label>
-            <p v-if="motionKind !== 'static'" class="hint">Drag the yellow dots on the canvas to move the path (orange = end).</p>
+            <p v-if="motionKind !== 'static'" class="hint">{{ t('umbrellaEditor.pathHint') }}</p>
           </template>
-          <button class="btn red" @click="removeSelection">Delete</button>
+          <div class="row actions">
+            <button class="btn" @click="runCmd('duplicate')">⧉ {{ t('umbrellaEditor.cmd.duplicate') }} <kbd>{{ cmdKeys('duplicate') }}</kbd></button>
+            <button class="btn red" @click="runCmd('delete')">🗑 {{ t('umbrellaEditor.cmd.delete') }} <kbd>{{ cmdKeys('delete') }}</kbd></button>
+          </div>
         </template>
+      </aside>
+    </div>
+
+    <!-- Open: the player's saved levels and the campaign (a campaign level opens as a copy). -->
+    <div v-if="dialog === 'open'" class="modal-back" @pointerdown.self="dialog = null">
+      <div class="modal" role="dialog" aria-modal="true" :aria-label="t('umbrellaEditor.cmd.open')">
+        <div class="row"><b>{{ t('umbrellaEditor.cmd.open') }}</b><button class="btn" :aria-label="t('umbrella.close')" @click="dialog = null">✕ <kbd>Esc</kbd></button></div>
+        <div class="tabs" role="tablist">
+          <button role="tab" class="tab" :class="{ on: openTab === 'mine' }" :aria-selected="openTab === 'mine'" @click="openTab = 'mine'">{{ t('umbrellaEditor.myLevels') }}</button>
+          <button role="tab" class="tab" :class="{ on: openTab === 'campaign' }" :aria-selected="openTab === 'campaign'" @click="openTab = 'campaign'">{{ t('umbrellaEditor.campaignLevels') }}</button>
+        </div>
+        <ul v-if="openTab === 'mine'" class="pick-list">
+          <li v-for="n in libraryNames" :key="n" class="pick-row">
+            <span class="order-name">{{ n }}</span>
+            <button class="btn blue" @click="openSaved(n)">{{ t('umbrellaEditor.openBtn') }}</button>
+            <button class="btn red" :aria-label="t('umbrellaEditor.deleteBtn', { name: n })" @click="deleteSaved(n)">🗑</button>
+          </li>
+          <li v-if="!libraryNames.length" class="hint">{{ t('umbrellaEditor.noSaved') }}</li>
+        </ul>
+        <ul v-else class="pick-list">
+          <li v-for="c in campaignOptions" :key="c.id" class="pick-row">
+            <span class="order-name">{{ c.label }}</span>
+            <button class="btn blue" @click="openCampaign(c.id)">{{ t('umbrellaEditor.openBtn') }}</button>
+          </li>
+        </ul>
+        <p v-if="openTab === 'campaign' && !designer" class="hint">{{ t('umbrellaEditor.campaignCopyHint') }}</p>
+      </div>
+    </div>
+
+    <div v-if="dialog === 'share'" class="modal-back" @pointerdown.self="dialog = null">
+      <div class="modal narrow" role="dialog" aria-modal="true" :aria-label="t('umbrellaEditor.shareTitle')">
+        <div class="row"><b>{{ t('umbrellaEditor.shareTitle') }}</b><button class="btn" :aria-label="t('umbrella.close')" @click="dialog = null">✕ <kbd>Esc</kbd></button></div>
+        <p class="hint">{{ t('umbrellaEditor.shareHint') }}</p>
+        <p v-if="problems.length" class="warn">⚠ {{ problems[0] }}</p>
+        <input class="field link" readonly :value="shareUrl" :aria-label="t('umbrellaEditor.shareTitle')" @focus="($event.target as HTMLInputElement).select()" />
+        <div class="row">
+          <span class="status">{{ shareCopied ? t('umbrellaEditor.copied') : '' }}</span>
+          <button class="btn blue" @click="copyShare">📋 {{ t('umbrellaEditor.copyLink') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="dialog === 'submit'" class="modal-back" @pointerdown.self="dialog = null">
+      <div class="modal narrow" role="dialog" aria-modal="true" :aria-label="t('umbrellaEditor.submitTitle')">
+        <div class="row"><b>{{ t('umbrellaEditor.submitTitle') }}</b><button class="btn" :aria-label="t('umbrella.close')" @click="dialog = null">✕ <kbd>Esc</kbd></button></div>
+        <p class="rule">{{ t('umbrellaEditor.submitRule', { n: quota?.limit ?? 5 }) }}</p>
+        <p v-if="submitLeft !== null" class="hint">{{ t('umbrellaEditor.submitLeft', { n: submitLeft }) }}</p>
+        <label class="row col">{{ t('umbrellaEditor.levelName') }} <input v-model="levelName" class="field" maxlength="40" /></label>
+        <label class="row col">{{ t('umbrellaEditor.authorName') }} <input v-model="author" class="field" maxlength="24" :placeholder="t('umbrellaEditor.authorPlaceholder')" /></label>
+        <p v-for="p in problems" :key="p" class="warn">⚠ {{ p }}</p>
+        <p v-if="submitState === 'done'" class="ok">✓ {{ t('umbrellaEditor.submitDone') }}</p>
+        <p v-else-if="submitState === 'limit'" class="warn">⚠ {{ t('umbrellaEditor.submitLimit', { date: resetDate }) }}</p>
+        <p v-else-if="submitState === 'error'" class="warn">⚠ {{ t('umbrellaEditor.submitError') }}</p>
+        <div class="row">
+          <span class="grow" />
+          <button
+            class="btn green"
+            :disabled="submitState === 'sending' || submitState === 'done' || submitLeft === 0 || !levelName.trim() || problems.length > 0"
+            @click="onSubmit"
+          >🌐 {{ t(submitState === 'sending' ? 'umbrellaEditor.submitting' : 'umbrellaEditor.submitBtn') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="dialog === 'keys'" class="modal-back" @pointerdown.self="dialog = null">
+      <div class="modal" role="dialog" aria-modal="true" :aria-label="t('umbrellaEditor.cmd.shortcuts')">
+        <div class="row"><b>{{ t('umbrellaEditor.cmd.shortcuts') }}</b><button class="btn" :aria-label="t('umbrella.close')" @click="dialog = null">✕ <kbd>Esc</kbd></button></div>
+        <div class="keys-grid">
+          <section v-for="m in menus" :key="m.id">
+            <div class="head">{{ m.id === 'campaign' ? 'Campaign' : t(`umbrellaEditor.menu.${m.id}`) }}</div>
+            <template v-for="id in m.items" :key="id">
+              <div v-if="id !== '-' && cmdKeys(id)" class="key-row"><span>{{ cmdLabel(id) }}</span><kbd>{{ cmdKeys(id) }}</kbd></div>
+            </template>
+          </section>
+          <section>
+            <div class="head">{{ t('umbrellaEditor.toolsTitle') }}</div>
+            <div v-for="tl in TOOLS" :key="tl.id" class="key-row"><span>{{ t(`umbrellaEditor.tool.${tl.id}`) }}</span><kbd>{{ fmtKeys(tl.keys) }}</kbd></div>
+            <div class="key-row"><span>{{ t('umbrellaEditor.nudge') }}</span><kbd>← ↑ → ↓</kbd></div>
+          </section>
+        </div>
       </div>
     </div>
 
@@ -1112,9 +1571,9 @@ onUnmounted(() => {
       <div class="modal" role="dialog" aria-modal="true" aria-label="Campaign order">
         <div class="row">
           <div class="kind">Campaign order</div>
-          <button class="btn" title="Close (Esc)" @click="closeOrder">✕</button>
+          <button class="btn" title="Close (Esc)" @click="closeOrder">✕ <kbd>Esc</kbd></button>
         </div>
-        <p class="hint">Drag a level to its new position (or use ▲ ▼). Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again.</p>
+        <p class="hint">Drag a level to its new position (or use ▲ ▼); ✎ names a level by its mechanic or theme. Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again.</p>
         <div class="order-cols">
           <ol class="order-list" @dragover.prevent @drop="onOrderDrop">
             <li
@@ -1122,13 +1581,28 @@ onUnmounted(() => {
               :key="e.id"
               class="order-row"
               :class="{ custom: !!e.custom, before: dropAt === i, after: dropAt === i + 1 && i === orderDraft.length - 1, lifted: !!dragging && 'row' in dragging && dragging.row === i }"
-              draggable="true"
+              :draggable="renaming !== i"
               @dragstart="dragging = { row: i }"
               @dragend="dragging = null; dropAt = null"
               @dragover="onOrderDragOver($event, i)"
             >
               <span class="order-num">{{ i + 1 }}</span>
-              <span class="order-name">{{ orderLabel(e) }}</span>
+              <input
+                v-if="renaming === i"
+                v-model="renameDraft"
+                class="field order-rename"
+                maxlength="40"
+                placeholder="Mechanic or theme, e.g. Wind tunnel"
+                aria-label="Level name"
+                @keydown.enter.prevent="commitRename"
+                @keydown.escape.stop.prevent="renaming = null"
+                @blur="commitRename"
+                @vue:mounted="({ el }: { el: HTMLInputElement }) => el.focus()"
+              />
+              <span v-else class="order-name" :title="orderOrigin(e)" @dblclick="startRename(i)">
+                {{ orderLabel(e) }}<small v-if="e.name" class="order-origin"> · {{ orderOrigin(e) }}</small>
+              </span>
+              <button v-if="renaming !== i" class="mini" title="Rename (or double-click the name)" @click="startRename(i)">✎</button>
               <button class="mini" :disabled="i === 0" title="Move up" @click="moveInOrder(i, i - 1)">▲</button>
               <button class="mini" :disabled="i === orderDraft.length - 1" title="Move down" @click="moveInOrder(i, i + 2)">▼</button>
               <button v-if="e.custom" class="mini" title="Take out of the campaign" @click="removeFromOrder(i)">✕</button>
@@ -1167,104 +1641,149 @@ onUnmounted(() => {
   font-variant: normal !important;
 }
 .editor {
+  --ink: #e8ecf5;
+  --muted: rgba(232, 236, 245, 0.62);
+  --line: rgba(255, 255, 255, 0.12);
+  --panel: #141a26;
+  --raised: #1c2433;
+  --accent: #34d399;
   position: fixed;
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: #0d1018;
-  color: #fff;
+  background: #0b0f17;
+  color: var(--ink);
   font: 13px system-ui, sans-serif;
   user-select: none;
 }
-.bar {
+.topbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  gap: 8px;
+  padding: 6px 10px;
+  background: linear-gradient(#1a2130, #141a26);
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  z-index: 20;
 }
-.body {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-}
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  overflow-y: auto;
-}
-.tools { width: 170px; border-right: 1px solid rgba(255, 255, 255, 0.15); }
-.props { width: 230px; border-left: 1px solid rgba(255, 255, 255, 0.15); }
-.stage {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.canvas {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  display: block;
-  cursor: crosshair;
-  touch-action: none;
-}
-.foot {
-  display: flex;
-  gap: 12px;
-  min-height: 22px;
-  padding: 2px 8px;
-  font-size: 12px;
-}
-.warn { color: #fbbf24; }
-.status { opacity: 0.8; }
-.head {
-  margin-top: 6px;
-  font-size: 11px;
-  text-transform: uppercase;
-  opacity: 0.6;
-}
-.kind { font-weight: 700; text-transform: capitalize; }
-.hint { margin: 4px 0; font-size: 11px; opacity: 0.6; line-height: 1.4; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.row.col { flex-direction: column; align-items: stretch; }
-.check { display: flex; align-items: center; gap: 6px; }
-.pw {
-  width: 9rem;
-}
-.sync {
-  color: #3c3;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.sync.bad {
-  color: #e83;
-}
-.field {
-  padding: 3px 6px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  font: inherit;
-}
-.field.name { width: 150px; }
-.field.num { width: 80px; }
-.btn {
-  padding: 4px 10px;
+.brand { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 15px; letter-spacing: 0.02em; margin-right: 4px; }
+.badge { font-style: normal; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px; background: #eab308; color: #000; }
+.menus { display: flex; gap: 2px; }
+.menu { position: relative; }
+.menu-btn {
+  padding: 5px 10px;
   border: 0;
-  border-radius: 4px;
-  background: #334155;
-  color: #fff;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
   font: inherit;
+  font-weight: 600;
   cursor: pointer;
 }
-.btn:hover:not(:disabled) { filter: brightness(1.15); }
+.menu-btn:hover, .menu-btn.open { background: rgba(255, 255, 255, 0.1); }
+.menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 260px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  /* Above the toolbar's buttons and their shortcut chips (kbd opacity makes its own layer). */
+  z-index: 100;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:hover:not(:disabled) { background: #2563eb; }
+.menu-item:disabled { opacity: 0.4; cursor: default; }
+.menu-check { width: 12px; color: var(--accent); }
+.menu-label { flex: 1; }
+.menu-sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.body { flex: 1; min-height: 0; display: flex; }
+.panel {
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--panel);
+}
+.tools { width: 210px; border-right: 1px solid var(--line); }
+.props { width: 250px; border-left: 1px solid var(--line); }
+.tool-group { display: flex; flex-direction: column; gap: 2px; }
+.stage { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.canvas { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; }
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 6px 10px;
+  min-height: 30px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.warn { color: #fbbf24; margin: 0; }
+.ok { color: var(--accent); margin: 0; }
+.rule { margin: 0; padding: 8px 10px; border-radius: 6px; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(96, 165, 250, 0.4); }
+.status { color: var(--muted); }
+.head {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.kind { font-weight: 700; font-size: 14px; }
+.hint { margin: 4px 0; font-size: 11px; color: var(--muted); line-height: 1.45; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.row.col { flex-direction: column; align-items: stretch; }
+.row.actions { margin-top: 8px; justify-content: flex-start; flex-wrap: wrap; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.pair .row { min-width: 0; }
+.pair .field.num { width: 100%; min-width: 0; }
+.check { display: flex; align-items: center; gap: 6px; }
+.sync { font-size: 12px; color: #6ee7b7; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sync.bad { color: #fbbf24; }
+.field {
+  padding: 4px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--ink);
+  font: inherit;
+}
+.field:focus { outline: 2px solid #3b82f6; outline-offset: 0; }
+.field.name { width: 170px; }
+.field.num { width: 72px; }
+.field.link { width: 100%; font-size: 12px; user-select: all; }
+.btn {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { filter: brightness(1.2); }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .btn.green { background: #059669; font-weight: 700; }
 .btn.blue { background: #2563eb; }
@@ -1272,18 +1791,35 @@ onUnmounted(() => {
 .btn.indigo { background: #4f46e5; }
 .btn.orange { background: #ea580c; font-weight: 700; }
 .btn.yellow { background: #eab308; color: #000; font-weight: 700; }
+.btn.yellow kbd { border-color: rgba(0, 0, 0, 0.35); }
 .tool {
-  padding: 4px 8px;
-  border: 0;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.4);
-  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
-.tool.on { background: #059669; font-weight: 700; }
-.btn.on { background: #059669; font-weight: 700; }
+.tool:hover { background: rgba(255, 255, 255, 0.07); }
+.tool.on { background: rgba(52, 211, 153, 0.16); border-color: rgba(52, 211, 153, 0.6); font-weight: 700; }
+.tool-icon { width: 18px; text-align: center; }
+.tool-label { flex: 1; }
+kbd {
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  opacity: 0.85;
+  white-space: nowrap;
+}
 .phones {
   flex: 1;
   min-height: 0;
@@ -1365,14 +1901,6 @@ onUnmounted(() => {
   opacity: 0.6;
   pointer-events: none;
 }
-kbd {
-  margin-left: 4px;
-  padding: 0 4px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-  font-size: 11px;
-  opacity: 0.8;
-}
 .modal-back {
   position: fixed;
   inset: 0;
@@ -1380,26 +1908,38 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
   background: rgba(0, 0, 0, 0.6);
 }
 .modal {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: min(720px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: #161b26;
+  gap: 10px;
+  width: min(720px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
+.modal.narrow { width: min(480px, 100%); }
+.tabs { display: flex; gap: 4px; }
+.tab { padding: 6px 12px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, 0.06); color: var(--ink); font: inherit; cursor: pointer; }
+.tab.on { background: #2563eb; font-weight: 700; }
+.pick-list { margin: 0; padding: 0; list-style: none; max-height: 55vh; overflow-y: auto; }
+.pick-row { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 6px; }
+.pick-row:hover { background: rgba(255, 255, 255, 0.05); }
+.keys-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 18px; }
+.key-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 0; }
 .order-cols { display: flex; gap: 10px; min-height: 0; }
 .order-list, .order-pool {
   margin: 0;
   padding: 4px;
   list-style: none;
   overflow-y: auto;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 220px);
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.35);
 }
@@ -1423,6 +1963,8 @@ kbd {
 .order-row.lifted { opacity: 0.4; }
 .order-num { width: 24px; text-align: right; font-weight: 700; opacity: 0.7; }
 .order-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-origin { opacity: 0.55; }
+.order-rename { flex: 1; min-width: 0; }
 .mini {
   padding: 0 6px;
   border: 0;
@@ -1433,6 +1975,10 @@ kbd {
   cursor: pointer;
 }
 .mini:disabled { opacity: 0.3; cursor: default; }
-.sep { width: 1px; height: 22px; background: rgba(255, 255, 255, 0.15); margin: 0 2px; }
 .grow { flex: 1; }
+@media (max-width: 900px) {
+  .tools { width: 170px; }
+  .props { width: 210px; }
+  .tool-label { font-size: 12px; }
+}
 </style>

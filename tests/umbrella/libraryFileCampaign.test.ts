@@ -47,3 +47,13 @@ describe('levels merge: newest edit wins', () => {
     expect(bucketFromFile({ game: 'umbrella', kind: 'level', name: 'x', level: {} })).toBeNull()
   })
 })
+
+describe('the bucket library is the designer\'s', () => {
+  it('players take campaign edits only; the designer also takes saved levels', () => {
+    const entry = { editedAt: 9500, level: cloneLevel(LEVELS[0]!) }
+    expect(applyBucket({ library: { 'designer only': entry } })).toBe(0)
+    expect(customLevels.value['designer only']).toBeUndefined()
+    expect(applyBucket({ library: { 'designer only': entry } }, { library: true })).toBe(1)
+    expect(customLevels.value['designer only']).toBeDefined()
+  })
+})

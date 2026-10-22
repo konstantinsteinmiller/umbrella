@@ -56,6 +56,12 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (!Array.isArray(l.platforms) || !l.platforms.every(isRect)) return null
   if (!Array.isArray(l.winds) || !l.winds.every((w) => isRect(w) && num(w.speed) && ['up', 'down', 'left', 'right'].includes(w.dir))) return null
   if (l.hazards && (!Array.isArray(l.hazards) || !l.hazards.every((h) => isRect(h) && ['pillar', 'mine', 'spikes'].includes(h.kind)))) return null
+  if (l.buttons && (!Array.isArray(l.buttons) || !l.buttons.every((b) => isRect(b) && num(b.channel) && (b.duration === undefined || (num(b.duration) && b.duration > 0))))) return null
+  if (l.checkpoints && (!Array.isArray(l.checkpoints) || !l.checkpoints.every((c) => !!c && num(c.x) && num(c.y)))) return null
+  if (l.platforms.some((p) => p.channel !== undefined && !num(p.channel))) return null
+  if (l.winds.some((w) => w.switched !== undefined && (typeof w.switched !== 'object' || !w.switched ||
+    (w.switched.speed !== undefined && (!num(w.switched.speed) || w.switched.speed < 0)) ||
+    (w.switched.dir !== undefined && !['up', 'down', 'left', 'right'].includes(w.switched.dir))))) return null
   const out = cloneLevel({ ...l, id: num(l.id) ? l.id : 0, hazards: l.hazards ?? [] } as LevelDef)
   // A bad screen size falls back to showing the whole world, like a level without one.
   for (const h of out.hazards ?? []) {
@@ -128,7 +134,15 @@ const postToDisk = (path: string, body: object) => {
 // ── Campaign order ──
 /** A position in the campaign: a built-in level by id, or a saved library level
  *  added to the campaign (its name and a snapshot, under an id of its own). */
-export interface OrderEntry { id: number; custom?: string; level?: LevelDef }
+export interface OrderEntry {
+  id: number
+  custom?: string
+  level?: LevelDef
+  /** The designer's name for the slot (its mechanic or theme), shown instead of "level-9". */
+  name?: string
+}
+/** A slot name from untrusted JSON: trimmed, at most 40 characters, absent when empty. */
+const slotName = (v: unknown) => (typeof v === 'string' && v.trim() ? { name: v.trim().slice(0, 40) } : {})
 export interface CampaignOrder { editedAt: number; order: OrderEntry[] }
 /** Ids of library levels added to the campaign start here, clear of the authored ones. */
 export const CUSTOM_ID_BASE = 1000
@@ -143,10 +157,10 @@ export const parseOrder = (data: unknown): CampaignOrder | null => {
   for (const raw of o.order) {
     const e = raw as Partial<OrderEntry> | null
     if (!e || !num(e.id) || seen.has(e.id)) continue
-    if (isBuiltIn(e.id)) { order.push({ id: e.id }); seen.add(e.id); continue }
+    if (isBuiltIn(e.id)) { order.push({ id: e.id, ...slotName(e.name) }); seen.add(e.id); continue }
     const level = e.id >= CUSTOM_ID_BASE ? parseLevel(e.level) : null
     if (!level) continue
-    order.push({ id: e.id, custom: typeof e.custom === 'string' && e.custom ? e.custom : `level-${e.id}`, level: { ...level, id: e.id } })
+    order.push({ id: e.id, custom: typeof e.custom === 'string' && e.custom ? e.custom : `level-${e.id}`, level: { ...level, id: e.id }, ...slotName(e.name) })
     seen.add(e.id)
   }
   return { editedAt: o.editedAt, order }
@@ -165,6 +179,9 @@ export const campaignEntries = (): OrderEntry[] => {
   for (const l of BUILT_IN) if (!out.some((e) => e.id === l.id)) out.push({ id: l.id })
   return out
 }
+/** The designer's name for a campaign slot, if it has one. */
+export const slotTitle = (id: number): string | undefined => campaignOrder.value?.order.find((e) => e.id === id)?.name
+
 /** The level a slot plays when it has no override: the authored one or the added snapshot. */
 const baseLevel = (id: number): LevelDef | undefined => {
   const added = campaignOrder.value?.order.find((e) => e.id === id)?.level
@@ -270,8 +287,10 @@ const toBucketEntry = (e: unknown): BucketEntry | null => {
 }
 
 /** Takes every entry newer than this browser's copy (a bucket, or a library file in
- *  bucket shape). Returns how many changed. */
-export const applyBucket = (data: unknown): number => {
+ *  bucket shape). Returns how many changed. The bucket's library is the designer's
+ *  own saved levels: only the designer ("cmonc") takes it, players get the campaign. */
+export const applyBucket = (data: unknown, opts: { library?: boolean } = {}): number => {
+  const withLibrary = opts.library ?? editorUnlocked.value
   if (!isBucket(data)) return 0
   const b = data
   let changed = 0
@@ -291,7 +310,7 @@ export const applyBucket = (data: unknown): number => {
     setTombstone(`c:${id}`, e.level ? null : e.editedAt)
     changed++
   }
-  for (const [name, raw] of Object.entries(b?.library ?? {})) {
+  for (const [name, raw] of Object.entries(withLibrary ? b?.library ?? {} : {})) {
     let e: BucketEntry | null = null
     try { e = toBucketEntry(raw) } catch { /* one bad entry never stops the rest */ }
     if (!e || e.editedAt <= localEditedAt('library', name)) continue
@@ -418,6 +437,24 @@ if (BUCKET_URL && !import.meta.env.VITEST) void syncBucket()
 // ── Playtest hand-off ──
 /** Set by the editor right before it navigates to the game; the scene plays it. */
 export const testLevel = ref<LevelDef | null>(null)
+
+/** A player level the scene plays instead of the campaign: opened from a share
+ *  link, or from the community list (then `communityId` is set, for plays and stars). */
+export interface CustomPlay { level: LevelDef; name: string; communityId?: string }
+export const customPlay = ref<CustomPlay | null>(null)
+
+/** Keeps a shared level in the library under a free name ("name (2)" when the name
+ *  holds a different level). Returns the name it is saved under. */
+export const keepSharedLevel = (name: string, level: LevelDef): string => {
+  const same = (a: LevelDef, b: LevelDef) => {
+    const strip = ({ id: _i, editedAt: _e, ...rest }: LevelDef) => JSON.stringify(rest)
+    return strip(a) === strip(b)
+  }
+  let n = name
+  for (let k = 2; customLevels.value[n] && !same(customLevels.value[n]!, level); k++) n = `${name} (${k})`
+  if (!customLevels.value[n]) saveCustomLevel(n, level)
+  return n
+}
 /** The editor's working copy, so coming back from a playtest resumes the edit. */
 /** Persisted, so a reload or a later visit reopens the edit instead of a blank level. */
 const storedDraft = getState<{ name?: unknown; level?: unknown } | null>(DRAFT_KEY, null)

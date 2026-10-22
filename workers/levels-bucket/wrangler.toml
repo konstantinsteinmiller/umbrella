@@ -5,3 +5,9 @@ compatibility_date = "2026-09-01"
 [[kv_namespaces]]
 binding = "LEVELS"
 id = "a5fb48b8f34c43c8be56ec5e2319949b"
+
+[[d1_databases]]
+binding = "COMMUNITY"
+database_name = "umbrella-community"
+database_id = "92dc4cc2-3016-4c3d-bb58-de6d04b5590d"
+migrations_dir = "migrations"

@@ -55,7 +55,14 @@ import {
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'main', component: () => import('@/views/UmbrellaScene.vue') },
   // The level editor, opened from the "cmonc" cheat's OPEN EDITOR button.
-  { path: '/editor', name: 'editor', component: () => import('@/views/UmbrellaEditor.vue') },
+  // The level editor: players build and share levels; "cmonc" adds the designer's
+  // campaign tools. Closed on Poki / YouTube Playables (see editorAccess.ts).
+  {
+    path: '/editor',
+    name: 'editor',
+    component: () => import('@/views/UmbrellaEditor.vue'),
+    beforeEnter: () => (import.meta.env.VITE_APP_POKI === 'true' || import.meta.env.VITE_APP_PLAYGAMA === 'true' ? { name: 'main' } : true)
+  },
 
   // ─── Catch-all → main menu ───────────────────────────────────────────────
   //

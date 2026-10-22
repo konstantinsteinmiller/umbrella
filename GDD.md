@@ -265,6 +265,19 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · The designer's tuning of 22 Oct is the new default (float speed, Super Stream resistance, wall splat, mid-air turning and drag; level 3, 7 and 8 currents).
 · New feel slider: walk speed deceleration — how quickly the player stops on the ground.
 
+## Revision 7
+**Umbrella and wind**
+· The open umbrella has its own hitbox for air currents: a draft that reaches only the canopy now catches it (playtester feedback).
+**New level pieces**
+· Checkpoints: touch the flag, and a fall brings you back there. For a perfect run, a "Restart from the beginning" button stays up for 3 seconds after each checkpoint revive.
+· Buttons on 6 coloured channels: toggle (on / off) or timed (e.g. 5 seconds on). They switch platforms on or off and change a current's direction and/or strength.
+**Players make levels**
+· Level editor for players: menus (File, Edit, View, Level, Help), tools grouped by purpose, every keyboard shortcut shown on its button. Players save locally and can open campaign levels as their own copy; campaign tools stay with the designer.
+· Share links: one link rebuilds a level exactly, opens it and saves it to the player's levels ("My levels" in the level selection).
+· Community levels: browse best rated, newest or most played; submit up to 5 levels per week; rate 0–5 stars after winning or failing a level.
+· Poki and YouTube Playables: share links only — no community and no editor.
+· Designer: rename campaign levels in the Reorder dialog by mechanic or theme.
+
 ## Revision 
 ## Revision 
 ## Revision 

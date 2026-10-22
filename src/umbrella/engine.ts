@@ -3,7 +3,7 @@
 // Pure, renderer-free: `step(world, input, dt)` advances one fixed tick and
 // returns the events it produced (for audio / UI). Tests drive it headless.
 
-import type { HazardDef, LevelDef, Motion, PlatformDef, WindDef } from './levels'
+import type { CheckpointDef, HazardDef, LevelDef, Motion, PlatformDef, WindDef } from './levels'
 import type { Tuning } from './tuning'
 
 /** Default hitbox; the live size comes from Tuning (player.w / player.h). */
@@ -63,9 +63,37 @@ export interface World {
   phase: Phase
   /** Seconds spent in the current phase. */
   phaseTime: number
+  /** Per button channel: world time it stays on until (Infinity: toggled on; 0: off). */
+  channels: Record<number, number>
+  /** Buttons the player touched last tick: a press is the first touch. */
+  buttonsDown: boolean[]
+  /** The last checkpoint touched (index into level.checkpoints), or -1. */
+  checkpoint: number
 }
 
-export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out'
+export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint'
+
+/** Is this button channel on right now? */
+export const channelOn = (w: World, channel: number | undefined): boolean =>
+  channel !== undefined && (w.channels[channel] ?? 0) > w.time
+
+/** A switched platform is solid (and drawn) only while its channel says so. */
+export const platformActive = (w: World, p: PlatformDef): boolean =>
+  p.channel === undefined || channelOn(w, p.channel) !== !!p.whenOff
+
+/** The current as it blows right now: a switched one takes its other direction / speed. */
+export const liveWind = (w: World, wind: WindDef): WindDef =>
+  wind.switched && channelOn(w, wind.channel)
+    ? { ...wind, dir: wind.switched.dir ?? wind.dir, speed: wind.switched.speed ?? wind.speed }
+    : wind
+
+/** Every current that blows right now (a switched-off one, speed 0, is left out). */
+export const liveWinds = (w: World): WindDef[] => w.level.winds.map((x) => liveWind(w, x)).filter((x) => x.speed > 0)
+
+/** A checkpoint flag's touch box, standing on its point. */
+export const CHECKPOINT_W = 30
+export const CHECKPOINT_H = 64
+export const checkpointBox = (c: CheckpointDef) => ({ x: c.x - CHECKPOINT_W / 2, y: c.y - CHECKPOINT_H, w: CHECKPOINT_W, h: CHECKPOINT_H })
 
 /** Attacking-pillar cycle fractions (Tuning.lungeRest/Strike/Hold). */
 export interface LungeShape { rest: number; strike: number; hold: number }
@@ -120,12 +148,18 @@ export const poseMovers = (w: World, t: number, tuning?: Tuning): void => {
   for (const h of w.hazards) placeMover(h, t * (tuning?.enemySpeedScale ?? 1), lunge)
 }
 
-export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }): World => {
+/** `checkpoint`: respawn at that checkpoint instead of the spawn (a checkpoint revive). */
+export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }, checkpoint = -1): World => {
   const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0 }))
   for (const p of platforms) placeMover(p, 0)
   const hazards = (level.hazards ?? []).map((h) => ({ ...h, dx: 0, dy: 0 }))
   for (const h of hazards) placeMover(h, 0)
+  const cp = level.checkpoints?.[checkpoint]
+  const start = cp ?? level.spawn
   return {
+    channels: {},
+    buttonsDown: (level.buttons ?? []).map(() => false),
+    checkpoint: cp ? checkpoint : -1,
     level,
     time: 0,
     platformTime: 0,
@@ -133,8 +167,8 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
     platforms,
     hazards,
     player: {
-      x: level.spawn.x - size.w / 2,
-      y: level.spawn.y - size.h,
+      x: start.x - size.w / 2,
+      y: start.y - size.h,
       vx: 0,
       vy: 0,
       grounded: false,
@@ -160,8 +194,40 @@ const overlaps = (ax: number, ay: number, aw: number, ah: number, b: { x: number
  *  updraft (and the matching leading edge of the others), so an open umbrella
  *  settles and bobs gently at the boundary instead of snapping. */
 export const windInfluence = (pl: Player, w: WindDef, edge: number): number => {
-  const cx = pl.x + pl.w / 2
-  const cy = pl.y + pl.h / 2
+  const body = pointInfluence(pl.x + pl.w / 2, pl.y + pl.h / 2, w, edge)
+  if (!pl.open) return body
+  // An open umbrella catches the wind with its own hitbox: any part of the
+  // canopy inside the current counts, measured at its deepest point.
+  return Math.max(body, boxInfluence(umbrellaBox(pl), w, edge))
+}
+
+/** The open canopy as drawn (renderer drawUmbrella): 60 px wide, 26–66 px above the
+ *  head. Used for air currents only — platforms and hazards still hit the body. */
+export const UMBRELLA_W = 60
+export const UMBRELLA_TOP = 66
+export const UMBRELLA_BOTTOM = 26
+export const umbrellaBox = (pl: Player) => ({
+  x: pl.x + pl.w / 2 - UMBRELLA_W / 2,
+  y: pl.y - UMBRELLA_TOP,
+  w: UMBRELLA_W,
+  h: UMBRELLA_TOP - UMBRELLA_BOTTOM
+})
+/** Like pointInfluence for a box: the part of the box furthest into the current
+ *  past its leading edge sets the strength. */
+const boxInfluence = (b: { x: number; y: number; w: number; h: number }, w: WindDef, edge: number): number => {
+  const x1 = Math.max(b.x, w.x)
+  const x2 = Math.min(b.x + b.w, w.x + w.w)
+  const y1 = Math.max(b.y, w.y)
+  const y2 = Math.min(b.y + b.h, w.y + w.h)
+  if (x1 > x2 || y1 > y2) return 0
+  switch (w.dir) {
+    case 'up': return Math.min(1, (y2 - w.y) / edge)
+    case 'down': return Math.min(1, (w.y + w.h - y1) / edge)
+    case 'left': return Math.min(1, (x2 - w.x) / edge)
+    case 'right': return Math.min(1, (w.x + w.w - x1) / edge)
+  }
+}
+const pointInfluence = (cx: number, cy: number, w: WindDef, edge: number): number => {
   if (cx < w.x || cx > w.x + w.w || cy < w.y || cy > w.y + w.h) return 0
   switch (w.dir) {
     case 'up': return Math.min(1, (cy - w.y) / edge)
@@ -224,8 +290,12 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     h.dx = h.x - ox
     h.dy = h.y - oy
   }
+  // Timed channels run out.
+  for (const [c, until] of Object.entries(w.channels)) if (until <= w.time && until > 0) w.channels[Number(c)] = 0
   // Harmless enemies are solid: you bump into and stand on them like platforms.
+  // A switched-off platform stays in the list (indices stay stable) but is skipped.
   const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => h.harmless)]
+  const solid = (i: number) => i >= w.platforms.length || platformActive(w, w.platforms[i]!)
 
   const pl = w.player
   // Live hitbox resize from the tuning panel: keep the feet and centre in place.
@@ -244,6 +314,11 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     return events
   }
 
+  // A platform switched off under your feet drops you.
+  if (pl.grounded && pl.standing >= 0 && !solid(pl.standing)) {
+    pl.grounded = false
+    pl.standing = -1
+  }
   // Ride the platform we stood on last tick.
   if (pl.grounded && pl.standing >= 0) {
     const p = solids[pl.standing]!
@@ -303,7 +378,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   //    little resistance from updrafts. ──
   if (!pl.grounded) {
     const k = Math.min(1, dt / (t.windTurnTime / 3))
-    for (const wind of w.level.winds) {
+    for (const wind of liveWinds(w)) {
       const s = windInfluence(pl, wind, t.windEdge)
       if (!s) continue
       const speed = wind.speed * t.windScale * (wind.super ? t.superStreamScale : 1)
@@ -331,8 +406,9 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   let slam = false
   const prevX = pl.x
   pl.x += pl.vx * dt
-  for (const p of solids) {
-    if (!overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
+  for (let i = 0; i < solids.length; i++) {
+    const p = solids[i]!
+    if (!solid(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
     // Already in the platform's columns last tick: it met us from above or
     // below (a rising finish under a lander) — the vertical pass resolves it.
     if (prevX + pl.w > p.x - p.dx && prevX < p.x - p.dx + p.w) continue
@@ -347,7 +423,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   let standing = -1
   for (let i = 0; i < solids.length; i++) {
     const p = solids[i]!
-    if (!overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
+    if (!solid(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
     const fromAbove = pl.y + pl.h - p.y <= Math.max(8, pl.vy * dt + Math.abs(p.dy) + 2)
     if (fromAbove) {
       pl.y = p.y - pl.h
@@ -361,7 +437,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     }
   }
   // Still standing on a platform that moved down/away this tick? Snap onto it.
-  if (!pl.grounded && wasGrounded && pl.standing >= 0) {
+  if (!pl.grounded && wasGrounded && pl.standing >= 0 && solid(pl.standing)) {
     const p = solids[pl.standing]!
     const onTop = pl.x + pl.w > p.x && pl.x < p.x + p.w && Math.abs(pl.y + pl.h - p.y) <= Math.abs(p.dy) + 4
     if (onTop) {
@@ -384,6 +460,26 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     setPhase(w, 'splat')
     events.push('hit')
     return events
+  }
+
+  // Buttons: the first touch presses. Toggle flips the channel; timed turns it on.
+  const buttons = w.level.buttons ?? []
+  for (let i = 0; i < buttons.length; i++) {
+    const b = buttons[i]!
+    const down = overlaps(pl.x, pl.y, pl.w, pl.h, b)
+    if (down && !w.buttonsDown[i]) {
+      if (b.duration) w.channels[b.channel] = w.time + b.duration
+      else w.channels[b.channel] = channelOn(w, b.channel) ? 0 : Infinity
+      events.push('button')
+    }
+    w.buttonsDown[i] = down
+  }
+  // Checkpoints: the last one touched is where a death brings you back.
+  const cps = w.level.checkpoints ?? []
+  for (let i = 0; i < cps.length; i++) {
+    if (i === w.checkpoint || !overlaps(pl.x, pl.y, pl.w, pl.h, checkpointBox(cps[i]!))) continue
+    w.checkpoint = i
+    events.push('checkpoint')
   }
 
   if (pl.grounded && !wasGrounded) {

@@ -11,8 +11,13 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LEVELS } from '@/umbrella/levels'
-import { editorUnlocked, setEditorUnlocked, testLevel } from '@/umbrella/customLevels'
-import { createWorld, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
+import { customLevels, customPlay, editorUnlocked, keepSharedLevel, setEditorUnlocked, testLevel, type CustomPlay } from '@/umbrella/customLevels'
+import { createWorld, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
+import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
+import { communityEnabled, countPlay } from '@/umbrella/community'
+import { editorAllowed } from '@/umbrella/editorAccess'
+import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
+import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import { render } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
@@ -28,12 +33,53 @@ const router = useRouter()
 
 /** A level handed over by the editor's "Test" button: it loops until you go back. */
 const testing = testLevel.value
-const levelDef = () => testing ?? LEVELS[levelIndex.value]!
+/** A player level (share link or community) played instead of the campaign. */
+const playing = ref<CustomPlay | null>(testing ? null : customPlay.value)
+const levelDef = () => testing ?? playing.value?.level ?? LEVELS[levelIndex.value]!
 const backToEditor = () => {
   testLevel.value = null
   void router.push('/editor')
 }
 const openEditor = () => void router.push('/editor')
+
+// ── Player levels: share links, the community list, stars ──
+const showCommunity = ref(false)
+/** Stars are asked for once the player has finished or failed the level. */
+const canRate = ref(false)
+const showRate = ref(false)
+const rated = ref(false)
+const notice = ref('')
+const flashNotice = (msg: string) => {
+  notice.value = msg
+  window.setTimeout(() => { if (notice.value === msg) notice.value = '' }, 3500)
+}
+const playCustom = (p: CustomPlay) => {
+  playing.value = p
+  customPlay.value = p
+  canRate.value = showRate.value = rated.value = false
+  showCommunity.value = false
+  if (p.communityId) void countPlay(p.communityId)
+  loadLevel(levelIndex.value)
+}
+const leaveCustom = () => {
+  const fromCommunity = !!playing.value?.communityId
+  playing.value = null
+  customPlay.value = null
+  showRate.value = false
+  loadLevel(levelIndex.value)
+  if (fromCommunity) showCommunity.value = true
+}
+/** `?level=<code>`: open the shared level and keep it in the player's library. */
+const openSharedLink = async () => {
+  const code = levelParam()
+  if (!code) return
+  clearLevelParam()
+  const shared = await decodeLevel(code)
+  if (!shared) { flashNotice(t('umbrella.sharedBroken')); return }
+  const name = keepSharedLevel(shared.name, shared.level)
+  playCustom({ level: shared.level, name })
+  flashNotice(t('umbrella.sharedSaved', { name }))
+}
 
 const DT = 1 / 120
 
@@ -60,8 +106,17 @@ const markCleared = (i: number) => {
   cleared.value = [...cleared.value, i]
   setState('umb_cleared', cleared.value)
 }
+/** The player's saved levels (share links, the editor), shown under the campaign. */
+const myLevelNames = computed(() => Object.keys(customLevels.value).sort((a, b) => a.localeCompare(b)))
+const playMine = (name: string) => {
+  const level = customLevels.value[name]
+  if (!level) return
+  showLevels.value = false
+  playCustom({ level, name })
+}
 const pickLevel = (i: number) => {
   showLevels.value = false
+  if (playing.value) { playing.value = null; customPlay.value = null }
   loadLevel(i)
 }
 
@@ -70,12 +125,33 @@ const held = { left: false, right: false }
 let togglePending = false
 
 const loadLevel = (i: number) => {
-  if (!testing) levelIndex.value = (i + LEVELS.length) % LEVELS.length
+  if (!testing && !playing.value) levelIndex.value = (i + LEVELS.length) % LEVELS.length
   world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight })
   gui?.setLevel(world.level)
   brokenFlash.value = false
+  hideRevive()
 }
 const restart = () => loadLevel(levelIndex.value)
+
+// ── Checkpoints: a death after touching one revives there. For a perfect run the
+//    player can refuse: a Restart button stays up for the first seconds. ──
+const REVIVE_CHOICE_MS = 3000
+const showRevive = ref(false)
+let reviveTimer = 0
+const hideRevive = () => {
+  showRevive.value = false
+  window.clearTimeout(reviveTimer)
+}
+const fail = () => {
+  if (playing.value) canRate.value = true
+  const cp = world.checkpoint
+  if (cp < 0) { restart(); return }
+  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, cp)
+  brokenFlash.value = false
+  hideRevive()
+  showRevive.value = true
+  reviveTimer = window.setTimeout(() => { showRevive.value = false }, REVIVE_CHOICE_MS)
+}
 
 // ── Sound: events → one-shots, with what the engine knows about them ──
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
@@ -136,6 +212,8 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         playSfx('break', { pan })
         brokenFlash.value = true
         break
+      case 'button': playSfx('close', { quick: true, pan }); break
+      case 'checkpoint': playSfx('open', { intensity: 0, quick: true, pan }); break
     }
   }
   if (world.phase === 'play' && pl.grounded && Math.abs(pl.vx) > 30) {
@@ -219,7 +297,7 @@ const ambience = (): AmbienceState => {
   let superWind = 0
   let pan = 0
   let loudest = 0
-  for (const wd of world.level.winds) {
+  for (const wd of liveWinds(world)) {
     let s = windInfluence(pl, wd, tuning.windEdge)
     if (!s) {
       // Close by: hear the current before you ride it.
@@ -256,12 +334,17 @@ const tick = () => {
   const vyBefore = world.player.vy
   onEvents(step(world, input, DT, tuning), vyBefore)
   enemyCues()
-  // GDD prototype: failure resets the level at the spawn point.
-  if (world.phase === 'out') restart()
-  else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) restart()
+  // Failure resets the level at the spawn point, or revives at the last checkpoint.
+  if (world.phase === 'out') fail()
+  else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) fail()
   else if (world.phase === 'win' && world.phaseTime >= tuning.winHold) {
     if (testing) restart()
-    else {
+    else if (playing.value) {
+      // A player level loops; a community one asks for stars after the first win.
+      canRate.value = true
+      if (playing.value.communityId && !rated.value) showRate.value = true
+      restart()
+    } else {
       markCleared(levelIndex.value)
       loadLevel(levelIndex.value + 1)
     }
@@ -278,7 +361,7 @@ const frame = (now: number) => {
   if (!el) return
   const dtReal = Math.min(0.1, (now - (last || now)) / 1000)
   last = now
-  if (!isGamePaused.value && !showLevels.value) {
+  if (!isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value) {
     acc += dtReal
     while (acc >= DT) {
       tick()
@@ -324,7 +407,7 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
     e.preventDefault()
     return
   }
-  if (showLevels.value) return
+  if (showLevels.value || showCommunity.value || showRate.value) return
   if (LEFT.has(e.code)) held.left = down
   else if (RIGHT.has(e.code)) held.right = down
   else if (e.code === 'Space') {
@@ -408,12 +491,14 @@ onMounted(() => {
   gui.setLevel(world.level)
   gui.toggle(editorUnlocked.value)
   raf = requestAnimationFrame(frame)
+  if (!testing) void openSharedLink()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
   window.removeEventListener('blur', onBlur)
   cancelAnimationFrame(raf)
+  window.clearTimeout(reviveTimer)
   gui?.destroy()
 })
 
@@ -429,16 +514,37 @@ onUnmounted(() => {
       <span class="hud-level">TEST LEVEL</span>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
     </div>
+    <div v-else-if="playing" class="hud">
+      <button class="hud-btn" :aria-label="t('umbrella.back')" @click="leaveCustom">‹</button>
+      <span class="hud-level custom" :title="playing.name">{{ playing.name }}</span>
+      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
+      <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
+      <button v-if="playing.communityId && canRate" class="hud-btn" :aria-label="t('umbrella.rateLevel')" @click="showRate = true">★</button>
+      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
+    </div>
     <div v-else class="hud">
       <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="loadLevel(levelIndex - 1)">‹</button>
       <span class="hud-level">{{ t('umbrella.level', { n: levelIndex + 1 }) }}</span>
       <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="loadLevel(levelIndex + 1)">›</button>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
+      <button v-if="communityEnabled" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 {{ t('umbrella.community.button') }}</button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
 
-    <button v-if="editorUnlocked && !testing" class="open-editor" :class="{ 'above-stick': touchUI }" @click="openEditor">OPEN EDITOR</button>
+    <button v-if="showRevive" class="revive-restart" @click="restart">↻ {{ t('umbrella.reviveRestart') }}</button>
+    <div v-if="notice" class="toast info" role="status">{{ notice }}</div>
+
+    <CommunityLevelsModal v-if="showCommunity" @close="showCommunity = false" @play="playCustom" />
+    <RateLevelCard
+      v-if="showRate && playing?.communityId"
+      :level-id="playing.communityId"
+      :name="playing.name"
+      @done="showRate = false; rated = true"
+      @close="showRate = false"
+    />
+
+    <button v-if="editorUnlocked && !testing && editorAllowed" class="open-editor" :class="{ 'above-stick': touchUI }" @click="openEditor">OPEN EDITOR</button>
     <div v-if="!touchUI" class="hint">{{ t('umbrella.controls') }}</div>
     <template v-else>
       <div
@@ -488,6 +594,20 @@ onUnmounted(() => {
             <span v-if="cleared.includes(i)" class="level-tick">✓</span>
           </button>
         </div>
+        <!-- The player's own levels: opened from share links, built in the editor. -->
+        <div class="levels-head mine">
+          <b>{{ t('umbrella.myLevels') }}</b>
+        </div>
+        <div v-if="myLevelNames.length" class="my-levels">
+          <button
+            v-for="n in myLevelNames"
+            :key="n"
+            class="my-level"
+            :class="{ current: playing?.name === n && !playing?.communityId }"
+            @click="playMine(n)"
+          >▶ {{ n }}</button>
+        </div>
+        <p v-else class="my-empty">{{ t('umbrella.myLevelsEmpty') }}</p>
       </div>
     </div>
 
@@ -609,7 +729,29 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); transform: scale(0.94); }
-.hud-btn.wide { width: auto; padding: 0 12px; }
+.hud-btn.wide { width: auto; padding: 0 12px; font-size: 16px; font-weight: 700; }
+.hud-level.custom {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+}
+.revive-restart {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 2px solid #fff;
+  background: #eab308;
+  color: #000;
+  font: 800 18px system-ui, sans-serif;
+  cursor: pointer;
+}
+.toast.info { background: #2563eb; top: 112px; }
 .toast {
   position: absolute;
   top: 64px;
@@ -659,6 +801,22 @@ onUnmounted(() => {
 }
 .level-tile:hover { background: rgba(255, 255, 255, 0.22); }
 .level-tile.current { outline: 2px solid #6fa8ff; }
+.levels-head.mine { margin-top: 18px; font-size: 18px; }
+.my-levels { display: flex; flex-direction: column; gap: 6px; }
+.my-level {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(79, 70, 229, 0.3);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.my-level:hover { background: rgba(79, 70, 229, 0.5); }
+.my-level.current { outline: 2px solid #6fa8ff; }
+.my-empty { margin: 0; font-size: 14px; opacity: 0.7; }
 .level-tick {
   position: absolute;
   top: 4px;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LEVELS } from '@/umbrella/levels'
 import {
-  applyBucket, campaignEntries, cloneLevel, CUSTOM_ID_BASE, localBucket, nextCustomId, saveCampaignOrder, saveCampaignOverride
+  applyBucket, campaignEntries, cloneLevel, CUSTOM_ID_BASE, localBucket, nextCustomId, saveCampaignOrder, saveCampaignOverride, slotTitle
 } from '@/umbrella/customLevels'
 
 const ids = () => LEVELS.map((l) => l.id)
@@ -32,5 +32,17 @@ describe('campaign order', () => {
     expect(applyBucket({ campaign: { order: { editedAt: 3000, level: { order: [{ id: authored[3] }, { id: 999999 }] } } } })).toBe(1)
     expect(ids()[0]).toBe(authored[3])
     expect([...ids()].sort((a, b) => a - b)).toEqual([...authored].sort((a, b) => a - b))
+  })
+})
+
+describe('slot names', () => {
+  it('keep a name per slot through save and the bucket; empty names drop', () => {
+    const order = campaignEntries()
+    order[10] = { ...order[10]!, name: '  Wind tunnel  ' }
+    order[0] = { ...order[0]!, name: '   ' }
+    saveCampaignOrder(order, 4000)
+    expect(slotTitle(order[10]!.id)).toBe('Wind tunnel')
+    expect(slotTitle(order[0]!.id)).toBeUndefined()
+    expect((localBucket().campaign.order!.level as unknown as { order: { name?: string }[] }).order[10]!.name).toBe('Wind tunnel')
   })
 })
