@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 
 export const OVERRIDES_FILE = resolve(fileURLToPath(new URL('../data/campaign-overrides.json', import.meta.url)))
+export const ORDER_FILE = resolve(fileURLToPath(new URL('../data/campaign-order.json', import.meta.url)))
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v)
 const isRect = (r) => !!r && isNum(r.x) && isNum(r.y) && isNum(r.w) && isNum(r.h)
@@ -19,7 +20,7 @@ const looksLikeLevel = (l) =>
   Array.isArray(l.platforms) && l.platforms.every(isRect) && Array.isArray(l.winds) && l.winds.every(isRect)
 
 /** @returns {Promise<{ ok: boolean, changed: number, message: string }>} */
-export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE) => {
+export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE, orderFile = ORDER_FILE) => {
   const base = (bucketUrl ?? '').trim().replace(/\/+$/, '')
   if (!base) return { ok: false, changed: 0, message: 'no VITE_APP_LEVELS_BUCKET_URL' }
   let bucket
@@ -57,6 +58,16 @@ export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE) => {
     changed++
   }
   if (changed) writeFileSync(file, JSON.stringify(disk, null, 2) + '\n', 'utf-8')
+  // The campaign order (the editor's Reorder dialog) rides in the campaign section as "order".
+  const o = bucket.campaign.order
+  if (o && Number.isFinite(o.editedAt) && Array.isArray(o.level?.order)) {
+    let diskOrder = {}
+    try { diskOrder = existsSync(orderFile) ? JSON.parse(readFileSync(orderFile, 'utf-8')) : {} } catch { /* rewritten below */ }
+    if (o.editedAt > (diskOrder?.editedAt ?? 0)) {
+      writeFileSync(orderFile, JSON.stringify({ editedAt: o.editedAt, order: o.level.order }, null, 2) + '\n', 'utf-8')
+      changed++
+    }
+  }
   return { ok: true, changed, message: `levels bucket: ${changed} campaign level${changed === 1 ? '' : 's'} updated` }
 }
 

@@ -49,6 +49,8 @@ export interface Tuning {
   /** Ground walk speed (px/s) and time to reach it (s). */
   walkSpeed: number
   walkAccelTime: number
+  /** Time to stop from walk speed on the ground once the key is let go or reversed (s). */
+  walkDecelTime: number
   /** Top horizontal air speed (px/s) and time to turn around / reach it (s). */
   airSpeed: number
   airTurnTime: number
@@ -91,7 +93,7 @@ export const DEFAULT_TUNING: Tuning = {
   terminalVelocity: 1900,
   breakFraction: 0.95,
   splatFraction: 0.8,
-  floatSpeed: 85,
+  floatSpeed: 95,
   brakingSnap: 0.1,
   floatEaseTime: 0.11,
   windTurnTime: 0.5,
@@ -101,13 +103,14 @@ export const DEFAULT_TUNING: Tuning = {
   superStreamScale: 2.5,
   superStreamBuildTime: 1.2,
   closedWindResistance: 0.4,
-  superClosedResistance: 0.6,
-  wallSplatSpeed: 950,
+  superClosedResistance: 0.75,
+  wallSplatSpeed: 870,
   walkSpeed: 240,
   walkAccelTime: 0.09,
+  walkDecelTime: 0.09,
   airSpeed: 200,
-  airTurnTime: 0.7,
-  airDrag: 230,
+  airTurnTime: 0.75,
+  airDrag: 240,
   whistleFade: 1.2,
   splatReset: 0.5,
   winHold: 1.6,
@@ -148,6 +151,7 @@ export const TUNING_RANGES: Record<keyof Tuning, [min: number, max: number, step
   wallSplatSpeed: [100, 2000, 10],
   walkSpeed: [50, 800, 10],
   walkAccelTime: [0.01, 1, 0.01],
+  walkDecelTime: [0.01, 1, 0.01],
   airSpeed: [50, 800, 10],
   airTurnTime: [0.05, 2, 0.05],
   airDrag: [0, 2000, 10],
@@ -171,7 +175,7 @@ export const TUNING_RANGES: Record<keyof Tuning, [min: number, max: number, step
 /** Panel folders, in display order. */
 export const TUNING_GROUPS: Record<string, (keyof Tuning)[]> = {
   Player: ['playerWidth', 'playerHeight'],
-  Ground: ['walkSpeed', 'walkAccelTime'],
+  Ground: ['walkSpeed', 'walkAccelTime', 'walkDecelTime'],
   'Falling (closed)': ['gravity', 'terminalVelocity', 'breakFraction', 'splatFraction'],
   Umbrella: ['floatSpeed', 'brakingSnap', 'floatEaseTime'],
   'Mid-air': ['airSpeed', 'airTurnTime', 'airDrag'],

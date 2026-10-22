@@ -12,10 +12,11 @@ const stubCampaignOverridesPlugin = () => ({
   name: 'stub-campaign-overrides',
   resolveId(id: string) {
     if (id === 'virtual:campaign-overrides') return '\0virtual:campaign-overrides'
+    if (id === 'virtual:campaign-order') return '\0virtual:campaign-order'
     return null
   },
   load(id: string) {
-    if (id === '\0virtual:campaign-overrides') return 'export default {}'
+    if (id === '\0virtual:campaign-overrides' || id === '\0virtual:campaign-order') return 'export default {}'
     return null
   }
 })

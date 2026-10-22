@@ -10,6 +10,11 @@
 //     levels. Disk wins; localStorage keeps edits made where there is no dev
 //     server. They are patched into LEVELS in place on import, so every reader of LEVELS (the
 //     scene, the tuning panel) sees them without knowing about the editor;
+//   • the campaign order — which level plays at which position, including saved
+//     library levels added to the campaign (each carried as a snapshot with its
+//     own id ≥ CUSTOM_ID_BASE, so a build plays it without the library). Written
+//     to data/campaign-order.json on a dev server (`virtual:campaign-order`) and
+//     synced through the bucket as the campaign entry "order";
 //   • the test level — a non-persisted level the editor hands to the scene
 //     for one playtest before navigating there.
 // Everything persists through the one-blob state layer (useEpicState).
@@ -17,12 +22,14 @@
 import { ref } from 'vue'
 import { getState, setState } from '@/use/useEpicState'
 import overridesFromDisk from 'virtual:campaign-overrides'
+import orderFromDisk from 'virtual:campaign-order'
 import { LEVELS, type LevelDef } from './levels'
 
 const LIBRARY_KEY = 'umb_custom_levels_v1'
 const OVERRIDES_KEY = 'umb_level_overrides_v1'
 const EDITOR_UNLOCKED_KEY = 'umb_editor_unlocked'
 const DRAFT_KEY = 'umb_editor_draft'
+const ORDER_KEY = 'umb_campaign_order_v1'
 
 export const cloneLevel = (l: LevelDef): LevelDef => JSON.parse(JSON.stringify(l)) as LevelDef
 
@@ -118,15 +125,85 @@ const postToDisk = (path: string, body: object) => {
     .catch(() => { /* no dev server: localStorage stays the copy */ })
 }
 
-const patchSlot = (id: number, level: LevelDef) => {
-  const i = LEVELS.findIndex((l) => l.id === id)
-  if (i >= 0) LEVELS[i] = { ...cloneLevel(level), id }
+// ── Campaign order ──
+/** A position in the campaign: a built-in level by id, or a saved library level
+ *  added to the campaign (its name and a snapshot, under an id of its own). */
+export interface OrderEntry { id: number; custom?: string; level?: LevelDef }
+export interface CampaignOrder { editedAt: number; order: OrderEntry[] }
+/** Ids of library levels added to the campaign start here, clear of the authored ones. */
+export const CUSTOM_ID_BASE = 1000
+
+const isBuiltIn = (id: number) => BUILT_IN.some((l) => l.id === id)
+/** An order from untrusted JSON, or null. Unknown ids and repeats are dropped. */
+export const parseOrder = (data: unknown): CampaignOrder | null => {
+  const o = data as { editedAt?: unknown; order?: unknown } | null
+  if (!o || typeof o !== 'object' || !num(o.editedAt) || o.editedAt <= 0 || !Array.isArray(o.order)) return null
+  const order: OrderEntry[] = []
+  const seen = new Set<number>()
+  for (const raw of o.order) {
+    const e = raw as Partial<OrderEntry> | null
+    if (!e || !num(e.id) || seen.has(e.id)) continue
+    if (isBuiltIn(e.id)) { order.push({ id: e.id }); seen.add(e.id); continue }
+    const level = e.id >= CUSTOM_ID_BASE ? parseLevel(e.level) : null
+    if (!level) continue
+    order.push({ id: e.id, custom: typeof e.custom === 'string' && e.custom ? e.custom : `level-${e.id}`, level: { ...level, id: e.id } })
+    seen.add(e.id)
+  }
+  return { editedAt: o.editedAt, order }
 }
-for (const [id, level] of Object.entries(campaignOverrides.value)) patchSlot(Number(id), level)
+const loadOrder = (): CampaignOrder | null => {
+  const local = parseOrder(getState<unknown>(ORDER_KEY, null))
+  const disk = parseOrder(orderFromDisk)
+  // The repo copy wins unless this browser holds a newer order.
+  return disk && disk.editedAt >= (local?.editedAt ?? 0) ? disk : local
+}
+export const campaignOrder = ref<CampaignOrder | null>(loadOrder())
+
+/** The campaign as it plays now, in order (built-ins missing from the order go last). */
+export const campaignEntries = (): OrderEntry[] => {
+  const out = (campaignOrder.value?.order ?? []).map((e) => ({ ...e }))
+  for (const l of BUILT_IN) if (!out.some((e) => e.id === l.id)) out.push({ id: l.id })
+  return out
+}
+/** The level a slot plays when it has no override: the authored one or the added snapshot. */
+const baseLevel = (id: number): LevelDef | undefined => {
+  const added = campaignOrder.value?.order.find((e) => e.id === id)?.level
+  return builtInLevel(id) ?? (added && cloneLevel(added))
+}
+
+/** Rebuilds LEVELS in place from the order and the overrides: every reader keeps its array. */
+const rebuildLevels = () => {
+  const next: LevelDef[] = []
+  for (const e of campaignEntries()) {
+    const l = campaignOverrides.value[e.id] ?? baseLevel(e.id)
+    if (l) next.push({ ...cloneLevel(l), id: e.id })
+  }
+  LEVELS.splice(0, LEVELS.length, ...next)
+}
+rebuildLevels()
+
+/** Saves a new campaign order (the editor's Reorder dialog). */
+export const saveCampaignOrder = (order: OrderEntry[], editedAt = Date.now()) => {
+  const parsed = parseOrder({ editedAt, order })
+  if (!parsed) return
+  putOrder(parsed)
+  pushEntry('campaign', ORDER_ENTRY, { order: parsed.order } as unknown as LevelDef, editedAt)
+}
+const putOrder = (o: CampaignOrder) => {
+  campaignOrder.value = o
+  setState(ORDER_KEY, o)
+  postToDisk('/__maw/save-order', o)
+  rebuildLevels()
+}
+/** The bucket key of the order inside the campaign section (slot keys are numbers). */
+const ORDER_ENTRY = 'order'
+/** A fresh id for a library level joining the campaign. */
+export const nextCustomId = (taken: number[]): number =>
+  Math.max(CUSTOM_ID_BASE - 1, ...taken, ...campaignEntries().map((e) => e.id), ...Object.keys(campaignOverrides.value).map(Number)) + 1
 
 /** The tuning panel stores per-level knob edits (wind speeds, periods) by id;
  *  an edited slot drops them, or they would overwrite the editor's values. */
-const TUNING_LEVELS_KEY = 'umb_levels_r2'
+const TUNING_LEVELS_KEY = 'umb_levels_r3'
 const dropPanelEdits = (id: number) =>
   setState(TUNING_LEVELS_KEY, getState<{ id: number }[]>(TUNING_LEVELS_KEY, []).filter((l) => l?.id !== id))
 
@@ -137,14 +214,9 @@ const putOverride = (id: number, level: LevelDef | null) => {
   else delete next[id]
   campaignOverrides.value = next
   setState(OVERRIDES_KEY, next)
-  if (level) {
-    postToDisk('/__maw/save-override', { id, stage: next[id] })
-    patchSlot(id, level)
-  } else {
-    postToDisk('/__maw/clear-override', { id })
-    const original = builtInLevel(id)
-    if (original) patchSlot(id, original)
-  }
+  if (level) postToDisk('/__maw/save-override', { id, stage: next[id] })
+  else postToDisk('/__maw/clear-override', { id })
+  rebuildLevels()
 }
 export const saveCampaignOverride = (id: number, level: LevelDef, editedAt = Date.now()) => {
   const l = { ...stamp(level, editedAt), id }
@@ -203,7 +275,14 @@ export const applyBucket = (data: unknown): number => {
   if (!isBucket(data)) return 0
   const b = data
   let changed = 0
+  // The order first: it decides which slots exist for the entries below.
+  const rawOrder = b.campaign?.[ORDER_ENTRY] as { editedAt?: unknown; level?: { order?: unknown } | null } | undefined
+  const order = rawOrder && num(rawOrder.editedAt) && rawOrder.editedAt <= Date.now() + 86_400_000
+    ? parseOrder({ editedAt: rawOrder.editedAt, order: rawOrder.level?.order })
+    : null
+  if (order && order.editedAt > (campaignOrder.value?.editedAt ?? 0)) { putOrder(order); changed++ }
   for (const [key, raw] of Object.entries(b?.campaign ?? {})) {
+    if (key === ORDER_ENTRY) continue
     const id = Number(key)
     let e: BucketEntry | null = null
     try { e = toBucketEntry(raw) } catch { /* one bad entry never stops the rest */ }
@@ -233,6 +312,8 @@ export const localBucket = (): Bucket => {
     const section = k.startsWith('c:') ? out.campaign : out.library
     section[k.slice(2)] ??= { editedAt: at, level: null }
   }
+  const o = campaignOrder.value
+  if (o) out.campaign[ORDER_ENTRY] = { editedAt: o.editedAt, level: { order: o.order } as unknown as LevelDef }
   return out
 }
 

@@ -27,6 +27,13 @@ declare module 'virtual:leaderboard-snapshot' {
   export default snapshot
 }
 
+declare module 'virtual:campaign-order' {
+  // data/campaign-order.json: { editedAt, order: [{ id, custom?, level? }] } — the
+  // editor's Reorder dialog; {} while the campaign plays in the authored order.
+  const order: unknown
+  export default order
+}
+
 declare module 'virtual:campaign-overrides' {
   // Map of level id (as string keys, since JSON) → LevelDef: data/campaign-overrides.json,
   // written by the level editor through the dev-only Vite endpoints.

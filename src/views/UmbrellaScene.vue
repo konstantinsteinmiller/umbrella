@@ -37,11 +37,11 @@ const openEditor = () => void router.push('/editor')
 
 const DT = 1 / 120
 
-const tuning = reactive<Tuning>({ ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r2', {}) })
-watch(tuning, () => setState('umb_tuning_r2', { ...tuning }), { deep: true })
+const tuning = reactive<Tuning>({ ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r3', {}) })
+watch(tuning, () => setState('umb_tuning_r3', { ...tuning }), { deep: true })
 // Level edits from the panel (wind speeds, platform periods) persist alongside.
-applyTuning({ levels: getState<TuningExport['levels']>('umb_levels_r2', []) }, tuning, LEVELS)
-const saveLevels = () => setState('umb_levels_r2', exportTuning(tuning, LEVELS).levels)
+applyTuning({ levels: getState<TuningExport['levels']>('umb_levels_r3', []) }, tuning, LEVELS)
+const saveLevels = () => setState('umb_levels_r3', exportTuning(tuning, LEVELS).levels)
 let gui: TuningGui | null = null
 // The "cmonc" cheat shows the tuning panel and the OPEN EDITOR button together.
 watch(editorUnlocked, (on) => gui?.toggle(on))

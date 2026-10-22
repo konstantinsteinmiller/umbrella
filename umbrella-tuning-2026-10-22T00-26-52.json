@@ -1,7 +1,7 @@
 {
   "game": "umbrella",
   "version": 2,
-  "exportedAt": "2026-10-21T00:57:37.597Z",
+  "exportedAt": "2026-10-22T00:26:52.394Z",
   "tuning": {
     "playerWidth": 24,
     "playerHeight": 36,
@@ -10,7 +10,7 @@
     "terminalVelocity": 1900,
     "breakFraction": 0.95,
     "splatFraction": 0.8,
-    "floatSpeed": 85,
+    "floatSpeed": 95,
     "brakingSnap": 0.1,
     "floatEaseTime": 0.11,
     "windTurnTime": 0.5,
@@ -20,13 +20,13 @@
     "superStreamScale": 2.5,
     "superStreamBuildTime": 1.2,
     "closedWindResistance": 0.4,
-    "superClosedResistance": 0.6,
-    "wallSplatSpeed": 950,
+    "superClosedResistance": 0.75,
+    "wallSplatSpeed": 870,
     "walkSpeed": 240,
     "walkAccelTime": 0.09,
     "airSpeed": 200,
-    "airTurnTime": 0.7,
-    "airDrag": 230,
+    "airTurnTime": 0.75,
+    "airDrag": 240,
     "whistleFade": 1.2,
     "splatReset": 0.5,
     "winHold": 1.6,
@@ -47,7 +47,7 @@
     {
       "id": 1,
       "values": {
-        "winds.0.speed": 260
+        "winds.0.speed": 280
       }
     },
     {
@@ -62,38 +62,42 @@
     {
       "id": 3,
       "values": {
-        "winds.0.speed": 200
+        "winds.0.speed": 260
       }
     },
     {
       "id": 4,
       "values": {
-        "winds.0.speed": 260,
+        "winds.0.speed": 300,
         "platforms.1.motion.period": 6
       }
     },
     {
       "id": 5,
       "values": {
-        "winds.0.speed": 260,
-        "platforms.2.motion.period": 7,
-        "platforms.2.motion.radius": 180
+        "winds.0.speed": 300,
+        "platforms.2.motion.period": 6.5,
+        "platforms.2.motion.radius": 165
       }
     },
     {
       "id": 6,
       "values": {
-        "winds.0.speed": 200,
-        "platforms.1.motion.period": 9
+        "winds.0.speed": 260,
+        "platforms.1.motion.period": 5
       }
     },
     {
       "id": 7,
-      "values": {}
+      "values": {
+        "winds.0.speed": 960,
+        "platforms.1.motion.period": 4
+      }
     },
     {
       "id": 8,
       "values": {
+        "winds.0.speed": 960,
         "platforms.1.motion.period": 5,
         "platforms.1.motion.amplitude": 1.05,
         "platforms.1.motion.radius": 460
@@ -102,43 +106,52 @@
     {
       "id": 9,
       "values": {
-        "platforms.1.motion.period": 3.2
+        "winds.0.speed": 280,
+        "winds.1.speed": 280,
+        "hazards.0.motion.period": 4,
+        "hazards.1.motion.period": 5.5
       }
     },
     {
       "id": 10,
-      "values": {}
+      "values": {
+        "winds.0.speed": 280
+      }
     },
     {
       "id": 11,
       "values": {
-        "platforms.1.motion.period": 10
+        "winds.0.speed": 260,
+        "winds.1.speed": 260
       }
     },
     {
       "id": 12,
-      "values": {}
+      "values": {
+        "winds.0.speed": 300,
+        "winds.1.speed": 260,
+        "winds.2.speed": 260,
+        "hazards.2.motion.period": 2.9
+      }
     },
     {
       "id": 13,
       "values": {
-        "winds.0.speed": 260,
-        "winds.1.speed": 260,
-        "winds.2.speed": 260
+        "winds.0.speed": 260
       }
     },
     {
       "id": 14,
       "values": {
-        "winds.0.speed": 260,
-        "hazards.0.motion.period": 4.5
+        "winds.0.speed": 240,
+        "hazards.0.motion.period": 2.7
       }
     },
     {
       "id": 15,
       "values": {
-        "winds.0.speed": 260,
-        "hazards.0.motion.period": 3.2
+        "winds.0.speed": 240,
+        "hazards.0.motion.period": 2.9
       }
     },
     {
@@ -191,7 +204,7 @@
     {
       "id": 22,
       "values": {
-        "winds.0.speed": 260,
+        "winds.0.speed": 760,
         "hazards.0.motion.delay": 1.5,
         "hazards.0.motion.duration": 2
       }
@@ -211,6 +224,38 @@
         "winds.1.speed": 760,
         "hazards.0.motion.period": 2.4,
         "hazards.0.motion.radius": 120
+      }
+    },
+    {
+      "id": 25,
+      "values": {
+        "winds.0.speed": 260,
+        "winds.1.speed": 260,
+        "winds.2.speed": 260,
+        "winds.3.speed": 760,
+        "winds.4.speed": 760,
+        "platforms.2.motion.period": 1.5,
+        "platforms.2.motion.amplitude": 0.8,
+        "platforms.2.motion.radius": 220
+      }
+    },
+    {
+      "id": 26,
+      "values": {
+        "winds.0.speed": 260,
+        "winds.1.speed": 260,
+        "winds.2.speed": 260
+      }
+    },
+    {
+      "id": 27,
+      "values": {
+        "winds.0.speed": 260,
+        "winds.1.speed": 260,
+        "winds.2.speed": 260,
+        "winds.3.speed": 260,
+        "winds.4.speed": 260,
+        "winds.5.speed": 260
       }
     }
   ]

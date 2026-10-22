@@ -10,7 +10,8 @@
  *  - Pillar / Mine / Spawn: click to place.
  *  - Select: drag to move, the corner square resizes, the round handles move a
  *    mover's path points. Right-click or Del removes.
- * Levels save to a local library, can replace a campaign slot, and export /
+ * Levels save to a local library, can replace a campaign slot (Reorder drags the
+ * campaign into a new order and adds saved levels to it), and export /
  * import as .json files. "Test" plays the edit in the real game; "Mobile view"
  * playtests it right here on a portrait and a landscape phone at once.
  * Scrolling levels: a "screen" smaller than the world makes the camera follow
@@ -28,7 +29,12 @@ import { cameraFor, render, type Camera } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
 import {
+  campaignEntries,
+  campaignOrder,
   campaignOverrides,
+  nextCustomId,
+  saveCampaignOrder,
+  type OrderEntry,
   clearCampaignOverride,
   cloneLevel,
   customLevels,
@@ -100,7 +106,7 @@ const PHONE = { w: 390, h: 844 }
 const MOTION_KINDS: Motion['kind'][] = ['static', 'line', 'circle', 'swing', 'lunge', 'arrive']
 
 const router = useRouter()
-const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r2', {}) }
+const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r3', {}) }
 
 const blankLevel = (): LevelDef => ({
   id: 0,
@@ -408,6 +414,7 @@ const isTyping = (el: EventTarget | null) => {
   return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA'
 }
 const onKeyDown = (e: KeyboardEvent) => {
+  if (orderOpen.value) { if (e.key === 'Escape') closeOrder(); return }
   if (isTyping(e.target)) return
   if (mobileView.value && playKey(e, true)) return
   // The letter typed, not the key position: on QWERTZ the Z key is where QWERTY has Y.
@@ -533,7 +540,65 @@ const problems = computed(() => {
 
 // ── Library / campaign / files ──
 const libraryNames = computed(() => Object.keys(customLevels.value).sort())
-const campaignOptions = computed(() => LEVELS.map((l, i) => ({ id: l.id, label: `Level ${i + 1}${campaignOverrides.value[l.id] ? ' (edited)' : ''}` })))
+const campaignOptions = computed(() => {
+  void campaignOrder.value // LEVELS is rebuilt in place when the order changes
+  const names = new Map(campaignEntries().map((e) => [e.id, e.custom]))
+  return LEVELS.map((l, i) => ({ id: l.id, label: `Level ${i + 1}${names.get(l.id) ? ` · ★ ${names.get(l.id)}` : ''}${campaignOverrides.value[l.id] ? ' (edited)' : ''}` }))
+})
+
+// ── Reorder dialog: drag the campaign into a new order, drag saved levels in ──
+const orderOpen = ref(false)
+const orderDraft = ref<OrderEntry[]>([])
+/** What is being dragged: a campaign row (its index) or a saved level (its name). */
+const dragging = ref<{ row: number } | { lib: string } | null>(null)
+const dropAt = ref<number | null>(null)
+/** The authored levels' ids in authored order, for "Original level N" and Reset. */
+const AUTHORED_IDS = campaignEntries().filter((e) => !e.custom).map((e) => e.id).sort((a, b) => a - b)
+const orderLabel = (e: OrderEntry) =>
+  e.custom ? `★ ${e.custom}` : `Original level ${AUTHORED_IDS.indexOf(e.id) + 1}${campaignOverrides.value[e.id] ? ' (edited)' : ''}`
+const orderPool = computed(() => libraryNames.value.filter((n) => !orderDraft.value.some((e) => e.custom === n)))
+const orderKey = (list: OrderEntry[]) => JSON.stringify(list.map((e) => [e.id, e.custom]))
+const orderChanged = computed(() => orderKey(orderDraft.value) !== orderKey(campaignEntries()))
+
+const openOrder = () => { orderDraft.value = campaignEntries(); dragging.value = null; dropAt.value = null; orderOpen.value = true }
+const closeOrder = () => {
+  if (orderChanged.value && !window.confirm('Discard the new order?')) return
+  orderOpen.value = false
+}
+const addToOrder = (name: string, at = orderDraft.value.length) => {
+  const l = customLevels.value[name]
+  if (!l) return
+  const id = nextCustomId(orderDraft.value.map((e) => e.id))
+  orderDraft.value.splice(at, 0, { id, custom: name, level: { ...cloneLevel(l), id } })
+}
+/** Moves row `from` so it lands before what is now at `to` (to = length: the end). */
+const moveInOrder = (from: number, to: number) => {
+  const list = orderDraft.value
+  if (to < 0 || to > list.length) return
+  const [e] = list.splice(from, 1)
+  list.splice(to > from ? to - 1 : to, 0, e!)
+}
+const removeFromOrder = (i: number) => { orderDraft.value.splice(i, 1) }
+const onOrderDragOver = (e: DragEvent, i: number) => {
+  if (!dragging.value) return
+  e.preventDefault()
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  dropAt.value = e.clientY < r.top + r.height / 2 ? i : i + 1
+}
+const onOrderDrop = () => {
+  const d = dragging.value
+  const at = dropAt.value ?? orderDraft.value.length
+  if (d && 'row' in d) moveInOrder(d.row, at)
+  else if (d) addToOrder(d.lib, at)
+  dragging.value = null
+  dropAt.value = null
+}
+const onOrderSave = () => {
+  saveCampaignOrder(orderDraft.value)
+  orderOpen.value = false
+  flash(`Campaign order saved · ${orderDraft.value.length} levels`)
+}
+const onOrderReset = () => { orderDraft.value = AUTHORED_IDS.map((id) => ({ id })) }
 
 const loadIntoEditor = (l: LevelDef, name: string) => {
   level.value = cloneLevel(l)
@@ -900,6 +965,7 @@ onUnmounted(() => {
       </select>
       <button class="btn orange" :disabled="overwriteSlot === ''" title="Replace this campaign level with the current edit" @click="onOverwrite">Overwrite</button>
       <button class="btn" :disabled="overwriteSlot === '' || !campaignOverrides[overwriteSlot]" title="Restore the original level in this slot" @click="onRevert">Revert</button>
+      <button class="btn indigo" title="Drag the campaign levels into a new order and add saved levels to it" @click="openOrder">⇵ Reorder</button>
       <span class="sep" />
       <button class="btn" :disabled="!undoStack.length" :title="`Undo (${UNDO_KEYS})`" @click="undo">↶ Undo <kbd>{{ UNDO_KEYS }}</kbd></button>
       <button class="btn" :disabled="!redoStack.length" :title="`Redo (${REDO_KEYS})`" @click="redo">↷ Redo <kbd>{{ REDO_KEYS }}</kbd></button>
@@ -1039,6 +1105,57 @@ onUnmounted(() => {
           </template>
           <button class="btn red" @click="removeSelection">Delete</button>
         </template>
+      </div>
+    </div>
+
+    <div v-if="orderOpen" class="modal-back" @pointerdown.self="closeOrder">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Campaign order">
+        <div class="row">
+          <div class="kind">Campaign order</div>
+          <button class="btn" title="Close (Esc)" @click="closeOrder">✕</button>
+        </div>
+        <p class="hint">Drag a level to its new position (or use ▲ ▼). Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again.</p>
+        <div class="order-cols">
+          <ol class="order-list" @dragover.prevent @drop="onOrderDrop">
+            <li
+              v-for="(e, i) in orderDraft"
+              :key="e.id"
+              class="order-row"
+              :class="{ custom: !!e.custom, before: dropAt === i, after: dropAt === i + 1 && i === orderDraft.length - 1, lifted: !!dragging && 'row' in dragging && dragging.row === i }"
+              draggable="true"
+              @dragstart="dragging = { row: i }"
+              @dragend="dragging = null; dropAt = null"
+              @dragover="onOrderDragOver($event, i)"
+            >
+              <span class="order-num">{{ i + 1 }}</span>
+              <span class="order-name">{{ orderLabel(e) }}</span>
+              <button class="mini" :disabled="i === 0" title="Move up" @click="moveInOrder(i, i - 1)">▲</button>
+              <button class="mini" :disabled="i === orderDraft.length - 1" title="Move down" @click="moveInOrder(i, i + 2)">▼</button>
+              <button v-if="e.custom" class="mini" title="Take out of the campaign" @click="removeFromOrder(i)">✕</button>
+            </li>
+          </ol>
+          <div class="order-pool">
+            <div class="head">Saved levels</div>
+            <div
+              v-for="n in orderPool"
+              :key="n"
+              class="order-row custom"
+              draggable="true"
+              @dragstart="dragging = { lib: n }"
+              @dragend="dragging = null; dropAt = null"
+            >
+              <span class="order-name">★ {{ n }}</span>
+              <button class="mini" title="Add at the end of the campaign" @click="addToOrder(n)">+</button>
+            </div>
+            <p v-if="!orderPool.length" class="hint">No saved levels left to add — Save one first.</p>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn" title="The authored order, without added levels" @click="onOrderReset">Reset to original</button>
+          <span class="grow" />
+          <button class="btn" @click="closeOrder">Cancel</button>
+          <button class="btn green" :disabled="!orderChanged" @click="onOrderSave">Save order</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1256,6 +1373,66 @@ kbd {
   font-size: 11px;
   opacity: 0.8;
 }
+.modal-back {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #161b26;
+}
+.order-cols { display: flex; gap: 10px; min-height: 0; }
+.order-list, .order-pool {
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.order-list { flex: 3; }
+.order-pool { flex: 2; }
+.order-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  margin: 2px 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  cursor: grab;
+}
+.order-row.custom { background: rgba(79, 70, 229, 0.3); }
+.order-row.before { border-top-color: #eab308; }
+.order-row.after { border-bottom-color: #eab308; }
+.order-row.lifted { opacity: 0.4; }
+.order-num { width: 24px; text-align: right; font-weight: 700; opacity: 0.7; }
+.order-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini {
+  padding: 0 6px;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.mini:disabled { opacity: 0.3; cursor: default; }
 .sep { width: 1px; height: 22px; background: rgba(255, 255, 255, 0.15); margin: 0 2px; }
 .grow { flex: 1; }
 </style>

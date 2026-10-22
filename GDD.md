@@ -257,6 +257,14 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · Export library: one file with every saved level and every changed campaign level, as a manual backup.
 
 ## Revision 6
+**Campaign order**
+· Reorder (level editor): drag the campaign levels into any order — e.g. level 11 at level 10's place and level 10 after it.
+· Saved custom levels can be dragged into the campaign as levels of their own, and taken out again.
+· The order syncs like level edits (newest wins) and every build ships it.
+**Tuning**
+· The designer's tuning of 22 Oct is the new default (float speed, Super Stream resistance, wall splat, mid-air turning and drag; level 3, 7 and 8 currents).
+· New feel slider: walk speed deceleration — how quickly the player stops on the ground.
+
 ## Revision 
 ## Revision 
 ## Revision 

@@ -271,7 +271,9 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0)
   if (dir) pl.facing = dir as 1 | -1
   if (pl.grounded) {
-    pl.vx = approach(pl.vx, dir * t.walkSpeed, (t.walkSpeed / t.walkAccelTime) * dt)
+    // Letting go or reversing brakes at the deceleration time, speeding up at the acceleration time.
+    const braking = !dir || dir * pl.vx < 0
+    pl.vx = approach(pl.vx, dir * t.walkSpeed, (t.walkSpeed / (braking ? t.walkDecelTime : t.walkAccelTime)) * dt)
   } else if (dir) {
     // Water-like: reversing from full speed one way to full the other takes airTurnTime.
     const accel = (2 * t.airSpeed) / t.airTurnTime

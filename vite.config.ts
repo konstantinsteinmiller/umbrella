@@ -24,6 +24,16 @@ const OVERRIDES_FILE = resolve(
 const OVERRIDES_VIRTUAL_ID = 'virtual:campaign-overrides'
 const OVERRIDES_RESOLVED = '\0' + OVERRIDES_VIRTUAL_ID
 
+// The campaign order (the editor's Reorder dialog): `virtual:campaign-order` from
+// data/campaign-order.json, written by POST /__maw/save-order on the dev server.
+const ORDER_FILE = resolve(fileURLToPath(new URL('./data/campaign-order.json', import.meta.url)))
+const ORDER_VIRTUAL_ID = 'virtual:campaign-order'
+const ORDER_RESOLVED = '\0' + ORDER_VIRTUAL_ID
+const readOrderJson = (): unknown => {
+  try { return existsSync(ORDER_FILE) ? JSON.parse(readFileSync(ORDER_FILE, 'utf-8')) : {} } catch { return {} }
+}
+let lastOrderWrite = ''
+
 const ensureOverridesFile = () => {
   if (!existsSync(OVERRIDES_FILE)) {
     mkdirSync(dirname(OVERRIDES_FILE), { recursive: true })
@@ -374,16 +384,25 @@ const mawCampaignOverridesPlugin = (bucketUrl: string): Plugin => ({
   },
   resolveId(id) {
     if (id === OVERRIDES_VIRTUAL_ID) return OVERRIDES_RESOLVED
+    if (id === ORDER_VIRTUAL_ID) return ORDER_RESOLVED
     return null
   },
   load(id) {
+    if (id === ORDER_RESOLVED) return `export default ${JSON.stringify(readOrderJson())}`
     if (id !== OVERRIDES_RESOLVED) return null
     return `export default ${JSON.stringify(readOverridesJson())}`
   },
   configureServer(server) {
     // Hot-reload the virtual module if the JSON file is edited by hand.
     server.watcher.add(OVERRIDES_FILE)
+    server.watcher.add(ORDER_FILE)
     server.watcher.on('change', (path) => {
+      if (resolve(path) === ORDER_FILE) {
+        const mod = server.moduleGraph.getModuleById(ORDER_RESOLVED)
+        if (mod) server.moduleGraph.invalidateModule(mod)
+        if (readFileSync(ORDER_FILE, 'utf-8') !== lastOrderWrite) server.ws.send({ type: 'full-reload', path: '*' })
+        return
+      }
       if (resolve(path) !== OVERRIDES_FILE) return
       const mod = server.moduleGraph.getModuleById(OVERRIDES_RESOLVED)
       if (readFileSync(OVERRIDES_FILE, 'utf-8') === lastOverridesWrite) {
@@ -409,6 +428,26 @@ const mawCampaignOverridesPlugin = (bucketUrl: string): Plugin => ({
         writeOverridesJson(data)
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({ ok: true, id: body.id }))
+      } catch (e) {
+        res.statusCode = 400
+        res.end(JSON.stringify({ error: String((e as Error).message) }))
+      }
+    })
+
+    server.middlewares.use('/__maw/save-order', async (req, res, next) => {
+      if (req.method !== 'POST') { next(); return }
+      try {
+        const body = JSON.parse(await readBody(req)) as { editedAt?: unknown; order?: unknown }
+        if (typeof body.editedAt !== 'number' || !Array.isArray(body.order)) {
+          res.statusCode = 400
+          res.end(JSON.stringify({ error: 'expected { editedAt: number, order: [] }' }))
+          return
+        }
+        mkdirSync(dirname(ORDER_FILE), { recursive: true })
+        lastOrderWrite = JSON.stringify({ editedAt: body.editedAt, order: body.order }, null, 2) + '\n'
+        writeFileSync(ORDER_FILE, lastOrderWrite, 'utf-8')
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ ok: true }))
       } catch (e) {
         res.statusCode = 400
         res.end(JSON.stringify({ error: String((e as Error).message) }))
