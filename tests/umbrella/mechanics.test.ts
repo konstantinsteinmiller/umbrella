@@ -90,3 +90,78 @@ describe('checkpoints', () => {
     expect(again.checkpoint).toBe(0)
   })
 })
+
+describe('Walldorf touch modes', () => {
+  const wall = (extra: object) => base({ hazards: [{ kind: 'pillar', x: 230, y: 200, w: 40, h: 200, ...extra }] })
+  it('deadly by default, solid with the old harmless flag', () => {
+    const dead = createWorld(wall({}))
+    run(dead, 0.4, { left: false, right: true, toggle: false })
+    expect(dead.phase).toBe('splat')
+    const solid = createWorld(wall({ harmless: true }))
+    run(solid, 0.4, { left: false, right: true, toggle: false })
+    expect(solid.phase).toBe('play')
+    expect(solid.player.x + solid.player.w).toBeLessThanOrEqual(230.01)
+  })
+  it('a bouncy one throws Pweeg back, harder when it charges', () => {
+    const w = createWorld(wall({ contact: 'bounce', bounce: 600 }))
+    const events: string[] = []
+    for (let i = 0; i < 60 && !events.includes('bump'); i++) events.push(...step(w, { left: false, right: true, toggle: false }, DT, T))
+    expect(events).toContain('bump')
+    expect(w.phase).toBe('play')
+    expect(w.player.vx).toBeLessThan(-500)
+    // A charge toward Pweeg adds its own speed.
+    const c = createWorld(base({ hazards: [{ kind: 'pillar', x: 0, y: 0, w: 40, h: 200, contact: 'bounce', bounce: 600,
+      motion: { kind: 'line', a: { x: 400, y: 300 }, b: { x: 150, y: 300 }, period: 1 } }] }))
+    const got: string[] = []
+    for (let i = 0; i < 240 && !got.some((e) => e.endsWith('bump')); i++) got.push(...step(c, idle, DT, T))
+    expect(got).toContain('charge-bump')
+    expect(c.player.vx).toBeLessThan(-600)
+  })
+})
+
+describe('Walldorf follows the player', () => {
+  const lvl = (motion: object) => base({ hazards: [{ kind: 'pillar', x: 900, y: 100, w: 40, h: 120, contact: 'solid', motion } as never] })
+  it('moves toward Pweeg at its speed', () => {
+    const w = createWorld(lvl({ kind: 'follow', speed: 100 }))
+    const x0 = w.hazards[0]!.x
+    run(w, 1)
+    expect(x0 - w.hazards[0]!.x).toBeGreaterThan(60)
+    expect(x0 - w.hazards[0]!.x).toBeLessThan(110)
+  })
+  it('keeps to one axis when locked', () => {
+    const w = createWorld(lvl({ kind: 'follow', speed: 100, axis: 'y' }))
+    run(w, 1)
+    expect(w.hazards[0]!.x).toBe(900)
+    expect(w.hazards[0]!.y).toBeGreaterThan(100)
+  })
+  it('on a path, slides to the point nearest Pweeg (it blocks his way)', () => {
+    const w = createWorld(lvl({ kind: 'follow', speed: 1000, a: { x: 600, y: 100 }, b: { x: 600, y: 700 } }))
+    run(w, 2)
+    const h = w.hazards[0]!
+    expect(h.x + h.w / 2).toBeCloseTo(600, 0)
+    expect(Math.abs(h.y + h.h / 2 - (w.player.y + w.player.h / 2))).toBeLessThan(2)
+  })
+})
+
+describe('falling too long', () => {
+  const tall = () => base({ world: { w: 1280, h: 60000 }, spawn: { x: 600, y: 100 }, platforms: [] })
+  it('a long closed free fall ends out of bounds after maxFallTime', () => {
+    const w = createWorld(tall())
+    const tt = { ...T, maxFallTime: 1 }
+    const events: string[] = []
+    for (let i = 0; i < 2 / DT && w.phase === 'play'; i++) events.push(...step(w, idle, DT, tt))
+    expect(w.phase).toBe('out')
+    expect(events).toContain('out')
+    expect(w.time).toBeGreaterThanOrEqual(1)
+    expect(w.time).toBeLessThan(1.1)
+  })
+  it('floating with the umbrella open never counts, and 0 turns it off', () => {
+    const w = createWorld(tall())
+    w.player.open = true
+    for (let i = 0; i < 3 / DT; i++) step(w, idle, DT, { ...T, maxFallTime: 1 })
+    expect(w.phase).toBe('play')
+    const off = createWorld(tall())
+    for (let i = 0; i < 3 / DT; i++) step(off, idle, DT, { ...T, maxFallTime: 0 })
+    expect(off.phase).toBe('play')
+  })
+})

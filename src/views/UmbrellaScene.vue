@@ -19,6 +19,8 @@ import { editorAllowed } from '@/umbrella/editorAccess'
 import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
 import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import PauseMenu from '@/components/umbrella/PauseMenu.vue'
+import { createIntro, type Intro } from '@/umbrella/intro'
+import { splashGone } from '@/use/useSplash'
 import { render } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
@@ -50,6 +52,48 @@ const showPause = ref(false)
 const openPause = () => {
   showPause.value = true
   held.left = held.right = false
+}
+// ── The intro cutscene (intro.md): once for a new player before Level 1, again from
+//    the pause menu. Any key or tap shows Skip; a second one (or Esc) skips. ──
+const INTRO_SEEN = 'umb_intro_seen'
+let intro: Intro | null = null
+let introWait = 0
+const introOn = ref(false)
+const skipShown = ref(false)
+let skipTimer = 0
+const startIntro = () => {
+  showPause.value = showLevels.value = showCommunity.value = false
+  if (playing.value) { playing.value = null; customPlay.value = null }
+  levelIndex.value = 0
+  held.left = held.right = false
+  intro = createIntro(LEVELS[0]!, tuning, (name) => {
+    if (name === 'land') playSfx('land', { intensity: 0.25 })
+    else if (name === 'open') playSfx('open', { intensity: 0.2 })
+    else if (name === 'step') playSfx('step', { intensity: 0.6 })
+    else playSfx(name)
+  })
+  introOn.value = true
+  skipShown.value = false
+  introWait = 0
+}
+const endIntro = () => {
+  intro = null
+  introOn.value = false
+  skipShown.value = false
+  window.clearTimeout(skipTimer)
+  setState(INTRO_SEEN, true)
+  // Level 1 begins from the pose the intro ended on: Pweeg at the spawn.
+  loadLevel(0)
+}
+const requestSkip = () => {
+  if (skipShown.value) { endIntro(); return }
+  skipShown.value = true
+  window.clearTimeout(skipTimer)
+  skipTimer = window.setTimeout(() => { skipShown.value = false }, 1500)
+}
+const watchIntro = () => {
+  showPause.value = false
+  startIntro()
 }
 const restartFromPause = () => {
   showPause.value = false
@@ -225,6 +269,8 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         break
       case 'button': playSfx('close', { quick: true, pan }); break
       case 'checkpoint': playSfx('open', { intensity: 0, quick: true, pan }); break
+      case 'bump': playSfx('bump', { intensity: 0.35, pan }); break
+      case 'charge-bump': playSfx('bump', { intensity: 1, pan }); break
     }
   }
   if (world.phase === 'play' && pl.grounded && Math.abs(pl.vx) > 30) {
@@ -372,7 +418,13 @@ const frame = (now: number) => {
   if (!el) return
   const dtReal = Math.min(0.1, (now - (last || now)) / 1000)
   last = now
-  if (!isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
+  if (intro) {
+    // The intro waits for the boot splash to leave (5 s at most): its first frames matter.
+    introWait += dtReal
+    if (!isGamePaused.value && !showPause.value && (splashGone.value || introWait > 5)) intro.update(dtReal)
+    if (intro.done) endIntro()
+  }
+  if (!intro && !isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
     acc += dtReal
     while (acc >= DT) {
       tick()
@@ -382,11 +434,12 @@ const frame = (now: number) => {
   ambienceClock += dtReal
   if (ambienceClock >= 1 / 30) {
     ambienceClock = 0
-    updateAmbience(isGamePaused.value ? AMBIENCE_IDLE : ambience())
+    updateAmbience(isGamePaused.value || intro ? AMBIENCE_IDLE : ambience())
   }
   resize(el)
   const ctx = el.getContext('2d')
-  if (ctx) render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal)
+  if (ctx && intro) intro.draw(ctx, { finish: t('umbrella.finish') }, dtReal)
+  else if (ctx) render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal)
 }
 
 /** Backing store at css × devicePixelRatio — never draw below native. */
@@ -408,6 +461,14 @@ const GUI_CODE = 'cmonc'
 let typed = ''
 const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return
+  if (introOn.value && !showPause.value) {
+    if (down && !e.repeat) {
+      if (e.code === 'Escape') endIntro()
+      else requestSkip()
+    }
+    e.preventDefault()
+    return
+  }
   if (down && e.key.length === 1) {
     typed = (typed + e.key.toLowerCase()).slice(-GUI_CODE.length)
     if (typed === GUI_CODE) { typed = ''; setEditorUnlocked(!editorUnlocked.value) }
@@ -439,6 +500,7 @@ const touchUI = ref(window.matchMedia?.('(pointer: coarse)').matches || 'ontouch
 const onAnyPointer = (e: PointerEvent) => {
   if (e.pointerType === 'touch') touchUI.value = true
   unlockAudio()
+  if (introOn.value && !(e.target as HTMLElement | null)?.closest('.intro-skip')) requestSkip()
 }
 const STICK_RANGE = 44
 const STICK_DEAD = 12
@@ -508,6 +570,8 @@ onMounted(() => {
   gui.toggle(editorUnlocked.value)
   raf = requestAnimationFrame(frame)
   if (!testing) void openSharedLink()
+  // A new player's first start: the intro, then Level 1 (not when a shared level opens).
+  if (!testing && !playing.value && !levelParam() && levelIndex.value === 0 && !getState<boolean>(INTRO_SEEN, false)) startIntro()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
@@ -515,6 +579,7 @@ onUnmounted(() => {
   window.removeEventListener('blur', onBlur)
   cancelAnimationFrame(raf)
   window.clearTimeout(reviveTimer)
+  window.clearTimeout(skipTimer)
   gui?.destroy()
 })
 
@@ -525,6 +590,8 @@ onUnmounted(() => {
     <canvas ref="canvas" class="umbrella-canvas" />
 
     <!-- Designer tools behind the "cmonc" cheat: English only, like the lil-gui panel. -->
+    <button v-if="introOn && skipShown" class="intro-skip" @click.stop="endIntro">{{ t('umbrella.intro.skip') }}</button>
+    <template v-if="!introOn">
     <div v-if="testing" class="hud">
       <button class="hud-btn wide" @click="backToEditor">◀ Editor</button>
       <span class="hud-level">TEST LEVEL</span>
@@ -550,11 +617,12 @@ onUnmounted(() => {
       <button v-if="communityEnabled" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 {{ t('umbrella.community.button') }}</button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
+    </template>
 
     <button v-if="showRevive" class="revive-restart" @click="restart">↻ {{ t('umbrella.reviveRestart') }}</button>
     <div v-if="notice" class="toast info" role="status">{{ notice }}</div>
 
-    <PauseMenu v-if="showPause" @resume="showPause = false" @restart="restartFromPause" />
+    <PauseMenu v-if="showPause" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
     <CommunityLevelsModal v-if="showCommunity" @close="showCommunity = false" @play="playCustom" />
     <RateLevelCard
       v-if="showRate && playing?.communityId"
@@ -565,8 +633,8 @@ onUnmounted(() => {
     />
 
     <button v-if="editorUnlocked && !testing && editorAllowed" class="open-editor" :class="{ 'above-stick': touchUI }" @click="openEditor">OPEN EDITOR</button>
-    <div v-if="!touchUI" class="hint">{{ t('umbrella.controls') }}</div>
-    <template v-else>
+    <div v-if="!touchUI && !introOn" class="hint">{{ t('umbrella.controls') }}</div>
+    <template v-else-if="!introOn">
       <div
         class="stick"
         role="slider"
@@ -772,6 +840,19 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .toast.info { background: #2563eb; top: 112px; }
+.intro-skip {
+  position: absolute;
+  right: calc(20px + env(safe-area-inset-right));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 3;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font: 800 18px system-ui, sans-serif;
+  cursor: pointer;
+}
 .toast {
   position: absolute;
   top: 64px;

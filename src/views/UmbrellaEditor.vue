@@ -26,9 +26,10 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { CHANNELS, LEVELS, type ButtonDef, type CheckpointDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type Vec, type WindDef, type WindDir } from '@/umbrella/levels'
-import { checkpointBox, createWorld, DEFAULT_TRIGGER_RADIUS, poseMovers, step, type Input, type World } from '@/umbrella/engine'
+import { CHANNELS, LEVELS, type ButtonDef, type CheckpointDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
+import { checkpointBox, contactOf, createWorld, DEFAULT_TRIGGER_RADIUS, poseMovers, step, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
+import { WALLDORF_COLORS } from '@/umbrella/characters'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
 import { encodeLevel, shareLink } from '@/umbrella/levelCode'
@@ -127,7 +128,7 @@ const WORLD_PRESETS: { key: string; w: number; h: number; view?: { w: number; h:
 ]
 /** Phone screens in CSS px for the mobile preview. */
 const PHONE = { w: 390, h: 844 }
-const MOTION_KINDS: Motion['kind'][] = ['static', 'line', 'circle', 'swing', 'lunge', 'arrive']
+const MOTION_KINDS: Motion['kind'][] = ['static', 'line', 'circle', 'swing', 'lunge', 'arrive', 'follow']
 
 const router = useRouter()
 const { t } = useI18n()
@@ -244,11 +245,13 @@ const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
 const translateMotion = (m: Motion, dx: number, dy: number) => {
   const mv = (v: Vec) => { v.x += dx; v.y += dy }
   if (m.kind === 'line' || m.kind === 'lunge' || m.kind === 'arrive') { mv(m.a); mv(m.b) }
+  else if (m.kind === 'follow' && m.a && m.b) { mv(m.a); mv(m.b) }
   else if (m.kind === 'circle') mv(m.center)
   else if (m.kind === 'swing') mv(m.pivot)
 }
 const handlesOf = (m: Motion): { key: HandleKey; v: Vec }[] => {
   if (m.kind === 'line' || m.kind === 'lunge' || m.kind === 'arrive') return [{ key: 'a', v: m.a }, { key: 'b', v: m.b }]
+  if (m.kind === 'follow' && m.a && m.b) return [{ key: 'a', v: m.a }, { key: 'b', v: m.b }]
   if (m.kind === 'circle') return [{ key: 'center', v: m.center }]
   if (m.kind === 'swing') return [{ key: 'pivot', v: m.pivot }]
   return []
@@ -630,11 +633,12 @@ const setMotionKind = (kind: Motion['kind']) => {
     circle: { kind: 'circle', center: { x: c.x - 120, y: c.y }, radius: 120, period: 6 },
     swing: { kind: 'swing', pivot: { x: c.x, y: c.y - 220 }, radius: 220, amplitude: 0.8, period: 4 },
     lunge: { kind: 'lunge', a: c, b: { x: c.x - (isEnemy ? 320 : 200), y: c.y }, period: 3.2 },
-    arrive: { kind: 'arrive', a: { x: c.x + 400, y: c.y }, b: c, delay: 1.5, duration: 2 }
+    arrive: { kind: 'arrive', a: { x: c.x + 400, y: c.y }, b: c, delay: 1.5, duration: 2 },
+    follow: { kind: 'follow', speed: 90 }
   }
   ent.motion = motions[kind]
 }
-const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; max: number; step: number; def?: number; triggerOnly?: boolean }[]> = {
+const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; max: number; step: number; def?: number; triggerOnly?: boolean; i18n?: string }[]> = {
   line: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }],
   circle: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }, { key: 'radius', label: 'Radius', min: 0, max: 800, step: 5 }],
   swing: [
@@ -647,11 +651,36 @@ const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; m
     { key: 'speed', label: 'Lunge speed ×', min: 0.25, max: 4, step: 0.05, def: 1 },
     { key: 'radius', label: 'Trigger radius', min: 40, max: 1200, step: 10, def: DEFAULT_TRIGGER_RADIUS, triggerOnly: true }
   ],
-  arrive: [{ key: 'delay', label: 'Delay (s)', min: 0, max: 10, step: 0.1 }, { key: 'duration', label: 'Glide (s)', min: 0.1, max: 10, step: 0.1 }]
+  arrive: [{ key: 'delay', label: 'Delay (s)', min: 0, max: 10, step: 0.1 }, { key: 'duration', label: 'Glide (s)', min: 0.1, max: 10, step: 0.1 }],
+  follow: [{ key: 'speed', i18n: 'followSpeed', label: 'Speed', min: 10, max: 800, step: 5 }]
 }
 const motionFields = computed(() => (MOTION_FIELDS[motionKind.value] ?? []).filter((f) =>
   !f.triggerOnly || (selectedMotion.value?.kind === 'lunge' && selectedMotion.value.trigger)))
 const fieldValue = (key: string, def?: number) => (selectedMotion.value as Record<string, number> | undefined)?.[key] ?? def
+// Following the player is for enemies; platforms keep the timed motions.
+const motionKinds = computed(() => MOTION_KINDS.filter((k) => k !== 'follow' || selected.value?.group === 'hazards'))
+type FollowMode = 'both' | 'x' | 'y' | 'path'
+const FOLLOW_MODES: FollowMode[] = ['both', 'x', 'y', 'path']
+const followMode = computed<FollowMode>(() => {
+  const m = selectedMotion.value
+  if (m?.kind !== 'follow') return 'both'
+  return m.a && m.b ? 'path' : m.axis ?? 'both'
+})
+/** Free, one axis, or a path (two handles) the follower slides along to block Pweeg. */
+const setFollowMode = (mode: FollowMode) => {
+  const m = selectedMotion.value
+  if (m?.kind !== 'follow' || !selected.value) return
+  delete m.a
+  delete m.b
+  delete m.axis
+  if (mode === 'x' || mode === 'y') m.axis = mode
+  else if (mode === 'path') {
+    const r = shownRect(selected.value)
+    const c = { x: Math.round(r.x + r.w / 2), y: Math.round(r.y + r.h / 2) }
+    m.a = { x: c.x, y: c.y - 200 }
+    m.b = { x: c.x, y: c.y + 200 }
+  }
+}
 const setTrigger = (on: boolean) => {
   const m = selectedMotion.value
   if (m?.kind !== 'lunge') return
@@ -691,6 +720,14 @@ const setFinish = (on: boolean) => {
   if (!p) return
   if (on) { level.value.platforms.forEach((x) => { delete x.finish }); p.finish = true }
   else delete p.finish
+}
+/** A Walldorf's touch. Solid keeps the older `harmless` field, so levels that use it read the same. */
+const setContact = (h: HazardDef, c: WalldorfContact) => {
+  delete h.harmless
+  delete h.contact
+  if (c === 'solid') h.harmless = true
+  else if (c === 'bounce') h.contact = 'bounce'
+  if (c !== 'bounce') delete h.bounce
 }
 const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff', on: boolean) => {
   const o = ent as Record<string, unknown>
@@ -1091,7 +1128,8 @@ const paint = (now: number) => {
       ctx.strokeStyle = isSel ? 'rgba(255,220,90,0.9)' : 'rgba(255,220,90,0.3)'
       ctx.setLineDash([8 / s, 6 / s])
       ctx.beginPath()
-      if (m.kind === 'line' || m.kind === 'lunge' || m.kind === 'arrive') { ctx.moveTo(m.a.x, m.a.y); ctx.lineTo(m.b.x, m.b.y) }
+      if (m.kind === 'follow' && m.a && m.b) { ctx.moveTo(m.a.x, m.a.y); ctx.lineTo(m.b.x, m.b.y) }
+      else if (m.kind === 'line' || m.kind === 'lunge' || m.kind === 'arrive') { ctx.moveTo(m.a.x, m.a.y); ctx.lineTo(m.b.x, m.b.y) }
       else if (m.kind === 'circle') ctx.arc(m.center.x, m.center.y, m.radius, 0, Math.PI * 2)
       else if (m.kind === 'swing') {
         ctx.moveTo(m.pivot.x, m.pivot.y)
@@ -1458,7 +1496,20 @@ onUnmounted(() => {
           </template>
 
           <template v-if="selectedHazard">
-            <label v-if="selectedHazard.kind === 'pillar'" class="check"><input type="checkbox" :checked="!!selectedHazard.harmless" @change="setFlag(selectedHazard, 'harmless', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.harmless') }}</label>
+            <template v-if="selectedHazard.kind === 'pillar'">
+              <label class="row">{{ t('umbrellaEditor.prop.touch') }}
+                <select class="field" :value="contactOf(selectedHazard)" @change="setContact(selectedHazard, ($event.target as HTMLSelectElement).value as WalldorfContact)">
+                  <option value="deadly" :style="{ color: WALLDORF_COLORS.deadly }">● {{ t('umbrellaEditor.prop.touchDeadly') }}</option>
+                  <option value="solid" :style="{ color: WALLDORF_COLORS.solid }">● {{ t('umbrellaEditor.prop.touchSolid') }}</option>
+                  <option value="bounce" :style="{ color: WALLDORF_COLORS.bounce }">● {{ t('umbrellaEditor.prop.touchBounce') }}</option>
+                </select>
+              </label>
+              <p class="hint">{{ t(`umbrellaEditor.touchHint.${contactOf(selectedHazard)}`) }}</p>
+              <label v-if="contactOf(selectedHazard) === 'bounce'" class="row col">
+                <span>{{ t('umbrellaEditor.prop.bounce') }}: {{ selectedHazard.bounce ?? tuning.walldorfBounce }}</span>
+                <input type="range" min="50" max="2000" step="10" :value="selectedHazard.bounce ?? tuning.walldorfBounce" @input="selectedHazard.bounce = +($event.target as HTMLInputElement).value" />
+              </label>
+            </template>
             <label v-if="selectedHazard.kind === 'spikes'" class="row">{{ t('umbrellaEditor.prop.points') }}
               <select v-model="selectedHazard.facing" class="field">
                 <option value="up">{{ t('umbrellaEditor.dir.up') }}</option>
@@ -1470,16 +1521,24 @@ onUnmounted(() => {
           <template v-if="selectedMover">
             <div class="head">{{ t('umbrellaEditor.motionTitle') }}</div>
             <select class="field" :value="motionKind" :aria-label="t('umbrellaEditor.motionTitle')" @change="setMotionKind(($event.target as HTMLSelectElement).value as Motion['kind'])">
-              <option v-for="k in MOTION_KINDS" :key="k" :value="k">{{ t(`umbrellaEditor.motion.${k}`) }}</option>
+              <option v-for="k in motionKinds" :key="k" :value="k">{{ t(`umbrellaEditor.motion.${k}`) }}</option>
             </select>
             <label v-for="f in motionFields" :key="f.key" class="row col">
-              <span>{{ t(`umbrellaEditor.motionField.${f.key}`) }}: {{ fieldValue(f.key, f.def) }}</span>
+              <span>{{ t(`umbrellaEditor.motionField.${f.i18n ?? f.key}`) }}: {{ fieldValue(f.key, f.def) }}</span>
               <input type="range" :min="f.min" :max="f.max" :step="f.step" :value="fieldValue(f.key, f.def)" @input="setMotionField(f.key, +($event.target as HTMLInputElement).value)" />
             </label>
             <label v-if="selectedMotion?.kind === 'lunge'" class="check" :title="t('umbrellaEditor.triggerHint')">
               <input type="checkbox" :checked="!!selectedMotion.trigger" @change="setTrigger(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.trigger') }}
             </label>
-            <p v-if="motionKind !== 'static'" class="hint">{{ t('umbrellaEditor.pathHint') }}</p>
+            <template v-if="selectedMotion?.kind === 'follow'">
+              <label class="row">{{ t('umbrellaEditor.prop.followMode') }}
+                <select class="field" :value="followMode" @change="setFollowMode(($event.target as HTMLSelectElement).value as FollowMode)">
+                  <option v-for="f in FOLLOW_MODES" :key="f" :value="f">{{ t(`umbrellaEditor.followMode.${f}`) }}</option>
+                </select>
+              </label>
+              <p class="hint">{{ t(`umbrellaEditor.followHint.${followMode}`) }}</p>
+            </template>
+            <p v-if="motionKind !== 'static' && (selectedMotion?.kind !== 'follow' || followMode === 'path')" class="hint">{{ t('umbrellaEditor.pathHint') }}</p>
           </template>
           <div class="row actions">
             <button class="btn" @click="runCmd('duplicate')">⧉ {{ t('umbrellaEditor.cmd.duplicate') }} <kbd>{{ cmdKeys('duplicate') }}</kbd></button>

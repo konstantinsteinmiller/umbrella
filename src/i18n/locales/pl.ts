@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Oceń ten poziom",
     'myLevels': "Moje poziomy",
     'myLevelsEmpty': "Tu pojawiają się poziomy otwarte z udostępnionego linku lub zbudowane w edytorze.",
+    'intro': {
+      'skip': "Pomiń ▸"
+    },
     'pause': {
       'open': "Pauza",
       'title': "Wstrzymano",
       'resume': "Wznów",
-      'settings': "Ustawienia"
+      'settings': "Ustawienia",
+      'intro': "Obejrzyj intro"
     },
     'community': {
       'button': "Społeczność",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "Najnowsze",
       'sortPlays': "Najczęściej grane",
       'sortLabel': "Sortuj według",
+      'layout': "Widok",
+      'layoutGrid': "Siatka",
+      'layoutList': "Lista",
       'play': "Graj",
       'by': "autor: {author}",
       'anonymous': "anonim",
@@ -197,6 +204,12 @@ export default {
       'timed': "Czasowy",
       'seconds': "Sekundy włączenia",
       'harmless': "Nieszkodliwe (stałe, nie rani)",
+      'touch': "Przy dotknięciu",
+      'touchDeadly': "Zabójczy",
+      'touchSolid': "Twardy blok",
+      'touchBounce': "Odbijacz",
+      'followMode': "Podąża",
+      'bounce': "Siła odbicia",
       'points': "Punkty",
       'trigger': "Atakuje, gdy gracz jest blisko"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Każde dotknięcie włącza lub wyłącza kanał.",
     'timedHint': "Dotknięcie włącza kanał na {s} s.",
     'checkpointHint': "Po dotknięciu tej flagi upadek przenosi gracza tutaj.",
+    'touchHint': {
+      'deadly': "Dotknięcie zaczyna poziom od nowa.",
+      'solid': "Nieszkodliwy blok: można w niego uderzyć i na nim stanąć.",
+      'bounce': "Jak odbijacz we flipperze: odrzuca Pweega do tyłu. Szarża odrzuca dużo mocniej."
+    },
     'triggerHint': "Czeka, aż gracz będzie w powietrzu i blisko, potem atakuje raz",
     'pathHint': "Przeciągnij żółte kropki na płótnie, aby zmienić ścieżkę (pomarańczowa = koniec).",
+    'followMode': {
+      'both': "swobodnie",
+      'x': "tylko lewo / prawo",
+      'y': "tylko góra / dół",
+      'path': "wzdłuż ścieżki"
+    },
+    'followHint': {
+      'both': "Powoli goni Pweega, dokądkolwiek pójdzie.",
+      'x': "Porusza się tylko w bok, by być na wysokości Pweega.",
+      'y': "Porusza się tylko w górę i w dół, by być na wysokości Pweega.",
+      'path': "Sunie po swojej ścieżce do punktu najbliżej Pweega — zastawia mu drogę."
+    },
     'motion': {
       'static': "nieruchomy",
       'line': "tam i z powrotem",
       'circle': "okrąg",
       'swing': "wahadło",
       'lunge': "wypad",
-      'arrive': "wlot"
+      'arrive': "wlot",
+      'follow': "podąża za graczem"
     },
     'motionField': {
       'period': "Okres (s)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Wychylenie",
       'speed': "Prędkość wypadu ×",
       'delay': "Opóźnienie (s)",
-      'duration': "Lot (s)"
+      'duration': "Lot (s)",
+      'followSpeed': "Szybkość pościgu"
     },
     'problem': {
       'noFinish': "Brak platformy mety — poziomu nie da się wygrać.",

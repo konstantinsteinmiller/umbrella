@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Bu seviyeyi puanla",
     'myLevels': "Seviyelerim",
     'myLevelsEmpty': "Paylaşım bağlantısından açtığın veya editörde yaptığın seviyeler burada görünür.",
+    'intro': {
+      'skip': "Geç ▸"
+    },
     'pause': {
       'open': "Duraklat",
       'title': "Duraklatıldı",
       'resume': "Devam et",
-      'settings': "Ayarlar"
+      'settings': "Ayarlar",
+      'intro': "Girişi izle"
     },
     'community': {
       'button': "Topluluk",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "En yeni",
       'sortPlays': "En çok oynanan",
       'sortLabel': "Sırala",
+      'layout': "Görünüm",
+      'layoutGrid': "Izgara",
+      'layoutList': "Liste",
       'play': "Oyna",
       'by': "{author} tarafından",
       'anonymous': "anonim",
@@ -197,6 +204,12 @@ export default {
       'timed': "Zamanlı",
       'seconds': "Açık kalma süresi (sn)",
       'harmless': "Zararsız (katı, acıtmaz)",
+      'touch': "Dokununca",
+      'touchDeadly': "Öldürücü",
+      'touchSolid': "Sağlam blok",
+      'touchBounce': "Zıplatan tampon",
+      'followMode': "İzleme",
+      'bounce': "Sekme gücü",
       'points': "Noktalar",
       'trigger': "Oyuncu yaklaşınca saldırır"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Her dokunuş kanalı açar ya da kapatır.",
     'timedHint': "Bir dokunuş kanalı {s} saniye açar.",
     'checkpointHint': "Bu bayrağa dokunduktan sonra düşen oyuncu buraya döner.",
+    'touchHint': {
+      'deadly': "Dokunmak seviyeyi baştan başlatır.",
+      'solid': "Zararsız bir blok: çarpılabilir ve üstünde durulabilir.",
+      'bounce': "Langırt tamponu gibi: Pweeg'i geri savurur. Saldırırken çok daha sert savurur."
+    },
     'triggerHint': "Oyuncu havada ve yakın olana kadar bekler, sonra bir kez saldırır",
     'pathHint': "Yolu değiştirmek için tuvaldeki sarı noktaları sürükle (turuncu = son).",
+    'followMode': {
+      'both': "serbestçe",
+      'x': "yalnızca sol / sağ",
+      'y': "yalnızca yukarı / aşağı",
+      'path': "bir yol boyunca"
+    },
+    'followHint': {
+      'both': "Pweeg nereye giderse yavaşça peşinden gelir.",
+      'x': "Pweeg ile aynı hizada kalmak için yalnızca yana hareket eder.",
+      'y': "Pweeg ile aynı hizada kalmak için yalnızca yukarı aşağı hareket eder.",
+      'path': "Yolu boyunca Pweeg'e en yakın noktaya kayar — yolunu keser."
+    },
     'motion': {
       'static': "sabit",
       'line': "ileri geri",
       'circle': "daire",
       'swing': "salınım",
       'lunge': "hamle",
-      'arrive': "uçarak gelir"
+      'arrive': "uçarak gelir",
+      'follow': "oyuncuyu izler"
     },
     'motionField': {
       'period': "Periyot (sn)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Salınım",
       'speed': "Hamle hızı ×",
       'delay': "Gecikme (sn)",
-      'duration': "Süzülme (sn)"
+      'duration': "Süzülme (sn)",
+      'followSpeed': "Takip hızı"
     },
     'problem': {
       'noFinish': "Bitiş platformu yok — seviye kazanılamaz.",

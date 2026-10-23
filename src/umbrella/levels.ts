@@ -26,6 +26,10 @@ export type Motion =
     }
   /** Wait `delay` s at `a`, glide to `b` over `duration` s, then stay. */
   | { kind: 'arrive'; a: Vec; b: Vec; delay: number; duration: number }
+  /** Enemies: slowly track the player at `speed` px/s. With `a`/`b` it keeps to that
+   *  path and slides to the point nearest the player (it blocks his way); `axis`
+   *  locks free tracking to one direction. Starts where it is placed. */
+  | { kind: 'follow'; speed: number; a?: Vec; b?: Vec; axis?: 'x' | 'y' }
 
 export interface PlatformDef {
   x: number
@@ -78,6 +82,10 @@ export interface WindDef {
 /** Touching any hazard resets the level. Mines are circles inscribed in their box. */
 export type HazardKind = 'pillar' | 'mine' | 'spikes'
 
+/** A Walldorf's touch: deadly (resets the level), solid (a block to stand on) or
+ *  bounce (a pinball bumper that throws Pweeg back; harder while it charges). */
+export type WalldorfContact = 'deadly' | 'solid' | 'bounce'
+
 export interface HazardDef {
   kind: HazardKind
   x: number
@@ -85,8 +93,13 @@ export interface HazardDef {
   w: number
   h: number
   motion?: Motion
-  /** Not deadly: a solid block you can bump into and stand on. */
+  /** Not deadly: a solid block you can bump into and stand on. Older levels' way of
+   *  saying `contact: 'solid'`; still read. */
   harmless?: boolean
+  /** Walldorfs only — what touching it does (absent: `harmless` decides, else deadly). */
+  contact?: WalldorfContact
+  /** Bouncy Walldorf: how hard it throws Pweeg off (px/s; absent: the tuning default). */
+  bounce?: number
   /** Spikes only: which way the points face. */
   facing?: 'up' | 'down'
 }

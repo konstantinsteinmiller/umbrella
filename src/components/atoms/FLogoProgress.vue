@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { splashGone } from '@/use/useSplash'
 import { useI18n } from 'vue-i18n'
 import useAssets from '@/use/useAssets'
 import { stopLoading } from '@/use/useCrazyGames'
@@ -95,7 +96,7 @@ watch(done, (isDone) => {
 })
 watch(backdropHidden, (hidden) => {
   if (!hidden || backdropGoneId !== null) return
-  backdropGoneId = window.setTimeout(() => { backdropGone.value = true }, BACKDROP_FADE_MS + 80)
+  backdropGoneId = window.setTimeout(() => { backdropGone.value = true; splashGone.value = true }, BACKDROP_FADE_MS + 80)
 })
 
 const logoRef = ref<HTMLElement | null>(null)

@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Valorar este nivel",
     'myLevels': "Mis niveles",
     'myLevelsEmpty': "Aquí aparecen los niveles que abres desde un enlace compartido o creas en el editor.",
+    'intro': {
+      'skip': "Saltar ▸"
+    },
     'pause': {
       'open': "Pausa",
       'title': "En pausa",
       'resume': "Continuar",
-      'settings': "Ajustes"
+      'settings': "Ajustes",
+      'intro': "Ver la intro"
     },
     'community': {
       'button': "Comunidad",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "Más nuevos",
       'sortPlays': "Más jugados",
       'sortLabel': "Ordenar por",
+      'layout': "Vista",
+      'layoutGrid': "Cuadrícula",
+      'layoutList': "Lista",
       'play': "Jugar",
       'by': "de {author}",
       'anonymous': "anónimo",
@@ -197,6 +204,12 @@ export default {
       'timed': "Temporizado",
       'seconds': "Segundos activo",
       'harmless': "Inofensivo (sólido, no hace daño)",
+      'touch': "Al tocarlo",
+      'touchDeadly': "Mortal",
+      'touchSolid': "Bloque sólido",
+      'touchBounce': "Rebotador",
+      'followMode': "Sigue",
+      'bounce': "Fuerza de rebote",
       'points': "Puntos",
       'trigger': "Ataca cuando el jugador está cerca"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Cada toque activa o desactiva el canal.",
     'timedHint': "Un toque activa el canal durante {s} segundos.",
     'checkpointHint': "Tras tocar esta bandera, una caída devuelve al jugador aquí.",
+    'touchHint': {
+      'deadly': "Tocarlo reinicia el nivel.",
+      'solid': "Un bloque inofensivo: choca con él y súbete encima.",
+      'bounce': "Como un rebotador de pinball: empuja a Pweeg hacia atrás. Una embestida empuja mucho más fuerte."
+    },
     'triggerHint': "Espera a que el jugador esté en el aire y cerca, y ataca una vez",
     'pathHint': "Arrastra los puntos amarillos del lienzo para cambiar la ruta (naranja = final).",
+    'followMode': {
+      'both': "libremente",
+      'x': "solo izquierda / derecha",
+      'y': "solo arriba / abajo",
+      'path': "por un camino"
+    },
+    'followHint': {
+      'both': "Persigue lentamente a Pweeg vaya donde vaya.",
+      'x': "Solo se mueve de lado para quedar a la altura de Pweeg.",
+      'y': "Solo se mueve arriba y abajo para quedar a la altura de Pweeg.",
+      'path': "Se desliza por su camino hasta el punto más cercano a Pweeg: le cierra el paso."
+    },
     'motion': {
       'static': "quieto",
       'line': "ida y vuelta",
       'circle': "círculo",
       'swing': "péndulo",
       'lunge': "embestida",
-      'arrive': "entrada en vuelo"
+      'arrive': "entrada en vuelo",
+      'follow': "seguir al jugador"
     },
     'motionField': {
       'period': "Periodo (s)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Oscilación",
       'speed': "Velocidad de embestida ×",
       'delay': "Retraso (s)",
-      'duration': "Planeo (s)"
+      'duration': "Planeo (s)",
+      'followSpeed': "Velocidad de persecución"
     },
     'problem': {
       'noFinish': "No hay plataforma de meta: el nivel no se puede ganar.",

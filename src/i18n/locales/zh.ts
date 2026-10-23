@@ -25,11 +25,15 @@ export default {
     'rateLevel': "为本关评分",
     'myLevels': "我的关卡",
     'myLevelsEmpty': "通过分享链接打开或在编辑器中制作的关卡会显示在这里。",
+    'intro': {
+      'skip': "跳过 ▸"
+    },
     'pause': {
       'open': "暂停",
       'title': "已暂停",
       'resume': "继续",
-      'settings': "设置"
+      'settings': "设置",
+      'intro': "观看开场"
     },
     'community': {
       'button': "社区",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "最新",
       'sortPlays': "最多游玩",
       'sortLabel': "排序方式",
+      'layout': "布局",
+      'layoutGrid': "网格",
+      'layoutList': "列表",
       'play': "开始",
       'by': "作者：{author}",
       'anonymous': "匿名",
@@ -197,6 +204,12 @@ export default {
       'timed': "定时",
       'seconds': "开启秒数",
       'harmless': "无害（实体，不造成伤害）",
+      'touch': "接触时",
+      'touchDeadly': "致命",
+      'touchSolid': "实心方块",
+      'touchBounce': "弹力缓冲器",
+      'followMode': "跟随方式",
+      'bounce': "弹开力度",
       'points': "路径点",
       'trigger': "玩家靠近时攻击"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "每次触碰都会开启或关闭频道。",
     'timedHint': "触碰后频道开启 {s} 秒。",
     'checkpointHint': "碰到这面旗子后，坠落会让玩家回到这里。",
+    'touchHint': {
+      'deadly': "碰到就会重新开始本关。",
+      'solid': "无害的方块：可以撞上去，也能站在上面。",
+      'bounce': "像弹球台的缓冲器一样把 Pweeg 弹回去。冲撞时会弹得更狠。"
+    },
     'triggerHint': "等玩家在空中且靠近时，攻击一次",
     'pathHint': "拖动画布上的黄色圆点来修改路径（橙色 = 终点）。",
+    'followMode': {
+      'both': "自由",
+      'x': "仅左右",
+      'y': "仅上下",
+      'path': "沿路线"
+    },
+    'followHint': {
+      'both': "无论 Pweeg 去哪里都会慢慢跟上。",
+      'x': "只会左右移动，保持与 Pweeg 对齐。",
+      'y': "只会上下移动，保持与 Pweeg 对齐。",
+      'path': "沿着路线滑到离 Pweeg 最近的位置——挡住他的去路。"
+    },
     'motion': {
       'static': "静止",
       'line': "来回",
       'circle': "绕圈",
       'swing': "摆动",
       'lunge': "突进",
-      'arrive': "飞入"
+      'arrive': "飞入",
+      'follow': "跟随玩家"
     },
     'motionField': {
       'period': "周期（秒）",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "摆幅",
       'speed': "突进速度 ×",
       'delay': "延迟（秒）",
-      'duration': "滑行（秒）"
+      'duration': "滑行（秒）",
+      'followSpeed': "跟随速度"
     },
     'problem': {
       'noFinish': "没有终点平台——关卡无法通过。",

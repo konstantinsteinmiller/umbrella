@@ -8,7 +8,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LanguageSelect from './LanguageSelect.vue'
 
-const emit = defineEmits<{ resume: []; restart: [] }>()
+const emit = defineEmits<{ resume: []; restart: []; intro: [] }>()
 const { t } = useI18n()
 
 const view = ref<'menu' | 'settings'>('menu')
@@ -32,6 +32,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
         <b class="pause-title">⏸ {{ t('umbrella.pause.title') }}</b>
         <button class="pause-btn primary" @click="emit('resume')">▶ {{ t('umbrella.pause.resume') }}</button>
         <button class="pause-btn" @click="emit('restart')">↻ {{ t('umbrella.restart') }}</button>
+        <button class="pause-btn" @click="emit('intro')">🎬 {{ t('umbrella.pause.intro') }}</button>
         <button class="pause-btn" @click="view = 'settings'">⚙ {{ t('umbrella.pause.settings') }}</button>
       </template>
       <template v-else>

@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Beri nilai level ini",
     'myLevels': "Level saya",
     'myLevelsEmpty': "Level yang kamu buka dari tautan berbagi atau buat di editor muncul di sini.",
+    'intro': {
+      'skip': "Lewati ▸"
+    },
     'pause': {
       'open': "Jeda",
       'title': "Dijeda",
       'resume': "Lanjutkan",
-      'settings': "Pengaturan"
+      'settings': "Pengaturan",
+      'intro': "Tonton intro"
     },
     'community': {
       'button': "Komunitas",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "Terbaru",
       'sortPlays': "Paling banyak dimainkan",
       'sortLabel': "Urutkan",
+      'layout': "Tampilan",
+      'layoutGrid': "Kisi",
+      'layoutList': "Daftar",
       'play': "Main",
       'by': "oleh {author}",
       'anonymous': "anonim",
@@ -197,6 +204,12 @@ export default {
       'timed': "Berwaktu",
       'seconds': "Detik aktif",
       'harmless': "Tidak berbahaya (padat, tidak melukai)",
+      'touch': "Saat disentuh",
+      'touchDeadly': "Mematikan",
+      'touchSolid': "Balok padat",
+      'touchBounce': "Bumper memantul",
+      'followMode': "Mengikuti",
+      'bounce': "Kekuatan pantulan",
       'points': "Titik",
       'trigger': "Menyerang saat pemain dekat"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Setiap sentuhan menyalakan atau mematikan saluran.",
     'timedHint': "Sentuhan menyalakan saluran selama {s} detik.",
     'checkpointHint': "Setelah menyentuh bendera ini, jatuh membawa pemain kembali ke sini.",
+    'touchHint': {
+      'deadly': "Menyentuhnya mengulang level.",
+      'solid': "Balok yang tidak berbahaya: bisa ditabrak dan dipijak.",
+      'bounce': "Seperti bumper pinball: mementalkan Pweeg ke belakang. Serudukan mementalkan jauh lebih kuat."
+    },
     'triggerHint': "Menunggu pemain melayang dan dekat, lalu menyerang sekali",
     'pathHint': "Seret titik kuning di kanvas untuk mengubah lintasan (oranye = akhir).",
+    'followMode': {
+      'both': "bebas",
+      'x': "hanya kiri / kanan",
+      'y': "hanya atas / bawah",
+      'path': "di sepanjang jalur"
+    },
+    'followHint': {
+      'both': "Pelan-pelan mengejar Pweeg ke mana pun dia pergi.",
+      'x': "Hanya bergerak ke samping agar sejajar dengan Pweeg.",
+      'y': "Hanya bergerak naik turun agar sejajar dengan Pweeg.",
+      'path': "Meluncur di jalurnya ke titik terdekat dengan Pweeg — menghalangi jalannya."
+    },
     'motion': {
       'static': "diam",
       'line': "bolak-balik",
       'circle': "lingkaran",
       'swing': "ayun",
       'lunge': "terjang",
-      'arrive': "terbang masuk"
+      'arrive': "terbang masuk",
+      'follow': "mengikuti pemain"
     },
     'motionField': {
       'period': "Periode (dtk)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Ayunan",
       'speed': "Kecepatan terjang ×",
       'delay': "Jeda (dtk)",
-      'duration': "Luncur (dtk)"
+      'duration': "Luncur (dtk)",
+      'followSpeed': "Kecepatan mengikuti"
     },
     'problem': {
       'noFinish': "Tidak ada platform finis — level tidak bisa dimenangkan.",

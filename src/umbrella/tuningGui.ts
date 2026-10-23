@@ -36,7 +36,8 @@ const MOTION_KNOBS: Record<string, { key: string; label: string; range: [number,
     { key: 'radius', label: 'radius', range: [0, 800, 5] }
   ],
   lunge: [{ key: 'period', label: 'period (s)', range: [0.3, 10, 0.05] }],
-  arrive: [{ key: 'delay', label: 'delay (s)', range: [0, 10, 0.1] }, { key: 'duration', label: 'glide (s)', range: [0.1, 10, 0.1] }]
+  arrive: [{ key: 'delay', label: 'delay (s)', range: [0, 10, 0.1] }, { key: 'duration', label: 'glide (s)', range: [0.1, 10, 0.1] }],
+  follow: [{ key: 'speed', label: 'follow speed', range: [10, 800, 5] }]
 }
 
 /** Every tunable number of a level: wind speeds, platform and enemy motion. */

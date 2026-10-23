@@ -714,6 +714,61 @@ const whistle: Recipe = (k, o, t, p) => {
   return dur + 0.1
 }
 
+/**
+ * BUMP — a bouncy Walldorf throws Pweeg off: a rubbery "boing" (a sine that
+ * dips, springs back above its pitch and wobbles out) on a soft body thud.
+ * intensity 1 = a charging Walldorf: lower, longer, with a heavier thump.
+ */
+const bump: Recipe = (k, o, t, p) => {
+  const v = clamp01(p.intensity ?? 0.4)
+  const base = between(k, 230, 260) * (1 - 0.3 * v)
+  const len = 0.22 + 0.2 * v
+  const boing = osc(k, 'sine', base, t, len + 0.05)
+  const f = boing.frequency
+  f.setValueAtTime(base * 0.62, t)
+  f.exponentialRampToValueAtTime(base * 1.18, t + 0.035)
+  // The spring rings out: a few shrinking wobbles around the pitch.
+  for (let i = 1; i <= 5; i++) {
+    const at = t + 0.035 + i * (len / 6)
+    f.exponentialRampToValueAtTime(base * (1 + (i % 2 ? -1 : 1) * 0.12 / i), at)
+  }
+  boing.connect(gainAD(k, t, 0.42 + 0.25 * v, 0.004, len)).connect(o.dry)
+  // Rubber skin: a quiet second partial for the "squeak" of the boing.
+  const skin = osc(k, 'triangle', base * 2.02, t, 0.12)
+  skin.connect(gainAD(k, t, 0.06 + 0.05 * v, 0.003, 0.08)).connect(o.dry)
+  // The body hitting it.
+  const thud = osc(k, 'sine', 110, t, 0.16)
+  sweep(thud.frequency, t, 120 - 30 * v, 55, 0.08)
+  thud.connect(gainAD(k, t, 0.25 + 0.45 * v, 0.002, 0.07 + 0.08 * v)).connect(o.dry)
+  const slap = noise(k, t, 0.05)
+  slap.connect(filter(k, 'lowpass', 1100 + 900 * v, 0.8)).connect(gainAD(k, t, 0.12 + 0.2 * v, 0.001, 0.03)).connect(o.dry)
+  return len + 0.1
+}
+
+/** WHOOSH — Chad's front flip in the intro: air rushing past, rising then falling. */
+const whoosh: Recipe = (k, o, t) => {
+  const len = 0.7
+  const air = noise(k, t, len, k.pink)
+  const bp = filter(k, 'bandpass', 600, 1.4)
+  sweep(bp.frequency, t, 450, 2200, len * 0.55)
+  sweep(bp.frequency, t + len * 0.55, 2200, 700, len * 0.45)
+  air.connect(bp).connect(gainAD(k, t, 0.32, len * 0.45, len * 0.5)).connect(o.dry)
+  return len + 0.1
+}
+
+/** COOL — Chad lands: a short, relaxed two-note sting (a fifth, slid into). */
+const cool: Recipe = (k, o, t) => {
+  const note = (f: number, at: number, dur: number) => {
+    const v = osc(k, 'triangle', f, at, dur + 0.05)
+    v.frequency.setValueAtTime(f * 0.97, at)
+    v.frequency.exponentialRampToValueAtTime(f, at + 0.04)
+    v.connect(filter(k, 'lowpass', 2600, 0.7)).connect(gainAD(k, at, 0.22, 0.01, dur)).connect(o.dry)
+  }
+  note(392, t, 0.14)
+  note(587.33, t + 0.12, 0.32)
+  return 0.55
+}
+
 export const RECIPES = {
   open,
   close,
@@ -725,7 +780,10 @@ export const RECIPES = {
   lunge,
   arrive,
   win,
-  whistle
+  whistle,
+  bump,
+  whoosh,
+  cool
 } satisfies Record<string, Recipe>
 
 export type SfxName = keyof typeof RECIPES
@@ -742,7 +800,10 @@ export const SFX_TRIM: Record<SfxName, number> = {
   lunge: 2,
   arrive: 2,
   win: 0.68, // −3.3 dB
-  whistle: 0.7 // −3 dB
+  whistle: 0.7, // −3 dB
+  bump: 1.6, // +4 dB: a bump sits under a death hit, a charge bump about level with it
+  whoosh: 2.5, // +8 dB: about level with the umbrella opening
+  cool: 1.8 // +5 dB: under the whoosh, over the steps
 }
 
 /** Seconds the music ducks under a sound, and how deep (dB). */

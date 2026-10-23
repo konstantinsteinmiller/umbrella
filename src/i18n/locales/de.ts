@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Level bewerten",
     'myLevels': "Meine Level",
     'myLevelsEmpty': "Level, die du über einen geteilten Link öffnest oder im Editor baust, erscheinen hier.",
+    'intro': {
+      'skip': "Überspringen ▸"
+    },
     'pause': {
       'open': "Pause",
       'title': "Pausiert",
       'resume': "Weiter",
-      'settings': "Einstellungen"
+      'settings': "Einstellungen",
+      'intro': "Intro ansehen"
     },
     'community': {
       'button': "Community",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "Neueste",
       'sortPlays': "Meistgespielt",
       'sortLabel': "Sortieren nach",
+      'layout': "Ansicht",
+      'layoutGrid': "Raster",
+      'layoutList': "Liste",
       'play': "Spielen",
       'by': "von {author}",
       'anonymous': "anonym",
@@ -197,6 +204,12 @@ export default {
       'timed': "Zeitgesteuert",
       'seconds': "Sekunden an",
       'harmless': "Harmlos (fest, verletzt nicht)",
+      'touch': "Bei Berührung",
+      'touchDeadly': "Tödlich",
+      'touchSolid': "Fester Block",
+      'touchBounce': "Flummi-Bumper",
+      'followMode': "Folgt",
+      'bounce': "Abprallstärke",
       'points': "Punkte",
       'trigger': "Greift an, wenn der Spieler nah ist"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Jede Berührung schaltet den Kanal an oder aus.",
     'timedHint': "Eine Berührung schaltet den Kanal für {s} Sekunden an.",
     'checkpointHint': "Nach dem Berühren dieser Flagge bringt ein Sturz den Spieler hierher zurück.",
+    'touchHint': {
+      'deadly': "Eine Berührung setzt das Level zurück.",
+      'solid': "Ein harmloser Block: dagegenstoßen und darauf stehen.",
+      'bounce': "Wie ein Flipper-Bumper: er schleudert Pweeg zurück. Ein Angriff schleudert viel stärker."
+    },
     'triggerHint': "Wartet, bis der Spieler in der Luft und nah ist, und greift dann einmal an",
     'pathHint': "Ziehe die gelben Punkte auf der Fläche, um den Pfad zu ändern (orange = Ende).",
+    'followMode': {
+      'both': "frei",
+      'x': "nur links / rechts",
+      'y': "nur hoch / runter",
+      'path': "auf einem Pfad"
+    },
+    'followHint': {
+      'both': "Verfolgt Pweeg langsam, wohin er auch geht.",
+      'x': "Bewegt sich nur seitwärts, um auf Pweegs Höhe zu bleiben.",
+      'y': "Bewegt sich nur hoch und runter, um auf Pweegs Höhe zu bleiben.",
+      'path': "Gleitet auf seinem Pfad zum Punkt, der Pweeg am nächsten ist – er versperrt ihm den Weg."
+    },
     'motion': {
       'static': "still",
       'line': "hin und her",
       'circle': "Kreis",
       'swing': "Pendel",
       'lunge': "Vorstoß",
-      'arrive': "Einfliegen"
+      'arrive': "Einfliegen",
+      'follow': "folgt dem Spieler"
     },
     'motionField': {
       'period': "Periode (s)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Ausschlag",
       'speed': "Vorstoßtempo ×",
       'delay': "Verzögerung (s)",
-      'duration': "Gleiten (s)"
+      'duration': "Gleiten (s)",
+      'followSpeed': "Folgetempo"
     },
     'problem': {
       'noFinish': "Keine Zielplattform — das Level kann nicht gewonnen werden.",

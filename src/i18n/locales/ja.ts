@@ -25,11 +25,15 @@ export default {
     'rateLevel': "このレベルを評価",
     'myLevels': "マイレベル",
     'myLevelsEmpty': "共有リンクから開いたレベルやエディターで作ったレベルがここに表示されます。",
+    'intro': {
+      'skip': "スキップ ▸"
+    },
     'pause': {
       'open': "一時停止",
       'title': "一時停止中",
       'resume': "再開",
-      'settings': "設定"
+      'settings': "設定",
+      'intro': "イントロを見る"
     },
     'community': {
       'button': "コミュニティ",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "新着順",
       'sortPlays': "プレイ数順",
       'sortLabel': "並べ替え",
+      'layout': "表示",
+      'layoutGrid': "グリッド",
+      'layoutList': "リスト",
       'play': "プレイ",
       'by': "作者：{author}",
       'anonymous': "匿名",
@@ -197,6 +204,12 @@ export default {
       'timed': "時間制",
       'seconds': "オンの秒数",
       'harmless': "無害（実体あり、ダメージなし）",
+      'touch': "触れたとき",
+      'touchDeadly': "即死",
+      'touchSolid': "固いブロック",
+      'touchBounce': "跳ね返しバンパー",
+      'followMode': "追い方",
+      'bounce': "跳ね返す強さ",
       'points': "ポイント",
       'trigger': "プレイヤーが近づくと攻撃"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "触れるたびにチャンネルのオン / オフが切り替わります。",
     'timedHint': "触れるとチャンネルが {s} 秒間オンになります。",
     'checkpointHint': "この旗に触れたあとは、落ちてもここに戻ります。",
+    'touchHint': {
+      'deadly': "触れるとレベルが最初からになります。",
+      'solid': "無害なブロック：ぶつかったり上に乗ったりできます。",
+      'bounce': "ピンボールのバンパーのように Pweeg を跳ね返します。突進中はもっと強く跳ね返します。"
+    },
     'triggerHint': "プレイヤーが空中で近づくのを待ち、一度だけ攻撃します",
     'pathHint': "キャンバス上の黄色の点をドラッグして経路を変更（オレンジ = 終点）。",
+    'followMode': {
+      'both': "自由に",
+      'x': "左右のみ",
+      'y': "上下のみ",
+      'path': "道に沿って"
+    },
+    'followHint': {
+      'both': "どこへ行っても Pweeg をゆっくり追いかけます。",
+      'x': "Pweeg と同じ高さを保つよう横にだけ動きます。",
+      'y': "Pweeg と同じ位置を保つよう上下にだけ動きます。",
+      'path': "道に沿って Pweeg に一番近い位置へすべり、行く手をふさぎます。"
+    },
     'motion': {
       'static': "静止",
       'line': "往復",
       'circle': "円",
       'swing': "揺れ",
       'lunge': "突進",
-      'arrive': "飛来"
+      'arrive': "飛来",
+      'follow': "プレイヤーを追う"
     },
     'motionField': {
       'period': "周期 (秒)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "振れ幅",
       'speed': "突進速度 ×",
       'delay': "遅延 (秒)",
-      'duration': "滑空 (秒)"
+      'duration': "滑空 (秒)",
+      'followSpeed': "追う速さ"
     },
     'problem': {
       'noFinish': "ゴールの足場がありません — クリアできません。",

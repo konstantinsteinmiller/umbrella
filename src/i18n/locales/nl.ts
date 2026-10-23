@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Beoordeel dit level",
     'myLevels': "Mijn levels",
     'myLevelsEmpty': "Levels die je via een gedeelde link opent of in de editor bouwt, staan hier.",
+    'intro': {
+      'skip': "Overslaan ▸"
+    },
     'pause': {
       'open': "Pauze",
       'title': "Gepauzeerd",
       'resume': "Verder",
-      'settings': "Instellingen"
+      'settings': "Instellingen",
+      'intro': "Intro bekijken"
     },
     'community': {
       'button': "Community",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "Nieuwste",
       'sortPlays': "Meest gespeeld",
       'sortLabel': "Sorteren op",
+      'layout': "Weergave",
+      'layoutGrid': "Raster",
+      'layoutList': "Lijst",
       'play': "Spelen",
       'by': "door {author}",
       'anonymous': "anoniem",
@@ -197,6 +204,12 @@ export default {
       'timed': "Getimed",
       'seconds': "Seconden aan",
       'harmless': "Onschadelijk (vast, doet geen pijn)",
+      'touch': "Bij aanraking",
+      'touchDeadly': "Dodelijk",
+      'touchSolid': "Vast blok",
+      'touchBounce': "Stuiterbumper",
+      'followMode': "Volgt",
+      'bounce': "Stuiterkracht",
       'points': "Punten",
       'trigger': "Valt aan als de speler dichtbij is"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Elke aanraking zet het kanaal aan of uit.",
     'timedHint': "Een aanraking zet het kanaal {s} seconden aan.",
     'checkpointHint': "Na het aanraken van deze vlag brengt een val de speler hier terug.",
+    'touchHint': {
+      'deadly': "Aanraken start het level opnieuw.",
+      'solid': "Een onschuldig blok: je kunt ertegenaan botsen en erop staan.",
+      'bounce': "Zoals een flipperbumper: hij kaatst Pweeg terug. Een aanval kaatst veel harder."
+    },
     'triggerHint': "Wacht tot de speler in de lucht en dichtbij is en valt dan één keer aan",
     'pathHint': "Sleep de gele stippen op het canvas om het pad te wijzigen (oranje = eind).",
+    'followMode': {
+      'both': "vrij",
+      'x': "alleen links / rechts",
+      'y': "alleen omhoog / omlaag",
+      'path': "langs een pad"
+    },
+    'followHint': {
+      'both': "Achtervolgt Pweeg langzaam waar hij ook gaat.",
+      'x': "Beweegt alleen zijwaarts om naast Pweeg te blijven.",
+      'y': "Beweegt alleen op en neer om naast Pweeg te blijven.",
+      'path': "Glijdt over zijn pad naar het punt dichtst bij Pweeg — hij verspert hem de weg."
+    },
     'motion': {
       'static': "stil",
       'line': "heen en weer",
       'circle': "cirkel",
       'swing': "schommel",
       'lunge': "uitval",
-      'arrive': "invliegen"
+      'arrive': "invliegen",
+      'follow': "volgt de speler"
     },
     'motionField': {
       'period': "Periode (s)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Uitslag",
       'speed': "Uitvalsnelheid ×",
       'delay': "Vertraging (s)",
-      'duration': "Glijden (s)"
+      'duration': "Glijden (s)",
+      'followSpeed': "Volgsnelheid"
     },
     'problem': {
       'noFinish': "Geen finishplatform — het level kan niet worden gewonnen.",

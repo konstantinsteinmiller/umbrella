@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Đánh giá màn này",
     'myLevels': "Màn của tôi",
     'myLevelsEmpty': "Các màn bạn mở từ liên kết chia sẻ hoặc tạo trong trình chỉnh sửa sẽ hiện ở đây.",
+    'intro': {
+      'skip': "Bỏ qua ▸"
+    },
     'pause': {
       'open': "Tạm dừng",
       'title': "Đã tạm dừng",
       'resume': "Tiếp tục",
-      'settings': "Cài đặt"
+      'settings': "Cài đặt",
+      'intro': "Xem phần mở đầu"
     },
     'community': {
       'button': "Cộng đồng",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "Mới nhất",
       'sortPlays': "Chơi nhiều",
       'sortLabel': "Sắp xếp",
+      'layout': "Bố cục",
+      'layoutGrid': "Lưới",
+      'layoutList': "Danh sách",
       'play': "Chơi",
       'by': "của {author}",
       'anonymous': "ẩn danh",
@@ -197,6 +204,12 @@ export default {
       'timed': "Hẹn giờ",
       'seconds': "Số giây bật",
       'harmless': "Vô hại (rắn, không gây sát thương)",
+      'touch': "Khi chạm",
+      'touchDeadly': "Chết người",
+      'touchSolid': "Khối cứng",
+      'touchBounce': "Đệm nảy",
+      'followMode': "Đi theo",
+      'bounce': "Lực nảy",
       'points': "Điểm",
       'trigger': "Tấn công khi người chơi đến gần"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Mỗi lần chạm sẽ bật hoặc tắt kênh.",
     'timedHint': "Một lần chạm bật kênh trong {s} giây.",
     'checkpointHint': "Sau khi chạm cờ này, nếu rơi người chơi sẽ quay lại đây.",
+    'touchHint': {
+      'deadly': "Chạm vào sẽ chơi lại màn.",
+      'solid': "Một khối vô hại: có thể va vào và đứng lên trên.",
+      'bounce': "Như đệm nảy trong pinball: hất Pweeg lùi lại. Khi lao tới sẽ hất mạnh hơn nhiều."
+    },
     'triggerHint': "Chờ đến khi người chơi ở trên không và ở gần, rồi tấn công một lần",
     'pathHint': "Kéo các chấm vàng trên khung vẽ để đổi đường đi (cam = điểm cuối).",
+    'followMode': {
+      'both': "tự do",
+      'x': "chỉ trái / phải",
+      'y': "chỉ lên / xuống",
+      'path': "theo một đường"
+    },
+    'followHint': {
+      'both': "Chậm rãi đuổi theo Pweeg đi bất cứ đâu.",
+      'x': "Chỉ di chuyển ngang để ngang hàng với Pweeg.",
+      'y': "Chỉ di chuyển lên xuống để ngang hàng với Pweeg.",
+      'path': "Trượt theo đường đến điểm gần Pweeg nhất — chặn đường cậu ấy."
+    },
     'motion': {
       'static': "đứng yên",
       'line': "qua lại",
       'circle': "vòng tròn",
       'swing': "đung đưa",
       'lunge': "lao tới",
-      'arrive': "bay vào"
+      'arrive': "bay vào",
+      'follow': "đi theo người chơi"
     },
     'motionField': {
       'period': "Chu kỳ (giây)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Biên độ",
       'speed': "Tốc độ lao ×",
       'delay': "Trễ (giây)",
-      'duration': "Lướt (giây)"
+      'duration': "Lướt (giây)",
+      'followSpeed': "Tốc độ đuổi theo"
     },
     'problem': {
       'noFinish': "Không có bục đích — màn này không thể thắng.",

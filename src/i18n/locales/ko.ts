@@ -25,11 +25,15 @@ export default {
     'rateLevel': "이 레벨 평가하기",
     'myLevels': "내 레벨",
     'myLevelsEmpty': "공유 링크로 연 레벨과 에디터에서 만든 레벨이 여기에 표시됩니다.",
+    'intro': {
+      'skip': "건너뛰기 ▸"
+    },
     'pause': {
       'open': "일시정지",
       'title': "일시정지됨",
       'resume': "계속하기",
-      'settings': "설정"
+      'settings': "설정",
+      'intro': "인트로 보기"
     },
     'community': {
       'button': "커뮤니티",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "최신순",
       'sortPlays': "플레이순",
       'sortLabel': "정렬",
+      'layout': "보기",
+      'layoutGrid': "격자",
+      'layoutList': "목록",
       'play': "플레이",
       'by': "제작: {author}",
       'anonymous': "익명",
@@ -197,6 +204,12 @@ export default {
       'timed': "시간제",
       'seconds': "켜짐 시간(초)",
       'harmless': "무해함 (단단하고 다치지 않음)",
+      'touch': "닿았을 때",
+      'touchDeadly': "치명적",
+      'touchSolid': "단단한 블록",
+      'touchBounce': "튕기는 범퍼",
+      'followMode': "따라가는 방식",
+      'bounce': "튕기는 힘",
       'points': "포인트",
       'trigger': "플레이어가 가까이 오면 공격"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "건드릴 때마다 채널이 켜지거나 꺼져요.",
     'timedHint': "건드리면 채널이 {s}초 동안 켜져요.",
     'checkpointHint': "이 깃발을 건드린 뒤 떨어지면 여기로 돌아와요.",
+    'touchHint': {
+      'deadly': "닿으면 레벨이 처음부터 시작됩니다.",
+      'solid': "해롭지 않은 블록: 부딪히고 위에 설 수 있습니다.",
+      'bounce': "핀볼 범퍼처럼 Pweeg를 뒤로 튕겨 냅니다. 돌진 중에는 훨씬 세게 튕깁니다."
+    },
     'triggerHint': "플레이어가 공중에서 가까이 올 때까지 기다렸다가 한 번 공격해요",
     'pathHint': "캔버스의 노란 점을 드래그해 경로를 바꾸세요 (주황 = 끝).",
+    'followMode': {
+      'both': "자유롭게",
+      'x': "좌우로만",
+      'y': "위아래로만",
+      'path': "경로를 따라"
+    },
+    'followHint': {
+      'both': "Pweeg가 어디로 가든 천천히 쫓아갑니다.",
+      'x': "Pweeg와 나란히 있도록 옆으로만 움직입니다.",
+      'y': "Pweeg와 나란히 있도록 위아래로만 움직입니다.",
+      'path': "경로를 따라 Pweeg와 가장 가까운 지점으로 미끄러져 길을 막습니다."
+    },
     'motion': {
       'static': "정지",
       'line': "왕복",
       'circle': "원",
       'swing': "흔들기",
       'lunge': "돌진",
-      'arrive': "날아오기"
+      'arrive': "날아오기",
+      'follow': "플레이어 따라가기"
     },
     'motionField': {
       'period': "주기 (초)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "흔들림",
       'speed': "돌진 속도 ×",
       'delay': "지연 (초)",
-      'duration': "활강 (초)"
+      'duration': "활강 (초)",
+      'followSpeed': "따라가는 속도"
     },
     'problem': {
       'noFinish': "도착 발판이 없어요 — 레벨을 클리어할 수 없어요.",

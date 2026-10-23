@@ -280,6 +280,22 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 **Settings**
 · Pause menu in the game (⏸ or Esc): Resume, Restart, Settings → General → Language. The level editor has the same language dropdown in its top bar.
 
+## Revision 8
+**Characters as in the design doc**
+· Pweeg: round head, dot eyes, hands (one carries the furled umbrella), short legs; free fall with arms up and the feet curled up, sideways when faster, upside-down with goggle eyes at terminal velocity.
+· The umbrella: white with one red panel, scalloped rim, ball tip, J-handle; leans into the drift.
+· Walldorf: two stacked eyes, angry brows when it can charge; its colour tells what touching it does — red deadly, grey-blue solid, amber bouncy.
+· Prickbait (the mine): spiky round body, angry brows, eyes that follow Pweeg.
+**Walldorf behaviour (level editor)**
+· On touch: deadly, solid block, or bouncy bumper (knocks Pweeg back, much harder while it charges), with a bump sound.
+· Follows the player: freely, left/right only, up/down only, or along a path where it slides to block his way.
+**Rules**
+· Falling too long (6 s free fall with the umbrella closed or broken) counts as out of bounds.
+**Intro**
+· Before Level 1: cool Chad front-flips in and floats across the current; Pweeg walks in, climbs down and looks at the player, and Level 1 starts from there. Once for new players, skippable, "Watch intro" in the pause menu.
+**Community**
+· Every community level shows a preview image; grid layout (default) or list.
+
 ## Revision 
 ## Revision 
 ## Revision 

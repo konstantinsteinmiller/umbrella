@@ -28,11 +28,15 @@ export default {
     'rateLevel': "Rate this level",
     'myLevels': "My levels",
     'myLevelsEmpty': "Levels you open from a share link or build in the editor show up here.",
+    'intro': {
+      'skip': "Skip ▸"
+    },
     'pause': {
       'open': "Pause",
       'title': "Paused",
       'resume': "Resume",
-      'settings': "Settings"
+      'settings': "Settings",
+      'intro': "Watch intro"
     },
     'community': {
       'button': "Community",
@@ -44,6 +48,9 @@ export default {
       'sortNewest': "Newest",
       'sortPlays': "Most played",
       'sortLabel': "Sort by",
+      'layout': "Layout",
+      'layoutGrid': "Grid",
+      'layoutList': "List",
       'play': "Play",
       'by': "by {author}",
       'anonymous': "anonymous",
@@ -200,6 +207,12 @@ export default {
       'timed': "Timed",
       'seconds': "Seconds on",
       'harmless': "Harmless (solid, does not hurt)",
+      'touch': "On touch",
+      'touchDeadly': "Deadly",
+      'touchSolid': "Solid block",
+      'touchBounce': "Bouncy bumper",
+      'followMode': "Follows",
+      'bounce': "Bounce strength",
       'points': "Points",
       'trigger': "Attacks when the player is near"
     },
@@ -212,15 +225,33 @@ export default {
     'toggleHint': "Each touch switches the channel on or off.",
     'timedHint': "A touch switches the channel on for {s} seconds.",
     'checkpointHint': "After touching this flag, a fall brings the player back here.",
+    'touchHint': {
+      'deadly': "Touching it resets the level.",
+      'solid': "A harmless block: bump into it and stand on it.",
+      'bounce': "Like a pinball bumper: it knocks Pweeg back. A charge knocks much harder."
+    },
     'triggerHint': "Waits until the player is in the air and close, then attacks once",
     'pathHint': "Drag the yellow dots on the canvas to change the path (orange = end).",
+    'followMode': {
+      'both': "freely",
+      'x': "left / right only",
+      'y': "up / down only",
+      'path': "along a path"
+    },
+    'followHint': {
+      'both': "Slowly tracks Pweeg wherever he goes.",
+      'x': "Moves only sideways to stay level with Pweeg.",
+      'y': "Moves only up and down to stay level with Pweeg.",
+      'path': "Slides along its path to the point nearest Pweeg — it blocks his way."
+    },
     'motion': {
       'static': "still",
       'line': "back and forth",
       'circle': "circle",
       'swing': "swing",
       'lunge': "lunge",
-      'arrive': "fly in"
+      'arrive': "fly in",
+      'follow': "follow the player"
     },
     'motionField': {
       'period': "Period (s)",
@@ -228,7 +259,8 @@ export default {
       'amplitude': "Swing",
       'speed': "Lunge speed ×",
       'delay': "Delay (s)",
-      'duration': "Glide (s)"
+      'duration': "Glide (s)",
+      'followSpeed': "Follow speed"
     },
     'problem': {
       'noFinish': "No finish platform — the level cannot be won.",

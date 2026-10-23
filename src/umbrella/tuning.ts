@@ -64,6 +64,9 @@ export interface Tuning {
   winHold: number
   /** How far past the side edges counts as out of bounds (px). */
   outOfBoundsMargin: number
+  /** Free fall (umbrella closed or broken) longer than this is out of bounds too:
+   *  whistle and reset, like leaving the screen (s; 0 = off). Floating never counts. */
+  maxFallTime: number
   /** Time multiplier for every enemy's movement (2 = twice as fast). */
   enemySpeedScale: number
   /** Time multiplier for every moving platform. */
@@ -72,6 +75,10 @@ export interface Tuning {
   lungeRest: number
   lungeStrike: number
   lungeHold: number
+  /** Bouncy Walldorf: speed it throws Pweeg off at (px/s), unless the Walldorf sets its own. */
+  walldorfBounce: number
+  /** Bouncy Walldorf charging: this share of its own speed toward Pweeg adds to the throw. */
+  walldorfChargeKnock: number
   /** Fall speed (fraction of terminal velocity) where he turns sideways. */
   fallPoseSideways: number
   /** How quickly the fall pose rotates (1/s). */
@@ -115,11 +122,14 @@ export const DEFAULT_TUNING: Tuning = {
   splatReset: 0.5,
   winHold: 1.6,
   outOfBoundsMargin: 60,
+  maxFallTime: 6,
   enemySpeedScale: 1,
   platformSpeedScale: 1,
   lungeRest: 0.45,
   lungeStrike: 0.15,
   lungeHold: 0.12,
+  walldorfBounce: 520,
+  walldorfChargeKnock: 0.6,
   fallPoseSideways: 0.6,
   fallPoseEase: 3,
   masterVolume: 1,
@@ -159,11 +169,14 @@ export const TUNING_RANGES: Record<keyof Tuning, [min: number, max: number, step
   splatReset: [0, 2, 0.05],
   winHold: [0, 5, 0.1],
   outOfBoundsMargin: [0, 400, 5],
+  maxFallTime: [0, 20, 0.5],
   enemySpeedScale: [0, 3, 0.05],
   platformSpeedScale: [0, 3, 0.05],
   lungeRest: [0, 0.9, 0.01],
   lungeStrike: [0.02, 0.5, 0.01],
   lungeHold: [0, 0.5, 0.01],
+  walldorfBounce: [50, 2000, 10],
+  walldorfChargeKnock: [0, 2, 0.05],
   fallPoseSideways: [0.1, 1, 0.01],
   fallPoseEase: [1, 40, 0.5],
   masterVolume: [0, 2, 0.05],
@@ -181,9 +194,9 @@ export const TUNING_GROUPS: Record<string, (keyof Tuning)[]> = {
   'Mid-air': ['airSpeed', 'airTurnTime', 'airDrag'],
   Wind: ['windTurnTime', 'windEdge', 'bobDamping', 'windScale', 'closedWindResistance'],
   'Super Stream': ['superStreamScale', 'superStreamBuildTime', 'superClosedResistance', 'wallSplatSpeed'],
-  Enemies: ['enemySpeedScale', 'hitboxInset', 'lungeRest', 'lungeStrike', 'lungeHold'],
+  Enemies: ['enemySpeedScale', 'hitboxInset', 'lungeRest', 'lungeStrike', 'lungeHold', 'walldorfBounce', 'walldorfChargeKnock'],
   'Moving platforms': ['platformSpeedScale'],
   'Fall pose': ['fallPoseSideways', 'fallPoseEase'],
-  'Reset / audio': ['splatReset', 'winHold', 'outOfBoundsMargin', 'whistleFade'],
+  'Reset / audio': ['splatReset', 'winHold', 'outOfBoundsMargin', 'maxFallTime', 'whistleFade'],
   Audio: ['masterVolume', 'musicVolume', 'sfxVolume', 'windVolume']
 }

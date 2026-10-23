@@ -12,7 +12,7 @@
 //
 // ─── Community levels (D1 binding COMMUNITY, schema in migrations/) ───────
 //   GET  /community/levels?sort=rating|newest|plays&page=1&size=12
-//        → { items: Meta[], total, page, pageSize }        (size ≤ 50)
+//        → { items: (Meta & { code })[], total, page, pageSize }   (size ≤ 50; code draws the preview)
 //   GET  /community/levels/:id          → { ...Meta, code }
 //   POST /community/levels { name, author, code, player } → 201 { id }
 //        5 per rolling 7 days per player id AND per hashed IP
@@ -170,10 +170,11 @@ async function community(req, env, url) {
       const page = Math.max(1, Math.floor(Number(url.searchParams.get('page') ?? 1)) || 1)
       const size = Math.min(50, Math.max(1, Math.floor(Number(url.searchParams.get('size') ?? 12)) || 12))
       const [rows, total] = await db.batch([
-        db.prepare(`SELECT ${META} FROM levels ORDER BY ${SORTS[sort]} LIMIT ? OFFSET ?`).bind(size, (page - 1) * size),
+        // With each level's share code: the game draws the list's preview images from it.
+        db.prepare(`SELECT ${META}, code FROM levels ORDER BY ${SORTS[sort]} LIMIT ? OFFSET ?`).bind(size, (page - 1) * size),
         db.prepare('SELECT COUNT(*) AS n FROM levels')
       ])
-      return json({ items: rows.results.map(meta), total: total.results[0]?.n ?? 0, page, pageSize: size })
+      return json({ items: rows.results.map((r) => ({ ...meta(r), code: r.code })), total: total.results[0]?.n ?? 0, page, pageSize: size })
     }
     if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405)
     const b = await readBody(req)

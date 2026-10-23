@@ -19,6 +19,8 @@ export interface CommunityLevelMeta {
   plays: number
   ratingAvg: number
   ratingCount: number
+  /** The share code, sent with list items so the list can draw a preview. */
+  code?: string
 }
 export interface CommunityLevel extends CommunityLevelMeta {
   code: string
@@ -117,7 +119,8 @@ const toMeta = (v: unknown): CommunityLevelMeta | null => {
     createdAt: num(o.createdAt),
     plays: num(o.plays),
     ratingAvg: num(o.ratingAvg),
-    ratingCount: num(o.ratingCount)
+    ratingCount: num(o.ratingCount),
+    ...(typeof o.code === 'string' ? { code: o.code } : {})
   }
 }
 

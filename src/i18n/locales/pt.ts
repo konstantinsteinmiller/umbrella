@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Avaliar este nível",
     'myLevels': "Meus níveis",
     'myLevelsEmpty': "Os níveis que você abre por um link compartilhado ou cria no editor aparecem aqui.",
+    'intro': {
+      'skip': "Pular ▸"
+    },
     'pause': {
       'open': "Pausar",
       'title': "Pausado",
       'resume': "Continuar",
-      'settings': "Configurações"
+      'settings': "Configurações",
+      'intro': "Ver a introdução"
     },
     'community': {
       'button': "Comunidade",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "Mais recentes",
       'sortPlays': "Mais jogados",
       'sortLabel': "Ordenar por",
+      'layout': "Exibição",
+      'layoutGrid': "Grade",
+      'layoutList': "Lista",
       'play': "Jogar",
       'by': "por {author}",
       'anonymous': "anônimo",
@@ -197,6 +204,12 @@ export default {
       'timed': "Temporizado",
       'seconds': "Segundos ligado",
       'harmless': "Inofensivo (sólido, não machuca)",
+      'touch': "Ao tocar",
+      'touchDeadly': "Mortal",
+      'touchSolid': "Bloco sólido",
+      'touchBounce': "Bumper saltitante",
+      'followMode': "Segue",
+      'bounce': "Força do impulso",
       'points': "Pontos",
       'trigger': "Ataca quando o jogador está perto"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Cada toque liga ou desliga o canal.",
     'timedHint': "Um toque liga o canal por {s} segundos.",
     'checkpointHint': "Depois de tocar esta bandeira, uma queda traz o jogador de volta aqui.",
+    'touchHint': {
+      'deadly': "Tocar nele reinicia o nível.",
+      'solid': "Um bloco inofensivo: dá para bater nele e ficar em cima.",
+      'bounce': "Como um bumper de pinball: joga o Pweeg para trás. Uma investida joga muito mais forte."
+    },
     'triggerHint': "Espera o jogador estar no ar e perto, depois ataca uma vez",
     'pathHint': "Arraste os pontos amarelos na tela para mudar o trajeto (laranja = fim).",
+    'followMode': {
+      'both': "livremente",
+      'x': "só esquerda / direita",
+      'y': "só cima / baixo",
+      'path': "por um caminho"
+    },
+    'followHint': {
+      'both': "Persegue o Pweeg devagar aonde ele for.",
+      'x': "Só se move de lado para ficar alinhado com o Pweeg.",
+      'y': "Só se move para cima e para baixo para ficar alinhado com o Pweeg.",
+      'path': "Desliza pelo caminho até o ponto mais próximo do Pweeg — bloqueia a passagem."
+    },
     'motion': {
       'static': "parado",
       'line': "vai e volta",
       'circle': "círculo",
       'swing': "balanço",
       'lunge': "investida",
-      'arrive': "chegar voando"
+      'arrive': "chegar voando",
+      'follow': "seguir o jogador"
     },
     'motionField': {
       'period': "Período (s)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Balanço",
       'speed': "Velocidade da investida ×",
       'delay': "Atraso (s)",
-      'duration': "Planeio (s)"
+      'duration': "Planeio (s)",
+      'followSpeed': "Velocidade de perseguição"
     },
     'problem': {
       'noFinish': "Sem plataforma de chegada — o nível não pode ser vencido.",

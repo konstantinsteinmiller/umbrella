@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * Community levels: players' submitted levels, best rated first, newest or most
- * played on request, a page at a time. "Create a level" jumps to the editor,
+ * played on request, a page at a time, as a grid of preview cards (default) or a
+ * list. Each level's preview is drawn from its share code (LevelThumb). "Create a level" jumps to the editor,
  * where levels are submitted (5 per week). Only shown where the build may talk
  * to the level server (not Poki / YouTube Playables — see community.ts).
  */
@@ -11,12 +12,24 @@ import { useRouter } from 'vue-router'
 import { getLevel, listLevels, type CommunityLevelMeta, type CommunityPage, type CommunitySort } from '@/umbrella/community'
 import { decodeLevel } from '@/umbrella/levelCode'
 import type { CustomPlay } from '@/umbrella/customLevels'
+import LevelThumb from './LevelThumb.vue'
 
 const emit = defineEmits<{ close: []; play: [p: CustomPlay] }>()
 const { t } = useI18n()
 const router = useRouter()
 
-const PAGE_SIZE = 8
+const PAGE_SIZE = 12
+/** Grid of preview cards or a compact list; the player's pick is remembered. */
+type Layout = 'grid' | 'list'
+const LAYOUT_KEY = 'umb_community_layout'
+const readLayout = (): Layout => {
+  try { return localStorage.getItem(LAYOUT_KEY) === 'list' ? 'list' : 'grid' } catch { return 'grid' }
+}
+const layout = ref<Layout>(readLayout())
+const setLayout = (l: Layout) => {
+  layout.value = l
+  try { localStorage.setItem(LAYOUT_KEY, l) } catch { /* private mode: this visit only */ }
+}
 const SORTS: { id: CommunitySort; key: string }[] = [
   { id: 'rating', key: 'sortRating' },
   { id: 'newest', key: 'sortNewest' },
@@ -75,6 +88,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
         <button class="cl-btn yellow" @click="create">✎ {{ t('umbrella.community.create') }}</button>
       </div>
 
+      <div class="cl-bar">
       <div class="cl-sorts" role="tablist" :aria-label="t('umbrella.community.sortLabel')">
         <button
           v-for="s in SORTS"
@@ -86,6 +100,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
           @click="sort = s.id"
         >{{ t(`umbrella.community.${s.key}`) }}</button>
       </div>
+      <div class="cl-layouts" role="group" :aria-label="t('umbrella.community.layout')">
+        <button class="cl-layout" :class="{ on: layout === 'grid' }" :aria-pressed="layout === 'grid'" :aria-label="t('umbrella.community.layoutGrid')" :title="t('umbrella.community.layoutGrid')" @click="setLayout('grid')">▦</button>
+        <button class="cl-layout" :class="{ on: layout === 'list' }" :aria-pressed="layout === 'list'" :aria-label="t('umbrella.community.layoutList')" :title="t('umbrella.community.layoutList')" @click="setLayout('list')">☰</button>
+      </div>
+      </div>
 
       <p v-if="state === 'loading'" class="cl-note">{{ t('umbrella.community.loading') }}</p>
       <div v-else-if="state === 'error'" class="cl-note">
@@ -93,8 +112,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
         <button class="cl-btn" @click="load">{{ t('umbrella.community.retry') }}</button>
       </div>
       <p v-else-if="!data?.items.length" class="cl-note">{{ t('umbrella.community.empty') }}</p>
-      <ul v-else class="cl-list">
+      <ul v-else class="cl-list" :class="layout">
         <li v-for="m in data.items" :key="m.id" class="cl-row">
+          <LevelThumb class="cl-thumb" :code="m.code" :label="m.name" />
           <div class="cl-info">
             <div class="cl-name">{{ m.name }}</div>
             <div class="cl-meta">
@@ -132,7 +152,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   background: rgba(0, 0, 0, 0.6);
 }
 .cl {
-  width: min(620px, 100%);
+  width: min(780px, 100%);
   max-height: 100%;
   overflow-y: auto;
   display: flex;
@@ -159,8 +179,21 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .cl-sorts { display: flex; gap: 6px; flex-wrap: wrap; }
 .cl-tab { padding: 6px 12px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); font-size: 14px; }
 .cl-tab.on { background: #2563eb; font-weight: 700; }
-.cl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cl-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.cl-layouts { display: flex; gap: 4px; }
+.cl-layout { width: 34px; height: 30px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); font-size: 16px; }
+.cl-layout.on { background: #2563eb; }
+.cl-list { list-style: none; margin: 0; padding: 0; }
 .cl-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); }
+.cl-thumb { flex: none; }
+/* List: preview left of the name. */
+.cl-list.list { display: flex; flex-direction: column; gap: 6px; }
+.cl-list.list .cl-thumb { width: 112px; }
+/* Grid (default): cards, preview on top of the name. */
+.cl-list.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.cl-list.grid .cl-row { flex-direction: column; align-items: stretch; padding: 8px; }
+.cl-list.grid .cl-thumb { width: 100%; }
+.cl-list.grid .cl-btn { align-self: stretch; }
 .cl-info { flex: 1; min-width: 0; }
 .cl-name { font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cl-meta { font-size: 12px; opacity: 0.75; }

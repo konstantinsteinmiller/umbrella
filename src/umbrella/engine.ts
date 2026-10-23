@@ -3,7 +3,7 @@
 // Pure, renderer-free: `step(world, input, dt)` advances one fixed tick and
 // returns the events it produced (for audio / UI). Tests drive it headless.
 
-import type { CheckpointDef, HazardDef, LevelDef, Motion, PlatformDef, WindDef } from './levels'
+import type { CheckpointDef, HazardDef, LevelDef, Motion, PlatformDef, WalldorfContact, WindDef } from './levels'
 import type { Tuning } from './tuning'
 
 /** Default hitbox; the live size comes from Tuning (player.w / player.h). */
@@ -30,7 +30,13 @@ export interface Hazard extends HazardDef {
   dy: number
   /** Proximity-triggered lunge: enemy time of the current attack. */
   lungeAt?: number
+  /** A bouncy Walldorf touched the player last tick (one bump sound per touch). */
+  bumping?: boolean
 }
+
+/** What touching an enemy does. Only Walldorfs choose; mines and spikes are deadly. */
+export const contactOf = (h: HazardDef): WalldorfContact =>
+  h.kind !== 'pillar' ? 'deadly' : h.contact ?? (h.harmless ? 'solid' : 'deadly')
 
 /** A triggered lunge's default reach when the level gives none. */
 export const DEFAULT_TRIGGER_RADIUS = 300
@@ -49,6 +55,8 @@ export interface Player {
   h: number
   /** Platform index the player stands on, or -1. */
   standing: number
+  /** Seconds of free fall so far (umbrella closed or broken; floating resets it). */
+  fallTime: number
 }
 
 export interface World {
@@ -71,7 +79,7 @@ export interface World {
   checkpoint: number
 }
 
-export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint'
+export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint' | 'bump' | 'charge-bump'
 
 /** Is this button channel on right now? */
 export const channelOn = (w: World, channel: number | undefined): boolean =>
@@ -125,12 +133,38 @@ const platformCenter = (m: Motion, t: number, lunge: LungeShape) => {
       const k = f < a ? 0 : f < b ? ease((f - a) / (b - a)) : f < c ? 1 : 1 - ease((f - c) / Math.max(1e-6, 1 - c))
       return { x: m.a.x + (m.b.x - m.a.x) * k, y: m.a.y + (m.b.y - m.a.y) * k }
     }
+    case 'follow':
+      // Steered each tick by step(), from where it is: no position of its own over time.
+      return null
     case 'arrive': {
       const f = Math.min(1, Math.max(0, (t - m.delay) / m.duration))
       const k = 1 - (1 - f) * (1 - f) * (1 - f)
       return { x: m.a.x + (m.b.x - m.a.x) * k, y: m.a.y + (m.b.y - m.a.y) * k }
     }
   }
+}
+
+/** Moves a follower's centre up to `maxStep` toward the player (or toward the
+ *  point of its path nearest the player). */
+const follow = (h: Hazard, m: Extract<Motion, { kind: 'follow' }>, pl: Player, maxStep: number) => {
+  const cx = h.x + h.w / 2
+  const cy = h.y + h.h / 2
+  let tx = pl.x + pl.w / 2
+  let ty = pl.y + pl.h / 2
+  if (m.a && m.b) {
+    const vx = m.b.x - m.a.x
+    const vy = m.b.y - m.a.y
+    const len2 = vx * vx + vy * vy || 1
+    const k = Math.max(0, Math.min(1, ((tx - m.a.x) * vx + (ty - m.a.y) * vy) / len2))
+    tx = m.a.x + vx * k
+    ty = m.a.y + vy * k
+  } else if (m.axis === 'x') ty = cy
+  else if (m.axis === 'y') tx = cx
+  const d = Math.hypot(tx - cx, ty - cy)
+  if (d < 1e-6) return
+  const k = Math.min(1, maxStep / d)
+  h.x += (tx - cx) * k
+  h.y += (ty - cy) * k
 }
 
 const placeMover = (p: { x: number; y: number; w: number; h: number; motion?: Motion }, t: number, lunge = DEFAULT_LUNGE): void => {
@@ -177,7 +211,8 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
       facing: 1,
       w: size.w,
       h: size.h,
-      standing: -1
+      standing: -1,
+      fallTime: 0
     },
     phase: 'play',
     phaseTime: 0
@@ -286,6 +321,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
       if (h.lungeAt === undefined && w.phase === 'play' && !pl.grounded &&
           Math.hypot(pl.x + pl.w / 2 - m.a.x, pl.y + pl.h / 2 - m.a.y) <= (m.radius ?? DEFAULT_TRIGGER_RADIUS)) h.lungeAt = w.enemyTime
       placeMover(h, h.lungeAt === undefined ? 0 : m.period * lunge.rest + (w.enemyTime - h.lungeAt), lunge)
+    } else if (m?.kind === 'follow') {
+      if (w.phase === 'play') follow(h, m, w.player, m.speed * t.enemySpeedScale * dt)
     } else placeMover(h, w.enemyTime, lunge)
     h.dx = h.x - ox
     h.dy = h.y - oy
@@ -294,7 +331,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   for (const [c, until] of Object.entries(w.channels)) if (until <= w.time && until > 0) w.channels[Number(c)] = 0
   // Harmless enemies are solid: you bump into and stand on them like platforms.
   // A switched-off platform stays in the list (indices stay stable) but is skipped.
-  const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => h.harmless)]
+  const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => contactOf(h) === 'solid')]
   const solid = (i: number) => i >= w.platforms.length || platformActive(w, w.platforms[i]!)
 
   const pl = w.player
@@ -455,8 +492,31 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     events.push('splat')
     return events
   }
+  // Bouncy Walldorfs: a pinball bumper. Touching one throws Pweeg off it along the
+  // side he touched; a charging one hits harder (its own speed toward him adds in).
+  for (let i = 0; i < w.hazards.length; i++) {
+    const h = w.hazards[i]!
+    if (contactOf(h) !== 'bounce' || !overlaps(pl.x, pl.y, pl.w, pl.h, h)) { h.bumping = false; continue }
+    // Shallowest way out: that side is the one he touched.
+    const outL = pl.x + pl.w - h.x
+    const outR = h.x + h.w - pl.x
+    const outU = pl.y + pl.h - h.y
+    const outD = h.y + h.h - pl.y
+    const m = Math.min(outL, outR, outU, outD)
+    const [nx, ny] = m === outU ? [0, -1] : m === outD ? [0, 1] : m === outL ? [-1, 0] : [1, 0]
+    pl.x += nx * (nx < 0 ? outL : outR) * Math.abs(nx)
+    pl.y += ny * (ny < 0 ? outU : outD) * Math.abs(ny)
+    const charge = Math.max(0, ((h.dx * nx + h.dy * ny) / dt) * t.walldorfChargeKnock)
+    const speed = (h.bounce ?? t.walldorfBounce) + charge
+    if (nx) pl.vx = nx * speed
+    else pl.vy = ny * speed
+    pl.grounded = false
+    pl.standing = -1
+    if (!h.bumping) events.push(charge > 0 ? 'charge-bump' : 'bump')
+    h.bumping = true
+  }
   for (const h of w.hazards) {
-    if (h.harmless || !touches(pl, h, t.hitboxInset)) continue
+    if (contactOf(h) !== 'deadly' || !touches(pl, h, t.hitboxInset)) continue
     setPhase(w, 'splat')
     events.push('hit')
     return events
@@ -506,9 +566,13 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     events.push('open')
   }
 
+  // Falling for too long in the play field (design doc) counts as out of bounds too.
+  pl.fallTime = !pl.grounded && !pl.open && pl.vy > 0 ? pl.fallTime + dt : 0
+  const fellTooLong = t.maxFallTime > 0 && pl.fallTime >= t.maxFallTime
+
   // Out of bounds: past the bottom (or far off a side) of the play field.
   const { w: ww, h: wh } = w.level.world
-  if (pl.y > wh + 40 || pl.x + pl.w < -t.outOfBoundsMargin || pl.x > ww + t.outOfBoundsMargin) {
+  if (fellTooLong || pl.y > wh + 40 || pl.x + pl.w < -t.outOfBoundsMargin || pl.x > ww + t.outOfBoundsMargin) {
     setPhase(w, 'out')
     events.push('out')
   }

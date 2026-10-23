@@ -25,11 +25,15 @@ export default {
     'rateLevel': "Darajani baholash",
     'myLevels': "Mening darajalarim",
     'myLevelsEmpty': "Ulashish havolasidan ochgan yoki muharrirda yaratgan darajalaringiz shu yerda chiqadi.",
+    'intro': {
+      'skip': "O'tkazib yuborish ▸"
+    },
     'pause': {
       'open': "Pauza",
       'title': "Pauzada",
       'resume': "Davom etish",
-      'settings': "Sozlamalar"
+      'settings': "Sozlamalar",
+      'intro': "Kirishni ko'rish"
     },
     'community': {
       'button': "Hamjamiyat",
@@ -41,6 +45,9 @@ export default {
       'sortNewest': "Eng yangi",
       'sortPlays': "Eng ko‘p o‘ynalgan",
       'sortLabel': "Saralash",
+      'layout': "Ko'rinish",
+      'layoutGrid': "To'r",
+      'layoutList': "Ro'yxat",
       'play': "O‘ynash",
       'by': "muallif: {author}",
       'anonymous': "anonim",
@@ -197,6 +204,12 @@ export default {
       'timed': "Vaqtli",
       'seconds': "Yoqiq soniyalar",
       'harmless': "Zararsiz (qattiq, jarohat bermaydi)",
+      'touch': "Tegilganda",
+      'touchDeadly': "O'ldiradi",
+      'touchSolid': "Qattiq blok",
+      'touchBounce': "Sakratuvchi bamper",
+      'followMode': "Ergashadi",
+      'bounce': "Sakrash kuchi",
       'points': "Nuqtalar",
       'trigger': "O‘yinchi yaqinlashganda hujum qiladi"
     },
@@ -209,15 +222,33 @@ export default {
     'toggleHint': "Har bir tegish kanalni yoqadi yoki o‘chiradi.",
     'timedHint': "Tegish kanalni {s} soniyaga yoqadi.",
     'checkpointHint': "Bu bayroqqa tegilgach, yiqilish o‘yinchini shu yerga qaytaradi.",
+    'touchHint': {
+      'deadly': "Tegish darajani boshidan boshlaydi.",
+      'solid': "Zararsiz blok: unga urilish va ustida turish mumkin.",
+      'bounce': "Pinbol bamperidek: Pweegni orqaga otadi. Hujum paytida ancha kuchliroq otadi."
+    },
     'triggerHint': "O‘yinchi havoda va yaqin bo‘lguncha kutadi, so‘ng bir marta hujum qiladi",
     'pathHint': "Yo‘lni o‘zgartirish uchun kanvasdagi sariq nuqtalarni torting (to‘q sariq = oxiri).",
+    'followMode': {
+      'both': "erkin",
+      'x': "faqat chap / o'ng",
+      'y': "faqat yuqori / past",
+      'path': "yo'l bo'ylab"
+    },
+    'followHint': {
+      'both': "Pweeg qayerga borsa, sekin ortidan boradi.",
+      'x': "Pweeg bilan bir chiziqda turish uchun faqat yonga yuradi.",
+      'y': "Pweeg bilan bir chiziqda turish uchun faqat yuqori-pastga yuradi.",
+      'path': "Yo'li bo'ylab Pweegga eng yaqin nuqtaga sirpanadi — yo'lini to'sadi."
+    },
     'motion': {
       'static': "harakatsiz",
       'line': "u yoqqa-bu yoqqa",
       'circle': "aylana",
       'swing': "tebranish",
       'lunge': "hamla",
-      'arrive': "uchib kirish"
+      'arrive': "uchib kirish",
+      'follow': "o'yinchiga ergashadi"
     },
     'motionField': {
       'period': "Davr (s)",
@@ -225,7 +256,8 @@ export default {
       'amplitude': "Tebranish",
       'speed': "Hamla tezligi ×",
       'delay': "Kechikish (s)",
-      'duration': "Sirpanish (s)"
+      'duration': "Sirpanish (s)",
+      'followSpeed': "Ergashish tezligi"
     },
     'problem': {
       'noFinish': "Marra platformasi yo‘q — darajani yutib bo‘lmaydi.",
