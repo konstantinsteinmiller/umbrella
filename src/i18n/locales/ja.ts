@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "地雷",
+      'fan': "換気扇",
       'spikes-up': "上向きトゲ",
       'spikes-down': "下向きトゲ"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "ドラッグで Super Stream を描きます — 超高速で、プレイヤーを天井に叩きつけることも。",
       'pillar': "クリックで Walldorf を置きます。",
       'mine': "クリックで地雷を置きます。",
+      'fan': "クリックして換気扇を置きます。着地するとプレイヤーが刻まれます。",
       'spikes-up': "床に沿ってドラッグで上向きのトゲ。",
       'spikes-down': "天井に沿ってドラッグで下向きのトゲ。"
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "地雷",
+      'fan': "換気扇",
       'spikes': "トゲ",
       'button': "ボタン",
       'checkpoint': "チェックポイント"

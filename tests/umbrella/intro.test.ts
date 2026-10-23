@@ -22,7 +22,7 @@ describe('intro cutscene', () => {
     const heard: IntroSfx[] = []
     const intro = createIntro(L1, DEFAULT_TUNING, (n) => heard.push(n))
     let t = 0
-    while (!intro.done && t < 30) { intro.update(1 / 60); t += 1 / 60 }
+    while (!intro.done && t < 30) { intro.update(1 / 60); t += 1 / 60; if (intro.waiting) { expect(t).toBeGreaterThan(5); intro.release() } }
     expect(intro.done).toBe(true)
     expect(t).toBeGreaterThan(6)
     expect(t).toBeLessThan(20)
@@ -38,7 +38,20 @@ describe('intro cutscene', () => {
     const flat = { ...L1, winds: [] }
     expect(simulateChad(flat, { x: 240, y: 440 }, DEFAULT_TUNING)).toBeNull()
     const intro = createIntro(flat, DEFAULT_TUNING, () => {})
-    for (let i = 0; i < 60 * 30 && !intro.done; i++) intro.update(1 / 60)
+    for (let i = 0; i < 60 * 30 && !intro.done; i++) { intro.update(1 / 60); if (intro.waiting) intro.release() }
+    expect(intro.done).toBe(true)
+  })
+})
+
+describe('intro waits for the player', () => {
+  it('holds the last pose until released, then fades into the level', () => {
+    const intro = createIntro(L1, DEFAULT_TUNING, () => {})
+    for (let i = 0; i < 60 * 40 && !intro.waiting; i++) intro.update(1 / 60)
+    expect(intro.waiting).toBe(true)
+    for (let i = 0; i < 60 * 10; i++) intro.update(1 / 60)
+    expect(intro.done).toBe(false)
+    intro.release()
+    for (let i = 0; i < 60 * 3 && !intro.done; i++) intro.update(1 / 60)
     expect(intro.done).toBe(true)
   })
 })
@@ -52,7 +65,7 @@ describe('intro as cutscene data', () => {
     expect(back.actors.map((a: { id: string }) => a.id)).toEqual(['chad', 'pweeg'])
     const heard: string[] = []
     const cs = createCutscene(back, L1, DEFAULT_TUNING, (n) => heard.push(n))
-    for (let i = 0; i < 60 * 30 && !cs.done; i++) cs.update(1 / 60)
+    for (let i = 0; i < 60 * 30 && !cs.done; i++) { cs.update(1 / 60); if (cs.waiting) cs.release() }
     expect(cs.done).toBe(true)
     expect(heard.slice(0, 4)).toEqual(['whoosh', 'land', 'cool', 'open'])
   })

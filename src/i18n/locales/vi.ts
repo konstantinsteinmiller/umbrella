@@ -135,6 +135,7 @@ export default {
       'super': "Siêu luồng",
       'pillar': "Walldorf",
       'mine': "Mìn",
+      'fan': "Quạt",
       'spikes-up': "Gai hướng lên",
       'spikes-down': "Gai hướng xuống"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Kéo một khung cho Siêu luồng — rất nhanh, có thể ép bẹp người chơi vào trần.",
       'pillar': "Nhấp để đặt một Walldorf.",
       'mine': "Nhấp để đặt mìn.",
+      'fan': "Nhấp để đặt một chiếc quạt — hạ cánh vào đó sẽ bị xé nát.",
       'spikes-up': "Kéo dọc sàn để đặt gai hướng lên.",
       'spikes-down': "Kéo dọc trần để đặt gai hướng xuống."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Siêu luồng",
       'pillar': "Walldorf",
       'mine': "Mìn",
+      'fan': "Quạt",
       'spikes': "Gai",
       'button': "Nút",
       'checkpoint': "Điểm lưu"

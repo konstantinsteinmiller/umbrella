@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "지뢰",
+      'fan': "환풍기",
       'spikes-up': "위쪽 가시",
       'spikes-down': "아래쪽 가시"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Super Stream 상자를 드래그하세요 — 아주 빨라서 플레이어를 천장에 부딪치게 할 수 있어요.",
       'pillar': "클릭해서 Walldorf를 배치하세요.",
       'mine': "클릭해서 지뢰를 배치하세요.",
+      'fan': "클릭하여 환풍기를 놓습니다. 그 위에 착지하면 갈려 버립니다.",
       'spikes-up': "바닥을 따라 드래그하면 위쪽 가시.",
       'spikes-down': "천장을 따라 드래그하면 아래쪽 가시."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "지뢰",
+      'fan': "환풍기",
       'spikes': "가시",
       'button': "버튼",
       'checkpoint': "체크포인트"

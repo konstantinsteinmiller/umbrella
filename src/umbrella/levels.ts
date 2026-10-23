@@ -80,7 +80,7 @@ export interface WindDef {
 }
 
 /** Touching any hazard resets the level. Mines are circles inscribed in their box. */
-export type HazardKind = 'pillar' | 'mine' | 'spikes'
+export type HazardKind = 'pillar' | 'mine' | 'spikes' | 'fan'
 
 /** A Walldorf's touch: deadly (resets the level), solid (a block to stand on) or
  *  bounce (a pinball bumper that throws Pweeg back; harder while it charges). */

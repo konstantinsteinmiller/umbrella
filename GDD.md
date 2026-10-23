@@ -296,6 +296,21 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 **Community**
 · Every community level shows a preview image; grid layout (default) or list.
 
+## Revision 9
+**Level editor**
+· Level dropdown in the top bar (campaign and saved levels), Reorder button for the designer, Shift+← / Shift+→ for the previous / next campaign level.
+· Test mode: ‹ › buttons and a horizontal swipe step through the levels without leaving the test.
+· Cutscene mode (designer): the intro is data you can scrub, play and edit — segments, poses, placement by dragging, sound cues, fades; saved on the server too.
+**Props and enemies**
+· Ventilator: whirring blades, landing in one shreds the player (editor tool, key W).
+· A Walldorf placed in the editor is a bouncy bumper from the start; a charging or fast-moving Walldorf no longer kills through a solid block or passes through Pweeg.
+**Rules**
+· A landing splats only at terminal velocity; the umbrella still breaks when reopened near it.
+**Intro**
+· Pweeg stops on the last pose, looking at the player, until the first key, tap or stick move; then Level 1 begins.
+**Sound**
+· New sound pass: cloth and rib sounds for the umbrella, a score that reacts to currents and speed, enemy sounds for Walldorf and Prickbait (warning before a charge, fuse-like ticking, bump and slam).
+
 ## Revision 
 ## Revision 
 ## Revision 

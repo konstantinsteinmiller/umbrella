@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Ranjau",
+      'fan': "Kipas",
       'spikes-up': "Duri ke atas",
       'spikes-down': "Duri ke bawah"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Seret kotak untuk Super Stream — sangat cepat, bisa menghantamkan pemain ke langit-langit.",
       'pillar': "Klik untuk menaruh Walldorf.",
       'mine': "Klik untuk menaruh ranjau.",
+      'fan': "Klik untuk menaruh kipas — mendarat di dalamnya mencacah pemain.",
       'spikes-up': "Seret di sepanjang lantai untuk duri yang mengarah ke atas.",
       'spikes-down': "Seret di sepanjang langit-langit untuk duri yang mengarah ke bawah."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Ranjau",
+      'fan': "Kipas",
       'spikes': "Duri",
       'button': "Tombol",
       'checkpoint': "Checkpoint"

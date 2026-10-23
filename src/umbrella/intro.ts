@@ -136,7 +136,8 @@ export const introCutscene = (level: LevelDef, tuning: Tuning): CutsceneDef => {
       { at: tFloat + 0.1, sfx: 'open' },
       { at: tDown - 0.05, sfx: 'land' }
     ],
-    stepEvery: 64
+    stepEvery: 64,
+    waitAt: tSpawn + LOOK_AT_PLAYER
   }
 }
 

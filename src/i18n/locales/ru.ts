@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Мина",
+      'fan': "Вентилятор",
       'spikes-up': "Шипы вверх",
       'spikes-down': "Шипы вниз"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Растяните рамку для Super Stream — очень быстрый, может размазать игрока о потолок.",
       'pillar': "Щёлкните, чтобы поставить Walldorf.",
       'mine': "Щёлкните, чтобы поставить мину.",
+      'fan': "Нажмите, чтобы поставить вентилятор — приземлившегося в него игрока изрубит.",
       'spikes-up': "Проведите по полу для шипов вверх.",
       'spikes-down': "Проведите по потолку для шипов вниз."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Мина",
+      'fan': "Вентилятор",
       'spikes': "Шипы",
       'button': "Кнопка",
       'checkpoint': "Чекпоинт"

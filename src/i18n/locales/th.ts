@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "ทุ่นระเบิด",
+      'fan': "พัดลม",
       'spikes-up': "หนามชี้ขึ้น",
       'spikes-down': "หนามชี้ลง"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "ลากกรอบสำหรับ Super Stream — เร็วมาก อัดผู้เล่นติดเพดานได้",
       'pillar': "คลิกเพื่อวาง Walldorf",
       'mine': "คลิกเพื่อวางทุ่นระเบิด",
+      'fan': "คลิกเพื่อวางพัดลม — ลงไปตกบนพัดลมแล้วผู้เล่นจะถูกบดเป็นชิ้นๆ",
       'spikes-up': "ลากไปตามพื้นเพื่อวางหนามชี้ขึ้น",
       'spikes-down': "ลากไปตามเพดานเพื่อวางหนามชี้ลง"
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "ทุ่นระเบิด",
+      'fan': "พัดลม",
       'spikes': "หนาม",
       'button': "ปุ่ม",
       'checkpoint': "เช็กพอยต์"

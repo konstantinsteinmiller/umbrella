@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mijn",
+      'fan': "Ventilator",
       'spikes-up': "Stekels omhoog",
       'spikes-down': "Stekels omlaag"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Sleep een vak voor een Super Stream — heel snel, kan de speler tegen een plafond pletten.",
       'pillar': "Klik om een Walldorf te plaatsen.",
       'mine': "Klik om een mijn te plaatsen.",
+      'fan': "Klik om een ventilator te plaatsen: erin landen versnippert de speler.",
       'spikes-up': "Sleep langs een vloer voor stekels omhoog.",
       'spikes-down': "Sleep langs een plafond voor stekels omlaag."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mijn",
+      'fan': "Ventilator",
       'spikes': "Stekels",
       'button': "Knop",
       'checkpoint': "Checkpoint"

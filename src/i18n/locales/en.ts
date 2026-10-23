@@ -138,6 +138,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mine",
+      'fan': "Ventilator",
       'spikes-up': "Spikes up",
       'spikes-down': "Spikes down"
     },
@@ -155,6 +156,7 @@ export default {
       'super': "Drag a box for a Super Stream — very fast, it can splat the player on a ceiling.",
       'pillar': "Click to place a Walldorf.",
       'mine': "Click to place a mine.",
+      'fan': "Click to place a ventilator — landing in it shreds the player.",
       'spikes-up': "Drag along a floor for spikes pointing up.",
       'spikes-down': "Drag along a ceiling for spikes pointing down."
     },
@@ -166,6 +168,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mine",
+      'fan': "Ventilator",
       'spikes': "Spikes",
       'button': "Button",
       'checkpoint': "Checkpoint"

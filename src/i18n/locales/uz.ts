@@ -135,6 +135,7 @@ export default {
       'super': "Super oqim",
       'pillar': "Walldorf",
       'mine': "Mina",
+      'fan': "Ventilyator",
       'spikes-up': "Yuqoriga tikanlar",
       'spikes-down': "Pastga tikanlar"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Super oqim uchun ramka torting — juda tez, o‘yinchini shiftga urib yuborishi mumkin.",
       'pillar': "Walldorf qo‘yish uchun bosing.",
       'mine': "Mina qo‘yish uchun bosing.",
+      'fan': "Ventilyator qo‘yish uchun bosing — unga qo‘ngan o‘yinchi parchalanadi.",
       'spikes-up': "Yuqoriga qaragan tikanlar uchun pol bo‘ylab torting.",
       'spikes-down': "Pastga qaragan tikanlar uchun shift bo‘ylab torting."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super oqim",
       'pillar': "Walldorf",
       'mine': "Mina",
+      'fan': "Ventilyator",
       'spikes': "Tikanlar",
       'button': "Tugma",
       'checkpoint': "Nazorat nuqtasi"

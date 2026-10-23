@@ -55,7 +55,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (!l.spawn || !num(l.spawn.x) || !num(l.spawn.y)) return null
   if (!Array.isArray(l.platforms) || !l.platforms.every(isRect)) return null
   if (!Array.isArray(l.winds) || !l.winds.every((w) => isRect(w) && num(w.speed) && ['up', 'down', 'left', 'right'].includes(w.dir))) return null
-  if (l.hazards && (!Array.isArray(l.hazards) || !l.hazards.every((h) => isRect(h) && ['pillar', 'mine', 'spikes'].includes(h.kind) &&
+  if (l.hazards && (!Array.isArray(l.hazards) || !l.hazards.every((h) => isRect(h) && ['pillar', 'mine', 'spikes', 'fan'].includes(h.kind) &&
     (h.contact === undefined || ['deadly', 'solid', 'bounce'].includes(h.contact)) &&
     (h.bounce === undefined || (num(h.bounce) && h.bounce > 0))))) return null
   if (l.buttons && (!Array.isArray(l.buttons) || !l.buttons.every((b) => isRect(b) && num(b.channel) && (b.duration === undefined || (num(b.duration) && b.duration > 0))))) return null

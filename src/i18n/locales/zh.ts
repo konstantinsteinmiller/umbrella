@@ -135,6 +135,7 @@ export default {
       'super': "超级气流",
       'pillar': "Walldorf",
       'mine': "地雷",
+      'fan': "风扇",
       'spikes-up': "朝上尖刺",
       'spikes-down': "朝下尖刺"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "拖出一个框放置超级气流——速度极快，可能把玩家拍在天花板上。",
       'pillar': "点击放置一个 Walldorf。",
       'mine': "点击放置地雷。",
+      'fan': "点击放置风扇——落在上面会被绞碎。",
       'spikes-up': "沿地面拖动，放置朝上的尖刺。",
       'spikes-down': "沿天花板拖动，放置朝下的尖刺。"
     },
@@ -163,6 +165,7 @@ export default {
       'super': "超级气流",
       'pillar': "Walldorf",
       'mine': "地雷",
+      'fan': "风扇",
       'spikes': "尖刺",
       'button': "按钮",
       'checkpoint': "检查点"

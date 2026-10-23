@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "माइन",
+      'fan': "पंखा",
       'spikes-up': "ऊपर कांटे",
       'spikes-down': "नीचे कांटे"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Super Stream के लिए बॉक्स खींचें — बहुत तेज़, खिलाड़ी को छत से टकरा सकती है।",
       'pillar': "Walldorf रखने के लिए क्लिक करें।",
       'mine': "माइन रखने के लिए क्लिक करें।",
+      'fan': "पंखा लगाने के लिए क्लिक करें — उसमें उतरने पर खिलाड़ी कट जाता है।",
       'spikes-up': "ऊपर की ओर कांटों के लिए फ़र्श पर खींचें।",
       'spikes-down': "नीचे की ओर कांटों के लिए छत पर खींचें।"
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "माइन",
+      'fan': "पंखा",
       'spikes': "कांटे",
       'button': "बटन",
       'checkpoint': "चेकपॉइंट"

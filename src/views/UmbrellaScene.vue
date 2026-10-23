@@ -109,6 +109,8 @@ const endIntro = () => {
   loadLevel(0)
 }
 const requestSkip = () => {
+  // Pweeg is looking at the player: the first key, tap or stick move is taking control.
+  if (intro?.waiting) { intro.release(); return }
   if (skipShown.value) { endIntro(); return }
   skipShown.value = true
   window.clearTimeout(skipTimer)

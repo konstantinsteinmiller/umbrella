@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mayın",
+      'fan': "Vantilatör",
       'spikes-up': "Yukarı dikenler",
       'spikes-down': "Aşağı dikenler"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Super Stream için kutu sürükle — çok hızlıdır, oyuncuyu tavana yapıştırabilir.",
       'pillar': "Walldorf yerleştirmek için tıkla.",
       'mine': "Mayın yerleştirmek için tıkla.",
+      'fan': "Vantilatör yerleştirmek için tıkla — içine inen oyuncu parçalanır.",
       'spikes-up': "Yukarı bakan dikenler için zemin boyunca sürükle.",
       'spikes-down': "Aşağı bakan dikenler için tavan boyunca sürükle."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mayın",
+      'fan': "Vantilatör",
       'spikes': "Dikenler",
       'button': "Düğme",
       'checkpoint': "Kontrol noktası"

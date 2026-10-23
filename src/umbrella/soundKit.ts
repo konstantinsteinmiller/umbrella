@@ -436,7 +436,7 @@ export interface SfxParams {
   /** Close: the automatic fold on landing. */
   auto?: boolean
   /** Hit: what was touched. */
-  hazard?: 'pillar' | 'mine' | 'spikes'
+  hazard?: 'pillar' | 'mine' | 'spikes' | 'fan'
   /** Whistle: seconds to fade to silence. */
   fade?: number
   /** Lunge: seconds of wind-up tell before the strike lands. */

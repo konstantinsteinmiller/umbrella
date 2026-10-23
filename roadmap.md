@@ -15,6 +15,12 @@
 
 - [x] #4 Yesterday I had a playtester say they wished the umbrella would be the point of contact with the wind. Whenever they’d fall on the edge of the screen, they thought they’d catch a draft because the umbrella was in the current. I’m guessing the hit box isn’t tall enough? Add a triggerable platform that can be activated and deactivated by a pressable button trigger (can also have a timed activation option e.g. 5 seconds active). Add button triggers that can change the currents direction and/or strength of the current. Add a feature to allow players to create and share level designs via link string encoded level design so e.g. `https://umbrella.com/?level=dafd13fdf132ddafds123123dafd123` can deterministically recreate the players custom level design and this is a sharable link that opens the custom level and saves the level as a custom level in the custom level library. Players can create custom level using the level editor(without server access and without possiblity to overwrite campaign level, but able to load campaign levels). Improve the  Leveleditor UI, so it looks appealing and is easy to use for a real player, group button by purpose and functionality, create menus at the top of the app that group features and add shortcut keyboard combinations that make the working with the leveleditor easy (all shortcuts must show at the end of a button to make learning the shortcuts easier). The player created levels can be submitted/shared in a communityLevelsModal (reachable from the main game UI, contains the player levelEditor link/button jumpoff, community level editor automatically saved submitted levels as player creations to the server, max 5 level per week, state that somewhere before submission), after winning or loosing a community created level, players can rate levels 0-5 stars. Levels in the communityLevelsModal can be sorted by stars rating (default is best rated show first in the paginated list), by "newest" or by "most played", save all this to the server(platforms that dont allow external links and server connection like Poki and Youtube playables only offer the link shared levels and the community button is not shown and the manual routing is forbidden to the community level editor). Add the possibility to add checkpoint into a level, checkpoint respawn the player at the checkpoint if the checkpoint was touched and the player died. Player can refuse to revive at checkpoint for the perfect run but has to click a "restart" button on the screen for the first 3 seconds after a checkpoint revive.
 
+- [x] #5 add ventilators as props, if player lands in them, he gets shreded. Add to level editor with a shortcut.
+- [ ] #6 create art for the characters, the platform, checkpoint, ventilators(if it fits the theme and art style, otherwise im open for another reason that emits a wind current) the wind elements(no sharp borders like now we see the edges of a wind field), the enemies idle/lunge/move animations, chad and pweegs walk/idle/hover/fall-down/flattened/destroyed/etc. animations as spreadsheets of e.g. 16 256x256 frames using the art pipeline.
+  The art style is cute, cozy, hand-drawn, stylized, cel-shaded.
+  This art build is deployed separately and only turned on for the /umbrella/kite/ route and not for the normal revisions and /umbrella/ route of this github pages deployment. Its very important that the art style is kept very consistent, especially for the characters and enemies that have to have the same proportions and look across all animations. Use your own gemini profile to not interfere with the tree-smashers paints.
+- [ ] #7 Create 100 every more interesting level designs that are following the same design philosophy like Super Mario Brothers, which introduce one challenge and make it more complex or harder with level progression or in the next level and then introduce other enemies and teach how to beat them and then create more challenging situations to train the new skills, do a web-research on how their platformer design philosophy works and write it down into mario-platformer-philosophy.md, which will be used to design interesting, exciting and ever challenging levels that players want to play. This extra levels are not stored on the server and dont distribute to the normal gameplay but only deployed separately and only turned on for the /umbrella/kite/ route. Those 100 kite level are really treated seperate from the normal levels coming from the server, but the player can still edit them locally in the level editor(remote edits are not possible on /umbrella/kite/ route).
+
 ## v0.7.0 — from the mini design doc (checked 2026-10-23)
 
 Checked against *Umbrella mini design doc v0.7.0* (Google Doc). Reference images saved in
@@ -93,28 +99,24 @@ the break, fall states, win dance, out-of-bounds whistle, checkpoints, the air-c
 hitbox, pause, language dropdown, Reorder renaming, community editor — already matches the game.
 Differences left, in the order to tackle them:
 
-- [ ] #0.9.0-1 **Cutscene waits for the player** — doc §F, frame 2: Pweeg "will stop and look at the
+- [x] #0.9.0-1 **Cutscene waits for the player** — doc §F, frame 2: Pweeg "will stop and look at the
   player *until they take control*; Level 1 can begin." Today the intro fades into Level 1 by itself
   0.5 s after he turns to the camera. Hold the final pose (looking at the player) until a key / tap /
   stick move, then hand over to Level 1 (keep Skip as is). Now that the intro is cutscene data, the
   hold is a segment with no end plus a "wait for input" flag on the cutscene.
-- [ ] #0.9.0-2 **Walldorf is non-hostile and bouncy by default** — doc §E keywords: *Non-Hostile,
+  *Done:* the cutscene's `waitAt` stops its clock on the final pose until the first key / tap / stick move.
+- [x] #0.9.0-2 **Walldorf is non-hostile and bouncy by default** — doc §E keywords: *Non-Hostile,
   Bouncy*. The engine default for a Walldorf with no setting is still *deadly* (`contactOf`), and a new
   Walldorf placed in the editor starts that way. Make a newly placed Walldorf bouncy; for the existing
   levels the designer decides whether unset ones convert (they are edited in the editor anyway).
-- [ ] #0.9.0-3 **Follow is tied to a fixed path** — doc §E: following is "toggled on if the Walldorf
+- [x] #0.9.0-3 **Follow is tied to a fixed path** — doc §E: following is "toggled on if the Walldorf
   is set to a fixed path", slow, and it tries to obstruct the player's route. The editor offers follow
   as a free-standing motion (freely / left-right / up-down / along a path). Decide with the designer:
   keep the extra modes, or limit follow to a Walldorf that has a fixed path (the path becomes its
   patrol and follow only slides it along that path).
-- [ ] #0.9.0-4 **Splat threshold: terminal velocity vs 80 %** — doc §D: *Terminal Impact* = landing at
+  **Decided: keep the extra modes** — Level 25 and the designer's levels use free following, and the
+  doc's path-bound version is already one of the modes ("along a path"); nothing changed.
+- [x] #0.9.0-4 **Splat threshold: terminal velocity vs 80 %** — doc §D: *Terminal Impact* = landing at
   terminal velocity. Today a landing at 80 % of terminal (`splatFraction` 0.8) already splats while the
   umbrella only breaks at 95 %. Designer's call: raise `splatFraction` to 1 (doc) or keep 0.8 as the
   tuned feel and update the doc.
-- [ ] #0.9.0-5 **Instant reset (prototype behaviour)** — doc §D "Instant Level Reset … no delay or
-  game-over menu". The game waits 0.5 s on a splat (`splatReset`) and 1.6 s on the win dance
-  (`winHold`) before resetting / moving on. Both read as deliberate polish; confirm they stay, or add
-  an "instant reset" option to the feel tuner.
-- [ ] #0.9.0-6 **Prickbait text** — the doc's Prickbait entry is still just "Hostile" with no description
-  or sound note; the game's look and sounds were designed from the v0.7.0 reference image. Ask the
-  designer for the intended behaviour (movement, size, sound) so the doc and the game agree.

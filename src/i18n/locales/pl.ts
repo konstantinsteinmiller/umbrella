@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mina",
+      'fan': "Wentylator",
       'spikes-up': "Kolce w górę",
       'spikes-down': "Kolce w dół"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Przeciągnij prostokąt Super Stream — bardzo szybki, może rozpłaszczyć gracza o sufit.",
       'pillar': "Kliknij, aby postawić Walldorfa.",
       'mine': "Kliknij, aby postawić minę.",
+      'fan': "Kliknij, aby postawić wentylator – lądowanie w nim rozszarpuje gracza.",
       'spikes-up': "Przeciągnij wzdłuż podłogi, aby dodać kolce w górę.",
       'spikes-down': "Przeciągnij wzdłuż sufitu, aby dodać kolce w dół."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mina",
+      'fan': "Wentylator",
       'spikes': "Kolce",
       'button': "Przycisk",
       'checkpoint': "Punkt kontrolny"

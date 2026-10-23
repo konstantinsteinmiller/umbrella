@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mine",
+      'fan': "Ventilator",
       'spikes-up': "Stacheln oben",
       'spikes-down': "Stacheln unten"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Ziehe ein Rechteck für einen Super Stream — sehr schnell, er kann den Spieler an der Decke zerquetschen.",
       'pillar': "Klicke, um einen Walldorf zu platzieren.",
       'mine': "Klicke, um eine Mine zu platzieren.",
+      'fan': "Klicken, um einen Ventilator zu setzen – wer darin landet, wird zerschreddert.",
       'spikes-up': "Ziehe entlang eines Bodens für Stacheln nach oben.",
       'spikes-down': "Ziehe entlang einer Decke für Stacheln nach unten."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mine",
+      'fan': "Ventilator",
       'spikes': "Stacheln",
       'button': "Knopf",
       'checkpoint': "Checkpoint"

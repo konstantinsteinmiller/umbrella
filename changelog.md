@@ -1,6 +1,11 @@
 Umbrella — changelog (newest first)
 
 == Revision 9 — 2026-10-23 ==
+- [x] Ventilator prop (editor tool, shortcut W; labels in all 21 locales): whirring blades; landing in one shreds the player
+- [x] The intro stops on Pweeg looking at the player until the first key, tap or stick move, then Level 1 begins (cutscene editor: "Wait for the player at")
+- [x] A Walldorf placed in the editor is a bouncy bumper from the start (existing levels unchanged)
+- [x] A landing only splats at terminal velocity (was 80 % of it); the umbrella still breaks when reopened at 95 %
+- [x] Shift+← / Shift+→ in the level editor open the previous / next campaign level (Level menu shows them)
 - [x] Level editor: a level dropdown in the top bar (campaign levels, saved levels) and a Reorder button for the designer again
 - [x] Test mode: ‹ › buttons and a horizontal swipe step through the draft, the campaign and the saved levels without leaving the test
 - [x] Walldorf lunge no longer kills a solid-Walldorf rush (the wall's own speed no longer counts as a slam) and a fast-moving wall can no longer pass through Pweeg standing behind it

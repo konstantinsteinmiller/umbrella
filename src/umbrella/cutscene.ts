@@ -59,6 +59,8 @@ export interface CutsceneDef {
   cues: CueDef[]
   /** A step sound every this many px of walking. */
   stepEvery: number
+  /** The clock stops here until `release()`: Pweeg looks at the player until they take control. */
+  waitAt?: number
   editedAt?: number
 }
 
@@ -68,6 +70,10 @@ export interface Cutscene {
   draw(ctx: CanvasRenderingContext2D, labels: Labels, dt: number): Camera
   /** Jump to the end: Pweeg in position, ready to play. */
   skip(): void
+  /** True while the cutscene holds its last pose for the player. */
+  readonly waiting: boolean
+  /** The player took control: the cutscene carries on to its end. */
+  release(): void
   /** Jumps to a time without sounds (the editor's scrubber). */
   seek(t: number): void
   readonly time: number
@@ -127,6 +133,10 @@ export const createCutscene = (def: CutsceneDef, level: LevelDef, tuning: Tuning
   let done = false
   let nextCue = 0
   let stepAcc = 0
+  let released = def.waitAt === undefined
+  let waiting = false
+  /** Seconds spent waiting: the idle animations keep running while the clock holds. */
+  let waited = 0
   let overlay: HTMLCanvasElement | null = null
 
   const drawClouds = (ctx: CanvasRenderingContext2D) => {
@@ -161,7 +171,7 @@ export const createCutscene = (def: CutsceneDef, level: LevelDef, tuning: Tuning
     if (c) drawChad(ctx, c.x, c.y, { action: c.action ?? 'idle', t: c.at, facing: 1, w: size.w, h: size.h, vx: c.vx })
     const p = pweeg ? poseAt(pweeg, time) : null
     if (p) {
-      drawPweeg(ctx, p.x, p.y, { pose: p.pose ?? 'stand', facing: 1, w: size.w, h: size.h, time, step: p.step, front: p.front, blink: p.blink })
+      drawPweeg(ctx, p.x, p.y, { pose: p.pose ?? 'stand', facing: 1, w: size.w, h: size.h, time: time + waited, step: p.step, front: p.front, blink: p.blink })
       if (p.pose !== 'cheer') drawUmbrella(ctx, p.x + size.w * 0.8, p.y - size.h * 0.35, { state: 'furled', tilt: 0.22, time })
     }
     // Fade in from black.
@@ -176,10 +186,14 @@ export const createCutscene = (def: CutsceneDef, level: LevelDef, tuning: Tuning
   return {
     get done() { return done },
     get time() { return time },
+    get waiting() { return waiting },
+    release() { released = true; waiting = false },
     seek(t) {
       time = Math.max(0, Math.min(def.duration, t))
       done = false
       stepAcc = 0
+      released = true
+      waiting = false
       nextCue = cues.findIndex((c) => c.at > time)
       if (nextCue < 0) nextCue = cues.length
       world.time = time
@@ -187,6 +201,13 @@ export const createCutscene = (def: CutsceneDef, level: LevelDef, tuning: Tuning
     skip() { time = def.duration; done = true },
     update(dt) {
       if (done) return
+      if (!released && time + dt >= def.waitAt!) {
+        time = def.waitAt!
+        waiting = true
+        waited += dt
+        world.time += dt
+        return
+      }
       time += dt
       // Currents flow under the actors; the level's own movers stay put.
       world.time += dt

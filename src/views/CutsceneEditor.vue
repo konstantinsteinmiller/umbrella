@@ -282,6 +282,7 @@ const view = reactive({ cues: true })
       <div class="head">Scene</div>
       <label class="row"><span>Duration (s)</span><input class="field num" type="number" step="0.1" :value="def.duration" @input="def.duration = num($event)" /></label>
       <label class="row"><span>Fade in (s)</span><input class="field num" type="number" step="0.1" :value="def.fadeIn" @input="def.fadeIn = num($event)" /></label>
+      <label class="row"><span>Wait for the player at (s)</span><input class="field num" type="number" step="0.1" :value="def.waitAt ?? ''" placeholder="off" @input="def.waitAt = ($event.target as HTMLInputElement).value === '' ? undefined : num($event)" /></label>
       <label class="row"><span>Fade to game (s)</span><input class="field num" type="number" step="0.1" :value="def.fadeOut" @input="def.fadeOut = num($event)" /></label>
 
       <div class="head">Sound cues <button class="mini" @click="view.cues = !view.cues">{{ view.cues ? '–' : '+' }}</button></div>

@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "لغم",
+      'fan': "مروحة",
       'spikes-up': "أشواك للأعلى",
       'spikes-down': "أشواك للأسفل"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "اسحب مربعًا لـ Super Stream — سريع جدًا، وقد يسحق اللاعب على السقف.",
       'pillar': "انقر لوضع Walldorf.",
       'mine': "انقر لوضع لغم.",
+      'fan': "انقر لوضع مروحة — الهبوط عليها يمزّق اللاعب.",
       'spikes-up': "اسحب على أرضية لأشواك متجهة للأعلى.",
       'spikes-down': "اسحب على سقف لأشواك متجهة للأسفل."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "لغم",
+      'fan': "مروحة",
       'spikes': "أشواك",
       'button': "زر",
       'checkpoint': "نقطة تفتيش"

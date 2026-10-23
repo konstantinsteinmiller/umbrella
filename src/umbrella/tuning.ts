@@ -99,7 +99,7 @@ export const DEFAULT_TUNING: Tuning = {
   gravity: 1550,
   terminalVelocity: 1900,
   breakFraction: 0.95,
-  splatFraction: 0.8,
+  splatFraction: 1,
   floatSpeed: 95,
   brakingSnap: 0.1,
   floatEaseTime: 0.11,

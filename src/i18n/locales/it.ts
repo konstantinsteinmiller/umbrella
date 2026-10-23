@@ -135,6 +135,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mina",
+      'fan': "Ventilatore",
       'spikes-up': "Spuntoni in su",
       'spikes-down': "Spuntoni in giù"
     },
@@ -152,6 +153,7 @@ export default {
       'super': "Trascina un riquadro per un Super Stream — velocissimo, può spiaccicare il giocatore sul soffitto.",
       'pillar': "Clicca per piazzare un Walldorf.",
       'mine': "Clicca per piazzare una mina.",
+      'fan': "Clicca per posizionare un ventilatore: atterrarci sopra tritura il giocatore.",
       'spikes-up': "Trascina lungo un pavimento per spuntoni verso l'alto.",
       'spikes-down': "Trascina lungo un soffitto per spuntoni verso il basso."
     },
@@ -163,6 +165,7 @@ export default {
       'super': "Super Stream",
       'pillar': "Walldorf",
       'mine': "Mina",
+      'fan': "Ventilatore",
       'spikes': "Spuntoni",
       'button': "Pulsante",
       'checkpoint': "Checkpoint"

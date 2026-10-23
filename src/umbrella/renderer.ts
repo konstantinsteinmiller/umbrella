@@ -198,11 +198,50 @@ const drawSpikes = (ctx: CanvasRenderingContext2D, h: Hazard) => {
   ctx.fill()
 }
 
+/** A ventilator: a boxed grille with blades whirring at a speed that says "do not land here". */
+const drawFan = (ctx: CanvasRenderingContext2D, h: Hazard, time: number) => {
+  const cx = h.x + h.w / 2
+  const cy = h.y + h.h / 2
+  const r = Math.min(h.w, h.h) / 2
+  ctx.fillStyle = '#3a4256'
+  ctx.strokeStyle = '#0d1018'
+  ctx.lineWidth = 3
+  ctx.beginPath()
+  ctx.roundRect(h.x, h.y, h.w, h.h, r * 0.25)
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = '#10141f'
+  ctx.beginPath()
+  ctx.arc(cx, cy, r * 0.82, 0, Math.PI * 2)
+  ctx.fill()
+  // Blades: four, spinning fast, with a faint blur disc behind them.
+  ctx.fillStyle = 'rgba(255, 90, 95, 0.18)'
+  ctx.beginPath()
+  ctx.arc(cx, cy, r * 0.78, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(time * 18)
+  ctx.fillStyle = HAZARD
+  for (let i = 0; i < 4; i++) {
+    ctx.rotate(Math.PI / 2)
+    ctx.beginPath()
+    ctx.ellipse(r * 0.4, 0, r * 0.38, r * 0.13, 0.35, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+  ctx.fillStyle = '#e8ecf5'
+  ctx.beginPath()
+  ctx.arc(cx, cy, r * 0.12, 0, Math.PI * 2)
+  ctx.fill()
+}
+
 const drawHazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => {
   const pl = w.player
   const px = pl.x + pl.w / 2
   const py = pl.y + pl.h / 2
   if (h.kind === 'spikes') drawSpikes(ctx, h)
+  else if (h.kind === 'fan') drawFan(ctx, h, w.time)
   else if (h.kind === 'mine') drawPrickbait(ctx, h.x + h.w / 2, h.y + h.h / 2, h.w / 2, px, py, w.time)
   else {
     // A charging Walldorf faces its charge and looks angry; a calm one watches Pweeg.

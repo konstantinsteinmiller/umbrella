@@ -68,7 +68,7 @@ import {
 type Tool =
   | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
-  | 'pillar' | 'mine' | 'spikes-up' | 'spikes-down'
+  | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
 type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints'
 type Entity = { group: Group; i: number }
@@ -107,6 +107,7 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys }[]
   { id: 'hazards', tools: [
     { id: 'pillar', icon: '▮', keys: { key: 'p' } },
     { id: 'mine', icon: '✹', keys: { key: 'm' } },
+    { id: 'fan', icon: '✲', keys: { key: 'w' } },
     { id: 'spikes-up', icon: '▲', keys: { key: 'x' } },
     { id: 'spikes-down', icon: '▼', keys: { key: 'x', shift: true } }
   ] },
@@ -337,13 +338,19 @@ const place = (t: Tool, a: Vec, b: Vec) => {
     }
     case 'pillar': {
       const pw = 40, ph = 200
-      hazards().push({ kind: 'pillar', x: snapV(a.x - pw / 2), y: snapV(a.y - ph / 2), w: pw, h: ph })
+      hazards().push({ kind: 'pillar', x: snapV(a.x - pw / 2), y: snapV(a.y - ph / 2), w: pw, h: ph, contact: 'bounce' })
       sel = { type: 'entity', group: 'hazards', i: hazards().length - 1 }
       break
     }
     case 'mine': {
       const r = 26
       hazards().push({ kind: 'mine', x: snapV(a.x) - r, y: snapV(a.y) - r, w: r * 2, h: r * 2 })
+      sel = { type: 'entity', group: 'hazards', i: hazards().length - 1 }
+      break
+    }
+    case 'fan': {
+      const s = 90
+      hazards().push({ kind: 'fan', x: snapV(a.x - s / 2), y: snapV(a.y - s / 2), w: s, h: s })
       sel = { type: 'entity', group: 'hazards', i: hazards().length - 1 }
       break
     }
@@ -440,7 +447,7 @@ const onPointerMove = (e: PointerEvent) => {
     const nh = Math.max(10, snapV(p.y - shown.y))
     const m = motionOf(drag.target)
     const moving = m && m.kind !== 'static'
-    if ((ent as HazardDef).kind === 'mine') {
+    if ((ent as HazardDef).kind === 'mine' || (ent as HazardDef).kind === 'fan') {
       const d = Math.max(nw, nh)
       if (!moving) { const cx = ent.x + ent.w / 2, cy = ent.y + ent.h / 2; ent.x = cx - d / 2; ent.y = cy - d / 2 }
       ent.w = ent.h = d
