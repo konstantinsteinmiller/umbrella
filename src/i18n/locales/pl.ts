@@ -96,6 +96,8 @@ export default {
       'save': "Zapisz",
       'importLevel': "Importuj plik poziomu…",
       'exportLevel': "Eksportuj plik poziomu",
+      'prevLevel': "Poprzedni poziom kampanii",
+      'nextLevel': "Następny poziom kampanii",
       'back': "Wróć do gry",
       'undo': "Cofnij",
       'redo': "Ponów",

@@ -449,10 +449,26 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     // Already in the platform's columns last tick: it met us from above or
     // below (a rising finish under a lander) — the vertical pass resolves it.
     if (prevX + pl.w > p.x - p.dx && prevX < p.x - p.dx + p.w) continue
-    if (Math.abs(pl.vx - p.dx / dt) >= t.wallSplatSpeed) slam = true
+    // A mover's own rush (a lunging Walldorf, a fast platform) is not a slam: only the player's speed is.
+    if (Math.abs(pl.vx) >= t.wallSplatSpeed) slam = true
     if (pl.vx > 0 || p.dx < 0) pl.x = p.x - pl.w
     else pl.x = p.x + p.w
     pl.vx = 0
+  }
+  // A mover faster than its width per tick (a lunge or its reset) never overlaps the player in
+  // either frame and would pass straight through: sweep it, and carry the player ahead of it.
+  for (let i = 0; i < solids.length; i++) {
+    const p = solids[i]!
+    if (!solid(i) || Math.abs(p.dx) < 1) continue
+    if (pl.y + pl.h <= p.y || pl.y >= p.y + p.h) continue
+    const from = p.x - p.dx
+    const lo = Math.min(p.x, from)
+    const hi = Math.max(p.x, from) + p.w
+    if (pl.x + pl.w <= lo || pl.x >= hi || overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
+    // The player was inside the path: shove them out along the direction it travelled.
+    if (p.dx > 0) pl.x = p.x + p.w
+    else pl.x = p.x - pl.w
+    if (Math.sign(pl.vx) !== Math.sign(p.dx)) pl.vx = 0
   }
 
   pl.y += pl.vy * dt

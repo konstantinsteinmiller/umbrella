@@ -96,6 +96,8 @@ export default {
       'save': "Kaydet",
       'importLevel': "Seviye dosyası içe aktar…",
       'exportLevel': "Seviye dosyası dışa aktar",
+      'prevLevel': "Önceki kampanya seviyesi",
+      'nextLevel': "Sonraki kampanya seviyesi",
       'back': "Oyuna dön",
       'undo': "Geri al",
       'redo': "Yinele",

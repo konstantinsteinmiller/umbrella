@@ -96,6 +96,8 @@ export default {
       'save': "Saqlash",
       'importLevel': "Daraja faylini import qilish…",
       'exportLevel': "Daraja faylini eksport qilish",
+      'prevLevel': "Oldingi kampaniya darajasi",
+      'nextLevel': "Keyingi kampaniya darajasi",
       'back': "O‘yinga qaytish",
       'undo': "Bekor qilish",
       'redo': "Qaytarish",

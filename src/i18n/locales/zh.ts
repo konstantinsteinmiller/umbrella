@@ -96,6 +96,8 @@ export default {
       'save': "保存",
       'importLevel': "导入关卡文件…",
       'exportLevel': "导出关卡文件",
+      'prevLevel': "上一个战役关卡",
+      'nextLevel': "下一个战役关卡",
       'back': "返回游戏",
       'undo': "撤销",
       'redo': "重做",

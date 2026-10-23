@@ -7,7 +7,7 @@
 import { createComposer, MUSIC_SLOT, type Composer } from './music'
 import {
   AMBIENCE_IDLE, createAmbience, createKit, createMix, RECIPES, SFX_DUCK, SFX_TRIM,
-  type Ambience, type AmbienceState, type Kit, type Mix, type SfxName, type SfxParams
+  type Ambience, type AmbienceState, type Kit, type Mix, type Out, type SfxName, type SfxParams
 } from './soundKit'
 
 /** Mix levels as the tuning panel sets them (linear, 1 = as designed). */
@@ -56,6 +56,10 @@ export const createSoundEngine = (ctx: BaseAudioContext, dest: AudioNode, seed: 
   const voices = new Set<Voice>()
   let whistle: Voice | null = null
   let levels: MixLevels = { master: 1, music: 1, sfx: 1, wind: 1 }
+  // The score's adaptive stems (music.ts) and how hard the sky is blowing.
+  type Stem = { out: Out; gains: GainNode[]; level: number }
+  let stems: { drive: Stem; pulse: Stem } | null = null
+  let energy = { drive: 0, pulse: 0 }
 
   const now = () => ctx.currentTime
 
@@ -86,6 +90,23 @@ export const createSoundEngine = (ctx: BaseAudioContext, dest: AudioNode, seed: 
     g.cancelScheduledValues(at)
     g.setTargetAtTime(depth, at, 0.03)
     g.setTargetAtTime(1, at + hold, 0.6)
+  }
+
+  /**
+   * Ride the stems from the gameplay: riding a current brings the kalimba,
+   * a Super Stream or a fast fall the pulse. Up in about a second, back
+   * down over a few — the score swells with the wind and settles after it.
+   */
+  const rideStems = (at: number) => {
+    if (!stems) return
+    for (const key of ['drive', 'pulse'] as const) {
+      const st = stems[key]
+      const v = energy[key]
+      if (Math.abs(v - st.level) < 0.005) continue
+      const tc = v > st.level ? 0.45 : 1.6
+      st.level = v
+      for (const g of st.gains) g.gain.setTargetAtTime(v, at, tc)
+    }
   }
 
   const applyLevels = (at: number) => {
@@ -135,7 +156,15 @@ export const createSoundEngine = (ctx: BaseAudioContext, dest: AudioNode, seed: 
       ambience = createAmbience(kit, mix.ambience, at)
       ambience.set(AMBIENCE_IDLE, at)
     },
-    setAmbience: (s, at = now()) => ambience?.set(s, at),
+    setAmbience: (s, at = now()) => {
+      ambience?.set(s, at)
+      const c = (x: number) => Math.max(0, Math.min(1, x))
+      energy = {
+        drive: Math.pow(c(Math.max(0.85 * s.wind, s.superWind, 0.8 * s.speed)), 0.7),
+        pulse: c(Math.max(s.superWind, (s.speed - 0.35) / 0.5))
+      }
+      rideStems(at)
+    },
     startMusic: (at = now(), fadeIn = 4) => {
       if (composer) return
       // Dry and hall sends both ride the opening fade.
@@ -148,7 +177,17 @@ export const createSoundEngine = (ctx: BaseAudioContext, dest: AudioNode, seed: 
       }
       const dry = fade(mix.music.dry)
       const verb = fade(mix.music.verb)
-      composer = createComposer(kit, { dry, verb }, at + 0.05, seed + 77)
+      const stem = (): Stem => {
+        const d = ctx.createGain()
+        const v = ctx.createGain()
+        d.gain.value = v.gain.value = 0
+        d.connect(dry)
+        v.connect(verb)
+        return { out: { dry: d, verb: v }, gains: [d, v], level: 0 }
+      }
+      stems = { drive: stem(), pulse: stem() }
+      composer = createComposer(kit, { dry, verb }, at + 0.05, seed + 77, { layers: { drive: stems.drive.out, pulse: stems.pulse.out } })
+      rideStems(at)
       composer.scheduleUntil(at + MUSIC_SLOT * 0.5)
     },
     scheduleMusic: (t) => composer?.scheduleUntil(t),

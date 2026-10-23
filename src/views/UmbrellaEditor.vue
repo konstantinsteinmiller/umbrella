@@ -30,6 +30,7 @@ import { CHANNELS, LEVELS, type ButtonDef, type CheckpointDef, type HazardDef, t
 import { checkpointBox, contactOf, createWorld, DEFAULT_TRIGGER_RADIUS, poseMovers, step, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
+import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
 import { encodeLevel, shareLink } from '@/umbrella/levelCode'
@@ -475,6 +476,7 @@ const onKeyDown = (e: KeyboardEvent) => {
   if (dialog.value) { if (e.key === 'Escape') dialog.value = null; return }
   if (openMenu.value && e.key === 'Escape') { openMenu.value = null; return }
   if (isTyping(e.target)) return
+  if (cutsceneId.value) return // the cutscene mode has its own keys
   if (mobileView.value && playKey(e, true)) return
   for (const id of visibleCommands.value) {
     const c = commands[id]!
@@ -546,6 +548,8 @@ const commands: Record<string, Command> = {
   animate: { keys: [{ key: 'a', shift: true }], run: () => { animate.value = !animate.value }, checked: () => animate.value },
   mobile: { keys: [{ key: 'm', shift: true }], run: () => toggleMobileView(), checked: () => mobileView.value },
   test: { keys: [{ key: 'enter' }], run: () => onTest() },
+  prevLevel: { keys: [{ key: 'arrowleft', shift: true }], run: () => stepCampaign(-1) },
+  nextLevel: { keys: [{ key: 'arrowright', shift: true }], run: () => stepCampaign(1) },
   share: { keys: [{ key: 'l', mod: true, shift: true }], run: () => void onShare() },
   submit: { keys: [{ key: 'u', mod: true, shift: true }], run: () => void openSubmit() },
   shortcuts: { keys: [{ key: '?' }], run: () => openDialog('keys') },
@@ -575,7 +579,7 @@ const menus = computed(() => [
   { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
   { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'deselect'] },
   { id: 'view', items: ['fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile'] },
-  { id: 'level', items: ['test', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
+  { id: 'level', items: ['test', 'prevLevel', 'nextLevel', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
   ...(designer.value ? [{ id: 'campaign', items: ['campaignOverwrite', 'campaignReplace', 'campaignRevert', 'reorder', '-', 'sync', 'password', '-', 'exportLibrary', 'importLibrary'] }] : []),
   { id: 'help', items: ['shortcuts'] }
 ])
@@ -869,7 +873,25 @@ const loadIntoEditor = (l: LevelDef, name: string) => {
   selection.value = null
   previewT = 0
 }
-const onNew = () => { loadIntoEditor(blankLevel(), t('umbrellaEditor.untitled')); overwriteSlot.value = ''; flash(t('umbrellaEditor.msg.newLevel')) }
+/** Which level the canvas holds, for the level dropdown: `c:<id>` campaign, `s:<name>` saved, '' draft/new. */
+const currentPick = ref('')
+/** Cutscene mode: the id being edited (designer tools), null = the level editor. */
+const cutsceneId = ref<string | null>(null)
+const onPickLevel = (v: string) => {
+  if (v.startsWith('x:')) { cutsceneId.value = v.slice(2); currentPick.value = v; return }
+  cutsceneId.value = null
+  if (v.startsWith('c:')) openCampaign(+v.slice(2))
+  else if (v.startsWith('s:')) openSaved(v.slice(2))
+  currentPick.value = v
+}
+/** Shift+←/→: the previous / next campaign level (wraps), from the one open now. */
+const stepCampaign = (d: number) => {
+  const n = LEVELS.length
+  const at = currentPick.value.startsWith('c:') ? LEVELS.findIndex((l) => l.id === +currentPick.value.slice(2)) : -1
+  const i = at < 0 ? (d > 0 ? 0 : n - 1) : (at + d + n) % n
+  onPickLevel(`c:${LEVELS[i]!.id}`)
+}
+const onNew = () => { currentPick.value = ''; loadIntoEditor(blankLevel(), t('umbrellaEditor.untitled')); overwriteSlot.value = ''; flash(t('umbrellaEditor.msg.newLevel')) }
 const onSave = () => {
   const name = levelName.value.trim() || t('umbrellaEditor.untitled')
   levelName.value = name
@@ -1313,6 +1335,19 @@ onUnmounted(() => {
           </div>
         </div>
       </nav>
+      <select class="field level-pick" :value="currentPick" :aria-label="t('umbrella.selectLevel')" @change="onPickLevel(($event.target as HTMLSelectElement).value)">
+        <option value="" disabled>{{ t('umbrella.selectLevel') }}</option>
+        <optgroup :label="t('umbrellaEditor.campaignLevels')">
+          <option v-for="c in campaignOptions" :key="c.id" :value="`c:${c.id}`">{{ c.label }}</option>
+        </optgroup>
+        <optgroup v-if="designer" label="Cutscenes">
+          <option value="x:intro">🎬 Intro</option>
+        </optgroup>
+        <optgroup v-if="libraryNames.length" :label="t('umbrellaEditor.myLevels')">
+          <option v-for="n in libraryNames" :key="n" :value="`s:${n}`">{{ n }}</option>
+        </optgroup>
+      </select>
+      <button v-if="designer" class="btn" @click="runCmd('reorder')">⇅ Reorder</button>
       <input v-model="levelName" class="field name" :placeholder="t('umbrellaEditor.namePlaceholder')" :aria-label="t('umbrellaEditor.namePlaceholder')" />
       <div class="quick">
         <button class="btn" :disabled="!cmdEnabled('undo')" :title="cmdLabel('undo')" @click="runCmd('undo')">↶ <kbd>{{ cmdKeys('undo') }}</kbd></button>
@@ -1329,7 +1364,10 @@ onUnmounted(() => {
       <input ref="fileInput" type="file" accept=".json,application/json" hidden @change="onImportFile" />
     </header>
 
-    <div class="body">
+    <div v-if="cutsceneId" class="body cs-body">
+      <CutsceneEditor :id="cutsceneId" @close="cutsceneId = null" />
+    </div>
+    <div v-else class="body">
       <aside class="panel tools" :aria-label="t('umbrellaEditor.toolsTitle')">
         <section v-for="g in TOOL_GROUPS" :key="g.id" class="tool-group">
           <div class="head">{{ t(`umbrellaEditor.toolGroup.${g.id}`) }}</div>
@@ -1728,6 +1766,7 @@ onUnmounted(() => {
   position: relative;
   z-index: 20;
 }
+.level-pick { max-width: 190px; }
 .brand { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 15px; letter-spacing: 0.02em; margin-right: 4px; }
 .badge { font-style: normal; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px; background: #eab308; color: #000; }
 .menus { display: flex; gap: 2px; }
@@ -2042,4 +2081,328 @@ kbd {
   .props { width: 210px; }
   .tool-label { font-size: 12px; }
 }
+</style>
+
+<!-- The cutscene mode renders in a child component: scoped rules do not reach it, so they are repeated here under .cs-body. -->
+<style>
+.editor .cs-body .topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: linear-gradient(#1a2130, #141a26);
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  z-index: 20;
+}
+.editor .cs-body .level-pick { max-width: 190px; }
+.editor .cs-body .brand { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 15px; letter-spacing: 0.02em; margin-right: 4px; }
+.editor .cs-body .badge { font-style: normal; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 99px; background: #eab308; color: #000; }
+.editor .cs-body .menus { display: flex; gap: 2px; }
+.editor .cs-body .menu { position: relative; }
+.editor .cs-body .menu-btn {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.editor .cs-body .menu-btn:hover, .editor .cs-body .menu-btn.open { background: rgba(255, 255, 255, 0.1); }
+.editor .cs-body .menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 260px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  /* Above the toolbar's buttons and their shortcut chips (kbd opacity makes its own layer). */
+  z-index: 100;
+}
+.editor .cs-body .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.editor .cs-body .menu-item:hover:not(:disabled) { background: #2563eb; }
+.editor .cs-body .menu-item:disabled { opacity: 0.4; cursor: default; }
+.editor .cs-body .menu-check { width: 12px; color: var(--accent); }
+.editor .cs-body .menu-label { flex: 1; }
+.editor .cs-body .menu-sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.editor .cs-body .quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.editor .cs-body .body { flex: 1; min-height: 0; display: flex; }
+.editor .cs-body .panel {
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--panel);
+}
+.editor .cs-body .tools { width: 210px; border-right: 1px solid var(--line); }
+.editor .cs-body .props { width: 250px; border-left: 1px solid var(--line); }
+.editor .cs-body .tool-group { display: flex; flex-direction: column; gap: 2px; }
+.editor .cs-body .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.editor .cs-body .canvas { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; }
+.editor .cs-body .foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 6px 10px;
+  min-height: 30px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.editor .cs-body .warn { color: #fbbf24; margin: 0; }
+.editor .cs-body .ok { color: var(--accent); margin: 0; }
+.editor .cs-body .rule { margin: 0; padding: 8px 10px; border-radius: 6px; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(96, 165, 250, 0.4); }
+.editor .cs-body .status { color: var(--muted); }
+.editor .cs-body .head {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.editor .cs-body .kind { font-weight: 700; font-size: 14px; }
+.editor .cs-body .hint { margin: 4px 0; font-size: 11px; color: var(--muted); line-height: 1.45; }
+.editor .cs-body .row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.editor .cs-body .row.col { flex-direction: column; align-items: stretch; }
+.editor .cs-body .row.actions { margin-top: 8px; justify-content: flex-start; flex-wrap: wrap; }
+.editor .cs-body .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.editor .cs-body .pair .row { min-width: 0; }
+.editor .cs-body .pair .field.num { width: 100%; min-width: 0; }
+.editor .cs-body .check { display: flex; align-items: center; gap: 6px; }
+.editor .cs-body .sync { font-size: 12px; color: #6ee7b7; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor .cs-body .sync.bad { color: #fbbf24; }
+.editor .cs-body .field {
+  padding: 4px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--ink);
+  font: inherit;
+}
+.editor .cs-body .field:focus { outline: 2px solid #3b82f6; outline-offset: 0; }
+.editor .cs-body .field.name { width: 170px; }
+.editor .cs-body .field.num { width: 72px; }
+.editor .cs-body .field.link { width: 100%; font-size: 12px; user-select: all; }
+.editor .cs-body .btn {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.editor .cs-body .btn:hover:not(:disabled) { filter: brightness(1.2); }
+.editor .cs-body .btn:disabled { opacity: 0.45; cursor: default; }
+.editor .cs-body .btn.green { background: #059669; font-weight: 700; }
+.editor .cs-body .btn.blue { background: #2563eb; }
+.editor .cs-body .btn.red { background: #b91c1c; }
+.editor .cs-body .btn.indigo { background: #4f46e5; }
+.editor .cs-body .btn.orange { background: #ea580c; font-weight: 700; }
+.editor .cs-body .btn.yellow { background: #eab308; color: #000; font-weight: 700; }
+.editor .cs-body .btn.yellow kbd { border-color: rgba(0, 0, 0, 0.35); }
+.editor .cs-body .tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.editor .cs-body .tool:hover { background: rgba(255, 255, 255, 0.07); }
+.editor .cs-body .tool.on { background: rgba(52, 211, 153, 0.16); border-color: rgba(52, 211, 153, 0.6); font-weight: 700; }
+.editor .cs-body .tool-icon { width: 18px; text-align: center; }
+.editor .cs-body .tool-label { flex: 1; }
+.editor .cs-body kbd {
+  margin-left: 4px;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.editor .cs-body .phones {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+}
+.editor .cs-body .phone {
+  position: relative;
+  max-height: 100%;
+  border: 10px solid #222838;
+  border-radius: 22px;
+  background: #000;
+  overflow: hidden;
+}
+.editor .cs-body /* Portrait sized by height, .editor .cs-body landscape by the width left over. */
+.phone.portrait { height: 100%; }
+.editor .cs-body .phone.landscape { flex: 1; max-width: 70%; }
+.editor .cs-body .phone-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.editor .cs-body /* The game's touch controls at half size, .editor .cs-body as they sit on a phone. */
+.stick, .editor .cs-body .umbrella-btn {
+  position: absolute;
+  bottom: 12px;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.editor .cs-body .stick {
+  left: 12px;
+  width: 75px;
+  height: 36px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: ew-resize;
+}
+.editor .cs-body .stick-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.45;
+  pointer-events: none;
+}
+.editor .cs-body .stick-arrow.left { left: 6px; }
+.editor .cs-body .stick-arrow.right { right: 6px; }
+.editor .cs-body .stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+.editor .cs-body .umbrella-btn {
+  right: 12px;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.editor .cs-body .umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); }
+.editor .cs-body .phone-label {
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  font-size: 11px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+.editor .cs-body .modal-back {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+}
+.editor .cs-body .modal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(720px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.editor .cs-body .modal.narrow { width: min(480px, 100%); }
+.editor .cs-body .tabs { display: flex; gap: 4px; }
+.editor .cs-body .tab { padding: 6px 12px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, 0.06); color: var(--ink); font: inherit; cursor: pointer; }
+.editor .cs-body .tab.on { background: #2563eb; font-weight: 700; }
+.editor .cs-body .pick-list { margin: 0; padding: 0; list-style: none; max-height: 55vh; overflow-y: auto; }
+.editor .cs-body .pick-row { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 6px; }
+.editor .cs-body .pick-row:hover { background: rgba(255, 255, 255, 0.05); }
+.editor .cs-body .keys-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px 18px; }
+.editor .cs-body .key-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 0; }
+.editor .cs-body .order-cols { display: flex; gap: 10px; min-height: 0; }
+.editor .cs-body .order-list, .editor .cs-body .order-pool {
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.editor .cs-body .order-list { flex: 3; }
+.editor .cs-body .order-pool { flex: 2; }
+.editor .cs-body .order-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  margin: 2px 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+  cursor: grab;
+}
+.editor .cs-body .order-row.custom { background: rgba(79, 70, 229, 0.3); }
+.editor .cs-body .order-row.before { border-top-color: #eab308; }
+.editor .cs-body .order-row.after { border-bottom-color: #eab308; }
+.editor .cs-body .order-row.lifted { opacity: 0.4; }
+.editor .cs-body .order-num { width: 24px; text-align: right; font-weight: 700; opacity: 0.7; }
+.editor .cs-body .order-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor .cs-body .order-origin { opacity: 0.55; }
+.editor .cs-body .order-rename { flex: 1; min-width: 0; }
+.editor .cs-body .mini {
+  padding: 0 6px;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.editor .cs-body .mini:disabled { opacity: 0.3; cursor: default; }
+.editor .cs-body .grow { flex: 1; }
 </style>

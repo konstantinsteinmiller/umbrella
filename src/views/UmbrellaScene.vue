@@ -24,7 +24,8 @@ import { splashGone } from '@/use/useSplash'
 import { render } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
-import { playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience } from '@/umbrella/audio'
+import { playEnemySfx, playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience, updateEnemyBed } from '@/umbrella/audio'
+import { createEnemyCues, ENEMY_BED_IDLE } from '@/umbrella/enemySounds'
 import { AMBIENCE_IDLE, type AmbienceState } from '@/umbrella/soundKit'
 import { getState, setState } from '@/use/useEpicState'
 import { isGamePaused, isAudioPaused } from '@/use/useGamePause'
@@ -38,7 +39,29 @@ const router = useRouter()
 const testing = testLevel.value
 /** A player level (share link or community) played instead of the campaign. */
 const playing = ref<CustomPlay | null>(testing ? null : customPlay.value)
-const levelDef = () => testing ?? playing.value?.level ?? LEVELS[levelIndex.value]!
+/** The level under test; ‹ › and a horizontal swipe walk it through the draft, the campaign and the library. */
+let testDef = testing
+const testPos = ref(-1) // -1 = the editor's draft
+const testName = ref('')
+const testList = () => [...LEVELS.map((l, i) => ({ name: t('umbrella.level', { n: i + 1 }), level: l })), ...Object.entries(customLevels.value).sort(([a], [b]) => a.localeCompare(b)).map(([name, level]) => ({ name, level }))]
+const stepTest = (d: number) => {
+  const list = testList()
+  const n = list.length
+  testPos.value = testPos.value < 0 ? (d > 0 ? 0 : n - 1) : (testPos.value + d + n) % n
+  const e = list[testPos.value]!
+  testDef = e.level
+  testName.value = e.name
+  restart()
+}
+let swipeX = 0
+const onSwipeDown = (e: PointerEvent) => { swipeX = e.clientX }
+const onSwipeUp = (e: PointerEvent) => {
+  if (!testing || !swipeX) return
+  const dx = e.clientX - swipeX
+  swipeX = 0
+  if (Math.abs(dx) > 90) stepTest(dx < 0 ? 1 : -1)
+}
+const levelDef = () => testDef ?? playing.value?.level ?? LEVELS[levelIndex.value]!
 const backToEditor = () => {
   testLevel.value = null
   void router.push('/editor')
@@ -267,10 +290,9 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         playSfx('break', { pan })
         brokenFlash.value = true
         break
-      case 'button': playSfx('close', { quick: true, pan }); break
-      case 'checkpoint': playSfx('open', { intensity: 0, quick: true, pan }); break
-      case 'bump': playSfx('bump', { intensity: 0.35, pan }); break
-      case 'charge-bump': playSfx('bump', { intensity: 1, pan }); break
+      case 'button': playSfx('button', { pan }); break
+      case 'checkpoint': playSfx('checkpoint', { pan }); break
+      // 'bump' / 'charge-bump' and the mine's sting: the enemy cues below.
     }
   }
   if (world.phase === 'play' && pl.grounded && Math.abs(pl.vx) > 30) {
@@ -289,59 +311,23 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
   }
 }
 
-// ── Enemy sounds: a lunge's wind-up tell, an enemy flying in ──
-/** Seconds of wind-up creak before an attacking pillar's strike lands. */
-const LUNGE_TELL = 0.22
+// ── Enemy sounds (enemySounds.ts): telegraphs, bumps, stings and the enemy bed ──
+const enemyCueTracker = createEnemyCues()
 let lastEnemyTime = 0
-const enemyCues = () => {
+const enemyCues = (events: GameEvent[]) => {
+  for (const c of enemyCueTracker.tick(world, events, tuning)) playEnemySfx(c.name, c.params)
+  // An enemy flying in (the kit's arrive sound).
   const prev = lastEnemyTime
   const now = world.enemyTime
   lastEnemyTime = now
   if (now <= prev || world.phase !== 'play') return
-  const pl = world.player
-  const cx = pl.x + pl.w / 2
-  const cy = pl.y + pl.h / 2
+  const cx = world.player.x + world.player.w / 2
   for (const h of world.hazards) {
     const m = h.motion
-    if (!m) continue
-    const hx = h.x + h.w / 2
-    const near = clamp01(1 - Math.hypot(hx - cx, h.y + h.h / 2 - cy) / 700)
-    const pan = Math.max(-0.8, Math.min(0.8, (hx - cx) / 500))
-    if (m.kind === 'lunge') {
-      // Fire the tell so the strike (at lungeRest of each cycle) lands on it.
-      const cue = (cycleT: number) => Math.floor((cycleT / m.period) - tuning.lungeRest + LUNGE_TELL * tuning.enemySpeedScale / m.period)
-      if (cue(now) > cue(prev)) {
-        playSfx('lunge', { intensity: near, lead: LUNGE_TELL, pan })
-      }
-    } else if (m.kind === 'arrive' && prev < m.delay && now >= m.delay) {
-      playSfx('arrive', { hazard: h.kind === 'pillar' ? 'pillar' : 'mine', duration: m.duration / Math.max(0.05, tuning.enemySpeedScale), pan })
-    }
+    if (m?.kind !== 'arrive' || prev >= m.delay || now < m.delay) continue
+    const pan = Math.max(-0.8, Math.min(0.8, (h.x + h.w / 2 - cx) / 500))
+    playSfx('arrive', { hazard: h.kind === 'pillar' ? 'pillar' : 'mine', duration: m.duration / Math.max(0.05, tuning.enemySpeedScale), pan })
   }
-}
-
-/** How close the nearest mine / pillar is, for their continuous sounds. */
-const enemyNearby = (cx: number, cy: number) => {
-  let mine = 0
-  let mineSpeed = 0
-  let pillar = 0
-  let enemyPan = 0
-  let loudest = 0
-  for (const h of world.hazards) {
-    if (h.kind === 'spikes') continue
-    const hx = h.x + h.w / 2
-    const d = Math.max(0, Math.hypot(hx - cx, h.y + h.h / 2 - cy) - Math.max(h.w, h.h) / 2)
-    const near = clamp01(1 - d / 320)
-    if (h.kind === 'mine' && near > mine) {
-      mine = near
-      mineSpeed = clamp01(Math.hypot(h.dx, h.dy) / DT / 600)
-    }
-    if (h.kind === 'pillar') pillar = Math.max(pillar, near)
-    if (near > loudest) {
-      loudest = near
-      enemyPan = Math.max(-1, Math.min(1, (hx - cx) / 400))
-    }
-  }
-  return { mine, mineSpeed, pillar, enemyPan }
 }
 
 /** The air around the player, for the wind bed (see soundKit `createAmbience`). */
@@ -373,14 +359,15 @@ const ambience = (): AmbienceState => {
   const airborne = !pl.grounded
   const breakSpeed = tuning.terminalVelocity * tuning.breakFraction
   return {
+    // The enemies have their own bed (updateEnemyBed); the kit's enemy layers stay silent.
+    ...AMBIENCE_IDLE,
     wind,
     superWind,
     pan,
     speed: airborne ? Math.hypot(pl.vx, pl.vy) / tuning.terminalVelocity : 0,
     danger: airborne && !pl.open && !pl.broken ? clamp01((pl.vy / breakSpeed - 0.72) / 0.28) : 0,
     // A broken canopy keeps flapping on the way down.
-    canopy: airborne ? (pl.open ? 1 : pl.broken ? 0.6 : 0) : 0,
-    ...enemyNearby(cx, cy)
+    canopy: airborne ? (pl.open ? 1 : pl.broken ? 0.6 : 0) : 0
   }
 }
 let ambienceClock = 0
@@ -389,8 +376,9 @@ const tick = () => {
   const input: Input = { left: held.left || stickDir.value < 0, right: held.right || stickDir.value > 0, toggle: togglePending }
   togglePending = false
   const vyBefore = world.player.vy
-  onEvents(step(world, input, DT, tuning), vyBefore)
-  enemyCues()
+  const events = step(world, input, DT, tuning)
+  onEvents(events, vyBefore)
+  enemyCues(events)
   // Failure resets the level at the spawn point, or revives at the last checkpoint.
   if (world.phase === 'out') fail()
   else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) fail()
@@ -435,6 +423,8 @@ const frame = (now: number) => {
   if (ambienceClock >= 1 / 30) {
     ambienceClock = 0
     updateAmbience(isGamePaused.value || intro ? AMBIENCE_IDLE : ambience())
+    const frozen = isGamePaused.value || !!intro || showLevels.value || showCommunity.value || showRate.value || showPause.value
+    updateEnemyBed(frozen ? ENEMY_BED_IDLE : enemyCueTracker.bed(world, tuning, DT))
   }
   resize(el)
   const ctx = el.getContext('2d')
@@ -461,6 +451,7 @@ const GUI_CODE = 'cmonc'
 let typed = ''
 const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return
+  if (down) unlockAudio() // a keyboard-only first visit must hear the intro too
   if (introOn.value && !showPause.value) {
     if (down && !e.repeat) {
       if (e.code === 'Escape') endIntro()
@@ -586,7 +577,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="umbrella-scene" @pointerdown="onAnyPointer">
+  <div class="umbrella-scene" @pointerdown="onAnyPointer" @pointerdown.capture="onSwipeDown" @pointerup="onSwipeUp">
     <canvas ref="canvas" class="umbrella-canvas" />
 
     <!-- Designer tools behind the "cmonc" cheat: English only, like the lil-gui panel. -->
@@ -594,7 +585,9 @@ onUnmounted(() => {
     <template v-if="!introOn">
     <div v-if="testing" class="hud">
       <button class="hud-btn wide" @click="backToEditor">◀ Editor</button>
-      <span class="hud-level">TEST LEVEL</span>
+      <button class="hud-btn" aria-label="Previous level" @click="stepTest(-1)">‹</button>
+      <span class="hud-level">{{ testName || 'TEST LEVEL' }}</span>
+      <button class="hud-btn" aria-label="Next level" @click="stepTest(1)">›</button>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
     </div>

@@ -96,6 +96,8 @@ export default {
       'save': "Lưu",
       'importLevel': "Nhập tệp màn…",
       'exportLevel': "Xuất tệp màn",
+      'prevLevel': "Màn chiến dịch trước",
+      'nextLevel': "Màn chiến dịch tiếp theo",
       'back': "Về trò chơi",
       'undo': "Hoàn tác",
       'redo': "Làm lại",

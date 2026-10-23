@@ -11,7 +11,7 @@
   The sound effects should fit perfectly to the umbrella and wind theme. Not 8-bit sounds.
   Use an expert sound designer from an AAA game studio as an opus 5.5 high effort subagent.
 
-- [ ] #3 add enemy sounds and delete the old ogg files
+- [x] #3 add enemy sounds and delete the old ogg files
 
 - [x] #4 Yesterday I had a playtester say they wished the umbrella would be the point of contact with the wind. Whenever they’d fall on the edge of the screen, they thought they’d catch a draft because the umbrella was in the current. I’m guessing the hit box isn’t tall enough? Add a triggerable platform that can be activated and deactivated by a pressable button trigger (can also have a timed activation option e.g. 5 seconds active). Add button triggers that can change the currents direction and/or strength of the current. Add a feature to allow players to create and share level designs via link string encoded level design so e.g. `https://umbrella.com/?level=dafd13fdf132ddafds123123dafd123` can deterministically recreate the players custom level design and this is a sharable link that opens the custom level and saves the level as a custom level in the custom level library. Players can create custom level using the level editor(without server access and without possiblity to overwrite campaign level, but able to load campaign levels). Improve the  Leveleditor UI, so it looks appealing and is easy to use for a real player, group button by purpose and functionality, create menus at the top of the app that group features and add shortcut keyboard combinations that make the working with the leveleditor easy (all shortcuts must show at the end of a button to make learning the shortcuts easier). The player created levels can be submitted/shared in a communityLevelsModal (reachable from the main game UI, contains the player levelEditor link/button jumpoff, community level editor automatically saved submitted levels as player creations to the server, max 5 level per week, state that somewhere before submission), after winning or loosing a community created level, players can rate levels 0-5 stars. Levels in the communityLevelsModal can be sorted by stars rating (default is best rated show first in the paginated list), by "newest" or by "most played", save all this to the server(platforms that dont allow external links and server connection like Poki and Youtube playables only offer the link shared levels and the community button is not shown and the manual routing is forbidden to the community level editor). Add the possibility to add checkpoint into a level, checkpoint respawn the player at the checkpoint if the checkpoint was touched and the player died. Player can refuse to revive at checkpoint for the perfect run but has to click a "restart" button on the screen for the first 3 seconds after a checkpoint revive.
 
@@ -35,49 +35,86 @@ sideways / upside-down) on the placeholder block; win dance on the Finish; insta
 
 Missing, in the order to tackle them:
 
-- [x] #0.7.0-1 **Pweeg, the player character** — replace the white block with Pweeg as drawn in
-  [pweeg.png](docs/design/reference/pweeg.png): a round head with two dot eyes on top of two arms drawn as
-  loops that meet in front (no torso), ink outline style. Keep the hitbox size from Tuning;
-  facing shows through the eyes. Standing, walking (loops swing), win dance and splat poses.
-  Draw in the canvas renderer (vector, DPR-sharp), not a bitmap, so the fall poses can bend.
-- [x] #0.7.0-2 **Pweeg's fall states** — [pweeg-fall-states.png](docs/design/reference/pweeg-fall-states.png):
-  *safe fall, slow* = upright with both arms raised and bent outward; *getting faster* = tipped
-  sideways, arms trailing up behind; *terminal velocity ("say bye-bye")* = upside-down, legs
-  (two long loops) up, big goggle eyes. Same thresholds as now (`fallPoseSideways`,
-  `breakFraction`), eased between poses.
-- [x] #0.7.0-3 **The umbrella** — [umbrella.png](docs/design/reference/umbrella.png): scalloped canopy with
-  ribs, **white** panels and one **red** (hatched) panel, a ball finial on top, a curved
-  J-handle. Open (tilted in the direction of travel when drifting), furled (slim, red/white
-  wrap) and broken (inside-out) states. The wind hitbox already matches the drawn canopy
-  (60 × 40 px) — keep `umbrellaBox` in sync with the art.
-- [x] #0.7.0-4 **Walldorf look** — [walldorf.png](docs/design/reference/walldorf.png): a tall rounded
-  pillar with two stacked eyes on its facing side (side profile). When it **can charge** it
-  **looks angry** (slanted brows over the eyes, as in the right-hand drawing); a calm one has
-  plain eyes. Charging Walldorfs face their charge direction.
-- [x] #0.7.0-5 **Walldorf is a bouncy bumper** — the doc makes Walldorfs *non-hostile* and
-  *bouncy like a pinball bumper*: touching one knocks Pweeg backwards (impulse away from its
-  surface) instead of killing; a **charge** hits much harder (can knock Pweeg out of bounds or
-  into hazards). Today a Walldorf either kills on touch or is a solid "harmless" block.
-  Needs the designer's call before changing existing levels: keep "hostile" as an option for
-  current levels, or convert all? Add tuning knobs (bounce speed, charge bounce speed).
-- [x] #0.7.0-6 **Walldorf "bump" sound** — a rubbery bump on every touch / bounce
-  (and a bigger one for a charge hit), through the existing sound kit and mute path.
-- [x] #0.7.0-7 **Walldorf follows the player** — a new motion kind *follow*: the Walldorf
-  slowly tracks Pweeg (speed setting, optional axis lock, optional leash area) — the doc's
-  Level 25 Walldorf. In the editor as a motion option with its speed.
-- [x] #0.7.0-8 **Prickbait look (the mine)** — [prickbait.png](docs/design/reference/prickbait.png): a round
-  body with 5–6 cone spikes around it, angry slanted brows and two eyes looking at Pweeg; rename
-  "Mine" to "Prickbait" in the editor (all locales) while the level data keeps `kind: 'mine'`.
-- [x] #0.7.0-9 **Chad** — the intro's cool character (`src/umbrella/chad.ts`: flip arc, landing, idle, float): Pweeg's shape plus sunglasses, front-flip
-  and float animations, same umbrella. See [intro.md](intro.md) §2.
-- [x] #0.7.0-10 **Intro cutscene runner** — [intro.md](intro.md): a timeline that plays on Level 1's set
-  (start platform drawn as a two-tier cloud, Level 1's updraft), Chad's flip + float (simulated
-  with the real engine), Pweeg's walk / climb-down / look at the player, then Level 1 begins
-  from that pose. Skippable (press twice / Esc), shown once (`umb_intro_seen`), replay from the
-  pause menu. Depends on #0.7.0-1, -3, -9.
-- [x] #0.7.0-11 **Intro polish** — clouds for start platforms (decide: intro only or every
-  level), the doc's wavy wind squiggles (decide: intro only or everywhere), a short "cool"
-  sting on Chad's landing, the Skip label in all locales. allow to replay the intro from the pause menu.
-- [x] #0.7.0-12 **Out of bounds after falling too long** — the doc: "falling for too long in
-  the play field" also counts as out of bounds (whistle + reset), not only leaving the screen.
-  Add a max free-fall time (tuning knob, off by default for open-umbrella floats).
+- [x] #0.7.0
+  - [x] #0.7.0-1 **Pweeg, the player character** — replace the white block with Pweeg as drawn in
+    [pweeg.png](docs/design/reference/pweeg.png): a round head with two dot eyes on top of two arms drawn as
+    loops that meet in front (no torso), ink outline style. Keep the hitbox size from Tuning;
+    facing shows through the eyes. Standing, walking (loops swing), win dance and splat poses.
+    Draw in the canvas renderer (vector, DPR-sharp), not a bitmap, so the fall poses can bend.
+  - [x] #0.7.0-2 **Pweeg's fall states** — [pweeg-fall-states.png](docs/design/reference/pweeg-fall-states.png):
+    *safe fall, slow* = upright with both arms raised and bent outward; *getting faster* = tipped
+    sideways, arms trailing up behind; *terminal velocity ("say bye-bye")* = upside-down, legs
+    (two long loops) up, big goggle eyes. Same thresholds as now (`fallPoseSideways`,
+    `breakFraction`), eased between poses.
+  - [x] #0.7.0-3 **The umbrella** — [umbrella.png](docs/design/reference/umbrella.png): scalloped canopy with
+    ribs, **white** panels and one **red** (hatched) panel, a ball finial on top, a curved
+    J-handle. Open (tilted in the direction of travel when drifting), furled (slim, red/white
+    wrap) and broken (inside-out) states. The wind hitbox already matches the drawn canopy
+    (60 × 40 px) — keep `umbrellaBox` in sync with the art.
+  - [x] #0.7.0-4 **Walldorf look** — [walldorf.png](docs/design/reference/walldorf.png): a tall rounded
+    pillar with two stacked eyes on its facing side (side profile). When it **can charge** it
+    **looks angry** (slanted brows over the eyes, as in the right-hand drawing); a calm one has
+    plain eyes. Charging Walldorfs face their charge direction.
+  - [x] #0.7.0-5 **Walldorf is a bouncy bumper** — the doc makes Walldorfs *non-hostile* and
+    *bouncy like a pinball bumper*: touching one knocks Pweeg backwards (impulse away from its
+    surface) instead of killing; a **charge** hits much harder (can knock Pweeg out of bounds or
+    into hazards). Today a Walldorf either kills on touch or is a solid "harmless" block.
+    Needs the designer's call before changing existing levels: keep "hostile" as an option for
+    current levels, or convert all? Add tuning knobs (bounce speed, charge bounce speed).
+  - [x] #0.7.0-6 **Walldorf "bump" sound** — a rubbery bump on every touch / bounce
+    (and a bigger one for a charge hit), through the existing sound kit and mute path.
+  - [x] #0.7.0-7 **Walldorf follows the player** — a new motion kind *follow*: the Walldorf
+    slowly tracks Pweeg (speed setting, optional axis lock, optional leash area) — the doc's
+    Level 25 Walldorf. In the editor as a motion option with its speed.
+  - [x] #0.7.0-8 **Prickbait look (the mine)** — [prickbait.png](docs/design/reference/prickbait.png): a round
+    body with 5–6 cone spikes around it, angry slanted brows and two eyes looking at Pweeg; rename
+    "Mine" to "Prickbait" in the editor (all locales) while the level data keeps `kind: 'mine'`.
+  - [x] #0.7.0-9 **Chad** — the intro's cool character (`src/umbrella/chad.ts`: flip arc, landing, idle, float): Pweeg's shape plus sunglasses, front-flip
+    and float animations, same umbrella. See [intro.md](intro.md) §2.
+  - [x] #0.7.0-10 **Intro cutscene runner** — [intro.md](intro.md): a timeline that plays on Level 1's set
+    (start platform drawn as a two-tier cloud, Level 1's updraft), Chad's flip + float (simulated
+    with the real engine), Pweeg's walk / climb-down / look at the player, then Level 1 begins
+    from that pose. Skippable (press twice / Esc), shown once (`umb_intro_seen`), replay from the
+    pause menu. Depends on #0.7.0-1, -3, -9.
+  - [x] #0.7.0-11 **Intro polish** — clouds for start platforms (decide: intro only or every
+    level), the doc's wavy wind squiggles (decide: intro only or everywhere), a short "cool"
+    sting on Chad's landing, the Skip label in all locales. allow to replay the intro from the pause menu.
+  - [x] #0.7.0-12 **Out of bounds after falling too long** — the doc: "falling for too long in
+    the play field" also counts as out of bounds (whistle + reset), not only leaving the screen.
+    Add a max free-fall time (tuning knob, off by default for open-umbrella floats).
+
+## v0.9.0 — from the mini design doc (checked 2026-10-23)
+
+Checked against *Umbrella mini design doc v0.9.0* (Google Doc). Level images are ignored: the level
+designer builds the levels in the level editor (v0.9.0 revised Levels 1–20 and added three new
+designs). Everything else in the doc — core loop, controls, umbrella states, floating, mid-air feel
+(turn 0.75 s, braking snap 0.1 s, wind turn 0.5 s are inside the doc's ranges), terminal velocity and
+the break, fall states, win dance, out-of-bounds whistle, checkpoints, the air-current-only umbrella
+hitbox, pause, language dropdown, Reorder renaming, community editor — already matches the game.
+Differences left, in the order to tackle them:
+
+- [ ] #0.9.0-1 **Cutscene waits for the player** — doc §F, frame 2: Pweeg "will stop and look at the
+  player *until they take control*; Level 1 can begin." Today the intro fades into Level 1 by itself
+  0.5 s after he turns to the camera. Hold the final pose (looking at the player) until a key / tap /
+  stick move, then hand over to Level 1 (keep Skip as is). Now that the intro is cutscene data, the
+  hold is a segment with no end plus a "wait for input" flag on the cutscene.
+- [ ] #0.9.0-2 **Walldorf is non-hostile and bouncy by default** — doc §E keywords: *Non-Hostile,
+  Bouncy*. The engine default for a Walldorf with no setting is still *deadly* (`contactOf`), and a new
+  Walldorf placed in the editor starts that way. Make a newly placed Walldorf bouncy; for the existing
+  levels the designer decides whether unset ones convert (they are edited in the editor anyway).
+- [ ] #0.9.0-3 **Follow is tied to a fixed path** — doc §E: following is "toggled on if the Walldorf
+  is set to a fixed path", slow, and it tries to obstruct the player's route. The editor offers follow
+  as a free-standing motion (freely / left-right / up-down / along a path). Decide with the designer:
+  keep the extra modes, or limit follow to a Walldorf that has a fixed path (the path becomes its
+  patrol and follow only slides it along that path).
+- [ ] #0.9.0-4 **Splat threshold: terminal velocity vs 80 %** — doc §D: *Terminal Impact* = landing at
+  terminal velocity. Today a landing at 80 % of terminal (`splatFraction` 0.8) already splats while the
+  umbrella only breaks at 95 %. Designer's call: raise `splatFraction` to 1 (doc) or keep 0.8 as the
+  tuned feel and update the doc.
+- [ ] #0.9.0-5 **Instant reset (prototype behaviour)** — doc §D "Instant Level Reset … no delay or
+  game-over menu". The game waits 0.5 s on a splat (`splatReset`) and 1.6 s on the win dance
+  (`winHold`) before resetting / moving on. Both read as deliberate polish; confirm they stay, or add
+  an "instant reset" option to the feel tuner.
+- [ ] #0.9.0-6 **Prickbait text** — the doc's Prickbait entry is still just "Hostile" with no description
+  or sound note; the game's look and sounds were designed from the v0.7.0 reference image. Ask the
+  designer for the intended behaviour (movement, size, sound) so the doc and the game agree.

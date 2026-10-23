@@ -96,6 +96,8 @@ export default {
       'save': "Opslaan",
       'importLevel': "Levelbestand importeren…",
       'exportLevel': "Levelbestand exporteren",
+      'prevLevel': "Vorig campagnelevel",
+      'nextLevel': "Volgend campagnelevel",
       'back': "Terug naar het spel",
       'undo': "Ongedaan maken",
       'redo': "Opnieuw",

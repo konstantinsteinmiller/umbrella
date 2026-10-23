@@ -15,6 +15,7 @@
 import { getAudioContext, isAudioSuspended } from '@/use/useAssets'
 import { createSoundEngine, type MixLevels, type SoundEngine } from './soundEngine'
 import type { AmbienceState, SfxName, SfxParams } from './soundKit'
+import { createEnemySounds, ENEMY_BED_IDLE, type EnemyBedState, type EnemySfxName, type EnemySfxParams, type EnemySounds } from './enemySounds'
 
 /** How far ahead the live scheduler keeps the score written (s). */
 const MUSIC_LOOKAHEAD = 4
@@ -24,6 +25,8 @@ let muted = false
 let gestured = false
 let bedsStarted = false
 let levels: MixLevels | null = null
+/** Walldorf / Prickbait voices on the engine's SFX bus (enemySounds.ts). */
+let enemies: EnemySounds | null = null
 
 const getEngine = (): SoundEngine | null => {
   if (engine) return engine
@@ -32,6 +35,7 @@ const getEngine = (): SoundEngine | null => {
   engine = createSoundEngine(c, c.destination, (Math.random() * 2 ** 31) | 0)
   if (muted) engine.mix.mute.gain.value = 0
   if (levels) engine.setLevels(levels)
+  enemies = createEnemySounds(engine, (Math.random() * 2 ** 31) | 0)
   c.addEventListener('statechange', startBeds)
   return engine
 }
@@ -45,6 +49,7 @@ const startBeds = (): void => {
   if (!e || bedsStarted || !gestured || e.ctx.state !== 'running') return
   bedsStarted = true
   e.startAmbience()
+  enemies?.startBed()
   e.startMusic(e.ctx.currentTime + 0.4, 5)
   // A suspended context's clock stands still, so nothing piles up under an
   // ad; a throttled background timer still finds 4 s of score written.
@@ -69,6 +74,7 @@ export const setAudioMuted = (m: boolean): void => {
   if (!engine) return
   engine.setMuted(m)
   if (m) engine.killVoices()
+  if (m) enemies?.killVoices()
 }
 
 /** Play a one-shot; silently refused while muted or before the context runs. */
@@ -76,6 +82,18 @@ export const playSfx = (name: SfxName, params?: SfxParams & { pan?: number }): v
   const e = engine
   if (!e || !live(e)) return
   e.play(name, params)
+}
+
+/** An enemy one-shot (enemySounds.ts), behind the same gate as `playSfx`. */
+export const playEnemySfx = (name: EnemySfxName, params?: EnemySfxParams): void => {
+  const e = engine
+  if (!e || !enemies || !live(e)) return
+  enemies.play(name, params)
+}
+
+/** The enemies around the player, from the scene each frame (idle while gated). */
+export const updateEnemyBed = (s: EnemyBedState): void => {
+  if (enemies && bedsStarted) enemies.setBed(muted || isAudioSuspended() ? ENEMY_BED_IDLE : s)
 }
 
 /** The wind around the player, from the scene each frame. */

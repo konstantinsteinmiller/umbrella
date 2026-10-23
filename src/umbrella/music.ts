@@ -9,6 +9,14 @@
 // yet always sounds like the same piece. Seamless by construction: there is
 // no loop point.
 //
+// Adaptive by vertical layering: on top of the calm score the composer also
+// writes two stems the engine rides from the gameplay (soundEngine.ts):
+//   drive — a kalimba ostinato on the chord's upper tones, the sky moving;
+//   pulse — an air shaker, a felt heartbeat tuned to the chord root and a
+//           breath of wind rising into every chord change.
+// Riding an updraft fades the drive in; a Super Stream or a fast fall brings
+// the pulse. Both are always in time and in key, so they fade in anywhere.
+//
 // Pure Web Audio like soundKit.ts: `scheduleUntil(t)` writes notes into any
 // context — live (audio.ts runs it 4 s ahead) or offline for the level report.
 
@@ -204,7 +212,73 @@ const bass = (k: Kit, o: Out, m: number, t: number, dur: number, level: number) 
 // ─── Composer ──────────────────────────────────────────────────────────────
 
 /** Mix levels for the voices (the music bus trims the whole). */
-const LEVEL = { pad: 0.05, harp: 0.075, flute: 0.075, bass: 0.13, chime: 0.022 }
+const LEVEL = { pad: 0.05, harp: 0.075, flute: 0.075, bass: 0.13, chime: 0.022, kalimba: 0.3, shaker: 0.12, heart: 0.45, riser: 0.14 }
+
+/** Where the adaptive stems go (each has its own gain on the engine). */
+export interface MusicLayers {
+  drive: Out
+  pulse: Out
+}
+
+export type MusicVoice = 'pad' | 'bass' | 'harp' | 'flute' | 'chime' | 'kalimba' | 'heart'
+
+export interface ComposerOptions {
+  layers?: MusicLayers
+  /** Every pitched note as it is written (tests, the listening page); `beat` counts from the chord's downbeat. */
+  onNote?: (voice: MusicVoice, midi: number, t: number, chord: string, beat: number) => void
+}
+
+/** Kalimba tine: a bright sine with its tine overtones and a "tok" on the attack. */
+const kalimba = (k: Kit, o: Out, m: number, t: number, vel: number, pan: number) => {
+  const f = midiHz(m)
+  const p = panner(k, pan, o.dry)
+  p.connect(gainNode(k, 0.55)).connect(o.verb)
+  for (const [ratio, amp, t60] of [[1, 1, 1.1], [2.01, 0.1, 0.35], [5.93, 0.16, 0.09]] as const) {
+    osc(k, 'sine', f * ratio, t, t60 + 0.05).connect(gainAD(k, t, vel * amp, 0.002, t60)).connect(p)
+  }
+  const n = noise(k, t, 0.03)
+  n.connect(filter(k, 'bandpass', Math.min(8000, f * 3), 2)).connect(gainAD(k, t, vel * 0.25, 0.001, 0.012)).connect(p)
+}
+
+/** Air shaker grain: a short hiss of high noise. */
+const shaker = (k: Kit, o: Out, t: number, vel: number) => {
+  const n = noise(k, t, 0.07)
+  n.connect(filter(k, 'highpass', 6000)).connect(gainAD(k, t, vel, 0.008, 0.05)).connect(o.dry)
+}
+
+/** Felt heartbeat: a soft low thump on the chord root, dropping into the note. */
+const heart = (k: Kit, o: Out, m: number, t: number, vel: number) => {
+  const f = midiHz(m)
+  const o1 = osc(k, 'sine', f * 1.5, t, 0.45)
+  o1.frequency.setValueAtTime(f * 1.5, t)
+  o1.frequency.exponentialRampToValueAtTime(f, t + 0.04)
+  o1.connect(gainAD(k, t, vel, 0.003, 0.35)).connect(o.dry)
+}
+
+/** A breath of wind rising into the next downbeat (`t` = the downbeat). */
+const riser = (k: Kit, o: Out, t: number, len: number, vel: number) => {
+  const t0 = t - len
+  const n = noise(k, t0, len + 0.15, k.pink)
+  const bp = filter(k, 'bandpass', 400, 1.2)
+  bp.frequency.setValueAtTime(400, t0)
+  bp.frequency.exponentialRampToValueAtTime(2400, t)
+  const g = k.ctx.createGain()
+  g.gain.setValueAtTime(0, t0)
+  g.gain.linearRampToValueAtTime(vel, t)
+  g.gain.linearRampToValueAtTime(0, t + 0.12)
+  n.connect(bp).connect(g)
+  g.connect(o.dry)
+  g.connect(o.verb)
+}
+
+/** Kalimba ostinati: 16 eighths over the chord's four upper tones (−1 = rest). */
+const OSTINATI: number[][] = [
+  [0, 2, 3, 2, 1, 3, -1, 2, 0, 2, 3, 2, 1, 3, 2, -1],
+  [0, -1, 2, 3, -1, 2, 1, -1, 0, -1, 2, 3, 2, -1, 1, 0],
+  [3, 2, 0, 2, 3, 1, -1, 1, 3, 2, 0, 1, 2, -1, 1, 2]
+]
+/** Shaker accents per sixteenth of a beat: the "and" leans. */
+const SHAKE = [0.5, 0.25, 1, 0.3]
 
 export interface Composer {
   /** Write every chord slot that starts before `t`. */
@@ -213,7 +287,8 @@ export interface Composer {
   readonly next: number
 }
 
-export const createComposer = (k: Kit, o: Out, start: number, seed: number): Composer => {
+export const createComposer = (k: Kit, o: Out, start: number, seed: number, opts: ComposerOptions = {}): Composer => {
+  const { layers, onNote } = opts
   const rand = prng(seed)
   const pick = <T>(xs: readonly T[]): T => xs[Math.floor(rand() * xs.length)]!
   let next = start
@@ -222,6 +297,9 @@ export const createComposer = (k: Kit, o: Out, start: number, seed: number): Com
   let slotInSection = 0
   let lastDeg = 3
   let sinceAir = 0
+  let ostinato = OSTINATI[0]!
+  let chordName = 'I'
+  const note = (voice: MusicVoice, m: number, at: number, slotStart: number) => onNote?.(voice, m, at, chordName, (at - slotStart) / BEAT)
 
   const nextSection = (): Section => {
     sinceAir++
@@ -254,7 +332,9 @@ export const createComposer = (k: Kit, o: Out, start: number, seed: number): Com
       const strong = at % 2 === 0
       const deg = strong ? settle(d, chord) : d
       lastDeg = deg
-      flute(k, o, pentaNote(deg, 62), t + at * BEAT + (rand() - 0.5) * 0.02, len, LEVEL.flute * (0.85 + rand() * 0.2))
+      const tn = t + at * BEAT + (rand() - 0.5) * 0.02
+      note('flute', pentaNote(deg, 62), tn, t)
+      flute(k, o, pentaNote(deg, 62), tn, len, LEVEL.flute * (0.85 + rand() * 0.2))
     }
   }
 
@@ -269,7 +349,9 @@ export const createComposer = (k: Kit, o: Out, start: number, seed: number): Com
       i += up ? 1 : -1
       if (i >= tones.length || i < 0) i = up ? 0 : tones.length - 1
       const vel = LEVEL.harp * (s % 4 === 0 ? 1 : 0.7) * (0.85 + rand() * 0.3)
-      harp(k, o, m, t + s * BEAT + (rand() - 0.5) * 0.025, vel, (rand() - 0.5) * 0.8)
+      const tn = t + s * BEAT + (rand() - 0.5) * 0.025
+      note('harp', m, tn, t)
+      harp(k, o, m, tn, vel, (rand() - 0.5) * 0.8)
     }
   }
 
@@ -280,8 +362,35 @@ export const createComposer = (k: Kit, o: Out, start: number, seed: number): Com
       p.pan.value = (rand() - 0.5) * 1.4
       p.connect(o.dry)
       p.connect(o.verb)
-      chime(k, p, tc, midiHz(pentaNote(10 + Math.floor(rand() * 8))), LEVEL.chime * (0.6 + rand() * 0.5))
+      const m = pentaNote(10 + Math.floor(rand() * 8))
+      note('chime', m, tc, t)
+      chime(k, p, tc, midiHz(m), LEVEL.chime * (0.6 + rand() * 0.5))
     }
+  }
+
+  /** The drive stem: a kalimba ostinato on the chord's upper tones, in eighths. */
+  const drive = (out: Out, chord: Chord, t: number, density: number) => {
+    const tones = chord.pad.map((m) => m + 24)
+    ostinato.forEach((idx, i) => {
+      if (idx < 0 || rand() > density) return
+      const accent = i % 4 === 0 ? 1 : i % 2 === 0 ? 0.75 : 0.6
+      const tn = t + i * BEAT * 0.5 + (rand() - 0.5) * 0.012
+      note('kalimba', tones[idx]!, tn, t)
+      kalimba(k, out, tones[idx]!, tn, LEVEL.kalimba * accent * (0.9 + rand() * 0.2), (idx - 1.5) * 0.3)
+    })
+  }
+
+  /** The pulse stem: shaker sixteenths (swung a hair), a tuned heartbeat, a riser into the next chord. */
+  const pulse = (out: Out, chord: Chord, t: number) => {
+    for (let i = 0; i < 32; i++) {
+      const swing = i % 2 === 1 ? 0.018 : 0
+      shaker(k, out, t + i * BEAT * 0.25 + swing, LEVEL.shaker * SHAKE[i % 4]! * (0.85 + rand() * 0.3))
+    }
+    for (const b of [0, 2.5, 4, 6.5]) {
+      note('heart', chord.bass, t + b * BEAT, t)
+      heart(k, out, chord.bass, t + b * BEAT, LEVEL.heart * (b % 4 === 0 ? 1 : 0.7))
+    }
+    riser(k, out, t + SLOT, 1.6, LEVEL.riser)
   }
 
   const slot = (t: number) => {
@@ -291,10 +400,21 @@ export const createComposer = (k: Kit, o: Out, start: number, seed: number): Com
       let p = pick(PROGRESSIONS)
       while (p === prog) p = pick(PROGRESSIONS)
       prog = p
+      ostinato = pick(OSTINATI)
     }
-    const chord = CHORDS[prog[slotInSection]!]!
+    chordName = prog[slotInSection]!
+    const chord = CHORDS[chordName]!
+    for (const m of chord.pad) note('pad', m, t, t)
     padChord(k, o, chord, t, SLOT, LEVEL.pad)
-    if (section !== 'air' && !(section === 'intro' && slotInSection < 2)) bass(k, o, chord.bass, t, SLOT, LEVEL.bass)
+    const withBass = section !== 'air' && !(section === 'intro' && slotInSection < 2)
+    if (withBass) {
+      note('bass', chord.bass, t, t)
+      bass(k, o, chord.bass, t, SLOT, LEVEL.bass)
+    }
+    if (layers && !(section === 'intro' && slotInSection < 1)) {
+      drive(layers.drive, chord, t, section === 'air' ? 0.55 : 0.95)
+      pulse(layers.pulse, chord, t)
+    }
     if (section === 'flow') arpeggio(chord, t, 0.75)
     if (section === 'song') {
       arpeggio(chord, t, 0.4)

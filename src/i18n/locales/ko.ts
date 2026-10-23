@@ -96,6 +96,8 @@ export default {
       'save': "저장",
       'importLevel': "레벨 파일 가져오기…",
       'exportLevel': "레벨 파일 내보내기",
+      'prevLevel': "이전 캠페인 레벨",
+      'nextLevel': "다음 캠페인 레벨",
       'back': "게임으로 돌아가기",
       'undo': "실행 취소",
       'redo': "다시 실행",

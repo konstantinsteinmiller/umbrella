@@ -96,6 +96,8 @@ export default {
       'save': "บันทึก",
       'importLevel': "นำเข้าไฟล์ด่าน…",
       'exportLevel': "ส่งออกไฟล์ด่าน",
+      'prevLevel': "ด่านแคมเปญก่อนหน้า",
+      'nextLevel': "ด่านแคมเปญถัดไป",
       'back': "กลับไปที่เกม",
       'undo': "เลิกทำ",
       'redo': "ทำซ้ำ",

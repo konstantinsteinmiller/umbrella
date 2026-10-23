@@ -96,6 +96,8 @@ export default {
       'save': "保存",
       'importLevel': "レベルファイルを読み込む…",
       'exportLevel': "レベルファイルを書き出す",
+      'prevLevel': "前のキャンペーンレベル",
+      'nextLevel': "次のキャンペーンレベル",
       'back': "ゲームに戻る",
       'undo': "元に戻す",
       'redo': "やり直し",

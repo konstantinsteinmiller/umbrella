@@ -96,6 +96,8 @@ export default {
       'save': "Guardar",
       'importLevel': "Importar archivo de nivel…",
       'exportLevel': "Exportar archivo de nivel",
+      'prevLevel': "Nivel anterior de la campaña",
+      'nextLevel': "Siguiente nivel de la campaña",
       'back': "Volver al juego",
       'undo': "Deshacer",
       'redo': "Rehacer",

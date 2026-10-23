@@ -99,6 +99,8 @@ export default {
       'save': "Save",
       'importLevel': "Import level file…",
       'exportLevel': "Export level file",
+      'prevLevel': "Previous campaign level",
+      'nextLevel': "Next campaign level",
       'back': "Back to game",
       'undo': "Undo",
       'redo': "Redo",

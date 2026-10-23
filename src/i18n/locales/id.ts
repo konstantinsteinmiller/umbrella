@@ -96,6 +96,8 @@ export default {
       'save': "Simpan",
       'importLevel': "Impor file level…",
       'exportLevel': "Ekspor file level",
+      'prevLevel': "Level kampanye sebelumnya",
+      'nextLevel': "Level kampanye berikutnya",
       'back': "Kembali ke game",
       'undo': "Urungkan",
       'redo': "Ulangi",

@@ -105,8 +105,16 @@ const SOUNDS = {
   'arrive-pillar': { sfx: 'arrive', params: { hazard: 'pillar', duration: 1.6 }, label: 'Pillar drops in', note: 'Approaching hiss, then a heavy soft landing.' },
   'win': { sfx: 'win', params: {}, label: 'Win', note: 'Lift, celesta arpeggio in D, chimes through the dance.' },
   'whistle': { sfx: 'whistle', params: { fade: 1.2 }, label: 'Falling whistle', note: 'Off the bottom; fades over tuning.whistleFade.' },
+  'button': { sfx: 'button', params: {}, label: 'Button pressed', note: 'Plastic thock, latch, a valve hiss as the current changes, A5 → D6.' },
+  'checkpoint': { sfx: 'checkpoint', params: {}, label: 'Checkpoint', note: 'A banner catching the wind, chimes D5 A5 D6 E6 over an open fifth.' },
+  'tap': { sfx: 'tap', params: {}, label: 'UI tap', note: 'A small cloth-muted wooden bar on A5.' },
+  'menu-open': { sfx: 'menu-open', params: {}, label: 'UI panel opens', note: 'Swoosh up, a soft canopy pop, D6.' },
+  'menu-close': { sfx: 'menu-close', params: {}, label: 'UI panel closes', note: 'Swoosh down, a softer puff, A5.' },
   // Long renders (measurement only).
   'music': { seconds: 75, skip: 12, run: (e, t) => { e.startMusic(t, 0.01); e.scheduleMusic(75) } },
+  // The adaptive stems: riding an updraft (drive), then a Super Stream (drive + pulse).
+  'music-updraft': { seconds: 45, skip: 12, run: (e, t) => { e.setAmbience({ ...AMBIENCE_IDLE, wind: 1, canopy: 1 }, t); e.startMusic(t, 0.01); e.scheduleMusic(45) } },
+  'music-super': { seconds: 45, skip: 12, run: (e, t) => { e.setAmbience({ ...AMBIENCE_IDLE, superWind: 1, canopy: 1 }, t); e.startMusic(t, 0.01); e.scheduleMusic(45) } },
   'wind-calm': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t) } },
   'wind-updraft': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, wind: 1, canopy: 1, speed: 0.12 }, t + 0.1) } },
   'wind-super': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, superWind: 1, canopy: 1, speed: 0.5 }, t + 0.1) } },

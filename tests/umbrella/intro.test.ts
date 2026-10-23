@@ -42,3 +42,18 @@ describe('intro cutscene', () => {
     expect(intro.done).toBe(true)
   })
 })
+
+describe('intro as cutscene data', () => {
+  it('is plain JSON that survives the server round trip and plays the same', async () => {
+    const { introCutscene } = await import('@/umbrella/intro')
+    const { createCutscene } = await import('@/umbrella/cutscene')
+    const def = introCutscene(L1, DEFAULT_TUNING)
+    const back = JSON.parse(JSON.stringify(def))
+    expect(back.actors.map((a: { id: string }) => a.id)).toEqual(['chad', 'pweeg'])
+    const heard: string[] = []
+    const cs = createCutscene(back, L1, DEFAULT_TUNING, (n) => heard.push(n))
+    for (let i = 0; i < 60 * 30 && !cs.done; i++) cs.update(1 / 60)
+    expect(cs.done).toBe(true)
+    expect(heard.slice(0, 4)).toEqual(['whoosh', 'land', 'cool', 'open'])
+  })
+})

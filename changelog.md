@@ -1,5 +1,13 @@
 Umbrella — changelog (newest first)
 
+== Revision 9 — 2026-10-23 ==
+- [x] Level editor: a level dropdown in the top bar (campaign levels, saved levels) and a Reorder button for the designer again
+- [x] Test mode: ‹ › buttons and a horizontal swipe step through the draft, the campaign and the saved levels without leaving the test
+- [x] Walldorf lunge no longer kills a solid-Walldorf rush (the wall's own speed no longer counts as a slam) and a fast-moving wall can no longer pass through Pweeg standing behind it
+- [x] Cutscenes are data: the intro is a script (actors with timed segments, clouds, sound cues, fades) played by one cutscene player; edited scripts are kept in the browser and on the levels server (new `cutscenes` section in the bucket worker — redeploy the worker)
+- [x] Cutscene mode in the level editor (designer): pick "Intro" in the dropdown to scrub, play and edit the script, drag actors into place on the canvas, edit cues and fades, save/revert
+- [x] Enemy sounds (roadmap #3): an angry Walldorf growls and snorts when Pweeg comes near and simmers while he stays close; its charge creaks and sucks in air as a warning before the whoosh and the thud at full reach; a bouncy one boings, a charging one slams (thump, low boing, rattling ribs); a following one rumbles softly while it slides; Prickbait ticks like a proximity fuse (faster the closer), its spikes whistle in the wind, a cold glint warns on approach and a needle sting plays on touch. All synthesised, behind the same mute/pause gate; the old .ogg files were already gone
+
 == Revision 8 — 2026-10-23 ==
 - [x] Pweeg, the player character, drawn as in the design doc (round head, loop arms); walk, float, free-fall (arms up / sideways / upside-down with goggle eyes), win dance, splat
 - [x] The umbrella as designed: white with one red panel, scalloped rim, ball tip, J-handle; leans into the drift; furled and broken looks

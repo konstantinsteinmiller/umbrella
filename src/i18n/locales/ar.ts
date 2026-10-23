@@ -96,6 +96,8 @@ export default {
       'save': "حفظ",
       'importLevel': "استيراد ملف مستوى…",
       'exportLevel': "تصدير ملف المستوى",
+      'prevLevel': "مستوى الحملة السابق",
+      'nextLevel': "مستوى الحملة التالي",
       'back': "العودة إلى اللعبة",
       'undo': "تراجع",
       'redo': "إعادة",

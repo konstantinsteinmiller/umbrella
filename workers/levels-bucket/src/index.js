@@ -3,11 +3,11 @@
 // level, each with the time it was last edited. `level: null` is a deletion
 // (a reverted slot, a deleted saved level), kept so it can beat older copies.
 //
-//   GET  /levels   → { campaign: { [id]: Entry }, library: { [name]: Entry } }   (public)
+//   GET  /levels   → { campaign: { [id]: Entry }, library: { [name]: Entry }, cutscenes: { [id]: Entry } }   (public)
 //   POST /levels   same shape, partial; Authorization: Bearer <EDITOR_TOKEN>
 //                  → merged per entry, newest `editedAt` wins; returns the bucket
 //
-// Entry = { editedAt: number, level: object | null }
+// Entry = { editedAt: number, level: object | null }   (a cutscene's script sits in `level` too)
 // Secret: `npx wrangler secret put EDITOR_TOKEN`.
 //
 // ─── Community levels (D1 binding COMMUNITY, schema in migrations/) ───────
@@ -57,7 +57,7 @@ const read = async (env) => {
   let b = null
   try { b = await env.LEVELS.get(KEY, 'json') } catch { /* corrupt value: start over rather than fail every request */ }
   const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {})
-  return { campaign: obj(b?.campaign), library: obj(b?.library) }
+  return { campaign: obj(b?.campaign), library: obj(b?.library), cutscenes: obj(b?.cutscenes) }
 }
 
 const sameToken = (a, b) => {
@@ -93,7 +93,7 @@ async function handle(req, env) {
   try { body = JSON.parse(text) } catch { return json({ error: 'bad json' }, 400) }
 
   const bucket = await read(env)
-  const changed = mergeSection(bucket.campaign, body.campaign) + mergeSection(bucket.library, body.library)
+  const changed = mergeSection(bucket.campaign, body.campaign) + mergeSection(bucket.library, body.library) + mergeSection(bucket.cutscenes, body.cutscenes)
   if (changed) await env.LEVELS.put(KEY, JSON.stringify(bucket))
   return json({ ...bucket, changed })
 }
