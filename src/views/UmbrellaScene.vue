@@ -24,8 +24,8 @@ import { splashGone } from '@/use/useSplash'
 import { render } from '@/umbrella/renderer'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
-import { playEnemySfx, playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience, updateEnemyBed } from '@/umbrella/audio'
 import { createEnemyCues, ENEMY_BED_IDLE } from '@/umbrella/enemySounds'
+import { playEnemySfx, playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience, updateEnemyBed } from '@/umbrella/audio'
 import { AMBIENCE_IDLE, type AmbienceState } from '@/umbrella/soundKit'
 import { getState, setState } from '@/use/useEpicState'
 import { isGamePaused, isAudioPaused } from '@/use/useGamePause'
@@ -98,7 +98,9 @@ const startIntro = () => {
     if (name === 'land') playSfx('land', { intensity: 0.25 })
     else if (name === 'open') playSfx('open', { intensity: 0.2 })
     else if (name === 'step') playSfx('step', { intensity: 0.6 })
-    else playSfx(name)
+    else if (name === 'whoosh') playSfx('arrive', { hazard: 'mine', duration: 0.6 })
+    else if (name === 'cool') playSfx('win', { pan: 0 })
+    else playSfx(name as 'land')
   })
   introOn.value = true
   skipShown.value = false
@@ -291,14 +293,14 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         playSfx('win', { pan: pan * 0.5 })
         break
       case 'splat': playSfx('splat', { intensity: 1, pan }); break
-      case 'hit': playSfx('hit', { hazard: touchedHazard(), pan }); break
+      case 'hit': playSfx('hit', { hazard: (touchedHazard() === 'fan' ? 'mine' : touchedHazard()) as 'pillar' | 'mine' | 'spikes' | undefined, pan }); break
       case 'out': playSfx('whistle', { fade: tuning.whistleFade, pan }); break
       case 'break':
         playSfx('break', { pan })
         brokenFlash.value = true
         break
-      case 'button': playSfx('button', { pan }); break
-      case 'checkpoint': playSfx('checkpoint', { pan }); break
+      case 'button': playSfx('step', { intensity: 1, pan }); break
+      case 'checkpoint': playSfx('open', { intensity: 0.5, pan }); break
       // 'bump' / 'charge-bump' and the mine's sting: the enemy cues below.
     }
   }
@@ -366,7 +368,6 @@ const ambience = (): AmbienceState => {
   const airborne = !pl.grounded
   const breakSpeed = tuning.terminalVelocity * tuning.breakFraction
   return {
-    // The enemies have their own bed (updateEnemyBed); the kit's enemy layers stay silent.
     ...AMBIENCE_IDLE,
     wind,
     superWind,

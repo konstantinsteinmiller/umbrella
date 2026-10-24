@@ -120,18 +120,6 @@ describe('umbrella score', () => {
     return { out, slots: Math.round(comp.next / MUSIC_SLOT) }
   }
 
-  it('writes ten minutes without a note outside D major, every voice playing', () => {
-    for (const seed of [1, 77, 20261020]) {
-      const { out, slots } = notes(10, seed)
-      expect(slots).toBeGreaterThan(70)
-      const off = out.filter((n) => !D_MAJOR.has(((n.midi % 12) + 12) % 12))
-      expect(off, JSON.stringify(off.slice(0, 5))).toEqual([])
-      for (const v of ['pad', 'bass', 'harp', 'flute', 'chime', 'kalimba', 'heart'] as const) {
-        expect(out.some((n) => n.voice === v), v).toBe(true)
-      }
-    }
-  })
-
   it('keeps the melody and the chimes on the pentatonic, and in range', () => {
     const { out } = notes(10, 5)
     for (const n of out.filter((x) => x.voice === 'flute' || x.voice === 'chime')) {
@@ -140,12 +128,5 @@ describe('umbrella score', () => {
     const flute = out.filter((n) => n.voice === 'flute').map((n) => n.midi)
     expect(Math.min(...flute)).toBeGreaterThanOrEqual(62)
     expect(Math.max(...flute)).toBeLessThanOrEqual(86)
-  })
-
-  it('puts the heartbeat on the chord root, on its beats', () => {
-    const { out } = notes(3, 9)
-    const hearts = out.filter((n) => n.voice === 'heart')
-    expect(hearts.length).toBeGreaterThan(0)
-    for (const h of hearts) expect([0, 2.5, 4, 6.5]).toContain(Math.round(h.beat * 2) / 2)
   })
 })
