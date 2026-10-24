@@ -30,8 +30,8 @@ export interface SpriteBox { size: number; ax: number; ay: number }
  *  (a walk is stepped by distance, a splat by its own clock). */
 export interface AnimDef { frames: number[]; fps: number; loop?: boolean }
 
-export type SheetGroup = 'pweeg' | 'chad' | 'umbrella' | 'enemy' | 'world' | 'fx'
-export type PromptDoc = 'PROMPTS-CHARACTERS.md' | 'PROMPTS-ENEMIES.md' | 'PROMPTS-WORLD.md'
+export type SheetGroup = 'pweeg' | 'chad' | 'kite' | 'chad-kite' | 'umbrella' | 'enemy' | 'world' | 'fx'
+export type PromptDoc = 'PROMPTS-KITE.md' | 'PROMPTS-CHARACTERS.md' | 'PROMPTS-ENEMIES.md' | 'PROMPTS-WORLD.md'
 
 /**
  * How the renderer uses the sheet:
@@ -61,6 +61,9 @@ export interface SheetDef {
   tier: 0 | 1 | 2
   /** The model sheet painted first and attached BEFORE this sheet's layout. */
   model?: string
+  /** The designer's hand-drawn style reference (under SHEETS_DIR), attached
+   *  FIRST: it sets the finish — cream-paper crayon, cel-shaded — never the subject. */
+  styleRef?: string
   /** The reference is notation for a look that has no drawing yet (a new
    *  design); the prompt asks for a design, not a like-for-like repaint. */
   fresh?: boolean
@@ -83,6 +86,12 @@ export interface SheetDef {
 /** Where every sheet ships: kept out of public/ so no other build carries it —
  *  only the kite-only module's `import.meta.glob` pulls the files into a bundle. */
 export const SHIPPED_DIR = 'src/assets/umbrella-art'
+/** The designer's two style sheets (docs/design/reference/kite-*.png, copied
+ *  into SHEETS_DIR/style/ so the Art Desk can attach them — padded to a square
+ *  with their own paper colour: an off-ratio attachment pulls the return off
+ *  the square grid, PROMPT-ANATOMY.md §12). */
+export const STYLE_KITE = 'style/kite-model-sheet.png'
+export const STYLE_WORLD = 'style/platforms-enemies.png'
 export const SHEETS_DIR = 'art-sheets/umbrella'
 export const referenceFile = (s: SheetDef): string => `${s.id}.png`
 /** Relative to SHIPPED_DIR. A model sheet is cut to `model/`, which the game's
@@ -100,6 +109,14 @@ const FIGURE: SpriteBox = { size: 80, ax: 0.5, ay: 0.7 }
 const FIGURE_WIDE: SpriteBox = { size: 128, ax: 0.5, ay: 0.75 }
 /** The umbrella, held at its grip: the canopy reaches 68 above it. */
 const UMBRELLA: SpriteBox = { size: 80, ax: 0.5, ay: 0.875 }
+/** The kite characters, closed (walking, standing, falling): the diamond body,
+ *  its stubby legs and the bow-tail trailing behind. */
+const KITE: SpriteBox = { size: 96, ax: 0.5, ay: 0.72 }
+/** The DEPLOYED kite: it IS the umbrella, so its wings and sail spread over
+ *  the canopy's wind box (26–66 above the grip, 60 wide). */
+const KITE_DEPLOYED: SpriteBox = { size: 144, ax: 0.5, ay: 0.8 }
+/** Splat and burst. */
+const KITE_WIDE: SpriteBox = { size: 128, ax: 0.5, ay: 0.75 }
 /** Walldorf's two stacked eyes at er = 9, centred on the pair. */
 const WALLDORF_FACE: SpriteBox = { size: 60, ax: 0.5, ay: 0.5 }
 /** Prickbait of radius 26, centred; the spikes reach 1.18 r. */
@@ -126,34 +143,39 @@ const PWEEG_COLOUR = 'Pweeg is WHITE — a warm porcelain white body with a cool
 const CHAD_IS = 'Chad, Pweeg\'s cool friend: exactly Pweeg\'s body (a big round white head, no torso, two short thick tube legs, two thin loop arms) wearing a pair of black rounded-rectangle sunglasses with one small white glint'
 const CHAD_COLOUR = 'Chad is WHITE like Pweeg (warm porcelain white, lavender-grey cel shadow); his sunglasses are glossy black with a single white glint'
 const SIDE_VIEW = 'a flat side view, facing RIGHT like the reference (his eyes sit toward the right of his head). No three-quarter view, no perspective, no ground, no shadow on the ground.'
+const KITE_IS = 'Pweeg-Kite, the player as a KITE (exactly as the designer\'s Pweeg-Chad kite character model sheet draws him): a diamond kite body with a cute face on it, crossed spars, mustard-yellow paper panels with brick-red and dusty-blue edges, two stubby little arms and two stubby legs, and a string bow-tail with small red, yellow and blue bows'
+const KITE_COLOUR = 'mustard and golden-yellow kite paper, brick-red and dusty-blue edge panels, a warm brown spar cross; the face plum-brown dots and a small smile; bows red, mustard and blue'
+const CHAD_KITE_IS = 'Chad-Kite, Pweeg-Kite\'s cool friend: the SAME diamond kite body, arms, legs and bow-tail, wearing black rounded sunglasses with one small white glint'
+const CHAD_KITE_COLOUR = 'the same kite colours as Pweeg-Kite (mustard, brick red, dusty blue); glossy black sunglasses'
+const KITE_VIEW = 'a flat side view facing RIGHT like the reference (the face sits toward the right of the diamond), the kite seen flat-on like a paper kite. No three-quarter view, no perspective, no ground, no shadow on the ground.'
 
 // ─── The sheets ─────────────────────────────────────────────────────────────
 
 export const SHEETS: SheetDef[] = [
   // ── Pweeg ──
   {
-    id: 'pweeg-model', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — character model sheet', use: 'model',
+    id: 'pweeg-model', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — character model sheet', use: 'model',
     cols: 3, rows: 3, box: FIGURE, anims: {}, tier: 2, fresh: true, fit: 'none',
     blurb: `${PWEEG_IS}. This is his MODEL SHEET: the one picture every later animation of him is painted from`,
     colour: PWEEG_COLOUR, view: SIDE_VIEW, one: 'Pweeg',
     readPanels: 'Panel 1 standing; panel 2 standing and looking straight at the viewer (eyes centred); panels 3 and 4 two walking steps; panel 5 hanging with both hands raised above his head (they hold an umbrella the game draws separately — paint NO umbrella); panel 6 falling, arms flung up and out, legs bent out with the feet up; panel 7 his terminal-velocity pose, legs stretched long and straight, eyes big round goggles (the game turns this one upside down); panel 8 cheering, both arms thrown up in a V; panel 9 squashed flat and wide like a pancake after a hard landing.'
   },
   {
-    id: 'pweeg-idle', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — idle', use: 'sprite',
+    id: 'pweeg-idle', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — idle', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'pweeg-model', tier: 0, fit: 'feet',
     anims: { idle: { frames: range(0, 15), fps: 6 } },
     blurb: `${PWEEG_IS}, standing still and breathing`, colour: PWEEG_COLOUR, view: SIDE_VIEW, one: 'Pweeg',
     readPanels: 'A slow breathing loop: from panel 1 to panel 8 his head sinks a hair and his legs bend a hair; from 9 to 16 he rises back. Panels 13 and 14 are a blink — both eyes shut as short curved lines. Every other panel has the eyes open. Panel 16 must lead straight back into panel 1.'
   },
   {
-    id: 'pweeg-walk', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — walk cycle', use: 'sprite',
+    id: 'pweeg-walk', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — walk cycle', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'pweeg-model', tier: 0, fit: 'feet',
     anims: { walk: { frames: range(0, 15), fps: 0 } },
     blurb: `${PWEEG_IS}, walking to the right`, colour: PWEEG_COLOUR, view: SIDE_VIEW, one: 'Pweeg',
     readPanels: 'One full walk cycle in 16 even steps: the two tube legs lift and swing alternately, the free arm swings opposite the legs, and the arm on his facing side stays forward (it holds a furled umbrella the game draws separately — paint NO umbrella). Panel 16 leads straight back into panel 1. His head stays the same size and at the same height band in every panel.'
   },
   {
-    id: 'pweeg-hover', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — hover under the umbrella', use: 'sprite',
+    id: 'pweeg-hover', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — hover under the umbrella', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'pweeg-model', tier: 0, fit: 'feet',
     anims: { hover: { frames: range(0, 15), fps: 7.64 } },
     blurb: `${PWEEG_IS}, floating: both hands raised straight up above his head gripping a handle (the umbrella itself is painted separately — paint NO umbrella, the hands meet in the air), his legs dangling loose`,
@@ -161,7 +183,7 @@ export const SHEETS: SheetDef[] = [
     readPanels: 'A gentle dangle loop: the hands stay locked together at the same point above his head in every panel; only the legs swing a little left and right and back. Panel 16 leads straight back into panel 1.'
   },
   {
-    id: 'pweeg-fall', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — falling (flail)', use: 'sprite',
+    id: 'pweeg-fall', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — falling (flail)', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'pweeg-model', tier: 0, fit: 'feet',
     anims: { fall: { frames: range(0, 15), fps: 40.7 } },
     blurb: `${PWEEG_IS}, in free fall: both arms flung up and bent outward, legs bent down and out with the feet curled up, a startled look`,
@@ -169,7 +191,7 @@ export const SHEETS: SheetDef[] = [
     readPanels: 'A fast flail loop: the arms and feet wiggle out and back a little; the head does not move. Panel 16 leads straight back into panel 1.'
   },
   {
-    id: 'pweeg-terminal', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — terminal velocity', use: 'sprite',
+    id: 'pweeg-terminal', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — terminal velocity', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'pweeg-model', tier: 1, fit: 'feet',
     anims: { terminal: { frames: range(0, 15), fps: 50.9 } },
     blurb: `${PWEEG_IS}, at terminal velocity: no arms showing, his two legs stretched long and straight below him, and his eyes two BIG round goggle eyes (white rings with a dot pupil) — pure panic. Paint him the way up the reference shows; the game turns him upside down`,
@@ -177,7 +199,7 @@ export const SHEETS: SheetDef[] = [
     readPanels: 'A fast shiver loop: the long legs tremble a little left and right; the head and goggle eyes stay put. Panel 16 leads straight back into panel 1.'
   },
   {
-    id: 'pweeg-cheer', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — win dance', use: 'sprite',
+    id: 'pweeg-cheer', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — win dance', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'pweeg-model', tier: 1, fit: 'feet',
     anims: { cheer: { frames: range(0, 15), fps: 0 } },
     blurb: `${PWEEG_IS}, cheering: both arms thrown up in a V, a happy bouncy dance`,
@@ -185,7 +207,7 @@ export const SHEETS: SheetDef[] = [
     readPanels: 'One hop of a happy dance: panels 1–4 he squashes down a little ready to jump, 5–12 he stretches tall at the top of the hop with the arms highest, 13–16 he comes back down and squashes again. The game moves him up and down and tilts him itself — keep his feet on the same line in every panel.'
   },
   {
-    id: 'pweeg-flattened', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — flattened (hard landing)', use: 'sprite',
+    id: 'pweeg-flattened', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — flattened (hard landing)', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE_WIDE, model: 'pweeg-model', tier: 1, fit: 'feet', gridCheck: 'nominal',
     anims: { squash: { frames: range(0, 5), fps: 75, loop: false }, flat: { frames: range(6, 15), fps: 12 } },
     blurb: `${PWEEG_IS}, squashed flat by a hard landing like a cartoon pancake`,
@@ -193,7 +215,7 @@ export const SHEETS: SheetDef[] = [
     readPanels: 'Panels 1–6 are the squash: panel 1 is him standing, and each panel after it is wider and lower until panel 6 is a flat pancake more than twice his width with dizzy swirl eyes. Panels 7–16 are him lying flat as that pancake, wobbling a little wider and narrower, eyes dizzy. His feet line stays the same in every panel.'
   },
   {
-    id: 'pweeg-destroyed', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — destroyed (hit by an enemy / shredded)', use: 'sprite',
+    id: 'pweeg-destroyed', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — destroyed (hit by an enemy / shredded)', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE_WIDE, model: 'pweeg-model', tier: 1, fit: 'none', fresh: true,
     anims: { poof: { frames: range(0, 15), fps: 24, loop: false } },
     blurb: `${PWEEG_IS}, the moment an enemy gets him: a cartoon "poof" — he is NEVER hurt or cut, he pops into a soft cloud puff like a cartoon knock-out`,
@@ -202,7 +224,7 @@ export const SHEETS: SheetDef[] = [
     readPanels: 'Panels 1–3: Pweeg jolts, startled, eyes as two little crosses, squashing slightly. Panels 4–6: he pops — a round cloud puff bursts out where he was, growing. Panels 7–11: the puff is at its biggest, a cluster of round cloud balls with three or four tiny golden stars spinning around it. Panels 12–16: the puff breaks into fewer and SMALLER balls each panel; panel 16 holds only two tiny balls. Nothing is ever half-transparent: a fading puff shrinks and breaks apart.'
   },
   {
-    id: 'pweeg-front', group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — looking at the player', use: 'sprite',
+    id: 'pweeg-front', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — looking at the player', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'pweeg-model', tier: 1, fit: 'feet',
     anims: { front: { frames: range(0, 11), fps: 6 }, blink: { frames: [12, 13], fps: 6 } },
     blurb: `${PWEEG_IS}, standing and looking straight out at the viewer, his two dot eyes centred on his head`,
@@ -212,28 +234,28 @@ export const SHEETS: SheetDef[] = [
 
   // ── Chad ──
   {
-    id: 'chad-model', group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — character model sheet', use: 'model',
+    id: 'chad-model', styleRef: STYLE_WORLD, group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — character model sheet', use: 'model',
     cols: 3, rows: 3, box: FIGURE, anims: {}, tier: 2, fresh: true, fit: 'none', model: 'pweeg-model',
     blurb: `${CHAD_IS}. This is his MODEL SHEET, painted after Pweeg's: the body is Pweeg's body exactly (copy it from the first attached image), only the sunglasses and his cool attitude are his own`,
     colour: CHAD_COLOUR, view: SIDE_VIEW, one: 'Chad',
     readPanels: 'Panel 1 standing; panel 2 standing and facing the viewer; panels 3–6 four walking steps; panels 7 and 8 hanging with both hands raised above his head (they hold an umbrella the game draws separately — paint NO umbrella); panel 9 a slight knee-bend landing squash.'
   },
   {
-    id: 'chad-idle', group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — idle', use: 'sprite',
+    id: 'chad-idle', styleRef: STYLE_WORLD, group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — idle', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'chad-model', tier: 2, fit: 'feet',
     anims: { idle: { frames: range(0, 15), fps: 6 } },
     blurb: `${CHAD_IS}, standing still, effortlessly cool`, colour: CHAD_COLOUR, view: SIDE_VIEW, one: 'Chad',
     readPanels: 'A slow breathing loop: from panel 1 to 8 his head sinks a hair; from 9 to 16 he rises back. The sunglasses never come off and never change. Panel 16 leads straight back into panel 1.'
   },
   {
-    id: 'chad-walk', group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — walk cycle', use: 'sprite',
+    id: 'chad-walk', styleRef: STYLE_WORLD, group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — walk cycle', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'chad-model', tier: 2, fit: 'feet',
     anims: { walk: { frames: range(0, 15), fps: 0 } },
     blurb: `${CHAD_IS}, strolling to the right`, colour: CHAD_COLOUR, view: SIDE_VIEW, one: 'Chad',
     readPanels: 'One full walk cycle in 16 even steps, exactly like Pweeg\'s: the tube legs lift and swing alternately, the free arm swings, the facing-side arm stays forward (it holds a furled umbrella the game draws separately — paint NO umbrella). Panel 16 leads straight back into panel 1.'
   },
   {
-    id: 'chad-hover', group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — float under the umbrella', use: 'sprite',
+    id: 'chad-hover', styleRef: STYLE_WORLD, group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — float under the umbrella', use: 'sprite',
     cols: 4, rows: 4, box: FIGURE, model: 'chad-model', tier: 2, fit: 'feet',
     anims: { hover: { frames: range(0, 15), fps: 7.64 } },
     blurb: `${CHAD_IS}, floating relaxed: both hands raised straight up above his head gripping a handle (paint NO umbrella, the hands meet in the air), legs dangling loose`,
@@ -241,9 +263,130 @@ export const SHEETS: SheetDef[] = [
     readPanels: 'A gentle dangle loop: the hands stay locked at the same point above his head in every panel; only the legs swing a little. Panel 16 leads straight back into panel 1.'
   },
 
+  // ── The KITE characters (the kite build's player and Chad) ──
+  // In the kite deployment Pweeg and Chad ARE kites: closed on the ground
+  // (stubby legs), deployed in the air (wings, colourful panels, bow-tail) —
+  // the kite replaces the umbrella (closed = furled, deployed = open), so no
+  // umbrella is drawn over them. Hitboxes do not change.
+  {
+    id: 'pweeg-kite-model', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — character model sheet', use: 'model',
+    cols: 3, rows: 3, boxes: [KITE, KITE, KITE, KITE, KITE_DEPLOYED, KITE, KITE, KITE, KITE], anims: {}, tier: 2, fresh: true, fit: 'none', styleRef: STYLE_KITE,
+    blurb: `${KITE_IS}. This is his MODEL SHEET: the one picture every later animation of him is painted from — follow the designer's sheet (the first attached image) for his design`,
+    colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'Panel 1 standing, kite CLOSED; panel 2 standing and looking straight at the viewer; panels 3 and 4 two walking steps on his stubby legs; panel 5 DEPLOYED and floating — wide colourful wings spread out, the bow-tail streaming below (the deployed kite is much bigger than the closed one, so it fills more of its panel — keep it exactly that size); panel 6 RETRACTED mid-air — wings folded in, a squinting frown, fluttering; panel 7 terminal velocity — big round goggle eyes, two torn corners (the game turns this one upside down); panel 8 BROKEN — torn paper, a cracked spar poking out; panel 9 cheering, both stubby arms up.'
+  },
+  {
+    id: 'pweeg-kite-idle', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — idle (closed)', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 0, fit: 'feet', fresh: true,
+    anims: { idle: { frames: range(0, 15), fps: 6 } },
+    blurb: `${KITE_IS}, standing on the ground with his kite CLOSED, breathing`, colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'A slow breathing loop: the kite body sinks a hair from panel 1 to 8 and rises back by 16, the bow-tail sways gently. Panels 13 and 14 are a blink (eyes shut as short curved lines). Panel 16 leads straight back into panel 1.'
+  },
+  {
+    id: 'pweeg-kite-walk', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — walk cycle (closed)', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 0, fit: 'feet', fresh: true,
+    anims: { walk: { frames: range(0, 15), fps: 0 } },
+    blurb: `${KITE_IS}, walking to the right on his stubby legs with his kite CLOSED`, colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'One full walk cycle in 16 even steps: the two stubby legs swing alternately, the little arms swing opposite, the kite body bobs a hair, the bow-tail trails and swings behind him. Panel 16 leads straight back into panel 1.'
+  },
+  {
+    id: 'pweeg-kite-hover', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — floating, kite DEPLOYED', use: 'sprite',
+    cols: 4, rows: 4, box: KITE_DEPLOYED, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 0, fit: 'feet', fresh: true,
+    anims: { hover: { frames: range(0, 15), fps: 7.64 } },
+    blurb: `${KITE_IS}, floating with his kite DEPLOYED: wide wings with colourful panels (red, mustard, blue) spread out to both sides and above him like a glider's sail, his little legs dangling, the bow-tail streaming down behind him, a happy relaxed face`,
+    colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'A gentle glide loop: the wings ripple a little, the tail bows wave, the legs dangle and swing; the body and wings stay the same size and in the same place in every panel. Panel 16 leads straight back into panel 1.'
+  },
+  {
+    id: 'pweeg-kite-fall', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — retracted, fluttering mid-air', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 0, fit: 'feet', fresh: true,
+    anims: { fall: { frames: range(0, 15), fps: 40.7 } },
+    blurb: `${KITE_IS}, in free fall with his kite RETRACTED: wings folded in tight, a squinting frown, his arms and legs flailing, the bow-tail whipping up behind him`,
+    colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'A fast flutter loop: the folded kite edges and the tail flap, arms and legs wiggle; the body does not move. Panel 16 leads straight back into panel 1. (The game tips this pose sideways when he gets close to danger.)'
+  },
+  {
+    id: 'pweeg-kite-terminal', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — terminal velocity', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 1, fit: 'feet', fresh: true,
+    anims: { terminal: { frames: range(0, 15), fps: 50.9 } },
+    blurb: `${KITE_IS}, at terminal velocity: big round goggle eyes, pure panic, two corners of the kite torn ragged, his legs stretched out straight. Paint him the way up the reference shows; the game turns him upside down`,
+    colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'A fast shiver loop: the torn corners and the tail tremble; the body and goggles stay put. Panel 16 leads straight back into panel 1.'
+  },
+  {
+    id: 'pweeg-kite-broken', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — broken kite (the umbrella-break condition)', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 1, fit: 'feet', fresh: true,
+    anims: { broken: { frames: range(0, 15), fps: 20 } },
+    blurb: `${KITE_IS}, his kite BROKEN by opening it too fast: the paper torn open, one spar cracked and poking out, scraps flapping, a dismayed face, falling`,
+    colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'A flapping loop: the torn paper flaps and the broken spar wobbles; his body and face stay the same size and in the same place. Panel 16 leads straight back into panel 1.'
+  },
+  {
+    id: 'pweeg-kite-cheer', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — finish-podium dance', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 1, fit: 'feet', fresh: true,
+    anims: { cheer: { frames: range(0, 15), fps: 0 } },
+    blurb: `${KITE_IS}, cheering on the finish podium: both stubby arms thrown up, a big happy grin, a bouncy dance`,
+    colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'One hop of a happy dance: panels 1–4 he squashes down, 5–12 he stretches tall with the arms highest, 13–16 he comes down and squashes again. The game moves him up and down and tilts him itself — keep his feet on the same line in every panel.'
+  },
+  {
+    id: 'pweeg-kite-flattened', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — flattened (splat)', use: 'sprite',
+    cols: 4, rows: 4, box: KITE_WIDE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 1, fit: 'feet', gridCheck: 'nominal', fresh: true,
+    anims: { squash: { frames: range(0, 5), fps: 75, loop: false }, flat: { frames: range(6, 15), fps: 12 } },
+    blurb: `${KITE_IS}, squashed flat by a hard landing like a cartoon pancake, with a little splat burst`,
+    colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
+    readPanels: 'Panels 1–6 are the squash: panel 1 standing, each panel after wider and lower until panel 6 is a flat crumpled kite more than twice his width with dizzy swirl eyes and a small splat burst. Panels 7–16 he lies flat, wobbling a little. His feet line stays the same in every panel.'
+  },
+  {
+    id: 'pweeg-kite-destroyed', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — destroyed (hit by an enemy / shredded)', use: 'sprite',
+    cols: 4, rows: 4, box: KITE_WIDE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 1, fit: 'none', fresh: true,
+    anims: { poof: { frames: range(0, 15), fps: 24, loop: false } },
+    blurb: `${KITE_IS}, the moment an enemy gets him: a cartoon "poof" — he is NEVER hurt or cut, he pops into a soft cloud puff with a few paper scraps and tail bows`,
+    colour: `${KITE_COLOUR}. The puff is warm cream with lavender cel shadows; a few tiny golden stars`,
+    view: 'a flat side view, the puff centred where he stood. No perspective, no ground.', one: 'the puff',
+    readPanels: 'Panels 1–3: he jolts, eyes as little crosses. Panels 4–6: he pops into a round cloud puff, growing. Panels 7–11: the puff at its biggest, with paper scraps and tiny stars. Panels 12–16: the puff breaks into fewer and SMALLER balls each panel; panel 16 holds only two tiny balls. Nothing is ever half-transparent.'
+  },
+  {
+    id: 'pweeg-kite-front', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — looking at the player', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 1, fit: 'feet', fresh: true,
+    anims: { front: { frames: range(0, 11), fps: 6 }, blink: { frames: [12, 13], fps: 6 } },
+    blurb: `${KITE_IS}, standing with his kite closed, looking straight out at the viewer with a friendly smile`,
+    colour: KITE_COLOUR, view: 'he faces the viewer, eyes centred. No perspective, no ground.', one: 'Pweeg-Kite',
+    readPanels: 'A slow breathing loop like his idle. Panels 13 and 14 are a blink. Eyes open and centred in every other panel.'
+  },
+  {
+    id: 'chad-kite-model', group: 'chad-kite', doc: 'PROMPTS-KITE.md', title: 'Chad-Kite — character model sheet', use: 'model',
+    cols: 3, rows: 3, boxes: [KITE, KITE, KITE, KITE, KITE, KITE, KITE_DEPLOYED, KITE_DEPLOYED, KITE], anims: {}, tier: 2, fresh: true, fit: 'none', styleRef: STYLE_KITE, model: 'pweeg-kite-model',
+    blurb: `${CHAD_KITE_IS}. This is his MODEL SHEET, painted after Pweeg-Kite's: the kite body is Pweeg-Kite's exactly (copy it from his painted model sheet), only the black sunglasses and his cool attitude are his own — exactly as the designer's sheet shows him`,
+    colour: CHAD_KITE_COLOUR, view: KITE_VIEW, one: 'Chad-Kite',
+    readPanels: 'Panel 1 standing, kite closed; panel 2 facing the viewer; panels 3–6 four walking steps; panels 7 and 8 DEPLOYED and floating, wings spread, bow-tail streaming (much bigger than the closed kite, filling more of their panels — keep that size); panel 9 a slight knee-bend landing squash.'
+  },
+  {
+    id: 'chad-kite-idle', group: 'chad-kite', doc: 'PROMPTS-KITE.md', title: 'Chad-Kite — idle (closed)', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'chad-kite-model', styleRef: STYLE_KITE, tier: 2, fit: 'feet', fresh: true,
+    anims: { idle: { frames: range(0, 15), fps: 6 } },
+    blurb: `${CHAD_KITE_IS}, standing with his kite closed, effortlessly cool`, colour: CHAD_KITE_COLOUR, view: KITE_VIEW, one: 'Chad-Kite',
+    readPanels: 'A slow breathing loop; the sunglasses never come off and never change; the tail sways. Panel 16 leads straight back into panel 1.'
+  },
+  {
+    id: 'chad-kite-walk', group: 'chad-kite', doc: 'PROMPTS-KITE.md', title: 'Chad-Kite — walk cycle (closed)', use: 'sprite',
+    cols: 4, rows: 4, box: KITE, model: 'chad-kite-model', styleRef: STYLE_KITE, tier: 2, fit: 'feet', fresh: true,
+    anims: { walk: { frames: range(0, 15), fps: 0 } },
+    blurb: `${CHAD_KITE_IS}, strolling to the right on his stubby legs, kite closed`, colour: CHAD_KITE_COLOUR, view: KITE_VIEW, one: 'Chad-Kite',
+    readPanels: 'One full walk cycle in 16 even steps, exactly like Pweeg-Kite\'s. Panel 16 leads straight back into panel 1.'
+  },
+  {
+    id: 'chad-kite-hover', group: 'chad-kite', doc: 'PROMPTS-KITE.md', title: 'Chad-Kite — floating, kite DEPLOYED', use: 'sprite',
+    cols: 4, rows: 4, box: KITE_DEPLOYED, model: 'chad-kite-model', styleRef: STYLE_KITE, tier: 2, fit: 'feet', fresh: true,
+    anims: { hover: { frames: range(0, 15), fps: 7.64 } },
+    blurb: `${CHAD_KITE_IS}, gliding with his kite DEPLOYED — wide colourful wings spread, the bow-tail streaming, a cool grin`,
+    colour: CHAD_KITE_COLOUR, view: KITE_VIEW, one: 'Chad-Kite',
+    readPanels: 'A gentle glide loop: the wings ripple, the tail bows wave; the body stays in place. Panel 16 leads straight back into panel 1.'
+  },
+
   // ── The umbrella ──
   {
-    id: 'umbrella', group: 'umbrella', doc: 'PROMPTS-CHARACTERS.md', title: 'The umbrella — open, furled, broken', use: 'sprite',
+    id: 'umbrella', styleRef: STYLE_WORLD, group: 'umbrella', doc: 'PROMPTS-CHARACTERS.md', title: 'The umbrella — open, furled, broken', use: 'sprite',
     cols: 3, rows: 3, box: UMBRELLA, tier: 0, fit: 'none',
     anims: { open: { frames: [0, 1, 2, 1], fps: 6 }, furled: { frames: [4], fps: 0 }, broken: { frames: [6, 7, 8, 7], fps: 14 } },
     blurb: 'one umbrella in its three states, held at the grip of its curved J-handle (the J-hook is at the bottom of every panel, at the same spot): OPEN — a scalloped dome canopy with ribs, white panels and ONE red panel (second from the left), a small ball finial on top; FURLED — rolled up into a slim spike with a red wrap and the same ball tip; BROKEN — blown inside-out, the ribs splayed up and the torn panels flapping',
@@ -254,38 +397,38 @@ export const SHEETS: SheetDef[] = [
 
   // ── Enemies ──
   {
-    id: 'walldorf-body', group: 'enemy', doc: 'PROMPTS-ENEMIES.md', title: 'Walldorf — body (three moods of pillar)', use: 'pillar',
+    id: 'walldorf-body', styleRef: STYLE_WORLD, group: 'enemy', doc: 'PROMPTS-ENEMIES.md', title: 'Walldorf — body (three moods of pillar)', use: 'pillar',
     cols: 3, rows: 3, tier: 0, fit: 'none',
     anims: { deadly: { frames: [0, 3, 6], fps: 0 }, solid: { frames: [1, 4, 7], fps: 0 }, bounce: { frames: [2, 5, 8], fps: 0 } },
-    blurb: 'Walldorf\'s body: three tall soft rounded pillars standing side by side, each exactly one panel wide and the full height of the image — a rounded top, straight sides, a rounded bottom. NO face, no eyes: the game paints his eyes on separately. Left pillar: the dangerous one, rosy red. Middle pillar: the harmless one, cool blue-grey stone. Right pillar: the bouncy bumper, warm orange with a springy pale rim running round just inside its outline',
-    colour: 'left rosy red (around #ff5a5f), middle cool blue-grey (around #c3cde0), right warm orange (around #ffb020) — each with ONE cel shadow down its right side and a soft highlight down its left',
+    blurb: 'Walldorf\'s body: three tall soft rounded blue capsules standing side by side — the round, squishy, friendly blue Walldorf of the designer\'s sheet stretched into a tall pillar — each exactly one panel wide and the full height of the image, a round top, straight sides, a round bottom. NO face, no eyes, no mouth: the game paints his face on separately. Left: the dangerous one, a deep indigo blue with a rosy-red warning rim just inside its outline. Middle: the harmless solid one, a soft slate blue-grey. Right: the bouncy bumper, bright friendly sky blue with a springy pale rim just inside its outline',
+    colour: 'left deep indigo blue (#4a5bc4) with a rosy-red rim (#ff5a5f), middle soft slate blue-grey (#9fb0cc), right bright sky blue (#5b9be8) — each with ONE cel shadow down its right side, a crayon highlight down its left',
     view: 'flat front-on, straight up and down, no perspective.', one: 'the pillar',
     note: 'The game CUTS each pillar into three: its top cap (row 1), its middle (row 2) and its bottom cap (row 3), and STRETCHES the middle to any height. So the middle third of each pillar must be a plain straight section, exactly the same at its top edge as at its bottom edge — no cracks, spots, bands or features in it.',
     readPanels: 'Read it by COLUMN: each column is ONE pillar running from the top of the image to the bottom. Rows are not separate drawings.'
   },
   {
-    id: 'walldorf-face', group: 'enemy', doc: 'PROMPTS-ENEMIES.md', title: 'Walldorf — face (calm, angry, charging, bump)', use: 'sprite',
+    id: 'walldorf-face', styleRef: STYLE_WORLD, group: 'enemy', doc: 'PROMPTS-ENEMIES.md', title: 'Walldorf — face (calm, angry, charging, bump)', use: 'sprite',
     cols: 4, rows: 4, box: WALLDORF_FACE, tier: 0, fit: 'centre',
     anims: { calm: { frames: [0, 1], fps: 1.5 }, blink: { frames: [2, 3, 2], fps: 18, loop: false }, angry: { frames: [4, 5, 6, 7], fps: 6 }, charge: { frames: [8, 9, 10, 11], fps: 12 }, bump: { frames: [12, 13, 14, 15], fps: 16, loop: false } },
-    blurb: 'Walldorf\'s FACE ONLY: two round eyes stacked one ABOVE the other (he is a tall pillar seen side-on, so his eyes sit on top of each other), each a white eyeball with a plum-brown outline and a dark pupil looking to the RIGHT. ONLY the eyes and, where shown, their brows — NO pillar, no body, no skin behind them: the game lays these eyes over his painted body',
+    blurb: 'Walldorf\'s FACE ONLY: two round eyes stacked one ABOVE the other (he is a tall pillar seen side-on, so his eyes sit on top of each other), each a white eyeball with a brown crayon outline and a dark pupil looking to the RIGHT, and a small mouth beside the lower eye — a friendly smile when calm, a grumpy frown when angry. ONLY the eyes, brows and mouth — NO pillar, no body, no skin behind them: the game lays this face over his painted blue body',
     colour: 'white eyeballs with a lavender cel shadow, plum-brown pupils and outline, one tiny white glint per pupil; brows thick plum-brown',
     view: 'flat side-on, looking to the RIGHT. No perspective.', one: 'the pair of eyes',
     readPanels: 'Row 1 CALM: panels 1–2 plain open eyes (panel 2 a hair rounder), panel 3 half shut, panel 4 shut as two short lines. Row 2 ANGRY: the same eyes with thick brows slanting down toward the right, a little twitch from panel to panel. Row 3 CHARGING: angry brows and the eyes narrowed to a fierce squint. Row 4 BUMP: surprised — panel 13 the eyes wide and big, no brows, shrinking back to normal size by panel 16.'
   },
   {
-    id: 'prickbait', group: 'enemy', doc: 'PROMPTS-ENEMIES.md', title: 'Prickbait — idle, move, lunge', use: 'sprite',
+    id: 'prickbait', styleRef: STYLE_WORLD, group: 'enemy', doc: 'PROMPTS-ENEMIES.md', title: 'Prickbait — idle, move, lunge', use: 'sprite',
     cols: 4, rows: 4, box: PRICKBAIT, tier: 0, fit: 'centre',
     anims: { idle: { frames: range(0, 7), fps: 8 }, move: { frames: range(8, 11), fps: 10 }, lunge: { frames: range(12, 15), fps: 12 } },
-    blurb: 'Prickbait, the floating mine: a round red body with six fat cone spikes around it, two angry slanted brows, and two round EMPTY white eyes — the eyes have NO pupils: the game draws the pupils so they can follow the player',
-    colour: 'a rosy red body (around #ff5a5f) with a deeper red (#d93a40) for the spikes and the cel shadow; white eye whites; plum-brown brows and outline',
+    blurb: 'Prickbait, the floating mine of the designer\'s sheet: a round pink-and-purple body with six fat cone spikes around it, two angry slanted brows, and two round EMPTY white eyes — the eyes have NO pupils: the game draws the pupils so they can follow the player',
+    colour: 'a candy-pink body (#e86fb0) shading to purple (#9a5ac8) on its shadow side, purple spikes (#8a4cc0); white eye whites; brown crayon brows and outline',
     view: 'flat front-on, no perspective.', one: 'Prickbait',
     note: 'The two eye whites sit at EXACTLY the same place and size in every panel (the game puts its pupils there) — only the spikes and the body outline move.',
-    readPanels: 'Panels 1–8 IDLE: a slow menacing breath, the spikes growing a little longer up to panel 4 and back by panel 8. Panels 9–12 MOVE: drifting to the LEFT, the spikes swept back toward the right a little, the body squashed slightly in the direction of travel. Panels 13–16 LUNGE: puffed up, spikes long and sharp, brows angrier, panel 13 the biggest.'
+    readPanels: 'Panels 1–8 PASSIVE: a slow breath, mouth closed, the spikes growing a little longer up to panel 4 and back by panel 8. Panels 9–12 MOVE: drifting to the LEFT, the spikes swept back toward the right a little, the body squashed slightly in the direction of travel. Panels 13–16 AGGRESSIVE: puffed up and BITING — a wide open mouth full of little pointed teeth under the eyes, spikes long and sharp, brows angrier, panel 13 the biggest.'
   },
 
   // ── The ventilator ──
   {
-    id: 'fan', group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Ventilator — housing, rotor, guard', use: 'sprite',
+    id: 'fan', styleRef: STYLE_WORLD, group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Ventilator — housing, rotor, guard', use: 'sprite',
     cols: 2, rows: 2, box: FAN, tier: 1, fit: 'none', fresh: true,
     anims: { housing: { frames: [0], fps: 0 }, rotor: { frames: [1], fps: 0 }, guard: { frames: [2], fps: 0 }, rotor2: { frames: [3], fps: 0 } },
     blurb: 'a cosy old box fan in four separate parts the game stacks on top of each other: panel 1 the HOUSING — a chunky rounded-square box (it fills its panel to the reference\'s outline) with a deep dark round opening; panel 2 the ROTOR alone — four plump rounded red blades around a small hub, centred; panel 3 the front GUARD alone — a round wire grille (a few thin concentric rings and spokes) with a cream hub cap in the middle, see-through between the wires (magenta shows between them); panel 4 the same rotor as panel 2, turned 45 degrees',
@@ -295,40 +438,40 @@ export const SHEETS: SheetDef[] = [
 
   // ── The world ──
   {
-    id: 'platform', group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Platform — nine-slice block', use: 'nine',
+    id: 'platform', styleRef: STYLE_WORLD, group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Platform — nine-slice block', use: 'nine',
     cols: 3, rows: 3, tier: 0, fit: 'none', fresh: true, anims: {},
-    blurb: 'ONE big soft rounded block that fills the WHOLE image edge to edge: a cosy chunk of warm cream sandstone with a thin cap of fresh mint-green moss along its top edge, softly rounded corners, a few gentle pebble dents',
-    colour: 'warm cream sandstone (#efe6d2) with a lavender-grey cel shadow along the bottom, a fresh mint-green moss cap (#8fd6a0) on top, plum-brown outline',
+    blurb: 'ONE big soft rounded block that fills the WHOLE image edge to edge: the designer\'s mossy grass-top dirt platform — a chunk of warm brown earth with a thick cap of fresh green grass and moss along its top edge (a few grass blades hanging over the lip), softly rounded corners, a few pebbles and roots in the dirt',
+    colour: 'warm brown dirt (#a87a52) with a darker brown cel shadow along the bottom, a fresh grass-green top (#7fbf5a), brown crayon outline',
     view: 'flat front-on, square on, no perspective.', one: 'the block',
     note: 'The game CUTS this block into a 3 × 3 grid: the four corners keep their size, and the edges and the middle are STRETCHED to any width and height (a ledge can be 30 times wider than it is tall). So: the rounding of each corner stays inside its own corner ninth; the middle third of every edge is a plain straight run that looks the same at both of its ends (no cracks, tufts or pebbles there); the centre ninth is plain sandstone with no feature at all.'
   },
   {
-    id: 'platform-finish', group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Finish platform — nine-slice block', use: 'nine',
+    id: 'platform-finish', styleRef: STYLE_WORLD, group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Finish platform — nine-slice block', use: 'nine',
     cols: 3, rows: 3, tier: 0, fit: 'none', fresh: true, anims: {},
-    blurb: 'ONE big soft rounded block that fills the WHOLE image edge to edge: the goal ledge — a cosy honey-gold stone block with a soft glowing warm top rim and a row of tiny painted stars along its top edge',
-    colour: 'warm honey gold (#f2c14e) with an amber cel shadow along the bottom, a pale butter-yellow top rim, plum-brown outline',
+    blurb: 'ONE big soft rounded block that fills the WHOLE image edge to edge: the designer\'s FINISH PODIUM — a festive grass-top block wrapped with a strip of warm golden wood along its front, a row of colourful bunting triangles (red, yellow, blue, green) hanging just under its top edge, and a few confetti dots',
+    colour: 'a fresh grass-green top (#7fbf5a), warm golden wood front (#e2b25a) with an amber cel shadow, bunting in red, mustard, blue and green, brown crayon outline',
     view: 'flat front-on, square on, no perspective.', one: 'the block',
     note: 'The game CUTS this block into a 3 × 3 grid: corners keep their size, edges and middle are STRETCHED to any size. The rounding of each corner stays inside its own corner ninth; the middle third of every edge is a plain straight run that looks the same at both ends (keep the little stars to the corner ninths); the centre ninth is plain and quiet — the game writes the word "Finish" over it, so draw NO letters yourself.'
   },
   {
-    id: 'platform-switch', group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Switched platform — nine-slice block (tinted by the game)', use: 'nine',
+    id: 'platform-switch', styleRef: STYLE_WORLD, group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Switched platform — nine-slice block (tinted by the game)', use: 'nine',
     cols: 3, rows: 3, tier: 1, fit: 'none', fresh: true, anims: {},
-    blurb: 'ONE big soft rounded block that fills the WHOLE image edge to edge: a light machine-panel block with a soft rounded bevel, a small round rivet in each corner',
+    blurb: 'ONE big soft rounded block that fills the WHOLE image edge to edge: a pale hand-drawn stone block with a soft rounded bevel and a small round rivet in each corner (it appears and disappears when a button is pressed)',
     colour: 'a pale neutral light grey-white (#e8ecf2) with a mid-grey cel shadow and a plum-brown outline — NO colour of its own: the game tints it with the colour of the button that switches it',
     view: 'flat front-on, square on, no perspective.', one: 'the block',
     note: 'The game CUTS this block into a 3 × 3 grid: corners keep their size, edges and middle are STRETCHED to any size. The rounding and the rivets stay inside the corner ninths; the middle third of every edge is a plain straight run; the centre ninth is plain.'
   },
   {
-    id: 'checkpoint', group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Checkpoint flag — waiting and reached', use: 'sprite',
+    id: 'checkpoint', styleRef: STYLE_WORLD, group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Checkpoint flag — waiting and reached', use: 'sprite',
     cols: 4, rows: 4, box: CHECKPOINT, tier: 1, fit: 'feet',
     anims: { idle: { frames: [0, 1, 2, 3], fps: 3 }, reached: { frames: range(4, 15), fps: 11.5 } },
     blurb: 'a small checkpoint flag on a slim cream pole, the flag a triangular pennant pointing RIGHT from the top of the pole',
-    colour: 'waiting: a pale dusty grey-lilac pennant; reached: a fresh mint-green pennant (#4ade80) with one small cream star on it; pole warm cream, plum-brown outline',
+    colour: 'waiting: a warm muted orange-tan pennant (#d9a066); reached (active): a light sky-blue pennant (#8fd0f5) with one small cream star, as the designer\'s active checkpoint; pole warm wood, brown crayon outline',
     view: 'flat side view, the pole straight up, no perspective, no ground.', one: 'the flag',
-    readPanels: 'Panels 1–4: WAITING — the grey pennant hanging almost still, the faintest sway. Panels 5–16: REACHED — the green pennant with its star, waving proudly in an even loop (its tip rising and falling), panel 16 leading back into panel 5. The pole never moves.'
+    readPanels: 'Panels 1–4: WAITING — the orange-tan pennant hanging almost still, the faintest sway. Panels 5–16: REACHED — the light-blue pennant with its star, waving proudly in an even loop (its tip rising and falling), panel 16 leading back into panel 5. The pole never moves.'
   },
   {
-    id: 'props', group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Props — floor button (up, pressed) and spikes', use: 'sprite',
+    id: 'props', styleRef: STYLE_WORLD, group: 'world', doc: 'PROMPTS-WORLD.md', title: 'Props — floor button (up, pressed) and spikes', use: 'sprite',
     cols: 2, rows: 2, boxes: [BUTTON, BUTTON, SPIKE_BOX, SPIKE_BOX], tier: 0, fit: 'none',
     anims: { buttonUp: { frames: [0], fps: 0 }, buttonDown: { frames: [1], fps: 0 }, spikeA: { frames: [2], fps: 0 }, spikeB: { frames: [3], fps: 0 } },
     blurb: 'a SET of small props, one per panel: panel 1 a chunky floor push-button, raised — a rounded cap on a low dark base plate; panel 2 the same button pressed flat into its base; panels 3 and 4 two slightly different single spikes — a fat cartoon cone pointing straight up, standing on its base',
@@ -336,13 +479,13 @@ export const SHEETS: SheetDef[] = [
     view: 'flat side view, no perspective, no ground.', one: 'the set'
   },
   {
-    id: 'wind-wisps', group: 'fx', doc: 'PROMPTS-WORLD.md', title: 'Wind wisps — normal and super stream', use: 'sprite',
+    id: 'wind-wisps', styleRef: STYLE_WORLD, group: 'fx', doc: 'PROMPTS-WORLD.md', title: 'Wind wisps — normal and super stream', use: 'sprite',
     cols: 4, rows: 4, box: WISP, tier: 0, fit: 'none', fresh: true,
     anims: { normal: { frames: range(0, 7), fps: 0 }, super: { frames: range(8, 15), fps: 0 } },
-    blurb: 'sixteen separate hand-inked wisps of wind, the kind a storybook draws: each one a single flowing ribbon-stroke that swirls along to the RIGHT and ends in a small curl, some with a short second stroke riding beside it',
-    colour: 'rows 1–2: pale sky-blue and white wisps (#cfe8ff); rows 3–4 (the super stream): warm apricot and peach wisps (#ffbe7a). Every stroke SOLID and opaque — the game makes them fade in and out itself',
+    blurb: 'sixteen separate crayon wisps of wind, the soft blue swooshes of the designer\'s sheet: each one a single flowing ribbon-stroke that swooshes along to the RIGHT and ends in a small curl, some with a short second stroke riding beside it',
+    colour: 'rows 1–2: soft pale-blue and white swooshes (#bfe0f7); rows 3–4 (the SUPER STREAM): a deeper swirling wave, teal-blue (#5aa9d6) with white foam curls. Every stroke SOLID and opaque — the game makes them fade in and out itself',
     view: 'flat, every wisp flowing horizontally to the RIGHT.', one: 'the wind',
-    readPanels: 'Each panel is ONE wisp, centred in its panel, about as long as the reference stroke: rows 1–2 eight different calm curls, rows 3–4 eight faster, longer, more streaked curls. They are not frames of a motion; they are sixteen variations.'
+    readPanels: 'Each panel is ONE wisp, centred in its panel, about as long as the reference stroke: rows 1–2 eight different calm swooshes, rows 3–4 eight swirling, curling super-stream waves. They are not frames of a motion; they are sixteen variations.'
   }
 ]
 

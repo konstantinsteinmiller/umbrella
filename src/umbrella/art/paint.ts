@@ -109,18 +109,38 @@ const ready = (core: string[], extra: string[] = []): boolean => setReady(core) 
 
 // ─── Pweeg, Chad, the umbrella ──────────────────────────────────────────────
 
+// The kite build's player is a KITE (Pweeg-Kite, Chad-Kite): drawn from the
+// kite sheets when they are all in, else from the Pweeg / Chad sheets, else
+// the vector drawing. A kite IS the umbrella (closed = furled, deployed =
+// open), so the umbrella drawn right after a kite figure is not drawn.
+const KITE_CORE = ['pweeg-kite-idle', 'pweeg-kite-walk', 'pweeg-kite-hover', 'pweeg-kite-fall', 'pweeg-kite-terminal', 'pweeg-kite-broken', 'pweeg-kite-cheer', 'pweeg-kite-flattened']
+const CHAD_KITE_CORE = ['chad-kite-idle', 'chad-kite-walk', 'chad-kite-hover']
+
+/** Which sheets draw this figure right now, or null for the vector drawing. */
+const figureSet = (chad: boolean): { p: string; kite: boolean } | null => {
+  if (chad) return ready(CHAD_KITE_CORE) ? { p: 'chad-kite', kite: true } : ready(CHAD_CORE) ? { p: 'chad', kite: false } : null
+  if (ready(KITE_CORE, ['pweeg-kite-front', 'pweeg-kite-destroyed'])) return { p: 'pweeg-kite', kite: true }
+  return ready(PWEEG_CORE, ['pweeg-front', 'pweeg-destroyed']) ? { p: 'pweeg', kite: false } : null
+}
+
+/** The last figure drawn was a kite: every caller draws the umbrella right
+ *  after the figure, and for a kite that umbrella is the kite itself. */
+let kiteDrawn = false
+
 const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegLook): boolean => {
+  kiteDrawn = false
   if (!paintedOn) return false
   const chad = !!look.shades
-  if (chad ? !ready(CHAD_CORE) : !ready(PWEEG_CORE, ['pweeg-front', 'pweeg-destroyed'])) return false
-  const p = chad ? 'chad' : 'pweeg'
+  const set = figureSet(chad)
+  if (!set) return false
+  const { p } = set
   let id: string
   let frame: number
   const s = (n: string) => sheet(`${p}-${n}`)
   switch (look.pose) {
     case 'stand': {
-      if (look.front && !chad && hasSheet('pweeg-front')) {
-        const f = sheet('pweeg-front')
+      if (look.front && !chad && hasSheet(`${p}-front`)) {
+        const f = s('front')
         id = f.id
         frame = look.blink ? f.anims.blink!.frames[0]! : animFrame(f.anims.front!, look.time)
       } else {
@@ -132,27 +152,34 @@ const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegL
     }
     case 'walk': id = s('walk').id; frame = phaseFrame(s('walk').anims.walk!, (look.step ?? 0) / (Math.PI * 2)); break
     case 'hold': id = s('hover').id; frame = animFrame(s('hover').anims.hover!, look.time); break
-    case 'flail': if (chad) return false; id = 'pweeg-fall'; frame = animFrame(sheet(id).anims.fall!, look.time); break
-    case 'terminal': if (chad) return false; id = 'pweeg-terminal'; frame = animFrame(sheet(id).anims.terminal!, look.time); break
-    case 'cheer': if (chad) return false; id = 'pweeg-cheer'; frame = phaseFrame(sheet(id).anims.cheer!, (look.time * 9) / Math.PI); break
+    case 'flail':
+      if (chad) return false
+      // A kite broken by opening it at speed flaps torn; a closed one flutters.
+      if (set.kite && look.broken) { id = s('broken').id; frame = animFrame(s('broken').anims.broken!, look.time) } else { id = s('fall').id; frame = animFrame(s('fall').anims.fall!, look.time) }
+      break
+    case 'terminal': if (chad) return false; id = s('terminal').id; frame = animFrame(s('terminal').anims.terminal!, look.time); break
+    case 'cheer': if (chad) return false; id = s('cheer').id; frame = phaseFrame(s('cheer').anims.cheer!, (look.time * 9) / Math.PI); break
     default: return false
   }
   const img = sheetImage(id)
   if (!img) return false
   blit(ctx, sheet(id), img, frame, x, y, look.w / PWEEG_W, look.h / PWEEG_H, look.facing < 0 && !look.front)
+  kiteDrawn = set.kite
   return true
 }
 
 const splat = (ctx: CanvasRenderingContext2D, fx: number, fy: number, look: PweegLook, t: number, hit: boolean): boolean => {
-  if (!paintedOn || !ready(PWEEG_CORE, ['pweeg-destroyed'])) return false
+  if (!paintedOn) return false
+  const set = figureSet(false)
+  if (!set) return false
   const sx = look.w / PWEEG_W
   const sy = look.h / PWEEG_H
-  if (hit && hasSheet('pweeg-destroyed')) {
-    const s = sheet('pweeg-destroyed')
+  if (hit && hasSheet(`${set.p}-destroyed`)) {
+    const s = sheet(`${set.p}-destroyed`)
     blit(ctx, s, sheetImage(s.id)!, animFrame(s.anims.poof!, t), fx, fy, sx, sy, look.facing < 0)
     return true
   }
-  const s = sheet('pweeg-flattened')
+  const s = sheet(`${set.p}-flattened`)
   const squash = s.anims.squash!
   const intro = squash.frames.length / squash.fps
   const frame = t < intro ? animFrame(squash, t) : animFrame(s.anims.flat!, t - intro)
@@ -161,6 +188,11 @@ const splat = (ctx: CanvasRenderingContext2D, fx: number, fy: number, look: Pwee
 }
 
 const umbrella = (ctx: CanvasRenderingContext2D, x: number, y: number, look: UmbrellaLook): boolean => {
+  // The kite just drawn is the umbrella: nothing more to draw.
+  if (kiteDrawn) {
+    kiteDrawn = false
+    return true
+  }
   if (!paintedOn) return false
   const img = sheetImage('umbrella')
   if (!img) return false
@@ -404,7 +436,8 @@ const softRect = (ctx: CanvasRenderingContext2D, tex: HTMLCanvasElement, x: numb
 }
 
 const NORMAL_RGB = '140,200,255'
-const SUPER_RGB = '255,170,90'
+// The designer's Super Stream is a deeper swirling blue wave.
+const SUPER_RGB = '70,150,215'
 const hexRgb = (hex: string): string => {
   const v = Number.parseInt(hex.slice(1), 16)
   return `${(v >> 16) & 255},${(v >> 8) & 255},${v & 255}`

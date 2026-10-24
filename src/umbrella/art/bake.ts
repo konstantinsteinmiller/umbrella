@@ -16,6 +16,7 @@
 import { drawPrickbaitBody, drawPweeg, drawUmbrella, drawWalldorfBody, drawWalldorfFace, type PweegLook, type PweegPose } from '../characters'
 import { drawButton, drawCheckpoint, drawSpikes, fanBlades, fanHousing, fanHub } from '../renderer'
 import { FAN_SIZE, PANEL, PRICKBAIT_R, type SheetDef } from './manifest'
+import { drawKiteCharacter, type KitePose } from './kiteBake'
 
 const W = 24
 const H = 36
@@ -35,7 +36,7 @@ const breath = (i: number, n: number): number => 1 - 0.03 * (1 - Math.cos((TAU *
 
 const figure = (ctx: CanvasRenderingContext2D, l: PweegLook, sx = 1, sy = 1): void => scaled(ctx, sx, sy, () => drawPweeg(ctx, 0, 0, l))
 
-const pweegPanel = (ctx: CanvasRenderingContext2D, id: string, i: number, shades: boolean): boolean => {
+const pweegPanel = (ctx: CanvasRenderingContext2D, id: string, i: number, shades: boolean, puffOnly = false): boolean => {
   const sh = shades ? { shades: true } : {}
   switch (id.replace(/^(pweeg|chad)-/, '')) {
     case 'model': {
@@ -89,7 +90,7 @@ const pweegPanel = (ctx: CanvasRenderingContext2D, id: string, i: number, shades
         figure(ctx, look('stand', { blink: true }), 1.05 + 0.05 * i, 0.95 - 0.05 * i)
         return true
       }
-      if (i <= 5) figure(ctx, look('stand', { blink: true }), 0.9 - 0.25 * (i - 3), 0.9 - 0.25 * (i - 3))
+      if (i <= 5 && !puffOnly) figure(ctx, look('stand', { blink: true }), 0.9 - 0.25 * (i - 3), 0.9 - 0.25 * (i - 3))
       const grow = i <= 5 ? (i - 2) / 4 : i <= 10 ? 1 : Math.max(0.15, 1 - (i - 10) / 6)
       const count = i <= 10 ? 7 : Math.max(2, 7 - (i - 10))
       ctx.save()
@@ -128,10 +129,63 @@ const pweegPanel = (ctx: CanvasRenderingContext2D, id: string, i: number, shades
   return false
 }
 
+/** The kite characters: placeholder notation, pose by pose (kiteBake.ts). */
+const kitePanel = (ctx: CanvasRenderingContext2D, id: string, i: number, shades: boolean): boolean => {
+  const k = (p: KitePose) => drawKiteCharacter(ctx, { shades, ...p })
+  switch (id.replace(/^(pweeg|chad)-kite-/, '')) {
+    case 'model': {
+      const poses: KitePose[] = shades
+        ? [
+            { mode: 'closed' }, { mode: 'closed', front: true },
+            ...[0, 1, 2, 3].map((n): KitePose => ({ mode: 'closed', step: (n * Math.PI) / 2 + Math.PI / 4 })),
+            { mode: 'deployed' }, { mode: 'deployed', time: 0.5 }, { mode: 'closed', sx: 1.12, sy: 0.88 }
+          ]
+        : [
+            { mode: 'closed' }, { mode: 'closed', front: true }, { mode: 'closed', step: Math.PI / 2 }, { mode: 'closed', step: (3 * Math.PI) / 2 },
+            { mode: 'deployed' }, { mode: 'retract' }, { mode: 'terminal' }, { mode: 'broken' }, { mode: 'closed', arms: 'up' }
+          ]
+      const p = poses[i]
+      if (p) k(p)
+      return true
+    }
+    case 'idle': k({ mode: 'closed', blink: !shades && (i === 12 || i === 13), sy: breath(i, 16), time: i / 8 }); return true
+    case 'front': k({ mode: 'closed', front: true, blink: i === 12 || i === 13, sy: breath(i, 16), time: i / 8 }); return true
+    case 'walk': k({ mode: 'closed', step: (i / 16) * TAU, time: i / 16 }); return true
+    case 'hover': k({ mode: 'deployed', time: (i / 16) * (TAU / 3) }); return true
+    case 'fall': k({ mode: 'retract', time: (i / 16) * (TAU / 16) }); return true
+    case 'terminal': k({ mode: 'terminal', time: (i / 16) * (TAU / 20) }); return true
+    case 'broken': k({ mode: 'broken', time: (i / 16) * (TAU / 22) * 2 }); return true
+    case 'cheer': {
+      const sq = -Math.cos((TAU * i) / 16)
+      k({ mode: 'closed', arms: 'up', sx: 1 - 0.05 * sq, sy: 1 + 0.07 * sq })
+      return true
+    }
+    case 'flattened': {
+      if (i <= 5) {
+        const f = i / 5
+        k({ mode: 'closed', sx: 1 + 1.6 * f, sy: 1 - 0.8 * f })
+      } else k({ mode: 'closed', sx: 2.6 * (1 + 0.05 * Math.sin((TAU * (i - 6)) / 10)), sy: 0.2 })
+      return true
+    }
+    case 'destroyed': {
+      if (i <= 2) {
+        k({ mode: 'closed', blink: true, sx: 1.05 + 0.05 * i, sy: 0.95 - 0.05 * i })
+        return true
+      }
+      if (i <= 5) k({ mode: 'closed', blink: true, sx: 0.9 - 0.25 * (i - 3), sy: 0.9 - 0.25 * (i - 3) })
+      // The puff: the same notation as Pweeg's, plus a few paper scraps.
+      pweegPanel(ctx, 'pweeg-destroyed', Math.max(3, i), false, true)
+      return true
+    }
+  }
+  return false
+}
+
 /** One panel in world units, anchor at the origin. False: this sheet is drawn whole. */
 export const bakePanel = (ctx: CanvasRenderingContext2D, s: SheetDef, i: number): boolean => {
   if (s.group === 'pweeg') return pweegPanel(ctx, s.id, i, false)
   if (s.group === 'chad') return pweegPanel(ctx, s.id, i, true)
+  if (s.group === 'kite' || s.group === 'chad-kite') return kitePanel(ctx, s.id, i, s.group === 'chad-kite')
   switch (s.id) {
     case 'umbrella': {
       if (i <= 2) {
@@ -156,6 +210,18 @@ export const bakePanel = (ctx: CanvasRenderingContext2D, s: SheetDef, i: number)
       else if (row === 1) drawWalldorfFace(ctx, b, { contact: 'solid', facing: 1, angry: true, stretch: [1, 1.03, 1, 0.97][k] })
       else if (row === 2) drawWalldorfFace(ctx, b, { contact: 'solid', facing: 1, angry: true, lid: [0.4, 0.45, 0.4, 0.35][k], stretch: [1, 1.02, 1, 1.02][k] })
       else drawWalldorfFace(ctx, b, { contact: 'solid', facing: 1, angry: false, stretch: [1.3, 1.2, 1.1, 1][k] })
+      // The designer's Walldorf smiles when calm and frowns when angry: a
+      // mouth beside the lower eye (notation; the vector Walldorf has none).
+      ctx.save()
+      ctx.strokeStyle = '#0d1018'
+      ctx.lineWidth = 2.2
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      if (row === 3) ctx.arc(10, 17, 3.4, 0, Math.PI * 2)
+      else if (row === 0) ctx.arc(9, 15, 5, Math.PI * 0.1, Math.PI * 0.75)
+      else ctx.arc(9, 22, 5, Math.PI * 1.2, Math.PI * 1.75)
+      ctx.stroke()
+      ctx.restore()
       return true
     }
     case 'prickbait': {
@@ -163,7 +229,26 @@ export const bakePanel = (ctx: CanvasRenderingContext2D, s: SheetDef, i: number)
       if (i < 8) drawPrickbaitBody(ctx, 0, 0, r, 0, 1 + 0.07 * (1 - Math.cos((TAU * i) / 8)) / 2)
       else if (i < 12) {
         scaled(ctx, 1.05, 0.96, () => drawPrickbaitBody(ctx, 0, 0, r, Math.PI / 2 / 1.3 + (i - 9.5) * 0.12, 1.02))
-      } else drawPrickbaitBody(ctx, 0, 0, r, 0, [1.28, 1.22, 1.17, 1.12][i - 12])
+      } else {
+        drawPrickbaitBody(ctx, 0, 0, r, 0, [1.28, 1.22, 1.17, 1.12][i - 12])
+        // Aggressive: a biting mouth under the eyes (notation for the designer's sheet).
+        const open = [1, 0.8, 0.55, 0.8][i - 12]!
+        ctx.save()
+        ctx.fillStyle = '#3b1530'
+        ctx.beginPath()
+        ctx.ellipse(0, r * 0.38, r * 0.34, r * 0.22 * open, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = '#ffffff'
+        for (let t = -2; t <= 2; t++) {
+          ctx.beginPath()
+          ctx.moveTo(t * r * 0.12 - r * 0.05, r * 0.38 - r * 0.2 * open)
+          ctx.lineTo(t * r * 0.12 + r * 0.05, r * 0.38 - r * 0.2 * open)
+          ctx.lineTo(t * r * 0.12, r * 0.38 - r * 0.08 * open)
+          ctx.closePath()
+          ctx.fill()
+        }
+        ctx.restore()
+      }
       return true
     }
     case 'fan': {
@@ -212,7 +297,7 @@ export const bakePanel = (ctx: CanvasRenderingContext2D, s: SheetDef, i: number)
       const len = 44 + (k % 4) * 6 + (sup ? 8 : 0)
       const amp = 3 + (k % 3) * 1.5
       ctx.save()
-      ctx.strokeStyle = sup ? '#ffbe7a' : '#cfe8ff'
+      ctx.strokeStyle = sup ? '#5aa9d6' : '#bfe0f7'
       ctx.lineWidth = sup ? 4.5 : 3.5
       ctx.lineCap = 'round'
       ctx.beginPath()
@@ -252,8 +337,8 @@ export const bakeWhole = (ctx: CanvasRenderingContext2D, s: SheetDef): void => {
   }
   // Nine-slice blocks: notation for a new look — the rounding inside the
   // corner ninths, a top band, plain middles.
-  const fill = s.id === 'platform-finish' ? '#f2c14e' : s.id === 'platform-switch' ? '#e8ecf2' : '#efe6d2'
-  const band = s.id === 'platform-finish' ? '#fbe7a1' : s.id === 'platform-switch' ? '#ffffff' : '#8fd6a0'
+  const fill = s.id === 'platform-finish' ? '#e2b25a' : s.id === 'platform-switch' ? '#e8ecf2' : '#a87a52'
+  const band = s.id === 'platform-finish' ? '#7fbf5a' : s.id === 'platform-switch' ? '#ffffff' : '#7fbf5a'
   const m = 10
   const rad = PANEL * 0.55
   ctx.save()
@@ -280,10 +365,16 @@ export const bakeWhole = (ctx: CanvasRenderingContext2D, s: SheetDef): void => {
     }
   }
   if (s.id === 'platform-finish') {
-    ctx.fillStyle = '#fff6d6'
-    for (const x of [0.5, 2.5]) {
+    // Bunting under the grass lip.
+    const colours = ['#c4553f', '#e8b04a', '#5d86b8', '#6aa84f']
+    for (let k = 0; k < 12; k++) {
+      const x = 40 + k * ((N - 80) / 12)
+      ctx.fillStyle = colours[k % 4]!
       ctx.beginPath()
-      ctx.arc(x * PANEL, PANEL * 0.22, 16, 0, Math.PI * 2)
+      ctx.moveTo(x, PANEL * 0.46)
+      ctx.lineTo(x + (N - 80) / 12, PANEL * 0.46)
+      ctx.lineTo(x + (N - 80) / 24, PANEL * 0.66)
+      ctx.closePath()
       ctx.fill()
     }
   }

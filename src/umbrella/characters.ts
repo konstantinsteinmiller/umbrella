@@ -40,6 +40,8 @@ export interface PweegLook {
   /** Chad. */
   shades?: boolean
   blink?: boolean
+  /** The umbrella is broken (the kite art draws a torn kite; the vector ignores it). */
+  broken?: boolean
   /** Looking straight at the camera (eyes centred), e.g. the intro's hand-over. */
   front?: boolean
 }

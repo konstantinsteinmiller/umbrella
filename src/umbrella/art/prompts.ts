@@ -18,23 +18,29 @@ const OUT = { w: 1024, h: 1024, ratio: '1:1' }
 const pct = (v: number): string => `${Math.round(v * 100)}%`
 const panels = (s: SheetDef): number => s.cols * s.rows
 
-/** The images attached ahead of the layout reference, in order. */
-export const alsoOf = (s: SheetDef): string[] => (s.model ? [`painted/${s.model}.png`] : [])
+/** The images attached ahead of the layout reference, in order: the
+ *  designer's style sheet first, then the painted model sheet, the layout last. */
+export const alsoOf = (s: SheetDef): string[] => [...(s.styleRef ? [s.styleRef] : []), ...(s.model ? [`painted/${s.model}.png`] : [])]
+
+const KITE_GROUPS = new Set(['kite', 'chad-kite'])
+const FIGURE_GROUPS = new Set(['pweeg', 'chad', 'kite', 'chad-kite'])
+const NAMES: Record<string, string> = { pweeg: 'Pweeg', chad: 'Chad', kite: 'Pweeg-Kite', 'chad-kite': 'Chad-Kite' }
 
 // ─── Shared clauses (hoisted: one copy to weaken, PROMPT-ANATOMY §8) ────────
 
-const STYLE_HEAD = 'STYLE — one art direction for the whole game: CUTE, COZY, HAND-DRAWN, STYLIZED, CEL-SHADED, like a warm storybook.'
+const STYLE_HEAD = 'STYLE — one art direction for the whole game, the DESIGNER\'S OWN: HAND-DRAWN ON CREAM PAPER, SOFT CRAYON AND COLOURED-PENCIL, CEL-SHADED, CUTE AND COZY — exactly the finish of the attached style sheet.'
 const STYLE_BODY = [
-  '· Hand-inked contours in a warm deep plum-brown (#2a1f2e), never pure black: at their heaviest about 2% of the panel\'s shorter side — the weight of a brush pen, not of a technical pen — slightly uneven, the way a real hand draws. Hold the finished picture at thumbnail size: if the outline has thinned to a hairline there, it is several times too thin.',
-  '· Cel shading: flat colour fills with ONE crisp-edged shadow tone (cool, a little violet) on the side away from a soft upper-left light, and ONE small crisp highlight per shape. No airbrush gradients, no rendered 3D look.',
-  '· Soft, rounded, chunky, friendly shapes with a readable silhouette at 48 px on a phone. A faint paper grain inside the shapes is welcome.',
+  '· Soft crayon / pencil outlines in a warm dark brown (#3b2a20), never pure black and never a clean vector line: slightly wobbly and grainy like a real crayon, at their heaviest about 2% of the panel\'s shorter side. Hold the finished picture at thumbnail size: if the outline has thinned to a hairline there, it is several times too thin.',
+  '· Colour laid in like crayon and coloured pencil: flat-ish fills with visible soft pencil grain inside them, ONE crisp-edged cel shadow tone on the side away from a soft upper-left light, and ONE small highlight. No airbrush gradients, no rendered 3D look, no glossy plastic.',
+  '· The designer\'s warm storybook palette: mustard and golden yellow, brick red, dusty blue, moss and grass green, warm browns, soft pink and purple — slightly muted, never neon.',
+  '· Soft, rounded, chunky, friendly shapes with a readable silhouette at 48 px on a phone.',
   '· It is shown on a DARK NAVY night background (#1b2130): keep every shape light or saturated enough to read against it.',
   '· AN OBJECT WITH NO FACE IS NOT AN EXCEPTION TO ANY OF THIS. A block, a flag, a fan or a wisp of wind is painted to exactly the same standard as a character, with the same ink, the same cel shadow and the same highlight.',
   'AVOID — this is exactly how repaints go wrong:',
   '· photographic texture, painterly brush noise, 3D-render gloss, soft airbrushed gradients, lens flare',
   '· thin, grey, broken or missing outlines; flat clip-art with no shadow',
   '· fine detail that turns to mush when the sprite is shown small',
-  '· text, letters, numbers, logos, signatures or watermarks anywhere'
+  '· text, letters, numbers, logos, signatures or watermarks anywhere — the style sheet\'s handwritten labels, arrows and titles are NOT part of any sprite'
 ]
 const REF_REPAINT = '· The LAST attached image is the LAYOUT REFERENCE: the game\'s own flat drawing of every panel. FOLLOW ITS SHAPE, ITS POSE, ITS SIZE IN THE PANEL and ITS POSITION in the panel exactly, and take nothing else from it — not its line weight, its colours, its shading or its style. It is a flat stand-in for the painting.'
 const REF_FRESH = '· The LAST attached image is the LAYOUT REFERENCE: a flat placeholder that fixes WHERE things go and HOW BIG they are. Its flat bands, plain circles and hard single-colour shapes are NOTATION — never a look to copy. A sheet that comes back as the same flat shapes, neatly repainted, is a trace of the placeholder and unusable: every shape becomes a painted, inked, cel-shaded object.'
@@ -47,7 +53,8 @@ const BACKGROUND = [
   '· Nothing sits on a card, panel, badge, frame or rectangle of any kind; the magenta touches the outline on every side.',
   '· No drop shadow onto the background, no glow, no vignette. NOTHING IS EVER SEE-THROUGH: every piece is painted at full, solid colour.',
   '· The drawing itself contains no magenta or hot pink.',
-  '· The soft, cosy palette above is for the DRAWING. The ground is not part of the painting and is not toned down with it: it stays a vivid #FF00FF.'
+  '· The soft, cosy palette above is for the DRAWING. The ground is not part of the painting and is not toned down with it: it stays a vivid #FF00FF.',
+  '· The CREAM PAPER of the style sheet is NOT the ground here: no paper colour, no paper texture behind the drawing — only flat magenta.'
 ]
 const GRID_RULE = '· Do NOT draw the panel edges: no boxes, borders, gutters, guides or numbers, in any colour, magenta included. The panels are found by measuring.'
 
@@ -88,10 +95,20 @@ const notLine = (s: SheetDef): string[] => {
     '· No ground, no floor line, no shadow on the ground, no scenery, no sky, no extra props.'
   ]
   if (s.group === 'pweeg' || s.group === 'chad') out.push('· NO umbrella anywhere: the game paints the umbrella as its own layer and adds it on top. Hands that hold it hold empty air.')
-  if (s.model) {
-    const model = sheetById(s.model)
-    out.push(`· The FIRST attached image is the finished MODEL SHEET of ${model?.group === 'chad' ? 'Chad' : 'Pweeg'} — his approved design. Copy his head, eyes, limbs, colours, ink line and cel shading from it EXACTLY. Take NO layout from it: the grid, the poses and the positions all come from the LAST attached image.`)
+  if (KITE_GROUPS.has(s.group)) out.push('· NO umbrella anywhere: the KITE is his umbrella — closed on the ground, deployed in the air. No string, no person flying him, no sky.')
+  const also = alsoOf(s)
+  let n = 0
+  if (s.styleRef) {
+    n++
+    const kite = s.styleRef.includes('kite')
+    out.push(`· The FIRST attached image is the designer's STYLE SHEET (hand-drawn on cream paper). Copy its FINISH exactly: the soft crayon outlines, the coloured-pencil fills, the cel shading, the cosy palette.${kite && KITE_GROUPS.has(s.group) ? ' It is also the DESIGN of the kite characters: follow it for the diamond body, face, panels, arms, legs and bow-tail.' : FIGURE_GROUPS.has(s.group) ? ' Its characters are KITES — take only its drawing style from it: this character is NOT a kite.' : ' Take only its finish and, where it draws this very thing, its design.'} Take NO layout, no labels, no handwriting, no arrows and no paper from it.`)
   }
+  if (s.model) {
+    n++
+    const model = sheetById(s.model)
+    out.push(`· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is the finished MODEL SHEET of ${NAMES[model?.group ?? 'pweeg']} — his approved design. Copy his body, face, limbs, colours, line and shading from it EXACTLY. Take NO layout from it: the grid, the poses and the positions all come from the LAST attached image.`)
+  }
+  if (also.length) out.push(`· ${also.length + 1} images are attached; the LAST one is the layout reference.`)
   return out
 }
 
@@ -122,7 +139,7 @@ const oneLine = (s: SheetDef): string[] => {
   const n = s.use === 'pillar' ? 'All three pillars' : `All ${panels(s)} panels`
   return [
     `ONE ${s.one.toUpperCase()}: ${n} show the same ${s.one} — identical proportions, identical head and eye size, identical limb thickness, identical colours, identical ink line and identical cel shading in every panel. Only the moment changes.`,
-    `· Do not re-scale it between panels and do not re-scale it from the reference. A ${s.one} whose head is bigger in one panel, or white in one and cream in another, is several different ${s.one === 'Pweeg' || s.one === 'Chad' ? 'characters' : 'things'} side by side, and the sheet is unusable.`
+    `· Do not re-scale it between panels and do not re-scale it from the reference. A ${s.one} whose head is bigger in one panel, or white in one and cream in another, is several different ${/Pweeg|Chad/.test(s.one) ? 'characters' : 'things'} side by side, and the sheet is unusable.`
   ]
 }
 
@@ -131,7 +148,7 @@ const checkLine = (s: SheetDef): string[] => {
   if (s.use === 'nine') lines.push('· ONE block, filling the whole square image; magenta only in the four rounded-off corners.', '· The middle third of each edge and the centre are plain and even.')
   else if (s.use === 'pillar') lines.push('· THREE pillars, each one third of the width and the full height; no face on any of them.', '· The middle third of each pillar is a plain straight section.')
   else lines.push(`· ${s.cols} panels across, ${s.rows} down, ${panels(s)} in all, on a square canvas.`, '· Every drawing is the size and in the place the reference panel has it.')
-  if (s.group === 'pweeg' || s.group === 'chad') lines.push('· Not one umbrella anywhere. The same character, same size, same colours, in every panel.')
+  if (FIGURE_GROUPS.has(s.group)) lines.push('· Not one umbrella anywhere. The same character, same size, same colours, in every panel.')
   lines.push('· Every pixel that is not the drawing itself is flat, vivid #FF00FF — hold it against a pure magenta swatch, not against your memory of one.')
   return lines
 }
@@ -180,7 +197,8 @@ export const promptBody = (text: string): string => {
 }
 
 const DOC_TITLES: Record<PromptDoc, string> = {
-  'PROMPTS-CHARACTERS.md': 'Pweeg, Chad and the umbrella',
+  'PROMPTS-KITE.md': 'the KITE characters (Pweeg-Kite and Chad-Kite) — the kite build\'s player; paint these first',
+  'PROMPTS-CHARACTERS.md': 'Pweeg, Chad and the umbrella (the non-kite look, kept as a fallback)',
   'PROMPTS-ENEMIES.md': 'Walldorf and Prickbait',
   'PROMPTS-WORLD.md': 'platforms, props, the ventilator and the wind'
 }
@@ -208,7 +226,7 @@ export const promptDocs = (fits: Record<string, Fit> = {}): Record<PromptDoc, st
       '',
       'Generated from `src/umbrella/art/manifest.ts` + `prompts.ts` by `pnpm art:prompts -- --set umbrella` (or the `/#/umbrella-art` bench export). Do not edit by hand — edit the manifest and regenerate.',
       '',
-      'For each block: attach the images named in the heading\'s parenthesis IN THAT ORDER (from `art-sheets/umbrella/`; a `painted/…` model sheet first, the layout reference LAST), then paste the text inside the fence — the heading is for you, not the model. Paint the MODEL SHEETS first: every animation sheet of a character attaches his painted model. Save the return into `art-sheets/umbrella/painted/` under the reference\'s name (any extension), then `pnpm art:slice -- --set umbrella`.',
+      'For each block: attach the images named in the heading\'s parenthesis IN THAT ORDER (from `art-sheets/umbrella/`: the designer\'s `style/…` sheet first, then a `painted/…` model sheet, the layout reference LAST), then paste the text inside the fence — the heading is for you, not the model. Paint the MODEL SHEETS first (pweeg-kite-model, then chad-kite-model): every animation sheet of a character attaches his painted model. Save the return into `art-sheets/umbrella/painted/` under the reference\'s name (any extension), then `pnpm art:slice:umbrella`.',
       '',
       ...items.flatMap((s) => [block(promptFor(s, fits[s.id])), ''])
     ].join('\n')

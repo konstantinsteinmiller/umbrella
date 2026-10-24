@@ -409,7 +409,14 @@ export class Gemini {
       if (label || Date.now() - t0 > waitMs) break
       await sleep(400)
     }
-    return checkModel(label, this.models)
+    const verdict = checkModel(label, this.models)
+    // "Gemini Automatic" paints with Nano Banana whenever the Create image tool
+    // is on for the chat, so a denied-by-name picker is fine with the chip up.
+    // (Only the allow-list miss is waived; an explicit denied model stays denied.)
+    if (verdict.ok === false && /not on the allow-list/.test(verdict.why) && imageToolActive(await this.toolChips(page), this.tool)) {
+      return { ok: true, label: verdict.label, why: null }
+    }
+    return verdict
   }
 
   /** The tool chips above the prompt box: [{ icon, label }]. */

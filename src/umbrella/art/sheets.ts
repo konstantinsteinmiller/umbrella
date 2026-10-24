@@ -108,11 +108,15 @@ export const tiersFor = (levels: LevelLike[], resume: number, introSeen: boolean
   const here = new Set(sheetsForLevel(levels[resume]))
   const soon = new Set(levels.slice(resume + 1, resume + 4).flatMap(sheetsForLevel))
   const tiers: [string[], string[], string[]] = [[], [], []]
+  // The kite characters replace Pweeg and Chad when they shipped: the old
+  // look is only a fallback then, fetched last.
+  const kites = has('pweeg-kite-idle')
   for (const s of GAME_SHEETS) {
     if (!has(s.id)) continue
     let tier: 0 | 1 | 2 = s.tier
+    if (kites && (s.group === 'pweeg' || s.group === 'chad')) tier = 2
     if (LEVEL_THINGS.has(s.id)) tier = here.has(s.id) ? 0 : soon.has(s.id) ? 1 : 2
-    if (s.group === 'chad') tier = introSeen ? 2 : 0
+    if (s.group === 'chad-kite' || (s.group === 'chad' && !kites)) tier = introSeen ? 2 : 0
     tiers[tier].push(s.id)
   }
   return tiers

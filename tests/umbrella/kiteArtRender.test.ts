@@ -78,13 +78,13 @@ describe('kite build, every sheet painted', () => {
     }
   })
 
-  it('blits Pweeg through his registration box, feet on the anchor', () => {
+  it('blits Pweeg-Kite through his registration box, feet on the anchor', () => {
     fake.on = true
     const rec = recordingCtx()
     drawPweeg(rec.ctx, 100, 200, { pose: 'stand', facing: 1, w: 24, h: 36, time: 0 })
     expect(rec.log).toContain('translate(100,200)')
-    // FIGURE box: 80 units, anchor (0.5, 0.7) → (-40, -56, 80, 80).
-    expect(rec.log.find((l) => l.startsWith('drawImage('))).toMatch(/,-40,-56,80,80\)$/)
+    // KITE box: 96 units, anchor (0.5, 0.72) → (-48, -69.12, 96, 96).
+    expect(rec.log.find((l) => l.startsWith('drawImage('))).toMatch(/,-48,-69\.12,96,96\)$/)
   })
 
   it('mirrors a left-facing Pweeg and scales him with the tuned hitbox', () => {
@@ -94,13 +94,29 @@ describe('kite build, every sheet painted', () => {
     expect(rec.log).toContain('scale(-2,2)')
   })
 
-  it('paints Chad (sunglasses) from his own sheets and the umbrella from its own', () => {
+  it('paints Chad as Chad-Kite, and draws no umbrella over a kite (the kite IS the umbrella)', () => {
     fake.on = true
     const rec = recordingCtx()
     drawChad(rec.ctx, 0, 0, { action: 'float', t: 0.2, facing: 1, w: 24, h: 36 })
-    drawUmbrella(rec.ctx, 0, 0, { state: 'broken', tilt: 0.3, time: 0.1 })
-    expect(rec.count('drawImage')).toBe(3)
+    // Chad-Kite deployed, and nothing for the umbrella drawChad asks for after him.
+    expect(rec.count('drawImage')).toBe(1)
     expect(rec.count('arc')).toBe(0)
+    // An umbrella on its own (no kite just drawn) is still the painted umbrella.
+    drawUmbrella(rec.ctx, 0, 0, { state: 'broken', tilt: 0.3, time: 0.1 })
+    expect(rec.count('drawImage')).toBe(2)
+  })
+
+  it('selects the kite sheets for the player: deployed when open, torn when broken', () => {
+    fake.on = true
+    const sheetOf = (log: string[]) => log.filter((l) => l.startsWith('drawImage(')).length
+    const hold = recordingCtx()
+    drawPweeg(hold.ctx, 0, 0, { pose: 'hold', facing: 1, w: 24, h: 36, time: 0 })
+    // KITE_DEPLOYED box: 144 units, anchor (0.5, 0.8) → (-72, -115.2, 144, 144).
+    expect(hold.log.find((l) => l.startsWith('drawImage('))).toMatch(/,-72,-115\.2,144,144\)$/)
+    const broken = recordingCtx()
+    drawPweeg(broken.ctx, 0, 0, { pose: 'flail', facing: 1, w: 24, h: 36, time: 0, broken: true })
+    drawUmbrella(broken.ctx, 0, 0, { state: 'broken', tilt: 0, time: 0 })
+    expect(sheetOf(broken.log)).toBe(1)
   })
 
   it('switches off live (the playground A/B): the drawing is back', () => {

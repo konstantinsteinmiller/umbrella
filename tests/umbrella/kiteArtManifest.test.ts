@@ -28,7 +28,7 @@ describe('kite art manifest', () => {
   })
 
   it('asks for 16 frames per character animation', () => {
-    for (const s of GAME_SHEETS.filter((x) => x.group === 'pweeg' || x.group === 'chad')) expect(s.cols * s.rows, s.id).toBe(16)
+    for (const s of GAME_SHEETS.filter((x) => ['pweeg', 'chad', 'kite', 'chad-kite'].includes(x.group))) expect(s.cols * s.rows, s.id).toBe(16)
   })
 
   it('paints every model sheet before the sheets that attach it', () => {
@@ -129,17 +129,21 @@ describe('kite art staged loading', () => {
   const all = () => true
   it('loads the resume level\'s enemies and the first screen behind the splash', () => {
     const [t0, t1, t2] = tiersFor(levels, 0, true, all)
-    expect(t0).toEqual(expect.arrayContaining(['pweeg-idle', 'pweeg-walk', 'umbrella', 'platform', 'wind-wisps', 'walldorf-body', 'walldorf-face']))
+    expect(t0).toEqual(expect.arrayContaining(['pweeg-kite-idle', 'pweeg-kite-walk', 'pweeg-kite-hover', 'umbrella', 'platform', 'wind-wisps', 'walldorf-body', 'walldorf-face']))
+    // The kite characters replace Pweeg: his old sheets are only a late fallback.
+    expect(t2).toEqual(expect.arrayContaining(['pweeg-idle', 'pweeg-walk']))
     expect(t0).not.toContain('prickbait')
     expect(t1).toContain('prickbait') // the next level's
-    expect(t2).toEqual(expect.arrayContaining(['fan', 'chad-idle']))
+    expect(t2).toEqual(expect.arrayContaining(['fan', 'chad-kite-idle']))
     expect(new Set([...t0, ...t1, ...t2]).size).toBe(GAME_SHEETS.length)
   })
   it('runs outward from where a returning player resumes, and puts Chad first for a new one', () => {
     const [t0] = tiersFor(levels, 5, true, all)
     expect(t0).toEqual(expect.arrayContaining(['fan', 'props']))
     expect(t0).not.toContain('walldorf-body')
-    expect(tiersFor(levels, 0, false, all)[0]).toEqual(expect.arrayContaining(['chad-idle', 'chad-walk', 'chad-hover']))
+    expect(tiersFor(levels, 0, false, all)[0]).toEqual(expect.arrayContaining(['chad-kite-idle', 'chad-kite-walk', 'chad-kite-hover']))
+    // Without kite sheets, plain Chad leads for a new player.
+    expect(tiersFor(levels, 0, false, (id) => !id.includes('kite'))[0]).toEqual(expect.arrayContaining(['chad-idle', 'chad-walk', 'chad-hover']))
   })
   it('never requests a sheet that did not ship (no 404 in a portal console)', () => {
     const [t0, t1, t2] = tiersFor(levels, 0, false, (id) => id === 'umbrella')
