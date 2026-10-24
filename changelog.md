@@ -6,7 +6,7 @@ Umbrella — changelog (newest first)
 - [x] Every kite level is proven beatable: a bot plays the real engine (scripts/kite-solve.mjs) and the test suite replays its recorded wins; it also checks safe spawns and a rising difficulty curve across the worlds
 
 - [x] Painted kite art (roadmap #6, kite build only): Pweeg and Chad are kites in a cream-paper crayon style (20 spritesheets: idle, walk, float, fall, terminal, broken, cheer, flattened, destroyed, front; platforms, finish, switch platform, ventilator, checkpoint); no umbrella is drawn over a kite. Enemies, props and wind wisps stay vector until painted; the normal /umbrella build contains no painted art
-- [x] Art Desk accepts Gemini's "Automatic" model when the Create image tool is on
+- [x] Kite art update: enemy art painted (Prickbait, Walldorf body and face, wind wisps); the dance sheet repainted (it had a pink ground that flickered), kite Pweeg no longer wears sunglasses (Chad's trademark); the Art Desk accepts Gemini's "Automatic" model when the Create image tool is on
 
 == Revision 9 — 2026-10-23 ==
 - [x] Ventilator prop (editor tool, shortcut W; labels in all 21 locales): whirring blades; landing in one shreds the player
