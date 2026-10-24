@@ -5,6 +5,9 @@ Umbrella — changelog (newest first)
 - [x] The kite build plays only these levels: no levels server (no pull, push or sync, cutscenes included), no community levels, the repo's campaign overrides and order are not used; its save (progress, local level edits, tuning) is kept apart from the normal game's; players can still edit the kite levels in the level editor, in their browser
 - [x] Every kite level is proven beatable: a bot plays the real engine (scripts/kite-solve.mjs) and the test suite replays its recorded wins; it also checks safe spawns and a rising difficulty curve across the worlds
 
+- [x] Painted kite art (roadmap #6, kite build only): Pweeg and Chad are kites in a cream-paper crayon style (20 spritesheets: idle, walk, float, fall, terminal, broken, cheer, flattened, destroyed, front; platforms, finish, switch platform, ventilator, checkpoint); no umbrella is drawn over a kite. Enemies, props and wind wisps stay vector until painted; the normal /umbrella build contains no painted art
+- [x] Art Desk accepts Gemini's "Automatic" model when the Create image tool is on
+
 == Revision 9 — 2026-10-23 ==
 - [x] Ventilator prop (editor tool, shortcut W; labels in all 21 locales): whirring blades; landing in one shreds the player
 - [x] The intro stops on Pweeg looking at the player until the first key, tap or stick move, then Level 1 begins (cutscene editor: "Wait for the player at")
