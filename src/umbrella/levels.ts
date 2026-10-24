@@ -3,6 +3,10 @@
 // World coordinates: y grows downward. Levels 1–9 are one 1280×720 screen;
 // 10–12 are larger worlds the camera zooms out to fit ("far away").
 
+import { isKite } from './kite'
+import { KITE_LEVELS } from './kiteLevels'
+import { FIN, MINE, P, PILLAR, SCREEN, SPIKES, SUPER, UP, WIND } from './levelKit'
+
 export type Vec = { x: number; y: number }
 
 /** How a platform moves. Position is the platform's CENTRE at time t. */
@@ -121,22 +125,10 @@ export interface LevelDef {
   editedAt?: number
 }
 
-const P = (x: number, y: number, w = 200, h = 20, extra: Partial<PlatformDef> = {}): PlatformDef => ({ x, y, w, h, ...extra })
-const FIN = (x: number, y: number, w = 160, motion?: Motion): PlatformDef => ({ x, y, w, h: 20, finish: true, motion })
-const UP = (x: number, y: number, w: number, h: number, speed = 260): WindDef => ({ x, y, w, h, dir: 'up', speed })
-
-const SUPER = (x: number, y: number, w: number, h: number, speed = 760): WindDef => ({ x, y, w, h, dir: 'up', speed, super: true })
-const WIND = (dir: WindDir, x: number, y: number, w: number, h: number, speed: number): WindDef => ({ x, y, w, h, dir, speed })
-/** A pillar enemy centred on (cx, cy). */
-const PILLAR = (cx: number, cy: number, motion?: Motion, w = 40, h = 200): HazardDef => ({ kind: 'pillar', x: cx - w / 2, y: cy - h / 2, w, h, motion })
-/** A spiky mine centred on (cx, cy). */
-const MINE = (cx: number, cy: number, motion?: Motion, r = 26): HazardDef => ({ kind: 'mine', x: cx - r, y: cy - r, w: r * 2, h: r * 2, motion })
-const SPIKES = (x: number, y: number, w: number, facing: 'up' | 'down'): HazardDef => ({ kind: 'spikes', x, y, w, h: 26, facing })
 const CEILING = P(0, 90, 1280, 30)
 
-const SCREEN = { w: 1280, h: 720 }
-
-export const LEVELS: LevelDef[] = [
+/** The campaign (the server's levels bucket and the editor's overrides patch it at runtime). */
+const CAMPAIGN: LevelDef[] = [
   // 1 — walk off, an updraft carries you over the gap to the finish.
   {
     id: 1, world: SCREEN, spawn: { x: 160, y: 400 },
@@ -351,3 +343,8 @@ export const LEVELS: LevelDef[] = [
     winds: [UP(380, 320, 400, 400), UP(1200, 320, 400, 400), UP(2020, 320, 400, 400)]
   }
 ]
+
+/** The levels the game plays: the campaign, or on the kite build (/umbrella/kite/) the
+ *  100 kite levels instead — never both. customLevels.ts rebuilds this array in place
+ *  (order, editor overrides), so it is a copy of its own. */
+export const LEVELS: LevelDef[] = isKite ? [...KITE_LEVELS] : CAMPAIGN

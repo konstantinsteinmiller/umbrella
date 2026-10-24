@@ -1,0 +1,58 @@
+{
+  "render:stand": {
+    "calls": 974,
+    "hash": "50da96bd73e74cc69de7f247"
+  },
+  "render:walk": {
+    "calls": 974,
+    "hash": "1e97870b56c0ceed2809d448"
+  },
+  "render:hold": {
+    "calls": 1019,
+    "hash": "9b4d4d6441060647bf64575e"
+  },
+  "render:flail": {
+    "calls": 974,
+    "hash": "0c06a0b725123322d7060938"
+  },
+  "render:sideways": {
+    "calls": 977,
+    "hash": "9e79836cc68a77f55545c046"
+  },
+  "render:terminal": {
+    "calls": 977,
+    "hash": "3bd152a5eccef5b78b4c7e8a"
+  },
+  "render:broken": {
+    "calls": 997,
+    "hash": "5a7c8b9aea6cd5b9b49dc63d"
+  },
+  "render:splat": {
+    "calls": 944,
+    "hash": "757c975aeb721c324e3b918b"
+  },
+  "render:hit": {
+    "calls": 944,
+    "hash": "daa42fe5bca5e5ea83a55329"
+  },
+  "render:win": {
+    "calls": 978,
+    "hash": "a51afa37e14adbda250665a0"
+  },
+  "render:squiggles": {
+    "calls": 664,
+    "hash": "948b4415cd1498957d09d8e8"
+  },
+  "pweeg": {
+    "calls": 540,
+    "hash": "c8d876b3667fcefadd50868e"
+  },
+  "chad": {
+    "calls": 439,
+    "hash": "816434b9587c48d0b690e8db"
+  },
+  "enemies": {
+    "calls": 393,
+    "hash": "a245dad8b73ed3e3f8d94970"
+  }
+}

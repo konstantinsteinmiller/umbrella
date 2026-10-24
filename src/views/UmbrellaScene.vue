@@ -37,6 +37,11 @@ const router = useRouter()
 
 /** A level handed over by the editor's "Test" button: it loops until you go back. */
 const testing = testLevel.value
+/** The first load waits for a click on Play: it hands the page the user's interaction focus, so the
+ *  browser lets the intro's sound and the music start. Coming back from the editor needs none. */
+let startedOnce = false
+const playBtn = ref<HTMLButtonElement | null>(null)
+const started = ref(!!testing || startedOnce)
 /** A player level (share link or community) played instead of the campaign. */
 const playing = ref<CustomPlay | null>(testing ? null : customPlay.value)
 /** The level under test; ‹ › and a horizontal swipe walk it through the draft, the campaign and the library. */
@@ -414,7 +419,7 @@ const frame = (now: number) => {
     if (!isGamePaused.value && !showPause.value && (splashGone.value || introWait > 5)) intro.update(dtReal)
     if (intro.done) endIntro()
   }
-  if (!intro && !isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
+  if (!intro && started.value && !isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
     acc += dtReal
     while (acc >= DT) {
       tick()
@@ -452,7 +457,7 @@ const RIGHT = new Set(['ArrowRight', 'KeyD'])
 const GUI_CODE = 'cmonc'
 let typed = ''
 const onKey = (down: boolean) => (e: KeyboardEvent) => {
-  if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return
+  if ((e.target as HTMLElement | null)?.tagName === 'INPUT' || !started.value) return
   if (down) unlockAudio() // a keyboard-only first visit must hear the intro too
   if (introOn.value && !showPause.value) {
     if (down && !e.repeat) {
@@ -562,10 +567,20 @@ onMounted(() => {
   gui.setLevel(world.level)
   gui.toggle(editorUnlocked.value)
   raf = requestAnimationFrame(frame)
+  if (started.value) begin()
+  else playBtn.value?.focus()
+})
+const begin = () => {
   if (!testing) void openSharedLink()
   // A new player's first start: the intro, then Level 1 (not when a shared level opens).
   if (!testing && !playing.value && !levelParam() && levelIndex.value === 0 && !getState<boolean>(INTRO_SEEN, false)) startIntro()
-})
+}
+const onPlay = () => {
+  unlockAudio()
+  startedOnce = true
+  started.value = true
+  begin()
+}
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
@@ -581,6 +596,10 @@ onUnmounted(() => {
 <template>
   <div class="umbrella-scene" @pointerdown="onAnyPointer" @pointerdown.capture="onSwipeDown" @pointerup="onSwipeUp">
     <canvas ref="canvas" class="umbrella-canvas" />
+
+    <div v-if="!started" class="start-screen">
+      <button ref="playBtn" class="start-play" autofocus @click="onPlay">▶ {{ t('umbrella.community.play') }}</button>
+    </div>
 
     <!-- Designer tools behind the "cmonc" cheat: English only, like the lil-gui panel. -->
     <button v-if="introOn && skipShown" class="intro-skip" @click.stop="endIntro">{{ t('umbrella.intro.skip') }}</button>
@@ -835,6 +854,27 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .toast.info { background: #2563eb; top: 112px; }
+.start-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 16, 24, 0.55);
+}
+.start-play {
+  padding: 18px 56px;
+  border-radius: 999px;
+  border: 3px solid #fff;
+  background: #34d399;
+  color: #0d1018;
+  font: 900 32px system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+.start-play:hover, .start-play:focus-visible { transform: scale(1.05); outline: none; }
 .intro-skip {
   position: absolute;
   right: calc(20px + env(safe-area-inset-right));

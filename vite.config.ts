@@ -337,34 +337,46 @@ const artBenchPlugin = (): Plugin => ({
       }
       return true
     }
+    // `?set=umbrella`: the Umbrella kite art bench (/#/art-sheets/umbrella)
+    // writes into art-sheets/umbrella/ instead — its own references, index
+    // and prompt documents, beside barrage's.
+    const dirOf = (req: Req): string | null => {
+      const set = new URL(req.url ?? '', 'http://bench').searchParams.get('set')
+      if (!set) return ART_SHEETS_DIR
+      return set === 'umbrella' ? resolve(ART_SHEETS_DIR, 'umbrella') : null
+    }
     server.middlewares.use('/__maw/art-export/file', async (req, res) => {
       if (!allowed(req, res)) return
+      const dir = dirOf(req)
+      if (!dir) return refuse(res, 400, 'unknown set')
       const name = new URL(req.url ?? '', 'http://bench').searchParams.get('name') ?? ''
       if (!/^[a-z0-9][a-z0-9._-]*\.png$/i.test(name)) return refuse(res, 400, `bad name "${name}"`)
       const bytes = await readBytes(req)
       if (bytes.length < 8 || bytes.readUInt32BE(0) !== 0x89504e47) return refuse(res, 400, 'not a PNG')
-      mkdirSync(ART_SHEETS_DIR, { recursive: true })
-      writeFileSync(resolve(ART_SHEETS_DIR, name), bytes)
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(resolve(dir, name), bytes)
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({ ok: true, name, bytes: bytes.length }))
     })
     server.middlewares.use('/__maw/art-export/meta', async (req, res) => {
       if (!allowed(req, res)) return
+      const dir = dirOf(req)
+      if (!dir) return refuse(res, 400, 'unknown set')
       let body: { index?: unknown; docs?: Record<string, unknown> }
       try {
         body = JSON.parse(await readBody(req))
       } catch (e) {
         return refuse(res, 400, `bad json: ${(e as Error).message}`)
       }
-      mkdirSync(ART_SHEETS_DIR, { recursive: true })
+      mkdirSync(dir, { recursive: true })
       const written: string[] = []
       if (body.index && typeof body.index === 'object') {
-        writeFileSync(resolve(ART_SHEETS_DIR, 'sheet-index.json'), JSON.stringify(body.index, null, 2) + '\n', 'utf-8')
+        writeFileSync(resolve(dir, 'sheet-index.json'), JSON.stringify(body.index, null, 2) + '\n', 'utf-8')
         written.push('sheet-index.json')
       }
       for (const [name, text] of Object.entries(body.docs ?? {})) {
         if (!/^PROMPTS-[A-Z]+\.md$/.test(name) || typeof text !== 'string') continue
-        writeFileSync(resolve(ART_SHEETS_DIR, name), text, 'utf-8')
+        writeFileSync(resolve(dir, name), text, 'utf-8')
         written.push(name)
       }
       res.setHeader('Content-Type', 'application/json')
@@ -511,7 +523,8 @@ export default defineConfig(({ mode, command }) => {
   // editor saves persist to `data/campaign-overrides.json` in the repo.
   // Every build (portal builds too) pulls the bucket into the repo file; only the Pages
   // and dev builds also read it at runtime (their env files carry the URL).
-  const levelsBucketUrl = (env.VITE_APP_LEVELS_BUCKET_URL || loadEnv('production', process.cwd(), '').VITE_APP_LEVELS_BUCKET_URL || '').trim()
+  // The kite build is its own game: it never pulls the server's campaign.
+  const levelsBucketUrl = env.VITE_APP_KITE === 'true' ? '' : (env.VITE_APP_LEVELS_BUCKET_URL || loadEnv('production', process.cwd(), '').VITE_APP_LEVELS_BUCKET_URL || '').trim()
   plugins.push(mawCampaignOverridesPlugin(command === 'build' ? levelsBucketUrl : ''))
 
   // Drop-in override manifest — so the runtime probes only request art/SFX
@@ -1110,7 +1123,13 @@ export default defineConfig(({ mode, command }) => {
       watch: { ignored: ['**/art-sheets/**', '**/preview-videos/**'] }
     },
     define: {
-      APP_VERSION: JSON.stringify(appVersion)
+      APP_VERSION: JSON.stringify(appVersion),
+      // The kite flag (src/umbrella/kite.ts) as a LITERAL in every build. A key
+      // no env file sets is not folded by Vite — it stays a runtime read of
+      // import.meta.env — so without this every non-kite build would carry the
+      // kite art layer's chunk and its `isKite && …` checks. Folded to 'false',
+      // the whole art branch is dead code there.
+      'import.meta.env.VITE_APP_KITE': JSON.stringify(env.VITE_APP_KITE === 'true' ? 'true' : 'false')
     },
     plugins: [
       tailwindcss(),
@@ -1150,8 +1169,16 @@ export default defineConfig(({ mode, command }) => {
         // the strings out of the bundle entirely. Same pattern for the heavy
         // `useCrazyGames` module which is statically imported by many Vue
         // components for `stopGameplay` / `triggerHappytime` etc.
+        // The kite art layer (roadmap #6) ships ONLY in the kite build. Its one
+        // entry point is a dynamic import behind `isKite`, but the obfuscated
+        // builds keep the dead branch, so the chunk — and the painted sheets
+        // its glob pulls in — would ride along in every portal zip. The stub
+        // keeps both out of every non-kite build.
+        ...(env.VITE_APP_KITE === 'true' ? {} : {
+          '@/umbrella/art/install': fileURLToPath(new URL('./src/umbrella/art/install.stub.ts', import.meta.url))
+        }),
         ...(env.VITE_APP_CRAZY_WEB === 'true' ? {} : {
-          '@/use/useCrazyGames': fileURLToPath(new URL('./src/use/useCrazyGames.stub.ts', import.meta.url)),
+          '@/use/useCrazyGames':fileURLToPath(new URL('./src/use/useCrazyGames.stub.ts', import.meta.url)),
           '@/use/ads/CrazyGamesProvider': fileURLToPath(new URL('./src/use/ads/CrazyGamesProvider.stub.ts', import.meta.url))
         }),
         ...(env.VITE_APP_GAME_DISTRIBUTION === 'true' ? {} : {

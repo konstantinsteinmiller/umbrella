@@ -1,9 +1,17 @@
 // ─── Canvas renderer (prototype look: white blocks on a dark field) ─────────
+//
+// The kite build (/umbrella/kite/) can draw painted sheets instead of these
+// shapes: each drawable first offers itself to `kiteArt` (art/hooks.ts), and
+// draws its vector self when the slot is empty or declines. `isKite` is a
+// build-time constant, so outside the kite build every such line folds away
+// (tests/umbrella/vectorGolden.test.ts pins the vector path call for call).
 
 import { channelOn, checkpointBox, contactOf, liveWind, platformActive, type Hazard, type World } from './engine'
 import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
 import type { ButtonDef, CheckpointDef, WindDef } from './levels'
+import { isKite } from './kite'
+import { kiteArt } from './art/hooks'
 
 /** One colour per button channel: a button and everything it switches share it. */
 export const CHANNEL_COLORS = ['#f59e0b', '#22d3ee', '#a78bfa', '#4ade80', '#f472b6', '#f87171']
@@ -138,10 +146,9 @@ const drawWind = (ctx: CanvasRenderingContext2D, wind: WindDef, time: number) =>
 
 /** A floor button in its channel's colour: raised when off, pressed flat when on.
  *  A timed one shows the seconds left above it. */
-const drawButton = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, left: number) => {
-  const col = channelColor(b.channel)
+export const drawButton = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, left: number, col = channelColor(b.channel), base = 'rgba(255, 255, 255, 0.25)') => {
   const capH = on ? b.h * 0.35 : b.h
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'
+  ctx.fillStyle = base
   ctx.fillRect(b.x - 4, b.y + b.h - 4, b.w + 8, 4)
   ctx.fillStyle = col
   ctx.beginPath()
@@ -163,13 +170,14 @@ const drawButton = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, le
 }
 
 /** A checkpoint flag: grey until touched, green and waving once it is yours. */
-const drawCheckpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: boolean, time: number) => {
+export const drawCheckpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: boolean, time: number, waiting = 'rgba(255, 255, 255, 0.45)') => {
+  if (isKite && kiteArt.checkpoint?.(ctx, c, reached, time)) return
   const box = checkpointBox(c)
   const poleX = box.x + 6
   ctx.fillStyle = FG
   ctx.fillRect(poleX - 2, box.y, 4, box.h)
   const wave = reached ? Math.sin(time * 6) * 3 : 0
-  ctx.fillStyle = reached ? '#4ade80' : 'rgba(255, 255, 255, 0.45)'
+  ctx.fillStyle = reached ? '#4ade80' : waiting
   ctx.beginPath()
   ctx.moveTo(poleX + 2, box.y + 2)
   ctx.lineTo(poleX + 30, box.y + 12 + wave)
@@ -178,7 +186,7 @@ const drawCheckpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached
   ctx.fill()
 }
 
-const drawSpikes = (ctx: CanvasRenderingContext2D, h: Hazard) => {
+export const drawSpikes = (ctx: CanvasRenderingContext2D, h: Pick<Hazard, 'x' | 'y' | 'w' | 'h' | 'facing'>) => {
   ctx.fillStyle = HAZARD
   const n = Math.max(1, Math.round(h.w / 26))
   const sw = h.w / n
@@ -198,8 +206,9 @@ const drawSpikes = (ctx: CanvasRenderingContext2D, h: Hazard) => {
   ctx.fill()
 }
 
-/** A ventilator: a boxed grille with blades whirring at a speed that says "do not land here". */
-const drawFan = (ctx: CanvasRenderingContext2D, h: Hazard, time: number) => {
+/** A ventilator's parts, back to front (the kite art bench bakes each on its
+ *  own): the boxed housing, the whirring blades, the hub. */
+export const fanHousing = (ctx: CanvasRenderingContext2D, h: Pick<Hazard, 'x' | 'y' | 'w' | 'h'>) => {
   const cx = h.x + h.w / 2
   const cy = h.y + h.h / 2
   const r = Math.min(h.w, h.h) / 2
@@ -214,14 +223,21 @@ const drawFan = (ctx: CanvasRenderingContext2D, h: Hazard, time: number) => {
   ctx.beginPath()
   ctx.arc(cx, cy, r * 0.82, 0, Math.PI * 2)
   ctx.fill()
+}
+export const fanBlades = (ctx: CanvasRenderingContext2D, h: Pick<Hazard, 'x' | 'y' | 'w' | 'h'>, angle: number, blur = true) => {
+  const cx = h.x + h.w / 2
+  const cy = h.y + h.h / 2
+  const r = Math.min(h.w, h.h) / 2
   // Blades: four, spinning fast, with a faint blur disc behind them.
-  ctx.fillStyle = 'rgba(255, 90, 95, 0.18)'
-  ctx.beginPath()
-  ctx.arc(cx, cy, r * 0.78, 0, Math.PI * 2)
-  ctx.fill()
+  if (blur) {
+    ctx.fillStyle = 'rgba(255, 90, 95, 0.18)'
+    ctx.beginPath()
+    ctx.arc(cx, cy, r * 0.78, 0, Math.PI * 2)
+    ctx.fill()
+  }
   ctx.save()
   ctx.translate(cx, cy)
-  ctx.rotate(time * 18)
+  ctx.rotate(angle)
   ctx.fillStyle = HAZARD
   for (let i = 0; i < 4; i++) {
     ctx.rotate(Math.PI / 2)
@@ -230,16 +246,27 @@ const drawFan = (ctx: CanvasRenderingContext2D, h: Hazard, time: number) => {
     ctx.fill()
   }
   ctx.restore()
+}
+export const fanHub = (ctx: CanvasRenderingContext2D, h: Pick<Hazard, 'x' | 'y' | 'w' | 'h'>) => {
+  const r = Math.min(h.w, h.h) / 2
   ctx.fillStyle = '#e8ecf5'
   ctx.beginPath()
-  ctx.arc(cx, cy, r * 0.12, 0, Math.PI * 2)
+  ctx.arc(h.x + h.w / 2, h.y + h.h / 2, r * 0.12, 0, Math.PI * 2)
   ctx.fill()
+}
+
+/** A ventilator: a boxed grille with blades whirring at a speed that says "do not land here". */
+const drawFan = (ctx: CanvasRenderingContext2D, h: Hazard, time: number) => {
+  fanHousing(ctx, h)
+  fanBlades(ctx, h, time * 18)
+  fanHub(ctx, h)
 }
 
 const drawHazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => {
   const pl = w.player
   const px = pl.x + pl.w / 2
   const py = pl.y + pl.h / 2
+  if (isKite && kiteArt.hazard?.(ctx, h, w)) return
   if (h.kind === 'spikes') drawSpikes(ctx, h)
   else if (h.kind === 'fan') drawFan(ctx, h, w.time)
   else if (h.kind === 'mine') drawPrickbait(ctx, h.x + h.w / 2, h.y + h.h / 2, h.w / 2, px, py, w.time)
@@ -266,6 +293,14 @@ const fallPoseTarget = (w: World, t: Tuning): number => {
   return 0
 }
 
+/** Did an enemy (or a fan, or spikes) end this run, rather than the ground?
+ *  The kite art pops Pweeg into a puff for the first, flattens him for the second. */
+const hitByEnemy = (w: World): boolean => {
+  const pl = w.player
+  return w.hazards.some((h) => contactOf(h) === 'deadly'
+    && pl.x < h.x + h.w + 2 && pl.x + pl.w > h.x - 2 && pl.y < h.y + h.h + 2 && pl.y + pl.h > h.y - 2)
+}
+
 const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: number) => {
   const pl = w.player
   const fx = pl.x + pl.w / 2
@@ -274,6 +309,10 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   const umbrellaState = pl.broken ? 'broken' : pl.open ? 'open' : 'furled'
   ctx.save()
   if (w.phase === 'splat') {
+    if (isKite && kiteArt.splat?.(ctx, fx, fy, look('stand'), w.phaseTime, hitByEnemy(w))) {
+      ctx.restore()
+      return
+    }
     // Cartoony splat: squashed flat and wide.
     const k = Math.min(1, w.phaseTime / 0.08)
     ctx.translate(fx, fy)
@@ -316,6 +355,42 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   ctx.restore()
 }
 
+/** The Finish label over a painted finish block (kite): the vector path writes
+ *  it inline, below — same font, same place, ink to suit the honey-gold block. */
+const drawFinishLabel = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number }, labels: Labels, zoomOut: number) => {
+  ctx.textAlign = 'center'
+  if (zoomOut <= 1) {
+    ctx.fillStyle = '#4a3010'
+    ctx.font = `700 ${Math.round(Math.min(p.h - 4, 14))}px system-ui, sans-serif`
+    ctx.textBaseline = 'middle'
+    ctx.fillText(labels.finish, p.x + p.w / 2, p.y + p.h / 2 + 1)
+  } else {
+    ctx.fillStyle = FG
+    ctx.font = `700 ${Math.round(16 * zoomOut)}px system-ui, sans-serif`
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(labels.finish, p.x + p.w / 2, p.y - 8)
+  }
+}
+
+/** What a painted button still needs drawn live (kite): a timed one's seconds,
+ *  a toggle's state dot. */
+const drawButtonMarks = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, left: number) => {
+  const col = channelColor(b.channel)
+  const capH = on ? b.h * 0.35 : b.h
+  if (on && b.duration && Number.isFinite(left)) {
+    ctx.fillStyle = col
+    ctx.font = '700 14px system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.fillText(Math.ceil(left).toString(), b.x + b.w / 2, b.y - 4)
+  } else if (!b.duration) {
+    ctx.fillStyle = on ? FG : BG
+    ctx.beginPath()
+    ctx.arc(b.x + b.w / 2, b.y + b.h - capH / 2 - 2, 3, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
 /** `cam` overrides the game camera (the editor's own zoom and pan). */
 /** Extra drawing choices (the intro cutscene uses them). */
 export interface RenderOptions {
@@ -339,6 +414,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
 
   for (const def of w.level.winds) {
     const wind = liveWind(w, def)
+    if (isKite && kiteArt.wind?.(ctx, wind, def, w, opts.windStyle === 'squiggles')) continue
     if (wind.speed > 0) (opts.windStyle === 'squiggles' ? drawSquiggles : drawWind)(ctx, wind, w.time)
     if (def.channel !== undefined && def.switched) {
       // A switchable current wears its channel's colour as a dashed frame.
@@ -356,6 +432,10 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
   for (const p of w.platforms) {
+    if (isKite && kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel))) {
+      if (p.finish && platformActive(w, p)) drawFinishLabel(ctx, p, labels, zoomOut)
+      continue
+    }
     if (p.channel !== undefined) {
       const on = platformActive(w, p)
       ctx.save()
@@ -392,7 +472,12 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     }
   }
 
-  for (const b of w.level.buttons ?? []) drawButton(ctx, b, channelOn(w, b.channel), (w.channels[b.channel] ?? 0) - w.time)
+  for (const b of w.level.buttons ?? []) {
+    const on = channelOn(w, b.channel)
+    const left = (w.channels[b.channel] ?? 0) - w.time
+    if (isKite && kiteArt.button?.(ctx, b, on, channelColor(b.channel))) drawButtonMarks(ctx, b, on, left)
+    else drawButton(ctx, b, on, left)
+  }
   for (const h of w.hazards) drawHazard(ctx, h, w)
 
   if (!opts.hidePlayer) drawPlayer(ctx, w, t, dt)

@@ -3,6 +3,7 @@ name: Deploy Static Content to Pages
 # Publishes:
 #   /umbrella/      → latest main
 #   /umbrella/<N>/  → every GDD revision (N = scripts/revision.mjs)
+#   /umbrella/kite/ → the 100 kite levels with the painted art (no server)
 #   /umbrella/sounds/ → sound + music listening page (latest)
 #
 # Each push to main moves the tag `revision-<current N>` to that commit, so a
@@ -79,6 +80,14 @@ jobs:
         run: |
           N="${{ steps.rev.outputs.n }}"
           npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N"
+
+      - name: Build kite levels + painted art → /umbrella/kite/
+        working-directory: main
+        env:
+          VITE_APP_KITE: 'true'
+          # The kite build never talks to the levels bucket.
+          VITE_APP_LEVELS_BUCKET_URL: ''
+        run: npx vite build --mode kite --base=/umbrella/kite/ --outDir="$GITHUB_WORKSPACE/dist/kite"
 
       - name: Build sound listening page → /umbrella/sounds/
         working-directory: main

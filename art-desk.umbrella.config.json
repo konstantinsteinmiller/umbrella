@@ -1,0 +1,30 @@
+{
+  "sheetsDir": "art-sheets/umbrella",
+  "paintedDir": "art-sheets/umbrella/painted",
+  "indexFile": "art-sheets/umbrella/sheet-index.json",
+  "outDir": "src/assets/umbrella-art",
+  "slice": ["node", "scripts/art/slice-sheets.mjs", "--set", "umbrella", "--quality", "0.88", "{painting}"],
+  "compressRoot": "src/assets/umbrella-art",
+  "compress": null,
+  "port": 5179,
+  "alsoHint": "Paint the character MODEL sheets first (Pweeg — character model sheet, then Chad — character model sheet, in PROMPTS-CHARACTERS.md): every animation sheet of a character attaches its painted model from art-sheets/umbrella/painted/.",
+  "gemini": {
+    "profileDir": "~/.cache/mcp-browser-profiles/umbrella-gemini",
+    "gapSeconds": 90,
+    "jitterSeconds": 60,
+    "dailyCap": 40,
+    "timeoutSeconds": 300,
+    "retries": 1,
+    "noImageRetries": 1,
+    "noImagePauseSeconds": 120,
+    "allowedModels": ["Fast", "Flash", "Thinking", "Pro", "Nano Banana", "Image"],
+    "deniedModels": ["Lite"],
+    "requireModelLabel": false,
+    "compositeAttachments": false,
+    "imageTool": {
+      "required": true,
+      "icons": ["image_create"],
+      "labels": ["Bild erstellen", "Bilder erstellen", "Create image", "Create images", "Bilder", "Images", "Image"]
+    }
+  }
+}

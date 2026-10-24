@@ -52,8 +52,17 @@ import { join, resolve, dirname, basename, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const INDEX = join(ROOT, 'art-sheets', 'sheet-index.json')
-const PAINTED = join(ROOT, 'art-sheets', 'painted')
+// umbrella: `--set umbrella` slices the Umbrella KITE art instead — its own
+// sheets folder (art-sheets/umbrella/: references, index, painted/, receipt)
+// and its own output root (src/assets/umbrella-art, kept out of public/ so
+// only the kite build bundles it). Without it: the barrage set, as before.
+const SET_AT = process.argv.indexOf('--set')
+const SET = SET_AT > 1 ? process.argv[SET_AT + 1] ?? null : null
+const SET_OUT = { umbrella: 'src/assets/umbrella-art' }
+if (SET && !SET_OUT[SET]) { console.error(`--set ${SET} is unknown (known: ${Object.keys(SET_OUT).join(', ')})`); process.exit(1) }
+const SHEETS_ROOT = SET ? join(ROOT, 'art-sheets', SET) : join(ROOT, 'art-sheets')
+const INDEX = join(SHEETS_ROOT, 'sheet-index.json')
+const PAINTED = join(SHEETS_ROOT, 'painted')
 const CHROME_CANDIDATES = [
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
@@ -67,7 +76,7 @@ const CHROME_CANDIDATES = [
 // Options that consume the next argument. Everything else that is not a flag
 // is an input path — walked in order rather than filtered, so `--out public`
 // cannot leave "public" behind looking like a file to slice.
-const VALUED = new Set(['--sheet', '--out', '--size', '--quality', '--fit', '--frames'])
+const VALUED = new Set(['--set', '--sheet', '--out', '--size', '--quality', '--fit', '--frames'])
 const argv = process.argv.slice(2)
 const opts = {}
 const files = []
@@ -93,7 +102,7 @@ const num = (name, fallback) => {
 
 const DRY = flag('--dry')
 const STALE_OK = flag('--stale-ok')
-const OUT_ROOT = resolve(ROOT, opts['--out'] ?? 'public')
+const OUT_ROOT = resolve(ROOT, opts['--out'] ?? (SET ? SET_OUT[SET] : 'public'))
 const QUALITY = num('--quality', 0.92)
 const FORCE_SHEET = opts['--sheet'] ?? null
 
@@ -162,7 +171,10 @@ Slice repainted contact sheets back into drop-in bitmaps.
   --sheet <id>     Force the target by its manifest id (unit-fighter-3, boss-orc,
                    vfx-impact-fire, …).
                    Otherwise inferred from the filename, then from the aspect ratio.
+  --set umbrella   Slice the Umbrella kite art (art-sheets/umbrella/ →
+                   src/assets/umbrella-art). Default: the barrage set.
   --out <dir>      Where targets are written, relative to the repo. Default: public
+                   (src/assets/umbrella-art with --set umbrella)
   --size <px>      Force a frame's height, in px, for this run. Default: 256,
                    lowered to the sheet's own cap where the index carries a
                    smaller one, raised to the biggest resized copy it ships.
@@ -294,6 +306,10 @@ const TARGETS = [
     // sheets skip the measured-grid refusal (see the header).
     layout: a.layout ?? 'strip',
     gridCheck: a.gridCheck ?? 'measure',
+    // umbrella kite: a nine-slice block or a pillar fills whole panels by
+    // design — its centre panel holds no magenta at all, and the flood
+    // fallback would adopt the block's own sandstone as "the background".
+    noAutoBg: a.autoBg === false,
     maxEdge: a.maxEdge,
     exact: a.exact === true,
     target: a.target,
@@ -441,7 +457,7 @@ const receiptNext = { ...receipt }
 const referenceOf = (sheet) => {
   const stem = sheet.stems?.[0]
   if (!stem) return null
-  for (const p of [join(ROOT, 'art-sheets', `${stem}.png`), join(ROOT, 'art-sheets', 'singles', `${stem}.png`)]) {
+  for (const p of [join(SHEETS_ROOT, `${stem}.png`), join(SHEETS_ROOT, 'singles', `${stem}.png`)]) {
     if (existsSync(p)) return p
   }
   return null
@@ -837,7 +853,7 @@ try {
       // the meadow and 96% of the lake, because their flat green and blue
       // grounds look exactly like a background to a flood fill.
       autoBg: !NO_AUTO_BG && !(c.target ?? '').startsWith('images/blocks/')
-        && sheet.bg !== 'opaque',
+        && sheet.bg !== 'opaque' && !sheet.noAutoBg,
       // Which frame edges may SEED the flood.
       //
       // A band whose sky is at the top has artwork touching the other three

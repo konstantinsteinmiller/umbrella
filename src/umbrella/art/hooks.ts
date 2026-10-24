@@ -1,0 +1,27 @@
+// ─── Where the kite art layer plugs into the vector painters ───────────────
+//
+// Tiny on purpose, and EMPTY in every build: the painters (characters.ts,
+// renderer.ts) ask `isKite && kiteArt.x?.(…)` before drawing — `isKite` is a
+// build-time constant, so outside the kite build the whole question folds
+// away and the vector path is the only code there is. The kite build fills
+// these slots from the lazily imported painted layer (paint.ts); a slot that
+// returns false (no sheet yet, still loading, art switched off) leaves the
+// vector drawing to draw, exactly as before.
+import type { World } from '../engine'
+import type { Hazard } from '../engine'
+import type { ButtonDef, CheckpointDef, PlatformDef, WindDef } from '../levels'
+import type { PweegLook, UmbrellaLook } from '../characters'
+
+export interface KiteArt {
+  pweeg?: (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegLook) => boolean
+  umbrella?: (ctx: CanvasRenderingContext2D, x: number, y: number, look: UmbrellaLook) => boolean
+  /** The splat phase: flattened by a landing, or `hit` by an enemy / fan. */
+  splat?: (ctx: CanvasRenderingContext2D, fx: number, fy: number, look: PweegLook, phaseTime: number, hit: boolean) => boolean
+  hazard?: (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => boolean
+  wind?: (ctx: CanvasRenderingContext2D, wind: WindDef, def: WindDef, w: World, squiggles: boolean) => boolean
+  platform?: (ctx: CanvasRenderingContext2D, p: PlatformDef, on: boolean, color: string | null) => boolean
+  button?: (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, color: string) => boolean
+  checkpoint?: (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: boolean, time: number) => boolean
+}
+
+export const kiteArt: KiteArt = {}

@@ -87,10 +87,18 @@ try {
         await send('Input.dispatchKeyEvent', { type, code, key: keyName, windowsVirtualKeyCode: vk }, sessionId)
       }
     }
+    // The game opens on a Play button: that click is the first gesture.
+    const clickPlay = async () => {
+      const r = await evaluate('(() => { const b = document.querySelector(".start-play")?.getBoundingClientRect(); return b ? [b.x + b.width / 2, b.y + b.height / 2] : null })()')
+      if (!r) return
+      for (const type of ['mousePressed', 'mouseReleased']) {
+        await send('Input.dispatchMouseEvent', { type, x: r[0], y: r[1], button: 'left', clickCount: 1 }, sessionId)
+      }
+    }
     // Same module instances the app uses (Vite serves one URL per module).
     const snap = () => evaluate('import("/src/umbrella/audio.ts").then((m) => m.audioDebug())')
     const gate = (mod, expr) => evaluate(`import("/src/use/${mod}.ts").then((m) => { ${expr} })`)
-    return { targetId, evaluate, key, snap, gate }
+    return { targetId, evaluate, key, clickPlay, snap, gate }
   }
 
   // ── Run 1: the normal session ──
@@ -103,7 +111,7 @@ try {
   let s = await g.snap()
   check('silent before the first gesture (no score, nothing audible)', !s.music && s.rms === 0, s)
 
-  await g.key('ArrowRight', 'ArrowRight', 39)
+  await g.clickPlay()
   await sleep(4000)
   s = await g.snap()
   check('first gesture starts score + wind on a running context', s.state === 'running' && s.music && s.rms > 1e-4, s)
@@ -170,7 +178,7 @@ try {
   const h = await openGame()
   await sleep(1000)
   await h.gate('useGamePause', 'm.isAdShowing.value = true')
-  await h.key('ArrowRight', 'ArrowRight', 39)
+  await h.clickPlay()
   await sleep(1500)
   s = await h.snap()
   check('gesture under an ad: nothing audible, score not started', s.rms === 0 && s.state !== 'running', s)

@@ -25,12 +25,37 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const OUT = join(ROOT, 'art-sheets')
+// umbrella: `--set umbrella` writes the Umbrella KITE art's documents
+// (src/umbrella/art/manifest.ts + prompts.ts → art-sheets/umbrella/). Without
+// it: the barrage set, exactly as before.
+const SET_AT = process.argv.indexOf('--set')
+const SET = SET_AT > 1 ? process.argv[SET_AT + 1] ?? null : null
+if (SET && SET !== 'umbrella') { console.error(`--set ${SET} is unknown (known: umbrella)`); process.exit(1) }
+const OUT = SET ? join(ROOT, 'art-sheets', SET) : join(ROOT, 'art-sheets')
 const INDEX = join(OUT, 'sheet-index.json')
 const PAINTED = join(OUT, 'painted')
 const CHECK = process.argv.includes('--check')
 
-const manifest = await import(pathToFileURL(join(ROOT, 'src', 'game', 'artSheet.ts')).href)
+/** One shape for both manifests: drawables with { id, title, doc, keys },
+ *  the documents, each drawable's target, the folder targets live under. */
+const manifest = SET === 'umbrella'
+  ? await (async () => {
+      const m = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'manifest.ts')).href)
+      const pr = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'prompts.ts')).href)
+      const drawables = pr.paintOrder().map((s) => ({ ...s, keys: [] }))
+      return {
+        ART_DRAWABLES: drawables,
+        promptDocs: pr.promptDocs,
+        targetOf: m.targetOf,
+        shippedRoot: m.SHIPPED_DIR,
+        manifestTargets: () => new Set(drawables.map((s) => m.targetOf(s))),
+        shippedNote: 'Nothing in the kite build is painted until its sheet ships here, so `·` means "still the vector drawing".'
+      }
+    })()
+  : await (async () => {
+      const m = await import(pathToFileURL(join(ROOT, 'src', 'game', 'artSheet.ts')).href)
+      return { ...m, shippedRoot: 'public', shippedNote: null }
+    })()
 
 /** The fits the bench measured last time it exported, if it has. */
 const fitsFromIndex = () => {
@@ -124,7 +149,7 @@ const stateOf = (d) => {
 
 const rows = manifest.ART_DRAWABLES.map((d) => ({
   id: d.id, title: d.title, doc: d.doc, target: manifest.targetOf(d),
-  shipped: existsSync(join(ROOT, 'public', manifest.targetOf(d))),
+  shipped: existsSync(join(ROOT, manifest.shippedRoot, manifest.targetOf(d))),
   ...stateOf(d)
 }))
 
@@ -138,12 +163,14 @@ const status = [
   'slicer\'s receipt at the moment it was written. Re-run `pnpm art:prompts`',
   'after painting or slicing anything.',
   '',
-  'Every slot in this game already SHIPS a painting (the "Shipped" column), so',
-  '`·` here means "no repaint through the pipeline yet", not "still procedural".',
+  ...(manifest.shippedNote
+    ? [manifest.shippedNote, 'Paint the model sheets first: every animation sheet of a character attaches its painted model.']
+    : ['Every slot in this game already SHIPS a painting (the "Shipped" column), so',
+        '`·` here means "no repaint through the pipeline yet", not "still procedural".']),
   '',
   `**${tally['✓']} sliced · ${tally['!']} need a repaint · ${tally['?']} painted, unreceipted · ${tally['·']} not repainted**`,
   '',
-  '| | Drawable | Prompt block in | Reference | Shipped | State |',
+  `| | Drawable | Prompt block in | Reference | Shipped (under \`${manifest.shippedRoot}/\`) | State |`,
   '| --- | --- | --- | --- | --- | --- |',
   ...rows.map((r) => `| ${r.mark} | **${r.title}** | \`${r.doc}\` | \`${r.id}.png\`${r.rev ? ` (rev \`${r.rev}\`)` : ' — *missing, run `pnpm art:export`*'} | ${r.shipped ? '✓' : '—'} \`${r.target}\` | ${r.state} |`),
   '',

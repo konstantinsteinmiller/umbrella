@@ -2,9 +2,11 @@
 // Worker (workers/levels-bucket/src/index.js). Off on Poki and Playgama builds
 // (YouTube Playables ships from the Playgama build).
 import { isPlaygama, isPoki } from '@/use/useUser'
+import { isKite } from './kite'
 
 export const COMMUNITY_URL: string = (import.meta.env.VITE_APP_LEVELS_BUCKET_URL ?? '').trim().replace(/\/+$/, '')
-export const communityEnabled: boolean = COMMUNITY_URL !== '' && !isPoki && !isPlaygama
+/** Off on the kite build too: its levels never go to the server. */
+export const communityEnabled: boolean = COMMUNITY_URL !== '' && !isPoki && !isPlaygama && !isKite
 
 export const TIMEOUT_MS = 8000
 export const WEEKLY_LIMIT = 5

@@ -18,11 +18,17 @@
 //   • the test level — a non-persisted level the editor hands to the scene
 //     for one playtest before navigating there.
 // Everything persists through the one-blob state layer (useEpicState).
+//
+// The kite build (kite.ts) plays its own 100 levels: the repo's campaign overrides and
+// order (they belong to the server campaign) are not read, nothing is written to the
+// repo, and there is no levels bucket. Edits stay in this browser, in the kite build's
+// own save (useEpicState keeps a separate key for it).
 
 import { ref } from 'vue'
 import { getState, setState } from '@/use/useEpicState'
 import overridesFromDisk from 'virtual:campaign-overrides'
 import orderFromDisk from 'virtual:campaign-order'
+import { isKite } from './kite'
 import { LEVELS, type LevelDef } from './levels'
 
 const LIBRARY_KEY = 'umb_custom_levels_v1'
@@ -118,7 +124,8 @@ const loadOverrides = (): Record<number, LevelDef> => {
     if (l) out[Number(k)] = l
   }
   // The repo copy wins unless this browser holds a newer edit of the slot.
-  for (const [k, v] of Object.entries(overridesFromDisk)) {
+  // (The repo's file is the server campaign's: the kite levels never take it.)
+  for (const [k, v] of Object.entries(isKite ? {} : overridesFromDisk)) {
     const l = parseLevel(v)
     if (l && (l.editedAt ?? 0) >= (out[Number(k)]?.editedAt ?? 0)) out[Number(k)] = l
   }
@@ -128,7 +135,7 @@ export const campaignOverrides = ref<Record<number, LevelDef>>(loadOverrides())
 
 /** Dev server only (the endpoint does not exist in a build): mirror into the repo file. */
 const postToDisk = (path: string, body: object) => {
-  if (!import.meta.env.DEV) return
+  if (!import.meta.env.DEV || isKite) return
   fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     .catch(() => { /* no dev server: localStorage stays the copy */ })
 }
@@ -169,7 +176,7 @@ export const parseOrder = (data: unknown): CampaignOrder | null => {
 }
 const loadOrder = (): CampaignOrder | null => {
   const local = parseOrder(getState<unknown>(ORDER_KEY, null))
-  const disk = parseOrder(orderFromDisk)
+  const disk = isKite ? null : parseOrder(orderFromDisk)
   // The repo copy wins unless this browser holds a newer order.
   return disk && disk.editedAt >= (local?.editedAt ?? 0) ? disk : local
 }
@@ -265,7 +272,8 @@ export const localEditedAt = (section: 'campaign' | 'library', key: string): num
 export interface BucketEntry { editedAt: number; level: LevelDef | null }
 export interface Bucket { campaign: Record<string, BucketEntry>; library: Record<string, BucketEntry> }
 
-export const BUCKET_URL: string = (import.meta.env.VITE_APP_LEVELS_BUCKET_URL ?? '').trim().replace(/\/+$/, '')
+/** Empty on the kite build: no pull, no push, no sync (cutsceneStore.ts shares it). */
+export const BUCKET_URL: string = isKite ? '' : (import.meta.env.VITE_APP_LEVELS_BUCKET_URL ?? '').trim().replace(/\/+$/, '')
 const PASSWORD_KEY = 'umb_levels_bucket_password'
 const readPassword = (): string => {
   try { return localStorage.getItem(PASSWORD_KEY) ?? '' } catch { return '' }

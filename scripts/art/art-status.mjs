@@ -23,6 +23,36 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const PUBLIC = join(ROOT, 'public')
 const ALL = process.argv.includes('--all')
 
+// umbrella: `--set umbrella` reports the Umbrella KITE sheets instead
+// (src/umbrella/art/manifest.ts → src/assets/umbrella-art/, which only the kite
+// build bundles): one line per group, and every sheet still drawn as vectors.
+const SET_AT = process.argv.indexOf('--set')
+if (SET_AT > 1 && process.argv[SET_AT + 1] === 'umbrella') {
+  const m = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'manifest.ts')).href)
+  const dir = join(ROOT, m.SHIPPED_DIR)
+  let here = 0
+  let bytes = 0
+  const groups = new Map()
+  for (const s of m.GAME_SHEETS) {
+    const f = join(dir, m.targetOf(s))
+    const ok = existsSync(f)
+    if (ok) { here++; bytes += statSync(f).size }
+    const g = groups.get(s.group) ?? { here: 0, all: 0, missing: [] }
+    g.all++
+    if (ok) g.here++
+    else g.missing.push(s.id)
+    groups.set(s.group, g)
+    if (ALL) console.log(`  ${ok ? '✓' : '·'} ${s.id}`)
+  }
+  for (const [g, v] of groups) {
+    console.log(`${v.here === v.all ? '✓' : v.here === 0 ? '·' : '½'} ${g.padEnd(9)} ${String(v.here).padStart(2)}/${v.all}${v.missing.length && !ALL ? `   still vector: ${v.missing.join(', ')}` : ''}`)
+  }
+  console.log(`
+${here} of ${m.GAME_SHEETS.length} kite sheets painted — ${(bytes / 1024).toFixed(0)} kB in ${m.SHIPPED_DIR}/.`)
+  console.log('A missing sheet is not an error: the kite build draws that one as vectors (a character only switches to paint once ALL its core sheets are in).')
+  process.exit(0)
+}
+
 const { ART_CATALOGUE, artBase } = await import(pathToFileURL(join(ROOT, 'src', 'game', 'artCatalogue.ts')).href)
 
 let present = 0

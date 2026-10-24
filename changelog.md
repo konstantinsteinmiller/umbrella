@@ -1,5 +1,10 @@
 Umbrella — changelog (newest first)
 
+== Kite build (/umbrella/kite/) — unreleased ==
+- [x] 100 kite levels (roadmap #7), designed after the Super Mario Bros. philosophy written up in mario-platformer-philosophy.md: ten worlds of ten (First Breeze, Free Fall, Crosswinds, Thorns, Walldorf, Prickbait, Ventilators & Super Streams, Switches, Hunters, The Storm), each one idea told as introduce → develop → twist → conclude, with tall and wide scrolling worlds and checkpoint flags in the long ones
+- [x] The kite build plays only these levels: no levels server (no pull, push or sync, cutscenes included), no community levels, the repo's campaign overrides and order are not used; its save (progress, local level edits, tuning) is kept apart from the normal game's; players can still edit the kite levels in the level editor, in their browser
+- [x] Every kite level is proven beatable: a bot plays the real engine (scripts/kite-solve.mjs) and the test suite replays its recorded wins; it also checks safe spawns and a rising difficulty curve across the worlds
+
 == Revision 9 — 2026-10-23 ==
 - [x] Ventilator prop (editor tool, shortcut W; labels in all 21 locales): whirring blades; landing in one shreds the player
 - [x] The intro stops on Pweeg looking at the player until the first key, tap or stick move, then Level 1 begins (cutscene editor: "Wait for the player at")

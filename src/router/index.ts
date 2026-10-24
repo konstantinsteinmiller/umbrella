@@ -116,6 +116,9 @@ const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
   ? [
       { path: '/art-sheets', name: 'art-sheets', component: () => import('@/views/ArtSheets.vue') },
       { path: '/playground', name: 'playground', component: () => import('@/views/Playground.vue') },
+      // The Umbrella kite art (roadmap #6): its bench and its painted-vs-drawn scene.
+      { path: '/art-sheets/umbrella', name: 'umbrella-art-sheets', component: () => import('@/views/UmbrellaArtSheets.vue') },
+      { path: '/umbrella-playground', name: 'umbrella-playground', component: () => import('@/views/UmbrellaArtPlayground.vue') },
       { path: '/barrage-lab', name: 'barrage-lab', component: () => import('@/views/BarrageLab.vue') }
     ]
   : []

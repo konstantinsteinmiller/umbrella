@@ -6,6 +6,14 @@
 // every function draws where it is told and leaves the context as it found it.
 // The look follows the doc's ink sketches, turned light-on-dark for the game:
 // white shapes, dark eyes, the umbrella white with one red panel.
+//
+// The kite build (/umbrella/kite/) can draw painted sprites instead: each
+// painter first offers the frame to `kiteArt` (art/hooks.ts). `isKite` is a
+// build-time constant, so in every other build that line folds away and the
+// drawing below is all there is (tests/umbrella/vectorGolden.test.ts).
+
+import { isKite } from './kite'
+import { kiteArt } from './art/hooks'
 
 const BODY = '#ffffff'
 const INK = '#0d1018'
@@ -38,6 +46,7 @@ export interface PweegLook {
 
 /** Pweeg with his feet centred on (x, y). */
 export const drawPweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegLook): void => {
+  if (isKite && kiteArt.pweeg?.(ctx, x, y, look)) return
   const { w: W, h: H, facing, pose } = look
   const r = W * 0.44
   const headY = y - H + r
@@ -211,6 +220,7 @@ const HALF = 30
 
 /** The umbrella held at its grip (x, y). */
 export const drawUmbrella = (ctx: CanvasRenderingContext2D, x: number, y: number, look: UmbrellaLook): void => {
+  if (isKite && kiteArt.umbrella?.(ctx, x, y, look)) return
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(look.tilt)
@@ -320,15 +330,14 @@ export interface WalldorfLook {
 /** One colour per touch behaviour, so players read a Walldorf at a glance (editor uses them too). */
 export const WALLDORF_COLORS = { deadly: '#ff5a5f', solid: '#c3cde0', bounce: '#ffb020' }
 
-/** A tall rounded pillar with two stacked eyes on its facing side. */
-export const drawWalldorf = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, look: WalldorfLook): void => {
+/** The body: the pillar, in its touch colour (a bouncy one with its springy rim). */
+const walldorfBody = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, contact: WalldorfLook['contact']): void => {
   const radius = Math.min(b.w / 2, 14)
-  ctx.save()
-  ctx.fillStyle = WALLDORF_COLORS[look.contact]
+  ctx.fillStyle = WALLDORF_COLORS[contact]
   ctx.beginPath()
   ctx.roundRect(b.x, b.y, b.w, b.h, radius)
   ctx.fill()
-  if (look.contact === 'bounce') {
+  if (contact === 'bounce') {
     // A bumper's springy rim.
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'
     ctx.lineWidth = 3
@@ -336,38 +345,104 @@ export const drawWalldorf = (ctx: CanvasRenderingContext2D, b: { x: number; y: n
     ctx.roundRect(b.x + 3, b.y + 3, b.w - 6, b.h - 6, Math.max(2, radius - 3))
     ctx.stroke()
   }
+}
+
+/** Where the two stacked eyes sit on a Walldorf of box `b`: their centre (the
+ *  middle of the pair) and the eye radius. The kite face sprite uses it too. */
+export const walldorfEyes = (b: { x: number; y: number; w: number; h: number }, facing: 1 | -1) => {
   const er = Math.min(b.w * 0.2, 9)
-  const ex = b.x + b.w / 2 + look.facing * b.w * 0.18
-  const top = b.y + Math.min(b.h * 0.3, 70)
+  return { er, ex: b.x + b.w / 2 + facing * b.w * 0.18, top: b.y + Math.min(b.h * 0.3, 70) }
+}
+
+/** The face: two stacked eyes looking `facing`, brows when angry. `lid` (0..1,
+ *  shut) and `stretch` (eye scale) only pose the art bench's reference frames. */
+const walldorfFace = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, look: WalldorfLook & { lid?: number; stretch?: number }): void => {
+  const { er: er0, ex, top } = walldorfEyes(b, look.facing)
+  const er = er0 * (look.stretch ?? 1)
+  const lid = look.lid ?? 0
   ctx.lineCap = 'round'
-  for (const ey of [top - er * 1.05, top + er * 1.05]) {
+  for (const ey of [top - er0 * 1.05, top + er0 * 1.05]) {
+    if (lid > 0.85) {
+      // Shut: a short ink line.
+      ctx.strokeStyle = INK
+      ctx.lineWidth = Math.max(2, er * 0.3)
+      ctx.beginPath()
+      ctx.moveTo(ex - er * 0.9, ey)
+      ctx.lineTo(ex + er * 0.9, ey)
+      ctx.stroke()
+      continue
+    }
     ctx.fillStyle = BODY
     ctx.beginPath()
-    ctx.arc(ex, ey, er, 0, Math.PI * 2)
+    if (lid) ctx.ellipse(ex, ey, er, er * (1 - lid), 0, 0, Math.PI * 2)
+    else ctx.arc(ex, ey, er, 0, Math.PI * 2)
     ctx.fill()
     ctx.fillStyle = INK
     ctx.beginPath()
-    ctx.arc(ex + look.facing * er * 0.38, ey, er * 0.45, 0, Math.PI * 2)
+    if (lid) ctx.ellipse(ex + look.facing * er * 0.38, ey, er * 0.45, er * 0.45 * (1 - lid), 0, 0, Math.PI * 2)
+    else ctx.arc(ex + look.facing * er * 0.38, ey, er * 0.45, 0, Math.PI * 2)
     ctx.fill()
   }
   if (look.angry) {
     // Brows slanting down toward where it looks.
     ctx.strokeStyle = INK
     ctx.lineWidth = Math.max(2, er * 0.32)
-    for (const ey of [top - er * 1.05, top + er * 1.05]) {
+    for (const ey of [top - er0 * 1.05, top + er0 * 1.05]) {
       ctx.beginPath()
       ctx.moveTo(ex - look.facing * er * 1.05, ey - er * 1.2)
       ctx.lineTo(ex + look.facing * er * 0.95, ey - er * 0.55)
       ctx.stroke()
     }
   }
+}
+
+/** A tall rounded pillar with two stacked eyes on its facing side. */
+export const drawWalldorf = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, look: WalldorfLook): void => {
+  ctx.save()
+  walldorfBody(ctx, b, look.contact)
+  walldorfFace(ctx, b, look)
+  ctx.restore()
+}
+
+/** The pillar alone (the art bench's body reference). */
+export const drawWalldorfBody = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, contact: WalldorfLook['contact']): void => {
+  ctx.save()
+  walldorfBody(ctx, b, contact)
+  ctx.restore()
+}
+
+/** The eyes alone (the art bench's face reference, and nothing else). */
+export const drawWalldorfFace = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, look: WalldorfLook & { lid?: number; stretch?: number }): void => {
+  ctx.save()
+  walldorfFace(ctx, b, look)
   ctx.restore()
 }
 
 // ── Prickbait ──
 
 /** A round spiky body with angry brows, eyes on (lookX, lookY). (x, y, r): its circle. */
-export const drawPrickbait = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, lookX: number, lookY: number, time: number): void => {
+export const drawPrickbait = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, lookX: number, lookY: number, time: number): void =>
+  prickbait(ctx, x, y, r, lookX, lookY, time, true)
+
+/** Prickbait with EMPTY eyes (the kite sprite's reference: the game draws the
+ *  pupils over the painting so they can follow Pweeg). `puff` scales the spikes. */
+export const drawPrickbaitBody = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, time: number, puff = 1): void =>
+  prickbait(ctx, x, y, r, x, y, time, false, puff)
+
+/** Prickbait's pupils alone, for eyes painted empty: dark dots looking at (lookX, lookY). */
+export const drawPrickbaitPupils = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, lookX: number, lookY: number): void => {
+  const d = Math.hypot(lookX - x, lookY - y) || 1
+  const px = ((lookX - x) / d) * r * 0.08
+  const py = ((lookY - y) / d) * r * 0.08
+  ctx.fillStyle = INK
+  for (const s of [-1, 1]) {
+    ctx.beginPath()
+    ctx.arc(x + s * r * 0.27 + px, y - r * 0.02 + py, r * 0.1, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
+const prickbait = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, lookX: number, lookY: number, time: number, pupils: boolean, puff = 1): void => {
   ctx.save()
   const body = r * 0.8
   const spin = Math.sin(time * 1.3) * 0.12
@@ -377,7 +452,7 @@ export const drawPrickbait = (ctx: CanvasRenderingContext2D, x: number, y: numbe
     const a = spin - Math.PI / 2 + (i / 6) * Math.PI * 2
     const side = 0.36
     ctx.moveTo(x + Math.cos(a - side) * body * 0.92, y + Math.sin(a - side) * body * 0.92)
-    ctx.lineTo(x + Math.cos(a) * r * 1.18, y + Math.sin(a) * r * 1.18)
+    ctx.lineTo(x + Math.cos(a) * r * 1.18 * puff, y + Math.sin(a) * r * 1.18 * puff)
     ctx.lineTo(x + Math.cos(a + side) * body * 0.92, y + Math.sin(a + side) * body * 0.92)
   }
   ctx.fill()
@@ -396,6 +471,7 @@ export const drawPrickbait = (ctx: CanvasRenderingContext2D, x: number, y: numbe
     ctx.beginPath()
     ctx.arc(ex, ey, r * 0.21, 0, Math.PI * 2)
     ctx.fill()
+    if (!pupils) continue
     ctx.fillStyle = INK
     ctx.beginPath()
     ctx.arc(ex + px, ey + py, r * 0.1, 0, Math.PI * 2)
