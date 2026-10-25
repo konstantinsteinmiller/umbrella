@@ -6,6 +6,7 @@ Umbrella — changelog (newest first)
 - [x] Every kite level is proven beatable: a bot plays the real engine (scripts/kite-solve.mjs) and the test suite replays its recorded wins; it also checks safe spawns and a rising difficulty curve across the worlds
 
 - [x] Painted kite art (roadmap #6, kite build only): Pweeg and Chad are kites in a cream-paper crayon style (20 spritesheets: idle, walk, float, fall, terminal, broken, cheer, flattened, destroyed, front; platforms, finish, switch platform, ventilator, checkpoint); no umbrella is drawn over a kite. Enemies, props and wind wisps stay vector until painted; the normal /umbrella build contains no painted art
+- [x] Kite animation polish: the walk uses every other painted frame at half cadence, the dance is a steady arms-up bounce with a rock, fast flutters capped at 10–12 fps, the checkpoint flag ping-pongs and dissolves between frames; the goal platform has no label any more and gets flag kites, bunting, a gold landing ring and bobbing chevrons
 - [x] Kite art update: enemy art painted (Prickbait, Walldorf body and face, wind wisps); the dance sheet repainted (it had a pink ground that flickered), kite Pweeg no longer wears sunglasses (Chad's trademark); the Art Desk accepts Gemini's "Automatic" model when the Create image tool is on
 
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds

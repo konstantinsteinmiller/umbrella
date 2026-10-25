@@ -18,6 +18,7 @@ import { drawPrickbaitPupils, walldorfEyes, type PweegLook, type UmbrellaLook } 
 import { boxOf, BUTTON_W, FAN_SIZE, PRICKBAIT_R, sheetById, SPIKE, type AnimDef, type SheetDef } from './manifest'
 import { hasSheet, setReady, sheetImage } from './sheets'
 import type { KiteArt } from './hooks'
+import { drawFinishDressing } from './kiteFinish'
 
 // ─── The switch ─────────────────────────────────────────────────────────────
 
@@ -127,6 +128,9 @@ const figureSet = (chad: boolean): { p: string; kite: boolean } | null => {
  *  after the figure, and for a kite that umbrella is the kite itself. */
 let kiteDrawn = false
 
+/** The kite dance: the sheet's arms-up frames, forwards and back. */
+const CHEER_LOOP = [5, 6, 7, 8, 9, 8, 7, 6]
+
 const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegLook): boolean => {
   kiteDrawn = false
   if (!paintedOn) return false
@@ -150,7 +154,15 @@ const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegL
       }
       break
     }
-    case 'walk': id = s('walk').id; frame = phaseFrame(s('walk').anims.walk!, (look.step ?? 0) / (Math.PI * 2)); break
+    case 'walk':
+      id = s('walk').id
+      // The painted frames are each drawn fresh, so cycling all 16 at the vector
+      // walk's cadence twitches the hands and feet. A kite walks on every other
+      // frame at half the pace: a slower, steadier waddle.
+      frame = set.kite
+        ? phaseFrame({ ...s('walk').anims.walk!, frames: s('walk').anims.walk!.frames.filter((_, i) => i % 2 === 0) }, (look.step ?? 0) / (Math.PI * 4))
+        : phaseFrame(s('walk').anims.walk!, (look.step ?? 0) / (Math.PI * 2))
+      break
     case 'hold': id = s('hover').id; frame = animFrame(s('hover').anims.hover!, look.time); break
     case 'flail':
       if (chad) return false
@@ -158,7 +170,26 @@ const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegL
       if (set.kite && look.broken) { id = s('broken').id; frame = animFrame(s('broken').anims.broken!, look.time) } else { id = s('fall').id; frame = animFrame(s('fall').anims.fall!, look.time) }
       break
     case 'terminal': if (chad) return false; id = s('terminal').id; frame = animFrame(s('terminal').anims.terminal!, look.time); break
-    case 'cheer': if (chad) return false; id = s('cheer').id; frame = phaseFrame(s('cheer').anims.cheer!, (look.time * 9) / Math.PI); break
+    case 'cheer':
+      if (chad) return false
+      id = s('cheer').id
+      if (set.kite) {
+        // Arms up on a steady bounce (the sheet's arms-up frames, slowly ping-ponged)
+        // with a gentle rock, instead of racing through 16 different poses.
+        const img = sheetImage(id)
+        if (!img) return false
+        const k = Math.floor(look.time * 5) % CHEER_LOOP.length
+        const hop = Math.abs(Math.sin(look.time * Math.PI * 1.6))
+        ctx.save()
+        ctx.translate(x, y - hop * look.h * 0.16)
+        ctx.rotate(Math.sin(look.time * Math.PI * 1.6) * 0.07)
+        blit(ctx, sheet(id), img, CHEER_LOOP[k]!, 0, 0, look.w / PWEEG_W, look.h / PWEEG_H, false)
+        ctx.restore()
+        kiteDrawn = true
+        return true
+      }
+      frame = phaseFrame(s('cheer').anims.cheer!, (look.time * 9) / Math.PI)
+      break
     default: return false
   }
   const img = sheetImage(id)
@@ -362,6 +393,7 @@ const platform = (ctx: CanvasRenderingContext2D, p: PlatformDef, on: boolean, co
   const raw = sheetImage(id)!
   const img = color !== null && !p.finish ? tintOf(id, raw, color) : null
   nine(ctx, s, img ?? raw, p.x, p.y, p.w, p.h)
+  if (p.finish) drawFinishDressing(ctx, p, performance.now() / 1000)
   return true
 }
 
@@ -381,7 +413,20 @@ const checkpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: bo
   const img = sheetImage('checkpoint')
   if (!img) return false
   const s = sheet('checkpoint')
-  blit(ctx, s, img, reached ? animFrame(s.anims.reached!, time) : animFrame(s.anims.idle!, time), c.x, c.y)
+  // The painted waves are separate drawings: stepping between them jerks. Play the
+  // cycle forwards and back (no seam at the loop) and dissolve each frame into the
+  // next so the flag moves continuously.
+  const a = reached ? s.anims.reached! : s.anims.idle!
+  const seq = [...a.frames, ...a.frames.slice(1, -1).reverse()]
+  const q = Math.max(0, time) * (reached ? 7 : 2.4)
+  const k = Math.floor(q)
+  const f = q - k
+  const cur = seq[k % seq.length]!
+  blit(ctx, s, img, cur, c.x, c.y)
+  ctx.save()
+  ctx.globalAlpha = f
+  blit(ctx, s, img, seq[(k + 1) % seq.length]!, c.x, c.y)
+  ctx.restore()
   return true
 }
 

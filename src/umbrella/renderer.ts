@@ -355,23 +355,6 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   ctx.restore()
 }
 
-/** The Finish label over a painted finish block (kite): the vector path writes
- *  it inline, below — same font, same place, ink to suit the honey-gold block. */
-const drawFinishLabel = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number }, labels: Labels, zoomOut: number) => {
-  ctx.textAlign = 'center'
-  if (zoomOut <= 1) {
-    ctx.fillStyle = '#4a3010'
-    ctx.font = `700 ${Math.round(Math.min(p.h - 4, 14))}px system-ui, sans-serif`
-    ctx.textBaseline = 'middle'
-    ctx.fillText(labels.finish, p.x + p.w / 2, p.y + p.h / 2 + 1)
-  } else {
-    ctx.fillStyle = FG
-    ctx.font = `700 ${Math.round(16 * zoomOut)}px system-ui, sans-serif`
-    ctx.textBaseline = 'bottom'
-    ctx.fillText(labels.finish, p.x + p.w / 2, p.y - 8)
-  }
-}
-
 /** What a painted button still needs drawn live (kite): a timed one's seconds,
  *  a toggle's state dot. */
 const drawButtonMarks = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, left: number) => {
@@ -433,7 +416,6 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
   for (const p of w.platforms) {
     if (isKite && kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel))) {
-      if (p.finish && platformActive(w, p)) drawFinishLabel(ctx, p, labels, zoomOut)
       continue
     }
     if (p.channel !== undefined) {

@@ -300,7 +300,7 @@ export const SHEETS: SheetDef[] = [
   {
     id: 'pweeg-kite-fall', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — retracted, fluttering mid-air', use: 'sprite',
     cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 0, fit: 'feet', fresh: true,
-    anims: { fall: { frames: range(0, 15), fps: 40.7 } },
+    anims: { fall: { frames: range(0, 15), fps: 10 } },
     blurb: `${KITE_IS}, in free fall with his kite RETRACTED: wings folded in tight, a squinting frown, his arms and legs flailing, the bow-tail whipping up behind him`,
     colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
     readPanels: 'A fast flutter loop: the folded kite edges and the tail flap, arms and legs wiggle; the body does not move. Panel 16 leads straight back into panel 1. (The game tips this pose sideways when he gets close to danger.)'
@@ -308,7 +308,7 @@ export const SHEETS: SheetDef[] = [
   {
     id: 'pweeg-kite-terminal', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — terminal velocity', use: 'sprite',
     cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 1, fit: 'feet', fresh: true,
-    anims: { terminal: { frames: range(0, 15), fps: 50.9 } },
+    anims: { terminal: { frames: range(0, 15), fps: 12 } },
     blurb: `${KITE_IS}, at terminal velocity: big round goggle eyes, pure panic, two corners of the kite torn ragged, his legs stretched out straight. Paint him the way up the reference shows; the game turns him upside down`,
     colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
     readPanels: 'A fast shiver loop: the torn corners and the tail tremble; the body and goggles stay put. Panel 16 leads straight back into panel 1.'
@@ -316,7 +316,7 @@ export const SHEETS: SheetDef[] = [
   {
     id: 'pweeg-kite-broken', group: 'kite', doc: 'PROMPTS-KITE.md', title: 'Pweeg-Kite — broken kite (the umbrella-break condition)', use: 'sprite',
     cols: 4, rows: 4, box: KITE, model: 'pweeg-kite-model', styleRef: STYLE_KITE, tier: 1, fit: 'feet', fresh: true,
-    anims: { broken: { frames: range(0, 15), fps: 20 } },
+    anims: { broken: { frames: range(0, 15), fps: 10 } },
     blurb: `${KITE_IS}, his kite BROKEN by opening it too fast: the paper torn open, one spar cracked and poking out, scraps flapping, a dismayed face, falling`,
     colour: KITE_COLOUR, view: KITE_VIEW, one: 'Pweeg-Kite',
     readPanels: 'A flapping loop: the torn paper flaps and the broken spar wobbles; his body and face stay the same size and in the same place. Panel 16 leads straight back into panel 1.'
