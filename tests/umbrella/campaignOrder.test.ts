@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { LEVELS } from '@/umbrella/levels'
 import {
-  applyBucket, campaignEntries, cloneLevel, CUSTOM_ID_BASE, localBucket, nextCustomId, saveCampaignOrder, saveCampaignOverride, slotTitle
+  applyBucket, campaignEntries, campaignRemoved, parseOrder, cloneLevel, CUSTOM_ID_BASE, localBucket, nextCustomId, saveCampaignOrder, saveCampaignOverride, slotTitle
 } from '@/umbrella/customLevels'
 
 const ids = () => LEVELS.map((l) => l.id)
@@ -44,5 +44,19 @@ describe('slot names', () => {
     expect(slotTitle(order[10]!.id)).toBe('Wind tunnel')
     expect(slotTitle(order[0]!.id)).toBeUndefined()
     expect((localBucket().campaign.order!.level as unknown as { order: { name?: string }[] }).order[10]!.name).toBe('Wind tunnel')
+  })
+})
+
+describe('deleting a campaign level', () => {
+  it('drops an authored level for good, and Reset (no removed list) brings it back', () => {
+    const victim = campaignEntries()[2]!.id
+    saveCampaignOrder(campaignEntries().filter((e) => e.id !== victim), 9000, [victim])
+    expect(ids()).not.toContain(victim)
+    expect(campaignRemoved()).toEqual([victim])
+    expect(campaignEntries().some((e) => e.id === victim)).toBe(false)
+    expect(parseOrder(JSON.parse(JSON.stringify({ editedAt: 9000, order: [{ id: victim }], removed: [victim] })))!.order).toEqual([])
+    saveCampaignOrder(authored.map((id) => ({ id })), 9100)
+    expect(ids()).toEqual(authored)
+    expect(campaignRemoved()).toEqual([])
   })
 })

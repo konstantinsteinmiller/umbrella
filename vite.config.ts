@@ -449,14 +449,14 @@ const mawCampaignOverridesPlugin = (bucketUrl: string): Plugin => ({
     server.middlewares.use('/__maw/save-order', async (req, res, next) => {
       if (req.method !== 'POST') { next(); return }
       try {
-        const body = JSON.parse(await readBody(req)) as { editedAt?: unknown; order?: unknown }
+        const body = JSON.parse(await readBody(req)) as { editedAt?: unknown; order?: unknown; removed?: unknown }
         if (typeof body.editedAt !== 'number' || !Array.isArray(body.order)) {
           res.statusCode = 400
           res.end(JSON.stringify({ error: 'expected { editedAt: number, order: [] }' }))
           return
         }
         mkdirSync(dirname(ORDER_FILE), { recursive: true })
-        lastOrderWrite = JSON.stringify({ editedAt: body.editedAt, order: body.order }, null, 2) + '\n'
+        lastOrderWrite = JSON.stringify({ editedAt: body.editedAt, order: body.order, ...(Array.isArray(body.removed) && body.removed.length ? { removed: body.removed } : {}) }, null, 2) + '\n'
         writeFileSync(ORDER_FILE, lastOrderWrite, 'utf-8')
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({ ok: true }))

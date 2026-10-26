@@ -152,27 +152,32 @@ export interface OrderEntry {
 }
 /** A slot name from untrusted JSON: trimmed, at most 40 characters, absent when empty. */
 const slotName = (v: unknown) => (typeof v === 'string' && v.trim() ? { name: v.trim().slice(0, 40) } : {})
-export interface CampaignOrder { editedAt: number; order: OrderEntry[] }
+/** `removed`: authored levels the designer deleted from the campaign (they stay out of `campaignEntries`). */
+export interface CampaignOrder { editedAt: number; order: OrderEntry[]; removed?: number[] }
 /** Ids of library levels added to the campaign start here, clear of the authored ones. */
 export const CUSTOM_ID_BASE = 1000
 
+/** Ids of the authored levels, ascending. */
+export const AUTHORED_LEVEL_IDS: number[] = BUILT_IN.map((l) => l.id).sort((a, b) => a - b)
 const isBuiltIn = (id: number) => BUILT_IN.some((l) => l.id === id)
 /** An order from untrusted JSON, or null. Unknown ids and repeats are dropped. */
 export const parseOrder = (data: unknown): CampaignOrder | null => {
-  const o = data as { editedAt?: unknown; order?: unknown } | null
+  const o = data as { editedAt?: unknown; order?: unknown; removed?: unknown } | null
   if (!o || typeof o !== 'object' || !num(o.editedAt) || o.editedAt <= 0 || !Array.isArray(o.order)) return null
+  const removed = Array.isArray(o.removed) ? [...new Set(o.removed.filter((x): x is number => num(x) && isBuiltIn(x)))] : []
   const order: OrderEntry[] = []
   const seen = new Set<number>()
   for (const raw of o.order) {
     const e = raw as Partial<OrderEntry> | null
     if (!e || !num(e.id) || seen.has(e.id)) continue
+    if (removed.includes(e.id)) continue
     if (isBuiltIn(e.id)) { order.push({ id: e.id, ...slotName(e.name) }); seen.add(e.id); continue }
     const level = e.id >= CUSTOM_ID_BASE ? parseLevel(e.level) : null
     if (!level) continue
     order.push({ id: e.id, custom: typeof e.custom === 'string' && e.custom ? e.custom : `level-${e.id}`, level: { ...level, id: e.id }, ...slotName(e.name) })
     seen.add(e.id)
   }
-  return { editedAt: o.editedAt, order }
+  return { editedAt: o.editedAt, order, ...(removed.length ? { removed } : {}) }
 }
 const loadOrder = (): CampaignOrder | null => {
   const local = parseOrder(getState<unknown>(ORDER_KEY, null))
@@ -185,9 +190,12 @@ export const campaignOrder = ref<CampaignOrder | null>(loadOrder())
 /** The campaign as it plays now, in order (built-ins missing from the order go last). */
 export const campaignEntries = (): OrderEntry[] => {
   const out = (campaignOrder.value?.order ?? []).map((e) => ({ ...e }))
-  for (const l of BUILT_IN) if (!out.some((e) => e.id === l.id)) out.push({ id: l.id })
+  const gone = campaignOrder.value?.removed ?? []
+  for (const l of BUILT_IN) if (!gone.includes(l.id) && !out.some((e) => e.id === l.id)) out.push({ id: l.id })
   return out
 }
+/** Authored levels the designer has deleted from the campaign. */
+export const campaignRemoved = (): number[] => [...(campaignOrder.value?.removed ?? [])]
 /** The designer's name for a campaign slot, if it has one. */
 export const slotTitle = (id: number): string | undefined => campaignOrder.value?.order.find((e) => e.id === id)?.name
 
@@ -209,11 +217,11 @@ const rebuildLevels = () => {
 rebuildLevels()
 
 /** Saves a new campaign order (the editor's Reorder dialog). */
-export const saveCampaignOrder = (order: OrderEntry[], editedAt = Date.now()) => {
-  const parsed = parseOrder({ editedAt, order })
+export const saveCampaignOrder = (order: OrderEntry[], editedAt = Date.now(), removed: number[] = []) => {
+  const parsed = parseOrder({ editedAt, order, removed })
   if (!parsed) return
   putOrder(parsed)
-  pushEntry('campaign', ORDER_ENTRY, { order: parsed.order } as unknown as LevelDef, editedAt)
+  pushEntry('campaign', ORDER_ENTRY, { order: parsed.order, removed: parsed.removed } as unknown as LevelDef, editedAt)
 }
 const putOrder = (o: CampaignOrder) => {
   campaignOrder.value = o
@@ -305,9 +313,9 @@ export const applyBucket = (data: unknown, opts: { library?: boolean } = {}): nu
   const b = data
   let changed = 0
   // The order first: it decides which slots exist for the entries below.
-  const rawOrder = b.campaign?.[ORDER_ENTRY] as { editedAt?: unknown; level?: { order?: unknown } | null } | undefined
+  const rawOrder = b.campaign?.[ORDER_ENTRY] as { editedAt?: unknown; level?: { order?: unknown; removed?: unknown } | null } | undefined
   const order = rawOrder && num(rawOrder.editedAt) && rawOrder.editedAt <= Date.now() + 86_400_000
-    ? parseOrder({ editedAt: rawOrder.editedAt, order: rawOrder.level?.order })
+    ? parseOrder({ editedAt: rawOrder.editedAt, order: rawOrder.level?.order, removed: rawOrder.level?.removed })
     : null
   if (order && order.editedAt > (campaignOrder.value?.editedAt ?? 0)) { putOrder(order); changed++ }
   for (const [key, raw] of Object.entries(b?.campaign ?? {})) {
@@ -342,7 +350,7 @@ export const localBucket = (): Bucket => {
     section[k.slice(2)] ??= { editedAt: at, level: null }
   }
   const o = campaignOrder.value
-  if (o) out.campaign[ORDER_ENTRY] = { editedAt: o.editedAt, level: { order: o.order } as unknown as LevelDef }
+  if (o) out.campaign[ORDER_ENTRY] = { editedAt: o.editedAt, level: { order: o.order, removed: o.removed } as unknown as LevelDef }
   return out
 }
 

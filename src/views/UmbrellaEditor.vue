@@ -37,7 +37,9 @@ import { encodeLevel, shareLink } from '@/umbrella/levelCode'
 import { communityEnabled, getQuota, submitLevel } from '@/umbrella/community'
 import LanguageSelect from '@/components/umbrella/LanguageSelect.vue'
 import {
+  AUTHORED_LEVEL_IDS,
   campaignEntries,
+  campaignRemoved,
   campaignOrder,
   campaignOverrides,
   nextCustomId,
@@ -825,7 +827,7 @@ const orderDraft = ref<OrderEntry[]>([])
 const dragging = ref<{ row: number } | { lib: string } | null>(null)
 const dropAt = ref<number | null>(null)
 /** The authored levels' ids in authored order, for "Original level N" and Reset. */
-const AUTHORED_IDS = campaignEntries().filter((e) => !e.custom).map((e) => e.id).sort((a, b) => a - b)
+const AUTHORED_IDS = AUTHORED_LEVEL_IDS
 /** Where the slot comes from: an authored level's original number, or the saved level added. */
 const orderOrigin = (e: OrderEntry) =>
   e.custom ? `★ ${e.custom}` : `Original level ${AUTHORED_IDS.indexOf(e.id) + 1}${campaignOverrides.value[e.id] ? ' (edited)' : ''}`
@@ -848,9 +850,11 @@ const commitRename = () => {
 }
 const orderPool = computed(() => libraryNames.value.filter((n) => !orderDraft.value.some((e) => e.custom === n)))
 const orderKey = (list: OrderEntry[]) => JSON.stringify(list.map((e) => [e.id, e.custom, e.name ?? '']))
-const orderChanged = computed(() => orderKey(orderDraft.value) !== orderKey(campaignEntries()))
+/** Authored levels deleted in this dialog (kept apart so Cancel and Reset can undo it). */
+const orderRemoved = ref<number[]>([])
+const orderChanged = computed(() => orderKey(orderDraft.value) !== orderKey(campaignEntries()) || orderRemoved.value.join() !== campaignRemoved().join())
 
-const openOrder = () => { orderDraft.value = campaignEntries(); dragging.value = null; dropAt.value = null; renaming.value = null; orderOpen.value = true }
+const openOrder = () => { orderDraft.value = campaignEntries(); orderRemoved.value = campaignRemoved(); dragging.value = null; dropAt.value = null; renaming.value = null; orderOpen.value = true }
 const closeOrder = () => {
   if (orderChanged.value && !window.confirm('Discard the new order?')) return
   orderOpen.value = false
@@ -869,6 +873,18 @@ const moveInOrder = (from: number, to: number) => {
   list.splice(to > from ? to - 1 : to, 0, e!)
 }
 const removeFromOrder = (i: number) => { orderDraft.value.splice(i, 1) }
+/** Deletes a level from the campaign after a confirm; an authored one is remembered so it does not come back. */
+const deleteFromOrder = (i: number) => {
+  const e = orderDraft.value[i]
+  if (!e) return
+  if (orderDraft.value.length <= 1) { flash('The campaign needs at least one level'); return }
+  if (!window.confirm(`Delete "${orderLabel(e)}" (slot ${i + 1}) from the campaign?
+
+It is gone for good once you press Save order; Cancel or Reset to original brings it back.`)) return
+  orderDraft.value.splice(i, 1)
+  if (!e.custom) orderRemoved.value = [...orderRemoved.value, e.id].sort((a, b) => a - b)
+  renaming.value = null
+}
 const onOrderDragOver = (e: DragEvent, i: number) => {
   if (!dragging.value) return
   e.preventDefault()
@@ -884,11 +900,11 @@ const onOrderDrop = () => {
   dropAt.value = null
 }
 const onOrderSave = () => {
-  saveCampaignOrder(orderDraft.value)
+  saveCampaignOrder(orderDraft.value, Date.now(), orderRemoved.value)
   orderOpen.value = false
   flash(`Campaign order saved · ${orderDraft.value.length} levels`)
 }
-const onOrderReset = () => { orderDraft.value = AUTHORED_IDS.map((id) => ({ id })) }
+const onOrderReset = () => { orderDraft.value = AUTHORED_IDS.map((id) => ({ id })); orderRemoved.value = [] }
 
 const loadIntoEditor = (l: LevelDef, name: string) => {
   level.value = cloneLevel(l)
@@ -1700,7 +1716,7 @@ onUnmounted(() => {
           <div class="kind">Campaign order</div>
           <button class="btn" title="Close (Esc)" @click="closeOrder">✕ <kbd>Esc</kbd></button>
         </div>
-        <p class="hint">Drag a level to its new position (or use ▲ ▼); ✎ names a level by its mechanic or theme. Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again.</p>
+        <p class="hint">Drag a level to its new position (or use ▲ ▼); ✎ names a level by its mechanic or theme. Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again; 🗑 deletes a level (asks first).</p>
         <div class="order-cols">
           <ol class="order-list" @dragover.prevent @drop="onOrderDrop">
             <li
@@ -1732,7 +1748,8 @@ onUnmounted(() => {
               <button v-if="renaming !== i" class="mini" title="Rename (or double-click the name)" @click="startRename(i)">✎</button>
               <button class="mini" :disabled="i === 0" title="Move up" @click="moveInOrder(i, i - 1)">▲</button>
               <button class="mini" :disabled="i === orderDraft.length - 1" title="Move down" @click="moveInOrder(i, i + 2)">▼</button>
-              <button v-if="e.custom" class="mini" title="Take out of the campaign" @click="removeFromOrder(i)">✕</button>
+              <button v-if="e.custom" class="mini" title="Take out of the campaign (stays in Saved levels)" @click="removeFromOrder(i)">✕</button>
+              <button class="mini danger" title="Delete this level from the campaign" aria-label="Delete level" @click="deleteFromOrder(i)">🗑</button>
             </li>
           </ol>
           <div class="order-pool">
@@ -2103,6 +2120,7 @@ kbd {
   cursor: pointer;
 }
 .mini:disabled { opacity: 0.3; cursor: default; }
+.mini.danger:hover { background: rgba(255, 90, 95, 0.35); }
 .grow { flex: 1; }
 @media (max-width: 900px) {
   .tools { width: 170px; }
