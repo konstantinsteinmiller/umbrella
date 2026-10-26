@@ -311,6 +311,15 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 **Sound**
 · New sound pass: cloth and rib sounds for the umbrella, a score that reacts to currents and speed, enemy sounds for Walldorf and Prickbait (warning before a charge, fuse-like ticking, bump and slam).
 
+## Revision 10
+**Enemies**
+· A triggered Walldorf (Thwomp) watches a rectangle in front of it, as in design doc v0.10.0: its length and width are sliders in the level editor, the zone is drawn on the canvas, and older circular triggers can be converted.
+**Level editor**
+· Reorder dialog: a delete button on every campaign level, with a confirmation prompt; deleting takes effect on Save order.
+**Sound**
+· Sounds are back to their Revision 7 state; the Walldorf and Prickbait sounds stay.
+**Design doc**
+· Checked against v0.10.0 (cutscene editor, tuned variables, reverted sounds); the tuned values still need the designer's export.
 ## Revision 
 ## Revision 
 ## Revision 
