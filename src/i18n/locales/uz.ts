@@ -233,6 +233,7 @@ export default {
       'bounce': "Pinbol bamperidek: Pweegni orqaga otadi. Hujum paytida ancha kuchliroq otadi."
     },
     'triggerHint': "O‘yinchi havoda va yaqin bo‘lguncha kutadi, so‘ng bir marta hujum qiladi",
+    'zoneToRect': "Zonani to'rtburchak qilish",
     'pathHint': "Yo‘lni o‘zgartirish uchun kanvasdagi sariq nuqtalarni torting (to‘q sariq = oxiri).",
     'followMode': {
       'both': "erkin",
@@ -262,7 +263,9 @@ export default {
       'speed': "Hamla tezligi ×",
       'delay': "Kechikish (s)",
       'duration': "Sirpanish (s)",
-      'followSpeed': "Ergashish tezligi"
+      'followSpeed': "Ergashish tezligi",
+      'reach': "Zona uzunligi",
+      'zoneWidth': "Zona kengligi"
     },
     'problem': {
       'noFinish': "Marra platformasi yo‘q — darajani yutib bo‘lmaydi.",

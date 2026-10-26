@@ -27,7 +27,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { CHANNELS, LEVELS, type ButtonDef, type CheckpointDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
-import { checkpointBox, contactOf, createWorld, DEFAULT_TRIGGER_RADIUS, poseMovers, step, type Input, type World } from '@/umbrella/engine'
+import { checkpointBox, contactOf, createWorld, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
@@ -649,7 +649,7 @@ const setMotionKind = (kind: Motion['kind']) => {
   }
   ent.motion = motions[kind]
 }
-const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; max: number; step: number; def?: number; triggerOnly?: boolean; i18n?: string }[]> = {
+const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; max: number; step: number; def?: number; triggerOnly?: boolean; zone?: 'rect' | 'circle'; i18n?: string }[]> = {
   line: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }],
   circle: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }, { key: 'radius', label: 'Radius', min: 0, max: 800, step: 5 }],
   swing: [
@@ -660,13 +660,29 @@ const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; m
   lunge: [
     { key: 'period', label: 'Period (s)', min: 0.3, max: 10, step: 0.05 },
     { key: 'speed', label: 'Lunge speed ×', min: 0.25, max: 4, step: 0.05, def: 1 },
-    { key: 'radius', label: 'Trigger radius', min: 40, max: 1200, step: 10, def: DEFAULT_TRIGGER_RADIUS, triggerOnly: true }
+    { key: 'reach', label: 'Zone length', min: 40, max: 1200, step: 10, def: DEFAULT_TRIGGER_REACH, triggerOnly: true, zone: 'rect' },
+    { key: 'zoneWidth', label: 'Zone width', min: 40, max: 1200, step: 10, def: 160, triggerOnly: true, zone: 'rect' },
+    { key: 'radius', label: 'Trigger radius', min: 40, max: 1200, step: 10, def: DEFAULT_TRIGGER_RADIUS, triggerOnly: true, zone: 'circle' }
   ],
   arrive: [{ key: 'delay', label: 'Delay (s)', min: 0, max: 10, step: 0.1 }, { key: 'duration', label: 'Glide (s)', min: 0.1, max: 10, step: 0.1 }],
   follow: [{ key: 'speed', i18n: 'followSpeed', label: 'Speed', min: 10, max: 800, step: 5 }]
 }
-const motionFields = computed(() => (MOTION_FIELDS[motionKind.value] ?? []).filter((f) =>
-  !f.triggerOnly || (selectedMotion.value?.kind === 'lunge' && selectedMotion.value.trigger)))
+const motionFields = computed(() => (MOTION_FIELDS[motionKind.value] ?? []).filter((f) => {
+  if (!f.triggerOnly) return true
+  const m = selectedMotion.value
+  if (m?.kind !== 'lunge' || !m.trigger) return false
+  return f.zone === 'rect' ? m.reach !== undefined : m.reach === undefined
+}))
+// Older levels carry a circular trigger; one click turns it into the Thwomp rectangle.
+const triggerIsCircle = computed(() => selectedMotion.value?.kind === 'lunge' && !!selectedMotion.value.trigger && selectedMotion.value.reach === undefined)
+const makeZoneRect = () => {
+  const m = selectedMotion.value
+  if (m?.kind !== 'lunge') return
+  delete m.radius
+  m.reach = DEFAULT_TRIGGER_REACH
+  const ent = selected.value?.ent
+  if (ent) m.zoneWidth = ent.h + TRIGGER_MARGIN * 2
+}
 const fieldValue = (key: string, def?: number) => (selectedMotion.value as Record<string, number> | undefined)?.[key] ?? def
 // Following the player is for enemies; platforms keep the timed motions.
 const motionKinds = computed(() => MOTION_KINDS.filter((k) => k !== 'follow' || selected.value?.group === 'hazards'))
@@ -695,8 +711,8 @@ const setFollowMode = (mode: FollowMode) => {
 const setTrigger = (on: boolean) => {
   const m = selectedMotion.value
   if (m?.kind !== 'lunge') return
-  if (on) { m.trigger = true; m.radius ??= DEFAULT_TRIGGER_RADIUS }
-  else { delete m.trigger; delete m.radius }
+  if (on) { m.trigger = true; if (m.radius === undefined) m.reach ??= DEFAULT_TRIGGER_REACH }
+  else { delete m.trigger; delete m.radius; delete m.reach; delete m.zoneWidth }
 }
 const setMotionField = (key: string, v: number) => {
   const m = selectedMotion.value as Record<string, unknown> | undefined
@@ -1173,7 +1189,11 @@ const paint = (now: number) => {
         ctx.fillStyle = 'rgba(255,90,95,0.06)'
         ctx.setLineDash([6 / s, 6 / s])
         ctx.beginPath()
-        ctx.arc(m.a.x, m.a.y, m.radius ?? DEFAULT_TRIGGER_RADIUS, 0, Math.PI * 2)
+        const ent = entityOf({ group, i })
+        if (m.reach !== undefined && ent) {
+          const z = triggerZone(m, ent.w, ent.h)
+          ctx.rect(z.x, z.y, z.w, z.h)
+        } else ctx.arc(m.a.x, m.a.y, m.radius ?? DEFAULT_TRIGGER_RADIUS, 0, Math.PI * 2)
         ctx.fill()
         ctx.stroke()
         ctx.setLineDash([])
@@ -1575,6 +1595,7 @@ onUnmounted(() => {
             <label v-if="selectedMotion?.kind === 'lunge'" class="check" :title="t('umbrellaEditor.triggerHint')">
               <input type="checkbox" :checked="!!selectedMotion.trigger" @change="setTrigger(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.trigger') }}
             </label>
+            <button v-if="triggerIsCircle" type="button" class="btn" @click="makeZoneRect">{{ t('umbrellaEditor.zoneToRect') }}</button>
             <template v-if="selectedMotion?.kind === 'follow'">
               <label class="row">{{ t('umbrellaEditor.prop.followMode') }}
                 <select class="field" :value="followMode" @change="setFollowMode(($event.target as HTMLSelectElement).value as FollowMode)">

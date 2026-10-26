@@ -233,6 +233,7 @@ export default {
       'bounce': "Jak odbijacz we flipperze: odrzuca Pweega do tyłu. Szarża odrzuca dużo mocniej."
     },
     'triggerHint': "Czeka, aż gracz będzie w powietrzu i blisko, potem atakuje raz",
+    'zoneToRect': "Zmień strefę na prostokąt",
     'pathHint': "Przeciągnij żółte kropki na płótnie, aby zmienić ścieżkę (pomarańczowa = koniec).",
     'followMode': {
       'both': "swobodnie",
@@ -262,7 +263,9 @@ export default {
       'speed': "Prędkość wypadu ×",
       'delay': "Opóźnienie (s)",
       'duration': "Lot (s)",
-      'followSpeed': "Szybkość pościgu"
+      'followSpeed': "Szybkość pościgu",
+      'reach': "Długość strefy",
+      'zoneWidth': "Szerokość strefy"
     },
     'problem': {
       'noFinish': "Brak platformy mety — poziomu nie da się wygrać.",

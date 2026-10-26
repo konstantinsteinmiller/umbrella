@@ -233,6 +233,7 @@ export default {
       'bounce': "Langırt tamponu gibi: Pweeg'i geri savurur. Saldırırken çok daha sert savurur."
     },
     'triggerHint': "Oyuncu havada ve yakın olana kadar bekler, sonra bir kez saldırır",
+    'zoneToRect': "Bölgeyi dikdörtgen yap",
     'pathHint': "Yolu değiştirmek için tuvaldeki sarı noktaları sürükle (turuncu = son).",
     'followMode': {
       'both': "serbestçe",
@@ -262,7 +263,9 @@ export default {
       'speed': "Hamle hızı ×",
       'delay': "Gecikme (sn)",
       'duration': "Süzülme (sn)",
-      'followSpeed': "Takip hızı"
+      'followSpeed': "Takip hızı",
+      'reach': "Bölge uzunluğu",
+      'zoneWidth': "Bölge genişliği"
     },
     'problem': {
       'noFinish': "Bitiş platformu yok — seviye kazanılamaz.",

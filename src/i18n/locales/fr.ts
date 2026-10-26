@@ -233,6 +233,7 @@ export default {
       'bounce': "Comme un bumper de flipper : il repousse Pweeg. Une charge le repousse bien plus fort."
     },
     'triggerHint': "Attend que le joueur soit en l'air et proche, puis attaque une fois",
+    'zoneToRect': "Rendre la zone rectangulaire",
     'pathHint': "Fais glisser les points jaunes sur le canevas pour modifier le trajet (orange = fin).",
     'followMode': {
       'both': "librement",
@@ -262,7 +263,9 @@ export default {
       'speed': "Vitesse de charge ×",
       'delay': "Délai (s)",
       'duration': "Glissade (s)",
-      'followSpeed': "Vitesse de poursuite"
+      'followSpeed': "Vitesse de poursuite",
+      'reach': "Longueur de la zone",
+      'zoneWidth': "Largeur de la zone"
     },
     'problem': {
       'noFinish': "Pas de plateforme d'arrivée — le niveau ne peut pas être gagné.",

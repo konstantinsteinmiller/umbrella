@@ -233,6 +233,7 @@ export default {
       'bounce': "핀볼 범퍼처럼 Pweeg를 뒤로 튕겨 냅니다. 돌진 중에는 훨씬 세게 튕깁니다."
     },
     'triggerHint': "플레이어가 공중에서 가까이 올 때까지 기다렸다가 한 번 공격해요",
+    'zoneToRect': "구역을 직사각형으로",
     'pathHint': "캔버스의 노란 점을 드래그해 경로를 바꾸세요 (주황 = 끝).",
     'followMode': {
       'both': "자유롭게",
@@ -262,7 +263,9 @@ export default {
       'speed': "돌진 속도 ×",
       'delay': "지연 (초)",
       'duration': "활강 (초)",
-      'followSpeed': "따라가는 속도"
+      'followSpeed': "따라가는 속도",
+      'reach': "구역 길이",
+      'zoneWidth': "구역 너비"
     },
     'problem': {
       'noFinish': "도착 발판이 없어요 — 레벨을 클리어할 수 없어요.",

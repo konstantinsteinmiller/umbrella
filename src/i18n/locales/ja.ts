@@ -233,6 +233,7 @@ export default {
       'bounce': "ピンボールのバンパーのように Pweeg を跳ね返します。突進中はもっと強く跳ね返します。"
     },
     'triggerHint': "プレイヤーが空中で近づくのを待ち、一度だけ攻撃します",
+    'zoneToRect': "範囲を長方形にする",
     'pathHint': "キャンバス上の黄色の点をドラッグして経路を変更（オレンジ = 終点）。",
     'followMode': {
       'both': "自由に",
@@ -262,7 +263,9 @@ export default {
       'speed': "突進速度 ×",
       'delay': "遅延 (秒)",
       'duration': "滑空 (秒)",
-      'followSpeed': "追う速さ"
+      'followSpeed': "追う速さ",
+      'reach': "範囲の長さ",
+      'zoneWidth': "範囲の幅"
     },
     'problem': {
       'noFinish': "ゴールの足場がありません — クリアできません。",

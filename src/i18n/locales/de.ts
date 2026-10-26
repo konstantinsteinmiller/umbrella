@@ -233,6 +233,7 @@ export default {
       'bounce': "Wie ein Flipper-Bumper: er schleudert Pweeg zurück. Ein Angriff schleudert viel stärker."
     },
     'triggerHint': "Wartet, bis der Spieler in der Luft und nah ist, und greift dann einmal an",
+    'zoneToRect': "Zone als Rechteck",
     'pathHint': "Ziehe die gelben Punkte auf der Fläche, um den Pfad zu ändern (orange = Ende).",
     'followMode': {
       'both': "frei",
@@ -262,7 +263,9 @@ export default {
       'speed': "Vorstoßtempo ×",
       'delay': "Verzögerung (s)",
       'duration': "Gleiten (s)",
-      'followSpeed': "Folgetempo"
+      'followSpeed': "Folgetempo",
+      'reach': "Zonenlänge",
+      'zoneWidth': "Zonenbreite"
     },
     'problem': {
       'noFinish': "Keine Zielplattform — das Level kann nicht gewonnen werden.",

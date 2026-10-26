@@ -11,6 +11,9 @@ Umbrella — changelog (newest first)
 
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
+== Revision 10 — 2026-10-26 ==
+- [x] A triggered Walldorf (Thwomp) now watches a rectangle in front of it, as in the design doc v0.10.0: Zone length and Zone width sliders in the level editor, the zone drawn on the canvas, a "Make the zone a rectangle" button for older circular triggers (labels in all 21 locales)
+
 == Revision 9 — 2026-10-23 ==
 - [x] Ventilator prop (editor tool, shortcut W; labels in all 21 locales): whirring blades; landing in one shreds the player
 - [x] The intro stops on Pweeg looking at the player until the first key, tap or stick move, then Level 1 begins (cutscene editor: "Wait for the player at")

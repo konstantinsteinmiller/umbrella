@@ -720,7 +720,7 @@ export const createEnemyCues = (): EnemyCueTracker => {
         const m = h.motion
         if (m?.kind !== 'lunge') continue
         // An angry Walldorf notices Pweeg coming.
-        const range = m.trigger ? (m.radius ?? 300) * 1.4 : WAKE_RANGE
+        const range = m.trigger ? (m.reach ?? m.radius ?? 300) * 1.4 : WAKE_RANGE
         const dWake = m.trigger ? Math.hypot(cx - m.a.x, cy - m.a.y) : d
         if (!awake[i] && dWake <= range) {
           awake[i] = true

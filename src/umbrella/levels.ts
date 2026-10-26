@@ -27,6 +27,11 @@ export type Motion =
        *  of it, then strike once (strike, hold, pull back) and wait again. */
       trigger?: boolean
       radius?: number
+      /** Thwomp zone: a rectangle in front of the enemy (toward `b`), `reach` px long past
+       *  its front edge and `zoneWidth` px wide (default: its own height plus a margin).
+       *  When set it replaces the circular `radius`. */
+      reach?: number
+      zoneWidth?: number
     }
   /** Wait `delay` s at `a`, glide to `b` over `duration` s, then stay. */
   | { kind: 'arrive'; a: Vec; b: Vec; delay: number; duration: number }

@@ -233,6 +233,7 @@ export default {
       'bounce': "Seperti bumper pinball: mementalkan Pweeg ke belakang. Serudukan mementalkan jauh lebih kuat."
     },
     'triggerHint': "Menunggu pemain melayang dan dekat, lalu menyerang sekali",
+    'zoneToRect': "Ubah zona jadi persegi panjang",
     'pathHint': "Seret titik kuning di kanvas untuk mengubah lintasan (oranye = akhir).",
     'followMode': {
       'both': "bebas",
@@ -262,7 +263,9 @@ export default {
       'speed': "Kecepatan terjang ×",
       'delay': "Jeda (dtk)",
       'duration': "Luncur (dtk)",
-      'followSpeed': "Kecepatan mengikuti"
+      'followSpeed': "Kecepatan mengikuti",
+      'reach': "Panjang zona",
+      'zoneWidth': "Lebar zona"
     },
     'problem': {
       'noFinish': "Tidak ada platform finis — level tidak bisa dimenangkan.",

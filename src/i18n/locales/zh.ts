@@ -233,6 +233,7 @@ export default {
       'bounce': "像弹球台的缓冲器一样把 Pweeg 弹回去。冲撞时会弹得更狠。"
     },
     'triggerHint': "等玩家在空中且靠近时，攻击一次",
+    'zoneToRect': "改为矩形触发区",
     'pathHint': "拖动画布上的黄色圆点来修改路径（橙色 = 终点）。",
     'followMode': {
       'both': "自由",
@@ -262,7 +263,9 @@ export default {
       'speed': "突进速度 ×",
       'delay': "延迟（秒）",
       'duration': "滑行（秒）",
-      'followSpeed': "跟随速度"
+      'followSpeed': "跟随速度",
+      'reach': "触发区长度",
+      'zoneWidth': "触发区宽度"
     },
     'problem': {
       'noFinish': "没有终点平台——关卡无法通过。",

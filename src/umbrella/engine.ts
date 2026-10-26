@@ -40,6 +40,22 @@ export const contactOf = (h: HazardDef): WalldorfContact =>
 
 /** A triggered lunge's default reach when the level gives none. */
 export const DEFAULT_TRIGGER_RADIUS = 300
+/** A rectangular trigger zone's default length, and how far its sides reach outside the enemy's own box. */
+export const DEFAULT_TRIGGER_REACH = 300
+export const TRIGGER_MARGIN = 20
+
+/** The Thwomp zone of a triggered lunge at its rest point: in front of the enemy, toward `b`. */
+export const triggerZone = (m: Extract<Motion, { kind: 'lunge' }>, w: number, h: number) => {
+  const horizontal = Math.abs(m.b.x - m.a.x) >= Math.abs(m.b.y - m.a.y)
+  const reach = m.reach ?? DEFAULT_TRIGGER_REACH
+  const across = m.zoneWidth ?? (horizontal ? h : w) + TRIGGER_MARGIN * 2
+  const sign = Math.sign(horizontal ? m.b.x - m.a.x : m.b.y - m.a.y) || -1
+  const along = (horizontal ? w : h) / 2
+  const near = sign > 0 ? along : -(along + reach)
+  return horizontal
+    ? { x: m.a.x + near, y: m.a.y - across / 2, w: reach, h: across }
+    : { x: m.a.x - across / 2, y: m.a.y + near, w: across, h: reach }
+}
 
 export interface Player {
   x: number
@@ -294,6 +310,12 @@ const setPhase = (w: World, phase: Phase) => {
   w.phaseTime = 0
 }
 
+const inTrigger = (m: Extract<Motion, { kind: 'lunge' }>, h: { w: number; h: number }, pl: { x: number; y: number; w: number; h: number }): boolean => {
+  if (m.reach === undefined) return Math.hypot(pl.x + pl.w / 2 - m.a.x, pl.y + pl.h / 2 - m.a.y) <= (m.radius ?? DEFAULT_TRIGGER_RADIUS)
+  const z = triggerZone(m, h.w, h.h)
+  return pl.x < z.x + z.w && pl.x + pl.w > z.x && pl.y < z.y + z.h && pl.y + pl.h > z.y
+}
+
 export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[] => {
   const events: GameEvent[] = []
   w.time += dt
@@ -318,8 +340,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
       const attack = m.period * (1 - lunge.rest)
       if (h.lungeAt !== undefined && w.enemyTime - h.lungeAt >= attack) h.lungeAt = undefined
       const pl = w.player
-      if (h.lungeAt === undefined && w.phase === 'play' && !pl.grounded &&
-          Math.hypot(pl.x + pl.w / 2 - m.a.x, pl.y + pl.h / 2 - m.a.y) <= (m.radius ?? DEFAULT_TRIGGER_RADIUS)) h.lungeAt = w.enemyTime
+      if (h.lungeAt === undefined && w.phase === 'play' && !pl.grounded && inTrigger(m, h, pl)) h.lungeAt = w.enemyTime
       placeMover(h, h.lungeAt === undefined ? 0 : m.period * lunge.rest + (w.enemyTime - h.lungeAt), lunge)
     } else if (m?.kind === 'follow') {
       if (w.phase === 'play') follow(h, m, w.player, m.speed * t.enemySpeedScale * dt)

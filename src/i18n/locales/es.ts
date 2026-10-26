@@ -233,6 +233,7 @@ export default {
       'bounce': "Como un rebotador de pinball: empuja a Pweeg hacia atrás. Una embestida empuja mucho más fuerte."
     },
     'triggerHint': "Espera a que el jugador esté en el aire y cerca, y ataca una vez",
+    'zoneToRect': "Hacer la zona rectangular",
     'pathHint': "Arrastra los puntos amarillos del lienzo para cambiar la ruta (naranja = final).",
     'followMode': {
       'both': "libremente",
@@ -262,7 +263,9 @@ export default {
       'speed': "Velocidad de embestida ×",
       'delay': "Retraso (s)",
       'duration': "Planeo (s)",
-      'followSpeed': "Velocidad de persecución"
+      'followSpeed': "Velocidad de persecución",
+      'reach': "Longitud de la zona",
+      'zoneWidth': "Anchura de la zona"
     },
     'problem': {
       'noFinish': "No hay plataforma de meta: el nivel no se puede ganar.",

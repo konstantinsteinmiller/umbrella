@@ -233,6 +233,7 @@ export default {
       'bounce': "Như đệm nảy trong pinball: hất Pweeg lùi lại. Khi lao tới sẽ hất mạnh hơn nhiều."
     },
     'triggerHint': "Chờ đến khi người chơi ở trên không và ở gần, rồi tấn công một lần",
+    'zoneToRect': "Chuyển vùng thành hình chữ nhật",
     'pathHint': "Kéo các chấm vàng trên khung vẽ để đổi đường đi (cam = điểm cuối).",
     'followMode': {
       'both': "tự do",
@@ -262,7 +263,9 @@ export default {
       'speed': "Tốc độ lao ×",
       'delay': "Trễ (giây)",
       'duration': "Lướt (giây)",
-      'followSpeed': "Tốc độ đuổi theo"
+      'followSpeed': "Tốc độ đuổi theo",
+      'reach': "Chiều dài vùng",
+      'zoneWidth': "Chiều rộng vùng"
     },
     'problem': {
       'noFinish': "Không có bục đích — màn này không thể thắng.",

@@ -233,6 +233,7 @@ export default {
       'bounce': "Como um bumper de pinball: joga o Pweeg para trás. Uma investida joga muito mais forte."
     },
     'triggerHint': "Espera o jogador estar no ar e perto, depois ataca uma vez",
+    'zoneToRect': "Tornar a zona retangular",
     'pathHint': "Arraste os pontos amarelos na tela para mudar o trajeto (laranja = fim).",
     'followMode': {
       'both': "livremente",
@@ -262,7 +263,9 @@ export default {
       'speed': "Velocidade da investida ×",
       'delay': "Atraso (s)",
       'duration': "Planeio (s)",
-      'followSpeed': "Velocidade de perseguição"
+      'followSpeed': "Velocidade de perseguição",
+      'reach': "Comprimento da zona",
+      'zoneWidth': "Largura da zona"
     },
     'problem': {
       'noFinish': "Sem plataforma de chegada — o nível não pode ser vencido.",

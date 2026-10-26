@@ -233,6 +233,7 @@ export default {
       'bounce': "Come un respingente del flipper: scaglia Pweeg all'indietro. Una carica lo scaglia molto più forte."
     },
     'triggerHint': "Aspetta che il giocatore sia in aria e vicino, poi attacca una volta",
+    'zoneToRect': "Rendi la zona rettangolare",
     'pathHint': "Trascina i punti gialli sulla tela per cambiare il percorso (arancione = fine).",
     'followMode': {
       'both': "liberamente",
@@ -262,7 +263,9 @@ export default {
       'speed': "Velocità affondo ×",
       'delay': "Ritardo (s)",
       'duration': "Planata (s)",
-      'followSpeed': "Velocità di inseguimento"
+      'followSpeed': "Velocità di inseguimento",
+      'reach': "Lunghezza zona",
+      'zoneWidth': "Larghezza zona"
     },
     'problem': {
       'noFinish': "Nessuna piattaforma d'arrivo — il livello non si può vincere.",

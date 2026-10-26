@@ -236,6 +236,7 @@ export default {
       'bounce': "Like a pinball bumper: it knocks Pweeg back. A charge knocks much harder."
     },
     'triggerHint': "Waits until the player is in the air and close, then attacks once",
+    'zoneToRect': "Make the zone a rectangle",
     'pathHint': "Drag the yellow dots on the canvas to change the path (orange = end).",
     'followMode': {
       'both': "freely",
@@ -265,7 +266,9 @@ export default {
       'speed': "Lunge speed ×",
       'delay': "Delay (s)",
       'duration': "Glide (s)",
-      'followSpeed': "Follow speed"
+      'followSpeed': "Follow speed",
+      'reach': "Zone length",
+      'zoneWidth': "Zone width"
     },
     'problem': {
       'noFinish': "No finish platform — the level cannot be won.",

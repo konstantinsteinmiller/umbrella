@@ -233,6 +233,7 @@ export default {
       'bounce': "Zoals een flipperbumper: hij kaatst Pweeg terug. Een aanval kaatst veel harder."
     },
     'triggerHint': "Wacht tot de speler in de lucht en dichtbij is en valt dan één keer aan",
+    'zoneToRect': "Zone rechthoekig maken",
     'pathHint': "Sleep de gele stippen op het canvas om het pad te wijzigen (oranje = eind).",
     'followMode': {
       'both': "vrij",
@@ -262,7 +263,9 @@ export default {
       'speed': "Uitvalsnelheid ×",
       'delay': "Vertraging (s)",
       'duration': "Glijden (s)",
-      'followSpeed': "Volgsnelheid"
+      'followSpeed': "Volgsnelheid",
+      'reach': "Zonelengte",
+      'zoneWidth': "Zonebreedte"
     },
     'problem': {
       'noFinish': "Geen finishplatform — het level kan niet worden gewonnen.",

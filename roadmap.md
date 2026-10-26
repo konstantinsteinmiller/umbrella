@@ -122,3 +122,36 @@ Differences left, in the order to tackle them:
   terminal velocity. Today a landing at 80 % of terminal (`splatFraction` 0.8) already splats while the
   umbrella only breaks at 95 %. Designer's call: raise `splatFraction` to 1 (doc) or keep 0.8 as the
   tuned feel and update the doc.
+
+## v0.10.0 — from the mini design doc (checked 2026-10-26)
+
+Checked against *Umbrella mini design doc v0.10.0* (Google Doc). Level images are ignored: the level
+designer builds the levels in the level editor. v0.10.0's own changelog line — cutscene editor, tweaked
+game variables, sounds reverted to v0.7.0 — is already in the game (cutscene editor, Revision 9 sounds back to
+Revision 7 with the Walldorf and Prickbait sounds kept); everything else in the doc matches the 0.9.0 check.
+Differences left, in the order to tackle them:
+
+- [x] #0.10.0-1 **Walldorf charge trigger is a rectangle in front, not a circle** — doc §E: detection works
+  "like a Thwomp": a *rectangular* zone in front of the Walldorf that can be lengthened or shortened and
+  reaches slightly outside its bounds. Today a triggered lunge fires on a circular radius around the lunge
+  start (`DEFAULT_TRIGGER_RADIUS` 300, `m.radius`) and only while the player is airborne. Add a rectangular
+  zone (length along the charge direction, width, a small margin past the Walldorf's own box), show and edit
+  it in the level editor, and keep the circle for existing levels (or convert them with the designer).
+  *Done:* a triggered lunge takes `reach` (length past its front edge) and `zoneWidth` (default its height + 2 × 20 px);
+  new triggers are rectangular, old circular ones keep working and the editor has a "Make the zone a rectangle" button.
+- [x] #0.10.0-2 **Charge detection zone visible in the editor** — the doc's "like the circular radius" wording
+  is vague, so settle it with the designer: draw the zone as an overlay on the selected Walldorf (and in the
+  playground) so lengthening or shortening it is visible while editing.
+  *Done:* the editor draws the rectangle (or circle) and its Zone length / Zone width sliders change it live; the playground has no overlay.
+- [ ] #0.10.0-3 **Check the tweaked game variables** — v0.10.0 says the variables were tuned again, but the doc
+  lists no values (terminal velocity is still "x spd", the off-screen whistle fade "in 'x' seconds", and
+  braking snap / air-current interaction / mid-air turn are still marked "(?)"). Ask the designer for the
+  exported Tuning JSON and compare it to `tuning.ts` defaults.
+  *Open:* no tuning export is in the repo. The current defaults (braking snap 0.1 s, wind turn 0.5 s, air turn 0.75 s) are
+  inside the doc's ranges; send the exported values to apply them.
+- [x] #0.10.0-4 **Cutscene editor vs the doc's two frames** — doc §F: frame 1 Chad front-flips in with
+  sunglasses, pauses, floats across the channel; frame 2 Pweeg walks to the cloud's edge, climbs down
+  carefully, steps into the start, stops and looks at the player. Confirm the editor's default timeline
+  yields exactly these beats (including the pause before the float) and that the designer's saved cutscene
+  is the one shipped.
+  *Done:* verified by `tests/umbrella/walldorfZone.test.ts` (Chad flip → land → idle pause → float; Pweeg walk → edge → climb → walk → look, waits for input).
