@@ -878,11 +878,15 @@ const deleteFromOrder = (i: number) => {
   const e = orderDraft.value[i]
   if (!e) return
   if (orderDraft.value.length <= 1) { flash('The campaign needs at least one level'); return }
+  const note = e.custom
+    ? 'It is also deleted from your saved levels right away (that part cannot be undone).'
+    : 'It is gone for good once you press Save order; Cancel or Reset to original brings it back.'
   if (!window.confirm(`Delete "${orderLabel(e)}" (slot ${i + 1}) from the campaign?
 
-It is gone for good once you press Save order; Cancel or Reset to original brings it back.`)) return
+${note}`)) return
   orderDraft.value.splice(i, 1)
-  if (!e.custom) orderRemoved.value = [...orderRemoved.value, e.id].sort((a, b) => a - b)
+  if (e.custom) deleteCustomLevel(e.custom)
+  else orderRemoved.value = [...orderRemoved.value, e.id].sort((a, b) => a - b)
   renaming.value = null
 }
 const onOrderDragOver = (e: DragEvent, i: number) => {
@@ -1764,6 +1768,7 @@ onUnmounted(() => {
             >
               <span class="order-name">★ {{ n }}</span>
               <button class="mini" title="Add at the end of the campaign" @click="addToOrder(n)">+</button>
+              <button class="mini danger" title="Delete this saved level" aria-label="Delete saved level" @click="deleteSaved(n)">🗑</button>
             </div>
             <p v-if="!orderPool.length" class="hint">No saved levels left to add — Save one first.</p>
           </div>

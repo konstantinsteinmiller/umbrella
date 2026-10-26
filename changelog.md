@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 10 — 2026-10-26 ==
+- [x] Reorder dialog: deleting a saved level that sits in the campaign also removes it from Saved levels (it came back before); the Saved levels list has its own 🗑 button with the usual confirm
 - [x] Level delete in the Reorder dialog: a 🗑 button on every campaign row asks "Delete … from the campaign?" first; deleting an authored level is remembered (it stays out until Reset to original) and only takes effect on Save order
 - [x] A triggered Walldorf (Thwomp) now watches a rectangle in front of it, as in the design doc v0.10.0: Zone length and Zone width sliders in the level editor, the zone drawn on the canvas, a "Make the zone a rectangle" button for older circular triggers (labels in all 21 locales)
 
