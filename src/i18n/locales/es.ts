@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Nivel siguiente",
     'restart': "Reiniciar nivel",
     'selectLevel': "Elegir nivel",
+    'challenge': "Desafío",
+    'stars': "Recogidos {got}/{total}",
     'close': "Cerrar",
     'mute': "Silenciar sonido",
     'unmute': "Activar sonido",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Inicio del jugador",
       'checkpoint': "Punto de control",
       'button': "Botón",
+      'star': "Coleccionable",
+      'gate': "Portal",
       'wind-up': "Corriente ascendente",
       'wind-down': "Corriente descendente",
       'wind-left': "Viento a la izquierda",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Haz clic donde empieza el jugador.",
       'checkpoint': "Haz clic en una plataforma: tras tocar la bandera, una caída devuelve al jugador aquí.",
       'button': "Haz clic en el borde superior de una plataforma. Tocar el botón activa todo lo de su canal.",
+      'star': "Haz clic para colocar un coleccionable: estrella, paraguas dorado o nube dorada (el aspecto se elige en las propiedades).",
+      'gate': "Haz clic en el borde superior de una plataforma para un tubo de teletransporte. Abrir el paraguas dentro lleva al jugador por una hipercorriente a un nivel desafío.",
       'wind-up': "Arrastra un recuadro para una corriente hacia arriba.",
       'wind-down': "Arrastra un recuadro para una corriente hacia abajo.",
       'wind-left': "Arrastra un recuadro para una corriente hacia la izquierda.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Ventilador",
       'spikes': "Pinchos",
       'button': "Botón",
-      'checkpoint': "Punto de control"
+      'checkpoint': "Punto de control",
+      'star': "Coleccionable",
+      'gate': "Portal"
+    },
+    'shape': {
+      'star': "Estrella",
+      'umbrella': "Paraguas dorado",
+      'cloud': "Nube dorada"
     },
     'dir': {
       'up': "arriba",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Fuerza de rebote",
       'points': "Puntos",
       'trigger': "Ataca cuando el jugador está cerca",
-      'spawnOpen': "Empezar con el paraguas abierto"
+      'spawnOpen': "Empezar con el paraguas abierto",
+      'gateTo': "Lleva a",
+      'shape': "Aspecto"
     },
     'scrollHint': "La cámara muestra una pantalla y sigue al jugador.",
     'wholeHint': "Todo el mundo se ve a la vez (alejado si es mayor que una pantalla).",
     'spawnSelected': "Inicio del jugador (posición de los pies).",
     'spawnOpenHint': "El jugador empieza con el paraguas ya abierto",
+    'gateHint': "El jugador abre el paraguas en el tubo y es llevado al nivel elegido. Ese nivel pasa a ser un desafío: la campaña lo salta y el selector de niveles lo desbloquea al llegar.",
     'nothingSelected': "Nada seleccionado: elige algo en el lienzo.",
     'switchedWindHint': "Mientras su canal de botón esté activo, esta corriente cambia a:",
     'speedZeroHint': "Velocidad 0 detiene la corriente.",

@@ -6,10 +6,10 @@
 // build-time constant, so outside the kite build every such line folds away
 // (tests/umbrella/vectorGolden.test.ts pins the vector path call for call).
 
-import { channelOn, checkpointBox, contactOf, liveWind, platformActive, type Hazard, type World } from './engine'
+import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, type Hazard, type World } from './engine'
 import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
-import type { ButtonDef, CheckpointDef, WindDef } from './levels'
+import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
 import { isKite } from './kite'
 import { kiteArt } from './art/hooks'
 
@@ -184,6 +184,133 @@ export const drawCheckpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, 
   ctx.lineTo(poleX + 2, box.y + 24)
   ctx.closePath()
   ctx.fill()
+}
+
+/** A collectible in gold: a star, an umbrella or a cloud. It bobs and glints; a collected one leaves a faint outline. */
+export const drawStar = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; shape?: CollectShape }, got: boolean, time: number, phase = 0) => {
+  const bob = got ? 0 : Math.sin(time * 3 + phase) * 3
+  const r = STAR_R
+  const cx = s.x
+  const cy = s.y + bob
+  const shape = s.shape ?? DEFAULT_COLLECT_SHAPE
+  // The silhouette of each shape, as one path.
+  const trace = () => {
+    ctx.beginPath()
+    if (shape === 'star') {
+      for (let k = 0; k < 10; k++) {
+        const a = -Math.PI / 2 + (k * Math.PI) / 5
+        const rr = k % 2 ? r * 0.46 : r
+        ctx[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)
+      }
+      ctx.closePath()
+    } else if (shape === 'umbrella') {
+      // A scalloped canopy over a shaft with a J-handle.
+      const top = cy - r * 0.95
+      const rim = cy + r * 0.05
+      ctx.moveTo(cx - r, rim)
+      ctx.bezierCurveTo(cx - r, top, cx + r, top, cx + r, rim)
+      const scallops = 4
+      const w = (r * 2) / scallops
+      for (let k = scallops - 1; k >= 0; k--) ctx.quadraticCurveTo(cx - r + (k + 0.5) * w + w / 2 - w / 2, rim + r * 0.32, cx - r + k * w, rim)
+      ctx.closePath()
+      ctx.moveTo(cx - 1.5, rim)
+      ctx.lineTo(cx - 1.5, cy + r * 0.75)
+      ctx.arc(cx - r * 0.3, cy + r * 0.75, r * 0.3 - 1.5, 0, Math.PI)
+      ctx.lineTo(cx - r * 0.6 + 1.5, cy + r * 0.75)
+      ctx.arc(cx - r * 0.3, cy + r * 0.75, r * 0.3 + 1.5, Math.PI, 0, true)
+      ctx.lineTo(cx + 1.5, rim)
+      ctx.closePath()
+    } else {
+      // A puffy cloud: three bumps on a flat base.
+      const base = cy + r * 0.55
+      ctx.moveTo(cx - r * 0.85, base)
+      ctx.arc(cx - r * 0.55, base - r * 0.42, r * 0.42, Math.PI * 0.5, Math.PI * 1.5)
+      ctx.arc(cx - r * 0.1, base - r * 0.82, r * 0.52, Math.PI * 1.05, Math.PI * 1.95)
+      ctx.arc(cx + r * 0.52, base - r * 0.45, r * 0.45, Math.PI * 1.5, Math.PI * 0.5)
+      ctx.closePath()
+    }
+  }
+  ctx.save()
+  ctx.lineJoin = 'round'
+  if (got) {
+    ctx.strokeStyle = 'rgba(250, 204, 21, 0.35)'
+    ctx.lineWidth = 2
+    trace()
+    ctx.stroke()
+  } else {
+    ctx.fillStyle = `rgba(250, 204, 21, ${0.16 + 0.1 * Math.sin(time * 4 + phase)})`
+    ctx.beginPath()
+    ctx.arc(cx, cy, r * 1.55, 0, Math.PI * 2)
+    ctx.fill()
+    const gold = ctx.createLinearGradient(cx, cy - r, cx, cy + r)
+    gold.addColorStop(0, '#fff3a8')
+    gold.addColorStop(0.5, '#facc15')
+    gold.addColorStop(1, '#d99a06')
+    ctx.fillStyle = gold
+    ctx.strokeStyle = FG
+    ctx.lineWidth = 2.5
+    trace()
+    ctx.fill('nonzero')
+    ctx.stroke()
+    if (shape === 'umbrella') {
+      // Ribs.
+      ctx.strokeStyle = 'rgba(120, 70, 0, 0.55)'
+      ctx.lineWidth = 1.3
+      ctx.beginPath()
+      for (const f of [-0.5, 0, 0.5]) {
+        ctx.moveTo(cx, cy - r * 0.9)
+        ctx.lineTo(cx + f * r * 1.6, cy + r * 0.05)
+      }
+      ctx.stroke()
+    }
+    // A glint that sweeps across now and then.
+    const sweep = (time * 0.6 + phase) % 3
+    if (sweep < 1) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * Math.sin(sweep * Math.PI)})`
+      ctx.beginPath()
+      ctx.arc(cx - r * 0.55 + sweep * r * 1.1, cy - r * 0.35, r * 0.17, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+  ctx.restore()
+}
+
+/** A warp pipe, as in Super Mario Bros.: a green tube with a rim and a swirling dark mouth. */
+export const drawGate = (ctx: CanvasRenderingContext2D, g: { x: number; y: number; w: number; h: number }, time: number, hint = false) => {
+  const rimH = Math.min(22, g.h * 0.35)
+  ctx.save()
+  ctx.lineWidth = 3
+  ctx.strokeStyle = FG
+  ctx.lineJoin = 'round'
+  // The tube.
+  ctx.fillStyle = '#22a35a'
+  ctx.fillRect(g.x + 6, g.y + rimH, g.w - 12, g.h - rimH)
+  ctx.strokeRect(g.x + 6, g.y + rimH, g.w - 12, g.h - rimH)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.22)'
+  ctx.fillRect(g.x + 12, g.y + rimH + 3, 6, g.h - rimH - 6)
+  // The rim, a little wider than the tube.
+  ctx.fillStyle = '#34d27b'
+  ctx.fillRect(g.x, g.y, g.w, rimH)
+  ctx.strokeRect(g.x, g.y, g.w, rimH)
+  // The mouth: a dark opening with a spinning glint.
+  ctx.fillStyle = '#0b3d22'
+  ctx.fillRect(g.x + 7, g.y + 4, g.w - 14, rimH - 8)
+  ctx.strokeStyle = `rgba(190, 255, 220, ${0.5 + 0.3 * Math.sin(time * 5)})`
+  ctx.lineWidth = 2
+  const mx = g.x + g.w / 2
+  const my = g.y + rimH / 2
+  ctx.beginPath()
+  ctx.ellipse(mx, my, (g.w - 22) / 2, Math.max(2, rimH / 2 - 6), 0, time * 4, time * 4 + Math.PI * 1.4)
+  ctx.stroke()
+  // Standing at it with the umbrella shut: a bobbing umbrella says what to do.
+  if (hint) {
+    ctx.fillStyle = '#e8fff3'
+    ctx.font = '700 30px system-ui, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.fillText('☂', mx, g.y - 8 + Math.sin(time * 6) * 4)
+  }
+  ctx.restore()
 }
 
 export const drawSpikes = (ctx: CanvasRenderingContext2D, h: Pick<Hazard, 'x' | 'y' | 'w' | 'h' | 'facing'>) => {
@@ -411,6 +538,12 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     }
   }
   for (const c of w.level.checkpoints ?? []) drawCheckpoint(ctx, c, (w.level.checkpoints ?? []).indexOf(c) === w.checkpoint, w.time)
+  for (const g of w.level.gates ?? []) {
+    const pl = w.player
+    const at = pl.x < g.x + g.w && pl.x + pl.w > g.x && pl.y < g.y + g.h && pl.y + pl.h > g.y
+    drawGate(ctx, g, w.time, at && !pl.open && w.phase === 'play')
+  }
+  ;(w.level.stars ?? []).forEach((st, i) => drawStar(ctx, st, !!w.starsGot[i], w.time, i * 1.7))
 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280

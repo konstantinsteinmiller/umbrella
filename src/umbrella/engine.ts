@@ -3,7 +3,7 @@
 // Pure, renderer-free: `step(world, input, dt)` advances one fixed tick and
 // returns the events it produced (for audio / UI). Tests drive it headless.
 
-import type { CheckpointDef, HazardDef, LevelDef, Motion, PlatformDef, WalldorfContact, WindDef } from './levels'
+import type { CheckpointDef, GateDef, HazardDef, LevelDef, Motion, PlatformDef, WalldorfContact, WindDef } from './levels'
 import type { Tuning } from './tuning'
 
 /** Default hitbox; the live size comes from Tuning (player.w / player.h). */
@@ -93,9 +93,15 @@ export interface World {
   buttonsDown: boolean[]
   /** The last checkpoint touched (index into level.checkpoints), or -1. */
   checkpoint: number
+  /** Which of level.stars are collected. */
+  starsGot: boolean[]
+  /** Per gate: the player is inside it with the umbrella open (the warp fires on becoming true, not while it stays true). */
+  gateInside: boolean[]
+  /** The gate entered this run (index into level.gates), or -1. */
+  gate: number
 }
 
-export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint' | 'bump' | 'charge-bump'
+export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint' | 'bump' | 'charge-bump' | 'star' | 'gate'
 
 /** Is this button channel on right now? */
 export const channelOn = (w: World, channel: number | undefined): boolean =>
@@ -118,6 +124,12 @@ export const liveWinds = (w: World): WindDef[] => w.level.winds.map((x) => liveW
 export const CHECKPOINT_W = 30
 export const CHECKPOINT_H = 64
 export const checkpointBox = (c: CheckpointDef) => ({ x: c.x - CHECKPOINT_W / 2, y: c.y - CHECKPOINT_H, w: CHECKPOINT_W, h: CHECKPOINT_H })
+
+/** A star's touch box, centred on its point. */
+export const STAR_R = 16
+export const starBox = (s: { x: number; y: number }) => ({ x: s.x - STAR_R, y: s.y - STAR_R, w: STAR_R * 2, h: STAR_R * 2 })
+/** Where the player stands when returned out of a gate: its bottom middle. */
+export const gateExit = (g: GateDef) => ({ x: g.x + g.w / 2, y: g.y + g.h })
 
 /** Attacking-pillar cycle fractions (Tuning.lungeRest/Strike/Hold). */
 export interface LungeShape { rest: number; strike: number; hold: number }
@@ -199,15 +211,21 @@ export const poseMovers = (w: World, t: number, tuning?: Tuning): void => {
 }
 
 /** `checkpoint`: respawn at that checkpoint instead of the spawn (a checkpoint revive). */
-export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }, checkpoint = -1): World => {
+export interface WorldOptions {
+  /** Stars already collected (kept across a checkpoint revive). */
+  starsGot?: boolean[]
+  /** Start with the feet here instead of the spawn (coming back out of a gate). */
+  at?: { x: number; y: number }
+}
+export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }, checkpoint = -1, opts: WorldOptions = {}): World => {
   const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0 }))
   for (const p of platforms) placeMover(p, 0)
   const hazards = (level.hazards ?? []).map((h) => ({ ...h, dx: 0, dy: 0 }))
   for (const h of hazards) placeMover(h, 0)
   const cp = level.checkpoints?.[checkpoint]
-  const start = cp ?? level.spawn
+  const start = opts.at ?? cp ?? level.spawn
   // Starting open on a platform: begin standing on it, or the first landing would close the umbrella.
-  const open = !cp && !!level.spawnOpen
+  const open = !cp && !opts.at && !!level.spawnOpen
   const standing = open
     ? platforms.findIndex((p) => start.x + size.w / 2 > p.x && start.x - size.w / 2 < p.x + p.w && Math.abs(p.y - start.y) <= 2)
     : -1
@@ -215,6 +233,9 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
     channels: {},
     buttonsDown: (level.buttons ?? []).map(() => false),
     checkpoint: cp ? checkpoint : -1,
+    starsGot: (level.stars ?? []).map((_, i) => !!opts.starsGot?.[i]),
+    gateInside: (level.gates ?? []).map(() => open),
+    gate: -1,
     level,
     time: 0,
     platformTime: 0,
@@ -583,6 +604,23 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     if (i === w.checkpoint || !overlaps(pl.x, pl.y, pl.w, pl.h, checkpointBox(cps[i]!))) continue
     w.checkpoint = i
     events.push('checkpoint')
+  }
+
+  // Stars: touch to collect. Gates: open the umbrella at one and a hyper current takes you through.
+  const stars = w.level.stars ?? []
+  for (let i = 0; i < stars.length; i++) {
+    if (w.starsGot[i] || !overlaps(pl.x, pl.y, pl.w, pl.h, starBox(stars[i]!))) continue
+    w.starsGot[i] = true
+    events.push('star')
+  }
+  const gates = w.level.gates ?? []
+  for (let i = 0; i < gates.length; i++) {
+    const inside = pl.open && overlaps(pl.x, pl.y, pl.w, pl.h, gates[i]!)
+    if (inside && !w.gateInside[i] && w.gate < 0) {
+      w.gate = i
+      events.push('gate')
+    }
+    w.gateInside[i] = inside
   }
 
   if (pl.grounded && !wasGrounded) {

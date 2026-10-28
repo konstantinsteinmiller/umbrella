@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Level berikutnya",
     'restart': "Ulangi level",
     'selectLevel': "Pilih level",
+    'challenge': "Tantangan",
+    'stars': "Terkumpul {got}/{total}",
     'close': "Tutup",
     'mute': "Matikan suara",
     'unmute': "Nyalakan suara",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Titik mulai pemain",
       'checkpoint': "Checkpoint",
       'button': "Tombol",
+      'star': "Barang koleksi",
+      'gate': "Gerbang",
       'wind-up': "Arus naik",
       'wind-down': "Arus turun",
       'wind-left': "Angin ke kiri",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Klik tempat pemain mulai.",
       'checkpoint': "Klik pada platform: setelah menyentuh bendera, jatuh membawa pemain kembali ke sini.",
       'button': "Klik di tepi atas platform. Menyentuh tombol mengaktifkan semua yang ada di salurannya.",
+      'star': "Klik untuk menaruh barang koleksi — bintang, payung emas, atau awan emas (pilih tampilan di properti).",
+      'gate': "Klik tepi atas platform untuk pipa warp. Membuka payung di dalamnya membawa pemain dengan arus hiper ke level tantangan.",
       'wind-up': "Seret kotak untuk arus yang bertiup ke atas.",
       'wind-down': "Seret kotak untuk arus yang bertiup ke bawah.",
       'wind-left': "Seret kotak untuk arus yang bertiup ke kiri.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Kipas",
       'spikes': "Duri",
       'button': "Tombol",
-      'checkpoint': "Checkpoint"
+      'checkpoint': "Checkpoint",
+      'star': "Barang koleksi",
+      'gate': "Gerbang"
+    },
+    'shape': {
+      'star': "Bintang",
+      'umbrella': "Payung emas",
+      'cloud': "Awan emas"
     },
     'dir': {
       'up': "atas",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Kekuatan pantulan",
       'points': "Titik",
       'trigger': "Menyerang saat pemain dekat",
-      'spawnOpen': "Mulai dengan payung terbuka"
+      'spawnOpen': "Mulai dengan payung terbuka",
+      'gateTo': "Menuju",
+      'shape': "Tampilan"
     },
     'scrollHint': "Kamera menampilkan satu layar dan mengikuti pemain.",
     'wholeHint': "Seluruh dunia ditampilkan sekaligus (diperkecil jika lebih besar dari satu layar).",
     'spawnSelected': "Titik mulai pemain (posisi kaki).",
     'spawnOpenHint': "Pemain mulai dengan payung yang sudah terbuka",
+    'gateHint': "Pemain membuka payung di dalam pipa untuk dibawa ke level yang dipilih. Level itu menjadi tantangan: kampanye melewatinya dan pemilih level membukanya setelah dicapai.",
     'nothingSelected': "Tidak ada yang dipilih — pilih sesuatu di kanvas.",
     'switchedWindHint': "Saat saluran tombolnya aktif, arus ini berubah menjadi:",
     'speedZeroHint': "Kecepatan 0 menghentikan arus.",

@@ -13,6 +13,8 @@ export default {
     'nextLevel': "다음 레벨",
     'restart': "레벨 다시 시작",
     'selectLevel': "레벨 선택",
+    'challenge': "도전",
+    'stars': "수집 {got}/{total}",
     'close': "닫기",
     'mute': "음소거",
     'unmute': "음소거 해제",
@@ -128,6 +130,8 @@ export default {
       'spawn': "플레이어 시작점",
       'checkpoint': "체크포인트",
       'button': "버튼",
+      'star': "수집 아이템",
+      'gate': "게이트",
       'wind-up': "상승 기류",
       'wind-down': "하강 기류",
       'wind-left': "왼쪽 바람",
@@ -146,6 +150,8 @@ export default {
       'spawn': "플레이어가 시작할 곳을 클릭하세요.",
       'checkpoint': "발판 위를 클릭하세요: 깃발을 건드린 뒤 떨어지면 여기로 돌아와요.",
       'button': "발판 윗면을 클릭하세요. 버튼을 건드리면 같은 채널의 모든 것이 전환돼요.",
+      'star': "클릭하여 수집 아이템을 놓습니다 — 별, 황금 우산, 황금 구름 (모양은 속성에서 선택).",
+      'gate': "발판의 윗면을 클릭해 워프 파이프를 놓습니다. 안에서 우산을 펴면 하이퍼 기류가 플레이어를 도전 레벨로 데려갑니다.",
       'wind-up': "위로 부는 기류 상자를 드래그하세요.",
       'wind-down': "아래로 부는 기류 상자를 드래그하세요.",
       'wind-left': "왼쪽으로 부는 기류 상자를 드래그하세요.",
@@ -168,7 +174,14 @@ export default {
       'fan': "환풍기",
       'spikes': "가시",
       'button': "버튼",
-      'checkpoint': "체크포인트"
+      'checkpoint': "체크포인트",
+      'star': "수집 아이템",
+      'gate': "게이트"
+    },
+    'shape': {
+      'star': "별",
+      'umbrella': "황금 우산",
+      'cloud': "황금 구름"
     },
     'dir': {
       'up': "위",
@@ -217,12 +230,15 @@ export default {
       'bounce': "튕기는 힘",
       'points': "포인트",
       'trigger': "플레이어가 가까이 오면 공격",
-      'spawnOpen': "우산을 편 채로 시작"
+      'spawnOpen': "우산을 편 채로 시작",
+      'gateTo': "이동 대상",
+      'shape': "모양"
     },
     'scrollHint': "카메라가 한 화면을 보여 주며 플레이어를 따라가요.",
     'wholeHint': "월드 전체가 한 번에 보여요 (화면보다 크면 축소).",
     'spawnSelected': "플레이어 시작점 (발 위치).",
     'spawnOpenHint': "플레이어가 이미 우산을 펼친 상태로 시작합니다",
+    'gateHint': "플레이어가 파이프 안에서 우산을 펴면 선택한 레벨로 이동합니다. 그 레벨은 도전 레벨이 되어 캠페인에서는 건너뛰고, 도달하면 레벨 선택에서 해금됩니다.",
     'nothingSelected': "선택된 것이 없어요 — 캔버스에서 골라 보세요.",
     'switchedWindHint': "버튼 채널이 켜져 있는 동안 이 기류는 다음으로 바뀌어요:",
     'speedZeroHint': "속도 0이면 기류가 멈춰요.",

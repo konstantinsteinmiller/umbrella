@@ -67,6 +67,19 @@ export interface ButtonDef {
 /** A checkpoint flag standing on (x, y): touch it and a death respawns you there. */
 export interface CheckpointDef { x: number; y: number }
 
+/** What a collectible looks like; they all count the same. */
+export type CollectShape = 'star' | 'umbrella' | 'cloud'
+export const COLLECT_SHAPES: CollectShape[] = ['umbrella', 'star', 'cloud']
+export const DEFAULT_COLLECT_SHAPE: CollectShape = 'umbrella'
+/** A collectible (a star, golden umbrella or golden cloud) centred on (x, y): touch it to collect it;
+ *  a level remembers the best count. */
+export interface StarDef { x: number; y: number; shape?: CollectShape }
+
+/** A warp pipe (like Mario's green tubes): touch it to drop into the campaign level `to` (a level id),
+ *  a challenge level. Winning there brings the player back out of the pipe; the challenge is then
+ *  open in the level selector. Only the campaign honours gates. */
+export interface GateDef { x: number; y: number; w: number; h: number; to: number }
+
 /** How many button channels the editor offers (each has its own colour). */
 export const CHANNELS = 6
 
@@ -127,6 +140,8 @@ export interface LevelDef {
   hazards?: HazardDef[]
   buttons?: ButtonDef[]
   checkpoints?: CheckpointDef[]
+  stars?: StarDef[]
+  gates?: GateDef[]
   /** When the editor last saved this level (ms since epoch). Edits made in several
    *  places (the levels bucket, a JSON file, the repo) merge by it: the newest wins. */
   editedAt?: number

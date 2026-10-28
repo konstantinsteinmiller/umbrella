@@ -12,6 +12,8 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 10 — 2026-10-26 ==
+- [x] Gates (green warp pipes, editor tool G): open the umbrella inside one and a hyper current carries Pweeg up through a cutscene (light column, rising streaks and rings, whiteout) to a challenge level; winning it carries him back out at the gate. A level that a gate leads to is a challenge: the campaign skips it and the level selector unlocks it once reached (campaign only; tests and player levels ignore gates)
+- [x] Collectibles (editor tool T): stars, golden umbrellas or golden clouds, chosen per item in its properties; they bob and glint, a collected one leaves an outline, the best count per level is kept and shown on its tile in the level selector, and a gold badge in the top right counts them during play (labels in all 21 locales)
 - [x] Mine fields are quieter (level 26): Prickbait alerts share one voice (only the closest mine, at most one per 0.7 s) and the fuse ticking thins out when several mines are in range instead of staying at full volume
 - [x] "Start with the umbrella open" toggle on the player start in the level editor (labels in all 21 locales)
 - [x] An umbrella opened while standing on a platform catches currents: a current behind or above a platform lifts the player off it

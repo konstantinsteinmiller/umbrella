@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Livello successivo",
     'restart': "Ricomincia livello",
     'selectLevel': "Scegli livello",
+    'challenge': "Sfida",
+    'stars': "Raccolti {got}/{total}",
     'close': "Chiudi",
     'mute': "Disattiva audio",
     'unmute': "Attiva audio",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Partenza giocatore",
       'checkpoint': "Checkpoint",
       'button': "Pulsante",
+      'star': "Oggetto da raccogliere",
+      'gate': "Portale",
       'wind-up': "Corrente ascendente",
       'wind-down': "Corrente discendente",
       'wind-left': "Vento a sinistra",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Clicca dove parte il giocatore.",
       'checkpoint': "Clicca su una piattaforma: dopo aver toccato la bandiera, una caduta riporta qui il giocatore.",
       'button': "Clicca sul bordo superiore di una piattaforma. Toccare il pulsante attiva tutto sul suo canale.",
+      'star': "Clicca per mettere un oggetto da raccogliere: stella, ombrello d'oro o nuvola d'oro (l'aspetto nelle proprietà).",
+      'gate': "Clicca sul bordo superiore di una piattaforma per un tubo di teletrasporto. Aprendo l'ombrello al suo interno, il giocatore viene portato da una corrente iper a un livello sfida.",
       'wind-up': "Trascina un riquadro per una corrente che soffia in su.",
       'wind-down': "Trascina un riquadro per una corrente che soffia in giù.",
       'wind-left': "Trascina un riquadro per una corrente che soffia a sinistra.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Ventilatore",
       'spikes': "Spuntoni",
       'button': "Pulsante",
-      'checkpoint': "Checkpoint"
+      'checkpoint': "Checkpoint",
+      'star': "Oggetto da raccogliere",
+      'gate': "Portale"
+    },
+    'shape': {
+      'star': "Stella",
+      'umbrella': "Ombrello d'oro",
+      'cloud': "Nuvola d'oro"
     },
     'dir': {
       'up': "su",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Forza del rimbalzo",
       'points': "Punti",
       'trigger': "Attacca quando il giocatore è vicino",
-      'spawnOpen': "Inizia con l'ombrello aperto"
+      'spawnOpen': "Inizia con l'ombrello aperto",
+      'gateTo': "Porta a",
+      'shape': "Aspetto"
     },
     'scrollHint': "La telecamera mostra uno schermo e segue il giocatore.",
     'wholeHint': "Tutto il mondo è visibile insieme (con zoom indietro se è più grande di uno schermo).",
     'spawnSelected': "Partenza giocatore (posizione dei piedi).",
     'spawnOpenHint': "Il giocatore parte con l'ombrello già aperto",
+    'gateHint': "Il giocatore apre l'ombrello nel tubo e viene portato al livello scelto. Quel livello diventa una sfida: la campagna lo salta e la selezione livelli lo sblocca una volta raggiunto.",
     'nothingSelected': "Nessuna selezione — scegli qualcosa sulla tela.",
     'switchedWindHint': "Quando il suo canale è attivo, questa corrente diventa:",
     'speedZeroHint': "Velocità 0 ferma la corrente.",

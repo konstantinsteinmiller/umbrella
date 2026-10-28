@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Nächstes Level",
     'restart': "Level neu starten",
     'selectLevel': "Level wählen",
+    'challenge': "Challenge",
+    'stars': "Gesammelt {got}/{total}",
     'close': "Schließen",
     'mute': "Ton aus",
     'unmute': "Ton an",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Spielerstart",
       'checkpoint': "Checkpoint",
       'button': "Knopf",
+      'star': "Sammelobjekt",
+      'gate': "Tor",
       'wind-up': "Aufwind",
       'wind-down': "Abwind",
       'wind-left': "Wind nach links",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Klicke, wo der Spieler startet.",
       'checkpoint': "Klicke auf eine Plattform: Nach dem Berühren der Flagge bringt ein Sturz den Spieler hierher zurück.",
       'button': "Klicke auf die Oberkante einer Plattform. Der Knopf schaltet alles auf seinem Kanal.",
+      'star': "Klicken, um ein Sammelobjekt zu setzen – Stern, goldener Schirm oder goldene Wolke (Aussehen in den Eigenschaften).",
+      'gate': "Auf die Oberkante einer Plattform klicken: ein Warp-Rohr. Öffnet der Spieler darin den Schirm, trägt ihn ein Hyperstrom in ein Challenge-Level.",
       'wind-up': "Ziehe ein Rechteck für eine Strömung nach oben.",
       'wind-down': "Ziehe ein Rechteck für eine Strömung nach unten.",
       'wind-left': "Ziehe ein Rechteck für eine Strömung nach links.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Ventilator",
       'spikes': "Stacheln",
       'button': "Knopf",
-      'checkpoint': "Checkpoint"
+      'checkpoint': "Checkpoint",
+      'star': "Sammelobjekt",
+      'gate': "Tor"
+    },
+    'shape': {
+      'star': "Stern",
+      'umbrella': "Goldener Schirm",
+      'cloud': "Goldene Wolke"
     },
     'dir': {
       'up': "oben",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Abprallstärke",
       'points': "Punkte",
       'trigger': "Greift an, wenn der Spieler nah ist",
-      'spawnOpen': "Mit offenem Schirm starten"
+      'spawnOpen': "Mit offenem Schirm starten",
+      'gateTo': "Führt zu",
+      'shape': "Aussehen"
     },
     'scrollHint': "Die Kamera zeigt einen Bildschirm und folgt dem Spieler.",
     'wholeHint': "Die ganze Welt wird auf einmal gezeigt (herausgezoomt, wenn sie größer als ein Bildschirm ist).",
     'spawnSelected': "Spielerstart (Fußposition).",
     'spawnOpenHint': "Der Spieler startet mit bereits geöffnetem Schirm",
+    'gateHint': "Der Spieler öffnet im Rohr den Schirm und wird zum gewählten Level getragen. Dieses Level wird zur Challenge: die Kampagne überspringt es, die Levelauswahl schaltet es frei, sobald es erreicht wurde.",
     'nothingSelected': "Nichts ausgewählt — wähle etwas auf der Fläche.",
     'switchedWindHint': "Solange sein Knopfkanal an ist, wird diese Strömung zu:",
     'speedZeroHint': "Tempo 0 stoppt die Strömung.",

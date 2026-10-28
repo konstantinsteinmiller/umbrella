@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Sonraki seviye",
     'restart': "Seviyeyi yeniden başlat",
     'selectLevel': "Seviye seç",
+    'challenge': "Meydan okuma",
+    'stars': "Toplanan {got}/{total}",
     'close': "Kapat",
     'mute': "Sesi kapat",
     'unmute': "Sesi aç",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Oyuncu başlangıcı",
       'checkpoint': "Kontrol noktası",
       'button': "Düğme",
+      'star': "Toplanabilir",
+      'gate': "Geçit",
       'wind-up': "Yukarı akıntı",
       'wind-down': "Aşağı akıntı",
       'wind-left': "Sola rüzgâr",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Oyuncunun başlayacağı yere tıkla.",
       'checkpoint': "Bir platforma tıkla: bayrağa dokunduktan sonra düşen oyuncu buraya döner.",
       'button': "Bir platformun üst kenarına tıkla. Düğmeye dokunmak kanalındaki her şeyi değiştirir.",
+      'star': "Toplanabilir bir nesne koymak için tıklayın — yıldız, altın şemsiye ya da altın bulut (görünümü özelliklerden seçin).",
+      'gate': "Bir platformun üst kenarına tıklayarak ışınlanma borusu koyun. İçinde şemsiyeyi açan oyuncu, hiper akımla bir meydan okuma bölümüne taşınır.",
       'wind-up': "Yukarı esen bir akıntı için kutu sürükle.",
       'wind-down': "Aşağı esen bir akıntı için kutu sürükle.",
       'wind-left': "Sola esen bir akıntı için kutu sürükle.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Vantilatör",
       'spikes': "Dikenler",
       'button': "Düğme",
-      'checkpoint': "Kontrol noktası"
+      'checkpoint': "Kontrol noktası",
+      'star': "Toplanabilir",
+      'gate': "Geçit"
+    },
+    'shape': {
+      'star': "Yıldız",
+      'umbrella': "Altın şemsiye",
+      'cloud': "Altın bulut"
     },
     'dir': {
       'up': "yukarı",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Sekme gücü",
       'points': "Noktalar",
       'trigger': "Oyuncu yaklaşınca saldırır",
-      'spawnOpen': "Şemsiye açık başla"
+      'spawnOpen': "Şemsiye açık başla",
+      'gateTo': "Gideceği yer",
+      'shape': "Görünüm"
     },
     'scrollHint': "Kamera tek ekran gösterir ve oyuncuyu takip eder.",
     'wholeHint': "Tüm dünya bir kerede gösterilir (bir ekrandan büyükse uzaklaştırılır).",
     'spawnSelected': "Oyuncu başlangıcı (ayak konumu).",
     'spawnOpenHint': "Oyuncu şemsiyesi zaten açık olarak başlar",
+    'gateHint': "Oyuncu borunun içinde şemsiyeyi açıp seçilen bölüme taşınır. O bölüm meydan okumaya dönüşür: kampanya onu atlar, bölüm seçici ise ulaşılınca açar.",
     'nothingSelected': "Hiçbir şey seçilmedi — tuvalde bir şey seç.",
     'switchedWindHint': "Düğme kanalı açıkken bu akıntı şuna dönüşür:",
     'speedZeroHint': "Hız 0 akıntıyı durdurur.",

@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Màn sau",
     'restart': "Chơi lại màn",
     'selectLevel': "Chọn màn",
+    'challenge': "Thử thách",
+    'stars': "Đã thu thập {got}/{total}",
     'close': "Đóng",
     'mute': "Tắt âm thanh",
     'unmute': "Bật âm thanh",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Điểm xuất phát",
       'checkpoint': "Điểm lưu",
       'button': "Nút",
+      'star': "Vật phẩm thu thập",
+      'gate': "Cổng",
       'wind-up': "Gió thổi lên",
       'wind-down': "Gió thổi xuống",
       'wind-left': "Gió sang trái",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Nhấp vào nơi người chơi bắt đầu.",
       'checkpoint': "Nhấp lên bục: sau khi chạm cờ, nếu rơi người chơi sẽ quay lại đây.",
       'button': "Nhấp lên mép trên của bục. Chạm nút sẽ bật/tắt mọi thứ trên kênh của nó.",
+      'star': "Nhấp để đặt vật phẩm thu thập — ngôi sao, ô vàng hoặc mây vàng (chọn kiểu ở thuộc tính).",
+      'gate': "Nhấp vào mép trên của nền để đặt ống dịch chuyển. Mở ô trong ống, người chơi sẽ được dòng siêu gió đưa tới màn thử thách.",
       'wind-up': "Kéo một khung cho luồng gió thổi lên.",
       'wind-down': "Kéo một khung cho luồng gió thổi xuống.",
       'wind-left': "Kéo một khung cho luồng gió thổi sang trái.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Quạt",
       'spikes': "Gai",
       'button': "Nút",
-      'checkpoint': "Điểm lưu"
+      'checkpoint': "Điểm lưu",
+      'star': "Vật phẩm thu thập",
+      'gate': "Cổng"
+    },
+    'shape': {
+      'star': "Ngôi sao",
+      'umbrella': "Ô vàng",
+      'cloud': "Mây vàng"
     },
     'dir': {
       'up': "lên",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Lực nảy",
       'points': "Điểm",
       'trigger': "Tấn công khi người chơi đến gần",
-      'spawnOpen': "Bắt đầu với ô đang mở"
+      'spawnOpen': "Bắt đầu với ô đang mở",
+      'gateTo': "Dẫn tới",
+      'shape': "Kiểu dáng"
     },
     'scrollHint': "Camera hiện một màn hình và theo người chơi.",
     'wholeHint': "Hiện toàn bộ thế giới cùng lúc (thu nhỏ nếu lớn hơn màn hình).",
     'spawnSelected': "Điểm xuất phát (vị trí chân).",
     'spawnOpenHint': "Người chơi bắt đầu khi ô đã mở sẵn",
+    'gateHint': "Người chơi mở ô trong ống để được đưa tới màn đã chọn. Màn đó trở thành thử thách: chiến dịch bỏ qua nó và bảng chọn màn mở khóa khi đã tới.",
     'nothingSelected': "Chưa chọn gì — hãy chọn một vật trên khung vẽ.",
     'switchedWindHint': "Khi kênh nút bật, luồng gió này đổi thành:",
     'speedZeroHint': "Tốc độ 0 làm luồng gió dừng.",

@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Niveau suivant",
     'restart': "Recommencer le niveau",
     'selectLevel': "Choisir un niveau",
+    'challenge': "Défi",
+    'stars': "Ramassés {got}/{total}",
     'close': "Fermer",
     'mute': "Couper le son",
     'unmute': "Activer le son",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Départ du joueur",
       'checkpoint': "Point de contrôle",
       'button': "Bouton",
+      'star': "Objet à ramasser",
+      'gate': "Portail",
       'wind-up': "Courant ascendant",
       'wind-down': "Courant descendant",
       'wind-left': "Vent vers la gauche",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Clique là où le joueur commence.",
       'checkpoint': "Clique sur une plateforme : après avoir touché le drapeau, une chute ramène le joueur ici.",
       'button': "Clique sur le bord supérieur d'une plateforme. Toucher le bouton active tout ce qui est sur son canal.",
+      'star': "Cliquez pour placer un objet à ramasser : étoile, parapluie doré ou nuage doré (l'apparence se choisit dans les propriétés).",
+      'gate': "Cliquez sur le bord supérieur d'une plateforme pour un tuyau de téléportation. En y ouvrant le parapluie, le joueur est emporté par un hyper-courant vers un niveau défi.",
       'wind-up': "Trace un rectangle pour un courant vers le haut.",
       'wind-down': "Trace un rectangle pour un courant vers le bas.",
       'wind-left': "Trace un rectangle pour un courant vers la gauche.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Ventilateur",
       'spikes': "Pics",
       'button': "Bouton",
-      'checkpoint': "Point de contrôle"
+      'checkpoint': "Point de contrôle",
+      'star': "Objet à ramasser",
+      'gate': "Portail"
+    },
+    'shape': {
+      'star': "Étoile",
+      'umbrella': "Parapluie doré",
+      'cloud': "Nuage doré"
     },
     'dir': {
       'up': "haut",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Force du rebond",
       'points': "Points",
       'trigger': "Attaque quand le joueur est proche",
-      'spawnOpen': "Commencer avec le parapluie ouvert"
+      'spawnOpen': "Commencer avec le parapluie ouvert",
+      'gateTo': "Mène à",
+      'shape': "Apparence"
     },
     'scrollHint': "La caméra montre un écran et suit le joueur.",
     'wholeHint': "Le monde entier est affiché d'un coup (dézoomé s'il est plus grand qu'un écran).",
     'spawnSelected': "Départ du joueur (position des pieds).",
     'spawnOpenHint': "Le joueur démarre avec le parapluie déjà ouvert",
+    'gateHint': "Le joueur ouvre le parapluie dans le tuyau et est emporté vers le niveau choisi. Ce niveau devient un défi : la campagne le saute et la sélection des niveaux le débloque une fois atteint.",
     'nothingSelected': "Rien de sélectionné — choisis un élément sur le canevas.",
     'switchedWindHint': "Tant que son canal de bouton est actif, ce courant devient :",
     'speedZeroHint': "Une vitesse de 0 arrête le courant.",

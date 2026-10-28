@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Keyingi daraja",
     'restart': "Darajani qayta boshlash",
     'selectLevel': "Darajani tanlash",
+    'challenge': "Sinov",
+    'stars': "Yig'ildi {got}/{total}",
     'close': "Yopish",
     'mute': "Ovozni o'chirish",
     'unmute': "Ovozni yoqish",
@@ -128,6 +130,8 @@ export default {
       'spawn': "O‘yinchi starti",
       'checkpoint': "Nazorat nuqtasi",
       'button': "Tugma",
+      'star': "Yig'iladigan buyum",
+      'gate': "Darvoza",
       'wind-up': "Yuqoriga oqim",
       'wind-down': "Pastga oqim",
       'wind-left': "Chapga shamol",
@@ -146,6 +150,8 @@ export default {
       'spawn': "O‘yinchi boshlaydigan joyni bosing.",
       'checkpoint': "Platformani bosing: bayroqqa tegilgach, yiqilish o‘yinchini shu yerga qaytaradi.",
       'button': "Platformaning yuqori chetini bosing. Tugmaga tegish uning kanalidagi hamma narsani almashtiradi.",
+      'star': "Yig'iladigan buyum qo'yish uchun bosing — yulduz, oltin soyabon yoki oltin bulut (ko'rinishi xususiyatlarda).",
+      'gate': "Platformaning yuqori chetiga bosib, teleport quvuri qo'ying. Ichida soyabonni ochsa, o'yinchini giper oqim sinov bosqichiga olib boradi.",
       'wind-up': "Yuqoriga esadigan oqim uchun ramka torting.",
       'wind-down': "Pastga esadigan oqim uchun ramka torting.",
       'wind-left': "Chapga esadigan oqim uchun ramka torting.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Ventilyator",
       'spikes': "Tikanlar",
       'button': "Tugma",
-      'checkpoint': "Nazorat nuqtasi"
+      'checkpoint': "Nazorat nuqtasi",
+      'star': "Yig'iladigan buyum",
+      'gate': "Darvoza"
+    },
+    'shape': {
+      'star': "Yulduz",
+      'umbrella': "Oltin soyabon",
+      'cloud': "Oltin bulut"
     },
     'dir': {
       'up': "yuqoriga",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Sakrash kuchi",
       'points': "Nuqtalar",
       'trigger': "O‘yinchi yaqinlashganda hujum qiladi",
-      'spawnOpen': "Soyabon ochiq holda boshlash"
+      'spawnOpen': "Soyabon ochiq holda boshlash",
+      'gateTo': "Olib boradi",
+      'shape': "Ko'rinish"
     },
     'scrollHint': "Kamera bitta ekranni ko‘rsatadi va o‘yinchini kuzatadi.",
     'wholeHint': "Butun dunyo birdaniga ko‘rsatiladi (ekrandan katta bo‘lsa, uzoqlashtiriladi).",
     'spawnSelected': "O‘yinchi starti (oyoq holati).",
     'spawnOpenHint': "O'yinchi soyabon allaqachon ochiq holda boshlaydi",
+    'gateHint': "O'yinchi quvur ichida soyabonni ochib, tanlangan bosqichga olib ketiladi. U bosqich sinovga aylanadi: kampaniya uni o'tkazib yuboradi, daraja tanlash esa yetib borilgach ochadi.",
     'nothingSelected': "Hech narsa tanlanmagan — kanvasdan biror narsani tanlang.",
     'switchedWindHint': "Tugma kanali yoqiq ekan, bu oqim quyidagiga o‘zgaradi:",
     'speedZeroHint': "0 tezlik oqimni to‘xtatadi.",

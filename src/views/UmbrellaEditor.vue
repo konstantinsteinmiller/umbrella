@@ -26,8 +26,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { CHANNELS, LEVELS, type ButtonDef, type CheckpointDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
-import { checkpointBox, contactOf, createWorld, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
+import { CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
+import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
@@ -68,11 +68,11 @@ import {
 } from '@/umbrella/customLevels'
 
 type Tool =
-  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button'
+  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
-type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints'
+type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates'
 type Entity = { group: Group; i: number }
 type HandleKey = 'a' | 'b' | 'center' | 'pivot'
 type Selection =
@@ -97,7 +97,9 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys }[]
     { id: 'platform', icon: '▬', keys: { key: 'b' } },
     { id: 'finish', icon: '🏁', keys: { key: 'f' } },
     { id: 'spawn', icon: '☺', keys: { key: 's' } },
-    { id: 'checkpoint', icon: '⚑', keys: { key: 'c' } }
+    { id: 'checkpoint', icon: '⚑', keys: { key: 'c' } },
+    { id: 'star', icon: '★', keys: { key: 't' } },
+    { id: 'gate', icon: '⛩', keys: { key: 'g' } }
   ] },
   { id: 'currents', tools: [
     { id: 'wind-up', icon: '↑', keys: { key: '1' } },
@@ -223,8 +225,9 @@ const redo = () => {
 }
 
 // ── Geometry helpers ──
-const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef)[] =>
-  g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= []) : (L.checkpoints ??= [])
+const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | GateDef)[] =>
+  g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= [])
+    : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : (L.checkpoints ??= [])
 const listOf = (g: Group) => listIn(level.value, g)
 const hazards = () => (level.value.hazards ??= [])
 const entityOf = (e: Entity) => listOf(e.group)[e.i]
@@ -244,7 +247,9 @@ const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
     : e.group === 'platforms' ? world.platforms[e.i]!
       : e.group === 'hazards' ? world.hazards[e.i]!
         : e.group === 'buttons' ? level.value.buttons![e.i]!
-          : checkpointBox(level.value.checkpoints![e.i]!)
+          : e.group === 'gates' ? level.value.gates![e.i]!
+            : e.group === 'stars' ? starBox(level.value.stars![e.i]!)
+              : checkpointBox(level.value.checkpoints![e.i]!)
 
 const translateMotion = (m: Motion, dx: number, dy: number) => {
   const mv = (v: Vec) => { v.x += dx; v.y += dy }
@@ -296,14 +301,14 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
   const cur = selection.value
   if (cur?.type === 'entity' && entityOf(cur)) {
     const r = shownRect(cur)
-    if (cur.group !== 'checkpoints' && Math.hypot(p.x - (r.x + r.w), p.y - (r.y + r.h)) <= handleRadius() * 1.4) return { sel: cur, resize: true }
+    if (cur.group !== 'checkpoints' && cur.group !== 'stars' && Math.hypot(p.x - (r.x + r.w), p.y - (r.y + r.h)) <= handleRadius() * 1.4) return { sel: cur, resize: true }
     const m = motionOf(cur)
     for (const h of m ? handlesOf(m) : []) if (Math.hypot(p.x - h.v.x, p.y - h.v.y) <= handleRadius() * 1.4) return { sel: cur, handle: h.key }
   }
   const sp = level.value.spawn
   if (inside(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, 4)) return { sel: { type: 'spawn' } }
   // Small things first: hazards, then platforms, then (big) winds.
-  for (const group of ['checkpoints', 'buttons', 'hazards', 'platforms', 'winds'] as Group[]) {
+  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'hazards', 'platforms', 'winds'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) if (inside(p, shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
@@ -361,6 +366,20 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       const list = (L.buttons ??= [])
       list.push({ x: snapV(a.x - 30), y: snapV(a.y) - 14, w: 60, h: 14, channel: 1 })
       sel = { type: 'entity', group: 'buttons', i: list.length - 1 }
+      break
+    }
+    case 'star': {
+      const list = (L.stars ??= [])
+      list.push({ x: snapV(a.x), y: snapV(a.y), shape: collectShape.value })
+      sel = { type: 'entity', group: 'stars', i: list.length - 1 }
+      break
+    }
+    case 'gate': {
+      // Its bottom on the click: drop it onto a platform's top edge, like a Mario pipe.
+      const list = (L.gates ??= [])
+      const to = LEVELS.find((l) => l.id !== L.id)?.id ?? 0
+      list.push({ x: snapV(a.x - 30), y: snapV(a.y) - 80, w: 60, h: 80, to })
+      sel = { type: 'entity', group: 'gates', i: list.length - 1 }
       break
     }
     case 'checkpoint': {
@@ -442,7 +461,7 @@ const onPointerMove = (e: PointerEvent) => {
     return
   }
   if (drag.mode === 'resize') {
-    if (drag.target.group === 'checkpoints') return
+    if (drag.target.group === 'checkpoints' || drag.target.group === 'stars') return
     const ent = entityOf(drag.target)! as PlatformDef
     const shown = shownRect(drag.target)
     const nw = Math.max(10, snapV(p.x - shown.x))
@@ -790,16 +809,26 @@ const setButtonMode = (b: ButtonDef, timed: boolean) => {
   else delete b.duration
 }
 const selectedButton = computed(() => (selected.value?.group === 'buttons' ? (selected.value.ent as ButtonDef) : null))
+/** The look of the next collectible placed; picking a look for a selected one also makes it the default. */
+const collectShape = ref<CollectShape>(DEFAULT_COLLECT_SHAPE)
+const selectedStar = computed(() => (selected.value?.group === 'stars' ? (selected.value.ent as StarDef) : null))
+const setShape = (st: StarDef, shape: CollectShape) => {
+  st.shape = shape
+  collectShape.value = shape
+}
+const selectedGate = computed(() => (selected.value?.group === 'gates' ? (selected.value.ent as GateDef) : null))
 const selectedCheckpoint = computed(() => (selected.value?.group === 'checkpoints' ? (selected.value.ent as CheckpointDef) : null))
-const rectKeys = computed(() => (selected.value?.group === 'checkpoints' ? (['x', 'y'] as const) : (['x', 'y', 'w', 'h'] as const)))
+const rectKeys = computed(() => (selected.value?.group === 'checkpoints' || selected.value?.group === 'stars' ? (['x', 'y'] as const) : (['x', 'y', 'w', 'h'] as const)))
 const selectedKind = computed(() => {
   const s = selected.value
   if (!s) return ''
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
   if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : 'platform'
-  return s.group === 'buttons' ? 'button' : 'checkpoint'
+  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'stars' ? 'star' : 'checkpoint'
 })
+/** The campaign levels a gate can lead to, for its dropdown. */
+const gateTargets = computed(() => { void campaignOrder.value; return LEVELS.map((l, i) => ({ id: l.id, label: t('umbrella.level', { n: i + 1 }) })) })
 
 // ── Checks shown under the canvas, so a broken level is visible before testing ──
 const problems = computed(() => {
@@ -1178,7 +1207,7 @@ const paint = (now: number) => {
     ctx.fillText(t('umbrellaEditor.startScreen'), start.x + 6 / s, start.y + 6 / s)
   }
   // Off-world things (a lunge resting off-screen) still need an outline to grab.
-  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints'] as Group[]) {
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'gates'] as Group[]) {
     listOf(group).forEach((_, i) => {
       const r = shownRect({ group, i })
       const off = r.x < 0 || r.y < 0 || r.x + r.w > L.world.w || r.y + r.h > L.world.h
@@ -1565,6 +1594,21 @@ onUnmounted(() => {
             </template>
           </template>
 
+          <template v-if="selectedStar">
+            <label class="row">{{ t('umbrellaEditor.prop.shape') }}
+              <select class="field" :value="selectedStar.shape ?? DEFAULT_COLLECT_SHAPE" @change="setShape(selectedStar, ($event.target as HTMLSelectElement).value as CollectShape)">
+                <option v-for="sh in COLLECT_SHAPES" :key="sh" :value="sh">{{ t(`umbrellaEditor.shape.${sh}`) }}</option>
+              </select>
+            </label>
+          </template>
+          <template v-if="selectedGate">
+            <label class="row">{{ t('umbrellaEditor.prop.gateTo') }}
+              <select v-model.number="selectedGate.to" class="field">
+                <option v-for="g in gateTargets" :key="g.id" :value="g.id">{{ g.label }}</option>
+              </select>
+            </label>
+            <p class="hint">{{ t('umbrellaEditor.gateHint') }}</p>
+          </template>
           <template v-if="selectedButton">
             <label class="row">{{ t('umbrellaEditor.prop.channelLabel') }}
               <select v-model.number="selectedButton.channel" class="field">

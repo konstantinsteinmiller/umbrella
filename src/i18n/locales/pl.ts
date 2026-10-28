@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Następny poziom",
     'restart': "Zrestartuj poziom",
     'selectLevel': "Wybierz poziom",
+    'challenge': "Wyzwanie",
+    'stars': "Zebrano {got}/{total}",
     'close': "Zamknij",
     'mute': "Wycisz dźwięk",
     'unmute': "Włącz dźwięk",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Start gracza",
       'checkpoint': "Punkt kontrolny",
       'button': "Przycisk",
+      'star': "Przedmiot do zebrania",
+      'gate': "Brama",
       'wind-up': "Prąd wznoszący",
       'wind-down': "Prąd opadający",
       'wind-left': "Wiatr w lewo",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Kliknij miejsce startu gracza.",
       'checkpoint': "Kliknij na platformie: po dotknięciu flagi upadek przenosi gracza tutaj.",
       'button': "Kliknij górną krawędź platformy. Dotknięcie przycisku przełącza wszystko na jego kanale.",
+      'star': "Kliknij, aby postawić przedmiot do zebrania — gwiazdkę, złoty parasol lub złotą chmurkę (wygląd we właściwościach).",
+      'gate': "Kliknij górną krawędź platformy, aby postawić rurę teleportacyjną. Otwarcie w niej parasola zabiera gracza hiperprądem na poziom wyzwania.",
       'wind-up': "Przeciągnij prostokąt prądu wiejącego w górę.",
       'wind-down': "Przeciągnij prostokąt prądu wiejącego w dół.",
       'wind-left': "Przeciągnij prostokąt prądu wiejącego w lewo.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Wentylator",
       'spikes': "Kolce",
       'button': "Przycisk",
-      'checkpoint': "Punkt kontrolny"
+      'checkpoint': "Punkt kontrolny",
+      'star': "Przedmiot do zebrania",
+      'gate': "Brama"
+    },
+    'shape': {
+      'star': "Gwiazdka",
+      'umbrella': "Złoty parasol",
+      'cloud': "Złota chmurka"
     },
     'dir': {
       'up': "w górę",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Siła odbicia",
       'points': "Punkty",
       'trigger': "Atakuje, gdy gracz jest blisko",
-      'spawnOpen': "Zacznij z otwartym parasolem"
+      'spawnOpen': "Zacznij z otwartym parasolem",
+      'gateTo': "Prowadzi do",
+      'shape': "Wygląd"
     },
     'scrollHint': "Kamera pokazuje jeden ekran i podąża za graczem.",
     'wholeHint': "Cały świat jest widoczny naraz (oddalony, jeśli jest większy niż ekran).",
     'spawnSelected': "Start gracza (pozycja stóp).",
     'spawnOpenHint': "Gracz zaczyna z już otwartym parasolem",
+    'gateHint': "Gracz otwiera parasol w rurze i trafia na wybrany poziom. Ten poziom staje się wyzwaniem: kampania go pomija, a wybór poziomów odblokowuje go po dotarciu.",
     'nothingSelected': "Nic nie zaznaczono — wybierz coś na płótnie.",
     'switchedWindHint': "Gdy kanał przycisku jest włączony, ten prąd zmienia się na:",
     'speedZeroHint': "Prędkość 0 zatrzymuje prąd.",

@@ -10,9 +10,9 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { LEVELS } from '@/umbrella/levels'
+import { LEVELS, type GateDef } from '@/umbrella/levels'
 import { customLevels, customPlay, editorUnlocked, keepSharedLevel, setEditorUnlocked, testLevel, type CustomPlay } from '@/umbrella/customLevels'
-import { createWorld, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
+import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, countPlay } from '@/umbrella/community'
 import { editorAllowed } from '@/umbrella/editorAccess'
@@ -22,6 +22,7 @@ import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import { createIntro, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
 import { render } from '@/umbrella/renderer'
+import { ARRIVE_TIME, drawWarp, startWarp, warpPosition, warpTime, type Warp } from '@/umbrella/warp'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
 import { createEnemyCues, ENEMY_BED_IDLE } from '@/umbrella/enemySounds'
@@ -66,7 +67,7 @@ const onSwipeUp = (e: PointerEvent) => {
   swipeX = 0
   if (Math.abs(dx) > 90) stepTest(dx < 0 ? 1 : -1)
 }
-const levelDef = () => testDef ?? playing.value?.level ?? LEVELS[levelIndex.value]!
+const levelDef = () => testDef ?? playing.value?.level ?? LEVELS[shownIndex()]!
 const backToEditor = () => {
   testLevel.value = null
   void router.push('/editor')
@@ -93,6 +94,8 @@ const startIntro = () => {
   showPause.value = showLevels.value = showCommunity.value = false
   if (playing.value) { playing.value = null; customPlay.value = null }
   levelIndex.value = 0
+  challenge.value = null
+  warp = null
   held.left = held.right = false
   intro = createIntro(LEVELS[0]!, tuning, (name) => {
     if (name === 'land') playSfx('land', { intensity: 0.25 })
@@ -182,6 +185,96 @@ watch(editorUnlocked, (on) => gui?.toggle(on))
 const levelIndex = ref(Math.min(LEVELS.length - 1, Math.max(0, getState<number>('umb_level', 0))))
 watch(levelIndex, (i) => setState('umb_level', i))
 
+// ── Gates and challenge levels ──
+// A level that some gate leads to is a challenge: the campaign walks past it, the level
+// selector hides it until a gate has taken the player there, and winning it brings the
+// player back out of the gate they came through.
+interface Challenge { idx: number; ret: { gate: GateDef; levelIdx: number } | null }
+const challenge = ref<Challenge | null>(null)
+const unlocked = ref<number[]>(getState<number[]>('umb_unlocked', []))
+const challengeIds = computed(() => new Set(LEVELS.flatMap((l) => (l.gates ?? []).map((g) => g.to))))
+const isChallenge = (i: number) => challengeIds.value.has(LEVELS[i]?.id ?? -1)
+const isLocked = (i: number) => isChallenge(i) && !unlocked.value.includes(LEVELS[i]!.id)
+const shownIndex = () => challenge.value?.idx ?? levelIndex.value
+/** The next campaign level in a direction, walking past challenge levels. */
+const walkIndex = (from: number, d: 1 | -1) => {
+  const n = LEVELS.length
+  for (let k = 1; k <= n; k++) {
+    const i = (((from + d * k) % n) + n) % n
+    if (!isChallenge(i)) return i
+  }
+  return from
+}
+const unlockChallenge = (id: number) => {
+  if (unlocked.value.includes(id)) return
+  unlocked.value = [...unlocked.value, id]
+  setState('umb_unlocked', unlocked.value)
+}
+
+// ── Stars: the best count per level is kept; the HUD shows this run's ──
+const starBest = ref<Record<number, number>>(getState<Record<number, number>>('umb_stars', {}))
+const hudStars = ref<{ got: number; total: number; shape: string }>({ got: 0, total: 0, shape: 'umbrella' })
+/** Bumped on each pickup so the badge pops. */
+const badgePop = ref(0)
+const syncStars = () => {
+  const total = world.level.stars?.length ?? 0
+  const got = world.starsGot.filter(Boolean).length
+  const shape = world.level.stars?.[0]?.shape ?? 'umbrella'
+  if (hudStars.value.got !== got || hudStars.value.total !== total || hudStars.value.shape !== shape) {
+    if (got > hudStars.value.got && total === hudStars.value.total) badgePop.value++
+    hudStars.value = { got, total, shape }
+  }
+}
+const recordStars = () => {
+  const got = world.starsGot.filter(Boolean).length
+  const id = LEVELS[shownIndex()]?.id
+  if (testing || playing.value || id === undefined || got <= (starBest.value[id] ?? 0)) return
+  starBest.value = { ...starBest.value, [id]: got }
+  setState('umb_stars', starBest.value)
+}
+
+// ── The hyper current: opening the umbrella at a gate carries Pweeg through it ──
+let warp: Warp | null = null
+let warpDone: (() => void) | null = null
+let arrive = 0
+const beginWarp = (kind: 'in' | 'out', mouth: GateDef, done: () => void) => {
+  const pl = world.player
+  warp = startWarp(kind, mouth, { x: pl.x + pl.w / 2, y: pl.y + pl.h })
+  warpDone = done
+  pl.open = true
+  pl.vx = pl.vy = 0
+  held.left = held.right = false
+  togglePending = false
+  playSfx('arrive', { hazard: 'mine', duration: kind === 'in' ? 1.4 : 0.9 })
+}
+const enterGate = (gate: GateDef) => {
+  const to = LEVELS.findIndex((l) => l.id === gate.to)
+  if (to < 0) return
+  beginWarp('in', gate, () => {
+    unlockChallenge(gate.to)
+    challenge.value = { idx: to, ret: { gate, levelIdx: levelIndex.value } }
+    reload()
+    arrive = ARRIVE_TIME
+  })
+}
+/** Winning a challenge: out through the same current, back to where the gate stands. */
+const leaveChallenge = () => {
+  const c = challenge.value
+  if (!c) return
+  markCleared(c.idx)
+  recordStars()
+  const pl = world.player
+  const mouth: GateDef = { x: pl.x + pl.w / 2 - 30, y: pl.y + pl.h - 22, w: 60, h: 22, to: LEVELS[c.idx]!.id }
+  beginWarp('out', mouth, () => {
+    challenge.value = null
+    if (c.ret) {
+      levelIndex.value = c.ret.levelIdx
+      reload({ at: gateExit(c.ret.gate) })
+    } else loadLevel(walkIndex(levelIndex.value, 1))
+    arrive = ARRIVE_TIME
+  })
+}
+
 const canvas = ref<HTMLCanvasElement | null>(null)
 const brokenFlash = ref(false)
 
@@ -203,22 +296,34 @@ const playMine = (name: string) => {
 }
 const pickLevel = (i: number) => {
   showLevels.value = false
+  if (isLocked(i)) return
   if (playing.value) { playing.value = null; customPlay.value = null }
   loadLevel(i)
+  // An unlocked challenge opens as a challenge: winning it moves on in the campaign.
+  if (isChallenge(i) && !testing) {
+    challenge.value = { idx: i, ret: null }
+    reload()
+  }
 }
 
 let world: World = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight })
 const held = { left: false, right: false }
 let togglePending = false
 
-const loadLevel = (i: number) => {
-  if (!testing && !playing.value) levelIndex.value = (i + LEVELS.length) % LEVELS.length
-  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight })
+const reload = (opts: { at?: { x: number; y: number } } = {}) => {
+  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, -1, opts)
   gui?.setLevel(world.level)
   brokenFlash.value = false
   hideRevive()
+  syncStars()
 }
-const restart = () => loadLevel(levelIndex.value)
+/** Opens a campaign level by position (this leaves any challenge). */
+const loadLevel = (i: number) => {
+  if (!testing && !playing.value) { levelIndex.value = (i + LEVELS.length) % LEVELS.length; challenge.value = null }
+  reload()
+}
+const stepLevel = (d: 1 | -1) => loadLevel(walkIndex(levelIndex.value, d))
+const restart = () => reload()
 
 // ── Checkpoints: a death after touching one revives there. For a perfect run the
 //    player can refuse: a Restart button stays up for the first seconds. ──
@@ -233,7 +338,7 @@ const fail = () => {
   if (playing.value) canRate.value = true
   const cp = world.checkpoint
   if (cp < 0) { restart(); return }
-  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, cp)
+  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, cp, { starsGot: world.starsGot })
   brokenFlash.value = false
   hideRevive()
   showRevive.value = true
@@ -301,6 +406,11 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         break
       case 'button': playSfx('step', { intensity: 1, pan }); break
       case 'checkpoint': playSfx('open', { intensity: 0.5, pan }); break
+      case 'star': playSfx('open', { intensity: 0.9, quick: true, pan }); playSfx('step', { intensity: 0.3, pan }); break
+      case 'gate':
+        // Only the campaign has somewhere to go; a test or a player level lets the gate be.
+        if (!testing && !playing.value && !challenge.value?.ret) enterGate(world.level.gates![world.gate]!)
+        break
       // 'bump' / 'charge-bump' and the mine's sting: the enemy cues below.
     }
   }
@@ -381,17 +491,33 @@ const ambience = (): AmbienceState => {
 let ambienceClock = 0
 
 const tick = () => {
+  if (warp) {
+    // The current carries him: no physics, just the ride up the column.
+    warp.t += DT
+    const p = warpPosition(warp)
+    world.player.x = p.x - world.player.w / 2
+    world.player.y = p.y - world.player.h
+    if (warp.t >= warpTime(warp.kind)) {
+      const done = warpDone
+      warp = null
+      warpDone = null
+      done?.()
+    }
+    return
+  }
   const input: Input = { left: held.left || stickDir.value < 0, right: held.right || stickDir.value > 0, toggle: togglePending }
   togglePending = false
   const vyBefore = world.player.vy
   const events = step(world, input, DT, tuning)
   onEvents(events, vyBefore)
+  if (events.includes('star')) syncStars()
   enemyCues(events)
   // Failure resets the level at the spawn point, or revives at the last checkpoint.
   if (world.phase === 'out') fail()
   else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) fail()
   else if (world.phase === 'win' && world.phaseTime >= tuning.winHold) {
     if (testing) restart()
+    else if (challenge.value) leaveChallenge()
     else if (playing.value) {
       // A player level loops; a community one asks for stars after the first win.
       canRate.value = true
@@ -399,7 +525,8 @@ const tick = () => {
       restart()
     } else {
       markCleared(levelIndex.value)
-      loadLevel(levelIndex.value + 1)
+      recordStars()
+      loadLevel(walkIndex(levelIndex.value, 1))
     }
   }
 }
@@ -437,7 +564,16 @@ const frame = (now: number) => {
   resize(el)
   const ctx = el.getContext('2d')
   if (ctx && intro) intro.draw(ctx, { finish: t('umbrella.finish') }, dtReal)
-  else if (ctx) render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal)
+  else if (ctx) {
+    const cam = render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal)
+    if (warp) drawWarp(ctx, cam, warp)
+    if (arrive > 0) {
+      arrive = Math.max(0, arrive - dtReal)
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
+      ctx.fillStyle = `rgba(255, 255, 255, ${arrive / ARRIVE_TIME})`
+      ctx.fillRect(0, 0, el.width, el.height)
+    }
+  }
 }
 
 /** Backing store at css × devicePixelRatio — never draw below native. */
@@ -623,9 +759,9 @@ onUnmounted(() => {
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
     <div v-else class="hud">
-      <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="loadLevel(levelIndex - 1)">‹</button>
-      <span class="hud-level">{{ t('umbrella.level', { n: levelIndex + 1 }) }}</span>
-      <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="loadLevel(levelIndex + 1)">›</button>
+      <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="stepLevel(-1)">‹</button>
+      <span class="hud-level">{{ t('umbrella.level', { n: shownIndex() + 1 }) }}<template v-if="challenge"> · {{ t('umbrella.challenge') }}</template></span>
+      <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="stepLevel(1)">›</button>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
 <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
@@ -676,6 +812,22 @@ onUnmounted(() => {
         @contextmenu.prevent
       >☂</button>
     </template>
+    <!-- Collectibles: a gold badge in the top right, popping with every pickup. -->
+    <div v-if="hudStars.total && started && !introOn" :key="'badge' + hudStars.total" class="collect-badge" :class="{ done: hudStars.got === hudStars.total }" role="status" :aria-label="t('umbrella.stars', hudStars)">
+      <span :key="badgePop" class="collect-glyph">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path v-if="hudStars.shape === 'star'" d="M12 2.5l2.9 6.2 6.7.8-5 4.6 1.4 6.7L12 17.4l-6 3.4 1.4-6.7-5-4.6 6.7-.8z" />
+          <template v-else-if="hudStars.shape === 'cloud'">
+            <path d="M6.5 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.5 9a5 5 0 0 1 .5 10z" />
+          </template>
+          <template v-else>
+            <path d="M2.5 12.5C2.5 7 6.7 3 12 3s9.5 4 9.5 9.5c-1.3-1.2-2.6-1.2-3.9 0-1.3-1.2-2.6-1.2-3.8 0-1.3-1.2-2.5-1.2-3.8 0-1.3-1.2-2.6-1.2-3.9 0z" />
+            <path d="M11 12.5h2V19a2.6 2.6 0 0 1-5.2 0h1.8a.8.8 0 0 0 1.6 0z" />
+          </template>
+        </svg>
+      </span>
+      <span class="collect-count"><b>{{ hudStars.got }}</b><i>/</i>{{ hudStars.total }}</span>
+    </div>
     <div v-if="brokenFlash" class="toast">{{ t('umbrella.broken') }}</div>
 
     <div v-if="showLevels" class="levels-backdrop" @click.self="showLevels = false">
@@ -687,14 +839,16 @@ onUnmounted(() => {
         <div class="levels-grid">
           <button
             v-for="(lv, i) in LEVELS"
+            v-show="!isLocked(i)"
             :key="lv.id"
             class="level-tile"
-            :class="{ current: i === levelIndex, cleared: cleared.includes(i) }"
-            :aria-label="t('umbrella.level', { n: i + 1 })"
+            :class="{ current: i === shownIndex(), cleared: cleared.includes(i), challenge: isChallenge(i) }"
+            :aria-label="t('umbrella.level', { n: i + 1 }) + (isChallenge(i) ? ' · ' + t('umbrella.challenge') : '')"
             @click="pickLevel(i)"
           >
             <span class="level-num">{{ i + 1 }}</span>
             <span v-if="cleared.includes(i)" class="level-tick">✓</span>
+            <span v-if="lv.stars?.length" class="level-stars">★{{ starBest[lv.id] ?? 0 }}/{{ lv.stars.length }}</span>
           </button>
         </div>
         <!-- The player's own levels: opened from share links, built in the editor. -->
@@ -954,6 +1108,61 @@ onUnmounted(() => {
 .my-level:hover { background: rgba(79, 70, 229, 0.5); }
 .my-level.current { outline: 2px solid #6fa8ff; }
 .my-empty { margin: 0; font-size: 14px; opacity: 0.7; }
+.level-tile.challenge { background: rgba(34, 163, 90, 0.35); }
+.level-stars {
+  position: absolute;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+  font-size: 11px;
+  color: #facc15;
+  text-align: center;
+}
+/* The collectible badge: a gilded pill in the top right corner. */
+.collect-badge {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px 6px 8px;
+  border-radius: 999px;
+  color: #3b2400;
+  background: linear-gradient(180deg, #fff3a8 0%, #facc15 48%, #d99a06 100%);
+  border: 2px solid #fff8d6;
+  box-shadow: 0 0 0 2px #8a5a00, 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 18px rgba(250, 204, 21, 0.45);
+  font-weight: 800;
+  pointer-events: none;
+}
+.collect-badge::before {
+  content: '';
+  position: absolute;
+  inset: 3px 12px auto 12px;
+  height: 38%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0));
+}
+.collect-badge.done { animation: collect-shine 1.6s ease-in-out infinite; }
+.collect-glyph {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  color: #facc15;
+  background: radial-gradient(circle at 35% 30%, #5b3a00, #2a1800);
+  box-shadow: inset 0 0 0 2px #fff3a8;
+  animation: collect-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.collect-glyph svg { fill: #facc15; }
+.collect-count { font-size: 20px; letter-spacing: 0.5px; position: relative; }
+.collect-count i { font-style: normal; opacity: 0.55; margin: 0 1px; }
+@keyframes collect-pop { 0% { transform: scale(0.5) rotate(-25deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes collect-shine { 50% { filter: brightness(1.25); box-shadow: 0 0 0 2px #8a5a00, 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 30px rgba(250, 204, 21, 0.9); } }
 .level-tick {
   position: absolute;
   top: 4px;

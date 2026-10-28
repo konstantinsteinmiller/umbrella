@@ -16,6 +16,8 @@ export default {
     'nextLevel': "Next level",
     'restart': "Restart level",
     'selectLevel': "Select level",
+    'challenge': "Challenge",
+    'stars': "Collected {got}/{total}",
     'close': "Close",
     'mute': "Mute sound",
     'unmute': "Unmute sound",
@@ -131,6 +133,8 @@ export default {
       'spawn': "Player start",
       'checkpoint': "Checkpoint",
       'button': "Button",
+      'star': "Collectible",
+      'gate': "Gate",
       'wind-up': "Updraft",
       'wind-down': "Downdraft",
       'wind-left': "Wind left",
@@ -149,6 +153,8 @@ export default {
       'spawn': "Click where the player starts.",
       'checkpoint': "Click on a platform: after touching the flag, a fall brings the player back here.",
       'button': "Click on a platform's top edge. Touching the button switches everything on its channel.",
+      'star': "Click to place a collectible — a star, golden umbrella or golden cloud (pick the look in the properties).",
+      'gate': "Click on a platform's top edge for a warp pipe. Opening the umbrella inside it sends the player to a challenge level on a hyper current.",
       'wind-up': "Drag a box for a current that blows up.",
       'wind-down': "Drag a box for a current that blows down.",
       'wind-left': "Drag a box for a current that blows left.",
@@ -171,7 +177,14 @@ export default {
       'fan': "Ventilator",
       'spikes': "Spikes",
       'button': "Button",
-      'checkpoint': "Checkpoint"
+      'checkpoint': "Checkpoint",
+      'star': "Collectible",
+      'gate': "Gate"
+    },
+    'shape': {
+      'star': "Star",
+      'umbrella': "Golden umbrella",
+      'cloud': "Golden cloud"
     },
     'dir': {
       'up': "up",
@@ -220,12 +233,15 @@ export default {
       'bounce': "Bounce strength",
       'points': "Points",
       'trigger': "Attacks when the player is near",
-      'spawnOpen': "Start with the umbrella open"
+      'spawnOpen': "Start with the umbrella open",
+      'gateTo': "Leads to",
+      'shape': "Look"
     },
     'scrollHint': "The camera shows one screen and follows the player.",
     'wholeHint': "The whole world is shown at once (zoomed out if it is bigger than a screen).",
     'spawnSelected': "Player start (feet position).",
     'spawnOpenHint': "The player starts with the umbrella already open",
+    'gateHint': "The player opens the umbrella inside the pipe to be carried to the chosen level. That level becomes a challenge: the campaign skips it and the level selector unlocks it once reached.",
     'nothingSelected': "Nothing selected — pick something on the canvas.",
     'switchedWindHint': "While its button channel is on, this current changes to:",
     'speedZeroHint': "Speed 0 stops the current.",

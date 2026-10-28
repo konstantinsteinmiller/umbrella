@@ -13,6 +13,8 @@ export default {
     'nextLevel': "下一关",
     'restart': "重新开始本关",
     'selectLevel': "选择关卡",
+    'challenge': "挑战",
+    'stars': "已收集 {got}/{total}",
     'close': "关闭",
     'mute': "静音",
     'unmute': "取消静音",
@@ -128,6 +130,8 @@ export default {
       'spawn': "玩家起点",
       'checkpoint': "检查点",
       'button': "按钮",
+      'star': "收集物",
+      'gate': "传送门",
       'wind-up': "上升气流",
       'wind-down': "下沉气流",
       'wind-left': "向左风",
@@ -146,6 +150,8 @@ export default {
       'spawn': "点击玩家的起始位置。",
       'checkpoint': "点击平台：碰到旗子后，坠落会让玩家回到这里。",
       'button': "点击平台的顶边。碰到按钮会切换其频道上的所有物体。",
+      'star': "点击放置收集物——星星、金伞或金云（在属性中选择外观）。",
+      'gate': "点击平台上边缘放置传送管。在管内张开雨伞，玩家会被超级气流送往挑战关卡。",
       'wind-up': "拖出一个框，放置向上吹的气流。",
       'wind-down': "拖出一个框，放置向下吹的气流。",
       'wind-left': "拖出一个框，放置向左吹的气流。",
@@ -168,7 +174,14 @@ export default {
       'fan': "风扇",
       'spikes': "尖刺",
       'button': "按钮",
-      'checkpoint': "检查点"
+      'checkpoint': "检查点",
+      'star': "收集物",
+      'gate': "传送门"
+    },
+    'shape': {
+      'star': "星星",
+      'umbrella': "金伞",
+      'cloud': "金云"
     },
     'dir': {
       'up': "上",
@@ -217,12 +230,15 @@ export default {
       'bounce': "弹开力度",
       'points': "路径点",
       'trigger': "玩家靠近时攻击",
-      'spawnOpen': "以打开的伞开始"
+      'spawnOpen': "以打开的伞开始",
+      'gateTo': "通往",
+      'shape': "外观"
     },
     'scrollHint': "镜头显示一个屏幕并跟随玩家。",
     'wholeHint': "一次显示整个世界（比屏幕大时会缩小）。",
     'spawnSelected': "玩家起点（脚的位置）。",
     'spawnOpenHint': "玩家开局时雨伞已经打开",
+    'gateHint': "玩家在管内打开雨伞，就会被带到所选关卡。该关卡成为挑战关：主线会跳过它，到达后才会在选关界面解锁。",
     'nothingSelected': "未选中任何物体——在画布上选一个。",
     'switchedWindHint': "按钮频道开启时，此气流变为：",
     'speedZeroHint': "速度为 0 时气流停止。",

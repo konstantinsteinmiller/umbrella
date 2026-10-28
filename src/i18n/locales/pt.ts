@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Próximo nível",
     'restart': "Reiniciar nível",
     'selectLevel': "Escolher nível",
+    'challenge': "Desafio",
+    'stars': "Coletados {got}/{total}",
     'close': "Fechar",
     'mute': "Silenciar som",
     'unmute': "Ativar som",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Início do jogador",
       'checkpoint': "Checkpoint",
       'button': "Botão",
+      'star': "Colecionável",
+      'gate': "Portal",
       'wind-up': "Corrente ascendente",
       'wind-down': "Corrente descendente",
       'wind-left': "Vento para a esquerda",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Clique onde o jogador começa.",
       'checkpoint': "Clique numa plataforma: depois de tocar a bandeira, uma queda traz o jogador de volta aqui.",
       'button': "Clique na borda de cima de uma plataforma. Tocar o botão aciona tudo no canal dele.",
+      'star': "Clique para colocar um colecionável — estrela, guarda-chuva dourado ou nuvem dourada (o visual nas propriedades).",
+      'gate': "Clique na borda de cima de uma plataforma para um tubo de teletransporte. Abrir o guarda-chuva dentro dele leva o jogador por uma hipercorrente a um nível desafio.",
       'wind-up': "Arraste uma caixa para uma corrente que sopra para cima.",
       'wind-down': "Arraste uma caixa para uma corrente que sopra para baixo.",
       'wind-left': "Arraste uma caixa para uma corrente que sopra para a esquerda.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Ventilador",
       'spikes': "Espinhos",
       'button': "Botão",
-      'checkpoint': "Checkpoint"
+      'checkpoint': "Checkpoint",
+      'star': "Colecionável",
+      'gate': "Portal"
+    },
+    'shape': {
+      'star': "Estrela",
+      'umbrella': "Guarda-chuva dourado",
+      'cloud': "Nuvem dourada"
     },
     'dir': {
       'up': "para cima",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Força do impulso",
       'points': "Pontos",
       'trigger': "Ataca quando o jogador está perto",
-      'spawnOpen': "Começar com o guarda-chuva aberto"
+      'spawnOpen': "Começar com o guarda-chuva aberto",
+      'gateTo': "Leva a",
+      'shape': "Visual"
     },
     'scrollHint': "A câmera mostra uma tela e segue o jogador.",
     'wholeHint': "O mundo inteiro aparece de uma vez (afastado se for maior que uma tela).",
     'spawnSelected': "Início do jogador (posição dos pés).",
     'spawnOpenHint': "O jogador começa com o guarda-chuva já aberto",
+    'gateHint': "O jogador abre o guarda-chuva no tubo e é levado ao nível escolhido. Esse nível vira um desafio: a campanha o pula e a seleção de níveis o libera depois de alcançado.",
     'nothingSelected': "Nada selecionado — escolha algo na tela.",
     'switchedWindHint': "Enquanto o canal do botão estiver ligado, esta corrente muda para:",
     'speedZeroHint': "Velocidade 0 para a corrente.",

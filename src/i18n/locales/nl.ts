@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Volgend level",
     'restart': "Level opnieuw starten",
     'selectLevel': "Kies level",
+    'challenge': "Uitdaging",
+    'stars': "Verzameld {got}/{total}",
     'close': "Sluiten",
     'mute': "Geluid uit",
     'unmute': "Geluid aan",
@@ -128,6 +130,8 @@ export default {
       'spawn': "Startpunt speler",
       'checkpoint': "Checkpoint",
       'button': "Knop",
+      'star': "Verzamelobject",
+      'gate': "Poort",
       'wind-up': "Opwaartse wind",
       'wind-down': "Neerwaartse wind",
       'wind-left': "Wind naar links",
@@ -146,6 +150,8 @@ export default {
       'spawn': "Klik waar de speler begint.",
       'checkpoint': "Klik op een platform: na het aanraken van de vlag brengt een val de speler hier terug.",
       'button': "Klik op de bovenrand van een platform. De knop aanraken schakelt alles op zijn kanaal.",
+      'star': "Klik om een verzamelobject te plaatsen — ster, gouden paraplu of gouden wolk (het uiterlijk kies je in de eigenschappen).",
+      'gate': "Klik op de bovenrand van een platform voor een warpbuis. Opent de speler daarin de paraplu, dan voert een hyperstroom hem naar een uitdagingslevel.",
       'wind-up': "Sleep een vak voor een stroming die omhoog blaast.",
       'wind-down': "Sleep een vak voor een stroming die omlaag blaast.",
       'wind-left': "Sleep een vak voor een stroming die naar links blaast.",
@@ -168,7 +174,14 @@ export default {
       'fan': "Ventilator",
       'spikes': "Stekels",
       'button': "Knop",
-      'checkpoint': "Checkpoint"
+      'checkpoint': "Checkpoint",
+      'star': "Verzamelobject",
+      'gate': "Poort"
+    },
+    'shape': {
+      'star': "Ster",
+      'umbrella': "Gouden paraplu",
+      'cloud': "Gouden wolk"
     },
     'dir': {
       'up': "omhoog",
@@ -217,12 +230,15 @@ export default {
       'bounce': "Stuiterkracht",
       'points': "Punten",
       'trigger': "Valt aan als de speler dichtbij is",
-      'spawnOpen': "Beginnen met open paraplu"
+      'spawnOpen': "Beginnen met open paraplu",
+      'gateTo': "Leidt naar",
+      'shape': "Uiterlijk"
     },
     'scrollHint': "De camera toont één scherm en volgt de speler.",
     'wholeHint': "De hele wereld wordt in één keer getoond (uitgezoomd als hij groter is dan een scherm).",
     'spawnSelected': "Startpunt speler (positie van de voeten).",
     'spawnOpenHint': "De speler begint met de paraplu al open",
+    'gateHint': "De speler opent de paraplu in de buis en wordt naar het gekozen level gebracht. Dat level wordt een uitdaging: de campagne slaat het over en de levelkeuze ontgrendelt het zodra het bereikt is.",
     'nothingSelected': "Niets geselecteerd — kies iets op het canvas.",
     'switchedWindHint': "Zolang het knopkanaal aan is, verandert deze stroming in:",
     'speedZeroHint': "Snelheid 0 stopt de stroming.",
