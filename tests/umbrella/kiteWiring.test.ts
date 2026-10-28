@@ -1,5 +1,5 @@
-// The kite build (/umbrella/kite/, VITE_APP_KITE=true) plays the 100 kite levels and
-// never talks to the levels server; the normal build is untouched.
+// The kite build (?art=kite, VITE_APP_KITE=true) plays the 100 kite levels and
+// never syncs the campaign with the levels server (the community stays on); the normal build is untouched.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const SERVER = 'https://levels.example.test'
@@ -36,10 +36,11 @@ describe('the kite build', () => {
     expect(levels.LEVELS[0]).toEqual(KITE_LEVELS[0])
     expect(levels.LEVELS[0]!.platforms.length).toBeGreaterThan(0)
   })
-  it('has no levels bucket, no community and its own save key', async () => {
+  it('has no campaign sync, keeps the community, and has its own save key', async () => {
     const { custom, community, state, fetchSpy } = await load(true)
     expect(custom.BUCKET_URL).toBe('')
-    expect(community.communityEnabled).toBe(false)
+    // The community list and submissions are the same as the normal game's (?art=kite is the same game).
+    expect(community.communityEnabled).toBe(true)
     expect(state.STATE_KEY).toBe('umbrella_state_kite')
     expect(await custom.syncBucket()).toBe(false)
     expect(fetchSpy).not.toHaveBeenCalled()
