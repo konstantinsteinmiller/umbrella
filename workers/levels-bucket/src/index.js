@@ -14,7 +14,11 @@
 //   GET  /community/levels?sort=rating|newest|plays&page=1&size=12
 //        → { items: (Meta & { code })[], total, page, pageSize }   (size ≤ 50; code draws the preview)
 //   GET  /community/levels/:id          → { ...Meta, code }
-//   POST /community/levels { name, author, code, player } → 201 { id }
+//   POST /community/levels { name, author, code, player, overwrite? } → 201 { id }
+//        a level of yours with the same name and author (case-blind) already exists:
+//        → 409 { error: 'exists', id }; resend with overwrite: true to replace its code
+//          (→ 200 { id, overwritten: true }; keeps plays and ratings, costs no weekly slot)
+//        the same name and author belong to another player → 409 { error: 'taken' }
 //        5 per rolling 7 days per player id AND per hashed IP
 //        → 429 { error: 'weekly-limit', limit, used, resetAt }
 //   GET  /community/quota?player=…      → { limit, used, resetAt | null }
@@ -186,6 +190,15 @@ async function community(req, env, url) {
     if (typeof b.code !== 'string' || !CODE_RE.test(b.code)) return json({ error: 'bad code' }, 400)
     if (typeof b.player !== 'string' || !PLAYER_RE.test(b.player)) return json({ error: 'bad player' }, 400)
     const hash = await ipHash(req, env)
+    // The same name and author again: yours to overwrite (after a confirm), another player's is taken.
+    const same = await db.prepare('SELECT id, player FROM levels WHERE lower(name) = lower(?) AND lower(author) = lower(?) ORDER BY created_at DESC LIMIT 1')
+      .bind(name, author).first()
+    if (same) {
+      if (same.player !== b.player) return json({ error: 'taken' }, 409)
+      if (b.overwrite !== true) return json({ error: 'exists', id: same.id }, 409)
+      await db.prepare('UPDATE levels SET code = ?, name = ?, author = ?, ip_hash = ? WHERE id = ?').bind(b.code, name, author, hash, same.id).run()
+      return json({ id: same.id, overwritten: true })
+    }
     const q = await quota(env, b.player, hash, now)
     if (q.used >= LIMIT) return json({ error: 'weekly-limit', limit: LIMIT, used: q.used, resetAt: q.resetAt }, 429)
     const id = newId()

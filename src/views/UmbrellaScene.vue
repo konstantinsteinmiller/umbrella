@@ -10,7 +10,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { LEVELS, type GateDef } from '@/umbrella/levels'
+import { LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
 import { customLevels, customPlay, editorUnlocked, keepSharedLevel, setEditorUnlocked, testLevel, type CustomPlay } from '@/umbrella/customLevels'
 import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
@@ -55,10 +55,13 @@ const stepTest = (d: number) => {
   const n = list.length
   testPos.value = testPos.value < 0 ? (d > 0 ? 0 : n - 1) : (testPos.value + d + n) % n
   const e = list[testPos.value]!
+  testReturn = null
   testDef = e.level
   testName.value = e.name
   restart()
 }
+/** Testing a level with a gate: the challenge it leads to is tested too, and winning it returns here. */
+let testReturn: { def: LevelDef; gate: GateDef } | null = null
 let swipeX = 0
 const onSwipeDown = (e: PointerEvent) => { swipeX = e.clientX }
 const onSwipeUp = (e: PointerEvent) => {
@@ -251,9 +254,28 @@ const enterGate = (gate: GateDef) => {
   const to = LEVELS.findIndex((l) => l.id === gate.to)
   if (to < 0) return
   beginWarp('in', gate, () => {
-    unlockChallenge(gate.to)
-    challenge.value = { idx: to, ret: { gate, levelIdx: levelIndex.value } }
+    if (testing && testDef) {
+      // The designer's test: the challenge opens as the level under test, progress untouched.
+      testReturn = { def: testDef, gate }
+      testDef = LEVELS[to]!
+    } else {
+      unlockChallenge(gate.to)
+      challenge.value = { idx: to, ret: { gate, levelIdx: levelIndex.value } }
+    }
     reload()
+    arrive = ARRIVE_TIME
+  })
+}
+/** Winning a tested challenge: out through the current, back to the level under test. */
+const leaveTestChallenge = () => {
+  const back = testReturn
+  if (!back) return
+  const pl = world.player
+  const mouth: GateDef = { x: pl.x + pl.w / 2 - 30, y: pl.y + pl.h - 22, w: 60, h: 22, to: back.gate.to }
+  beginWarp('out', mouth, () => {
+    testReturn = null
+    testDef = back.def
+    reload({ at: gateExit(back.gate) })
     arrive = ARRIVE_TIME
   })
 }
@@ -408,8 +430,8 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
       case 'checkpoint': playSfx('open', { intensity: 0.5, pan }); break
       case 'star': playSfx('open', { intensity: 0.9, quick: true, pan }); playSfx('step', { intensity: 0.3, pan }); break
       case 'gate':
-        // Only the campaign has somewhere to go; a test or a player level lets the gate be.
-        if (!testing && !playing.value && !challenge.value?.ret) enterGate(world.level.gates![world.gate]!)
+        // Only the campaign (and the editor's test of it) has somewhere to go; a player level lets the gate be.
+        if (!playing.value && !challenge.value?.ret && !testReturn) enterGate(world.level.gates![world.gate]!)
         break
       // 'bump' / 'charge-bump' and the mine's sting: the enemy cues below.
     }
@@ -516,7 +538,7 @@ const tick = () => {
   if (world.phase === 'out') fail()
   else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) fail()
   else if (world.phase === 'win' && world.phaseTime >= tuning.winHold) {
-    if (testing) restart()
+    if (testing) { if (testReturn) leaveTestChallenge(); else restart() }
     else if (challenge.value) leaveChallenge()
     else if (playing.value) {
       // A player level loops; a community one asks for stars after the first win.

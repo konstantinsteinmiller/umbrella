@@ -53,6 +53,21 @@ describe('community client', () => {
     expect(await mod.getLevel('nope00')).toBeNull()
   })
 
+  it('asks before overwriting a level of the same name and author, and overwrites on confirm', async () => {
+    const level = { name: 'N', author: 'A', code: 'CODECODECODE' }
+    fetchMock.mockReturnValueOnce(reply(409, { error: 'exists', id: 'old123' }))
+    expect(await mod.submitLevel(level)).toEqual({ ok: false, reason: 'exists', id: 'old123' })
+    expect(lastCall().body.overwrite).toBeUndefined()
+    fetchMock.mockReturnValueOnce(reply(200, { id: 'old123', overwritten: true }))
+    expect(await mod.submitLevel(level, true)).toEqual({ ok: true, id: 'old123', overwritten: true })
+    expect(lastCall().body).toEqual({ ...level, player: mod.playerId(), overwrite: true })
+  })
+
+  it('reports a name and author that belong to another player', async () => {
+    fetchMock.mockReturnValueOnce(reply(409, { error: 'taken' }))
+    expect(await mod.submitLevel({ name: 'N', author: 'A', code: 'CODECODECODE' })).toEqual({ ok: false, reason: 'taken' })
+  })
+
   it('submits and maps every outcome', async () => {
     fetchMock.mockReturnValueOnce(reply(201, { id: 'new123' }))
     expect(await mod.submitLevel({ name: 'N', author: 'A', code: 'CODECODECODE' })).toEqual({ ok: true, id: 'new123' })

@@ -43,7 +43,11 @@ export interface CommunityRating {
   ratingCount: number
 }
 export type SubmitResult =
-  | { ok: true; id: string }
+  | { ok: true; id: string; overwritten?: boolean }
+  /** The player already has a level with this name and author: ask before overwriting it. */
+  | { ok: false; reason: 'exists'; id: string }
+  /** Another player has that name and author. */
+  | { ok: false; reason: 'taken' }
   | { ok: false; reason: 'weekly-limit'; resetAt: number; used: number }
   | { ok: false; reason: 'network' | 'invalid' }
 
@@ -148,11 +152,15 @@ export async function getLevel(id: string): Promise<CommunityLevel | null> {
   return { ...m, code: b.code }
 }
 
-export async function submitLevel(level: { name: string; author: string; code: string }): Promise<SubmitResult> {
-  const r = await call('/community/levels', { method: 'POST', body: { ...level, player: playerId() } })
+/** `overwrite`: replace the player's own level of the same name and author (they confirmed it). */
+export async function submitLevel(level: { name: string; author: string; code: string }, overwrite = false): Promise<SubmitResult> {
+  const r = await call('/community/levels', { method: 'POST', body: { ...level, player: playerId(), ...(overwrite ? { overwrite: true } : {}) } })
   if (!r) return { ok: false, reason: 'network' }
   const b = (r.body && typeof r.body === 'object' ? r.body : {}) as Record<string, unknown>
   if (r.status === 201 && typeof b.id === 'string') return { ok: true, id: b.id }
+  if (r.status === 200 && typeof b.id === 'string' && b.overwritten === true) return { ok: true, id: b.id, overwritten: true }
+  if (r.status === 409 && b.error === 'exists' && typeof b.id === 'string') return { ok: false, reason: 'exists', id: b.id }
+  if (r.status === 409 && b.error === 'taken') return { ok: false, reason: 'taken' }
   if (r.status === 429 && b.error === 'weekly-limit') return { ok: false, reason: 'weekly-limit', resetAt: num(b.resetAt), used: num(b.used) }
   if (r.status === 400) return { ok: false, reason: 'invalid' }
   return { ok: false, reason: 'network' }

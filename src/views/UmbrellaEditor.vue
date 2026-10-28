@@ -35,6 +35,7 @@ import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
 import { encodeLevel, shareLink } from '@/umbrella/levelCode'
 import { communityEnabled, getQuota, submitLevel } from '@/umbrella/community'
+import ConfirmModal from '@/components/umbrella/ConfirmModal.vue'
 import LanguageSelect from '@/components/umbrella/LanguageSelect.vue'
 import {
   AUTHORED_LEVEL_IDS,
@@ -501,6 +502,7 @@ const isTyping = (el: EventTarget | null) => {
 }
 const onKeyDown = (e: KeyboardEvent) => {
   if (orderOpen.value) { if (e.key === 'Escape') closeOrder(); return }
+  if (overwriteAsk.value) return // its own card handles Esc
   if (dialog.value) { if (e.key === 'Escape') dialog.value = null; return }
   if (openMenu.value && e.key === 'Escape') { openMenu.value = null; return }
   if (isTyping(e.target)) return
@@ -1105,7 +1107,9 @@ const copyShare = async () => {
 const AUTHOR_KEY = 'umb_author'
 const author = ref((() => { try { return localStorage.getItem(AUTHOR_KEY) ?? '' } catch { return '' } })())
 const quota = ref<{ used: number; limit: number; resetAt: number | null } | null>(null)
-const submitState = ref<'idle' | 'sending' | 'done' | 'limit' | 'error'>('idle')
+const submitState = ref<'idle' | 'sending' | 'done' | 'updated' | 'limit' | 'taken' | 'error'>('idle')
+/** The player already submitted this name and author: waiting for their OK to overwrite it. */
+const overwriteAsk = ref(false)
 const submitLeft = computed(() => (quota.value ? Math.max(0, quota.value.limit - quota.value.used) : null))
 const openSubmit = async () => {
   if (!communityEnabled) return
@@ -1113,17 +1117,26 @@ const openSubmit = async () => {
   openDialog('submit')
   quota.value = await getQuota().catch(() => null)
 }
-const onSubmit = async () => {
+const onSubmit = async (overwrite = false) => {
   const name = levelName.value.trim()
   if (!name || problems.value.length) return
   try { localStorage.setItem(AUTHOR_KEY, author.value.trim()) } catch { /* private mode */ }
   submitState.value = 'sending'
+  overwriteAsk.value = false
   // A submitted level is also the player's own: kept in their library.
   saveCustomLevel(name, level.value)
-  const res = await submitLevel({ name, author: author.value.trim(), code: await encodeLevel(level.value, name) })
-  if (res.ok) {
+  const res = await submitLevel({ name, author: author.value.trim(), code: await encodeLevel(level.value, name) }, overwrite)
+  if (res.ok && res.overwritten) {
+    submitState.value = 'updated'
+  } else if (res.ok) {
     submitState.value = 'done'
     if (quota.value) quota.value = { ...quota.value, used: quota.value.used + 1 }
+  } else if (res.reason === 'exists') {
+    // Same name and author as one of theirs already in the list: only an explicit OK replaces it.
+    submitState.value = 'idle'
+    overwriteAsk.value = true
+  } else if (res.reason === 'taken') {
+    submitState.value = 'taken'
   } else if (res.reason === 'weekly-limit') {
     submitState.value = 'limit'
     quota.value = { limit: quota.value?.limit ?? 5, used: res.used, resetAt: res.resetAt }
@@ -1733,18 +1746,32 @@ onUnmounted(() => {
         <label class="row col">{{ t('umbrellaEditor.authorName') }} <input v-model="author" class="field" maxlength="24" :placeholder="t('umbrellaEditor.authorPlaceholder')" /></label>
         <p v-for="p in problems" :key="p" class="warn">⚠ {{ p }}</p>
         <p v-if="submitState === 'done'" class="ok">✓ {{ t('umbrellaEditor.submitDone') }}</p>
+        <p v-else-if="submitState === 'updated'" class="ok">✓ {{ t('umbrellaEditor.submitUpdated') }}</p>
+        <p v-else-if="submitState === 'taken'" class="warn">⚠ {{ t('umbrellaEditor.submitTaken') }}</p>
         <p v-else-if="submitState === 'limit'" class="warn">⚠ {{ t('umbrellaEditor.submitLimit', { date: resetDate }) }}</p>
         <p v-else-if="submitState === 'error'" class="warn">⚠ {{ t('umbrellaEditor.submitError') }}</p>
         <div class="row">
           <span class="grow" />
           <button
             class="btn green"
-            :disabled="submitState === 'sending' || submitState === 'done' || submitLeft === 0 || !levelName.trim() || problems.length > 0"
-            @click="onSubmit"
+            :disabled="submitState === 'sending' || submitState === 'done' || submitState === 'updated' || submitLeft === 0 || !levelName.trim() || problems.length > 0"
+            @click="onSubmit()"
           >🌐 {{ t(submitState === 'sending' ? 'umbrellaEditor.submitting' : 'umbrellaEditor.submitBtn') }}</button>
         </div>
       </div>
     </div>
+
+ <ConfirmModal
+      v-if="overwriteAsk"
+      icon="↻"
+      :title="t('umbrellaEditor.overwriteTitle')"
+      :message="t('umbrellaEditor.overwriteText')"
+      :facts="[{ label: t('umbrellaEditor.levelName'), value: levelName.trim() }, { label: t('umbrellaEditor.authorName'), value: author.trim() || t('umbrellaEditor.anonymous') }]"
+      :confirm-label="t('umbrellaEditor.overwriteConfirm')"
+      :cancel-label="t('umbrellaEditor.overwriteCancel')"
+      @confirm="onSubmit(true)"
+      @cancel="overwriteAsk = false"
+    />
 
     <div v-if="dialog === 'keys'" class="modal-back" @pointerdown.self="dialog = null">
       <div class="modal" role="dialog" aria-modal="true" :aria-label="t('umbrellaEditor.cmd.shortcuts')">
