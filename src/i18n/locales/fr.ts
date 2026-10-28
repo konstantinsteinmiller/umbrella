@@ -216,11 +216,13 @@ export default {
       'followMode': "Suit",
       'bounce': "Force du rebond",
       'points': "Points",
-      'trigger': "Attaque quand le joueur est proche"
+      'trigger': "Attaque quand le joueur est proche",
+      'spawnOpen': "Commencer avec le parapluie ouvert"
     },
     'scrollHint': "La caméra montre un écran et suit le joueur.",
     'wholeHint': "Le monde entier est affiché d'un coup (dézoomé s'il est plus grand qu'un écran).",
     'spawnSelected': "Départ du joueur (position des pieds).",
+    'spawnOpenHint': "Le joueur démarre avec le parapluie déjà ouvert",
     'nothingSelected': "Rien de sélectionné — choisis un élément sur le canevas.",
     'switchedWindHint': "Tant que son canal de bouton est actif, ce courant devient :",
     'speedZeroHint': "Une vitesse de 0 arrête le courant.",

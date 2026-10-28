@@ -216,11 +216,13 @@ export default {
       'followMode': "Mengikuti",
       'bounce': "Kekuatan pantulan",
       'points': "Titik",
-      'trigger': "Menyerang saat pemain dekat"
+      'trigger': "Menyerang saat pemain dekat",
+      'spawnOpen': "Mulai dengan payung terbuka"
     },
     'scrollHint': "Kamera menampilkan satu layar dan mengikuti pemain.",
     'wholeHint': "Seluruh dunia ditampilkan sekaligus (diperkecil jika lebih besar dari satu layar).",
     'spawnSelected': "Titik mulai pemain (posisi kaki).",
+    'spawnOpenHint': "Pemain mulai dengan payung yang sudah terbuka",
     'nothingSelected': "Tidak ada yang dipilih — pilih sesuatu di kanvas.",
     'switchedWindHint': "Saat saluran tombolnya aktif, arus ini berubah menjadi:",
     'speedZeroHint': "Kecepatan 0 menghentikan arus.",

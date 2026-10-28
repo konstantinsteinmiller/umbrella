@@ -216,11 +216,13 @@ export default {
       'followMode': "追い方",
       'bounce': "跳ね返す強さ",
       'points': "ポイント",
-      'trigger': "プレイヤーが近づくと攻撃"
+      'trigger': "プレイヤーが近づくと攻撃",
+      'spawnOpen': "傘を開いた状態で開始"
     },
     'scrollHint': "カメラは 1 画面を映し、プレイヤーを追います。",
     'wholeHint': "ワールド全体を一度に表示します（1 画面より大きい場合はズームアウト）。",
     'spawnSelected': "プレイヤーのスタート（足の位置）。",
+    'spawnOpenHint': "プレイヤーは最初から傘を開いた状態で始まります",
     'nothingSelected': "何も選択されていません — キャンバス上で選んでください。",
     'switchedWindHint': "ボタンのチャンネルがオンの間、この気流は次のように変わります：",
     'speedZeroHint': "速さ 0 で気流が止まります。",

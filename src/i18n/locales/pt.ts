@@ -216,11 +216,13 @@ export default {
       'followMode': "Segue",
       'bounce': "Força do impulso",
       'points': "Pontos",
-      'trigger': "Ataca quando o jogador está perto"
+      'trigger': "Ataca quando o jogador está perto",
+      'spawnOpen': "Começar com o guarda-chuva aberto"
     },
     'scrollHint': "A câmera mostra uma tela e segue o jogador.",
     'wholeHint': "O mundo inteiro aparece de uma vez (afastado se for maior que uma tela).",
     'spawnSelected': "Início do jogador (posição dos pés).",
+    'spawnOpenHint': "O jogador começa com o guarda-chuva já aberto",
     'nothingSelected': "Nada selecionado — escolha algo na tela.",
     'switchedWindHint': "Enquanto o canal do botão estiver ligado, esta corrente muda para:",
     'speedZeroHint': "Velocidade 0 para a corrente.",

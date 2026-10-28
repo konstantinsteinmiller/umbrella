@@ -216,11 +216,13 @@ export default {
       'followMode': "Ergashadi",
       'bounce': "Sakrash kuchi",
       'points': "Nuqtalar",
-      'trigger': "O‘yinchi yaqinlashganda hujum qiladi"
+      'trigger': "O‘yinchi yaqinlashganda hujum qiladi",
+      'spawnOpen': "Soyabon ochiq holda boshlash"
     },
     'scrollHint': "Kamera bitta ekranni ko‘rsatadi va o‘yinchini kuzatadi.",
     'wholeHint': "Butun dunyo birdaniga ko‘rsatiladi (ekrandan katta bo‘lsa, uzoqlashtiriladi).",
     'spawnSelected': "O‘yinchi starti (oyoq holati).",
+    'spawnOpenHint': "O'yinchi soyabon allaqachon ochiq holda boshlaydi",
     'nothingSelected': "Hech narsa tanlanmagan — kanvasdan biror narsani tanlang.",
     'switchedWindHint': "Tugma kanali yoqiq ekan, bu oqim quyidagiga o‘zgaradi:",
     'speedZeroHint': "0 tezlik oqimni to‘xtatadi.",

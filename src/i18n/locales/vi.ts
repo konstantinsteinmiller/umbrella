@@ -216,11 +216,13 @@ export default {
       'followMode': "Đi theo",
       'bounce': "Lực nảy",
       'points': "Điểm",
-      'trigger': "Tấn công khi người chơi đến gần"
+      'trigger': "Tấn công khi người chơi đến gần",
+      'spawnOpen': "Bắt đầu với ô đang mở"
     },
     'scrollHint': "Camera hiện một màn hình và theo người chơi.",
     'wholeHint': "Hiện toàn bộ thế giới cùng lúc (thu nhỏ nếu lớn hơn màn hình).",
     'spawnSelected': "Điểm xuất phát (vị trí chân).",
+    'spawnOpenHint': "Người chơi bắt đầu khi ô đã mở sẵn",
     'nothingSelected': "Chưa chọn gì — hãy chọn một vật trên khung vẽ.",
     'switchedWindHint': "Khi kênh nút bật, luồng gió này đổi thành:",
     'speedZeroHint': "Tốc độ 0 làm luồng gió dừng.",

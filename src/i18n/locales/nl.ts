@@ -216,11 +216,13 @@ export default {
       'followMode': "Volgt",
       'bounce': "Stuiterkracht",
       'points': "Punten",
-      'trigger': "Valt aan als de speler dichtbij is"
+      'trigger': "Valt aan als de speler dichtbij is",
+      'spawnOpen': "Beginnen met open paraplu"
     },
     'scrollHint': "De camera toont één scherm en volgt de speler.",
     'wholeHint': "De hele wereld wordt in één keer getoond (uitgezoomd als hij groter is dan een scherm).",
     'spawnSelected': "Startpunt speler (positie van de voeten).",
+    'spawnOpenHint': "De speler begint met de paraplu al open",
     'nothingSelected': "Niets geselecteerd — kies iets op het canvas.",
     'switchedWindHint': "Zolang het knopkanaal aan is, verandert deze stroming in:",
     'speedZeroHint': "Snelheid 0 stopt de stroming.",

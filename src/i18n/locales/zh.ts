@@ -216,11 +216,13 @@ export default {
       'followMode': "跟随方式",
       'bounce': "弹开力度",
       'points': "路径点",
-      'trigger': "玩家靠近时攻击"
+      'trigger': "玩家靠近时攻击",
+      'spawnOpen': "以打开的伞开始"
     },
     'scrollHint': "镜头显示一个屏幕并跟随玩家。",
     'wholeHint': "一次显示整个世界（比屏幕大时会缩小）。",
     'spawnSelected': "玩家起点（脚的位置）。",
+    'spawnOpenHint': "玩家开局时雨伞已经打开",
     'nothingSelected': "未选中任何物体——在画布上选一个。",
     'switchedWindHint': "按钮频道开启时，此气流变为：",
     'speedZeroHint': "速度为 0 时气流停止。",

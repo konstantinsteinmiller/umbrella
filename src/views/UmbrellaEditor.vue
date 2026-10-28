@@ -710,6 +710,10 @@ const setFollowMode = (mode: FollowMode) => {
     m.b = { x: c.x, y: c.y + 200 }
   }
 }
+const setSpawnOpen = (on: boolean) => {
+  if (on) level.value.spawnOpen = true
+  else delete level.value.spawnOpen
+}
 const setTrigger = (on: boolean) => {
   const m = selectedMotion.value
   if (m?.kind !== 'lunge') return
@@ -1503,6 +1507,9 @@ onUnmounted(() => {
             <label class="row">x <input v-model.number="level.spawn.x" class="field num" type="number" /></label>
             <label class="row">y <input v-model.number="level.spawn.y" class="field num" type="number" /></label>
           </div>
+          <label class="check" :title="t('umbrellaEditor.spawnOpenHint')">
+            <input type="checkbox" :checked="!!level.spawnOpen" @change="setSpawnOpen(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.spawnOpen') }}
+          </label>
         </template>
         <template v-if="selected">
           <div class="kind">{{ t(`umbrellaEditor.kind.${selectedKind}`) }}</div>

@@ -216,11 +216,13 @@ export default {
       'followMode': "따라가는 방식",
       'bounce': "튕기는 힘",
       'points': "포인트",
-      'trigger': "플레이어가 가까이 오면 공격"
+      'trigger': "플레이어가 가까이 오면 공격",
+      'spawnOpen': "우산을 편 채로 시작"
     },
     'scrollHint': "카메라가 한 화면을 보여 주며 플레이어를 따라가요.",
     'wholeHint': "월드 전체가 한 번에 보여요 (화면보다 크면 축소).",
     'spawnSelected': "플레이어 시작점 (발 위치).",
+    'spawnOpenHint': "플레이어가 이미 우산을 펼친 상태로 시작합니다",
     'nothingSelected': "선택된 것이 없어요 — 캔버스에서 골라 보세요.",
     'switchedWindHint': "버튼 채널이 켜져 있는 동안 이 기류는 다음으로 바뀌어요:",
     'speedZeroHint': "속도 0이면 기류가 멈춰요.",

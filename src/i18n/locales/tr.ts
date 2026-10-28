@@ -216,11 +216,13 @@ export default {
       'followMode': "İzleme",
       'bounce': "Sekme gücü",
       'points': "Noktalar",
-      'trigger': "Oyuncu yaklaşınca saldırır"
+      'trigger': "Oyuncu yaklaşınca saldırır",
+      'spawnOpen': "Şemsiye açık başla"
     },
     'scrollHint': "Kamera tek ekran gösterir ve oyuncuyu takip eder.",
     'wholeHint': "Tüm dünya bir kerede gösterilir (bir ekrandan büyükse uzaklaştırılır).",
     'spawnSelected': "Oyuncu başlangıcı (ayak konumu).",
+    'spawnOpenHint': "Oyuncu şemsiyesi zaten açık olarak başlar",
     'nothingSelected': "Hiçbir şey seçilmedi — tuvalde bir şey seç.",
     'switchedWindHint': "Düğme kanalı açıkken bu akıntı şuna dönüşür:",
     'speedZeroHint': "Hız 0 akıntıyı durdurur.",

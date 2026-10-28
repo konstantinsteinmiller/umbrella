@@ -206,6 +206,11 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
   for (const h of hazards) placeMover(h, 0)
   const cp = level.checkpoints?.[checkpoint]
   const start = cp ?? level.spawn
+  // Starting open on a platform: begin standing on it, or the first landing would close the umbrella.
+  const open = !cp && !!level.spawnOpen
+  const standing = open
+    ? platforms.findIndex((p) => start.x + size.w / 2 > p.x && start.x - size.w / 2 < p.x + p.w && Math.abs(p.y - start.y) <= 2)
+    : -1
   return {
     channels: {},
     buttonsDown: (level.buttons ?? []).map(() => false),
@@ -221,13 +226,13 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
       y: start.y - size.h,
       vx: 0,
       vy: 0,
-      grounded: false,
-      open: false,
+      grounded: standing >= 0,
+      open,
       broken: false,
       facing: 1,
       w: size.w,
       h: size.h,
-      standing: -1,
+      standing,
       fallTime: 0
     },
     phase: 'play',
@@ -432,9 +437,10 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     }
   }
 
-  // ── Wind: an open umbrella rides it; a closed one drops through with a
+  // ── Wind: an open umbrella rides it (even standing on a platform, so a current
+  //    behind a platform can lift it off); a closed one drops through with a
   //    little resistance from updrafts. ──
-  if (!pl.grounded) {
+  if (!pl.grounded || pl.open) {
     const k = Math.min(1, dt / (t.windTurnTime / 3))
     for (const wind of liveWinds(w)) {
       const s = windInfluence(pl, wind, t.windEdge)
@@ -511,7 +517,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     }
   }
   // Still standing on a platform that moved down/away this tick? Snap onto it.
-  if (!pl.grounded && wasGrounded && pl.standing >= 0 && solid(pl.standing)) {
+  if (!pl.grounded && wasGrounded && pl.vy >= 0 && pl.standing >= 0 && solid(pl.standing)) {
     const p = solids[pl.standing]!
     const onTop = pl.x + pl.w > p.x && pl.x < p.x + p.w && Math.abs(pl.y + pl.h - p.y) <= Math.abs(p.dy) + 4
     if (onTop) {

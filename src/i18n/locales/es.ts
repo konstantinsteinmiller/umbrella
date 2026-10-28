@@ -216,11 +216,13 @@ export default {
       'followMode': "Sigue",
       'bounce': "Fuerza de rebote",
       'points': "Puntos",
-      'trigger': "Ataca cuando el jugador está cerca"
+      'trigger': "Ataca cuando el jugador está cerca",
+      'spawnOpen': "Empezar con el paraguas abierto"
     },
     'scrollHint': "La cámara muestra una pantalla y sigue al jugador.",
     'wholeHint': "Todo el mundo se ve a la vez (alejado si es mayor que una pantalla).",
     'spawnSelected': "Inicio del jugador (posición de los pies).",
+    'spawnOpenHint': "El jugador empieza con el paraguas ya abierto",
     'nothingSelected': "Nada seleccionado: elige algo en el lienzo.",
     'switchedWindHint': "Mientras su canal de botón esté activo, esta corriente cambia a:",
     'speedZeroHint': "Velocidad 0 detiene la corriente.",

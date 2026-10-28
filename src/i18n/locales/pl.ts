@@ -216,11 +216,13 @@ export default {
       'followMode': "Podąża",
       'bounce': "Siła odbicia",
       'points': "Punkty",
-      'trigger': "Atakuje, gdy gracz jest blisko"
+      'trigger': "Atakuje, gdy gracz jest blisko",
+      'spawnOpen': "Zacznij z otwartym parasolem"
     },
     'scrollHint': "Kamera pokazuje jeden ekran i podąża za graczem.",
     'wholeHint': "Cały świat jest widoczny naraz (oddalony, jeśli jest większy niż ekran).",
     'spawnSelected': "Start gracza (pozycja stóp).",
+    'spawnOpenHint': "Gracz zaczyna z już otwartym parasolem",
     'nothingSelected': "Nic nie zaznaczono — wybierz coś na płótnie.",
     'switchedWindHint': "Gdy kanał przycisku jest włączony, ten prąd zmienia się na:",
     'speedZeroHint': "Prędkość 0 zatrzymuje prąd.",

@@ -216,11 +216,13 @@ export default {
       'followMode': "Folgt",
       'bounce': "Abprallstärke",
       'points': "Punkte",
-      'trigger': "Greift an, wenn der Spieler nah ist"
+      'trigger': "Greift an, wenn der Spieler nah ist",
+      'spawnOpen': "Mit offenem Schirm starten"
     },
     'scrollHint': "Die Kamera zeigt einen Bildschirm und folgt dem Spieler.",
     'wholeHint': "Die ganze Welt wird auf einmal gezeigt (herausgezoomt, wenn sie größer als ein Bildschirm ist).",
     'spawnSelected': "Spielerstart (Fußposition).",
+    'spawnOpenHint': "Der Spieler startet mit bereits geöffnetem Schirm",
     'nothingSelected': "Nichts ausgewählt — wähle etwas auf der Fläche.",
     'switchedWindHint': "Solange sein Knopfkanal an ist, wird diese Strömung zu:",
     'speedZeroHint': "Tempo 0 stoppt die Strömung.",

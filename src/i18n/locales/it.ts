@@ -216,11 +216,13 @@ export default {
       'followMode': "Segue",
       'bounce': "Forza del rimbalzo",
       'points': "Punti",
-      'trigger': "Attacca quando il giocatore è vicino"
+      'trigger': "Attacca quando il giocatore è vicino",
+      'spawnOpen': "Inizia con l'ombrello aperto"
     },
     'scrollHint': "La telecamera mostra uno schermo e segue il giocatore.",
     'wholeHint': "Tutto il mondo è visibile insieme (con zoom indietro se è più grande di uno schermo).",
     'spawnSelected': "Partenza giocatore (posizione dei piedi).",
+    'spawnOpenHint': "Il giocatore parte con l'ombrello già aperto",
     'nothingSelected': "Nessuna selezione — scegli qualcosa sulla tela.",
     'switchedWindHint': "Quando il suo canale è attivo, questa corrente diventa:",
     'speedZeroHint': "Velocità 0 ferma la corrente.",

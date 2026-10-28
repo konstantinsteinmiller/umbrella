@@ -120,6 +120,8 @@ export interface LevelDef {
    *  scrolls with the player. Absent: the whole world is shown at once. */
   view?: { w: number; h: number }
   spawn: Vec
+  /** The player starts with the umbrella already open. */
+  spawnOpen?: boolean
   platforms: PlatformDef[]
   winds: WindDef[]
   hazards?: HazardDef[]

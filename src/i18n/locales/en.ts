@@ -219,11 +219,13 @@ export default {
       'followMode': "Follows",
       'bounce': "Bounce strength",
       'points': "Points",
-      'trigger': "Attacks when the player is near"
+      'trigger': "Attacks when the player is near",
+      'spawnOpen': "Start with the umbrella open"
     },
     'scrollHint': "The camera shows one screen and follows the player.",
     'wholeHint': "The whole world is shown at once (zoomed out if it is bigger than a screen).",
     'spawnSelected': "Player start (feet position).",
+    'spawnOpenHint': "The player starts with the umbrella already open",
     'nothingSelected': "Nothing selected — pick something on the canvas.",
     'switchedWindHint': "While its button channel is on, this current changes to:",
     'speedZeroHint': "Speed 0 stops the current.",
