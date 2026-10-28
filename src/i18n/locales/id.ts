@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Anda sudah mengirim level dengan nama dan pembuat yang sama. Menimpa akan menggantinya di daftar komunitas; jumlah main dan rating tetap, dan tidak memakai jatah kirim mingguan.",
     'overwriteConfirm': "Timpa",
     'overwriteCancel': "Pertahankan yang lama",
+    'submitOverwriteHint': "Jatah kirim habis? Mengirim ulang dengan nama level dan pembuat yang sama akan menimpa level Anda.",
     'anonymous': "Anonim",
     'submitLimit': "Kiriman minggu ini sudah habis. Kamu bisa mengirim lagi pada {date}.",
     'submitError': "Level tidak bisa dikirim. Periksa koneksi lalu coba lagi.",

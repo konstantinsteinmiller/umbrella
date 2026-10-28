@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Vous avez déjà soumis un niveau avec ce nom et cet auteur. L'écraser le remplace dans la liste de la communauté ; parties et notes sont conservées et cela ne coûte aucune soumission hebdomadaire.",
     'overwriteConfirm': "Écraser",
     'overwriteCancel': "Garder l'ancien",
+    'submitOverwriteHint': "Plus de soumissions ? Renvoyer avec le même nom de niveau et le même auteur écrase votre niveau.",
     'anonymous': "Anonyme",
     'submitLimit': "Tu as utilisé tes propositions de la semaine. Tu pourras en refaire le {date}.",
     'submitError': "Le niveau n'a pas pu être envoyé. Vérifie ta connexion et réessaie.",

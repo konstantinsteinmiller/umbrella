@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Ya enviaste un nivel con este nombre y autor. Sobrescribirlo lo reemplaza en la lista de la comunidad; las partidas y valoraciones se conservan y no gasta un envío semanal.",
     'overwriteConfirm': "Sobrescribir",
     'overwriteCancel': "Mantener el anterior",
+    'submitOverwriteHint': "¿Sin envíos? Volver a enviar con el mismo nombre de nivel y autor sobrescribe tu nivel.",
     'anonymous': "Anónimo",
     'submitLimit': "Ya usaste los envíos de esta semana. Podrás enviar de nuevo el {date}.",
     'submitError': "No se pudo enviar el nivel. Revisa tu conexión e inténtalo de nuevo.",

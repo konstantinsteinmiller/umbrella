@@ -322,6 +322,7 @@ export default {
     'overwriteText': "같은 이름과 제작자로 이미 레벨을 제출했습니다. 덮어쓰면 커뮤니티 목록의 레벨이 교체되며, 플레이 수와 평점은 유지되고 주간 제출 횟수도 쓰지 않습니다.",
     'overwriteConfirm': "덮어쓰기",
     'overwriteCancel': "기존 유지",
+    'submitOverwriteHint': "제출 횟수를 다 썼나요? 같은 레벨 이름과 제작자로 다시 제출하면 레벨이 덮어써집니다.",
     'anonymous': "익명",
     'submitLimit': "이번 주 제출을 모두 사용했어요. {date}에 다시 제출할 수 있어요.",
     'submitError': "레벨을 제출할 수 없었어요. 연결을 확인하고 다시 시도하세요.",

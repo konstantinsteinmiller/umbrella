@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Hai già inviato un livello con questo nome e autore. Sovrascrivere lo sostituisce nell'elenco della community; partite e voti restano e non consuma un invio settimanale.",
     'overwriteConfirm': "Sovrascrivi",
     'overwriteCancel': "Tieni il vecchio",
+    'submitOverwriteHint': "Invii esauriti? Reinviare con lo stesso nome livello e autore sovrascrive il tuo livello.",
     'anonymous': "Anonimo",
     'submitLimit': "Hai esaurito gli invii di questa settimana. Potrai inviare di nuovo il {date}.",
     'submitError': "Impossibile inviare il livello. Controlla la connessione e riprova.",

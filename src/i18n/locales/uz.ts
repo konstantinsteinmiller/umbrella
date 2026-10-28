@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Siz bu nom va muallif bilan daraja yuborgansiz. Ustidan yozish uni hamjamiyat ro'yxatida almashtiradi; o'yinlar va baholar saqlanadi va haftalik yuborishga hisoblanmaydi.",
     'overwriteConfirm': "Ustidan yozish",
     'overwriteCancel': "Eskisini qoldirish",
+    'submitOverwriteHint': "Yuborish tugadimi? Xuddi shu daraja nomi va muallif bilan qayta yuborsangiz, darajangiz ustidan yoziladi.",
     'anonymous': "Anonim",
     'submitLimit': "Bu haftalik yuborishlaringiz tugadi. {date} kuni yana yuborishingiz mumkin.",
     'submitError': "Darajani yuborib bo‘lmadi. Ulanishni tekshirib, qayta urinib ko‘ring.",

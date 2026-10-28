@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 11 — 2026-10-28 ==
+- [x] Community overwrite: the Submit button stays usable when this week's submissions are used up (an overwrite costs none), with a hint saying so; overwriting also folds older duplicates of the same level into the best-rated copy (levels-bucket worker)
 - [x] Gates also work in the level editor's Test: the warp plays, the challenge opens as the level under test, and winning it returns to the gate
 - [x] Community submission can overwrite your own level of the same name and author: a styled confirmation card (instead of the browser's confirm) asks first; the overwrite keeps plays and ratings and costs no weekly submission, and a name and author that belong to another player are refused (levels-bucket worker; labels in all 21 locales)
 - [x] Gates (green warp pipes, editor tool G): open the umbrella inside one and a hyper current carries Pweeg up through a cutscene (light column, rising streaks and rings, whiteout) to a challenge level; winning it carries him back out at the gate. A level that a gate leads to is a challenge: the campaign skips it and the level selector unlocks it once reached (campaign only; tests and player levels ignore gates)

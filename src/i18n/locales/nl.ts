@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Je hebt al een level met deze naam en maker ingestuurd. Overschrijven vervangt het in de communitylijst; plays en beoordelingen blijven en het kost geen wekelijkse inzending.",
     'overwriteConfirm': "Overschrijven",
     'overwriteCancel': "Oude houden",
+    'submitOverwriteHint': "Geen inzendingen meer? Opnieuw insturen met dezelfde levelnaam en maker overschrijft je level.",
     'anonymous': "Anoniem",
     'submitLimit': "Je hebt de inzendingen van deze week gebruikt. Je kunt weer insturen op {date}.",
     'submitError': "Het level kon niet worden ingestuurd. Controleer je verbinding en probeer het opnieuw.",

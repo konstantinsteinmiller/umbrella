@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Bạn đã gửi một màn có cùng tên và tác giả. Ghi đè sẽ thay thế nó trong danh sách cộng đồng; lượt chơi và đánh giá được giữ lại và không tốn lượt gửi trong tuần.",
     'overwriteConfirm': "Ghi đè",
     'overwriteCancel': "Giữ bản cũ",
+    'submitOverwriteHint': "Hết lượt gửi? Gửi lại với cùng tên màn và tác giả sẽ ghi đè màn của bạn.",
     'anonymous': "Ẩn danh",
     'submitLimit': "Bạn đã dùng hết lượt gửi tuần này. Có thể gửi lại vào {date}.",
     'submitError': "Không gửi được màn. Kiểm tra kết nối và thử lại.",

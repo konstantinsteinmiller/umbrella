@@ -17,7 +17,8 @@
 //   POST /community/levels { name, author, code, player, overwrite? } → 201 { id }
 //        a level of yours with the same name and author (case-blind) already exists:
 //        → 409 { error: 'exists', id }; resend with overwrite: true to replace its code
-//          (→ 200 { id, overwritten: true }; keeps plays and ratings, costs no weekly slot)
+//          (→ 200 { id, overwritten: true, removed }; keeps the best-rated copy's plays and ratings,
+//           removes older duplicates of it, costs no weekly slot)
 //        the same name and author belong to another player → 409 { error: 'taken' }
 //        5 per rolling 7 days per player id AND per hashed IP
 //        → 429 { error: 'weekly-limit', limit, used, resetAt }
@@ -191,13 +192,24 @@ async function community(req, env, url) {
     if (typeof b.player !== 'string' || !PLAYER_RE.test(b.player)) return json({ error: 'bad player' }, 400)
     const hash = await ipHash(req, env)
     // The same name and author again: yours to overwrite (after a confirm), another player's is taken.
-    const same = await db.prepare('SELECT id, player FROM levels WHERE lower(name) = lower(?) AND lower(author) = lower(?) ORDER BY created_at DESC LIMIT 1')
-      .bind(name, author).first()
+    // The one with the most ratings and plays leads (older duplicates of it are folded in below).
+    const { results: sames } = await db.prepare('SELECT id, player FROM levels WHERE lower(name) = lower(?) AND lower(author) = lower(?) ORDER BY rating_count DESC, plays DESC, created_at ASC')
+      .bind(name, author).all()
+    const same = sames[0]
     if (same) {
-      if (same.player !== b.player) return json({ error: 'taken' }, 409)
+      if (sames.some((r) => r.player !== b.player)) return json({ error: 'taken' }, 409)
       if (b.overwrite !== true) return json({ error: 'exists', id: same.id }, 409)
-      await db.prepare('UPDATE levels SET code = ?, name = ?, author = ?, ip_hash = ? WHERE id = ?').bind(b.code, name, author, hash, same.id).run()
-      return json({ id: same.id, overwritten: true })
+      const dupes = sames.slice(1).map((r) => r.id)
+      await db.batch([
+        db.prepare('UPDATE levels SET code = ?, name = ?, author = ?, ip_hash = ? WHERE id = ?').bind(b.code, name, author, hash, same.id),
+        // Earlier duplicates of the same level (from before overwriting existed) are removed with it.
+        ...dupes.flatMap((d) => [
+          db.prepare('DELETE FROM ratings WHERE level_id = ?').bind(d),
+          db.prepare('DELETE FROM plays WHERE level_id = ?').bind(d),
+          db.prepare('DELETE FROM levels WHERE id = ?').bind(d)
+        ])
+      ])
+      return json({ id: same.id, overwritten: true, removed: dupes.length })
     }
     const q = await quota(env, b.player, hash, now)
     if (q.used >= LIMIT) return json({ error: 'weekly-limit', limit: LIMIT, used: q.used, resetAt: q.resetAt }, 429)

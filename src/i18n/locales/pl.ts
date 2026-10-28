@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Wysłałeś już poziom o tej nazwie i autorze. Nadpisanie zastąpi go na liście społeczności; liczba gier i oceny zostają, a tygodniowy limit się nie zużywa.",
     'overwriteConfirm': "Nadpisz",
     'overwriteCancel': "Zostaw stary",
+    'submitOverwriteHint': "Skończyły się wysyłki? Ponowne wysłanie z tą samą nazwą poziomu i autorem nadpisze twój poziom.",
     'anonymous': "Anonim",
     'submitLimit': "Wykorzystano zgłoszenia na ten tydzień. Możesz znów wysłać {date}.",
     'submitError': "Nie udało się wysłać poziomu. Sprawdź połączenie i spróbuj ponownie.",

@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Du hast bereits ein Level mit diesem Namen und Autor eingereicht. Das Überschreiben ersetzt es in der Community-Liste; Spielzahlen und Bewertungen bleiben erhalten und es kostet keine Wocheneinreichung.",
     'overwriteConfirm': "Überschreiben",
     'overwriteCancel': "Altes behalten",
+    'submitOverwriteHint': "Keine Einreichungen mehr? Mit gleichem Levelnamen und Namen erneut einreichen überschreibt stattdessen dein Level.",
     'anonymous': "Anonym",
     'submitLimit': "Deine Einreichungen für diese Woche sind aufgebraucht. Am {date} kannst du wieder einreichen.",
     'submitError': "Das Level konnte nicht eingereicht werden. Prüfe deine Verbindung und versuche es erneut.",

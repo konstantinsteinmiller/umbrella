@@ -322,6 +322,7 @@ export default {
     'overwriteText': "Bu ad ve yazarla zaten bir seviye gönderdin. Üzerine yazmak topluluk listesindeki sürümü değiştirir; oynanma ve puanlar kalır, haftalık gönderim hakkından düşmez.",
     'overwriteConfirm': "Üzerine yaz",
     'overwriteCancel': "Eskisini koru",
+    'submitOverwriteHint': "Gönderim hakkın bitti mi? Aynı seviye adı ve yazarla tekrar göndermek seviyenin üzerine yazar.",
     'anonymous': "Anonim",
     'submitLimit': "Bu haftanın gönderim haklarını kullandın. {date} tarihinde tekrar gönderebilirsin.",
     'submitError': "Seviye gönderilemedi. Bağlantını kontrol edip tekrar dene.",

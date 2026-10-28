@@ -325,6 +325,7 @@ export default {
     'overwriteText': "You already submitted a level with this name and author. Overwriting replaces it in the community list; its plays and ratings stay and it costs no weekly submission.",
     'overwriteConfirm': "Overwrite",
     'overwriteCancel': "Keep the old one",
+    'submitOverwriteHint': "Out of submissions? Submitting again with the same level name and author overwrites your level instead.",
     'anonymous': "Anonymous",
     'submitLimit': "You have used this week's submissions. You can submit again on {date}.",
     'submitError': "The level could not be submitted. Check your connection and try again.",

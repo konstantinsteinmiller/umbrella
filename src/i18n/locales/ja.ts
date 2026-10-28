@@ -322,6 +322,7 @@ export default {
     'overwriteText': "同じ名前・作者のレベルをすでに投稿済みです。上書きするとコミュニティ一覧の内容が置き換わります。プレイ数と評価は残り、週の投稿数も消費しません。",
     'overwriteConfirm': "上書きする",
     'overwriteCancel': "元のまま",
+    'submitOverwriteHint': "投稿回数を使い切りましたか？同じレベル名と作者で再投稿すると、レベルが上書きされます。",
     'anonymous': "匿名",
     'submitLimit': "今週の投稿枠を使い切りました。{date} にまた投稿できます。",
     'submitError': "レベルを投稿できませんでした。接続を確認して、もう一度お試しください。",

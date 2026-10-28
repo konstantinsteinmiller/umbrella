@@ -322,6 +322,7 @@ export default {
     'overwriteText': "你已经提交过同名同作者的关卡。覆盖会替换社区列表中的版本；游玩次数和评分保留，且不占用每周提交次数。",
     'overwriteConfirm': "覆盖",
     'overwriteCancel': "保留旧版",
+    'submitOverwriteHint': "没有提交次数了？用相同的关卡名和作者再次提交，将改为覆盖你的关卡。",
     'anonymous': "匿名",
     'submitLimit': "本周提交次数已用完。你可以在 {date} 再次提交。",
     'submitError': "关卡提交失败。请检查网络后重试。",

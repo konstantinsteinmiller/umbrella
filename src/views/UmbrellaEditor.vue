@@ -1742,6 +1742,7 @@ onUnmounted(() => {
         <div class="row"><b>{{ t('umbrellaEditor.submitTitle') }}</b><button class="btn" :aria-label="t('umbrella.close')" @click="dialog = null">✕ <kbd>Esc</kbd></button></div>
         <p class="rule">{{ t('umbrellaEditor.submitRule', { n: quota?.limit ?? 5 }) }}</p>
         <p v-if="submitLeft !== null" class="hint">{{ t('umbrellaEditor.submitLeft', { n: submitLeft }) }}</p>
+        <p v-if="submitLeft === 0" class="hint">{{ t('umbrellaEditor.submitOverwriteHint') }}</p>
         <label class="row col">{{ t('umbrellaEditor.levelName') }} <input v-model="levelName" class="field" maxlength="40" /></label>
         <label class="row col">{{ t('umbrellaEditor.authorName') }} <input v-model="author" class="field" maxlength="24" :placeholder="t('umbrellaEditor.authorPlaceholder')" /></label>
         <p v-for="p in problems" :key="p" class="warn">⚠ {{ p }}</p>
@@ -1754,7 +1755,7 @@ onUnmounted(() => {
           <span class="grow" />
           <button
             class="btn green"
-            :disabled="submitState === 'sending' || submitState === 'done' || submitState === 'updated' || submitLeft === 0 || !levelName.trim() || problems.length > 0"
+            :disabled="submitState === 'sending' || submitState === 'done' || submitState === 'updated' || !levelName.trim() || problems.length > 0"
             @click="onSubmit()"
           >🌐 {{ t(submitState === 'sending' ? 'umbrellaEditor.submitting' : 'umbrellaEditor.submitBtn') }}</button>
         </div>
