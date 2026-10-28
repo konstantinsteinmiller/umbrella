@@ -656,9 +656,13 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
 /** Phones and tablets (the primary pointer is a finger): "Tap to play"; a mouse or a touch laptop: "Click to play". */
 const showControls = computed(() => !touchUI.value && !introOn.value && !testing && !playing.value && !challenge.value && levelIndex.value < 3)
 const tapDevice = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : 'ontouchstart' in window
-const touchUI = ref(window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
+// Touch controls start only where the PRIMARY pointer is a finger (phones, tablets). `'ontouchstart' in window` is
+// true on a Windows laptop with a touch screen in Firefox, which put the joystick on desktops; from then on the
+// controls follow the last input: a touch shows them, a mouse click hides them again.
+const touchUI = ref(tapDevice)
 const onAnyPointer = (e: PointerEvent) => {
   if (e.pointerType === 'touch') touchUI.value = true
+  else if (e.pointerType === 'mouse') touchUI.value = false
   unlockAudio()
   if (introOn.value && !(e.target as HTMLElement | null)?.closest('.intro-skip')) requestSkip()
 }

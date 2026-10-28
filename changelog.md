@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 11 — 2026-10-28 ==
+- [x] Desktop browsers with a touch screen (Firefox on a Windows touch laptop) no longer show the mobile joystick and umbrella button: the touch controls start only where the primary pointer is a finger, and then follow the last input (a touch shows them, a mouse click hides them)
 - [x] The controls are a vertical key list in the bottom right corner, shown on the first three levels only (keyboard devices); Enter opens and closes the umbrella as well as Space (labels in all 21 locales)
 - [x] The start screen's Play button is replaced by a pulsing "Click to play" (mouse) / "Tap to play" (phones and tablets) label like the arena's "tap to start"; the whole screen reacts to the click or tap (and Enter / Space), which still unlocks the browser's sound before the intro (labels in all 21 locales)
 - [x] ?art=kite also works after the # (/umbrella/#/?art=kite, /umbrella/11/#/?art=kite): the redirect to the kite build reads the flag from either place
