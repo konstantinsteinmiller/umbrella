@@ -64,7 +64,8 @@ export const blit = (ctx: CanvasRenderingContext2D, s: SheetDef, img: CanvasImag
   ctx.scale(flipX ? -sx : sx, flipY ? -sy : sy)
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
-  ctx.drawImage(img, c * fw, r * fh, fw, fh, -box.ax * box.size, -box.ay * box.size, box.size, box.size)
+  const size = box.drawSize ?? box.size
+  ctx.drawImage(img, c * fw, r * fh, fw, fh, -box.ax * size, -box.ay * size, size, size)
   ctx.restore()
 }
 
@@ -239,6 +240,9 @@ const umbrella = (ctx: CanvasRenderingContext2D, x: number, y: number, look: Umb
 
 // ─── Enemies and hazards ────────────────────────────────────────────────────
 
+/** Multiplied over the Walldorf body to make the charging one read as angry at a glance. */
+const ANGRY_TINT = '#ff8a78'
+
 /** When each bouncy Walldorf was last bumped (the squash and the surprised face). */
 const bumpedAt = new WeakMap<Hazard, number>()
 const wasBumping = new WeakMap<Hazard, boolean>()
@@ -248,7 +252,7 @@ const walldorf = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean =
   if (!ready(WALLDORF)) return false
   const body = sheet('walldorf-body')
   const face = sheet('walldorf-face')
-  const bodyImg = sheetImage(body.id)!
+  const bodyRaw = sheetImage(body.id)!
   const faceImg = sheetImage(face.id)!
   const pl = w.player
   const m = h.motion
@@ -265,6 +269,8 @@ const walldorf = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean =
   // middle stretched — so it is the same Walldorf at any height. Motion is a
   // squash in code (a charge leans into it, a bump wobbles).
   const col = { deadly: 0, solid: 1, bounce: 2 }[contactOf(h)]
+  // The angry Walldorf (one that charges) is a warm red-brown; the calm bouncy pusher keeps the sheet's colours.
+  const bodyImg = lunge ? tintOf(body.id, bodyRaw as HTMLImageElement, ANGRY_TINT) ?? bodyRaw : bodyRaw
   let kx = 1
   let ky = 1
   if (sinceBump < BUMP_TIME) {
@@ -305,6 +311,10 @@ const walldorf = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean =
   return true
 }
 
+/** Which way each Prickbait last clearly moved. */
+const prickHeading = new WeakMap<Hazard, 1 | -1>()
+const prickMoving = new WeakMap<Hazard, boolean>()
+
 const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean => {
   const img = sheetImage('prickbait')
   if (!img) return false
@@ -312,12 +322,18 @@ const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean 
   const x = h.x + h.w / 2
   const y = h.y + h.h / 2
   const r = h.w / 2
-  const moving = Math.abs(h.dx) + Math.abs(h.dy) > 0.3
+  // Moving / idle with a margin each way, so a slow mine does not flip between the two looks every frame.
+  const speed = Math.abs(h.dx) + Math.abs(h.dy)
+  const moving = speed > (prickMoving.get(h) ? 0.15 : 0.5)
+  prickMoving.set(h, moving)
   const lunging = h.motion?.kind === 'lunge' && moving
   const frame = lunging ? animFrame(s.anims.lunge!, w.time) : moving ? animFrame(s.anims.move!, w.time) : animFrame(s.anims.idle!, w.time + h.x * 0.01)
   // The move frames drift LEFT; flip for a Prickbait heading right. The
   // pupils are drawn live so they keep following Pweeg.
-  blit(ctx, s, img, frame, x, y, r / PRICKBAIT_R, r / PRICKBAIT_R, moving && h.dx > 0)
+  // The move frames drift LEFT. Which way it heads is remembered and changes only after a clear
+  // push the other way, so a mine turning round (dx crossing zero every few frames) never flickers.
+  if (Math.abs(h.dx) > 0.5) prickHeading.set(h, h.dx > 0 ? 1 : -1)
+  blit(ctx, s, img, frame, x, y, r / PRICKBAIT_R, r / PRICKBAIT_R, moving && prickHeading.get(h) === 1)
   const pl = w.player
   drawPrickbaitPupils(ctx, x, y, r, pl.x + pl.w / 2, pl.y + pl.h / 2)
   return true

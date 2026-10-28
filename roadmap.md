@@ -22,6 +22,11 @@
 - [x] #7 Create 100 every more interesting level designs that are following the same design philosophy like Super Mario Brothers, which introduce one challenge and make it more complex or harder with level progression or in the next level and then introduce other enemies and teach how to beat them and then create more challenging situations to train the new skills, do a web-research on how their platformer design philosophy works and write it down into mario-platformer-philosophy.md, which will be used to design interesting, exciting and ever challenging levels that players want to play. This extra levels are not stored on the server and dont distribute to the normal gameplay but only deployed separately and only turned on for the /umbrella/kite/ route. Those 100 kite level are really treated seperate from the normal levels coming from the server, but the player can still edit them locally in the level editor(remote edits are not possible on /umbrella/kite/ route).
 - [ ] #8 Painted art polish for the normal (non-kite) version: (a) the painted character animations must not twitch — frames are painted one by one, so use a reduced, consistent frame set (e.g. every other walk frame at half cadence) and cap fast flutter animations at ~10–12 fps instead of cycling all 16 frames at the vector cadence; (b) the finish-platform dance needs a steady, non-twitching loop (a few arms-up frames ping-ponged with a gentle hop and rock); (c) the goal platform must not carry a "Ziel"/"Target" label and needs a distinctive design that tells the player where to land at a glance — its own colours plus props (flag poles, bunting, a pulsing landing ring, bobbing chevrons); (d) looped wave animations (the checkpoint flag) must be seamless: ping-pong the cycle and dissolve between frames so no pose jumps.
   - [x] done for the kite version (/umbrella/kite/) with kite-themed props: flag kites on poles, kite bunting, gold landing ring and chevrons; the normal painted art is still to do
+- [ ] #9 please recreate the unfolded umbrella kite art model/animation, it looks too big to me, keep it on the same size as the normal umbrella art, so it looks more realistic.
+  The kite art is missing painted art for the spikes, the landing zone and the landing zone chevrons, also the angry walldorf in the kite version is too similar to the non-angry pushing one from level 48 and level 49, as they have the same color coding,but different behaviours.
+  on level 71 the player can activate a button and walk off the platform to the activated platform, but the umbrella opens and closes very fast, seem the small gap triggers it. Also paint the gate art and the collectable stars/umbrellas/clouds art for the kite version.
+  *Done (Revision 11):* the open kite is drawn at the umbrella's size; the angry Walldorf is tinted red-brown; the level 71 gap no longer flickers the umbrella; Prickbait no longer flickers left/right. *Still open:* painted art for the spikes, the landing zone and its chevrons, the gate and the collectibles (needs the Gemini art desk).
+
 
 ## v0.7.0 — from the mini design doc (checked 2026-10-23)
 
@@ -143,12 +148,6 @@ Differences left, in the order to tackle them:
   is vague, so settle it with the designer: draw the zone as an overlay on the selected Walldorf (and in the
   playground) so lengthening or shortening it is visible while editing.
   *Done:* the editor draws the rectangle (or circle) and its Zone length / Zone width sliders change it live; the playground has no overlay.
-- [ ] #0.10.0-3 **Check the tweaked game variables** — v0.10.0 says the variables were tuned again, but the doc
-  lists no values (terminal velocity is still "x spd", the off-screen whistle fade "in 'x' seconds", and
-  braking snap / air-current interaction / mid-air turn are still marked "(?)"). Ask the designer for the
-  exported Tuning JSON and compare it to `tuning.ts` defaults.
-  *Open:* no tuning export is in the repo. The current defaults (braking snap 0.1 s, wind turn 0.5 s, air turn 0.75 s) are
-  inside the doc's ranges; send the exported values to apply them.
 - [x] #0.10.0-4 **Cutscene editor vs the doc's two frames** — doc §F: frame 1 Chad front-flips in with
   sunglasses, pauses, floats across the channel; frame 2 Pweeg walks to the cloud's edge, climbs down
   carefully, steps into the start, stops and looks at the player. Confirm the editor's default timeline

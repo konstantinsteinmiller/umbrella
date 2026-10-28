@@ -38,3 +38,30 @@ describe('open umbrella on a platform', () => {
     expect(w.player.grounded).toBe(true)
   })
 })
+
+describe('auto-open after stepping off', () => {
+  const gap: LevelDef = {
+    id: 1, world: { w: 1280, h: 720 }, spawn: { x: 150, y: 500 }, winds: [], hazards: [],
+    platforms: [{ x: 100, y: 500, w: 100, h: 20 }, { x: 214, y: 500, w: 200, h: 20 }]
+  }
+  const walk = (level: LevelDef, ticks: number) => {
+    const w = createWorld(level, size)
+    for (let i = 0; i < 40; i++) step(w, none, 1 / 60, DEFAULT_TUNING)
+    const heard: string[] = []
+    for (let i = 0; i < ticks; i++) heard.push(...step(w, { left: false, right: true, toggle: false }, 1 / 60, DEFAULT_TUNING))
+    return { w, heard }
+  }
+  it('crossing a small gap neither shows nor sounds the umbrella opening and shutting again', () => {
+    const { w, heard } = walk(gap, 45)
+    expect(w.player.x).toBeGreaterThan(214)
+    expect(heard).not.toContain('open')
+    expect(heard).not.toContain('close')
+    expect(heard).toContain('land')
+  })
+  it('a real step off a ledge still opens it, a beat later', () => {
+    const { w, heard } = walk({ ...gap, platforms: [{ x: 100, y: 500, w: 100, h: 20 }] }, 60)
+    expect(heard).toContain('open')
+    expect(w.player.open).toBe(true)
+    expect(w.player.autoShow).toBe(-1)
+  })
+})

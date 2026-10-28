@@ -73,7 +73,13 @@ export interface Player {
   standing: number
   /** Seconds of free fall so far (umbrella closed or broken; floating resets it). */
   fallTime: number
+  /** Seconds since the umbrella opened by itself on stepping off a platform, while that is not yet
+   *  shown or heard (-1: none). Landing within AUTO_OPEN_SHOW of it — a hop over a small gap —
+   *  never draws or sounds the open/close at all; the physics is unchanged. */
+  autoShow: number
 }
+/** How long after an automatic open the umbrella is shown and heard opening (s). */
+export const AUTO_OPEN_SHOW = 0.12
 
 export interface World {
   level: LevelDef
@@ -254,7 +260,8 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
       w: size.w,
       h: size.h,
       standing,
-      fallTime: 0
+      fallTime: 0,
+      autoShow: -1
     },
     phase: 'play',
     phaseTime: 0
@@ -412,6 +419,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
 
   // ── Umbrella toggle ──
   if (input.toggle) {
+    pl.autoShow = -1
     if (pl.open) {
       pl.open = false
       events.push('close')
@@ -632,8 +640,10 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     events.push('land')
     if (pl.open) {
       pl.open = false
-      events.push('close')
+      // An umbrella that opened and shut again inside AUTO_OPEN_SHOW was never shown: no close either.
+      if (pl.autoShow < 0) events.push('close')
     }
+    pl.autoShow = -1
     if (standing < w.platforms.length && w.platforms[standing]!.finish) {
       setPhase(w, 'win')
       events.push('win')
@@ -644,7 +654,13 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   // Stepping off a platform opens the umbrella automatically.
   if (wasGrounded && !pl.grounded && !pl.open && !pl.broken) {
     pl.open = true
-    events.push('open')
+    pl.autoShow = 0
+  } else if (pl.autoShow >= 0) {
+    pl.autoShow += dt
+    if (pl.autoShow >= AUTO_OPEN_SHOW) {
+      pl.autoShow = -1
+      if (pl.open) events.push('open')
+    }
   }
 
   // Falling for too long in the play field (design doc) counts as out of bounds too.

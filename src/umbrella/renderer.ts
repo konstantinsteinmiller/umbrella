@@ -433,7 +433,9 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   const fx = pl.x + pl.w / 2
   const fy = pl.y + pl.h
   const look = (pose: PweegPose): PweegLook => ({ pose, facing: pl.facing, w: pl.w, h: pl.h, time: w.time, step: stepPhase, broken: pl.broken })
-  const umbrellaState = pl.broken ? 'broken' : pl.open ? 'open' : 'furled'
+  // An umbrella that just opened by itself stays furled for a beat (see Player.autoShow).
+  const shownOpen = pl.open && pl.autoShow < 0
+  const umbrellaState = pl.broken ? 'broken' : shownOpen ? 'open' : 'furled'
   ctx.save()
   if (w.phase === 'splat') {
     if (isKite && kiteArt.splat?.(ctx, fx, fy, look('stand'), w.phaseTime, hitByEnemy(w))) {
@@ -466,7 +468,7 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
     ctx.rotate(poseAngle * -pl.facing)
     ctx.translate(-fx, -(pl.y + pl.h / 2))
   }
-  const pose: PweegPose = pl.grounded ? (Math.abs(pl.vx) > 20 ? 'walk' : 'stand') : pl.open ? 'hold' : poseAngle > 2.4 ? 'terminal' : 'flail'
+  const pose: PweegPose = pl.grounded ? (Math.abs(pl.vx) > 20 ? 'walk' : 'stand') : shownOpen ? 'hold' : poseAngle > 2.4 ? 'terminal' : 'flail'
   drawPweeg(ctx, fx, fy, look(pose))
   // Open: held overhead (the canopy is the wind hitbox, engine umbrellaBox), leaning
   // into the drift. Otherwise carried furled (or broken) in one hand.

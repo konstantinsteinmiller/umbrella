@@ -3,7 +3,9 @@ name: Deploy Static Content to Pages
 # Publishes:
 #   /umbrella/      → latest main
 #   /umbrella/<N>/  → every GDD revision (N = scripts/revision.mjs)
-#   /umbrella/kite/ → the 100 kite levels with the painted art (no server)
+#   /umbrella/kite/ → the 100 kite levels with the painted art (no server);
+#                     opened by `?art=kite` on /umbrella/ and on every revision from 11 on
+#                     (/umbrella/<N>/?art=kite → /umbrella/<N>/kite/, built here per revision)
 #   /umbrella/sounds/ → sound + music listening page (latest)
 #
 # Each push to main moves the tag `revision-<current N>` to that commit, so a
@@ -81,6 +83,17 @@ jobs:
           N="${{ steps.rev.outputs.n }}"
           npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N"
 
+      - name: Build current revision's kite → /umbrella/<N>/kite/ (from revision 11)
+        working-directory: main
+        env:
+          VITE_APP_KITE: 'true'
+          VITE_APP_LEVELS_BUCKET_URL: ''
+        run: |
+          N="${{ steps.rev.outputs.n }}"
+          if [ "$N" -ge 11 ]; then
+            npx vite build --mode kite --base="/umbrella/$N/kite/" --outDir="$GITHUB_WORKSPACE/dist/$N/kite"
+          fi
+
       - name: Build kite levels + painted art → /umbrella/kite/
         working-directory: main
         env:
@@ -106,6 +119,10 @@ jobs:
             git worktree add --detach "../rev-$N" "$TAG"
             (cd "../rev-$N" && pnpm install --no-frozen-lockfile \
               && npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N")
+            if [ "$N" -ge 11 ]; then
+              (cd "../rev-$N" && VITE_APP_KITE=true VITE_APP_LEVELS_BUCKET_URL= \
+                npx vite build --mode kite --base="/umbrella/$N/kite/" --outDir="$GITHUB_WORKSPACE/dist/$N/kite")
+            fi
             echo "::endgroup::"
           done
 

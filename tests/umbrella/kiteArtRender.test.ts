@@ -111,8 +111,8 @@ describe('kite build, every sheet painted', () => {
     const sheetOf = (log: string[]) => log.filter((l) => l.startsWith('drawImage(')).length
     const hold = recordingCtx()
     drawPweeg(hold.ctx, 0, 0, { pose: 'hold', facing: 1, w: 24, h: 36, time: 0 })
-    // KITE_DEPLOYED box: 144 units, anchor (0.5, 0.8) → (-72, -115.2, 144, 144).
-    expect(hold.log.find((l) => l.startsWith('drawImage('))).toMatch(/,-72,-115\.2,144,144\)$/)
+    // KITE_DEPLOYED box: baked at 144 units but DRAWN at 80 (the umbrella's size), anchor (0.5, 0.8) → (-40, -64, 80, 80).
+    expect(hold.log.find((l) => l.startsWith('drawImage('))).toMatch(/,-40,-64,80,80\)$/)
     const broken = recordingCtx()
     drawPweeg(broken.ctx, 0, 0, { pose: 'flail', facing: 1, w: 24, h: 36, time: 0, broken: true })
     drawUmbrella(broken.ctx, 0, 0, { state: 'broken', tilt: 0, time: 0 })

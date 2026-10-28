@@ -12,6 +12,9 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 11 — 2026-10-28 ==
+- [x] `?art=kite` opens the painted kite-art version with its 100 levels on /umbrella/ and on every revision from 11 on (/umbrella/<N>/?art=kite → /umbrella/<N>/kite/, built per revision); the separate /umbrella/kite/ link keeps working
+- [x] Kite art: the deployed (open) kite is drawn at the umbrella's size instead of twice as large; the angry (charging) Walldorf is a warm red-brown so it no longer matches the calm bouncy pusher of levels 48 and 49; Prickbait no longer flickers between left- and right-looking frames when it turns round
+- [x] Walking across a small gap no longer flashes the umbrella open and shut (level 71): the automatic open is shown and heard only after 0.12 s in the air; the physics is unchanged
 - [x] Level editor: "Screens wide" and "Screens tall" inputs for any number of screens (1–50) in a multi-screen level; the world grows by whole screens and scrolls (labels in all 21 locales)
 - [x] Community overwrite: the Submit button stays usable when this week's submissions are used up (an overwrite costs none), with a hint saying so; overwriting also folds older duplicates of the same level into the best-rated copy (levels-bucket worker)
 - [x] Gates also work in the level editor's Test: the warp plays, the challenge opens as the level under test, and winning it returns to the gate

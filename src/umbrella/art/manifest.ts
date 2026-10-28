@@ -24,7 +24,12 @@ export const PANEL = 256
 
 /** One frame's square in WORLD units at the reference size (Pweeg 24 × 36,
  *  er = 9 eyes, a 90 fan…), and where the anchor point sits on it (fractions). */
-export interface SpriteBox { size: number; ax: number; ay: number }
+export interface SpriteBox {
+  size: number; ax: number; ay: number
+  /** The size the game DRAWS the frame at, when it differs from the `size` the reference was baked at
+   *  (the painting stays registered to its reference; only the blit is scaled, about the anchor). */
+  drawSize?: number
+}
 
 /** A run of frames played as one animation. `fps` 0 = chosen by the caller
  *  (a walk is stepped by distance, a splat by its own clock). */
@@ -114,7 +119,9 @@ const UMBRELLA: SpriteBox = { size: 80, ax: 0.5, ay: 0.875 }
 const KITE: SpriteBox = { size: 96, ax: 0.5, ay: 0.72 }
 /** The DEPLOYED kite: it IS the umbrella, so its wings and sail spread over
  *  the canopy's wind box (26–66 above the grip, 60 wide). */
-const KITE_DEPLOYED: SpriteBox = { size: 144, ax: 0.5, ay: 0.8 }
+/** Painted at 144 the wings spanned ~120 units — twice the umbrella. Drawn at 80 they span ~67, the umbrella's 60-wide canopy,
+ *  and the kite body is about the player's own size. */
+const KITE_DEPLOYED: SpriteBox = { size: 144, drawSize: 80, ax: 0.5, ay: 0.8 }
 /** Splat and burst. */
 const KITE_WIDE: SpriteBox = { size: 128, ax: 0.5, ay: 0.75 }
 /** Walldorf's two stacked eyes at er = 9, centred on the pair. */
