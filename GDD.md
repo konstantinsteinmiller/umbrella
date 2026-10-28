@@ -320,6 +320,21 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · Sounds are back to their Revision 7 state; the Walldorf and Prickbait sounds stay.
 **Design doc**
 · Checked against v0.10.0 (cutscene editor, tuned variables, reverted sounds); the tuned values still need the designer's export.
+## Revision 11
+**Gates and challenge levels**
+· Gates (editor tool G) are green warp pipes: open the umbrella inside one and a hyper current carries Pweeg up through a cutscene into a challenge level; winning it carries him back out at the gate.
+· A level that a gate leads to is a challenge: the campaign skips it, and the level selector unlocks it once reached.
+**Collectibles**
+· Stars, golden umbrellas or golden clouds (editor tool T), chosen per item; the best count per level is kept, shown on the level tile, and counted live in a gold badge in the top right.
+**Level editor**
+· Reorder dialog: a delete button per level with a confirmation, also for saved levels; deleted levels stay gone.
+· Player start: a "start with the umbrella open" toggle; an open umbrella on a platform catches currents.
+· Walldorf charge zone is a rectangle in front of it (Thwomp), with length and width.
+**Community**
+· Submitting a level with the name and author of one of your own asks to overwrite it, in a styled confirmation card; plays and ratings stay.
+**Sound**
+· Mine fields are quieter: one alert voice, a thinner fuse ticking when several mines are close.
+
 ## Revision 
 ## Revision 
 ## Revision 
