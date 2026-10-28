@@ -203,6 +203,8 @@ export default {
       'world': "Wereldgrootte",
       'worldW': "Breedte",
       'worldH': "Hoogte",
+      'screensX': "Schermen breed",
+      'screensY': "Schermen hoog",
       'scrolls': "Camera volgt de speler",
       'screenW': "Scherm b",
       'screenH': "Scherm h",

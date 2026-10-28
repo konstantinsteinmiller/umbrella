@@ -203,6 +203,8 @@ export default {
       'world': "Tamaño del mundo",
       'worldW': "Ancho",
       'worldH': "Alto",
+      'screensX': "Pantallas de ancho",
+      'screensY': "Pantallas de alto",
       'scrolls': "La cámara sigue al jugador",
       'screenW': "Ancho pantalla",
       'screenH': "Alto pantalla",

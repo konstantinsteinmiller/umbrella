@@ -203,6 +203,8 @@ export default {
       'world': "Розмір світу",
       'worldW': "Ширина",
       'worldH': "Висота",
+      'screensX': "Екранів в ширину",
+      'screensY': "Екранів у висоту",
       'scrolls': "Камера стежить за гравцем",
       'screenW': "Екран ш",
       'screenH': "Екран в",

@@ -203,6 +203,8 @@ export default {
       'world': "Kích thước thế giới",
       'worldW': "Rộng",
       'worldH': "Cao",
+      'screensX': "Số màn hình ngang",
+      'screensY': "Số màn hình dọc",
       'scrolls': "Camera theo người chơi",
       'screenW': "Màn hình rộng",
       'screenH': "Màn hình cao",

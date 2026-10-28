@@ -203,6 +203,8 @@ export default {
       'world': "Dünya boyutu",
       'worldW': "Genişlik",
       'worldH': "Yükseklik",
+      'screensX': "Ekran genişliği",
+      'screensY': "Ekran yüksekliği",
       'scrolls': "Kamera oyuncuyu takip eder",
       'screenW': "Ekran G",
       'screenH': "Ekran Y",

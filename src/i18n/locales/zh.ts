@@ -203,6 +203,8 @@ export default {
       'world': "世界大小",
       'worldW': "宽度",
       'worldH': "高度",
+      'screensX': "横向屏数",
+      'screensY': "纵向屏数",
       'scrolls': "镜头跟随玩家",
       'screenW': "屏幕宽",
       'screenH': "屏幕高",

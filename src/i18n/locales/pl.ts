@@ -203,6 +203,8 @@ export default {
       'world': "Rozmiar świata",
       'worldW': "Szerokość",
       'worldH': "Wysokość",
+      'screensX': "Ekrany wszerz",
+      'screensY': "Ekrany wzwyż",
       'scrolls': "Kamera podąża za graczem",
       'screenW': "Ekran szer.",
       'screenH': "Ekran wys.",

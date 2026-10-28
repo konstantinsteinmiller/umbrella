@@ -203,6 +203,8 @@ export default {
       'world': "Taille du monde",
       'worldW': "Largeur",
       'worldH': "Hauteur",
+      'screensX': "Écrans en largeur",
+      'screensY': "Écrans en hauteur",
       'scrolls': "La caméra suit le joueur",
       'screenW': "Écran L",
       'screenH': "Écran H",

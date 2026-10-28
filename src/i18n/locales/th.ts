@@ -203,6 +203,8 @@ export default {
       'world': "ขนาดโลก",
       'worldW': "กว้าง",
       'worldH': "สูง",
+      'screensX': "จำนวนหน้าจอแนวนอน",
+      'screensY': "จำนวนหน้าจอแนวตั้ง",
       'scrolls': "กล้องตามผู้เล่น",
       'screenW': "จอ ก",
       'screenH': "จอ ส",

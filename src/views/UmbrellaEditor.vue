@@ -764,6 +764,21 @@ const setWorldPreset = (i: number) => {
 const setWorldSize = (key: 'w' | 'h', v: number) => {
   if (Number.isFinite(v) && v >= 100) level.value.world[key] = Math.round(v)
 }
+/** How many screens a world is across and down, for any number: a screen is the level's own view size (1280 × 720 unless set). */
+const MAX_SCREENS = 50
+const screenSize = computed(() => level.value.view ?? SCREEN)
+const screensX = computed(() => Math.max(1, Math.round(level.value.world.w / screenSize.value.w)))
+const screensY = computed(() => Math.max(1, Math.round(level.value.world.h / screenSize.value.h)))
+const setScreens = (axis: 'x' | 'y', v: number) => {
+  if (!Number.isFinite(v)) return
+  const n = Math.max(1, Math.min(MAX_SCREENS, Math.floor(v)))
+  const s = screenSize.value
+  if (axis === 'x') level.value.world.w = n * s.w
+  else level.value.world.h = n * s.h
+  // More than one screen scrolls with the player.
+  if (!level.value.view && (screensX.value > 1 || screensY.value > 1)) level.value.view = { ...SCREEN }
+  fitView()
+}
 const scrolls = computed(() => !!level.value.view)
 const setScrolls = (on: boolean) => {
   if (on) level.value.view = { ...SCREEN }
@@ -1531,6 +1546,10 @@ onUnmounted(() => {
             <option v-for="(p, i) in WORLD_PRESETS" :key="p.key" :value="i">{{ t(`umbrellaEditor.world.${p.key}`) }}</option>
           </select>
         </label>
+ <div class="pair">
+          <label class="row">{{ t('umbrellaEditor.prop.screensX') }} <input class="field num" type="number" min="1" :max="MAX_SCREENS" step="1" :value="screensX" @change="setScreens('x', +($event.target as HTMLInputElement).value)" /></label>
+          <label class="row">{{ t('umbrellaEditor.prop.screensY') }} <input class="field num" type="number" min="1" :max="MAX_SCREENS" step="1" :value="screensY" @change="setScreens('y', +($event.target as HTMLInputElement).value)" /></label>
+        </div>
         <div class="pair">
           <label class="row">{{ t('umbrellaEditor.prop.worldW') }} <input class="field num" type="number" min="100" step="10" :value="level.world.w" @change="setWorldSize('w', +($event.target as HTMLInputElement).value)" /></label>
           <label class="row">{{ t('umbrellaEditor.prop.worldH') }} <input class="field num" type="number" min="100" step="10" :value="level.world.h" @change="setWorldSize('h', +($event.target as HTMLInputElement).value)" /></label>

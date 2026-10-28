@@ -203,6 +203,8 @@ export default {
       'world': "Ukuran dunia",
       'worldW': "Lebar",
       'worldH': "Tinggi",
+      'screensX': "Layar lebar",
+      'screensY': "Layar tinggi",
       'scrolls': "Kamera mengikuti pemain",
       'screenW': "Lebar layar",
       'screenH': "Tinggi layar",

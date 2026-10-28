@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 11 — 2026-10-28 ==
+- [x] Level editor: "Screens wide" and "Screens tall" inputs for any number of screens (1–50) in a multi-screen level; the world grows by whole screens and scrolls (labels in all 21 locales)
 - [x] Community overwrite: the Submit button stays usable when this week's submissions are used up (an overwrite costs none), with a hint saying so; overwriting also folds older duplicates of the same level into the best-rated copy (levels-bucket worker)
 - [x] Gates also work in the level editor's Test: the warp plays, the challenge opens as the level under test, and winning it returns to the gate
 - [x] Community submission can overwrite your own level of the same name and author: a styled confirmation card (instead of the browser's confirm) asks first; the overwrite keeps plays and ratings and costs no weekly submission, and a name and author that belong to another player are refused (levels-bucket worker; labels in all 21 locales)

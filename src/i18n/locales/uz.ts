@@ -203,6 +203,8 @@ export default {
       'world': "Dunyo o‘lchami",
       'worldW': "Eni",
       'worldH': "Bo‘yi",
+      'screensX': "Ekranlar eni",
+      'screensY': "Ekranlar bo'yi",
       'scrolls': "Kamera o‘yinchini kuzatadi",
       'screenW': "Ekran eni",
       'screenH': "Ekran bo‘yi",

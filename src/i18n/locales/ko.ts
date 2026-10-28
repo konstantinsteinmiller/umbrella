@@ -203,6 +203,8 @@ export default {
       'world': "월드 크기",
       'worldW': "너비",
       'worldH': "높이",
+      'screensX': "가로 화면 수",
+      'screensY': "세로 화면 수",
       'scrolls': "카메라가 플레이어를 따라감",
       'screenW': "화면 너비",
       'screenH': "화면 높이",

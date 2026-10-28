@@ -203,6 +203,8 @@ export default {
       'world': "ワールドの大きさ",
       'worldW': "幅",
       'worldH': "高さ",
+      'screensX': "横の画面数",
+      'screensY': "縦の画面数",
       'scrolls': "カメラがプレイヤーを追う",
       'screenW': "画面の幅",
       'screenH': "画面の高さ",
