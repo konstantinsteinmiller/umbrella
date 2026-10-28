@@ -1,4 +1,4 @@
-// `?art=kite` opens the painted kite-art version with its 100 levels.
+// `?art=kite` (before or after the #) opens the painted kite-art version with its 100 levels.
 // The kite game is its own build (it folds the kite flag at compile time), served beside the normal one:
 //   /umbrella/?art=kite     → /umbrella/kite/
 //   /umbrella/11/?art=kite  → /umbrella/11/kite/     (every revision from 11 on)
@@ -6,8 +6,10 @@
 // are touched: portal builds and the kite build itself (already under /kite/) pass through.
 (function () {
   try {
-    var q = new URLSearchParams(window.location.search)
-    if (q.get('art') !== 'kite') return
+    // The game is a hash-routed app, so the flag may sit before the # (/umbrella/?art=kite) or after it (/umbrella/#/?art=kite).
+    var hash = window.location.hash || ''
+    var inHash = hash.indexOf('?') >= 0 ? hash.slice(hash.indexOf('?')) : ''
+    if (new URLSearchParams(window.location.search).get('art') !== 'kite' && new URLSearchParams(inHash).get('art') !== 'kite') return
     if (/\/kite\//.test(window.location.pathname)) return
     var m = /^(\/umbrella\/(?:\d+\/)?)/.exec(window.location.pathname)
     if (!m) return
