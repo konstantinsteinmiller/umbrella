@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Sonraki seviye",
     'restart': "Seviyeyi yeniden başlat",
     'selectLevel': "Seviye seç",
+    'clickToPlay': "Oynamak için tıkla",
+    'tapToPlay': "Oynamak için dokun",
     'challenge': "Meydan okuma",
     'stars': "Toplanan {got}/{total}",
     'close': "Kapat",

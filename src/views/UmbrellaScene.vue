@@ -41,7 +41,7 @@ const testing = testLevel.value
 /** The first load waits for a click on Play: it hands the page the user's interaction focus, so the
  *  browser lets the intro's sound and the music start. Coming back from the editor needs none. */
 let startedOnce = false
-const playBtn = ref<HTMLButtonElement | null>(null)
+const playBtn = ref<HTMLElement | null>(null)
 const started = ref(!!testing || startedOnce)
 /** A player level (share link or community) played instead of the campaign. */
 const playing = ref<CustomPlay | null>(testing ? null : customPlay.value)
@@ -653,6 +653,8 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
 }
 // ── Touch: a left/right joystick bottom-left, the umbrella button bottom-right ──
 /** Shown on touch screens, and from the first touch on any device. */
+/** Phones and tablets (the primary pointer is a finger): "Tap to play"; a mouse or a touch laptop: "Click to play". */
+const tapDevice = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : 'ontouchstart' in window
 const touchUI = ref(window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
 const onAnyPointer = (e: PointerEvent) => {
   if (e.pointerType === 'touch') touchUI.value = true
@@ -756,8 +758,19 @@ onUnmounted(() => {
   <div class="umbrella-scene" @pointerdown="onAnyPointer" @pointerdown.capture="onSwipeDown" @pointerup="onSwipeUp">
     <canvas ref="canvas" class="umbrella-canvas" />
 
-    <div v-if="!started" class="start-screen">
-      <button ref="playBtn" class="start-play" autofocus @click="onPlay">▶ {{ t('umbrella.community.play') }}</button>
+    <!-- The whole screen is the start button: the first click or tap is what lets the browser play sound. -->
+    <div
+      v-if="!started"
+      ref="playBtn"
+      class="start-screen"
+      role="button"
+      tabindex="0"
+      :aria-label="t(tapDevice ? 'umbrella.tapToPlay' : 'umbrella.clickToPlay')"
+      @click="onPlay"
+      @keydown.enter.prevent="onPlay"
+      @keydown.space.prevent="onPlay"
+    >
+      <span class="start-label">{{ t(tapDevice ? 'umbrella.tapToPlay' : 'umbrella.clickToPlay') }}</span>
     </div>
 
     <!-- Designer tools behind the "cmonc" cheat: English only, like the lil-gui panel. -->
@@ -1038,20 +1051,27 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 16px;
   background: rgba(13, 16, 24, 0.55);
-}
-.start-play {
-  padding: 18px 56px;
-  border-radius: 999px;
-  border: 3px solid #fff;
-  background: #34d399;
-  color: #0d1018;
-  font: 900 32px system-ui, sans-serif;
-  letter-spacing: 0.04em;
   cursor: pointer;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  -webkit-tap-highlight-color: transparent;
 }
-.start-play:hover, .start-play:focus-visible { transform: scale(1.05); outline: none; }
+.start-screen:focus-visible { outline: none; }
+/* Like the arena's "tap to start": big, white, uppercase, softly pulsing over the dimmed scene. */
+.start-label {
+  max-width: 100%;
+  color: #fff;
+  font-weight: 900;
+  font-size: clamp(28px, 6vw, 56px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  text-wrap: balance;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45), 0 0 26px rgba(0, 0, 0, 0.6);
+  animation: start-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes start-pulse { 50% { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .start-label { animation: none; } }
 .intro-skip {
   position: absolute;
   right: calc(20px + env(safe-area-inset-right));

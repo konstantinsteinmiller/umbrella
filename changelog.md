@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 11 — 2026-10-28 ==
+- [x] The start screen's Play button is replaced by a pulsing "Click to play" (mouse) / "Tap to play" (phones and tablets) label like the arena's "tap to start"; the whole screen reacts to the click or tap (and Enter / Space), which still unlocks the browser's sound before the intro (labels in all 21 locales)
 - [x] ?art=kite also works after the # (/umbrella/#/?art=kite, /umbrella/11/#/?art=kite): the redirect to the kite build reads the flag from either place
 - [x] ?art=kite is the same game as the normal one: an umbrella opened on a platform deploys the kite where it stands, and the community list and submissions work there too (the kite levels themselves stay local, they are not the server's campaign)
 - [x] `?art=kite` opens the painted kite-art version with its 100 levels on /umbrella/ and on every revision from 11 on (/umbrella/<N>/?art=kite → /umbrella/<N>/kite/, built per revision); the separate /umbrella/kite/ link keeps working

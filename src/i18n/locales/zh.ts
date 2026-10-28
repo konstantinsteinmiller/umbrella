@@ -13,6 +13,8 @@ export default {
     'nextLevel': "下一关",
     'restart': "重新开始本关",
     'selectLevel': "选择关卡",
+    'clickToPlay': "点击开始游戏",
+    'tapToPlay': "点按开始游戏",
     'challenge': "挑战",
     'stars': "已收集 {got}/{total}",
     'close': "关闭",

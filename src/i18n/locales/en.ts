@@ -16,6 +16,8 @@ export default {
     'nextLevel': "Next level",
     'restart': "Restart level",
     'selectLevel': "Select level",
+    'clickToPlay': "Click to play",
+    'tapToPlay': "Tap to play",
     'challenge': "Challenge",
     'stars': "Collected {got}/{total}",
     'close': "Close",

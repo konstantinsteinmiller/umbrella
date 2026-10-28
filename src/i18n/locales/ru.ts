@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Следующий уровень",
     'restart': "Перезапустить уровень",
     'selectLevel': "Выбор уровня",
+    'clickToPlay': "Нажмите, чтобы играть",
+    'tapToPlay': "Коснитесь, чтобы играть",
     'challenge': "Испытание",
     'stars': "Собрано {got}/{total}",
     'close': "Закрыть",

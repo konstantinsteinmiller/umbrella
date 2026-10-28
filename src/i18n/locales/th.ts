@@ -13,6 +13,8 @@ export default {
     'nextLevel': "ด่านถัดไป",
     'restart': "เริ่มด่านใหม่",
     'selectLevel': "เลือกด่าน",
+    'clickToPlay': "คลิกเพื่อเล่น",
+    'tapToPlay': "แตะเพื่อเล่น",
     'challenge': "ด่านท้าทาย",
     'stars': "เก็บแล้ว {got}/{total}",
     'close': "ปิด",

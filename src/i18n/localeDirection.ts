@@ -60,14 +60,14 @@ export const isRtlLocale = (code: string): boolean => RTL_LOCALES.has(code)
  * `sans-serif` remains as the last resort, never as the only fallback.
  */
 const LATIN_STACK =
-  `'Angry', 'Segoe UI', Roboto, system-ui, sans-serif`
+  `'Zora Rounded', 'Angry', 'Segoe UI', Roboto, system-ui, sans-serif`
 
 const ARABIC_STACK =
-  `'Angry', 'Segoe UI', Tahoma, 'Geeza Pro', 'Noto Naskh Arabic', `
+  `'Zora Rounded', 'Segoe UI', Tahoma, 'Geeza Pro', 'Noto Naskh Arabic', `
   + `'Noto Sans Arabic', 'Arabic Typesetting', system-ui, sans-serif`
 
 const CJK_STACK =
-  `'Angry', 'PingFang SC', 'Hiragino Sans', 'Yu Gothic UI', Meiryo, `
+  `'Zora Rounded', 'PingFang SC', 'Hiragino Sans', 'Yu Gothic UI', Meiryo, `
   + `'Microsoft YaHei', 'Malgun Gothic', 'Apple SD Gothic Neo', `
   + `'Noto Sans CJK SC', 'Noto Sans JP', 'Noto Sans KR', system-ui, sans-serif`
 

@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Келесі деңгей",
     'restart': "Деңгейді қайта бастау",
     'selectLevel': "Деңгейді таңдау",
+    'clickToPlay': "Ойнау үшін басыңыз",
+    'tapToPlay': "Ойнау үшін түртіңіз",
     'challenge': "Сынақ",
     'stars': "Жиналды {got}/{total}",
     'close': "Жабу",

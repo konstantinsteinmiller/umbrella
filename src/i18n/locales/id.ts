@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Level berikutnya",
     'restart': "Ulangi level",
     'selectLevel': "Pilih level",
+    'clickToPlay': "Klik untuk bermain",
+    'tapToPlay': "Ketuk untuk bermain",
     'challenge': "Tantangan",
     'stars': "Terkumpul {got}/{total}",
     'close': "Tutup",

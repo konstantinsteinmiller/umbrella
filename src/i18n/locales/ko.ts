@@ -13,6 +13,8 @@ export default {
     'nextLevel': "다음 레벨",
     'restart': "레벨 다시 시작",
     'selectLevel': "레벨 선택",
+    'clickToPlay': "클릭하여 플레이",
+    'tapToPlay': "탭하여 플레이",
     'challenge': "도전",
     'stars': "수집 {got}/{total}",
     'close': "닫기",

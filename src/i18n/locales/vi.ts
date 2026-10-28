@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Màn sau",
     'restart': "Chơi lại màn",
     'selectLevel': "Chọn màn",
+    'clickToPlay': "Nhấp để chơi",
+    'tapToPlay': "Chạm để chơi",
     'challenge': "Thử thách",
     'stars': "Đã thu thập {got}/{total}",
     'close': "Đóng",

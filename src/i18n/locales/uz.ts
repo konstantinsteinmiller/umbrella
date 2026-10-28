@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Keyingi daraja",
     'restart': "Darajani qayta boshlash",
     'selectLevel': "Darajani tanlash",
+    'clickToPlay': "O'ynash uchun bosing",
+    'tapToPlay': "O'ynash uchun teging",
     'challenge': "Sinov",
     'stars': "Yig'ildi {got}/{total}",
     'close': "Yopish",

@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Volgend level",
     'restart': "Level opnieuw starten",
     'selectLevel': "Kies level",
+    'clickToPlay': "Klik om te spelen",
+    'tapToPlay': "Tik om te spelen",
     'challenge': "Uitdaging",
     'stars': "Verzameld {got}/{total}",
     'close': "Sluiten",

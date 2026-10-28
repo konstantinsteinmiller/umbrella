@@ -13,6 +13,8 @@ export default {
     'nextLevel': "次のレベル",
     'restart': "レベルをリスタート",
     'selectLevel': "レベル選択",
+    'clickToPlay': "クリックしてプレイ",
+    'tapToPlay': "タップしてプレイ",
     'challenge': "チャレンジ",
     'stars': "集めた数 {got}/{total}",
     'close': "閉じる",

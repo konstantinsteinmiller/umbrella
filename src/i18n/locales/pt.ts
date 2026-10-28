@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Próximo nível",
     'restart': "Reiniciar nível",
     'selectLevel': "Escolher nível",
+    'clickToPlay': "Clique para jogar",
+    'tapToPlay': "Toque para jogar",
     'challenge': "Desafio",
     'stars': "Coletados {got}/{total}",
     'close': "Fechar",
