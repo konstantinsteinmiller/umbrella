@@ -631,6 +631,12 @@ export const WAKE_RANGE = 380
 /** A mine's alert sounds once at this closeness (0..1), re-armed below `ALERT_REARM`. */
 const ALERT_AT = 0.4
 const ALERT_REARM = 0.12
+/** Prickbait alerts across the whole field share one voice: at most one per this many seconds. */
+const ALERT_GAP = 0.7
+/** Mines this close (0..1) count as a crowd: the bed and the alerts thin out as it grows. */
+const CROWD_AT = 0.15
+/** How much each further mine in the crowd takes off the bed (a field is not a louder mine). */
+const CROWD_DAMP = 0.6
 /** Distances (px from the enemy's edge) at which the bed layers start. */
 const MINE_RANGE = 300
 const ANGRY_RANGE = 420
@@ -657,6 +663,7 @@ export const createEnemyCues = (): EnemyCueTracker => {
   let alerted: boolean[] = []
   let lungeAt: (number | undefined)[] = []
   let lastWake = -Infinity
+  let lastAlert = -Infinity
 
   const reset = (w: World) => {
     world = w
@@ -665,6 +672,7 @@ export const createEnemyCues = (): EnemyCueTracker => {
     alerted = w.hazards.map(() => false)
     lungeAt = w.hazards.map(() => undefined)
     lastWake = -Infinity
+    lastAlert = -Infinity
   }
 
   return {
@@ -702,6 +710,8 @@ export const createEnemyCues = (): EnemyCueTracker => {
         return cues
       }
 
+      // Mines that start staring this tick: only the closest one is heard, and not again within ALERT_GAP.
+      let alert: EnemyCue | undefined
       for (let i = 0; i < w.hazards.length; i++) {
         const h = w.hazards[i]!
         const hx = h.x + h.w / 2
@@ -712,7 +722,7 @@ export const createEnemyCues = (): EnemyCueTracker => {
           const close = clamp01(1 - d / MINE_RANGE)
           if (!alerted[i] && close >= ALERT_AT) {
             alerted[i] = true
-            cues.push({ name: 'prickbait-alert', params: { intensity: close, pan } })
+            if (!alert || close > (alert.params.intensity ?? 0)) alert = { name: 'prickbait-alert', params: { intensity: close, pan } }
           } else if (alerted[i] && close < ALERT_REARM) alerted[i] = false
           continue
         }
@@ -749,6 +759,10 @@ export const createEnemyCues = (): EnemyCueTracker => {
           }
         }
       }
+      if (alert && w.time - lastAlert >= ALERT_GAP) {
+        lastAlert = w.time
+        cues.push(alert)
+      }
       return cues
     },
     bed: (w, t, dt) => {
@@ -758,11 +772,17 @@ export const createEnemyCues = (): EnemyCueTracker => {
       const cy = pl.y + pl.h / 2
       const s: EnemyBedState = { ...ENEMY_BED_IDLE }
       const scale = Math.max(0.05, t.enemySpeedScale)
+      let crowd = 0
+      for (const h of w.hazards) {
+        if (h.kind === 'mine' && edgeDist(h, cx, cy) < MINE_RANGE * (1 - CROWD_AT)) crowd++
+      }
+      // A field of mines is one ominous presence, not a louder fuse: each extra mine in range thins it.
+      const thin = 1 / (1 + CROWD_DAMP * Math.max(0, crowd - 1))
       for (const h of w.hazards) {
         const d = edgeDist(h, cx, cy)
         const pan = Math.max(-1, Math.min(1, (h.x + h.w / 2 - cx) / 400))
         if (h.kind === 'mine') {
-          const near = clamp01(1 - d / MINE_RANGE)
+          const near = clamp01(1 - d / MINE_RANGE) * thin
           if (near > s.mine) {
             s.mine = near
             s.mineSpeed = clamp01(Math.hypot(h.dx, h.dy) / dt / 600)

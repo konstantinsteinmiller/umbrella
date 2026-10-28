@@ -229,4 +229,11 @@ describe('enemy cues', () => {
     w.phase = 'win'
     expect(cues.bed(w, T, DT)).toEqual(ENEMY_BED_IDLE)
   })
+  it('a field of mines alerts once at a time and does not tick louder than one mine', () => {
+    const field = Array.from({ length: 8 }, (_, k) => ({ kind: 'mine' as const, x: 300 + (k % 4) * 50, y: 300 + Math.floor(k / 4) * 60, w: 40, h: 40 }))
+    const many = run(level(field), 0.3)
+    expect(many.heard.filter((c) => c.name === 'prickbait-alert')).toHaveLength(1)
+    const one = run(level([field[0]!]), 0.3)
+    expect(many.cues.bed(many.w, T, DT).mine).toBeLessThan(one.cues.bed(one.w, T, DT).mine)
+  })
 })

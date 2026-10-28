@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 10 — 2026-10-26 ==
+- [x] Mine fields are quieter (level 26): Prickbait alerts share one voice (only the closest mine, at most one per 0.7 s) and the fuse ticking thins out when several mines are in range instead of staying at full volume
 - [x] "Start with the umbrella open" toggle on the player start in the level editor (labels in all 21 locales)
 - [x] An umbrella opened while standing on a platform catches currents: a current behind or above a platform lifts the player off it
 - [x] Reorder dialog: deleting a saved level that sits in the campaign also removes it from Saved levels (it came back before); the Saved levels list has its own 🗑 button with the usual confirm
