@@ -142,7 +142,9 @@ const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegL
   let id: string
   let frame: number
   const s = (n: string) => sheet(`${p}-${n}`)
-  switch (look.pose) {
+  // An umbrella opened on a platform deploys the kite where he stands.
+  const pose = set.kite && look.open && (look.pose === 'stand' || look.pose === 'walk') ? 'hold' : look.pose
+  switch (pose) {
     case 'stand': {
       if (look.front && !chad && hasSheet(`${p}-front`)) {
         const f = s('front')

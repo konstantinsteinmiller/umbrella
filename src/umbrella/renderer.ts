@@ -432,9 +432,9 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   const pl = w.player
   const fx = pl.x + pl.w / 2
   const fy = pl.y + pl.h
-  const look = (pose: PweegPose): PweegLook => ({ pose, facing: pl.facing, w: pl.w, h: pl.h, time: w.time, step: stepPhase, broken: pl.broken })
   // An umbrella that just opened by itself stays furled for a beat (see Player.autoShow).
   const shownOpen = pl.open && pl.autoShow < 0
+  const look = (pose: PweegPose): PweegLook => ({ pose, facing: pl.facing, w: pl.w, h: pl.h, time: w.time, step: stepPhase, broken: pl.broken, open: shownOpen })
   const umbrellaState = pl.broken ? 'broken' : shownOpen ? 'open' : 'furled'
   ctx.save()
   if (w.phase === 'splat') {

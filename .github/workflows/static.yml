@@ -87,7 +87,6 @@ jobs:
         working-directory: main
         env:
           VITE_APP_KITE: 'true'
-          VITE_APP_LEVELS_BUCKET_URL: ''
         run: |
           N="${{ steps.rev.outputs.n }}"
           if [ "$N" -ge 11 ]; then
@@ -98,8 +97,8 @@ jobs:
         working-directory: main
         env:
           VITE_APP_KITE: 'true'
-          # The kite build never talks to the levels bucket.
-          VITE_APP_LEVELS_BUCKET_URL: ''
+          # Kite never pulls or syncs the server's campaign (vite.config.ts, customLevels.ts); it keeps the bucket URL so the
+          # community list and submissions are the same as the normal game's.
         run: npx vite build --mode kite --base=/umbrella/kite/ --outDir="$GITHUB_WORKSPACE/dist/kite"
 
       - name: Build sound listening page → /umbrella/sounds/
@@ -120,7 +119,7 @@ jobs:
             (cd "../rev-$N" && pnpm install --no-frozen-lockfile \
               && npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N")
             if [ "$N" -ge 11 ]; then
-              (cd "../rev-$N" && VITE_APP_KITE=true VITE_APP_LEVELS_BUCKET_URL= \
+              (cd "../rev-$N" && VITE_APP_KITE=true \
                 npx vite build --mode kite --base="/umbrella/$N/kite/" --outDir="$GITHUB_WORKSPACE/dist/$N/kite")
             fi
             echo "::endgroup::"
