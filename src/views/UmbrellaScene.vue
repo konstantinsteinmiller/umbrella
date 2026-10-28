@@ -644,7 +644,7 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if (showLevels.value || showCommunity.value || showRate.value || showPause.value) return
   if (LEFT.has(e.code)) held.left = down
   else if (RIGHT.has(e.code)) held.right = down
-  else if (e.code === 'Space') {
+  else if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') {
     if (down && !e.repeat) togglePending = true
   } else if (down && e.code === 'KeyR') restart()
   else return
@@ -654,6 +654,7 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
 // ── Touch: a left/right joystick bottom-left, the umbrella button bottom-right ──
 /** Shown on touch screens, and from the first touch on any device. */
 /** Phones and tablets (the primary pointer is a finger): "Tap to play"; a mouse or a touch laptop: "Click to play". */
+const showControls = computed(() => !touchUI.value && !introOn.value && !testing && !playing.value && !challenge.value && levelIndex.value < 3)
 const tapDevice = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : 'ontouchstart' in window
 const touchUI = ref(window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window)
 const onAnyPointer = (e: PointerEvent) => {
@@ -819,7 +820,12 @@ onUnmounted(() => {
     />
 
     <button v-if="editorUnlocked && !testing && editorAllowed" class="open-editor" :class="{ 'above-stick': touchUI }" @click="openEditor">OPEN EDITOR</button>
-    <div v-if="!touchUI && !introOn" class="hint">{{ t('umbrella.controls') }}</div>
+    <!-- The controls, in the bottom right, for the first three campaign levels. -->
+    <ul v-if="showControls" class="controls" :aria-label="t('umbrella.controls')">
+      <li><span class="keys"><kbd>←</kbd><kbd>→</kbd><i>/</i><kbd>A</kbd><kbd>D</kbd></span><span class="what">{{ t('umbrella.ctlMove') }}</span></li>
+      <li><span class="keys"><kbd class="wide">Space</kbd><i>/</i><kbd class="wide">Enter</kbd></span><span class="what">{{ t('umbrella.ctlUmbrella') }}</span></li>
+      <li><span class="keys"><kbd>R</kbd></span><span class="what">{{ t('umbrella.ctlRestart') }}</span></li>
+    </ul>
     <template v-else-if="!introOn">
       <div
         class="stick"
@@ -944,15 +950,40 @@ onUnmounted(() => {
   line-height: 1;
 }
 .hud-btn:hover { background: rgba(255, 255, 255, 0.22); }
-.hint {
+.controls {
   position: absolute;
-  bottom: 12px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  opacity: 0.6;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 3;
+  margin: 0;
+  padding: 10px 14px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  border-radius: 12px;
+  background: rgba(13, 16, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 14px;
+  opacity: 0.85;
+  pointer-events: none;
 }
+.controls li { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.controls .keys { display: inline-flex; align-items: center; gap: 4px; }
+.controls i { font-style: normal; opacity: 0.5; margin: 0 2px; }
+.controls kbd {
+  min-width: 26px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-bottom-width: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  font: 700 13px system-ui, sans-serif;
+  text-align: center;
+}
+.controls kbd.wide { padding: 3px 10px; }
+.controls .what { min-width: 150px; text-align: left; opacity: 0.85; }
 .open-editor {
   position: absolute;
   left: 16px;
