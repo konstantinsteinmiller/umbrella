@@ -21,11 +21,13 @@ describe('the rating', () => {
 })
 
 describe('the clock', () => {
-  it('reads m:ss of the whole seconds left, the same seconds the rating counts', () => {
-    expect(formatClock(65.4)).toBe('1:05')
-    expect(formatClock(8.9)).toBe('0:08')
-    expect(formatClock(1.5)).toBe('0:01')
-    expect(formatClock(0.5)).toBe('0:00')
+  it('reads seconds:hundredths, the whole seconds first — the same seconds the rating counts', () => {
+    expect(formatClock(12.345)).toBe('12:34')
+    expect(formatClock(8.9)).toBe('08:90')
+    expect(formatClock(1.5)).toBe('01:50')
+    expect(formatClock(0.07)).toBe('00:07')
+    expect(formatClock(125.5)).toBe('125:50')
+    expect(formatClock(0)).toBe('00:00')
   })
   it('blinks for the last fifth of the limit, between 3 and 10 seconds', () => {
     expect(blinkFrom(10)).toBe(3)

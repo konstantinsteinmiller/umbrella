@@ -1535,7 +1535,7 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
 .clock-face.small { width: 16px; height: 16px; margin-right: 6px; vertical-align: -2px; }
 .clock-face.small::before { display: none; }
 .clock-face.small i { top: 2px; height: 6px; width: 2px; margin-left: -1px; transform-origin: 50% 6px; }
-.clock-time { font-size: 22px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: right; }
+.clock-time { font-size: 22px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; min-width: 3.3em; text-align: right; }
 .clock-bar {
   grid-column: 1 / -1;
   height: 4px;

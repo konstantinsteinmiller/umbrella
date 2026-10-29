@@ -22,11 +22,11 @@ export const timeStars = (left: number, limit: number): 0 | 1 | 2 | 3 => {
 /** From how many seconds left the timer blinks: the last fifth of the limit, between 3 and 10 s. */
 export const blinkFrom = (limit: number): number => Math.min(10, Math.max(3, limit * 0.2))
 
-/** "1:05", "0:09" — the whole seconds left (rounded down), so what the clock shows is what the
- *  rating counts: "0:01" is 1–1.99 s left (★★), "0:00" the last second (★). */
+/** "12:34" — the whole seconds left (at least two digits), then hundredths of a second. The first
+ *  numbers are what the rating counts: "01:xx" is 1–1.99 s left (★★), "00:xx" the last second (★). */
 export const formatClock = (seconds: number): string => {
-  const s = Math.max(0, Math.floor(seconds))
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  const cs = Math.max(0, Math.floor(seconds * 100))
+  return `${String(Math.floor(cs / 100)).padStart(2, '0')}:${String(cs % 100).padStart(2, '0')}`
 }
 
 /** A time limit from untrusted data: a whole number of seconds in 1…MAX_TIME_LIMIT, else none. */
