@@ -17,7 +17,7 @@ import {
 } from '@/umbrella/customLevels'
 import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
-import { communityEnabled, countPlay } from '@/umbrella/community'
+import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
 import { editorAllowed } from '@/umbrella/editorAccess'
 import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
 import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
@@ -989,7 +989,7 @@ onUnmounted(() => {
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true"><svg class="grid-ico" viewBox="0 0 18 18" aria-hidden="true"><rect v-for="k in 9" :key="k" :x="((k - 1) % 3) * 6 + 0.6" :y="Math.floor((k - 1) / 3) * 6 + 0.6" width="4.8" height="4.8" rx="1.3" /></svg></button>
 <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
-      <button v-if="communityEnabled" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 <span class="hud-btn-text">{{ t('umbrella.community.button') }}</span></button>
+      <button v-if="communityEnabled && communityUnlocked(cleared)" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 <span class="hud-btn-text">{{ t('umbrella.community.button') }}</span></button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
     </template>

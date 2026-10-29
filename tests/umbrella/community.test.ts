@@ -29,6 +29,15 @@ describe('community client', () => {
     expect(mod.communityEnabled).toBe(true)
   })
 
+  it('opens the community list only once campaign level 10 is won', () => {
+    expect(mod.COMMUNITY_UNLOCK_LEVEL).toBe(10)
+    expect(mod.communityUnlocked([])).toBe(false)
+    expect(mod.communityUnlocked([0, 1, 2, 3, 4, 5, 6, 7, 8])).toBe(false)
+    expect(mod.communityUnlocked([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])).toBe(true)
+    // Won by picking it in the level select: the earlier levels do not matter.
+    expect(mod.communityUnlocked([9])).toBe(true)
+  })
+
   it('persists the player id', () => {
     const a = mod.playerId()
     expect(a).toMatch(/^[A-Za-z0-9-]{8,64}$/)

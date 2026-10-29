@@ -8,6 +8,11 @@ export const COMMUNITY_URL: string = (import.meta.env.VITE_APP_LEVELS_BUCKET_URL
  *  campaign sync stays off there (customLevels.ts) — the kite levels are not the server's. */
 export const communityEnabled: boolean = COMMUNITY_URL !== '' && !isPoki && !isPlaygama
 
+/** The community list opens to a player who has won this campaign level (its number, from 1): before it, the
+ *  campaign is still teaching the game, and the button is one more thing on the bar. */
+export const COMMUNITY_UNLOCK_LEVEL = 10
+export const communityUnlocked = (cleared: readonly number[]): boolean => cleared.includes(COMMUNITY_UNLOCK_LEVEL - 1)
+
 export const TIMEOUT_MS = 8000
 export const WEEKLY_LIMIT = 5
 
