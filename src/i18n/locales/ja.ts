@@ -217,6 +217,7 @@ export default {
       'screensY': "縦の画面数",
       'scrolls': "カメラがプレイヤーを追う",
       'timeLimit': "制限時間（秒）",
+      'timeLimitJamOnly': "ゲームジャム版のみ（itch.io）",
       'screenW': "画面の幅",
       'screenH': "画面の高さ",
       'finish': "ゴール",

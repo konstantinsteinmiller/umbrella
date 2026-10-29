@@ -217,6 +217,7 @@ export default {
       'screensY': "Schermen hoog",
       'scrolls': "Camera volgt de speler",
       'timeLimit': "Tijdslimiet (s)",
+      'timeLimitJamOnly': "Alleen in de game-jam-build (itch.io)",
       'screenW': "Scherm b",
       'screenH': "Scherm h",
       'finish': "Finish",

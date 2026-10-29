@@ -217,6 +217,7 @@ export default {
       'screensY': "Ekran yüksekliği",
       'scrolls': "Kamera oyuncuyu takip eder",
       'timeLimit': "Süre sınırı (sn)",
+      'timeLimitJamOnly': "Yalnızca oyun jam sürümünde (itch.io)",
       'screenW': "Ekran G",
       'screenH': "Ekran Y",
       'finish': "Bitiş",

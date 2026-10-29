@@ -217,6 +217,7 @@ export default {
       'screensY': "عدد الشاشات طولًا",
       'scrolls': "الكاميرا تتبع اللاعب",
       'timeLimit': "الحد الزمني (ث)",
+      'timeLimitJamOnly': "فقط في نسخة مسابقة الألعاب (itch.io)",
       'screenW': "عرض الشاشة",
       'screenH': "ارتفاع الشاشة",
       'finish': "النهاية",

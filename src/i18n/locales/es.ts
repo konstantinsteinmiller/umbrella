@@ -217,6 +217,7 @@ export default {
       'screensY': "Pantallas de alto",
       'scrolls': "La cámara sigue al jugador",
       'timeLimit': "Límite de tiempo (s)",
+      'timeLimitJamOnly': "Solo en la versión de la game jam (itch.io)",
       'screenW': "Ancho pantalla",
       'screenH': "Alto pantalla",
       'finish': "Meta",

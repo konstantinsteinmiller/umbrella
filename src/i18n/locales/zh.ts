@@ -217,6 +217,7 @@ export default {
       'screensY': "纵向屏数",
       'scrolls': "镜头跟随玩家",
       'timeLimit': "时间限制（秒）",
+      'timeLimitJamOnly': "仅限游戏 Jam 版本（itch.io）",
       'screenW': "屏幕宽",
       'screenH': "屏幕高",
       'finish': "终点",

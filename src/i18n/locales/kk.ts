@@ -217,6 +217,7 @@ export default {
       'screensY': "Биіктігінен экран саны",
       'scrolls': "Камера ойыншыны қадағалайды",
       'timeLimit': "Уақыт шегі (с)",
+      'timeLimitJamOnly': "Тек ойын джемі нұсқасында (itch.io)",
       'screenW': "Экран ені",
       'screenH': "Экран биікт.",
       'finish': "Мәре",

@@ -217,6 +217,7 @@ export default {
       'screensY': "Bildschirme hoch",
       'scrolls': "Kamera folgt dem Spieler",
       'timeLimit': "Zeitlimit (s)",
+      'timeLimitJamOnly': "Nur im Game-Jam-Build (itch.io)",
       'screenW': "Bildschirm B",
       'screenH': "Bildschirm H",
       'finish': "Ziel",

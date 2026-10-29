@@ -763,6 +763,50 @@ const rate: Recipe = (k, o, t, p) => {
   return 1.6
 }
 
+/**
+ * TIMEUP — the clock of a timed level ran out: a cute "wah-wah-waaah" of a muted horn (a sawtooth
+ * through a wah filter that opens and closes on each note) falling A4 → F#4 → E4, the last one
+ * sagging down a semitone, then a soft paper thud as the level folds back to the start.
+ */
+const timeUp: Recipe = (k, o, t) => {
+  const notes: [m: number, at: number, len: number][] = [[69, 0, 0.26], [66, 0.3, 0.26], [64, 0.6, 0.9]]
+  for (const [m, at, len] of notes) {
+    const t0 = t + at
+    const f = midiHz(m)
+    const horn = osc(k, 'sawtooth', f, t0, len + 0.1)
+    const body = osc(k, 'triangle', f / 2, t0, len + 0.1)
+    if (len > 0.5) {
+      // The last note sags, with a slow, sad vibrato.
+      sweep(horn.frequency, t0 + 0.25, f, f * 0.94, len - 0.25)
+      sweep(body.frequency, t0 + 0.25, f / 2, (f / 2) * 0.94, len - 0.25)
+      const vib = osc(k, 'sine', 5, t0, len + 0.1)
+      const depth = gainNode(k, 0)
+      depth.gain.setValueAtTime(0, t0)
+      depth.gain.linearRampToValueAtTime(f * 0.012, t0 + len * 0.7)
+      vib.connect(depth).connect(horn.frequency)
+    }
+    const wah = filter(k, 'bandpass', 500, 3)
+    wah.frequency.setValueAtTime(380, t0)
+    wah.frequency.linearRampToValueAtTime(1500, t0 + Math.min(0.12, len * 0.4))
+    wah.frequency.linearRampToValueAtTime(520, t0 + len)
+    const env = k.ctx.createGain()
+    env.gain.setValueAtTime(0, t0)
+    env.gain.linearRampToValueAtTime(0.32, t0 + 0.03)
+    env.gain.setValueAtTime(0.32, t0 + len * 0.6)
+    env.gain.linearRampToValueAtTime(0, t0 + len)
+    horn.connect(wah).connect(env)
+    body.connect(gainNode(k, 0.35)).connect(env)
+    env.connect(o.dry)
+    env.connect(o.verb)
+  }
+  const td = t + 1.45
+  const thud = osc(k, 'sine', 120, td, 0.3)
+  sweep(thud.frequency, td, 150, 70, 0.25)
+  thud.connect(gainAD(k, td, 0.2, 0.004, 0.22)).connect(o.dry)
+  noise(k, td, 0.15).connect(filter(k, 'lowpass', 700)).connect(gainAD(k, td, 0.14, 0.002, 0.1)).connect(o.dry)
+  return 2
+}
+
 /** TICK — the last seconds of a timed level: a small woodblock tick (intensity = how loud). */
 const tick: Recipe = (k, o, t, p) => {
   const v = 0.5 + 0.5 * (p.intensity ?? 0.5)
@@ -822,7 +866,8 @@ export const RECIPES = {
   whistle,
   chapter,
   rate,
-  tick
+  tick,
+  timeUp
 } satisfies Record<string, Recipe>
 
 export type SfxName = keyof typeof RECIPES
@@ -842,7 +887,8 @@ export const SFX_TRIM: Record<SfxName, number> = {
   whistle: 0.7, // −3 dB
   chapter: 0.75, // a stinger, set beside WIN by the level report (sound.test.ts)
   rate: 0.9,
-  tick: 1.2
+  tick: 1.2,
+  timeUp: 0.8
 }
 
 /** Seconds the music ducks under a sound, and how deep (dB). */
@@ -852,7 +898,8 @@ export const SFX_DUCK: Partial<Record<SfxName, [db: number, hold: number]>> = {
   hit: [-7, 0.4],
   win: [-6, 1.6],
   whistle: [-4, 0.8],
-  chapter: [-8, 2.6]
+  chapter: [-8, 2.6],
+  timeUp: [-7, 1.6]
 }
 
 // ─── Ambience: the wind, continuously ──────────────────────────────────────

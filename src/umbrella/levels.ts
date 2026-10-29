@@ -145,6 +145,8 @@ export interface LevelDef {
   /** Seconds to reach the finish, counted from the spawn (timeStars.ts): running out restarts the
    *  level at the spawn, and the time left rates the finish with 1–3 stars. Absent: no limit. */
   timeLimit?: number
+  /** The time limit applies only in the game-jam build (itch.io, and the editor's jam test). */
+  timeLimitJamOnly?: boolean
   /** When the editor last saved this level (ms since epoch). Edits made in several
    *  places (the levels bucket, a JSON file, the repo) merge by it: the newest wins. */
   editedAt?: number

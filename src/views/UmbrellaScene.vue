@@ -12,7 +12,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
 import {
-  campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, JAM_CHAPTER, jamPlay, keepSharedLevel,
+  activeTimeLimit, campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, JAM_CHAPTER, jamPlay, keepSharedLevel,
   setEditorUnlocked, setJamTest, startLevelIndex, testLevel, type CustomPlay
 } from '@/umbrella/customLevels'
 import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
@@ -391,7 +391,7 @@ const clockBlink = computed(() => timeLimit.value > 0 && timeLeft.value <= blink
 /** The best rating per campaign level (by id). */
 const timeStarBest = ref<Record<number, number>>(getState<Record<number, number>>('umb_time_stars', {}))
 const startClock = () => {
-  timeLimit.value = levelDef().timeLimit ?? 0
+  timeLimit.value = activeTimeLimit(levelDef(), { test: !!testing })
   timeLeft.value = timeLimit.value
   rating.value = null
 }
@@ -438,7 +438,7 @@ const runClock = () => {
   lastTickSecond = sec
   if (timeLeft.value <= 0) {
     flashNotice(t('umbrella.timeUp'))
-    playSfx('whistle', { fade: 0.6 })
+    playSfx('timeUp')
     restart()
   }
 }
@@ -1084,8 +1084,8 @@ onUnmounted(() => {
               :aria-label="t('umbrella.level', { n: i + 1 }) + (isChallenge(i) ? ' · ' + t('umbrella.challenge') : '')"
               @click="pickLevel(i)"
             >
-              <span class="level-num" :class="{ timed: !!LEVELS[i]!.timeLimit }">{{ i + 1 }}</span>
-              <StarRating v-if="LEVELS[i]!.timeLimit" class="tile-stars" :stars="timeStarBest[LEVELS[i]!.id] ?? 0" :label="t('umbrella.rating', { n: timeStarBest[LEVELS[i]!.id] ?? 0 })" />
+              <span class="level-num" :class="{ timed: !!activeTimeLimit(LEVELS[i]!) }">{{ i + 1 }}</span>
+              <StarRating v-if="activeTimeLimit(LEVELS[i]!)" class="tile-stars" :stars="timeStarBest[LEVELS[i]!.id] ?? 0" :label="t('umbrella.rating', { n: timeStarBest[LEVELS[i]!.id] ?? 0 })" />
               <span v-if="cleared.includes(i)" class="level-tick">✓</span>
               <span v-if="LEVELS[i]!.stars?.length" class="level-stars">★{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
             </button>

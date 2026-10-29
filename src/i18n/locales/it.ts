@@ -217,6 +217,7 @@ export default {
       'screensY': "Schermate in altezza",
       'scrolls': "La telecamera segue il giocatore",
       'timeLimit': "Limite di tempo (s)",
+      'timeLimitJamOnly': "Solo nella build della game jam (itch.io)",
       'screenW': "Schermo L",
       'screenH': "Schermo A",
       'finish': "Arrivo",

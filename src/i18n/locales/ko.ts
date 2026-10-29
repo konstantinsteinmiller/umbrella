@@ -217,6 +217,7 @@ export default {
       'screensY': "세로 화면 수",
       'scrolls': "카메라가 플레이어를 따라감",
       'timeLimit': "제한 시간 (초)",
+      'timeLimitJamOnly': "게임 잼 빌드에서만 (itch.io)",
       'screenW': "화면 너비",
       'screenH': "화면 높이",
       'finish': "도착",

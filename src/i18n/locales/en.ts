@@ -220,6 +220,7 @@ export default {
       'screensY': "Screens tall",
       'scrolls': "Camera follows the player",
       'timeLimit': "Time limit (s)",
+      'timeLimitJamOnly': "Only in the game jam build (itch.io)",
       'screenW': "Screen w",
       'screenH': "Screen h",
       'finish': "Finish",

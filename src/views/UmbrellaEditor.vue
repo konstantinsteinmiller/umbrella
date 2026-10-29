@@ -790,7 +790,15 @@ const scrolls = computed(() => !!level.value.view)
 const setTimeLimit = (v: number) => {
   const limit = parseTimeLimit(v)
   if (limit) level.value.timeLimit = limit
-  else delete level.value.timeLimit
+  else {
+    delete level.value.timeLimit
+    delete level.value.timeLimitJamOnly
+  }
+}
+/** The time limit only in the game-jam build (itch.io): everywhere else the level is untimed. */
+const setTimeLimitJamOnly = (on: boolean) => {
+  if (on) level.value.timeLimitJamOnly = true
+  else delete level.value.timeLimitJamOnly
 }
 const setScrolls = (on: boolean) => {
   if (on) level.value.view = { ...SCREEN }
@@ -1733,6 +1741,7 @@ onUnmounted(() => {
         </div>
         <p class="hint">{{ t(level.view ? 'umbrellaEditor.scrollHint' : 'umbrellaEditor.wholeHint') }}</p>
         <label class="row">{{ t('umbrellaEditor.prop.timeLimit') }} <input class="field num" type="number" min="0" :max="MAX_TIME_LIMIT" step="1" :value="level.timeLimit ?? 0" @change="setTimeLimit(+($event.target as HTMLInputElement).value)" /></label>
+        <label class="check" :class="{ off: !level.timeLimit }"><input type="checkbox" :disabled="!level.timeLimit" :checked="!!level.timeLimitJamOnly" @change="setTimeLimitJamOnly(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.timeLimitJamOnly') }}</label>
         <p class="hint">{{ t('umbrellaEditor.timeLimitHint') }}</p>
 
         <div class="head">{{ t('umbrellaEditor.selectionTitle') }}</div>
@@ -2248,6 +2257,7 @@ onUnmounted(() => {
 .pair .row { min-width: 0; }
 .pair .field.num { width: 100%; min-width: 0; }
 .check { display: flex; align-items: center; gap: 6px; }
+.check.off { opacity: 0.45; }
 .sync { font-size: 12px; color: #6ee7b7; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sync.bad { color: #fbbf24; }
 .field {

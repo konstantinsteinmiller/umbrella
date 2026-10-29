@@ -86,6 +86,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   const limit = parseTimeLimit(out.timeLimit)
   if (limit) out.timeLimit = limit
   else delete out.timeLimit
+  if (!limit || out.timeLimitJamOnly !== true) delete out.timeLimitJamOnly
   return out
 }
 
@@ -317,6 +318,11 @@ export const setJamTest = (on: boolean) => {
   jamPlay.value = IS_ITCH || on
   rebuildLevels()
 }
+
+/** The time limit a level plays with here: none when it is set for the game-jam build only and the
+ *  jam chapter is not what plays (the editor's single-level test still runs it, to tune it). */
+export const activeTimeLimit = (l: LevelDef, opts: { test?: boolean } = {}): number =>
+  l.timeLimit && (!l.timeLimitJamOnly || jamPlay.value || opts.test) ? l.timeLimit : 0
 
 /** Index in LEVELS where a new player begins: the start chapter's first level (0 in the jam chapter). */
 export const startLevelIndex = (): number => {

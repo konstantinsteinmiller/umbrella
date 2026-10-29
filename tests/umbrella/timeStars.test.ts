@@ -2,7 +2,7 @@
 // editor's time limit surviving (or being refused by) the level parser.
 import { describe, expect, it } from 'vitest'
 import { blinkFrom, formatClock, MAX_TIME_LIMIT, parseTimeLimit, timeStars } from '@/umbrella/timeStars'
-import { cloneLevel, parseLevel } from '@/umbrella/customLevels'
+import { activeTimeLimit, cloneLevel, parseLevel, setJamTest } from '@/umbrella/customLevels'
 import { LEVELS } from '@/umbrella/levels'
 
 describe('the rating', () => {
@@ -45,5 +45,20 @@ describe('the time limit in a level', () => {
     const base = cloneLevel(LEVELS[0]!)
     expect(parseLevel({ ...base, timeLimit: 45 })!.timeLimit).toBe(45)
     expect(parseLevel({ ...base, timeLimit: -3 })!.timeLimit).toBeUndefined()
+  })
+})
+
+describe('a time limit for the game-jam build only', () => {
+  const level = { ...cloneLevel(LEVELS[0]!), timeLimit: 30, timeLimitJamOnly: true }
+  it('is off in the normal game, on where the jam chapter plays, and on in the editor test', () => {
+    expect(activeTimeLimit(level)).toBe(0)
+    expect(activeTimeLimit({ ...level, timeLimitJamOnly: undefined })).toBe(30)
+    expect(activeTimeLimit(level, { test: true })).toBe(30)
+    setJamTest(true)
+    try { expect(activeTimeLimit(level)).toBe(30) } finally { setJamTest(false) }
+  })
+  it('survives the parser only with a limit to go with it', () => {
+    expect(parseLevel(level)!.timeLimitJamOnly).toBe(true)
+    expect(parseLevel({ ...level, timeLimit: 0 })!.timeLimitJamOnly).toBeUndefined()
   })
 })

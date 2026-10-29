@@ -217,6 +217,7 @@ export default {
       'screensY': "ऊँचाई में स्क्रीन",
       'scrolls': "कैमरा खिलाड़ी के पीछे चलता है",
       'timeLimit': "समय सीमा (से.)",
+      'timeLimitJamOnly': "केवल गेम जैम बिल्ड में (itch.io)",
       'screenW': "स्क्रीन चौ.",
       'screenH': "स्क्रीन ऊँ.",
       'finish': "फ़िनिश",

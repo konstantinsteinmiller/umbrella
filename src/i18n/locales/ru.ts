@@ -217,6 +217,7 @@ export default {
       'screensY': "Экранов в высоту",
       'scrolls': "Камера следует за игроком",
       'timeLimit': "Лимит времени (с)",
+      'timeLimitJamOnly': "Только в версии для гейм-джема (itch.io)",
       'screenW': "Экран Ш",
       'screenH': "Экран В",
       'finish': "Финиш",

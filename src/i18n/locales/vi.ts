@@ -217,6 +217,7 @@ export default {
       'screensY': "Số màn hình dọc",
       'scrolls': "Camera theo người chơi",
       'timeLimit': "Giới hạn thời gian (giây)",
+      'timeLimitJamOnly': "Chỉ trong bản game jam (itch.io)",
       'screenW': "Màn hình rộng",
       'screenH': "Màn hình cao",
       'finish': "Đích",

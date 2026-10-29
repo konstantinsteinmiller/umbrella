@@ -217,6 +217,7 @@ export default {
       'screensY': "Ekranlar bo'yi",
       'scrolls': "Kamera o‘yinchini kuzatadi",
       'timeLimit': "Vaqt chegarasi (s)",
+      'timeLimitJamOnly': "Faqat geym-jem versiyasida (itch.io)",
       'screenW': "Ekran eni",
       'screenH': "Ekran bo‘yi",
       'finish': "Marra",

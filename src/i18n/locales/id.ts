@@ -217,6 +217,7 @@ export default {
       'screensY': "Layar tinggi",
       'scrolls': "Kamera mengikuti pemain",
       'timeLimit': "Batas waktu (dtk)",
+      'timeLimitJamOnly': "Hanya di build game jam (itch.io)",
       'screenW': "Lebar layar",
       'screenH': "Tinggi layar",
       'finish': "Finis",

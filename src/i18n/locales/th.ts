@@ -217,6 +217,7 @@ export default {
       'screensY': "จำนวนหน้าจอแนวตั้ง",
       'scrolls': "กล้องตามผู้เล่น",
       'timeLimit': "จำกัดเวลา (วินาที)",
+      'timeLimitJamOnly': "เฉพาะเวอร์ชันเกมแจม (itch.io)",
       'screenW': "จอ ก",
       'screenH': "จอ ส",
       'finish': "เส้นชัย",
