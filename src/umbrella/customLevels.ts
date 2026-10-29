@@ -622,6 +622,8 @@ if (BUCKET_URL && !import.meta.env.VITEST) void syncBucket()
 // ── Playtest hand-off ──
 /** Set by the editor right before it navigates to the game; the scene plays it. */
 export const testLevel = ref<LevelDef | null>(null)
+/** What the test HUD calls the level under test ("Level 5 · Wind tunnel", a saved level's name). */
+export const testLevelLabel = ref('')
 
 /** A player level the scene plays instead of the campaign: opened from a share
  *  link, or from the community list (then `communityId` is set, for plays and stars). */

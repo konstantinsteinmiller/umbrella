@@ -6,13 +6,14 @@
  * where levels are submitted (5 per week). Only shown where the build may talk
  * to the level server (not Poki / YouTube Playables — see community.ts).
  */
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { getLevel, listLevels, type CommunityLevelMeta, type CommunityPage, type CommunitySort } from '@/umbrella/community'
+import { deleteLevel, getLevel, listLevels, type CommunityLevelMeta, type CommunityPage, type CommunitySort } from '@/umbrella/community'
 import { decodeLevel } from '@/umbrella/levelCode'
-import type { CustomPlay } from '@/umbrella/customLevels'
+import { bucketPassword, editorUnlocked, type CustomPlay } from '@/umbrella/customLevels'
 import LevelThumb from './LevelThumb.vue'
+import ConfirmModal from './ConfirmModal.vue'
 
 const emit = defineEmits<{ close: []; play: [p: CustomPlay] }>()
 const { t } = useI18n()
@@ -67,7 +68,35 @@ const play = async (m: CommunityLevelMeta) => {
 const create = () => void router.push('/editor')
 const stars = (avg: number) => '★★★★★'.slice(0, Math.round(avg)) + '☆☆☆☆☆'.slice(0, 5 - Math.round(avg))
 
-const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') emit('close') }
+// ── Moderation (the designer, behind "cmonc"): delete bad, accidental or test submissions, after a
+//    confirmation card. English, like the other designer tools. Needs the editor password. ──
+const canManage = computed(() => editorUnlocked.value)
+const managing = ref(false)
+const toDelete = ref<CommunityLevelMeta | null>(null)
+const deleting = ref(false)
+const manageNote = ref('')
+const askDelete = (m: CommunityLevelMeta) => {
+  manageNote.value = bucketPassword.value ? '' : 'Set the editor password first (level editor → Editor password…).'
+  if (bucketPassword.value) toDelete.value = m
+}
+const confirmDelete = async () => {
+  const m = toDelete.value
+  if (!m) return
+  deleting.value = true
+  const r = await deleteLevel(m.id, bucketPassword.value)
+  deleting.value = false
+  toDelete.value = null
+  if (r === 'deleted' || r === 'not-found') {
+    manageNote.value = `Deleted “${m.name}”.`
+    // The last level of a page gone: show the page before it.
+    if (data.value && data.value.items.length === 1 && page.value > 1) page.value--
+    else void load()
+  } else {
+    manageNote.value = r === 'wrong-password' ? 'Wrong editor password — set it in the level editor (Editor password…).' : 'Could not delete it (offline?) — try again.'
+  }
+}
+
+const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !toDelete.value) emit('close') }
 onMounted(() => {
   void load()
   window.addEventListener('keydown', onKey)
@@ -80,6 +109,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
     <div class="cl" role="dialog" aria-modal="true" :aria-label="t('umbrella.community.title')">
       <div class="cl-head">
         <b>🌐 {{ t('umbrella.community.title') }}</b>
+        <button v-if="canManage" class="cl-btn manage" :class="{ on: managing }" :aria-pressed="managing" title="Delete bad, accidental or test submissions" @click="managing = !managing; manageNote = ''">🛠 {{ managing ? 'Done' : 'Manage' }}</button>
         <button class="cl-x" :aria-label="t('umbrella.close')" @click="emit('close')">✕</button>
       </div>
 
@@ -125,12 +155,32 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
               · {{ t('umbrella.community.plays', m.plays) }}
             </div>
           </div>
+          <button v-if="managing" class="cl-btn danger" :aria-label="`Delete ${m.name}`" title="Delete this level for everyone" @click="askDelete(m)">🗑</button>
           <button class="cl-btn green" :disabled="opening !== null" @click="play(m)">
             {{ opening === m.id ? t('umbrella.community.opening') : `▶ ${t('umbrella.community.play')}` }}
           </button>
         </li>
       </ul>
       <p v-if="openError" class="cl-note warn">{{ t('umbrella.community.broken') }}</p>
+      <p v-if="managing && manageNote" class="cl-note warn" role="status">{{ manageNote }}</p>
+      <ConfirmModal
+        v-if="toDelete"
+        title="Delete this community level?"
+        message="It is removed for everyone, with its plays and ratings. This cannot be undone."
+        icon="🗑"
+        danger
+        :busy="deleting"
+        :facts="[
+          { label: 'Level', value: toDelete.name },
+          { label: 'Author', value: toDelete.author || '—' },
+          { label: 'Plays', value: String(toDelete.plays) },
+          { label: 'Ratings', value: `${toDelete.ratingCount} (${toDelete.ratingAvg.toFixed(1)}★)` }
+        ]"
+        :confirm-label="deleting ? 'Deleting…' : 'Delete'"
+        cancel-label="Cancel"
+        @confirm="confirmDelete"
+        @cancel="toDelete = null"
+      />
 
       <div v-if="state === 'ready' && pages() > 1" class="cl-pager">
         <button class="cl-btn" :disabled="page <= 1" :aria-label="t('umbrella.community.prev')" @click="page--">‹</button>
@@ -202,6 +252,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .cl-btn:disabled { opacity: 0.45; }
 .cl-btn.green { background: #059669; }
 .cl-btn.yellow { background: #eab308; color: #000; }
+.cl-btn.danger { background: #b91c1c; }
+.cl-btn.manage { margin-left: auto; margin-right: 8px; padding: 6px 12px; font-size: 14px; }
+.cl-btn.manage.on { background: #b45309; }
 .cl-note { margin: 0; text-align: center; opacity: 0.8; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .cl-note.warn { color: #fbbf24; }
 .cl-pager { display: flex; align-items: center; justify-content: center; gap: 12px; }

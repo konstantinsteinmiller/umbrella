@@ -139,7 +139,9 @@ export const createTuningGui = (opts: {
 }): TuningGui => {
   const { tuning, levels, onLevelsChange } = opts
   levels.forEach(rememberLevel)
-  const gui = new GUI({ title: 'Feel tuning (type "cmonc")', width: 340 })
+  // Collapsed to its title bar on start: the developer opens it (and its folders) on demand.
+  const gui = new GUI({ title: 'Feel tuning (type "cmonc")', width: 340, closeFolders: true })
+  gui.close()
   gui.domElement.style.zIndex = '50'
   // The game's display font is small-caps; keep numbers and names legible.
   const style = document.createElement('style')
@@ -155,7 +157,7 @@ export const createTuningGui = (opts: {
     }
   }
 
-  const levelFolder = gui.addFolder('Level')
+  const levelFolder = gui.addFolder('Level').close()
   let current: LevelDef = levels[0]!
   const buildLevel = () => {
     for (const c of [...levelFolder.controllers]) c.destroy()
@@ -189,7 +191,7 @@ export const createTuningGui = (opts: {
       gui.controllersRecursive().forEach((c) => c.updateDisplay())
     }
   }
-  const io = gui.addFolder('Export / import')
+  const io = gui.addFolder('Export / import').close()
   io.add(actions, 'exportJson').name('Download JSON')
   io.add(actions, 'importJson').name('Load JSON…')
   io.add(actions, 'copyJson').name('Copy JSON')

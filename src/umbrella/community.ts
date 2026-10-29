@@ -84,14 +84,17 @@ interface Reply {
   body: unknown
 }
 
-async function call(path: string, init?: { method?: 'GET' | 'POST'; body?: unknown }): Promise<Reply | null> {
+async function call(path: string, init?: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown; token?: string }): Promise<Reply | null> {
   if (!COMMUNITY_URL) return null
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
     const res = await fetch(`${COMMUNITY_URL}${path}`, {
       method: init?.method ?? 'GET',
-      headers: init?.body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers: {
+        ...(init?.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(init?.token ? { Authorization: `Bearer ${init.token}` } : {})
+      },
       body: init?.body === undefined ? undefined : JSON.stringify(init.body),
       signal: ctrl.signal
     })
@@ -183,4 +186,16 @@ export async function rateLevel(id: string, stars: number): Promise<CommunityRat
   const s = Math.max(0, Math.min(5, Math.round(stars)))
   const b = ok(await call(`/community/levels/${enc(id)}/rate`, { method: 'POST', body: { player: playerId(), stars: s } }))
   return b && typeof b.ratingAvg === 'number' ? { ratingAvg: b.ratingAvg, ratingCount: num(b.ratingCount) } : null
+}
+
+/** Moderation (the designer only): removes a submitted level for everyone, with its plays and
+ *  ratings. Needs the editor password (the levels bucket's). */
+export type DeleteResult = 'deleted' | 'wrong-password' | 'not-found' | 'error'
+export async function deleteLevel(id: string, password: string): Promise<DeleteResult> {
+  const r = await call(`/community/levels/${enc(id)}`, { method: 'DELETE', token: password })
+  if (!r) return 'error'
+  if (r.status === 200) return 'deleted'
+  if (r.status === 401) return 'wrong-password'
+  if (r.status === 404) return 'not-found'
+  return 'error'
 }

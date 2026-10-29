@@ -25,6 +25,8 @@
 //   GET  /community/quota?player=…      → { limit, used, resetAt | null }
 //   POST /community/levels/:id/play { player }        → { plays }   (once/player/level/day)
 //   POST /community/levels/:id/rate { player, stars } → { ratingAvg, ratingCount } (0–5, upsert)
+//   DELETE /community/levels/:id   Authorization: Bearer <EDITOR_TOKEN> (the designer's editor password)
+//        → { deleted: true }, the level gone with its plays and ratings; 401 wrong password; 404 no such level
 //
 // Meta = { id, name, author, createdAt, plays, ratingAvg, ratingCount }
 // IPs are stored only as SHA-256(salt|ip); salt secret: `npx wrangler secret put IP_SALT`.
@@ -34,7 +36,7 @@ const MAX_BODY = 4_000_000
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Max-Age': '86400'
 }
@@ -222,6 +224,18 @@ async function community(req, env, url) {
   const id = parts[2]
   if (!ID_RE.test(id)) return json({ error: 'not found' }, 404)
 
+  if (parts.length === 3 && req.method === 'DELETE') {
+    // Moderation: the designer removes a bad, accidental or test submission (the game asks first).
+    const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+    if (!env.EDITOR_TOKEN || !sameToken(token, env.EDITOR_TOKEN)) return json({ error: 'wrong editor password' }, 401)
+    if (!(await db.prepare('SELECT id FROM levels WHERE id = ?').bind(id).first())) return json({ error: 'not found' }, 404)
+    await db.batch([
+      db.prepare('DELETE FROM ratings WHERE level_id = ?').bind(id),
+      db.prepare('DELETE FROM plays WHERE level_id = ?').bind(id),
+      db.prepare('DELETE FROM levels WHERE id = ?').bind(id)
+    ])
+    return json({ deleted: true })
+  }
   if (parts.length === 3) {
     if (req.method !== 'GET') return json({ error: 'method not allowed' }, 405)
     const r = await db.prepare(`SELECT ${META}, code FROM levels WHERE id = ?`).bind(id).first()

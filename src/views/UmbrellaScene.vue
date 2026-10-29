@@ -13,7 +13,7 @@ import { useRouter } from 'vue-router'
 import { LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
 import {
   activeTimeLimit, campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, JAM_CHAPTER, jamPlay, keepSharedLevel,
-  setEditorUnlocked, setJamTest, startLevelIndex, testLevel, type CustomPlay
+  setEditorUnlocked, setJamTest, startLevelIndex, testLevel, testLevelLabel, type CustomPlay
 } from '@/umbrella/customLevels'
 import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
@@ -57,7 +57,7 @@ const playing = ref<CustomPlay | null>(testing ? null : customPlay.value)
 /** The level under test; ‹ › and a horizontal swipe walk it through the draft, the campaign and the library. */
 let testDef = testing
 const testPos = ref(-1) // -1 = the editor's draft
-const testName = ref('')
+const testName = ref(testing ? testLevelLabel.value : '')
 const testList = () => [...LEVELS.map((l, i) => ({ name: t('umbrella.level', { n: i + 1 }), level: l })), ...Object.entries(customLevels.value).sort(([a], [b]) => a.localeCompare(b)).map(([name, level]) => ({ name, level }))]
 const stepTest = (d: number) => {
   const list = testList()
@@ -382,7 +382,8 @@ let world: World = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.pl
 const held = { left: false, right: false }
 let togglePending = false
 
-// ── Timed levels (timeStars.ts): the clock runs from the spawn, through a checkpoint revive; running
+// ── Timed levels (timeStars.ts): the clock starts on the first move or umbrella press after the spawn
+//    (not the spawn itself, so a player can look first) and runs through a checkpoint revive; running
 //    out restarts the level at the spawn; landing on the finish rates the run with 1–3 stars. ──
 const timeLimit = ref(0)
 const timeLeft = ref(0)
@@ -393,8 +394,11 @@ const timeStarBest = ref<Record<number, number>>(getState<Record<number, number>
 const startClock = () => {
   timeLimit.value = activeTimeLimit(levelDef(), { test: !!testing })
   timeLeft.value = timeLimit.value
+  clockArmed = false
   rating.value = null
 }
+/** False until the player's first input on this attempt: the clock stands still until then. */
+let clockArmed = false
 /** The rating card over the player: its stars, the time left, and a key that replays its animation. */
 const rating = ref<{ stars: number; left: string; key: number } | null>(null)
 const ratingEl = ref<HTMLElement | null>(null)
@@ -429,8 +433,10 @@ const placeRating = (cam: { s: number; ox: number; oy: number }) => {
 // The first level on screen is built at setup (not through reload): its clock starts here.
 startClock()
 let lastTickSecond = -1
-const runClock = () => {
+const runClock = (input: Input) => {
   if (!timeLimit.value || world.phase === 'win') return
+  if (!clockArmed && !(input.left || input.right || input.toggle)) return
+  clockArmed = true
   timeLeft.value = Math.max(0, timeLeft.value - DT)
   // The last seconds tick, a little louder each one.
   const sec = Math.ceil(timeLeft.value)
@@ -657,7 +663,7 @@ const tick = () => {
   togglePending = false
   const vyBefore = world.player.vy
   if (world.phase === 'play') notePlayTime(DT)
-  runClock()
+  runClock(input)
   if (timeLimit.value && timeLeft.value <= 0) return // the level just restarted
   const events = step(world, input, DT, tuning)
   onEvents(events, vyBefore)
@@ -952,12 +958,14 @@ onUnmounted(() => {
       <button class="hud-btn" aria-label="Next level" @click="stepTest(1)">›</button>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
+      <!-- The same mute as in the game (it is one setting): a mute made there must be undoable here too. -->
+      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
     <div v-else-if="playing" class="hud">
       <button class="hud-btn" :aria-label="t('umbrella.back')" @click="leaveCustom">‹</button>
       <span class="hud-level custom" :title="playing.name">{{ playing.name }}</span>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
-      <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
+      <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true"><svg class="grid-ico" viewBox="0 0 18 18" aria-hidden="true"><rect v-for="k in 9" :key="k" :x="((k - 1) % 3) * 6 + 0.6" :y="Math.floor((k - 1) / 3) * 6 + 0.6" width="4.8" height="4.8" rx="1.3" /></svg></button>
       <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
       <button v-if="playing.communityId && canRate" class="hud-btn" :aria-label="t('umbrella.rateLevel')" @click="showRate = true">★</button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
@@ -969,7 +977,7 @@ onUnmounted(() => {
       <span class="hud-level" @pointerdown="tapLevelLabel">{{ t('umbrella.level', { n: shownIndex() + 1 }) }}<template v-if="challenge"> · {{ t('umbrella.challenge') }}</template></span>
       <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="stepLevel(1)">›</button>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
-      <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
+      <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true"><svg class="grid-ico" viewBox="0 0 18 18" aria-hidden="true"><rect v-for="k in 9" :key="k" :x="((k - 1) % 3) * 6 + 0.6" :y="Math.floor((k - 1) / 3) * 6 + 0.6" width="4.8" height="4.8" rx="1.3" /></svg></button>
 <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
       <button v-if="communityEnabled" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 {{ t('umbrella.community.button') }}</button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
@@ -1152,6 +1160,8 @@ onUnmounted(() => {
   line-height: 1;
 }
 .hud-btn:hover { background: rgba(255, 255, 255, 0.22); }
+/* The level selector: a 3 × 3 grid of little cards. */
+.grid-ico { display: block; width: 18px; height: 18px; margin: auto; fill: currentColor; }
 .hud-btn.jam-test { background: rgba(234, 179, 8, 0.35); }
 .controls {
   position: absolute;

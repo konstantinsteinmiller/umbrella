@@ -71,7 +71,8 @@ import {
   saveEditorDraft,
   saveCampaignOverride,
   saveCustomLevel,
-  testLevel
+  testLevel,
+  testLevelLabel
 } from '@/umbrella/customLevels'
 
 type Tool =
@@ -1341,6 +1342,11 @@ const resetDate = computed(() => (quota.value?.resetAt ? new Date(quota.value.re
 
 const onTest = () => {
   testLevel.value = cloneLevel(level.value)
+  // The test HUD names what is tested: a campaign slot by its number (and name), else the level's own name.
+  const id = currentPick.value.startsWith('c:') ? +currentPick.value.slice(2) : null
+  testLevelLabel.value = id !== null && slotNumber(id) > 0
+    ? `${t('umbrella.level', { n: slotNumber(id) })}${slotTitle(id) ? ` · ${slotTitle(id)}` : ''}`
+    : levelName.value.trim() || t('umbrellaEditor.untitled')
   void router.push('/')
 }
 const onBack = () => {

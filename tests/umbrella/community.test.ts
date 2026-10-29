@@ -109,3 +109,20 @@ describe('community client', () => {
     expect(lastCall().body).toEqual({ player: mod.playerId(), stars: 5 })
   })
 })
+
+describe('moderation', () => {
+  it('deletes a level with the editor password and reads the answer', async () => {
+    fetchMock.mockReturnValue(reply(200, { deleted: true }))
+    expect(await mod.deleteLevel('abc123', 'pw')).toBe('deleted')
+    const { url, init } = lastCall()
+    expect(url).toBe('https://bucket.test/community/levels/abc123')
+    expect(init.method).toBe('DELETE')
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer pw')
+    fetchMock.mockReturnValue(reply(401, { error: 'wrong editor password' }))
+    expect(await mod.deleteLevel('abc123', 'nope')).toBe('wrong-password')
+    fetchMock.mockReturnValue(reply(404, { error: 'not found' }))
+    expect(await mod.deleteLevel('gone', 'pw')).toBe('not-found')
+    fetchMock.mockReturnValue(Promise.reject(new Error('offline')))
+    expect(await mod.deleteLevel('abc123', 'pw')).toBe('error')
+  })
+})
