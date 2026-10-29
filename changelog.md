@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 11 — 2026-10-28 ==
+- [x] /umbrella/art-moodboards/: a rating page for ten art-direction concepts for the jam version (the kite art plus nine painted alternatives, each with a gameplay theme, a game-name idea and six storyboard panels: in-game scene, key art, hero states, enemies, world kit, secret warp), with star ratings per criterion, a side-by-side compare wall and Claude's reference ranking; ratings stay in the viewer's browser
 - [x] Desktop browsers with a touch screen (Firefox on a Windows touch laptop) no longer show the mobile joystick and umbrella button: the touch controls start only where the primary pointer is a finger, and then follow the last input (a touch shows them, a mouse click hides them)
 - [x] The controls are a vertical key list in the bottom right corner, shown on the first three levels only (keyboard devices); Enter opens and closes the umbrella as well as Space (labels in all 21 locales)
 - [x] The start screen's Play button is replaced by a pulsing "Click to play" (mouse) / "Tap to play" (phones and tablets) label like the arena's "tap to start"; the whole screen reacts to the click or tap (and Enter / Space), which still unlocks the browser's sound before the intro (labels in all 21 locales)

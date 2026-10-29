@@ -7,6 +7,7 @@ name: Deploy Static Content to Pages
 #                     opened by `?art=kite` on /umbrella/ and on every revision from 11 on
 #                     (/umbrella/<N>/?art=kite → /umbrella/<N>/kite/, built here per revision)
 #   /umbrella/sounds/ → sound + music listening page (latest)
+#   /umbrella/art-moodboards/ → art-concept rating page (static, from art-moodboards/)
 #
 # Each push to main moves the tag `revision-<current N>` to that commit, so a
 # revision's URL keeps following main until the GDD opens the next revision;
@@ -106,6 +107,10 @@ jobs:
         run: |
           npx vite build --config scripts/sfx/vite.sounds.config.mjs --base=/umbrella/sounds/ --outDir="$GITHUB_WORKSPACE/dist/sounds"
           mv "$GITHUB_WORKSPACE/dist/sounds/umbrella-sounds.html" "$GITHUB_WORKSPACE/dist/sounds/index.html"
+
+      - name: Art-concept moodboards → /umbrella/art-moodboards/
+        working-directory: main
+        run: cp -r art-moodboards "$GITHUB_WORKSPACE/dist/art-moodboards"
 
       - name: Build earlier revisions from their tags
         working-directory: main

@@ -1,0 +1,319 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Umbrella Art Concepts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a dark screening-room gallery; one concept per "storyboard board", a sticky concept rail, and a side-by-side compare wall. Single dark look by choice: art reads best on a neutral dark ground. */
+:root {
+  color-scheme: dark;
+  --ground: #14161c;
+  --board: #1d2029;
+  --line: #2e3240;
+  --ink: #eceae4;
+  --muted: #9a9eac;
+  --gold: #f2c14e;
+  --sky: #7cc4e8;
+  --danger: #ff5a5f;
+  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box }
+body { background: var(--ground); color: var(--ink); font: 15px/1.55 var(--body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--ground) }
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { padding-block: 40px 20px; display: grid; gap: 14px }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--sky) }
+h1 { font: 400 clamp(34px, 5vw, 58px)/1.05 var(--display); margin: 0; text-wrap: balance }
+h1 em { font-style: normal; color: var(--gold) }
+.lede { max-width: 68ch; color: var(--muted); margin: 0 }
+.rules { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px }
+.rule { font-size: 12.5px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted) }
+.rule b { color: var(--ink); font-weight: 600 }
+.names { margin-top: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--board); display: grid; gap: 8px }
+.names-h { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--gold) }
+.names-any { margin: 0; font-size: 14px; color: var(--muted) }
+.names-any b { color: var(--ink); font-family: var(--display); font-weight: 400; font-size: 17px }
+.names-list { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13.5px; color: var(--muted) }
+.names-list a { color: var(--muted); text-decoration: none }
+.names-list a:hover { color: var(--ink) }
+.names-list b { font-family: var(--display); font-weight: 400; font-size: 16px; color: var(--ink); margin-left: 4px }
+.title-idea { font-size: 14px; color: var(--muted); margin: 0 0 10px }
+.title-idea b { font: 400 18px var(--display); color: var(--gold) }
+.sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0 }
+
+nav.rail { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--ground) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line) }
+nav.rail .wrap { display: flex; gap: 6px; padding-block: 10px; overflow-x: auto; scrollbar-width: none }
+nav.rail a, nav.rail button { flex: none; font: 600 13px var(--body); color: var(--muted); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; background: none; cursor: pointer; white-space: nowrap }
+nav.rail a:hover, nav.rail button:hover { color: var(--ink); border-color: var(--line) }
+nav.rail .score { font: 500 11px var(--mono); color: var(--gold); margin-left: 6px }
+nav.rail button.compare { color: var(--ink); border-color: var(--line) }
+a:focus-visible, button:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--sky); outline-offset: 2px }
+
+section.concept { padding-block: 48px 8px; scroll-margin-top: 60px }
+.c-head { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; align-items: start; margin-bottom: 18px }
+.c-num { font: 500 12px var(--mono); color: var(--muted); letter-spacing: .1em }
+.c-name { font: 400 clamp(28px, 3.6vw, 42px)/1.1 var(--display); margin: 4px 0 10px }
+.tags { display: flex; flex-wrap: wrap; gap: 6px }
+.tag { font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--board); border: 1px solid var(--line) }
+.existing { font: 500 11px var(--mono); color: var(--ground); background: var(--gold); padding: 3px 8px; border-radius: 4px; margin-left: 8px; vertical-align: 6px }
+dl.theme { margin: 0; display: grid; gap: 8px }
+dl.theme div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px }
+dt { font: 500 11px/1.9 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
+dd { margin: 0; font-size: 14px }
+
+.board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; background: var(--board); padding: 10px; border-radius: 14px; border: 1px solid var(--line) }
+.board figure { margin: 0; position: relative; min-width: 0 }
+.board figure.lead { grid-column: span 2; grid-row: span 2 }
+.board img { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; cursor: zoom-in; background: #0d0f14 }
+.board figure.lead img { height: 100%; aspect-ratio: auto }
+.board figcaption { position: absolute; left: 8px; bottom: 8px; font: 500 11px var(--mono); letter-spacing: .06em; background: rgba(10, 12, 16, .72); padding: 3px 8px; border-radius: 4px; pointer-events: none }
+.missing { aspect-ratio: 16/9; display: grid; place-items: center; border-radius: 8px; border: 1px dashed var(--line); color: var(--muted); font-size: 13px }
+
+.rate { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr); gap: 22px; align-items: start; margin-top: 14px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px }
+.rate h3 { margin: 0 0 6px; font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--muted) }
+.stars { display: flex; gap: 2px }
+.stars button { background: none; border: 0; padding: 2px; cursor: pointer; font-size: 30px; line-height: 1; color: #3a3f4f }
+.stars button.on { color: var(--gold) }
+.stars.small button { font-size: 18px }
+.crit { display: grid; gap: 4px }
+.crit .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13.5px }
+textarea { width: 100%; min-height: 76px; resize: vertical; background: var(--ground); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 14px/1.45 var(--body) }
+.saved { font: 500 11px var(--mono); color: var(--muted); margin-top: 4px; min-height: 1em }
+.ref { grid-column: 1 / -1; border-top: 1px dashed var(--line); padding-top: 14px; display: grid; gap: 6px }
+.ref h3 { color: var(--sky) }
+.ref-grid { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px }
+.ref-overall .fixed { font-size: 22px }
+.ref-crit { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; color: var(--muted) }
+.fixed { color: var(--sky); letter-spacing: 1px; white-space: nowrap }
+.fixed i { font-style: normal; color: #3a3f4f }
+.why { margin: 0; font-size: 14px; max-width: 90ch }
+td.claude { color: var(--sky) }
+
+section#compare { padding-block: 56px 24px; scroll-margin-top: 60px }
+.cmp-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 14px }
+.cmp-head h2 { font: 400 clamp(26px, 3vw, 36px) var(--display); margin: 0 }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--board); padding: 4px; border-radius: 10px; border: 1px solid var(--line) }
+.seg button { font: 600 13px var(--body); color: var(--muted); background: none; border: 0; padding: 7px 12px; border-radius: 7px; cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--ground) }
+.wall { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.wall figure { margin: 0; min-width: 0 }
+.wall img { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; cursor: zoom-in }
+.wall figcaption { display: flex; justify-content: space-between; gap: 8px; padding: 6px 2px 0; font-size: 13.5px; font-weight: 600 }
+.wall figcaption span { font: 500 12px var(--mono); color: var(--gold) }
+
+.ranking { margin-top: 36px; border-top: 1px solid var(--line); padding-top: 22px }
+.ranking h2 { font: 400 26px var(--display); margin: 0 0 12px }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 14px }
+th { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
+td.num { font-family: var(--mono) }
+.tbl { overflow-x: auto }
+.note { color: var(--muted); font-size: 13px; margin-top: 10px }
+footer { padding-block: 40px; color: var(--muted); font-size: 13px }
+
+dialog { border: 0; padding: 0; background: transparent; max-width: 96vw; max-height: 94vh }
+dialog::backdrop { background: rgba(5, 6, 9, .9) }
+dialog img { display: block; max-width: 96vw; max-height: 86vh; border-radius: 8px }
+dialog p { color: var(--ink); text-align: center; margin: 10px 0 0; font-weight: 600 }
+dialog .nav { display: flex; justify-content: center; gap: 8px; margin-top: 8px }
+dialog .nav button { font: 600 13px var(--body); background: var(--board); color: var(--ink); border: 1px solid var(--line); padding: 6px 14px; border-radius: 8px; cursor: pointer }
+
+@media (max-width: 900px) {
+  .c-head { grid-template-columns: minmax(0, 1fr) }
+  .board { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .board figure.lead { grid-row: auto }
+  .board figure.lead img { aspect-ratio: 16/9 }
+  .rate { grid-template-columns: minmax(0, 1fr) }
+  .wall { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+}
+@media (max-width: 520px) {
+  .board, .wall { grid-template-columns: minmax(0, 1fr) }
+  .board figure.lead { grid-column: auto }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth } }
+</style>
+
+<header class="top wrap">
+  <div class="eyebrow">Umbrella · art direction · game jam</div>
+  <h1><span id="count">Six</span> worlds for one <em>open umbrella</em></h1>
+  <p class="lede">Each concept reskins the whole game: the hero and the thing it opens to catch the air, the currents, the five hazards, the goal, the warp gate and the treasures. Panel 1 of each board repaints the same showcase level, so it compares like for like. Rate every concept below; your ratings are saved automatically. Under each concept, Claude's own scores in blue are a reference.</p>
+  <div class="rules">
+    <span class="rule"><b>Kept in every concept:</b></span>
+    <span class="rule"><i class="sw" style="background:var(--danger)"></i>red = deadly</span>
+    <span class="rule"><i class="sw" style="background:#ffb020"></i>amber = bouncy</span>
+    <span class="rule"><i class="sw" style="background:#c3cde0"></i>grey = solid</span>
+    <span class="rule"><i class="sw" style="background:var(--gold)"></i>gold = collectible</span>
+    <span class="rule">open = float · closed = fall</span>
+  </div>
+  <div class="names">
+    <div class="names-h">Game name ideas</div>
+    <p class="names-any">Any skin: <b>Brolly</b> · <b>Updraft</b> · <b>Open Up!</b> · <b>Pweeg Floats</b>. Short, about the one verb, easy to search.</p>
+    <div class="names-list" id="names"></div>
+  </div>
+</header>
+
+<nav class="rail" aria-label="Concepts"><div class="wrap" id="rail"></div></nav>
+<main class="wrap" id="concepts"></main>
+
+<section id="compare" class="wrap">
+  <div class="cmp-head">
+    <h2>Compare side by side</h2>
+    <div class="seg" id="seg" role="group" aria-label="Panel to compare"></div>
+  </div>
+  <div class="wall" id="wall"></div>
+  <div class="ranking">
+    <h2>Your ranking</h2>
+    <div class="tbl"><table><thead><tr><th>#</th><th>Concept</th><th>Overall</th><th>Appeal</th><th>Readability</th><th>Theme fit</th><th>Jam wow</th><th>Claude's pick</th></tr></thead><tbody id="rank"></tbody></table></div>
+    <p class="note" id="storeNote"></p>
+  </div>
+</section>
+
+<footer class="wrap">Every concept after the first was painted with Gemini through the project's Art Desk from one shared brief per concept. Concept 1 is the art that ships today in <code>?art=kite</code>.</footer>
+
+<dialog id="lb"><img id="lbImg" alt=""><p id="lbCap"></p><div class="nav"><button id="lbPrev">← Prev</button><button id="lbClose">Close</button><button id="lbNext">Next →</button></div></dialog>
+
+<script>
+const CONCEPTS = [{"id": "kite", "title": "Tailwind", "name": "Kite Country", "existing": true, "tags": "cozy · hand-drawn crayon · storybook · kite theme", "pitch": "The skin that ships today behind ?art=kite. A living diamond kite walks the grassy ledges and throws itself wide open as a striped sail to ride the breeze. It has warm crayon texture and lots of charm. The spikes, the pipe, the collectibles and the sky are still the old vector art.", "heroShort": "Pweeg-Kite, a diamond kite with stubby legs and a bow tail", "opens": "The whole body spreads into a wide striped sail kite", "air": "Grey and teal wind wisps; the direction arrows are gone", "foes": "Plum spiky Prickbait, navy, cyan and grey Walldorf pillars, a caged fan", "goal": "A golden bullseye podium flanked by kite flags", "story": "None yet. A kite festival is implied.", "img": {"scene": "img/kite-scene.webp", "key": "img/kite-key.webp", "hero": "img/kite-hero.webp", "foes": "img/kite-foes.webp", "world": "img/kite-world.webp", "warp": "img/kite-warp.webp"}, "claude": {"overall": 3, "appeal": 3, "read": 2, "fit": 4, "wow": 2, "why": "Charming, and the kite-as-sail idea is clever. Half the screen is still vector, the navy sky is empty, the wind wisps lost their direction arrows and the hazard colours drifted from red, amber and grey. It is a fine base, but not a jam showpiece yet."}}, {"id": "dandelion", "title": "Seedling Sky", "name": "Dandelion Drift", "tags": "dreamy · watercolour · macro meadow · golden hour", "pitch": "The game shrinks to insect scale. A seed sprite rides its own dandelion parachute through a giant sunlit meadow, past dew drops and clover, toward the patch of soil where it can finally grow. Every level is one gust closer to blooming.", "heroShort": "Pip, a tiny seed sprite with a white face and dot eyes", "opens": "A dandelion pappus that fans out into a glowing feathery parachute", "air": "Streams of golden pollen and drifting fluff; a Super Stream of whirling petals", "foes": "A chestnut-burr mine, thistle, river-stone and mushroom pillars, rose thorns, a dragonfly-wing fan", "goal": "A patch of dark soil ringed with sprouts", "story": "A seed looks for the perfect place to grow.", "img": {"scene": "img/dandelion-scene.webp", "key": "img/dandelion-key.webp", "hero": "img/dandelion-hero.webp", "foes": "img/dandelion-foes.webp", "world": "img/dandelion-world.webp", "warp": "img/dandelion-warp.webp"}, "claude": {"overall": 4, "appeal": 5, "read": 3, "fit": 5, "wow": 4, "why": "The most natural metaphor in the set: a dandelion seed really does fly by opening its parachute. The watercolour is lovely, but the bright, busy meadow fights the foreground. Darken the background before it can be shipped."}}, {"id": "lantern", "title": "Paper Moon", "name": "Lantern Festival", "tags": "papercraft · layered diorama · night festival · warm glow", "pitch": "A folded-paper hero with a red wagasa parasol climbs a cut-paper festival night. Heat from a thousand rising lanterns lifts it, and real shadows fall between the paper layers. It reads like a stop-motion set you could reach into.", "heroShort": "Kami, an origami figure folded from cream washi paper", "opens": "A red-and-white Japanese wagasa that fans open and glows from inside", "air": "Ribbons of lantern light and floating paper streamers; the Super Stream is firework sparks", "foes": "A firecracker mine, dragon-scale, stone-lantern and accordion pillars, cut-paper flames, a pinwheel fan", "goal": "A glowing paper-lantern pad on a temple roof", "story": "Every lantern must reach the moon tonight. Kami escorts the last lost one home.", "img": {"scene": "img/lantern-scene.webp", "key": "img/lantern-key.webp", "hero": "img/lantern-hero.webp", "foes": "img/lantern-foes.webp", "world": "img/lantern-world.webp", "warp": "img/lantern-warp.webp"}, "claude": {"overall": 5, "appeal": 5, "read": 4, "fit": 5, "wow": 5, "why": "The strongest identity. Rising lantern heat is a believable updraft, the wagasa is an umbrella, and the paper-cut layers give real depth and a memorable look a jam judge has not seen ten times. The warm palette keeps red and amber hazards readable on the deep indigo sky."}}, {"id": "neon", "title": "Rainrunner", "name": "Neon Rain", "tags": "cyberpunk · rain-slick neon noir · emissive glow · high contrast", "pitch": "A pocket-sized maintenance robot hops across a drowned megacity at night under a holographic umbrella, riding vent thermals between billboards. The emissive colours make the danger code pop harder than in any other concept.", "heroShort": "Drip, a round maintenance bot with a glowing visor", "opens": "A projected cyan hex-grid hologram canopy", "air": "Rising vent thermals drawn as data streams of light dashes; the Super Stream is a plasma jet", "foes": "A security-drone mine, laser, steel and rubber-bumper pylons, electrified spikes, an exhaust turbine", "goal": "A pulsing helipad ring", "story": "Restart the city's lighthouse beacon before the storm swallows the lights.", "img": {"scene": "img/neon-scene.webp", "key": "img/neon-key.webp", "hero": "img/neon-hero.webp", "foes": "img/neon-foes.webp", "world": "img/neon-world.webp", "warp": "img/neon-warp.webp"}, "claude": {"overall": 4, "appeal": 4, "read": 5, "fit": 3, "wow": 4, "why": "The best readability of all six, because emissive arrows, red hazards and lit platform edges pop off the dark city. Cyberpunk is the most common jam look, though, and a hologram umbrella is a weaker metaphor than something that really catches air."}}, {"id": "jelly", "title": "Driftlight", "name": "Abyssal Bloom", "tags": "bioluminescent · deep sea · ethereal · soft glow", "pitch": "The whole game moves underwater. A light sprite rides a jellyfish bell up through the twilight zone. Bubble columns are the currents, the bell pulses open to float, and the surface light it has never seen waits far above.", "heroShort": "Medu, a translucent sea sprite", "opens": "A jellyfish bell that blooms wide and pulses turquoise", "air": "Rising columns of glowing bubbles and plankton; the Super Stream is a volcanic vent", "foes": "An urchin or pufferfish mine, fire-coral, stone and sponge pillars, anemones, a ship propeller", "goal": "An open giant clam with a glowing pearl", "story": "A spark from the abyss swims up toward the sunlit surface.", "img": {"scene": "img/jelly-scene.webp", "key": "img/jelly-key.webp", "hero": "img/jelly-hero.webp", "foes": "img/jelly-foes.webp", "world": "img/jelly-world.webp", "warp": "img/jelly-warp.webp"}, "claude": {"overall": 4, "appeal": 4, "read": 4, "fit": 5, "wow": 4, "why": "A jellyfish pulsing its bell open to rise is a perfect reading of the open/close verb, and bubble columns make great currents. It looks moody and premium. The teal-on-teal palette needs care so the currents do not melt into the water."}}, {"id": "clay", "title": "Brolly Post", "name": "Rainy Day Post", "tags": "claymation · tactile stop-motion · whimsical rainy town · warm", "pitch": "The original Pweeg, sculpted in plasticine and given a postman's cap. He makes one last delivery across the rooftops of a tiny European town in the worst storm of the year. Fingerprints, chimney steam, and the warm Aardman feel of a handmade world.", "heroShort": "Pweeg the clay postman with a cap and satchel", "opens": "A chunky red-and-white plasticine umbrella that wobbles open", "air": "Sculpted wind ribbons, blowing leaves and letters; chimney-steam updrafts", "foes": "A hedgehog mine, stove-pipe, brick-chimney and gumdrop pillars, iron railing spikes, an attic fan", "goal": "A red mailbox on a rooftop", "story": "The town's smallest postman has one letter left to deliver.", "img": {"scene": "img/clay-scene.webp", "key": "img/clay-key.webp", "hero": "img/clay-hero.webp", "foes": "img/clay-foes.webp", "world": "img/clay-world.webp", "warp": "img/clay-warp.webp"}, "claude": {"overall": 4, "appeal": 5, "read": 3, "fit": 4, "wow": 5, "why": "The most lovable look, because it keeps Pweeg himself, and the warm windows against the rain are irresistible. The detailed town crowds the playfield and standable roofs are hard to tell from scenery. Claymation is also the hardest style to keep consistent across 30+ sprites."}}, {"id": "felt", "title": "Stitch in the Wind", "name": "Stitch in the Wind", "tags": "felt & yarn · handcrafted plush · soft pastel · cosy", "pitch": "Grandma's sewing room at the size of a dust bunny. A fluffy felt hero floats under a crocheted doily over quilt hills and fabric-bolt towers. Pins become spikes, pincushions become mines, and every current is a stream of yarn.", "heroShort": "Tuft, a felt dust bunny with button eyes", "opens": "A lace doily on a toothpick that fans out like a parasol", "air": "Strands of yarn and running stitches; the Super Stream is an unravelling orange skein", "foes": "A pincushion mine, needle, wooden and sock-roll thread spools, sewing pins, a sewing-machine wheel", "goal": "A golden sewing button on top of the basket", "story": "Get back into the sewing basket before the vacuum cleaner comes.", "img": {"scene": "img/felt-scene.webp", "key": "img/felt-key.webp", "hero": "img/felt-hero.webp", "foes": "img/felt-foes.webp", "world": "img/felt-world.webp", "warp": "img/felt-warp.webp"}, "claude": {"overall": 4, "appeal": 5, "read": 3, "fit": 4, "wow": 4, "why": "The coziest board. The fluffball with a crochet-doily parasol is adorable, and thread-spool pillars and a button goal are clever tactile translations. The pastel bedroom is bright and busy, and pale lace currents get lost on it. It needs a dimmer, softer background plate to play well."}}, {"id": "hose", "title": "Gale & Gusty", "name": "Gale & Gusty", "tags": "1930s rubber-hose cartoon · hand-inked · film grain · jazz age", "pitch": "Pweeg as a 1930s cartoon star with pie-cut eyes and white gloves, popping a parasol over a jazz-age city. The wind itself has a face: puff-cheeked clouds blow the currents, and the Super Stream is a scowling cyclone.", "heroShort": "Pweeg in rubber-hose style with gloves and big shoes", "opens": "A black parasol that pops open with cartoon motion lines", "air": "Wind faces blowing curly wind lines; the Super Stream is an angry cyclone", "foes": "A cartoon bomb mine, boiler-pipe, stone and rubber-hose columns, tacks, a desk fan", "goal": "A circus landing drum with a bullseye", "story": "A vaudeville star has to cross the city by parasol to make the big show.", "img": {"scene": "img/hose-scene.webp", "key": "img/hose-key.webp", "hero": "img/hose-hero.webp", "foes": "img/hose-foes.webp", "world": "img/hose-world.webp", "warp": "img/hose-warp.webp"}, "claude": {"overall": 4, "appeal": 4, "read": 4, "fit": 4, "wow": 4, "why": "The most distinctive silhouette set. Rubber-hose pillars with faces, puffing cloud fans and the black-umbrella gag character feel like one coherent 1930s cartoon, and the muted sepia backdrop lets red and amber pop. It invites Cuphead comparisons, so it has to lean into its own jokes."}}, {"id": "frog", "title": "Lily Leap", "name": "Lily Leap", "tags": "mid-century gouache · bold flat shapes · jungle monsoon · joyful colour", "pitch": "A tree frog holds a lotus leaf over its head the way real frogs do in the rain. It crosses a monsoon jungle painted in bold Mary Blair-style shapes. The open/close verb becomes a leaf that unfurls and curls.", "heroShort": "Lilo, a little bright-green tree frog", "opens": "A big lotus leaf that unfurls into a dripping parasol", "air": "Monsoon mist swirls with leaf chevrons; the Super Stream is hot wind full of petals", "foes": "A spiky seed-pod mine, poison-vine, stone-totem and mushroom pillars, thorn vines, a waterwheel", "goal": "A giant blooming water lily", "story": "Reach the great lily pond before the rains end.", "img": {"scene": "img/frog-scene.webp", "key": "img/frog-key.webp", "hero": "img/frog-hero.webp", "foes": "img/frog-foes.webp", "world": "img/frog-world.webp", "warp": "img/frog-warp.webp"}, "claude": {"overall": 3, "appeal": 4, "read": 4, "fit": 5, "wow": 3, "why": "A tree frog gliding under a lily-pad parasol is a lovely, instantly understood metaphor, and the jungle reads cleanly. The flat, bright mobile-game rendering is the least surprising look in the set, so it charms but will not stand out in a jam gallery."}}, {"id": "pixel", "title": "Sky Brolly", "name": "Sky Brolly", "tags": "hi-res pixel art · floating islands · sky pirates · adventure", "pitch": "A clockwork deckhand left behind on a floating island chases the pirate flagship across a sunset sky, steering by a patched sailcloth umbrella. Crisp high-res pixel art suits a jam and can be produced as real sprites.", "heroShort": "Bolt, a tiny clockwork sky pirate with a bandana", "opens": "A patched canvas sail-umbrella that snaps open", "air": "Pixel cloud wisps and chevrons; the Super Stream is a lightning storm jet", "foes": "A naval mine on a balloon, cannon-tower, lighthouse and balloon-buoy pillars, crystal spikes, an airship propeller", "goal": "A golden X on an airship deck", "story": "Catch the flagship before it sails into the sunset.", "img": {"scene": "img/pixel-scene.webp", "key": "img/pixel-key.webp", "hero": "img/pixel-hero.webp", "foes": "img/pixel-foes.webp", "world": "img/pixel-world.webp", "warp": "img/pixel-warp.webp"}, "claude": {"overall": 3, "appeal": 4, "read": 4, "fit": 3, "wow": 3, "why": "The sunset sky-pirate islands are warm and the patched parasol is a nice touch. Pixel art is the most common jam style, and only the warp panel is true pixel art; the rest are soft illustration, so shipping it would mean redrawing everything on a real pixel grid."}}];
+const PANELS = [['scene', 'Gameplay scene'], ['key', 'Key art'], ['hero', 'Hero states'], ['foes', 'Foes & hazards'], ['world', 'World kit'], ['warp', 'Gate & treasure']];
+const CRIT = [['appeal', 'Visual appeal'], ['read', 'Gameplay readability'], ['fit', 'Theme fits the mechanic'], ['wow', 'Game-jam wow factor']];
+const ratings = {};
+let db = null;
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const src = (c, p) => c.img[p] || null;
+
+function starRow(id, key, val, small) {
+  return `<div class="stars${small ? ' small' : ''}" role="radiogroup" aria-label="${esc(key)}">` + [1, 2, 3, 4, 5].map((n) =>
+    `<button type="button" data-c="${id}" data-k="${key}" data-v="${n}" class="${n <= (val || 0) ? 'on' : ''}" aria-label="${n} of 5" aria-checked="${n === val}" role="radio">★</button>`).join('') + '</div>';
+}
+
+const WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+$('#count').textContent = WORDS[CONCEPTS.length] || String(CONCEPTS.length);
+$('#names').innerHTML = CONCEPTS.map((c) => `<a href="#${c.id}">${esc(c.name)}:<b>${esc(c.title)}</b></a>`).join('');
+
+function renderConcepts() {
+  $('#rail').innerHTML = CONCEPTS.map((c, i) => `<a href="#${c.id}">${i + 1}. ${esc(c.name)}<span class="score" data-score="${c.id}"></span></a>`).join('') + '<button class="compare" onclick="document.getElementById(\'compare\').scrollIntoView()">Compare all</button>';
+  $('#concepts').innerHTML = CONCEPTS.map((c, i) => {
+    const r = ratings[c.id] || {};
+    const figs = PANELS.map(([p, label], j) => {
+      const s = src(c, p);
+      return `<figure class="${j === 0 ? 'lead' : ''}">${s ? `<img loading="lazy" src="${s}" alt="${esc(c.name)}: ${label}" data-c="${i}" data-p="${j}">` : `<div class="missing">${label}: still painting</div>`}<figcaption>${label}</figcaption></figure>`;
+    }).join('');
+    return `<section class="concept" id="${c.id}">
+      <div class="c-head">
+        <div>
+          <div class="c-num">CONCEPT ${i + 1} OF ${CONCEPTS.length}</div>
+          <h2 class="c-name">${esc(c.name)}${c.existing ? '<span class="existing">IN THE GAME TODAY</span>' : ''}</h2>
+          <p class="title-idea">Game name idea: <b>${esc(c.title)}</b></p>
+          <div class="tags">${c.tags.split('·').map((t) => `<span class="tag">${esc(t.trim())}</span>`).join('')}</div>
+          <p style="margin:14px 0 0;color:var(--muted);max-width:62ch">${esc(c.pitch)}</p>
+        </div>
+        <dl class="theme">
+          <div><dt>Hero</dt><dd>${esc(c.heroShort)}</dd></div>
+          <div><dt>Opens</dt><dd>${esc(c.opens)}</dd></div>
+          <div><dt>Air</dt><dd>${esc(c.air)}</dd></div>
+          <div><dt>Foes</dt><dd>${esc(c.foes)}</dd></div>
+          <div><dt>Goal</dt><dd>${esc(c.goal)}</dd></div>
+          <div><dt>Story</dt><dd>${esc(c.story)}</dd></div>
+        </dl>
+      </div>
+      <div class="board">${figs}</div>
+      <div class="rate">
+        <div><h3>Overall</h3>${starRow(c.id, 'overall', r.overall)}</div>
+        <div class="crit"><h3>Details</h3>${CRIT.map(([k, l]) => `<div class="row"><span>${l}</span>${starRow(c.id, k, r[k], true)}</div>`).join('')}</div>
+        <div><h3>Notes</h3><textarea id="note-${c.id}" data-note="${c.id}" placeholder="What works, what to change…">${esc(r.note || '')}</textarea><div class="saved" id="saved-${c.id}"></div></div>
+        ${refBlock(c)}
+      </div>
+    </section>`;
+  }).join('');
+}
+
+// Claude's reference rating: read-only, shipped with the page.
+const fixed = (v) => `<span class="fixed" aria-label="${v} of 5">${'★'.repeat(v)}<i>${'★'.repeat(5 - v)}</i></span>`;
+function refBlock(c) {
+  const r = c.claude;
+  if (!r) return `<div class="ref"><h3>Claude's reference</h3><p class="why">Pending until every panel of this concept is painted.</p></div>`;
+  return `<div class="ref"><h3>Claude's reference</h3>
+    <div class="ref-grid"><div class="ref-overall">${fixed(r.overall)}</div>
+    <div class="ref-crit">${CRIT.map(([k, l]) => `<span>${l} ${fixed(r[k])}</span>`).join('')}</div></div>
+    <p class="why">${esc(r.why)}</p></div>`;
+}
+
+let cmp = 0;
+function renderCompare() {
+  $('#seg').innerHTML = PANELS.map(([, l], j) => `<button type="button" aria-pressed="${j === cmp}" data-cmp="${j}">${l}</button>`).join('');
+  $('#wall').innerHTML = CONCEPTS.map((c, i) => {
+    const s = src(c, PANELS[cmp][0]);
+    const o = ratings[c.id]?.overall;
+    return `<figure>${s ? `<img loading="lazy" src="${s}" alt="${esc(c.name)}: ${PANELS[cmp][1]}" data-c="${i}" data-p="${cmp}">` : '<div class="missing">still painting</div>'}<figcaption>${i + 1}. ${esc(c.name)}<span>${o ? '★'.repeat(o) : 'unrated'}</span></figcaption></figure>`;
+  }).join('');
+}
+
+function avg(r) { const v = CRIT.map(([k]) => r[k]).filter(Boolean); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0 }
+function renderRank() {
+  const rows = CONCEPTS.map((c) => ({ c, r: ratings[c.id] || {} })).sort((a, b) => (b.r.overall || 0) - (a.r.overall || 0) || avg(b.r) - avg(a.r));
+  const cl = CONCEPTS.filter((c) => c.claude).sort((a, b) => b.claude.overall - a.claude.overall || avg(b.claude) - avg(a.claude)).map((c) => c.id);
+  $('#rank').innerHTML = rows.map(({ c, r }, i) => `<tr><td class="num">${r.overall ? i + 1 : '–'}</td><td>${esc(c.name)}</td>${['overall', ...CRIT.map(([k]) => k)].map((k) => `<td class="num">${r[k] ? r[k] + '/5' : '–'}</td>`).join('')}<td class="num claude">${c.claude ? `#${cl.indexOf(c.id) + 1} · ${c.claude.overall}/5` : 'pending'}</td></tr>`).join('');
+  document.querySelectorAll('[data-score]').forEach((el) => { const o = ratings[el.dataset.score]?.overall; el.textContent = o ? o + '★' : '' });
+}
+
+function paintStars(id) {
+  const r = ratings[id] || {};
+  document.querySelectorAll(`.stars button[data-c="${id}"]`).forEach((b) => { const on = +b.dataset.v <= (r[b.dataset.k] || 0); b.classList.toggle('on', on); b.setAttribute('aria-checked', String(+b.dataset.v === r[b.dataset.k])) });
+}
+
+const timers = {};
+function save(id) {
+  const r = ratings[id] || {};
+  try { localStorage.setItem('umbrella-concepts', JSON.stringify(ratings)) } catch {}
+  clearTimeout(timers[id]);
+  timers[id] = setTimeout(async () => {
+    const el = $('#saved-' + id);
+    if (!db) { if (el) el.textContent = 'Saved in this browser'; return }
+    try { await db.doc('ratings/' + id).set({ ...r, at: Date.now() }); if (el) el.textContent = 'Saved' }
+    catch (e) { if (el) el.textContent = 'Could not save to the page (' + (e.code || 'error') + '); kept in this browser' }
+  }, 500);
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.stars button');
+  if (b) { const { c, k, v } = b.dataset; ratings[c] = ratings[c] || {}; ratings[c][k] = ratings[c][k] === +v ? 0 : +v; paintStars(c); renderRank(); if (k === 'overall') renderCompare(); save(c); return }
+  const s = e.target.closest('[data-cmp]');
+  if (s) { cmp = +s.dataset.cmp; renderCompare(); return }
+  const img = e.target.closest('img[data-c]');
+  if (img) openLb(+img.dataset.c, +img.dataset.p);
+});
+document.addEventListener('input', (e) => {
+  const id = e.target.dataset?.note; if (!id) return;
+  ratings[id] = ratings[id] || {}; ratings[id].note = e.target.value; save(id);
+});
+
+// lightbox walks every painted panel in order
+const ALL = () => CONCEPTS.flatMap((c, i) => PANELS.map(([p, l], j) => ({ i, j, s: src(c, p), cap: `${i + 1}. ${c.name} · ${l}` })).filter((x) => x.s));
+let lbAt = 0;
+function openLb(i, j) { const a = ALL(); lbAt = Math.max(0, a.findIndex((x) => x.i === i && x.j === j)); showLb(); $('#lb').showModal() }
+function showLb() { const a = ALL(); const x = a[(lbAt + a.length) % a.length]; $('#lbImg').src = x.s; $('#lbImg').alt = x.cap; $('#lbCap').textContent = x.cap }
+$('#lbPrev').onclick = () => { lbAt--; showLb() };
+$('#lbNext').onclick = () => { lbAt++; showLb() };
+$('#lbClose').onclick = () => $('#lb').close();
+$('#lb').addEventListener('click', (e) => { if (e.target.id === 'lb') $('#lb').close() });
+document.addEventListener('keydown', (e) => { if (!$('#lb').open) return; if (e.key === 'ArrowRight') { lbAt++; showLb() } if (e.key === 'ArrowLeft') { lbAt--; showLb() } });
+
+try { Object.assign(ratings, JSON.parse(localStorage.getItem('umbrella-concepts') || '{}')) } catch {}
+renderConcepts(); renderCompare(); renderRank();
+$('#storeNote').textContent = 'Ratings are kept in this browser until the page connects.';
+
+(async () => {
+  db = await window.claude?.use?.('db').catch(() => null) ?? null;
+  if (!db) { $('#storeNote').textContent = 'Ratings are kept in this browser only.'; return }
+  $('#storeNote').textContent = 'Ratings are saved with this page, so Claude can read them when you pick a concept.';
+  try {
+    const snap = await db.collection('ratings').get();
+    const docs = snap.docs || snap;
+    for (const d of docs) { const data = typeof d.data === 'function' ? d.data() : d.data; ratings[d.id] = { ...(ratings[d.id] || {}), ...data } }
+    renderConcepts(); renderCompare(); renderRank();
+  } catch {}
+})();
+</script>
+</body></html>
