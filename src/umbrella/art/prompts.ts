@@ -20,7 +20,7 @@ const panels = (s: SheetDef): number => s.cols * s.rows
 
 /** The images attached ahead of the layout reference, in order: the
  *  designer's style sheet first, then the painted model sheet, the layout last. */
-export const alsoOf = (s: SheetDef): string[] => [...(s.styleRef ? [s.styleRef] : []), ...(s.model ? [`painted/${s.model}.png`] : [])]
+export const alsoOf = (s: SheetDef): string[] => [...(s.styleRef ? [s.styleRef] : []), ...(s.model ? [s.modelCard ? `cards/${s.model}.png` : `painted/${s.model}.png`] : [])]
 
 const KITE_GROUPS = new Set(['kite', 'chad-kite'])
 const FIGURE_GROUPS = new Set(['pweeg', 'chad', 'kite', 'chad-kite'])
@@ -124,7 +124,9 @@ const notLine = (s: SheetDef, look: Look): string[] => {
   if (s.model) {
     n++
     const model = sheetById(s.model)
-    out.push(`· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is the finished MODEL SHEET of ${NAMES[model?.group ?? 'pweeg']} — his approved design. Copy his body, face, limbs, colours, line and shading from it EXACTLY. Take NO layout from it: the grid, the poses and the positions all come from the LAST attached image.`)
+    out.push(s.modelCard
+      ? `· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is ONE finished figure of ${NAMES[model?.group ?? 'pweeg']}, cut from his approved model sheet. Copy his body, face, limbs, colours, line and shading from it EXACTLY. It is a single figure, not a layout: the grid, the poses and the positions all come from the LAST attached image.`
+      : `· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is the finished MODEL SHEET of ${NAMES[model?.group ?? 'pweeg']} — his approved design. Copy his body, face, limbs, colours, line and shading from it EXACTLY. Take NO layout from it: the grid, the poses and the positions all come from the LAST attached image.`)
   }
   if (also.length) out.push(`· ${also.length + 1} images are attached; the LAST one is the layout reference.`)
   return out

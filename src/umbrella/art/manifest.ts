@@ -66,6 +66,10 @@ export interface SheetDef {
   tier: 0 | 1 | 2
   /** The model sheet painted first and attached BEFORE this sheet's layout. */
   model?: string
+  /** Attach only the model sheet's first figure (cards/<model>.png, cut by
+   *  `lantern-refs.py --cards`) instead of the whole sheet: a single figure has
+   *  no grid or poses to copy into the layout. */
+  modelCard?: boolean
   /** The designer's hand-drawn style reference (under SHEETS_DIR), attached
    *  FIRST: it sets the finish — cream-paper crayon, cel-shaded — never the subject. */
   styleRef?: string
@@ -183,7 +187,7 @@ export const SHEETS: SheetDef[] = [
     cols: 4, rows: 4, box: FIGURE, model: 'pweeg-model', tier: 0, fit: 'feet',
     anims: { walk: { frames: range(0, 15), fps: 0 } },
     blurb: `${PWEEG_IS}, walking to the right`, colour: PWEEG_COLOUR, view: SIDE_VIEW, one: 'Pweeg',
-    readPanels: 'One full walk cycle in 16 even steps: the two tube legs lift and swing alternately, the free arm swings opposite the legs, and the arm on his facing side stays forward (it holds a furled umbrella the game draws separately — paint NO umbrella). Panel 16 leads straight back into panel 1. His head stays the same size and at the same height band in every panel.'
+    readPanels: 'One full walk cycle in 16 even steps: the two tube legs lift and swing alternately, the free arm swings opposite the legs, and the arm on his facing side stays forward (it holds a furled umbrella the game draws separately — paint NO umbrella). Panel 16 leads straight back into panel 1. His head stays the same size and at the same height band in every panel. EVERY one of the 16 panels is a SIDE-VIEW walking stride facing right, his legs apart mid-step: none faces the viewer, none stands with its feet together.'
   },
   {
     id: 'pweeg-hover', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — hover under the umbrella', use: 'sprite',
@@ -207,7 +211,7 @@ export const SHEETS: SheetDef[] = [
     anims: { terminal: { frames: range(0, 15), fps: 50.9 } },
     blurb: `${PWEEG_IS}, at terminal velocity: no arms showing, his two legs stretched long and straight below him, and his eyes two BIG round goggle eyes (white rings with a dot pupil) — pure panic. Paint him the way up the reference shows; the game turns him upside down`,
     colour: PWEEG_COLOUR, view: SIDE_VIEW, one: 'Pweeg',
-    readPanels: 'A fast shiver loop: the long legs tremble a little left and right; the head and goggle eyes stay put. Panel 16 leads straight back into panel 1.'
+    readPanels: 'A fast shiver loop: the long legs tremble a little left and right; the head and goggle eyes stay put. Panel 16 leads straight back into panel 1. The goggle eyes ARE his eyes, painted on the head — NO glasses, no frames, no bridge, no lenses — and they are the same in all 16 panels. NO arms in any panel: the head sits straight on the two long legs, exactly as the reference shows.'
   },
   {
     id: 'pweeg-cheer', styleRef: STYLE_WORLD, group: 'pweeg', doc: 'PROMPTS-CHARACTERS.md', title: 'Pweeg — win dance', use: 'sprite',
@@ -256,7 +260,7 @@ export const SHEETS: SheetDef[] = [
     cols: 4, rows: 4, box: FIGURE, model: 'chad-model', tier: 2, fit: 'feet',
     anims: { idle: { frames: range(0, 15), fps: 6 } },
     blurb: `${CHAD_IS}, standing still, effortlessly cool`, colour: CHAD_COLOUR, view: SIDE_VIEW, one: 'Chad',
-    readPanels: 'A slow breathing loop: from panel 1 to 8 his head sinks a hair; from 9 to 16 he rises back. The sunglasses never come off and never change. Panel 16 leads straight back into panel 1.'
+    readPanels: 'A slow breathing loop: from panel 1 to 8 his head sinks a hair; from 9 to 16 he rises back. The sunglasses never come off and never change. Both arms hang loose at his sides in ALL 16 panels — never folded across the chest, never on a hip: only the head moves. Panel 16 leads straight back into panel 1.'
   },
   {
     id: 'chad-walk', styleRef: STYLE_WORLD, group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — walk cycle', use: 'sprite',
@@ -523,16 +527,16 @@ export const EXTRA_SHEETS: SheetDef[] = [
     id: 'gate', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Warp gate — rim, tube, base', use: 'sprite',
     cols: 1, rows: 3, tier: 0, fit: 'none', fresh: true, anims: {},
     shape: [
-      'WHAT COMES BACK IS ONE WARP PIPE FILLING THE WHOLE IMAGE, NOT A SCENE.',
-      'One square image, 1024 x 1024 pixels, holding ONE short fat pipe standing upright, as wide as the image at its rim, read as three horizontal bands of equal height (the game cuts it there): the TOP third is the rim and its mouth, the MIDDLE third is plain straight tube, the BOTTOM third is the base.',
-      '· One pipe. Not a row of pipes, not a pipe in a landscape.',
-      '· THE BAND LINES ARE EXACT: the rim, its mouth, its crest and the little torii ALL end above y = 341 (one third down); the base starts at y = 683 (two thirds down). Nothing crosses either line: no rim edge, no beam, no torii leg, no shadow. Between the lines there is only plain tube.'
+      'WHAT COMES BACK IS ONE WARP PIPE TAKEN APART INTO THREE SEPARATE PIECES, NOT A SCENE.',
+      'One square image, 1024 x 1024 pixels, holding THREE separate pieces of one short fat pipe, stacked one above the other with a clear band of flat magenta between each piece, exactly where the layout reference puts its three pieces: the TOP piece is the rim and its mouth, the MIDDLE piece is a short section of plain straight tube, the BOTTOM piece is the base ring. The game puts them back together itself.',
+      '· The pieces do NOT touch: magenta all the way across between the rim and the tube, and between the tube and the base.',
+      '· Each piece is as wide as the reference draws it: the rim widest, nearly the full image width; the tube a little narrower; the base a little wider than the tube.'
     ],
-    blurb: 'the WARP GATE: a fat green bamboo pipe dressed like a little torii gate — TOP THIRD: a wide rim of green-lacquered bamboo with a small red-lacquered torii crossbeam and two short posts across its front, and the mouth at its top a dark opening with a swirling glowing teal portal; MIDDLE THIRD: a plain straight green bamboo tube a little narrower than the rim, with ONE bamboo node line only at its very top and very bottom edges; BOTTOM THIRD: the same tube ending on a dark lacquer base ring',
+    blurb: 'the WARP GATE, a fat green bamboo pipe dressed like a little torii gate, in three pieces — TOP PIECE: a wide rim of green-lacquered bamboo with ONE red-lacquered torii beam laid flat along the rim\'s front band (NO posts, legs or pillars hanging down from it), and the mouth at its top a dark oval opening, seen a little from above, holding a swirling glowing teal portal — the portal is ONLY inside that oval mouth, never a circle, ring or window on the rim\'s front; MIDDLE PIECE: a short section of plain straight green bamboo tube, cut flat at its top and bottom, with nothing on it — no band, node, window, portal or emblem; BOTTOM PIECE: a dark lacquer base ring',
     colour: 'green-lacquered bamboo (#3fae5a) with a darker green fold shadow (#21733a) and a pale lit edge, a small red torii beam (#c8402f), a teal portal glow (#7fe8d0) inside the mouth only, a dark lacquer base (#2a1d3a)',
     view: 'flat front-on, square on, no perspective — the mouth seen just a little from above.',
-    note: 'The game STRETCHES the middle third to any height: it must be a plain straight tube that looks the same at its top edge and its bottom edge.',
-    check: ['· ONE pipe filling the image; the rim spans the full width, the tube a little narrower.', '· The rim and the torii end above one third of the height; the base starts at two thirds; the middle third is a plain straight tube.']
+    note: 'The game STRETCHES the middle piece to any height: it must be plain straight tube that looks the same along its whole height.',
+    check: ['· THREE separate pieces, top to bottom: rim, plain tube section, base — magenta between them.', '· The rim is the widest piece; the tube section is plain green with nothing on it.']
   }
 ]
 

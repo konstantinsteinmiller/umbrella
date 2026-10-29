@@ -69,7 +69,7 @@ export const LANTERN_SHEETS: SheetDef[] = [
     blurb: `${KAMI_IS}. This is his MODEL SHEET: the one picture every later animation of him is painted from. He is the concept art's paper figure, copied faithfully — the same cube head, pleated body, chunky limbs, paper colour and ink face — only posed like the layout reference`
   }),
   pweeg('pweeg-idle'),
-  pweeg('pweeg-walk'),
+  pweeg('pweeg-walk', { modelCard: true }),
   pweeg('pweeg-hover', {
     blurb: `${KAMI_IS}, floating calmly with a small content smile: both arms raised straight up above his head and BOTH HANDS TOGETHER, gripping one single handle at one point (the parasol itself is painted separately — paint NO parasol; the two hands meet in the air, touching, never apart), his legs dangling loose`
   }),
@@ -90,8 +90,8 @@ export const LANTERN_SHEETS: SheetDef[] = [
   chad('chad-model', {
     blurb: `${PAPER_CHAD_IS}. This is his MODEL SHEET, painted after Pweeg's: his body is Pweeg's body exactly (copy it from the attached painted model sheet of Pweeg), only the sunglasses and his cool attitude are his own`
   }),
-  chad('chad-idle'),
-  chad('chad-walk'),
+  chad('chad-idle', { modelCard: true }),
+  chad('chad-walk', { modelCard: true }),
   chad('chad-hover', {
     blurb: `${PAPER_CHAD_IS}, floating relaxed: both arms raised straight up above his head and BOTH HANDS TOGETHER gripping one single handle at one point (paint NO parasol; the two hands meet in the air, touching), legs dangling loose`
   }),
@@ -134,7 +134,7 @@ export const LANTERN_SHEETS: SheetDef[] = [
     fresh: true,
     blurb: 'a small checkpoint: a slim bamboo pole standing straight up with a short curved arm at its top, and a round paper lantern hanging from that arm on the RIGHT side of the pole, where the reference\'s pennant flies',
     colour: 'waiting: an UNLIT lantern of pale grey-blue paper (#aeb4c4) with darker grey ribs, dull; reached: a LIT lantern glowing warm cream-gold from inside (#ffd98a, the glow kept INSIDE the paper) with a small red tassel; pole pale bamboo (#d9b77a), thin deep plum-indigo cut edge (#2a1d3a)',
-    readPanels: 'Panels 1–4: WAITING — the unlit grey lantern hanging almost still, the faintest sway. Panels 5–16: REACHED — the lit golden lantern swaying gently in an even loop, its tassel swinging, panel 16 leading back into panel 5. The pole never moves, and the lantern is the same size in every panel.'
+    readPanels: 'Panels 1–4: WAITING — the unlit grey lantern hanging almost still, the faintest sway. Panels 5–16: REACHED — the lit golden lantern swaying gently in an even loop, its tassel swinging, panel 16 leading back into panel 5. The whole TOP ROW is unlit grey and only the top row; every lantern in the three rows below is lit gold with its tassel, the bottom-right one included. Paint NO numbers, labels, lines or frames on the sheet: only the sixteen lanterns on one unbroken magenta ground. The pole never moves, and the lantern is the same size in every panel.'
   }),
   world('props', {
     title: 'Props — floor button (up, pressed) and paper spikes',
@@ -144,9 +144,9 @@ export const LANTERN_SHEETS: SheetDef[] = [
   }),
   foe('walldorf-body', {
     title: 'Walldorf — body (three paper pillars)',
-    blurb: 'Walldorf\'s body: three tall folded-paper pillar spirits standing side by side, each exactly one panel wide and the full height of the image, a rounded top, straight sides, a rounded bottom. NO face, no eyes, no mouth: the game paints his face on separately. Left: the DEADLY one, a red-lacquered paper pillar with a gold rim at its top and bottom and a faint dragon-scale pattern pressed into its caps. Middle: the SOLID one, a grey stone-paper lantern column of pale grey card. Right: the BOUNCY one, an amber paper column with springy accordion pleats in its top and bottom caps',
+    blurb: 'Walldorf\'s body: three tall folded-paper pillar spirits standing side by side, each exactly one panel wide and the full height of the image, a rounded top, straight sides, a rounded bottom. NO face, no eyes, no mouth: the game paints his face on separately. Left: the DEADLY one, a red-lacquered paper pillar with a gold rim at its top and bottom and a faint dragon-scale pattern pressed into its caps. Middle: the SOLID one, a plain column of pale grey stone-paper card, the SAME simple shape as the other two — straight sides, a rounded top, a rounded bottom; no roof, no windows, no tiers, no steps, no plinth. THE COLOURED BLOCKS IN THE LAYOUT REFERENCE ARE THE PILLARS THEMSELVES, not backgrounds: each pillar covers its block exactly, and everything around the three pillars is flat magenta. Right: the BOUNCY one, an amber paper column with springy accordion pleats in its top and bottom caps',
     colour: 'left lacquer red (#c8402f) with a gold rim (#f2b544), middle stone grey (#9aa0ac), right bright amber (#f0a830) — each with ONE fold-shadow facet down its right side and a lit facet down its left, and a thin deep plum-indigo cut edge (#2a1d3a)',
-    note: 'The game CUTS each pillar into three: its top cap (row 1), its middle (row 2) and its bottom cap (row 3), and STRETCHES the middle to any height. So the scales, the pleats and the rims stay in the top and bottom thirds; the middle third of each pillar is plain straight paper of its colour, exactly the same at its top edge as at its bottom edge.'
+    note: 'The game CUTS each pillar into three: its top cap (row 1), its middle (row 2) and its bottom cap (row 3), and STRETCHES the middle to any height. So the scales, the pleats and the rims stay in the top and bottom thirds; the middle third of each pillar is plain straight paper of its colour, exactly the same at its top edge as at its bottom edge. THE BAND LINES ARE EXACT: on a 1024 px image every cap, rim, band and pleat ends above y = 320 and the bottom ones start below y = 705; nothing at all crosses y = 341 or y = 683 but the pillar\'s two straight sides. All three pillars are the SAME width, the full width of their panel, from top to bottom: no roof, ledge, collar or band sticking out wider than the shaft, and no shaft narrower than its caps.'
   }),
   foe('walldorf-face', {
     title: 'Walldorf — paper face (calm, angry, charging, bump)',
