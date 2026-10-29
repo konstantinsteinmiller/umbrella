@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 12 — 2026-10-29 ==
+- [x] Art moodboards (/umbrella/art-moodboards/): concept 11, "Honeyhill Puff" — a round puffball hero, cute, cozy and warm with crisp sharp detail, over autumn bakery hills — with all six panels and Claude's reference rating
 - [x] The touch controls (joystick and umbrella button) stay on every level on phones, tablets and phone-sized portrait viewports — they are the controls, not hints — and a key press or mouse click no longer hides them there. Only the desktop keyboard hints stop after level 3; a desktop window still shows the touch controls only after a touch
 - [x] Lantern sky in portrait: the layers slide at most a quarter of the screen width (a portrait screen scales the painting to its height, and the far sky swung by a third of the screen per step, the town by more than a screen); landscape is unchanged
 - [x] Lantern sky lanterns: the glow around each is warm light that fades out smoothly instead of night-sky colour cut off in a hard line (it showed as a dark ring over the moon)
