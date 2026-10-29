@@ -33,6 +33,7 @@ import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
+import { MAX_TIME_LIMIT, parseTimeLimit } from '@/umbrella/timeStars'
 import { encodeLevel, shareLink } from '@/umbrella/levelCode'
 import { communityEnabled, getQuota, submitLevel } from '@/umbrella/community'
 import ConfirmModal from '@/components/umbrella/ConfirmModal.vue'
@@ -785,6 +786,12 @@ const setScreens = (axis: 'x' | 'y', v: number) => {
   fitView()
 }
 const scrolls = computed(() => !!level.value.view)
+/** The level's time limit in seconds; 0 (or less) removes it. */
+const setTimeLimit = (v: number) => {
+  const limit = parseTimeLimit(v)
+  if (limit) level.value.timeLimit = limit
+  else delete level.value.timeLimit
+}
 const setScrolls = (on: boolean) => {
   if (on) level.value.view = { ...SCREEN }
   else delete level.value.view
@@ -1725,6 +1732,8 @@ onUnmounted(() => {
           <label class="row">{{ t('umbrellaEditor.prop.screenH') }} <input v-model.number="level.view.h" class="field num" type="number" min="100" step="10" /></label>
         </div>
         <p class="hint">{{ t(level.view ? 'umbrellaEditor.scrollHint' : 'umbrellaEditor.wholeHint') }}</p>
+        <label class="row">{{ t('umbrellaEditor.prop.timeLimit') }} <input class="field num" type="number" min="0" :max="MAX_TIME_LIMIT" step="1" :value="level.timeLimit ?? 0" @change="setTimeLimit(+($event.target as HTMLInputElement).value)" /></label>
+        <p class="hint">{{ t('umbrellaEditor.timeLimitHint') }}</p>
 
         <div class="head">{{ t('umbrellaEditor.selectionTitle') }}</div>
         <p v-if="!selected" class="hint">{{ t(selection?.type === 'spawn' ? 'umbrellaEditor.spawnSelected' : 'umbrellaEditor.nothingSelected') }}</p>

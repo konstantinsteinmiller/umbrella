@@ -1,0 +1,46 @@
+// Timed levels: the 1–3 star rating by time left, the clock's text and blink window, and the
+// editor's time limit surviving (or being refused by) the level parser.
+import { describe, expect, it } from 'vitest'
+import { blinkFrom, formatClock, MAX_TIME_LIMIT, parseTimeLimit, timeStars } from '@/umbrella/timeStars'
+import { cloneLevel, parseLevel } from '@/umbrella/customLevels'
+import { LEVELS } from '@/umbrella/levels'
+
+describe('the rating', () => {
+  it('gives three stars with half the time left, two with a quarter, one otherwise', () => {
+    expect(timeStars(30, 60)).toBe(3)
+    expect(timeStars(29.9, 60)).toBe(2)
+    expect(timeStars(15, 60)).toBe(2)
+    expect(timeStars(14.9, 60)).toBe(1)
+    expect(timeStars(0.1, 60)).toBe(1)
+  })
+  it('gives none when the clock ran out or there is no limit', () => {
+    expect(timeStars(0, 60)).toBe(0)
+    expect(timeStars(10, 0)).toBe(0)
+  })
+})
+
+describe('the clock', () => {
+  it('reads m:ss, rounded up so it never shows 0:00 before the end', () => {
+    expect(formatClock(65)).toBe('1:05')
+    expect(formatClock(8.2)).toBe('0:09')
+    expect(formatClock(0.01)).toBe('0:01')
+    expect(formatClock(0)).toBe('0:00')
+  })
+  it('blinks for the last fifth of the limit, between 3 and 10 seconds', () => {
+    expect(blinkFrom(10)).toBe(3)
+    expect(blinkFrom(30)).toBe(6)
+    expect(blinkFrom(200)).toBe(10)
+  })
+})
+
+describe('the time limit in a level', () => {
+  it('keeps whole seconds in 1…999 and drops anything else', () => {
+    expect(parseTimeLimit(20.4)).toBe(20)
+    expect(parseTimeLimit(5000)).toBe(MAX_TIME_LIMIT)
+    expect(parseTimeLimit(0)).toBeUndefined()
+    expect(parseTimeLimit('30')).toBeUndefined()
+    const base = cloneLevel(LEVELS[0]!)
+    expect(parseLevel({ ...base, timeLimit: 45 })!.timeLimit).toBe(45)
+    expect(parseLevel({ ...base, timeLimit: -3 })!.timeLimit).toBeUndefined()
+  })
+})

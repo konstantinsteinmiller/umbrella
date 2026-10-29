@@ -32,6 +32,9 @@ import { createEnemyCues, ENEMY_BED_IDLE } from '@/umbrella/enemySounds'
 import { playEnemySfx, playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience, updateEnemyBed } from '@/umbrella/audio'
 import { AMBIENCE_IDLE, type AmbienceState } from '@/umbrella/soundKit'
 import { getState, setState } from '@/use/useEpicState'
+import { mobileCheck } from '@/utils/function'
+import { blinkFrom, formatClock, timeStars } from '@/umbrella/timeStars'
+import StarRating from '@/components/umbrella/StarRating.vue'
 import { isGamePaused, isAudioPaused } from '@/use/useGamePause'
 import { acquireModalOpen } from '@/use/useModalState'
 import { setRunBreak } from '@/use/usePortalGameplay'
@@ -379,8 +382,70 @@ let world: World = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.pl
 const held = { left: false, right: false }
 let togglePending = false
 
+// ── Timed levels (timeStars.ts): the clock runs from the spawn, through a checkpoint revive; running
+//    out restarts the level at the spawn; landing on the finish rates the run with 1–3 stars. ──
+const timeLimit = ref(0)
+const timeLeft = ref(0)
+const clockText = computed(() => formatClock(timeLeft.value))
+const clockBlink = computed(() => timeLimit.value > 0 && timeLeft.value <= blinkFrom(timeLimit.value))
+/** The best rating per campaign level (by id). */
+const timeStarBest = ref<Record<number, number>>(getState<Record<number, number>>('umb_time_stars', {}))
+const startClock = () => {
+  timeLimit.value = levelDef().timeLimit ?? 0
+  timeLeft.value = timeLimit.value
+  rating.value = null
+}
+/** The rating card over the player: its stars, the time left, and a key that replays its animation. */
+const rating = ref<{ stars: number; left: string; key: number } | null>(null)
+const ratingEl = ref<HTMLElement | null>(null)
+let ratingTimers: number[] = []
+const RATING_STAR_GAP_MS = 280
+const RATING_FIRST_MS = 260
+/** Seconds the win waits on a timed level, so the whole rating plays out. */
+const RATING_HOLD = 2.6
+const showRating = (stars: number) => {
+  ratingTimers.forEach((h) => window.clearTimeout(h))
+  rating.value = { stars, left: clockText.value, key: Date.now() }
+  // One sound per star, in time with its pop (the CSS delays below).
+  ratingTimers = [0, 1, 2].map((i) => window.setTimeout(() => playSfx('rate', { intensity: i / 2, quick: i >= stars }), RATING_FIRST_MS + i * RATING_STAR_GAP_MS))
+  const id = world.level.id
+  if (!testing && !playing.value && stars > (timeStarBest.value[id] ?? 0)) {
+    timeStarBest.value = { ...timeStarBest.value, [id]: stars }
+    setState('umb_time_stars', timeStarBest.value)
+  }
+}
+/** Keeps the rating card over the player's head (screen space, from the render's camera). */
+const placeRating = (cam: { s: number; ox: number; oy: number }) => {
+  const el = ratingEl.value
+  const c = canvas.value
+  if (!el || !c) return
+  const dpr = window.devicePixelRatio || 1
+  const r = c.getBoundingClientRect()
+  const pl = world.player
+  const x = r.left + ((pl.x + pl.w / 2) * cam.s + cam.ox) / dpr
+  const y = r.top + ((pl.y - 18) * cam.s + cam.oy) / dpr
+  el.style.transform = `translate(${Math.round(x)}px, ${Math.round(Math.max(110, y))}px)`
+}
+// The first level on screen is built at setup (not through reload): its clock starts here.
+startClock()
+let lastTickSecond = -1
+const runClock = () => {
+  if (!timeLimit.value || world.phase === 'win') return
+  timeLeft.value = Math.max(0, timeLeft.value - DT)
+  // The last seconds tick, a little louder each one.
+  const sec = Math.ceil(timeLeft.value)
+  if (clockBlink.value && sec !== lastTickSecond && sec > 0) playSfx('tick', { intensity: 1 - sec / blinkFrom(timeLimit.value) })
+  lastTickSecond = sec
+  if (timeLeft.value <= 0) {
+    flashNotice(t('umbrella.timeUp'))
+    playSfx('whistle', { fade: 0.6 })
+    restart()
+  }
+}
+
 const reload = (opts: { at?: { x: number; y: number } } = {}) => {
   world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, -1, opts)
+  startClock()
   gui?.setLevel(world.level)
   brokenFlash.value = false
   hideRevive()
@@ -464,6 +529,8 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         break
       case 'win':
         danceHops = 0
+        // A timed level: the time left rates the run (timeStars.ts).
+        if (timeLimit.value) showRating(timeStars(timeLeft.value, timeLimit.value))
         playSfx('win', { pan: pan * 0.5 })
         break
       case 'splat': playSfx('splat', { intensity: 1, pan }); break
@@ -590,6 +657,8 @@ const tick = () => {
   togglePending = false
   const vyBefore = world.player.vy
   if (world.phase === 'play') notePlayTime(DT)
+  runClock()
+  if (timeLimit.value && timeLeft.value <= 0) return // the level just restarted
   const events = step(world, input, DT, tuning)
   onEvents(events, vyBefore)
   if (events.includes('star')) syncStars()
@@ -597,7 +666,7 @@ const tick = () => {
   // Failure resets the level at the spawn point, or revives at the last checkpoint.
   if (world.phase === 'out') die()
   else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) die()
-  else if (world.phase === 'win' && world.phaseTime >= tuning.winHold) {
+  else if (world.phase === 'win' && world.phaseTime >= (timeLimit.value ? Math.max(tuning.winHold, RATING_HOLD) : tuning.winHold)) {
     if (testing) { if (testReturn) leaveTestChallenge(); else restart() }
     else if (challenge.value) leaveChallenge()
     else if (playing.value) {
@@ -651,6 +720,7 @@ const frame = (now: number) => {
   if (ctx && intro) intro.draw(ctx, { finish: t('umbrella.finish') }, dtReal)
   else if (ctx) {
     const cam = render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal)
+    if (rating.value) placeRating(cam)
     if (warp) drawWarp(ctx, cam, warp)
     if (arrive > 0) {
       arrive = Math.max(0, arrive - dtReal)
@@ -683,6 +753,7 @@ let typed = ''
 const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if ((e.target as HTMLElement | null)?.tagName === 'INPUT' || !started.value) return
   if (down) unlockAudio() // a keyboard-only first visit must hear the intro too
+  if (down) touchUI.value = false // a keyboard player needs no joystick
   if (introOn.value && !showPause.value) {
     if (down && !e.repeat) {
       if (e.code === 'Escape') endIntro()
@@ -721,10 +792,16 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
 /** Shown on touch screens, and from the first touch on any device. */
 /** Phones and tablets (the primary pointer is a finger): "Tap to play"; a mouse or a touch laptop: "Click to play". */
 const showControls = computed(() => !touchUI.value && !introOn.value && !testing && !playing.value && !challenge.value && levelIndex.value < 3)
-const tapDevice = window.matchMedia ? window.matchMedia('(pointer: coarse)').matches : 'ontouchstart' in window
-// Touch controls start only where the PRIMARY pointer is a finger (phones, tablets). `'ontouchstart' in window` is
-// true on a Windows laptop with a touch screen in Firefox, which put the joystick on desktops; from then on the
-// controls follow the last input: a touch shows them, a mouse click hides them again.
+// Touch controls start only on a phone or tablet, decided by the DEVICE (the shared `mobileCheck()` user-agent
+// test, Android / Kindle tablets, and iPadOS asking for the desktop site: a Mac user agent with several touch
+// points) — never by `(pointer: coarse)` or `'ontouchstart' in window`, which are true on desktops with a touch
+// screen and put the joystick there. From then on the controls follow the last input: a touch shows them, a
+// mouse click or a key press hides them.
+const tapDevice = (() => {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent || ''
+  return mobileCheck() || /Android|iPad|Tablet|Kindle|Silk/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+})()
 const touchUI = ref(tapDevice)
 const onAnyPointer = (e: PointerEvent) => {
   if (e.pointerType === 'touch') touchUI.value = true
@@ -835,6 +912,7 @@ onUnmounted(() => {
   window.clearTimeout(reviveTimer)
   window.clearTimeout(skipTimer)
   window.clearTimeout(chapterCardTimer)
+  ratingTimers.forEach((h) => window.clearTimeout(h))
   releaseMenu?.()
   releaseMenu = null
   setRunBreak(false)
@@ -918,7 +996,9 @@ onUnmounted(() => {
       <li><span class="keys"><kbd class="wide">Space</kbd><i>/</i><kbd class="wide">Enter</kbd></span><span class="what">{{ t('umbrella.ctlUmbrella') }}</span></li>
       <li><span class="keys"><kbd>R</kbd></span><span class="what">{{ t('umbrella.ctlRestart') }}</span></li>
     </ul>
-    <template v-else-if="!introOn">
+    <!-- The touch controls: phones and tablets, or after a touch (`touchUI`) — never just because the key
+         list above is hidden (from level 4 on, in tests and player levels), which put them on every desktop. -->
+    <template v-if="touchUI && !introOn">
       <div
         class="stick"
         role="slider"
@@ -961,6 +1041,25 @@ onUnmounted(() => {
       </span>
       <span class="collect-count"><b>{{ hudStars.got }}</b><i>/</i>{{ hudStars.total }}</span>
     </div>
+    <!-- A timed level's clock (timeStars.ts), under the collectible badge; it blinks near the end. -->
+    <div
+      v-if="timeLimit && started && !introOn"
+      class="clock"
+      :class="{ blink: clockBlink, below: !!hudStars.total }"
+      role="timer"
+      :aria-label="t('umbrella.timeLeft', { t: clockText })"
+    >
+      <span class="clock-face"><i :style="{ transform: `rotate(${360 * (1 - timeLeft / timeLimit)}deg)` }" /></span>
+      <span class="clock-time">{{ clockText }}</span>
+      <span class="clock-bar"><i :style="{ transform: `scaleX(${timeLeft / timeLimit})` }" /></span>
+    </div>
+    <!-- The rating of a timed level, over the player's head when he lands on the finish. -->
+    <div v-if="rating" :key="rating.key" ref="ratingEl" class="rating-card" role="status">
+      <div class="rating-inner">
+        <StarRating class="rating-stars" :stars="rating.stars" pop :label="t('umbrella.rating', { n: rating.stars })" />
+        <span class="rating-time"><span class="clock-face small"><i /></span>{{ rating.left }}</span>
+      </div>
+    </div>
     <div v-if="brokenFlash" class="toast">{{ t('umbrella.broken') }}</div>
     <!-- The chapter card: 3 s on a chapter's first level (showChapterCard). -->
     <div v-if="chapterCard" :key="chapterCard.key" class="chapter-card" role="status" aria-live="polite">
@@ -985,7 +1084,8 @@ onUnmounted(() => {
               :aria-label="t('umbrella.level', { n: i + 1 }) + (isChallenge(i) ? ' · ' + t('umbrella.challenge') : '')"
               @click="pickLevel(i)"
             >
-              <span class="level-num">{{ i + 1 }}</span>
+              <span class="level-num" :class="{ timed: !!LEVELS[i]!.timeLimit }">{{ i + 1 }}</span>
+              <StarRating v-if="LEVELS[i]!.timeLimit" class="tile-stars" :stars="timeStarBest[LEVELS[i]!.id] ?? 0" :label="t('umbrella.rating', { n: timeStarBest[LEVELS[i]!.id] ?? 0 })" />
               <span v-if="cleared.includes(i)" class="level-tick">✓</span>
               <span v-if="LEVELS[i]!.stars?.length" class="level-stars">★{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
             </button>
@@ -1381,6 +1481,121 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
 .collect-count i { font-style: normal; opacity: 0.55; margin: 0 1px; }
 @keyframes collect-pop { 0% { transform: scale(0.5) rotate(-25deg); } 100% { transform: scale(1) rotate(0); } }
 @keyframes collect-shine { 50% { filter: brightness(1.25); box-shadow: 0 0 0 2px #8a5a00, 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 30px rgba(250, 204, 21, 0.9); } }
+/* ── Timed levels: the clock, the rating card, the tile's stars ── */
+.clock {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 5;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 8px;
+  padding: 5px 14px 9px 8px;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(180deg, #33406a 0%, #1d2440 100%);
+  border: 2px solid #c9d6ff;
+  box-shadow: 0 0 0 2px #0d1226, 0 4px 14px rgba(0, 0, 0, 0.45);
+  font-weight: 800;
+  pointer-events: none;
+}
+.clock.below { top: calc(66px + env(safe-area-inset-top, 0px)); }
+.clock-face {
+  position: relative;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #dfe7ff);
+  box-shadow: inset 0 0 0 2px #0d1226, 0 0 0 2px #c9d6ff;
+}
+.clock-face::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -5px;
+  width: 8px;
+  height: 5px;
+  margin-left: -4px;
+  border-radius: 2px 2px 0 0;
+  background: #c9d6ff;
+}
+.clock-face i {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  width: 3px;
+  height: 9px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: #e0453a;
+  transform-origin: 50% 9px;
+}
+.clock-face.small { width: 16px; height: 16px; margin-right: 6px; vertical-align: -2px; }
+.clock-face.small::before { display: none; }
+.clock-face.small i { top: 2px; height: 6px; width: 2px; margin-left: -1px; transform-origin: 50% 6px; }
+.clock-time { font-size: 22px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: right; }
+.clock-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+.clock-bar i { display: block; height: 100%; background: linear-gradient(90deg, #7ee08a, #c8f56b); transform-origin: left; }
+.clock.blink { animation: clock-blink 0.5s steps(2, jump-none) infinite alternate, clock-shake 0.5s ease-in-out infinite; }
+.clock.blink .clock-time { color: #ff6b5e; }
+.clock.blink .clock-bar i { background: linear-gradient(90deg, #ff6b5e, #ffb347); }
+@keyframes clock-blink {
+  from { border-color: #ff6b5e; box-shadow: 0 0 0 2px #0d1226, 0 0 22px rgba(255, 90, 80, 0.9); }
+  to { border-color: #c9d6ff; box-shadow: 0 0 0 2px #0d1226, 0 4px 14px rgba(0, 0, 0, 0.45); }
+}
+@keyframes clock-shake { 0%, 100% { rotate: 0deg; } 25% { rotate: -2deg; } 75% { rotate: 2deg; } }
+
+.rating-card { position: fixed; left: 0; top: 0; z-index: 7; pointer-events: none; will-change: transform; }
+.rating-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  translate: -50% -100%;
+  animation: rating-in 2.6s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.rating-stars {
+  font-size: clamp(38px, 6vw, 58px);
+  padding: 14px 18px 10px;
+  border-radius: 22px;
+  background: radial-gradient(ellipse at 50% 30%, rgba(60, 70, 120, 0.92), rgba(24, 28, 56, 0.92));
+  box-shadow: 0 0 0 3px #fff3c4, 0 0 0 6px #7a4300, 0 10px 26px rgba(0, 0, 0, 0.5);
+}
+.rating-time {
+  padding: 3px 12px;
+  border-radius: 999px;
+  color: #3b2400;
+  background: linear-gradient(180deg, #fff3a8 0%, #facc15 100%);
+  box-shadow: 0 0 0 2px #7a4300;
+  font-weight: 800;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+@keyframes rating-in {
+  0% { opacity: 0; scale: 0.3; translate: -50% -60%; }
+  12% { opacity: 1; scale: 1.12; translate: -50% -108%; }
+  20% { scale: 0.96; translate: -50% -100%; }
+  26% { scale: 1; }
+  86% { opacity: 1; translate: -50% -100%; }
+  100% { opacity: 0; translate: -50% -135%; }
+}
+.level-num.timed { display: block; margin-top: -24%; }
+.tile-stars {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 13%;
+  font-size: clamp(15px, 2.6vw, 19px);
+}
 .level-tick {
   position: absolute;
   top: 4px;

@@ -142,6 +142,9 @@ export interface LevelDef {
   checkpoints?: CheckpointDef[]
   stars?: StarDef[]
   gates?: GateDef[]
+  /** Seconds to reach the finish, counted from the spawn (timeStars.ts): running out restarts the
+   *  level at the spawn, and the time left rates the finish with 1–3 stars. Absent: no limit. */
+  timeLimit?: number
   /** When the editor last saved this level (ms since epoch). Edits made in several
    *  places (the levels bucket, a JSON file, the repo) merge by it: the newest wins. */
   editedAt?: number

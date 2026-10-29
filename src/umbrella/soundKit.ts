@@ -734,6 +734,46 @@ const chapter: Recipe = (k, o, t) => {
 }
 
 /**
+ * RATE — one star of a timed level's rating landing: a filled star is a bright celesta note that
+ * steps up the D major pentatonic with each star (intensity 0, 0.5, 1 → degrees 7, 9, 11), with a
+ * chime sparkle; an empty one (`quick`) is a soft, low paper tap.
+ */
+const rate: Recipe = (k, o, t, p) => {
+  const i = Math.round((p.intensity ?? 0) * 2)
+  if (p.quick) {
+    const tap = noise(k, t, 0.12)
+    tap.connect(filter(k, 'lowpass', 900)).connect(gainAD(k, t, 0.18, 0.002, 0.09)).connect(o.dry)
+    const thud = osc(k, 'sine', 140, t, 0.2)
+    sweep(thud.frequency, t, 160, 90, 0.15)
+    thud.connect(gainAD(k, t, 0.12, 0.004, 0.14)).connect(o.dry)
+    return 0.3
+  }
+  const g = gainNode(k, 1)
+  g.connect(o.dry)
+  g.connect(o.verb)
+  celesta(k, g, t, midiHz(pentaNote(7 + i * 2)), 0.2)
+  celesta(k, g, t + 0.02, midiHz(pentaNote(12 + i * 2)), 0.08)
+  for (let s = 0; s < 3; s++) {
+    const pn = k.ctx.createStereoPanner()
+    pn.pan.value = between(k, -0.5, 0.5)
+    pn.connect(o.dry)
+    pn.connect(o.verb)
+    chime(k, pn, t + 0.06 + s * 0.05 + k.rand() * 0.04, midiHz(pentaNote(14 + i + s)), 0.03)
+  }
+  return 1.6
+}
+
+/** TICK — the last seconds of a timed level: a small woodblock tick (intensity = how loud). */
+const tick: Recipe = (k, o, t, p) => {
+  const v = 0.5 + 0.5 * (p.intensity ?? 0.5)
+  const body = osc(k, 'sine', 1750, t, 0.08)
+  sweep(body.frequency, t, 1900, 1500, 0.05)
+  body.connect(gainAD(k, t, 0.14 * v, 0.001, 0.05)).connect(o.dry)
+  click(k, o.dry, t, 3200, 4, 0.08 * v, 3)
+  return 0.15
+}
+
+/**
  * WHISTLE — the Looney-Tunes falling whistle as he drops off screen: a
  * breathy whistle tone (sine plus band-limited breath that tracks it) gliding
  * down, held, then faded to silence over `fade` s.
@@ -780,7 +820,9 @@ export const RECIPES = {
   arrive,
   win,
   whistle,
-  chapter
+  chapter,
+  rate,
+  tick
 } satisfies Record<string, Recipe>
 
 export type SfxName = keyof typeof RECIPES
@@ -798,7 +840,9 @@ export const SFX_TRIM: Record<SfxName, number> = {
   arrive: 2,
   win: 0.68, // −3.3 dB
   whistle: 0.7, // −3 dB
-  chapter: 0.75 // a stinger, set beside WIN by the level report (sound.test.ts)
+  chapter: 0.75, // a stinger, set beside WIN by the level report (sound.test.ts)
+  rate: 0.9,
+  tick: 1.2
 }
 
 /** Seconds the music ducks under a sound, and how deep (dB). */

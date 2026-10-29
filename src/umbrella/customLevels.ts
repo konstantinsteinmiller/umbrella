@@ -30,6 +30,7 @@ import overridesFromDisk from 'virtual:campaign-overrides'
 import orderFromDisk from 'virtual:campaign-order'
 import { isKite } from './kite'
 import { COLLECT_SHAPES, LEVELS, type LevelDef } from './levels'
+import { parseTimeLimit } from './timeStars'
 
 const LIBRARY_KEY = 'umb_custom_levels_v1'
 const OVERRIDES_KEY = 'umb_level_overrides_v1'
@@ -81,6 +82,10 @@ export const parseLevel = (data: unknown): LevelDef | null => {
     if (m.radius !== undefined && (!num(m.radius) || m.radius < 0)) delete m.radius
   }
   if (out.view && (!num(out.view.w) || !num(out.view.h) || out.view.w < 100 || out.view.h < 100)) delete out.view
+  // A time limit is whole seconds in 1…999 (timeStars.ts); anything else means none.
+  const limit = parseTimeLimit(out.timeLimit)
+  if (limit) out.timeLimit = limit
+  else delete out.timeLimit
   return out
 }
 
