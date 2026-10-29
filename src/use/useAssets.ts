@@ -218,14 +218,11 @@ export const loadAudioBuffer = async (src: string): Promise<AudioBuffer | null> 
 }
 
 // ─── Critical art-asset preload ────────────────────────────────────────
-// The only bitmaps Umbrella needs decoded BEFORE first paint. Everything
-// else in the HUD/arena is DOM + inline SVG (or a drop-in override that renders
-// a vector fallback until its bitmap is confirmed), so this list stays tiny.
-const CRITICAL_IMAGE_SRCS: ReadonlyArray<string> = [
-  // Coin sprite — the wallet badge (IconCoin) and coin-fly VFX (useCoinExplosion)
-  // paint it immediately.
-  '/images/props/coin_128x128.webp'
-]
+// The bitmaps Umbrella needs decoded BEFORE first paint: none. The HUD is DOM +
+// inline SVG, the game draws itself, and its painted art loads on its own
+// (art/install.ts). The predecessor's coin used to sit here — Umbrella never
+// shows it, and its root-absolute path 404'd under every deploy base.
+const CRITICAL_IMAGE_SRCS: ReadonlyArray<string> = []
 
 /** Block until `img.complete && naturalWidth > 0` (success) or `error`
  *  fires (failure). Cached images that already decoded resolve

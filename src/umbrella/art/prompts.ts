@@ -18,9 +18,9 @@ const OUT = { w: 1024, h: 1024, ratio: '1:1' }
 const pct = (v: number): string => `${Math.round(v * 100)}%`
 const panels = (s: SheetDef): number => s.cols * s.rows
 
-/** The images attached ahead of the layout reference, in order: the
- *  designer's style sheet first, then the painted model sheet, the layout last. */
-export const alsoOf = (s: SheetDef): string[] => [...(s.styleRef ? [s.styleRef] : []), ...(s.model ? [s.modelCard ? `cards/${s.model}-card.png` : `painted/${s.model}.png`] : [])]
+/** The images attached ahead of the layout reference, in order: the designer's style sheet first,
+ *  then the approved concept design, then the painted model sheet, the layout last. */
+export const alsoOf = (s: SheetDef): string[] => [...(s.styleRef ? [s.styleRef] : []), ...(s.designRef ? [s.designRef] : []), ...(s.model ? [s.modelCard ? `cards/${s.model}-card.png` : `painted/${s.model}.png`] : [])]
 
 const KITE_GROUPS = new Set(['kite', 'chad-kite'])
 const FIGURE_GROUPS = new Set(['pweeg', 'chad', 'kite', 'chad-kite'])
@@ -121,12 +121,17 @@ const notLine = (s: SheetDef, look: Look): string[] => {
     n++
     out.push(look.styleSheet(s))
   }
+  const ORD = ['FIRST', 'SECOND', 'THIRD']
+  if (s.designRef) {
+    n++
+    out.push(`· The ${ORD[n - 1]} attached image is the APPROVED CONCEPT DESIGN of ${s.one ?? 'this thing'}, cut from the concept art: paint THIS design — its shape, its parts and its colours (unless the colour line below says otherwise) — in the finished style. Take nothing else from that picture (no background, no neighbours), and take NO layout from it: where each part goes comes from the LAST attached image.`)
+  }
   if (s.model) {
     n++
     const model = sheetById(s.model)
     out.push(s.modelCard
-      ? `· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is ONE finished figure of ${NAMES[model?.group ?? 'pweeg'] ?? model?.one ?? 'him'}, cut from his approved painting. Copy his body, face, limbs, spikes, colours, line and shading from it EXACTLY, in every panel. It is a single figure, not a layout: the grid, the poses and the positions all come from the LAST attached image.`
-      : `· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is the finished MODEL SHEET of ${NAMES[model?.group ?? 'pweeg']} — his approved design. Copy his body, face, limbs, colours, line and shading from it EXACTLY. Take NO layout from it: the grid, the poses and the positions all come from the LAST attached image.`)
+      ? `· The ${ORD[n - 1]} attached image is ONE finished figure of ${NAMES[model?.group ?? 'pweeg'] ?? model?.one ?? 'him'}, cut from his approved painting. Copy his body, face, limbs, spikes, colours, line and shading from it EXACTLY, in every panel. It is a single figure, not a layout: the grid, the poses and the positions all come from the LAST attached image.`
+      : `· The ${ORD[n - 1]} attached image is the finished MODEL SHEET of ${NAMES[model?.group ?? 'pweeg']} — his approved design. Copy his body, face, limbs, colours, line and shading from it EXACTLY. Take NO layout from it: the grid, the poses and the positions all come from the LAST attached image.`)
   }
   if (also.length) out.push(`· ${also.length + 1} images are attached; the LAST one is the layout reference.`)
   return out

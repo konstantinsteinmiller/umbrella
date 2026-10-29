@@ -71,6 +71,9 @@ export interface SheetDef {
    *  `lantern-refs.py --cards`) instead of the whole sheet: a single figure has
    *  no grid or poses to copy into the layout. */
   modelCard?: boolean
+  /** The approved concept design of this very thing, cut from the concept art (under the sheets
+   *  dir), attached after the style sheet: paint THIS design. */
+  designRef?: string
   /** The designer's hand-drawn style reference (under SHEETS_DIR), attached
    *  FIRST: it sets the finish — cream-paper crayon, cel-shaded — never the subject. */
   styleRef?: string
@@ -520,24 +523,34 @@ export const EXTRA_SHEETS: SheetDef[] = [
     id: 'collect', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Collectibles — star, parasol, cloud, sparkle', use: 'sprite',
     cols: 2, rows: 2, box: COLLECT, tier: 0, fit: 'none', fresh: true,
     anims: { star: { frames: [0], fps: 0 }, umbrella: { frames: [1], fps: 0 }, cloud: { frames: [2], fps: 0 }, glint: { frames: [3], fps: 0 } },
-    blurb: 'a SET of four small golden treasures, one per panel, centred: panel 1 a five-pointed golden origami STAR folded from gold foil paper; panel 2 a small golden folded PARASOL (a closed-top wagasa canopy with a short crook handle) folded from gold foil paper; panel 3 a puffy golden paper CLOUD of three round bumps on a flat base; panel 4 a small four-pointed white-gold SPARKLE',
+    blurb: 'a SET of four small golden treasures, one per panel, centred, each on its own with NO ring, circle, halo or frame round it (the game draws a glowing ring round each): panel 1 a STAR CLUSTER — one big five-pointed golden origami star folded from gold foil paper, with two small golden stars tucked in front of its two lower points; panel 2 an OPEN golden origami PARASOL (wagasa), its pleated canopy fanned open and tilted, on a long straight thin handle running down to the lower right; panel 3 a golden paper CLOUD with round puffs whose edges curl into little spirals, on a flat base; panel 4 a small four-pointed white-gold SPARKLE',
     colour: 'shining gold foil paper (#f6c235) with a warm light-gold lit facet (#fff0a0) and a deep amber fold shadow (#c98a0a); the sparkle white with a pale gold core',
     view: 'flat front-on, no perspective.'
   },
   {
-    id: 'gate', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Warp gate — rim, tube, base', use: 'sprite',
+    id: 'gate', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Warp gate — a vermilion torii', use: 'sprite',
     cols: 1, rows: 3, tier: 0, fit: 'none', fresh: true, anims: {},
     shape: [
-      'WHAT COMES BACK IS ONE WARP PIPE TAKEN APART INTO THREE SEPARATE PIECES, NOT A SCENE.',
-      'One square image, 1024 x 1024 pixels, holding THREE separate pieces of one short fat pipe, stacked one above the other with a clear band of flat magenta between each piece, exactly where the layout reference puts its three pieces: the TOP piece is the rim and its mouth, the MIDDLE piece is a short section of plain straight tube, the BOTTOM piece is the base ring. The game puts them back together itself.',
-      '· The pieces do NOT touch: magenta all the way across between the rim and the tube, and between the tube and the base.',
-      '· Each piece is as wide as the reference draws it: the rim widest, nearly the full image width; the tube a little narrower; the base a little wider than the tube.'
+      'WHAT COMES BACK IS ONE TORII GATE FILLING THE WHOLE IMAGE, NOT A SCENE.',
+      'One square image, 1024 x 1024 pixels, holding ONE torii gate standing upright, front-on, as wide as the image at its top beam, exactly where the layout reference draws it: the top beams across the top, two round posts standing straight down, and the posts\' black feet at the bottom.',
+      '· One gate. Not a row of gates, not a gate in a landscape.',
+      '· Between the two posts, under the beams, there is NOTHING: flat magenta all the way down to the ground line. No portal, no swirl, no glow, no door, no light, no sky there — the game draws its own swirling portal in that opening.',
+      '· The posts are straight round columns of the same thickness from just under the lower beam down to the black feet, with nothing on them in their middle stretch (no rings, plaques, ropes or writing): the game stretches that stretch to any height.'
     ],
-    blurb: 'the WARP GATE, a fat green bamboo pipe dressed like a little torii gate, in three pieces — TOP PIECE: a wide rim of green-lacquered bamboo with ONE red-lacquered torii beam laid flat along the rim\'s front band (NO posts, legs or pillars hanging down from it), and the mouth at its top a dark oval opening, seen a little from above, holding a swirling glowing teal portal — the portal is ONLY inside that oval mouth, never a circle, ring or window on the rim\'s front; MIDDLE PIECE: a short section of plain straight green bamboo tube, cut flat at its top and bottom, with nothing on it — no band, node, window, portal or emblem; BOTTOM PIECE: a dark lacquer base ring',
-    colour: 'green-lacquered bamboo (#3fae5a) with a darker green fold shadow (#21733a) and a pale lit edge, a small red torii beam (#c8402f), a teal portal glow (#7fe8d0) inside the mouth only, a dark lacquer base (#2a1d3a)',
-    view: 'flat front-on, square on, no perspective — the mouth seen just a little from above.',
-    note: 'The game STRETCHES the middle piece to any height: it must be plain straight tube that looks the same along its whole height.',
-    check: ['· THREE separate pieces, top to bottom: rim, plain tube section, base — magenta between them.', '· The rim is the widest piece; the tube section is plain green with nothing on it.']
+    blurb: 'the WARP GATE: a small Japanese TORII gate like the vermilion gates of Fushimi Inari, folded from lacquered paper — on top the KASAGI, a heavy black-lacquered top beam whose two ends sweep gently UP, with a vermilion beam right under it; a little lower the NUKI, a straight vermilion crossbeam running through both posts and sticking out a little past them; a small vermilion plaque post between the two beams in the middle; two thick round vermilion POSTS standing straight down; and at the bottom of each post a black-lacquered FOOT (a short black sleeve where the post meets the ground)',
+    colour: 'bright vermilion lacquer paper (#e8501f) with a deeper red-orange fold shadow (#b8361a) and a warm lit edge (#ff8a4a); the top beam and the two feet glossy black lacquer (#1c1620) with a faint cool highlight; a thin deep plum-indigo cut-edge outline (#2a1d3a)',
+    view: 'flat front-on, square on, no perspective.', one: 'the gate',
+    note: 'The game CUTS this gate into three: the beams on top, a stretch of the two posts in the middle (stretched to any height), and the two black feet at the bottom.',
+    check: ['· ONE vermilion torii, front-on, filling the image width at its top beam.', '· Black top beam with its ends sweeping up; black feet; plain straight posts in the middle; NOTHING painted between the posts.']
+  },
+  {
+    id: 'finish-dais', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Finish dais — the dais, a tassel and two pennants', use: 'sprite',
+    cols: 2, rows: 2, box: { size: 64, ax: 0.5, ay: 0 }, tier: 0, fit: 'none', fresh: true,
+    anims: { dais: { frames: [0], fps: 0 }, tassel: { frames: [1], fps: 0 }, pennantRed: { frames: [2], fps: 0 }, pennantBlue: { frames: [3], fps: 0 } },
+    blurb: 'the FINISH: a festival DAIS and the decorations that hang from it, as a SET of four separate pieces, one per panel — panel 1 the DAIS alone: a big round flat lacquered drum stage seen a little from above, so its top is a wide flat ellipse — the top a glowing warm golden-cream paper disc with thin concentric rings drawn on it, a gold rim round it, and below the rim a thin band of red lacquer with a gold edge; it spans the panel\'s whole width, and nothing hangs from it; panel 2 ONE golden TASSEL: a small gold knot with a long gold fringe hanging straight down from a tiny loop at the top middle of the panel; panel 3 ONE red hanging PENNANT: a narrow swallow-tailed paper banner hanging straight down from the top middle of the panel; panel 4 ONE slate-blue hanging PENNANT, the same shape as panel 3',
+    colour: 'the dais top glowing warm golden cream (#ffe2a0 at its centre to #f2b544 at its edge) with thin amber rings (#d08a2a), a gold rim (#f2b544), a red lacquer band (#b8361a) with a gold edge; the tassel gold (#e8b83a) with an amber shadow; the pennants lacquer red (#c8402f) and slate blue (#5a6f8f) washi paper; a thin deep plum-indigo cut-edge outline (#2a1d3a)',
+    view: 'the dais seen a little from above (its top an ellipse); the tassel and pennants flat front-on.', one: 'the finish dais',
+    note: 'Paint NO lines, borders or dividers between the four panels: the magenta runs on unbroken from panel to panel. The game stretches the dais across the finish platform and hangs a row of tassels and pennants under its rim, swaying: paint NO tassels or pennants on the dais itself, and each hanging piece alone, hanging straight down.'
   }
 ]
 

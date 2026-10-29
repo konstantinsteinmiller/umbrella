@@ -1,19 +1,19 @@
-"""Layout references for the two lantern drawables the bench does not bake.
+"""Layout references for the lantern drawables the bench does not bake.
 
-    python scripts/art/lantern-refs.py          # writes art-sheets/umbrella-lantern/{collect,gate}.png
+    python scripts/art/lantern-refs.py          # writes art-sheets/umbrella-lantern/{collect,gate,finish-dais}.png
     python scripts/art/lantern-refs.py --cut    # keys painted/gate.png → src/assets/umbrella-art-lantern/gate.webp
     python scripts/art/lantern-refs.py --cards  # painted/chad-model.png panel 1 → cards/chad-model-card.png
     python scripts/art/lantern-refs.py --fit-pillars  # after slicing: each Walldorf pillar fills its column
 
-The collectibles and the warp gate have no kite sheet (src/umbrella/art/manifest.ts,
+The collectibles, the warp gate and the finish dais have no kite sheet (src/umbrella/art/manifest.ts,
 EXTRA_SHEETS). Their references are NOTATION on the magenta ground: where each
 thing sits and how big it is, nothing about its look.
 
-- collect.png: a 2 x 2 set on the slicer's 256 px panel, cut by `pnpm art:slice:lantern`.
-- gate.png: ONE pipe in three SEPARATE pieces (rim / plain tube section / base) with
-  magenta between them, because a painter never lands one pipe's band lines on the thirds.
-  `--cut` keys it, takes the three pieces apart and stacks them into three equal bands
-  (`register_gate`); the game cuts the bands itself (paint.ts `gate`).
+- collect.png, finish-dais.png: 2 x 2 sets on the slicer's 256 px panel, cut by `pnpm art:slice:lantern`.
+- gate.png: ONE torii, front-on. A painter never lands its beams on a third of the height, so
+  `--cut` keys it and finds its parts instead (`register_gate`): the beams on top, a stretch of the
+  two posts, the black feet — each scaled into one of three equal bands, which the game cuts
+  itself (paint.ts `gate`).
 """
 import math
 import sys
@@ -60,17 +60,38 @@ def collect() -> None:
 
 def gate() -> None:
     n = PANEL * 3
-    third = n // 3
     im = Image.new('RGB', (n, n), MAGENTA)
     d = ImageDraw.Draw(im)
-    green, dark = (34, 163, 90), (11, 61, 34)
-    gap = third * 0.12
-    # Rim with its mouth, a short plain tube section, the base ring: apart, magenta between.
-    d.rectangle([4, 4, n - 5, third - gap], fill=green, outline=INK, width=6)
-    d.ellipse([n * 0.12, third * 0.14, n * 0.88, third * 0.66], fill=dark, outline=INK, width=4)
-    d.rectangle([n * 0.12, third + gap, n * 0.88, 2 * third - gap], fill=green)
-    d.rectangle([n * 0.1, 2 * third + gap, n * 0.9, n - 4], fill=INK)
+    red, black = (232, 80, 31), (28, 22, 32)
+    # The posts, straight down to the ground line, with black feet; the opening between them stays magenta.
+    for x0 in (n * 0.17, n * 0.71):
+        d.rectangle([x0, n * 0.12, x0 + n * 0.12, n * 0.86], fill=red, outline=INK, width=4)
+        d.rectangle([x0 - n * 0.01, n * 0.86, x0 + n * 0.13, n - 4], fill=black, outline=INK, width=4)
+    # The kasagi (black, ends sweeping up) over a red beam, the plaque post, the nuki through both posts.
+    d.polygon([(4, n * 0.02), (n * 0.2, n * 0.06), (n * 0.8, n * 0.06), (n - 5, n * 0.02), (n * 0.97, n * 0.1), (n * 0.03, n * 0.1)], fill=black, outline=INK)
+    d.rectangle([n * 0.07, n * 0.1, n * 0.93, n * 0.15], fill=red, outline=INK, width=4)
+    d.rectangle([n * 0.45, n * 0.15, n * 0.55, n * 0.24], fill=red, outline=INK, width=4)
+    d.rectangle([n * 0.1, n * 0.24, n * 0.9, n * 0.29], fill=red, outline=INK, width=4)
     im.save(SHEETS / 'gate.png')
+
+
+def finish_dais() -> None:
+    im = Image.new('RGB', (PANEL * 2, PANEL * 2), MAGENTA)
+    d = ImageDraw.Draw(im)
+    p = PANEL
+    # Panel 1: the dais — a wide flat ellipse top over a thin rim band, the panel's full width.
+    d.rectangle([6, p * 0.42, p - 7, p * 0.62], fill=(184, 54, 26), outline=INK, width=4)
+    d.ellipse([6, p * 0.26, p - 7, p * 0.58], fill=(255, 226, 160), outline=INK, width=4)
+    d.ellipse([p * 0.3, p * 0.36, p * 0.7, p * 0.48], outline=(208, 138, 42), width=3)
+    # Panels 2-4: a tassel and two pennants, each hanging from the top middle of its panel.
+    for i, col in ((1, GOLD), (2, (200, 64, 47)), (3, (90, 111, 143))):
+        cx, top = (i % 2) * p + p / 2, (i // 2) * p + 8
+        if i == 1:
+            d.ellipse([cx - 14, top, cx + 14, top + 28], fill=col, outline=INK, width=3)
+            d.polygon([(cx - 16, top + 30), (cx + 16, top + 30), (cx + 22, top + p * 0.7), (cx - 22, top + p * 0.7)], fill=col, outline=INK)
+        else:
+            d.polygon([(cx - 22, top), (cx + 22, top), (cx + 22, top + p * 0.7), (cx, top + p * 0.58), (cx - 22, top + p * 0.7)], fill=col, outline=INK)
+    im.save(SHEETS / 'finish-dais.png')
 
 
 def key(img: Image.Image) -> Image.Image:
@@ -92,48 +113,49 @@ def key(img: Image.Image) -> Image.Image:
 
 
 def register_gate(img: Image.Image) -> Image.Image:
-    """The painted gate is three separate pieces (rim, a short plain tube section, base) with
-    magenta between them. Find the three biggest pieces, top to bottom, and stack them into three
-    equal bands, each centred at the width it was painted. The tube section loses a few rows top
-    and bottom (its cut edges' ink) because the game stretches it. Refuses loudly when the pieces
-    are not three, or touch."""
+    """The painted torii is one gate. Find its parts by what they are: the BEAMS are the rows wider
+    than half the gate (the posts alone are two narrow columns), the FEET the dark rows at the
+    bottom, and between them only posts. The top band is everything down to the lowest beam, the
+    middle band the plainest stretch of posts (the part the game stretches), the bottom band the
+    feet — each scaled into one of three equal bands at its painted x, so the posts stay aligned.
+    Refuses loudly when the beams or the posts cannot be found."""
     import numpy as np
-    from scipy import ndimage as ndi
-    a = np.asarray(img)
-    lab, k = ndi.label(a[..., 3] > 128)
-    if k < 3:
-        sys.exit(f'gate: {k} piece(s) painted, not three separate ones -- repaint it')
-    sizes = ndi.sum(np.ones(lab.shape), lab, index=np.arange(1, k + 1))
-    big = sorted(np.argsort(sizes)[::-1][:3] + 1, key=lambda i: ndi.find_objects(lab == i)[0][0].start)
-    boxes = [ndi.find_objects((lab == i).astype(int))[0] for i in big]
-    if sizes[big[2] - 1] < 0.02 * a.shape[0] * a.shape[1]:
-        sys.exit('gate: the third piece is a speck, not a base -- repaint it')
+    a = np.asarray(img).astype(np.float32)
+    h = a.shape[0]
+    solid = a[..., 3] > 128
+    width = solid.sum(axis=1)
+    rows = np.nonzero(width)[0]
+    if not len(rows):
+        sys.exit('gate: nothing painted -- repaint it')
+    top, bottom = int(rows[0]), int(rows[-1]) + 1
+    beams = np.nonzero(width[: int(h * 0.6)] > 0.5 * width.max())[0]
+    if not len(beams):
+        sys.exit('gate: no beams found -- repaint it')
+    beam_end = int(beams[-1]) + 1
+    # The feet: the dark run at the bottom (black lacquer), else the lowest 12 %.
+    lum = np.where(solid, a[..., :3].mean(axis=2), np.nan)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', RuntimeWarning)  # rows with nothing painted: NaN, as wanted
+        row_lum = np.nanmean(lum, axis=1)
+    feet = bottom
+    while feet > beam_end and not np.isnan(row_lum[feet - 1]) and row_lum[feet - 1] < 75:
+        feet -= 1
+    if bottom - feet < h * 0.04:
+        feet = bottom - int((bottom - top) * 0.12)
+    span = feet - beam_end
+    if span < h * 0.2:
+        sys.exit(f'gate: posts too short (beams end {beam_end}, feet start {feet}) -- repaint it')
+    # The plainest stretch of posts: the 30 % that changes least from row to row, away from both ends.
+    diff = np.abs(np.diff(a[..., :3] * solid[..., None], axis=0)).mean(axis=(1, 2))
+    strip = max(4, int(span * 0.3))
+    lo, hi = beam_end + int(span * 0.15), feet - int(span * 0.15) - strip
+    s0 = min(range(lo, max(lo + 1, hi)), key=lambda y: diff[y:y + strip].mean())
     third = img.height // 3
-    # The tube piece is painted as a short ring, often seen a little from above: its top
-    # shows the opening and its bottom curves. Only its plainest strip of front face is
-    # stretchable — the 30 % of its height that changes least from row to row.
-    (ty, tx) = boxes[1]
-    th = ty.stop - ty.start
-    rgb = a[ty.start:ty.stop, tx.start:tx.stop, :3].astype(np.float32)
-    diff = np.abs(np.diff(rgb, axis=0)).mean(axis=(1, 2))
-    span = max(4, int(th * 0.3))
-    lo, hi = int(th * 0.15), th - int(th * 0.15) - span
-    s0 = min(range(lo, max(lo + 1, hi)), key=lambda y: diff[y:y + span].mean())
-    tube = img.crop((tx.start, ty.start + s0, tx.stop, ty.start + s0 + span)).resize((tx.stop - tx.start, third), Image.LANCZOS)
     out = Image.new('RGBA', (img.width, third * 3), (0, 0, 0, 0))
-    left = (img.width - tube.width) // 2
-    # Behind the rim's lower half: the tube's top row drawn down, so the rim's curved bottom
-    # edge sits ON the tube (no notches of sky) and meets the tube band without a seam.
-    out.alpha_composite(tube.crop((0, 0, tube.width, 1)).resize((tube.width, third // 2)), (left, third - third // 2))
-    # The base ring is seen a little from above too: keep its front band only (below its
-    # opening), so its top is the straight edge the tube stands on.
-    (bys, bxs) = boxes[2]
-    base_top = bys.start + int((bys.stop - bys.start) * 0.35)
-    crops = [(boxes[0][1].start, boxes[0][0].start, boxes[0][1].stop, boxes[0][0].stop), None, (bxs.start, base_top, bxs.stop, bys.stop)]
-    for n, (ys, xs) in enumerate(boxes):
-        piece = tube if n == 1 else img.crop(crops[n]).resize((xs.stop - xs.start, third), Image.LANCZOS)
-        out.alpha_composite(piece, ((img.width - piece.width) // 2, n * third))
-        print(f'gate piece {n + 1}: x {xs.start}-{xs.stop}, y {ys.start}-{ys.stop}' + (f' (strip {ty.start + s0}-{ty.start + s0 + span})' if n == 1 else ''))
+    for n, (y0, y1) in enumerate(((top, beam_end), (s0, s0 + strip), (feet, bottom))):
+        out.alpha_composite(img.crop((0, y0, img.width, y1)).resize((img.width, third), Image.LANCZOS), (0, n * third))
+    print(f'gate bands: beams {top}-{beam_end}, posts {s0}-{s0 + strip}, feet {feet}-{bottom}')
     return out
 
 
@@ -230,4 +252,5 @@ if __name__ == '__main__':
     else:
         collect()
         gate()
-        print('collect.png, gate.png')
+        finish_dais()
+        print('collect.png, gate.png, finish-dais.png')

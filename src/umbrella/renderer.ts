@@ -483,7 +483,10 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
     ctx.translate(fx, fy - hop)
     ctx.rotate(Math.sin(w.phaseTime * 9) * 0.25)
     drawPweeg(ctx, 0, 0, look('cheer'))
-    drawUmbrella(ctx, pl.facing * pl.w * 0.95, -pl.h - 2, { state: umbrellaState === 'open' ? 'furled' : umbrellaState, tilt: pl.facing * 0.3, time: w.time })
+    // The lantern cheer's arms swing up and down between frames, so no hand holds it overhead: he keeps
+    // it tucked at his side, where he carries it standing, and it hops with him.
+    const [ux, uy, ut] = isLantern ? [pl.facing * pl.w * 0.8, -pl.h * 0.35, pl.facing * 0.22] : [pl.facing * pl.w * 0.95, -pl.h - 2, pl.facing * 0.3]
+    drawUmbrella(ctx, ux, uy, { state: umbrellaState === 'open' ? 'furled' : umbrellaState, tilt: ut, time: w.time })
     ctx.restore()
     return
   }
@@ -601,10 +604,11 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
   for (const p of w.platforms) {
-    const painted = artLayer && !!kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel))
-    // The kite build dresses its painted finish instead of labelling it; the
-    // lantern build keeps the word on its painted finish pad.
-    if (painted && !(isLantern && p.finish)) continue
+    const drawn = artLayer ? kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel)) : false
+    const painted = !!drawn
+    // The kite build dresses its painted finish instead of labelling it, and so does the lantern
+    // build's festival dais; a plain painted lantern finish pad keeps the word.
+    if (painted && (drawn === 'dressed' || !(isLantern && p.finish))) continue
     if (painted) {
       // Painted: only the label below.
     } else if (p.channel !== undefined) {

@@ -137,18 +137,12 @@ onUnmounted(() => {
       width: 70vw
       max-width: 360px
 
-// Parchment ribbon bitmap (553×188 source). The aspect ratio is built
-// into the wrap's `aspect-ratio` so the image scales without distorting
-// the curled tails. We use `background-image` rather than an `<img>`
-// so the slot content can layer cleanly on top without z-index gymnastics.
+// The banner keeps the predecessor's parchment-ribbon proportions (553×188); its ribbon bitmap
+// never shipped with Umbrella (the url only 404'd), so the slot content stands on its own.
 .ribbon-banner
   position: relative
   aspect-ratio: 553 / 188
   width: 100%
-  background-image: url('/images/bg/parchment-ribbon_553x188.webp')
-  background-repeat: no-repeat
-  background-position: center
-  background-size: contain
   display: flex
   align-items: center
   justify-content: center

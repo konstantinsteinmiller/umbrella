@@ -162,12 +162,15 @@ export const LANTERN_SHEETS: SheetDef[] = [
     readPanels: 'It is ONE animation of ONE mine, and the panels play one after another: neighbouring panels differ only a little. EVERY one of the 16 panels has EXACTLY SIX big SHARP POINTED cone spikes (pointed tips, never blunt tubes or sticks), the same six in every panel: one at the upper left and one at the upper right (the fuse stands between them), one straight out to the left, one straight out to the right, one at the lower left and one at the lower right — count six, no extra small spikes, never missing on one side, never shrunk to stubs — AND the fuse on top with its gold spark — no panel without its spikes, no panel without its fuse. Above the eyes, in EVERY panel, his two thick angry slanted black ink brows exactly as on the attached figure (they angle down toward the middle) — never left out. The eye whites are EMPTY in every panel, the biting ones included: two plain blank white circles like paper buttons — NO pupils, no dots, no irises, nothing inside them (the game draws the pupils). Panels 1–8 PASSIVE: a slow breath, mouth closed; the six spikes ease a little longer up to panel 4 and back by panel 8; the spark flickers. Panels 9–12 MOVE: drifting along — the same mine with the same six spikes all round, the round body squashed a little wider and lower; nothing else changes. Panels 13–16 AGGRESSIVE, all four of them: puffed up a little bigger and BITING — a wide open mouth of little pointed teeth under the eyes, STILL exactly the same six spikes (only a little longer and sharper), brows angrier, the fuse still on top with a bigger spark, and the eyes STILL empty white discs with no pupils — exactly like panels 1–12 apart from the mouth, brows, size and spark.'
   }),
   foe('fan', {
-    title: 'Pinwheel fan — frame, pinwheel, lattice',
-    blurb: 'a spinning paper PINWHEEL (kazaguruma) in four separate parts the game stacks on top of each other: panel 1 the HOUSING — a chunky square frame of pale bamboo and dark wood (it fills its panel to the reference\'s outline) with a deep dark round opening; panel 2 the ROTOR alone — a four-vaned folded-paper pinwheel, centred, around a small bamboo pin; panel 3 the front GUARD alone — a round lattice of thin bamboo strips (a few rings and spokes) with a small cream hub cap in the middle, see-through between the strips (magenta shows between them); panel 4 the same pinwheel as panel 2, turned 45 degrees',
-    colour: 'the frame pale bamboo (#d9b77a) and dark wood (#4a2e22) with a near-black indigo opening; the pinwheel vanes warning red (#e04a3a) and cream paper, alternating, with sharp fold facets; the lattice pale bamboo, the hub cream'
+    title: 'Pinwheel fan — frame, pinwheel, hub',
+    designRef: 'designs/fan-design.png',
+    blurb: 'a spinning paper PINWHEEL (kazaguruma) in its little wooden frame, in four separate parts the game stacks on top of each other: panel 1 the FRAME alone — four square wooden sticks lashed together into an open square, their ends crossing and sticking out a little past each corner like a tic-tac-toe frame (it fills its panel to the reference\'s outline); the square inside the frame is EMPTY (flat magenta: the night shows through it); panel 2 the PINWHEEL alone — four pointed folded-paper vanes, each half red paper and half kraft-brown paper, turning round the centre, no pin, no stick; panel 3 the HUB alone — one small round wooden pin head, centred; panel 4 the same pinwheel as panel 2, turned 45 degrees',
+    colour: 'the frame warm brown wood (#8a5a34) with a darker grain (#5a3a22) and a pale lit edge; the vanes lacquer red paper (#d8433a) and kraft-brown paper (#c8a57a), sharp fold facets; the pin head pale wood (#d9b77a)',
+    one: 'the pinwheel fan'
   }),
-  { ...EXTRA_SHEETS.find((s) => s.id === 'collect')!, styleRef: STYLE_WORLD },
-  { ...EXTRA_SHEETS.find((s) => s.id === 'gate')!, styleRef: STYLE_WORLD }
+  { ...EXTRA_SHEETS.find((s) => s.id === 'collect')!, styleRef: STYLE_WORLD, designRef: 'designs/collect-design.png' },
+  { ...EXTRA_SHEETS.find((s) => s.id === 'gate')!, styleRef: STYLE_WORLD, designRef: 'designs/gate-design.png' },
+  { ...EXTRA_SHEETS.find((s) => s.id === 'finish-dais')!, styleRef: STYLE_WORLD, designRef: 'designs/finish-design.png' }
 ]
 
 export const lanternSheet = (id: string): SheetDef | undefined => LANTERN_SHEETS.find((s) => s.id === id)
@@ -179,7 +182,7 @@ export const buildLanternIndex = (fits: Record<string, Fit> = {}) => ({
   generator: 'src/umbrella/art/lantern.ts'
 })
 
-/** Cut by scripts/art/lantern-refs.py --cut, not by the slicer (one pipe, not a lattice). */
+/** Cut by scripts/art/lantern-refs.py --cut, not by the slicer (one gate, cut into bands by what it is). */
 export const UNSLICED = new Set(['gate'])
 
 /** The backdrop is not a lattice sheet: one 16:9 painting the game draws behind

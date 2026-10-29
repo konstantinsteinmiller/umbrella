@@ -440,6 +440,98 @@ const mineBlast = (ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.restore()
 }
 
+/** The painted fuse's tip, in mine radii from its centre: where the sheet's own gold spark sits,
+ *  measured once per frame from the decoded sheet (the moving frames are squashed, so their tip sits
+ *  elsewhere than the idle ones'). FUSE_TIP is the fallback when a frame cannot be read. */
+const FUSE_TIP = { x: 0.78, y: -1.13 }
+const fuseTips = new WeakMap<HTMLImageElement, Array<{ x: number; y: number }>>()
+const fuseTipOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: number; y: number } => {
+  let tips = fuseTips.get(img)
+  if (!tips) {
+    tips = []
+    try {
+      const c = document.createElement('canvas')
+      c.width = img.width
+      c.height = img.height
+      const g = c.getContext('2d', { willReadFrequently: true })
+      if (g) {
+        g.drawImage(img, 0, 0)
+        const fw = img.width / s.cols
+        const fh = img.height / s.rows
+        const unit = (boxOf(s, 0).drawSize ?? boxOf(s, 0).size) / PRICKBAIT_R
+        for (let i = 0; i < s.cols * s.rows; i++) {
+          const d = g.getImageData((i % s.cols) * fw, Math.floor(i / s.cols) * fh, fw, fh / 2).data
+          // The spark: gold pixels in the top half, the topmost cluster of them.
+          const pts: Array<[number, number]> = []
+          for (let k = 0; k < d.length; k += 4) {
+            if (d[k + 3]! > 120 && d[k]! > 200 && d[k + 1]! > 150 && d[k + 2]! < 130) pts.push([(k / 4) % fw, Math.floor(k / 4 / fw)])
+          }
+          if (!pts.length) { tips.push(FUSE_TIP); continue }
+          const top = Math.min(...pts.map((q) => q[1]))
+          const near = pts.filter((q) => q[1] < top + fh * 0.12)
+          const mx = near.reduce((t, q) => t + q[0], 0) / near.length
+          const my = near.reduce((t, q) => t + q[1], 0) / near.length
+          tips.push({ x: (mx / fw - 0.5) * unit, y: (my / fh - 0.5) * unit })
+        }
+      }
+    } catch { /* the fallback tip */ }
+    fuseTips.set(img, tips)
+  }
+  return tips[frame] ?? FUSE_TIP
+}
+/** The lit fuse: a warm glow, a spark star whose rays flicker, and tiny embers popping off the tip.
+ *  It burns IN PLACE at the tip — nothing creeps down the fuse — so it loops for ever. */
+const fuseSpark = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, t: number): void => {
+  const R = r * 0.17
+  const flick = 0.75 + 0.25 * Math.sin(t * 31) * Math.sin(t * 17 + 1.3)
+  ctx.save()
+  ctx.translate(x, y)
+  // Glow.
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, R * 2.4)
+  glow.addColorStop(0, `rgba(255, 214, 120, ${0.55 * flick})`)
+  glow.addColorStop(1, 'rgba(255, 140, 40, 0)')
+  ctx.fillStyle = glow
+  ctx.beginPath()
+  ctx.arc(0, 0, R * 2.4, 0, Math.PI * 2)
+  ctx.fill()
+  // The spark star: eight rays, each flickering on its own.
+  ctx.fillStyle = '#ffd36a'
+  ctx.strokeStyle = '#ff8a2a'
+  ctx.lineWidth = Math.max(1, r * 0.03)
+  ctx.beginPath()
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2 + t * 2.2
+    const ray = R * (0.75 + 0.45 * Math.abs(Math.sin(t * (13 + i) + i * 2.1)))
+    const rr = i % 2 ? R * 0.38 : ray
+    if (i) ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr)
+    else ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr)
+  }
+  ctx.closePath()
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle = '#fff6d8'
+  ctx.beginPath()
+  ctx.arc(0, 0, R * 0.3 * flick, 0, Math.PI * 2)
+  ctx.fill()
+  // Embers: each pops off the tip on its own short cycle, flies a little way out and fades.
+  ctx.lineCap = 'round'
+  for (let i = 0; i < 5; i++) {
+    const cycle = 0.32 + 0.1 * rnd(i + 3)
+    const phase = (t / cycle + rnd(i + 7)) % 1
+    const slot = Math.floor(t / cycle + rnd(i + 7))
+    const a = -Math.PI / 2 + (rnd(slot * 5 + i) - 0.5) * 2.4
+    const d = R * (0.8 + 2.2 * phase)
+    ctx.globalAlpha = 1 - phase
+    ctx.strokeStyle = phase < 0.4 ? '#fff2c0' : '#ffb24a'
+    ctx.lineWidth = Math.max(1, r * 0.035 * (1 - phase * 0.6))
+    ctx.beginPath()
+    ctx.moveTo(Math.cos(a) * d, Math.sin(a) * d)
+    ctx.lineTo(Math.cos(a) * (d + R * 0.35), Math.sin(a) * (d + R * 0.35))
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
 /** Where each mine Pweeg ran into went off: pinned there for the rest of the death, even if the
  *  hazard keeps drifting. A restart builds new hazards, so nothing has to be cleared by hand. */
 const blasts = new WeakMap<Hazard, { x: number; y: number }>()
@@ -479,7 +571,12 @@ const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean 
   // The move frames drift LEFT. Which way it heads is remembered and changes only after a clear
   // push the other way, so a mine turning round (dx crossing zero every few frames) never flickers.
   if (Math.abs(h.dx) > 0.5) prickHeading.set(h, h.dx > 0 ? 1 : -1)
-  blit(ctx, s, img, frame, x, y, r / PRICKBAIT_R, r / PRICKBAIT_R, moving && prickHeading.get(h) === 1)
+  const flip = moving && prickHeading.get(h) === 1
+  blit(ctx, s, img, frame, x, y, r / PRICKBAIT_R, r / PRICKBAIT_R, flip)
+  if (isLantern) {
+    const tip = fuseTipOf(img as HTMLImageElement, s, frame)
+    fuseSpark(ctx, x + (flip ? -1 : 1) * r * tip.x, y + r * tip.y, r, w.time + h.x * 0.013)
+  }
   const pl = w.player
   drawPrickbaitPupils(ctx, x, y, r, pl.x + pl.w / 2, pl.y + pl.h / 2)
   // The lantern mine's angry brows are drawn live like its pupils: one painting never kept them the
@@ -561,10 +658,12 @@ const nine = (ctx: CanvasRenderingContext2D, s: SheetDef, img: HTMLImageElement 
   }
 }
 
-const platform = (ctx: CanvasRenderingContext2D, p: PlatformDef, on: boolean, color: string | null): boolean => {
+const platform = (ctx: CanvasRenderingContext2D, p: PlatformDef, on: boolean, color: string | null): boolean | 'dressed' => {
   if (!paintedOn || !ready(['platform'], PLATFORMS)) return false
   // A switched-off platform stays the dashed ghost the vector path draws.
   if (color !== null && !on) return false
+  // The lantern finish is the concept's festival dais, dressed as the goal it is (no FINISH word).
+  if (p.finish && isLantern && finishDais(ctx, p, performance.now() / 1000)) return 'dressed'
   const id = p.finish ? 'platform-finish' : color !== null ? 'platform-switch' : 'platform'
   if (!hasSheet(id)) return false
   const s = sheet(id)
@@ -916,6 +1015,42 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
 
 // ─── Collectibles and the warp gate (lantern build) ─────────────────────────
 
+/** The concept's ring round a lantern collectible: a glowing gold hoop that breathes, and three
+ *  four-pointed sparkles round it, each twinkling on its own beat. */
+const sparkle = (ctx: CanvasRenderingContext2D, x: number, y: number, R: number): void => {
+  ctx.beginPath()
+  ctx.moveTo(x, y - R)
+  ctx.quadraticCurveTo(x, y, x + R, y)
+  ctx.quadraticCurveTo(x, y, x, y + R)
+  ctx.quadraticCurveTo(x, y, x - R, y)
+  ctx.quadraticCurveTo(x, y, x, y - R)
+  ctx.fill()
+}
+const collectRing = (ctx: CanvasRenderingContext2D, x: number, y: number, time: number, phase: number): void => {
+  const R = STAR_R * 1.4
+  const pulse = 0.5 + 0.5 * Math.sin(time * 2.6 + phase)
+  ctx.save()
+  ctx.lineWidth = STAR_R * 0.42
+  ctx.strokeStyle = `rgba(255, 196, 70, ${0.16 + 0.1 * pulse})`
+  ctx.beginPath()
+  ctx.arc(x, y, R, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.lineWidth = Math.max(1.5, STAR_R * 0.14)
+  ctx.strokeStyle = `rgba(255, 214, 110, ${0.75 + 0.2 * pulse})`
+  ctx.beginPath()
+  ctx.arc(x, y, R, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.fillStyle = '#fff3c4'
+  for (let i = 0; i < 3; i++) {
+    const tw = Math.max(0, Math.sin(time * 2.2 + phase * 1.7 + i * 2.1))
+    if (tw <= 0.05) continue
+    const a = -0.6 + i * 2.2 + phase
+    ctx.globalAlpha = tw
+    sparkle(ctx, x + Math.cos(a) * R * 1.32, y + Math.sin(a) * R * 1.32, STAR_R * (0.18 + 0.16 * tw))
+  }
+  ctx.restore()
+}
+
 const collect = (ctx: CanvasRenderingContext2D, st: Pick<StarDef, 'x' | 'y' | 'shape'>, got: boolean, time: number, phase: number): boolean => {
   if (!paintedOn) return false
   const img = sheetImage('collect')
@@ -935,6 +1070,7 @@ const collect = (ctx: CanvasRenderingContext2D, st: Pick<StarDef, 'x' | 'y' | 's
     ctx.beginPath()
     ctx.arc(st.x, cy, STAR_R * 1.55, 0, Math.PI * 2)
     ctx.fill()
+    if (isLantern) collectRing(ctx, st.x, cy, time, phase)
     blit(ctx, s, img, frame, st.x, cy)
     const sweep = (time * 0.6 + phase) % 3
     if (sweep < 1) {
@@ -947,29 +1083,179 @@ const collect = (ctx: CanvasRenderingContext2D, st: Pick<StarDef, 'x' | 'y' | 's
   return true
 }
 
+// ─── Panel outlines ─────────────────────────────────────────────────────────
+
+/** Where the painting in each panel actually lies (sheet pixels), measured once from the decoded
+ *  sheet's alpha — a painter never fills a panel exactly, and a part drawn to the panel's edges
+ *  would float in its own margin. A tainted or unreadable sheet falls back to whole panels. */
+interface Rect { x0: number; y0: number; x1: number; y1: number }
+const panelBoxes = new WeakMap<HTMLImageElement, Rect[]>()
+const boxesOf = (img: HTMLImageElement, s: SheetDef): Rect[] => {
+  const have = panelBoxes.get(img)
+  if (have) return have
+  const fw = img.width / s.cols
+  const fh = img.height / s.rows
+  const out: Rect[] = Array.from({ length: s.cols * s.rows }, (_, i) => ({ x0: (i % s.cols) * fw, y0: Math.floor(i / s.cols) * fh, x1: (i % s.cols + 1) * fw, y1: (Math.floor(i / s.cols) + 1) * fh }))
+  try {
+    const c = document.createElement('canvas')
+    c.width = img.width
+    c.height = img.height
+    const g = c.getContext('2d', { willReadFrequently: true })
+    if (g) {
+      g.drawImage(img, 0, 0)
+      const data = g.getImageData(0, 0, c.width, c.height).data
+      out.forEach((r, i) => {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+        for (let y = Math.floor(r.y0); y < r.y1; y++) {
+          for (let x = Math.floor(r.x0); x < r.x1; x++) {
+            if (data[(y * c.width + x) * 4 + 3]! > 40) {
+              if (x < x0) x0 = x
+              if (x > x1) x1 = x
+              if (y < y0) y0 = y
+              if (y > y1) y1 = y
+            }
+          }
+        }
+        if (x1 > x0 && y1 > y0) out[i] = { x0, y0, x1: x1 + 1, y1: y1 + 1 }
+      })
+    }
+  } catch { /* whole panels */ }
+  panelBoxes.set(img, out)
+  return out
+}
+
+// ─── The warp gate: a vermilion torii with a portal between its posts ──────
+
+/** Where the opening between the torii's posts lies, as shares of the gate's width, read once from
+ *  the middle band of the shipped gate (the posts are the only paint there). */
+const gateOpenings = new WeakMap<HTMLImageElement, [number, number]>()
+const gateOpening = (img: HTMLImageElement): [number, number] => {
+  const have = gateOpenings.get(img)
+  if (have) return have
+  let out: [number, number] = [0.3, 0.7]
+  try {
+    const c = document.createElement('canvas')
+    c.width = img.width
+    c.height = 1
+    const g = c.getContext('2d', { willReadFrequently: true })
+    if (g) {
+      g.drawImage(img, 0, Math.floor(img.height / 2), img.width, 1, 0, 0, img.width, 1)
+      const a = g.getImageData(0, 0, img.width, 1).data
+      const solid = (x: number) => a[x * 4 + 3]! > 100
+      let l = Math.floor(img.width / 2)
+      let r = l
+      while (l > 0 && !solid(l - 1)) l--
+      while (r < img.width - 1 && !solid(r + 1)) r++
+      if (r - l > img.width * 0.15) out = [l / img.width, (r + 1) / img.width]
+    }
+  } catch { /* the default opening */ }
+  gateOpenings.set(img, out)
+  return out
+}
+
+/** The portal: a deep teal well with a bright heart and three pale arms wound round it, turning. */
+const portal = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, time: number): void => {
+  const cx = x + w / 2
+  // A tall gate keeps a roundish swirl in the middle of its well, never one long stretched oval.
+  const rx = w / 2
+  const ry = Math.min(h * 0.55, rx * 1.5)
+  const cy = y + h * 0.55
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(x, y, w, h)
+  ctx.clip()
+  const well = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry) * 1.1)
+  well.addColorStop(0, 'rgba(236, 255, 240, 0.95)')
+  well.addColorStop(0.25, 'rgba(140, 236, 196, 0.85)')
+  well.addColorStop(0.7, 'rgba(32, 120, 104, 0.85)')
+  well.addColorStop(1, 'rgba(12, 52, 56, 0.9)')
+  ctx.fillStyle = well
+  ctx.fillRect(x, y, w, h)
+  ctx.lineCap = 'round'
+  ctx.strokeStyle = 'rgba(214, 255, 232, 0.55)'
+  ctx.lineWidth = Math.max(1.5, w * 0.05)
+  for (let arm = 0; arm < 3; arm++) {
+    const off = (arm / 3) * Math.PI * 2 - time * 2.2
+    ctx.beginPath()
+    for (let k = 0; k <= 28; k++) {
+      const u = k / 28
+      const a = off + u * Math.PI * 2.4
+      const px = cx + Math.cos(a) * rx * (0.08 + 0.9 * u)
+      const py = cy + Math.sin(a) * ry * (0.08 + 0.9 * u)
+      if (k) ctx.lineTo(px, py)
+      else ctx.moveTo(px, py)
+    }
+    ctx.stroke()
+  }
+  // A few motes riding the swirl inward.
+  ctx.fillStyle = 'rgba(255, 255, 240, 0.9)'
+  for (let i = 0; i < 5; i++) {
+    const u = (time * 0.35 + i / 5) % 1
+    const a = -time * 2.2 + i * 2.3 + u * Math.PI * 2.4
+    ctx.globalAlpha = Math.sin(u * Math.PI)
+    ctx.beginPath()
+    ctx.arc(cx + Math.cos(a) * rx * (1 - u) * 0.9, cy + Math.sin(a) * ry * (1 - u) * 0.9, Math.max(1, w * 0.025), 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
 const gate = (ctx: CanvasRenderingContext2D, g: Pick<GateDef, 'x' | 'y' | 'w' | 'h'>, time: number): boolean => {
   if (!paintedOn) return false
   const img = sheetImage('gate')
   if (!img) return false
   const s = sheet('gate')
-  // Rim / tube / base: the rim keeps its shape, the tube stretches.
+  // Beams / posts / feet: the beams keep their shape, the posts stretch, the feet stay short.
   const rimH = Math.min(g.w / 3, g.h * 0.45)
   const baseH = Math.min(rimH * 0.6, Math.max(0, g.h - rimH))
+  // The portal first, between the posts and under the lower beam, so the gate frames it.
+  const [l, r] = gateOpening(img as HTMLImageElement)
+  portal(ctx, g.x + g.w * l, g.y + rimH * 0.8, g.w * (r - l), g.h - rimH * 0.8 - baseH * 0.4, time)
   cell(ctx, s, img, 0, 0, g.x, g.y, g.w, rimH)
   cell(ctx, s, img, 0, 1, g.x, g.y + rimH - 0.5, g.w, g.h - rimH - baseH + 1, 1)
   if (baseH > 0) cell(ctx, s, img, 0, 2, g.x, g.y + g.h - baseH, g.w, baseH)
-  // The portal turns: a soft glint sweeping round the mouth.
-  ctx.save()
-  ctx.strokeStyle = `rgba(190, 255, 235, ${0.45 + 0.25 * Math.sin(time * 5)})`
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.ellipse(g.x + g.w / 2, g.y + rimH * 0.42, Math.max(2, g.w * 0.3), Math.max(2, rimH * 0.2), 0, time * 4, time * 4 + Math.PI * 1.4)
-  ctx.stroke()
-  ctx.restore()
   return true
 }
 
-// ─── The backdrop (lantern build) ───────────────────────────────────────────
+// ─── The finish: a festival dais with tassels and pennants hanging from it ──
+
+/** The dais's painted top: the middle of its top ellipse sits this far down the dais (shares of its
+ *  height), and that is where the platform's surface is. The rim's lower edge runs from RIM_END
+ *  down at its two ends to RIM_MID in the middle. */
+const DAIS_TOP = 0.3
+const RIM_END = 0.72
+const RIM_MID = 0.97
+const HANGERS = ['tassel', 'pennantRed', 'tassel', 'pennantBlue'] as const
+
+const finishDais = (ctx: CanvasRenderingContext2D, p: PlatformDef, time: number): boolean => {
+  if (!hasSheet('finish-dais')) return false
+  const img = sheetImage('finish-dais') as HTMLImageElement | null
+  if (!img) return false
+  const s = sheet('finish-dais')
+  const boxes = boxesOf(img, s)
+  const d = boxes[s.anims.dais!.frames[0]!]!
+  const x = p.x - 6
+  const w = p.w + 12
+  const dh = Math.max(30, Math.min(80, (w * (d.y1 - d.y0)) / (d.x1 - d.x0)))
+  const y = p.y - dh * DAIS_TOP
+  // The hangers first: the rim covers where they are tied on. Each sways a little on its own.
+  const n = Math.max(3, Math.round(w / 30))
+  const hh = Math.max(14, Math.min(34, dh * 0.6))
+  for (let i = 0; i < n; i++) {
+    const u = -0.86 + (1.72 * i) / (n - 1)
+    const b = boxes[s.anims[HANGERS[i % HANGERS.length]!]!.frames[0]!]!
+    const hw = (hh * (b.x1 - b.x0)) / (b.y1 - b.y0)
+    const ax = x + w / 2 + (u * w) / 2
+    const ay = y + dh * (RIM_END + (RIM_MID - RIM_END) * Math.sqrt(1 - u * u)) - hh * 0.12
+    ctx.save()
+    ctx.translate(ax, ay)
+    ctx.rotate(Math.sin(time * 1.6 + i * 0.9) * 0.08)
+    ctx.drawImage(img, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0, -hw / 2, 0, hw, hh)
+    ctx.restore()
+  }
+  ctx.drawImage(img, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0, x, y, w, dh)
+  return true
+}
 
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v))
 

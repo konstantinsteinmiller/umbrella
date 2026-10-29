@@ -12,8 +12,14 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 12 — 2026-10-29 ==
+- [x] No more 404s at start: the predecessor's coin is no longer preloaded (Umbrella never shows it), the app icons exist (Pweeg under his umbrella, 192 and 512 px, drawn by the game itself), and the ad-block notice no longer asks for a ribbon image that never shipped
+- [x] Lantern finish: the concept's festival dais — a golden lantern-lit drum stage with a red lacquer band, gold tassels and red and blue pennants hanging under its rim and swaying — instead of the labelled pad
+- [x] Lantern warp gates are vermilion torii (black curved top beam, black feet) with a swirling teal portal turning between the posts; the posts stretch to any gate height
+- [x] Lantern fan repainted as the concept's pinwheel: a red and kraft paper pinwheel in a lashed open wooden frame
+- [x] Lantern collectibles as in the concept: a three-star cluster, an open origami parasol and a curled cloud, each in a glowing gold ring with twinkling sparkles
+- [x] Lantern win: Pweeg keeps the umbrella tucked at his side while he cheers (it floated beside his head); the mine's fuse spark follows each frame's painted fuse tip, moving and chasing frames included
 - [x] Lantern mines go off: touching a Prickbait blows it up in a paper-firecracker blast (flash, folded-paper starburst, shock ring, red shards and spike cones flung out, gold sparks, smoke puffs) while Pweeg plays his destroyed animation; the death holds until both have played
-- [x] Lantern Prickbait repainted from one approved figure of him, so all sixteen frames keep the same spikes, fuse and empty eyes (the old sheet lost its spikes or its fuse between frames); his angry brows are drawn live with the pupils
+- [x] Lantern Prickbait repainted from one approved figure of him, so all sixteen frames keep the same spikes, fuse and empty eyes (the old sheet lost its spikes or its fuse between frames); his angry brows are drawn live with the pupils, and his fuse burns: a flickering spark star with a warm glow and embers popping off its tip, burning in place so it loops for ever
 - [x] Lantern wind drawn as the designer's gust streaks: long thin tapered strokes with a gentle bow, led upward by a curled hook, keeping their shape (no sideways sway or tilt); every streak in a current travels at the same speed, the current's own, and only ever downstream (a gust-varying pace used to run streaks backwards)
 - [x] The Community button appears once the player has won level 10: the first ten levels keep the bar to the game itself
 - [x] Lantern Pweeg's walk repainted: all sixteen frames are side-view strides (three of the old ones stood still or faced the viewer, a hitch in the walk)

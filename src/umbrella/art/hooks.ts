@@ -20,12 +20,13 @@ export interface KiteArt {
   splat?: (ctx: CanvasRenderingContext2D, fx: number, fy: number, look: PweegLook, phaseTime: number, hit: boolean) => boolean
   hazard?: (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => boolean
   wind?: (ctx: CanvasRenderingContext2D, wind: WindDef, def: WindDef, w: World, squiggles: boolean) => boolean
-  platform?: (ctx: CanvasRenderingContext2D, p: PlatformDef, on: boolean, color: string | null) => boolean
+  /** Painted: true; painted and dressed as the goal it is, so it needs no FINISH word: 'dressed'. */
+  platform?: (ctx: CanvasRenderingContext2D, p: PlatformDef, on: boolean, color: string | null) => boolean | 'dressed'
   button?: (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, color: string) => boolean
   checkpoint?: (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: boolean, time: number) => boolean
   /** A collectible (star, parasol, cloud), bobbing; `got` leaves a faint ghost (lantern). */
   collect?: (ctx: CanvasRenderingContext2D, s: Pick<StarDef, 'x' | 'y' | 'shape'>, got: boolean, time: number, phase: number) => boolean
-  /** A warp gate, rim on top (lantern). */
+  /** A warp gate: a torii with a swirling portal between its posts (lantern). */
   gate?: (ctx: CanvasRenderingContext2D, g: Pick<GateDef, 'x' | 'y' | 'w' | 'h'>, time: number) => boolean
   /** A painted sky behind the level, in SCREEN space (the lantern build). */
   backdrop?: (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Camera, w: World) => boolean
