@@ -96,8 +96,36 @@ def cut() -> None:
     print(f'gate.webp {out.size} ← {src.name}')
 
 
+def clean_wisps() -> None:
+    """The wind sheet's ribbons run up to their panel's edge, so a panel can hold a sliver of its
+    neighbour's ribbon. Per 256 px panel, drop every small piece that touches the panel's border
+    (less than 15 % of the panel's biggest ribbon): what is left is the panel's own ribbons."""
+    import numpy as np
+    from scipy import ndimage as ndi
+    p = SHIPPED / 'wind-wisps.webp'
+    im = np.array(Image.open(p).convert('RGBA'))
+    n = im.shape[0] // 4
+    dropped = 0
+    for r in range(4):
+        for c in range(4):
+            a = im[r * n:(r + 1) * n, c * n:(c + 1) * n, 3]
+            lab, k = ndi.label(a > 24)
+            if k < 2:
+                continue
+            sizes = ndi.sum(np.ones_like(a), lab, index=np.arange(1, k + 1))
+            edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+            for i in edge:
+                if sizes[i - 1] < 0.15 * sizes.max():
+                    a[ndi.binary_dilation(lab == i, iterations=2)] = 0
+                    dropped += 1
+    Image.fromarray(im, 'RGBA').save(p, 'WEBP', quality=88, method=6)
+    print(f'wind-wisps.webp: {dropped} border slivers removed')
+
+
 if __name__ == '__main__':
-    if '--cut' in sys.argv:
+    if '--clean-wisps' in sys.argv:
+        clean_wisps()
+    elif '--cut' in sys.argv:
         cut()
     else:
         collect()

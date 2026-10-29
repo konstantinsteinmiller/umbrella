@@ -1188,11 +1188,15 @@ export default defineConfig(({ mode, command }) => {
         // keeps both out of every non-kite build. The lantern build carries the
         // same layer with its OWN sheets: `shipped` is the one glob, aliased to
         // the lantern folder there, so neither build holds the other's paint.
-        ...(env.VITE_APP_KITE === 'true' || env.VITE_APP_LANTERN === 'true' ? {} : {
+        // A dev server keeps the real layer, so `?art=lantern` can switch it on at runtime
+        // (kite.ts, art/shipped-dev.ts).
+        ...(env.VITE_APP_KITE === 'true' || env.VITE_APP_LANTERN === 'true' || command === 'serve' ? {} : {
           '@/umbrella/art/install': fileURLToPath(new URL('./src/umbrella/art/install.stub.ts', import.meta.url))
         }),
         ...(env.VITE_APP_LANTERN === 'true' ? {
           '@/umbrella/art/shipped': fileURLToPath(new URL('./src/umbrella/art/shipped-lantern.ts', import.meta.url))
+        } : command === 'serve' && env.VITE_APP_KITE !== 'true' ? {
+          '@/umbrella/art/shipped': fileURLToPath(new URL('./src/umbrella/art/shipped-dev.ts', import.meta.url))
         } : {}),
         ...(env.VITE_APP_CRAZY_WEB === 'true' ? {} : {
           '@/use/useCrazyGames':fileURLToPath(new URL('./src/use/useCrazyGames.stub.ts', import.meta.url)),

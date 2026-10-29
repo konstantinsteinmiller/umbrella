@@ -6,12 +6,15 @@
 //   · no levels bucket: nothing is pulled from or pushed to the server; the player
 //     can still edit the levels locally in the level editor.
 // Literal env read so Vite folds it per build.
+import { devArtParam } from './devArt'
+
 export const isKite = import.meta.env.VITE_APP_KITE === 'true'
 
 // The lantern build: /umbrella/lantern/ (`pnpm build:lantern`, VITE_APP_LANTERN=true,
 // opened by ?art=lantern). The normal game — campaign, server levels, save — drawn
-// with the painted "Paper Moon" sheets (art/lantern.ts).
-export const isLantern = import.meta.env.VITE_APP_LANTERN === 'true'
+// with the painted "Paper Moon" sheets (art/lantern.ts). On a dev server `?art=lantern`
+// turns it on at runtime (`import.meta.env.DEV` folds that away in every build).
+export const isLantern = import.meta.env.VITE_APP_LANTERN === 'true' || (import.meta.env.DEV && devArtParam() === 'lantern')
 
 /** A build that carries the painted art layer (kite or lantern): the painters
  *  ask its slots first. Folded per build, so every other build has no art code. */

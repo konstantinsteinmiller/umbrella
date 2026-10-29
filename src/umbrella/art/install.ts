@@ -10,7 +10,7 @@ import { LEVELS } from '../levels'
 import { kiteArt } from './hooks'
 import { EXTRA_SHEETS } from './manifest'
 import { KITE_PAINTERS, paintedArt, setPaintedArt } from './paint'
-import { hasSheet, loadSheets, refreshSheets, sheetStatus, tiersFor } from './sheets'
+import { hasSheet, loadSheets, refreshSheets, sheetStatus, shippedSheets, tiersFor } from './sheets'
 
 let started: Promise<void> | null = null
 
@@ -39,7 +39,9 @@ export const startKiteArt = (): Promise<void> => {
     const { level, introSeen } = await resumeState()
     const [t0, t1, t2] = tiersFor(LEVELS, level, introSeen)
     // The lantern's sky, collectibles and gate are on the first screen too.
-    const extra = ['backdrop', ...EXTRA_SHEETS.map((s) => s.id)].filter(hasSheet)
+    // (The parallax layers when they shipped, else the single painting.)
+    const sky = shippedSheets().filter((id) => id.startsWith('backdrop-'))
+    const extra = [...(sky.length ? sky : ['backdrop']), ...EXTRA_SHEETS.map((s) => s.id)].filter(hasSheet)
     await loadSheets([...t0, ...extra], 'high')
     // Tier 1 one at a time, in order, so a slow line gets the next level's
     // enemy before the late cast; tier 2 in one low-priority batch when idle.

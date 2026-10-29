@@ -516,13 +516,177 @@ const rnd = (n: number): number => {
   return x - Math.floor(x)
 }
 
+// ─── Lantern wind: painted ribbons bent along moving splines ───────────────
+//
+// Each wisp is its painted ribbon cut into thin slices, every slice placed and turned along the
+// lane's centre line, which meanders like moving air: two travelling waves of different length
+// drifting at different paces plus a slow lane drift, so a ribbon bends, the bend runs down it, and
+// no two wisps move alike. Gusts swell and ease each lane's speed. Everything stays INSIDE the box:
+// the lanes keep a margin, the ribbon is sized to the lane, the wobble to what is left, and every
+// slice fades in and out near the box's ends — never cut off at an edge.
+const WISP_SLICES = 18
+interface Rect { x0: number; y0: number; x1: number; y1: number }
+/** Where each panel's painted ribbon lies (sheet pixels), measured once from the decoded sheet's
+ *  alpha: the spline bends exactly the ribbon, never the empty panel around it. */
+const ribbonBoxes = new WeakMap<HTMLImageElement, Rect[]>()
+const ribbonsOf = (img: HTMLImageElement, s: SheetDef): Rect[] => {
+  const have = ribbonBoxes.get(img)
+  if (have) return have
+  const fw = img.width / s.cols
+  const fh = img.height / s.rows
+  const full = (i: number): Rect => ({ x0: (i % s.cols) * fw, y0: Math.floor(i / s.cols) * fh, x1: (i % s.cols + 1) * fw, y1: (Math.floor(i / s.cols) + 1) * fh })
+  const out: Rect[] = Array.from({ length: s.cols * s.rows }, (_, i) => full(i))
+  try {
+    const c = document.createElement('canvas')
+    c.width = img.width
+    c.height = img.height
+    const g = c.getContext('2d', { willReadFrequently: true })
+    if (g) {
+      g.drawImage(img, 0, 0)
+      const data = g.getImageData(0, 0, c.width, c.height).data
+      out.forEach((r, i) => {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+        for (let y = Math.floor(r.y0); y < r.y1; y++) {
+          for (let x = Math.floor(r.x0); x < r.x1; x++) {
+            if (data[(y * c.width + x) * 4 + 3]! > 40) {
+              if (x < x0) x0 = x
+              if (x > x1) x1 = x
+              if (y < y0) y0 = y
+              if (y > y1) y1 = y
+            }
+          }
+        }
+        if (x1 > x0 && y1 > y0) out[i] = { x0, y0, x1: x1 + 1, y1: y1 + 1 }
+      })
+    }
+  } catch { /* a tainted or missing canvas: whole panels */ }
+  ribbonBoxes.set(img, out)
+  return out
+}
+
+/** The wisps are drawn opaque into this layer and faded onto the scene in one go: semi-transparent
+ *  slices drawn straight onto the scene would double up where they overlap (a seam per slice). */
+let windLayer: HTMLCanvasElement | null = null
+const windLayerFor = (main: HTMLCanvasElement): CanvasRenderingContext2D | null => {
+  if (typeof document === 'undefined') return null
+  windLayer ??= document.createElement('canvas')
+  if (windLayer.width !== main.width || windLayer.height !== main.height) {
+    windLayer.width = main.width
+    windLayer.height = main.height
+  }
+  return windLayer.getContext('2d')
+}
+
+const windSpline = (ctx: CanvasRenderingContext2D, live: WindDef, w: World, img: HTMLImageElement, s: SheetDef): void => {
+  const sup = !!live.super
+  const vertical = live.dir === 'up' || live.dir === 'down'
+  const along = vertical ? live.h : live.w
+  const across = vertical ? live.w : live.h
+  const angle = live.dir === 'right' ? 0 : live.dir === 'left' ? Math.PI : live.dir === 'down' ? Math.PI / 2 : -Math.PI / 2
+  const lanes = Math.max(1, Math.round(across / 64))
+  const gap = across / lanes
+  const margin = Math.min(10, across * 0.08)
+  // A ribbon: as long as a third of the box (at most 130); as thick as its painting says, at most the lane.
+  const len = Math.min(130, Math.max(40, along * 0.34))
+  const boxes = ribbonsOf(img, s)
+  const amp0 = len * 0.2
+  const fadeLen = Math.min(along * 0.22, 70)
+  const per = Math.max(1, Math.round(along / 220))
+  const variants = sup ? s.anims.super!.frames : s.anims.normal!.frames
+  const step = len / WISP_SLICES
+  const t = w.time
+  const g = windLayerFor(ctx.canvas)
+  if (!g) return
+  // The box on the screen (device px), a little wider for the ribbons' antialiased rims.
+  const m = ctx.getTransform()
+  const corners = [[live.x, live.y], [live.x + live.w, live.y], [live.x, live.y + live.h], [live.x + live.w, live.y + live.h]].map(([x, y]) => m.transformPoint({ x, y }))
+  const bx = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x))) - 2)
+  const by = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y))) - 2)
+  const bw = Math.min(g.canvas.width, Math.ceil(Math.max(...corners.map((p) => p.x))) + 2) - bx
+  const bh = Math.min(g.canvas.height, Math.ceil(Math.max(...corners.map((p) => p.y))) + 2) - by
+  if (bw <= 0 || bh <= 0) return
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.clearRect(bx, by, bw, bh)
+  g.setTransform(m)
+  g.save()
+  g.translate(live.x + live.w / 2, live.y + live.h / 2)
+  g.rotate(angle)
+  g.imageSmoothingEnabled = true
+  g.imageSmoothingQuality = 'high'
+  for (let l = 0; l < lanes; l++) {
+    const c = -across / 2 + gap * (l + 0.5)
+    const seedL = l * 3.7 + live.x * 0.011 + live.y * 0.017
+    // The lane's own gusts: its speed swells and eases.
+    const gust = 1 + 0.28 * Math.sin(t * 0.55 + seedL) + 0.12 * Math.sin(t * 1.7 + seedL * 2)
+    /** The lane's centre line at u (along the box), for a wobble of `amp`. */
+    const wave = (u: number): number =>
+      0.62 * Math.sin(u * 0.021 - t * 1.6 + seedL) + 0.38 * Math.sin(u * 0.047 + t * 0.9 + seedL * 1.9) + 0.25 * Math.sin(t * 0.35 + seedL)
+    for (let k = 0; k < per; k++) {
+      const seed = seedL * 5 + k * 13
+      const speed = live.speed * (0.38 + rnd(seed) * 0.22) * gust
+      const period = along + len
+      const head = ((((t * speed + rnd(seed + 1) * period + (k * period) / per) % period) + period) % period)
+      const frame = variants[Math.floor(rnd(seed + 2) * variants.length)]!
+      const r = boxes[frame]!
+      const sw = (r.x1 - r.x0) / WISP_SLICES
+      const ch = r.y1 - r.y0
+      const thick = Math.min((len * ch) / Math.max(1, r.x1 - r.x0), gap - margin * 2)
+      if (thick <= 2) continue
+      const amp = Math.max(0, Math.min(gap / 2 - margin - thick / 2, amp0))
+      for (let j = 0; j < WISP_SLICES; j++) {
+        // Slice j sits at u along the box (local x from -along/2): the ribbon's tail is upstream.
+        const u = head - len + (j + 0.5) * step
+        if (u < -step || u > along + step) continue
+        const x = u - along / 2
+        const y = c + amp * wave(u) / 1.25
+        const th = Math.atan2((amp * (wave(u + 2) - wave(u - 2))) / 1.25, 4)
+        g.save()
+        g.translate(x, y)
+        g.rotate(th)
+        // A hair of overlap so no gap shows between slices (opaque here, so no seam either).
+        g.drawImage(img, r.x0 + j * sw, r.y0, sw, ch, -step / 2 - 0.6, -thick / 2, step + 1.2, thick)
+        g.restore()
+      }
+    }
+  }
+  // The ends of the box fade the ribbons in and out: a gradient cut out of the layer, so a
+  // ribbon dissolves smoothly as it enters and leaves (per-slice alpha would stripe it).
+  g.globalCompositeOperation = 'destination-out'
+  const inFade = g.createLinearGradient(-along / 2, 0, -along / 2 + fadeLen, 0)
+  inFade.addColorStop(0, 'rgba(0, 0, 0, 1)')
+  inFade.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  g.fillStyle = inFade
+  g.fillRect(-along / 2 - 8, -across / 2 - 8, fadeLen + 8, across + 16)
+  const outFade = g.createLinearGradient(along / 2 - fadeLen, 0, along / 2, 0)
+  outFade.addColorStop(0, 'rgba(0, 0, 0, 0)')
+  outFade.addColorStop(1, 'rgba(0, 0, 0, 1)')
+  g.fillStyle = outFade
+  g.fillRect(along / 2 - fadeLen, -across / 2 - 8, fadeLen + 8, across + 16)
+  g.globalCompositeOperation = 'source-over'
+  g.restore()
+  // The whole current at once, at the wind's own strength.
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.globalAlpha = sup ? 0.9 : 0.78
+  ctx.drawImage(g.canvas, bx, by, bw, bh, bx, by, bw, bh)
+  ctx.restore()
+}
+
 const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World): boolean => {
   // The soft field rides with the painted wisps: no wisps sheet, the vector current.
   const img = paintedOn ? sheetImage('wind-wisps') : null
   if (!img) return false
   const sup = !!live.super
   const f = Math.max(10, Math.min(56, live.w / 2, live.h / 2))
-  if (live.speed > 0) {
+  if (live.speed > 0 && isLantern) {
+    const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
+    if (!tex) return false
+    ctx.save()
+    ctx.globalAlpha = sup ? 0.17 : 0.11
+    softRect(ctx, tex, live.x, live.y, live.w, live.h, f)
+    ctx.restore()
+    windSpline(ctx, live, w, img, sheet('wind-wisps'))
+  } else if (live.speed > 0) {
     const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
     if (!tex) return false
     ctx.save()
@@ -646,20 +810,118 @@ const gate = (ctx: CanvasRenderingContext2D, g: Pick<GateDef, 'x' | 'y' | 'w' | 
 
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v))
 
-/** The painted sky, covering the screen with a little room to spare, slid by
- *  where the camera looks inside the level — a slow parallax that never shows
- *  an edge. */
+// The parallax layers (scripts/art/lantern-parallax.py cuts them out of the painted night sky):
+// the far plate (sky, moon, string lights, mountains), the big clouds drifting, sky lanterns
+// rising, and the near band (the town) with the small clouds on its plane. Positions are fractions
+// of the 1376 x 768 painting they were cut from.
+const PLATE = { w: 1376, h: 768 }
+/** The big clouds drift on a middle plane; the two small ones ride with the town. */
+const FAR_CLOUDS = [
+  { id: 'backdrop-cloud-1', x: 239, y: 19, depth: 0.35, drift: 6 },
+  { id: 'backdrop-cloud-3', x: 1234, y: 164, depth: 0.25, drift: 4.5 },
+  { id: 'backdrop-cloud-5', x: 1107, y: 303, depth: 0.45, drift: 7.5 }
+]
+const NEAR_CLOUDS = [
+  { id: 'backdrop-cloud-2', x: 120, y: 470, scale: 0.85, drift: 11 },
+  { id: 'backdrop-cloud-4', x: 840, y: 505, scale: 0.75, drift: 9 }
+]
+const LANTERN_IDS = Array.from({ length: 8 }, (_, i) => `backdrop-lantern-${i + 1}`)
+const SKY_LANTERNS = 30
+/** The town band starts this far down the painting. */
+const NEAR_TOP = 557
+
+/** One layer of the sky: a plate-sized picture slid by `depth` of the camera's travel. */
+interface Frame { x: number; y: number; k: number; dw: number; dh: number }
+
+const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, u: number, v: number, t: number, far: HTMLImageElement): void => {
+  // The far plate covers the screen with a little room to spare and slides by where the camera
+  // looks inside the level (u, v ∈ −½..½).
+  const k = Math.max(cw / PLATE.w, ch / PLATE.h) * 1.08
+  const plate = (depth: number): Frame => {
+    const dw = PLATE.w * k
+    const dh = PLATE.h * k
+    return { x: (cw - dw) / 2 - u * (dw - cw) * depth, y: (ch - dh) / 2 - v * (dh - ch) * depth, k, dw, dh }
+  }
+  const f = plate(1)
+  ctx.drawImage(far, f.x, f.y, f.dw, f.dh)
+
+  // The big clouds: their own slow drift (wrapping round the plate), a little more parallax than the plate.
+  for (const c of FAR_CLOUDS) {
+    const img = sheetImage(c.id)
+    if (!img) continue
+    const p = plate(1 + c.depth)
+    const span = PLATE.w + img.width
+    const px = ((((c.x + t * c.drift + img.width) % span) + span) % span) - img.width
+    ctx.drawImage(img, p.x + px * k, p.y + c.y * k, img.width * k, img.height * k)
+  }
+
+  // Sky lanterns: each rises from above the mountains to the top and fades in and out, swaying;
+  // the far ones smaller, dimmer, slower and with less parallax.
+  const imgs = LANTERN_IDS.map((id) => sheetImage(id)).filter((x): x is HTMLImageElement => !!x)
+  if (imgs.length) {
+    for (let i = 0; i < SKY_LANTERNS; i++) {
+      const depth = 0.15 + rnd(i * 7.3) * 0.85 // 0 far … 1 near
+      const img = imgs[Math.floor(rnd(i * 3.1 + 1) * imgs.length)]!
+      const rise = 6 + depth * 10 // plate px per second
+      const top = 20
+      const bottom = 470 - rnd(i * 1.7) * 60
+      const span = bottom - top
+      const q = (((rnd(i * 5.9) * span + t * rise) % span) + span) % span // 0 … span, rising
+      const py = bottom - q
+      const life = Math.min(1, q / (span * 0.18), (span - q) / (span * 0.22))
+      if (life <= 0.02) continue
+      const px = rnd(i * 2.3 + 4) * PLATE.w + Math.sin(t * (0.25 + rnd(i) * 0.3) + i) * 10 * depth
+      const scale = 0.35 + depth * 0.6
+      const p = plate(1 + depth * 0.5)
+      ctx.globalAlpha = life * (0.55 + depth * 0.45)
+      const lw = img.width * scale * k
+      const lh = img.height * scale * k
+      ctx.drawImage(img, p.x + px * k - lw / 2, p.y + py * k - lh / 2, lw, lh)
+    }
+    ctx.globalAlpha = 1
+  }
+
+  // The town: the near band, wider than the screen so it can slide the most; its small clouds
+  // on the same plane. It sits on the screen's bottom edge and rises a little when the camera looks low.
+  const near = sheetImage('backdrop-near')
+  if (near) {
+    const kn = k * 1.12
+    const dw = PLATE.w * kn
+    const dh = near.height * (dw / near.width)
+    const x = (cw - dw) / 2 - u * (dw - cw) * 1.8
+    const yTop = ch - dh * 0.92 - v * ch * 0.06
+    for (const c of NEAR_CLOUDS) {
+      const img = sheetImage(c.id)
+      if (!img) continue
+      const span = PLATE.w + img.width
+      const px = ((((c.x + t * c.drift) % span) + span) % span) - img.width * 0.5
+      const s = kn * c.scale
+      ctx.drawImage(img, x + px * kn, yTop + (c.y - NEAR_TOP) * kn, img.width * s, img.height * s)
+    }
+    ctx.drawImage(near, x, yTop, dw, dh)
+    // Below the band (when the town rises) the town's own ground carries on to the screen's edge.
+    if (yTop + dh < ch) ctx.drawImage(near, 0, near.height - 2, near.width, 2, x, yTop + dh - 1, dw, ch - yTop - dh + 1)
+  }
+}
+
+/** The painted sky behind the level, in screen space: the parallax layers when they shipped,
+ *  else the single painting slid by where the camera looks — never showing an edge. */
 const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Camera, w: World): boolean => {
   if (!paintedOn) return false
-  const img = sheetImage('backdrop')
+  const far = sheetImage('backdrop-far')
+  const img = far ?? sheetImage('backdrop')
   if (!img) return false
-  const k = Math.max(cw / img.width, ch / img.height) * 1.08
-  const dw = img.width * k
-  const dh = img.height * k
   const u = clamp01((cw / 2 - cam.ox) / cam.s / w.level.world.w) - 0.5
   const v = clamp01((ch / 2 - cam.oy) / cam.s / w.level.world.h) - 0.5
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
+  if (far) {
+    layeredBackdrop(ctx, cw, ch, u, v, w.time, far)
+    return true
+  }
+  const k = Math.max(cw / img.width, ch / img.height) * 1.08
+  const dw = img.width * k
+  const dh = img.height * k
   ctx.drawImage(img, (cw - dw) / 2 - u * (dw - cw), (ch - dh) / 2 - v * (dh - ch), dw, dh)
   return true
 }
