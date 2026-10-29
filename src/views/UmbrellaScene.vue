@@ -18,6 +18,7 @@ import {
 import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
+import { isLantern } from '@/umbrella/kite'
 import { editorAllowed } from '@/umbrella/editorAccess'
 import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
 import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
@@ -508,6 +509,10 @@ const touchedHazard = () => {
   }
   return best?.kind
 }
+/** The lantern build's mines blow up on contact: the death holds until the blast and Pweeg's
+ *  destroyed poof (16 frames at 24 fps) have played, instead of the usual quick reset. */
+const MINE_DEATH_HOLD = 0.85
+let mineDeath = false
 let lastToggle = -1
 /** Footsteps: one per stride walked, and on each hop of the win dance. */
 const STRIDE = 64
@@ -539,8 +544,8 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         if (timeLimit.value) showRating(timeStars(timeLeft.value, timeLimit.value))
         playSfx('win', { pan: pan * 0.5 })
         break
-      case 'splat': playSfx('splat', { intensity: 1, pan }); break
-      case 'hit': playSfx('hit', { hazard: (touchedHazard() === 'fan' ? 'mine' : touchedHazard()) as 'pillar' | 'mine' | 'spikes' | undefined, pan }); break
+      case 'splat': mineDeath = false; playSfx('splat', { intensity: 1, pan }); break
+      case 'hit': mineDeath = isLantern && touchedHazard() === 'mine'; playSfx('hit', { hazard: (touchedHazard() === 'fan' ? 'mine' : touchedHazard()) as 'pillar' | 'mine' | 'spikes' | undefined, pan }); break
       case 'out': playSfx('whistle', { fade: tuning.whistleFade, pan }); break
       case 'break':
         playSfx('break', { pan })
@@ -671,7 +676,7 @@ const tick = () => {
   enemyCues(events)
   // Failure resets the level at the spawn point, or revives at the last checkpoint.
   if (world.phase === 'out') die()
-  else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) die()
+  else if (world.phase === 'splat' && world.phaseTime >= (mineDeath ? Math.max(tuning.splatReset, MINE_DEATH_HOLD) : tuning.splatReset)) die()
   else if (world.phase === 'win' && world.phaseTime >= (timeLimit.value ? Math.max(tuning.winHold, RATING_HOLD) : tuning.winHold)) {
     if (testing) { if (testReturn) leaveTestChallenge(); else restart() }
     else if (challenge.value) leaveChallenge()

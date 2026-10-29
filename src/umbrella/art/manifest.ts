@@ -66,7 +66,8 @@ export interface SheetDef {
   tier: 0 | 1 | 2
   /** The model sheet painted first and attached BEFORE this sheet's layout. */
   model?: string
-  /** Attach only the model sheet's first figure (cards/<model>.png, cut by
+  /** Attach only the model sheet's first figure (cards/<model>-card.png — never the same file
+   *  name as a layout reference: Gemini drops a second attachment of the same name — cut by
    *  `lantern-refs.py --cards`) instead of the whole sheet: a single figure has
    *  no grid or poses to copy into the layout. */
   modelCard?: boolean

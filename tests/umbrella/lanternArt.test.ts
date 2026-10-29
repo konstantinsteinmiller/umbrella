@@ -18,7 +18,8 @@ describe('lantern sheets', () => {
     for (const s of LANTERN_SHEETS) {
       const k = sheetById(s.id)
       expect(k, s.id).toBeDefined()
-      const shape = (x: typeof s) => ({ use: x.use, cols: x.cols, rows: x.rows, box: x.box, boxes: x.boxes, anims: x.anims, fit: x.fit, model: x.model })
+      // A sheet repainted from a card of its own earlier painting names itself as its model: no other sheet's.
+      const shape = (x: typeof s) => ({ use: x.use, cols: x.cols, rows: x.rows, box: x.box, boxes: x.boxes, anims: x.anims, fit: x.fit, model: x.model === x.id ? undefined : x.model })
       expect(shape(s), s.id).toEqual(shape(k!))
     }
   })

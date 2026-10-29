@@ -2,7 +2,7 @@
 
     python scripts/art/lantern-refs.py          # writes art-sheets/umbrella-lantern/{collect,gate}.png
     python scripts/art/lantern-refs.py --cut    # keys painted/gate.png → src/assets/umbrella-art-lantern/gate.webp
-    python scripts/art/lantern-refs.py --cards  # painted/chad-model.png panel 1 → cards/chad-model.png
+    python scripts/art/lantern-refs.py --cards  # painted/chad-model.png panel 1 → cards/chad-model-card.png
     python scripts/art/lantern-refs.py --fit-pillars  # after slicing: each Walldorf pillar fills its column
 
 The collectibles and the warp gate have no kite sheet (src/umbrella/art/manifest.ts,
@@ -187,8 +187,10 @@ def cards() -> None:
         im = Image.open(src).convert('RGB')
         w, h = im.size
         card = im.crop((0, 0, w // 3, h // 3)).resize((512, 512), Image.LANCZOS)
-        card.save(out_dir / f'{name}.png')
-        print(f'cards/{name}.png: panel 1 of painted/{name}.png')
+        card.save(out_dir / f'{name}-card.png')
+        print(f'cards/{name}-card.png: panel 1 of painted/{name}.png')
+    # cards/prickbait-card.png is cut by hand from panel 1 of an approved earlier roll (the only one whose
+    # spikes, fuse and empty eyes were all right): it is not a model sheet, so it is not rebuilt here.
 
 
 def fit_pillars() -> None:

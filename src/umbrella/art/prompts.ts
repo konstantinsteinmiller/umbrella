@@ -20,7 +20,7 @@ const panels = (s: SheetDef): number => s.cols * s.rows
 
 /** The images attached ahead of the layout reference, in order: the
  *  designer's style sheet first, then the painted model sheet, the layout last. */
-export const alsoOf = (s: SheetDef): string[] => [...(s.styleRef ? [s.styleRef] : []), ...(s.model ? [s.modelCard ? `cards/${s.model}.png` : `painted/${s.model}.png`] : [])]
+export const alsoOf = (s: SheetDef): string[] => [...(s.styleRef ? [s.styleRef] : []), ...(s.model ? [s.modelCard ? `cards/${s.model}-card.png` : `painted/${s.model}.png`] : [])]
 
 const KITE_GROUPS = new Set(['kite', 'chad-kite'])
 const FIGURE_GROUPS = new Set(['pweeg', 'chad', 'kite', 'chad-kite'])
@@ -125,7 +125,7 @@ const notLine = (s: SheetDef, look: Look): string[] => {
     n++
     const model = sheetById(s.model)
     out.push(s.modelCard
-      ? `· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is ONE finished figure of ${NAMES[model?.group ?? 'pweeg']}, cut from his approved model sheet. Copy his body, face, limbs, colours, line and shading from it EXACTLY. It is a single figure, not a layout: the grid, the poses and the positions all come from the LAST attached image.`
+      ? `· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is ONE finished figure of ${NAMES[model?.group ?? 'pweeg'] ?? model?.one ?? 'him'}, cut from his approved painting. Copy his body, face, limbs, spikes, colours, line and shading from it EXACTLY, in every panel. It is a single figure, not a layout: the grid, the poses and the positions all come from the LAST attached image.`
       : `· The ${n === 1 ? 'FIRST' : 'SECOND'} attached image is the finished MODEL SHEET of ${NAMES[model?.group ?? 'pweeg']} — his approved design. Copy his body, face, limbs, colours, line and shading from it EXACTLY. Take NO layout from it: the grid, the poses and the positions all come from the LAST attached image.`)
   }
   if (also.length) out.push(`· ${also.length + 1} images are attached; the LAST one is the layout reference.`)
@@ -231,7 +231,8 @@ export const paintOrder = (sheets: SheetDef[] = SHEETS): SheetDef[] => {
   const out: SheetDef[] = []
   const add = (s: SheetDef): void => {
     if (out.includes(s)) return
-    const m = s.model ? sheets.find((x) => x.id === s.model) : undefined
+    // A sheet repainted from a card of its own earlier painting is its own model: nothing to wait for.
+    const m = s.model && s.model !== s.id ? sheets.find((x) => x.id === s.model) : undefined
     if (m) add(m)
     out.push(s)
   }

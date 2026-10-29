@@ -319,6 +319,142 @@ const walldorf = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean =
 const prickHeading = new WeakMap<Hazard, 1 | -1>()
 const prickMoving = new WeakMap<Hazard, boolean>()
 
+// ─── The lantern mine's blast ───────────────────────────────────────────────
+//
+// A paper firecracker going off: a white-gold flash, a folded-paper starburst that punches out and
+// folds away, a cream shock ring, the mine's own red paper shards and spike cones flung out under
+// gravity, gold sparks, and cream smoke puffs drifting up. Every piece is placed from the mine's
+// seed, so the same mine always blows up the same way. About 0.8 s long (MINE_DEATH_HOLD).
+const BLAST_INK = '#2a1d3a'
+const mineBlast = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, seed: number): void => {
+  const ease = (u: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3)
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.lineJoin = 'round'
+  // Smoke first, so everything else bursts out in front of it.
+  for (let i = 0; i < 6; i++) {
+    const u = (t - 0.12 - i * 0.02) / 0.7
+    if (u <= 0 || u >= 1) continue
+    const a = (i / 6) * Math.PI * 2 + rnd(seed + i) * 0.8
+    const d = r * (0.6 + 0.9 * ease(u))
+    const pr = r * (0.35 + 0.25 * rnd(seed + i + 9)) * (0.7 + 0.8 * ease(u))
+    ctx.globalAlpha = 0.85 * (1 - u)
+    ctx.fillStyle = '#efe2c8'
+    ctx.strokeStyle = BLAST_INK
+    ctx.lineWidth = Math.max(1, r * 0.05)
+    ctx.beginPath()
+    ctx.arc(Math.cos(a) * d, Math.sin(a) * d - r * 0.9 * u, pr, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+  // The flash.
+  if (t < 0.1) {
+    ctx.globalAlpha = 1 - t / 0.1
+    ctx.fillStyle = '#fff6d8'
+    ctx.beginPath()
+    ctx.arc(0, 0, r * (1.2 + 3 * t), 0, Math.PI * 2)
+    ctx.fill()
+  }
+  // The starburst: three folded-paper stars, red under orange under gold, out then folding away.
+  const grow = ease(t / 0.16)
+  const fold = Math.max(0, 1 - Math.max(0, t - 0.22) / 0.26)
+  if (fold > 0) {
+    ;[['#d03a2c', 1.9], ['#ff8a2a', 1.45], ['#ffd36a', 0.95]].forEach(([col, k], layer) => {
+      const R = r * (k as number) * grow * fold
+      const n = 10
+      ctx.globalAlpha = 1
+      ctx.fillStyle = col as string
+      ctx.strokeStyle = BLAST_INK
+      ctx.lineWidth = Math.max(1, r * 0.06)
+      ctx.beginPath()
+      for (let i = 0; i < n * 2; i++) {
+        const a = (i / (n * 2)) * Math.PI * 2 + layer * 0.31 + seed
+        const rr = i % 2 ? R * 0.5 : R * (0.85 + 0.3 * rnd(seed + i + layer * 20))
+        if (i) ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr)
+        else ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr)
+      }
+      ctx.closePath()
+      ctx.fill()
+      ctx.stroke()
+    })
+  }
+  // The shock ring.
+  if (t < 0.36) {
+    const u = t / 0.36
+    ctx.globalAlpha = 0.8 * (1 - u)
+    ctx.strokeStyle = '#fff2d0'
+    ctx.lineWidth = Math.max(1.5, r * 0.18 * (1 - u))
+    ctx.beginPath()
+    ctx.arc(0, 0, r * (1 + 2.4 * ease(u)), 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  // Shards: red body facets and the six spike cones, flung out, spinning, falling.
+  for (let i = 0; i < 12; i++) {
+    const u = t / 0.8
+    if (u >= 1) break
+    const cone = i < 6
+    const a = cone ? (i / 6) * Math.PI * 2 - Math.PI / 2 : rnd(seed + i * 3) * Math.PI * 2
+    const v = r * (cone ? 4.2 : 3 + 2 * rnd(seed + i * 5))
+    const px = Math.cos(a) * v * t
+    const py = Math.sin(a) * v * t + r * 5 * t * t
+    const size = r * (cone ? 0.42 : 0.24 + 0.16 * rnd(seed + i * 7))
+    ctx.save()
+    ctx.translate(px, py)
+    ctx.rotate(a + Math.PI / 2 + t * (cone ? 4 : 9) * (rnd(seed + i) < 0.5 ? -1 : 1))
+    ctx.globalAlpha = Math.min(1, (1 - u) * 1.8)
+    ctx.fillStyle = cone ? '#8e2a22' : i % 2 ? '#d03a2c' : '#b33326'
+    ctx.strokeStyle = BLAST_INK
+    ctx.lineWidth = Math.max(1, r * 0.05)
+    ctx.beginPath()
+    if (cone) {
+      ctx.moveTo(0, -size)
+      ctx.lineTo(size * 0.45, size * 0.4)
+      ctx.lineTo(-size * 0.45, size * 0.4)
+    } else {
+      ctx.moveTo(-size, -size * 0.5)
+      ctx.lineTo(size * 0.8, -size * 0.7)
+      ctx.lineTo(size * 0.3, size * 0.8)
+    }
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.restore()
+  }
+  // Sparks: short gold streaks racing out.
+  if (t < 0.34) {
+    const u = t / 0.34
+    ctx.globalAlpha = 1 - u
+    ctx.strokeStyle = '#ffd36a'
+    ctx.lineCap = 'round'
+    ctx.lineWidth = Math.max(1, r * 0.08)
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + rnd(seed + i * 11) * 0.4
+      const d0 = r * (1 + 3 * ease(u))
+      const d1 = d0 + r * 0.5 * (1 - u)
+      ctx.beginPath()
+      ctx.moveTo(Math.cos(a) * d0, Math.sin(a) * d0)
+      ctx.lineTo(Math.cos(a) * d1, Math.sin(a) * d1)
+      ctx.stroke()
+    }
+  }
+  ctx.restore()
+}
+
+/** Where each mine Pweeg ran into went off: pinned there for the rest of the death, even if the
+ *  hazard keeps drifting. A restart builds new hazards, so nothing has to be cleared by hand. */
+const blasts = new WeakMap<Hazard, { x: number; y: number }>()
+const blastOf = (h: Hazard, w: World): { x: number; y: number } | undefined => {
+  if (w.phase !== 'splat') {
+    blasts.delete(h)
+    return undefined
+  }
+  const pl = w.player
+  if (!blasts.has(h) && pl.x < h.x + h.w + 2 && pl.x + pl.w > h.x - 2 && pl.y < h.y + h.h + 2 && pl.y + pl.h > h.y - 2) {
+    blasts.set(h, { x: h.x + h.w / 2, y: h.y + h.h / 2 })
+  }
+  return blasts.get(h)
+}
+
 const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean => {
   const img = sheetImage('prickbait')
   if (!img) return false
@@ -326,6 +462,12 @@ const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean 
   const x = h.x + h.w / 2
   const y = h.y + h.h / 2
   const r = h.w / 2
+  // The lantern mine is a firecracker: touched, it goes off — the mine is gone, only its blast is left.
+  const blast = isLantern ? blastOf(h, w) : undefined
+  if (blast) {
+    mineBlast(ctx, blast.x, blast.y, r, w.phaseTime, (blast.x * 0.013 + blast.y * 0.007) % 1)
+    return true
+  }
   // Moving / idle with a margin each way, so a slow mine does not flip between the two looks every frame.
   const speed = Math.abs(h.dx) + Math.abs(h.dy)
   const moving = speed > (prickMoving.get(h) ? 0.15 : 0.5)
@@ -340,6 +482,22 @@ const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean 
   blit(ctx, s, img, frame, x, y, r / PRICKBAIT_R, r / PRICKBAIT_R, moving && prickHeading.get(h) === 1)
   const pl = w.player
   drawPrickbaitPupils(ctx, x, y, r, pl.x + pl.w / 2, pl.y + pl.h / 2)
+  // The lantern mine's angry brows are drawn live like its pupils: one painting never kept them the
+  // same across sixteen panels. They slant down toward the middle, harder while it lunges.
+  if (isLantern) {
+    const slant = lunging ? 0.17 : 0.11
+    ctx.save()
+    ctx.strokeStyle = BLAST_INK
+    ctx.lineCap = 'round'
+    ctx.lineWidth = Math.max(1.5, r * 0.11)
+    for (const side of [-1, 1]) {
+      ctx.beginPath()
+      ctx.moveTo(x + side * r * 0.45, y - r * (0.22 + slant))
+      ctx.lineTo(x + side * r * 0.1, y - r * 0.2)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
   return true
 }
 
@@ -516,56 +674,56 @@ const rnd = (n: number): number => {
   return x - Math.floor(x)
 }
 
-// ─── Lantern wind: painted gusts gliding down the current ──────────────────
+// ─── Lantern wind: gust streaks ─────────────────────────────────────────────
 //
-// Each wisp is its painted ribbon, kept whole in its own swoosh-and-curl shape, sliding downstream
-// along a lane like a gust streak. Nothing on it ever moves against the flow: no bends run along a
-// ribbon (a meandering spline did, and its bends crawled backwards against the ribbon's own travel).
-// Each wisp has its own pace and length, each lane its gusts that swell and ease it, and a slow sway
-// of the whole streak across its lane. Everything stays INSIDE the box: the lanes keep a margin, the
-// ribbon is sized to the lane, the sway to what is left, and the ribbons fade in and out near the
-// box's ends — never cut off at an edge.
-interface Rect { x0: number; y0: number; x1: number; y1: number }
-/** Where each panel's painted ribbon lies (sheet pixels), measured once from the decoded sheet's
- *  alpha: the spline bends exactly the ribbon, never the empty panel around it. */
-const ribbonBoxes = new WeakMap<HTMLImageElement, Rect[]>()
-const ribbonsOf = (img: HTMLImageElement, s: SheetDef): Rect[] => {
-  const have = ribbonBoxes.get(img)
+// The designer's gusts: long thin strokes running WITH the current, each a gentle fixed bow that
+// swells in the middle and thins to a point, led by a small curl at its downstream end. A streak never
+// changes shape and never moves across its lane: it only travels downstream, and every streak in a
+// current travels at the same pace — the current's own speed, the one it pushes the umbrella with.
+// Many streaks of different lengths share a box, and they fade in and out near the box's ends —
+// never cut off at an edge.
+interface Streak { pts: Array<[number, number]>; widths: number[] }
+/** A streak's centreline in its own frame, from x = 0 (its downstream end) back along -x: a curl of
+ *  radius `r` leading, then the body with a bow of `bow`, thinning to its tail. Built once per
+ *  shape and cached. */
+const streakShapes = new Map<string, Streak>()
+const streakOf = (len: number, bow: number, r: number, side: 1 | -1, width: number): Streak => {
+  const key = `${Math.round(len)}|${bow.toFixed(1)}|${r.toFixed(1)}|${side}|${width.toFixed(2)}`
+  const have = streakShapes.get(key)
   if (have) return have
-  const fw = img.width / s.cols
-  const fh = img.height / s.rows
-  const full = (i: number): Rect => ({ x0: (i % s.cols) * fw, y0: Math.floor(i / s.cols) * fh, x1: (i % s.cols + 1) * fw, y1: (Math.floor(i / s.cols) + 1) * fh })
-  const out: Rect[] = Array.from({ length: s.cols * s.rows }, (_, i) => full(i))
-  try {
-    const c = document.createElement('canvas')
-    c.width = img.width
-    c.height = img.height
-    const g = c.getContext('2d', { willReadFrequently: true })
-    if (g) {
-      g.drawImage(img, 0, 0)
-      const data = g.getImageData(0, 0, c.width, c.height).data
-      out.forEach((r, i) => {
-        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-        for (let y = Math.floor(r.y0); y < r.y1; y++) {
-          for (let x = Math.floor(r.x0); x < r.x1; x++) {
-            if (data[(y * c.width + x) * 4 + 3]! > 40) {
-              if (x < x0) x0 = x
-              if (x > x1) x1 = x
-              if (y < y0) y0 = y
-              if (y > y1) y1 = y
-            }
-          }
-        }
-        if (x1 > x0 && y1 > y0) out[i] = { x0, y0, x1: x1 + 1, y1: y1 + 1 }
-      })
-    }
-  } catch { /* a tainted or missing canvas: whole panels */ }
-  ribbonBoxes.set(img, out)
+  const pts: Array<[number, number]> = []
+  const widths: number[] = []
+  const body = Math.max(8, len - r * 1.6)
+  const n = Math.max(8, Math.round(body / 6))
+  for (let i = 0; i <= n; i++) {
+    const u = i / n
+    pts.push([-u * body, side * bow * Math.sin(Math.PI * u)])
+    // Thin at the head, fullest a third of the way back, thinning into the curl.
+    widths.push(0.5 + width * Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.4 + 0.02)), 0.7) * (1 - 0.55 * u))
+  }
+  // The curl: the line keeps going back, then turns round towards its side and in.
+  const [tx, ty] = pts[pts.length - 1]!
+  const cx = tx
+  const cy = ty + side * r
+  const turns = 0.78
+  const m = 14
+  for (let i = 1; i <= m; i++) {
+    const a = (i / m) * turns * Math.PI * 2
+    const rr = r * (1 - 0.25 * (i / m))
+    pts.push([cx - Math.sin(a) * rr, cy - side * Math.cos(a) * rr])
+    widths.push(0.5 + width * 0.4 * (1 - i / m))
+  }
+  // Turned half round in place: the curl LEADS at the downstream end and the line trails behind
+  // it, so the gust rises curl-first. x stays within [minX, 0], so the head is still at x = 0.
+  const minX = Math.min(...pts.map((p) => p[0]))
+  const out = { pts: pts.map(([x, y]): [number, number] => [minX - x, -y]), widths }
+  if (streakShapes.size > 400) streakShapes.clear()
+  streakShapes.set(key, out)
   return out
 }
 
-/** The wisps are drawn opaque into this layer and faded onto the scene in one go: semi-transparent
- *  streaks drawn straight onto the scene would double up where two overlap. */
+/** The streaks are drawn opaque into this layer and faded onto the scene in one go: semi-transparent
+ *  strokes drawn straight onto the scene would double up where two overlap (and at every joint). */
 let windLayer: HTMLCanvasElement | null = null
 const windLayerFor = (main: HTMLCanvasElement): CanvasRenderingContext2D | null => {
   if (typeof document === 'undefined') return null
@@ -577,26 +735,38 @@ const windLayerFor = (main: HTMLCanvasElement): CanvasRenderingContext2D | null 
   return windLayer.getContext('2d')
 }
 
-const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, w: World, img: HTMLImageElement, s: SheetDef): void => {
+/** How far each current's streaks have travelled (world px), summed frame by frame from the wind's
+ *  live speed. Position = speed x time would run streaks BACKWARDS whenever the speed eased (the
+ *  product shrinks), and jump when a switched current ramps; a running sum only ever moves forward. */
+const windTravel = new WeakMap<WindDef, { t: number; d: number }>()
+/** The streaks' pace, as a share of the current's speed (the speed it pushes the umbrella with). */
+const STREAK_PACE = 0.55
+const travelOf = (def: WindDef, live: WindDef, t: number): number => {
+  const tr = windTravel.get(def) ?? { t, d: 0 }
+  const dt = t - tr.t
+  // A restart winds the clock back; a long pause or a hidden tab is not a leap forward.
+  if (dt > 0) tr.d += live.speed * STREAK_PACE * Math.min(dt, 0.1)
+  tr.t = t
+  windTravel.set(def, tr)
+  return tr.d
+}
+
+const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World): void => {
   const sup = !!live.super
   const vertical = live.dir === 'up' || live.dir === 'down'
   const along = vertical ? live.h : live.w
   const across = vertical ? live.w : live.h
   const angle = live.dir === 'right' ? 0 : live.dir === 'left' ? Math.PI : live.dir === 'down' ? Math.PI / 2 : -Math.PI / 2
-  const lanes = Math.max(1, Math.round(across / 64))
+  // Lanes about 36 px apart; every lane holds a few streaks of different lengths, a little off its centre.
+  const lanes = Math.max(1, Math.round(across / 36))
   const gap = across / lanes
-  const margin = Math.min(10, across * 0.08)
-  // A ribbon: as long as a third of the box (at most 130); as thick as its painting says, at most the lane.
-  const len = Math.min(130, Math.max(40, along * 0.34))
-  const boxes = ribbonsOf(img, s)
-  const amp0 = len * 0.2
+  const margin = Math.min(8, across * 0.08)
   const fadeLen = Math.min(along * 0.22, 70)
-  const per = Math.max(1, Math.round(along / 220))
-  const variants = sup ? s.anims.super!.frames : s.anims.normal!.frames
-  const t = w.time
+  const per = Math.max(1, Math.round(along / 260))
+  const travel = travelOf(def, live, w.time)
   const g = windLayerFor(ctx.canvas)
   if (!g) return
-  // The box on the screen (device px), a little wider for the ribbons' antialiased rims.
+  // The box on the screen (device px), a little wider for the strokes' antialiased rims.
   const m = ctx.getTransform()
   const corners = [[live.x, live.y], [live.x + live.w, live.y], [live.x, live.y + live.h], [live.x + live.w, live.y + live.h]].map(([x, y]) => m.transformPoint({ x, y }))
   const bx = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x))) - 2)
@@ -610,36 +780,40 @@ const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, w: World, img: 
   g.save()
   g.translate(live.x + live.w / 2, live.y + live.h / 2)
   g.rotate(angle)
-  g.imageSmoothingEnabled = true
-  g.imageSmoothingQuality = 'high'
+  g.lineCap = 'round'
+  g.lineJoin = 'round'
+  const ink = sup ? 'rgb(255, 196, 120)' : 'rgb(236, 242, 255)'
+  g.strokeStyle = ink
   for (let l = 0; l < lanes; l++) {
-    const c = -across / 2 + gap * (l + 0.5)
     const seedL = l * 3.7 + live.x * 0.011 + live.y * 0.017
-    // The lane's own gusts: its speed swells and eases.
-    const gust = 1 + 0.28 * Math.sin(t * 0.55 + seedL) + 0.12 * Math.sin(t * 1.7 + seedL * 2)
     for (let k = 0; k < per; k++) {
       const seed = seedL * 5 + k * 13
-      const speed = live.speed * (0.42 + rnd(seed) * 0.26) * gust
-      const lenK = len * (0.75 + rnd(seed + 3) * 0.4)
-      const period = along + lenK
-      const head = ((((t * speed + rnd(seed + 1) * period + (k * period) / per) % period) + period) % period)
-      const frame = variants[Math.floor(rnd(seed + 2) * variants.length)]!
-      const r = boxes[frame]!
-      const thick = Math.min((lenK * (r.y1 - r.y0)) / Math.max(1, r.x1 - r.x0), gap - margin * 2)
-      if (thick <= 2) continue
-      // A slow sway of the whole streak across its lane (never a bend running along it).
-      const room = Math.max(0, Math.min(gap / 2 - margin - thick / 2, amp0))
-      const sway = room * (0.7 * Math.sin(t * 0.45 + seed) + 0.3 * Math.sin(t * 0.17 + seed * 1.3))
-      const tilt = 0.06 * Math.cos(t * 0.45 + seed)
+      const len = Math.min(240, along * (0.32 + rnd(seed + 3) * 0.38))
+      const r = Math.max(2, Math.min(across / 4, 5 + rnd(seed + 4) * 5))
+      const bow = Math.max(0, Math.min(across / 4, len * (0.04 + rnd(seed + 5) * 0.05)))
+      const side: 1 | -1 = rnd(seed + 6) < 0.5 ? 1 : -1
+      const width = (sup ? 3.4 : 2.8) * (0.7 + rnd(seed + 7) * 0.6)
+      // Off the lane's centre a little, but the bow and the curl always inside the box.
+      const reach = Math.max(bow, 2 * r)
+      const c = Math.min(across / 2 - margin - reach, Math.max(-across / 2 + margin + reach, -across / 2 + gap * (l + 0.5) + (rnd(seed + 8) - 0.5) * gap * 0.3))
+      // Every streak in a current travels together, at the current's own pace: only where it starts differs.
+      const period = along + len
+      const head = ((((travel + rnd(seed + 1) * period + (k * period) / per) % period) + period) % period)
+      const { pts, widths } = streakOf(len, bow, r, side, width)
       g.save()
-      g.translate(head - lenK / 2 - along / 2, c + sway)
-      g.rotate(tilt)
-      g.drawImage(img, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, -lenK / 2, -thick / 2, lenK, thick)
+      g.translate(head - along / 2, c)
+      for (let i = 1; i < pts.length; i++) {
+        g.lineWidth = widths[i]!
+        g.beginPath()
+        g.moveTo(pts[i - 1]![0], pts[i - 1]![1])
+        g.lineTo(pts[i]![0], pts[i]![1])
+        g.stroke()
+      }
       g.restore()
     }
   }
-  // The ends of the box fade the ribbons in and out: a gradient cut out of the layer, so a
-  // ribbon dissolves smoothly as it enters and leaves (per-slice alpha would stripe it).
+  // The ends of the box fade the streaks in and out: a gradient cut out of the layer, so a
+  // streak dissolves smoothly as it enters and leaves (per-segment alpha would stripe it).
   g.globalCompositeOperation = 'destination-out'
   const inFade = g.createLinearGradient(-along / 2, 0, -along / 2 + fadeLen, 0)
   inFade.addColorStop(0, 'rgba(0, 0, 0, 1)')
@@ -656,7 +830,7 @@ const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, w: World, img: 
   // The whole current at once, at the wind's own strength.
   ctx.save()
   ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.globalAlpha = sup ? 0.9 : 0.78
+  ctx.globalAlpha = sup ? 0.85 : 0.62
   ctx.drawImage(g.canvas, bx, by, bw, bh, bx, by, bw, bh)
   ctx.restore()
 }
@@ -674,7 +848,7 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
     ctx.globalAlpha = sup ? 0.17 : 0.11
     softRect(ctx, tex, live.x, live.y, live.w, live.h, f)
     ctx.restore()
-    windGusts(ctx, live, w, img, sheet('wind-wisps'))
+    windGusts(ctx, live, def, w)
   } else if (live.speed > 0) {
     const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
     if (!tex) return false
