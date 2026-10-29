@@ -40,21 +40,31 @@ export interface Camera {
 /** Where each world's camera looks (smoothed); a new world (restart) snaps. */
 const followed = new WeakMap<World, { x: number; y: number }>()
 
+/** A portrait screen zooms in this much past "the whole width fits", so Pweeg and the level read at phone size. */
+export const PORTRAIT_ZOOM = 1.3
+
+/** Taller than wide: the levels are laid out for landscape, so this screen gets the portrait camera and backdrop. */
+export const isPortrait = (cw: number, ch: number): boolean => ch > cw
+
 /**
  * The camera. A level without `view` shows its whole world, letterboxed.
  * With `view` (one screen, in world units) it fits that screen into the
- * canvas — a portrait phone sees the full screen width and more height —
- * and scrolls with the player, clamped to the world's edges; an axis where
- * the world is smaller than what the canvas shows stays centred.
+ * canvas and scrolls with the player, clamped to the world's edges; an axis
+ * where the world is smaller than what the canvas shows stays centred.
+ * A portrait screen zooms in by PORTRAIT_ZOOM on either kind and follows the
+ * player sideways through the part of the width it no longer shows.
  */
 export const cameraFor = (w: World, cw: number, ch: number, dt = 0): Camera => {
   const { w: ww, h: wh } = w.level.world
   const view = w.level.view
-  if (!view || (view.w >= ww && view.h >= wh)) {
+  const whole = !view || (view.w >= ww && view.h >= wh)
+  const portrait = isPortrait(cw, ch)
+  if (whole && !portrait) {
     const s = Math.min(cw / ww, ch / wh)
     return { s, ox: (cw - ww * s) / 2, oy: (ch - wh * s) / 2 }
   }
-  const s = Math.min(cw / view.w, ch / view.h)
+  const screen = whole ? { w: ww, h: wh } : view!
+  const s = Math.min(cw / screen.w, ch / screen.h) * (portrait ? PORTRAIT_ZOOM : 1)
   const vw = cw / s
   const vh = ch / s
   const pl = w.player
@@ -539,19 +549,28 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   const { s, ox, oy } = camera
   // A painted backdrop (the lantern build's night sky) fills the screen behind the level.
   const backdrop = artLayer && !!kiteArt.backdrop?.(ctx, cw, ch, camera, w)
+  // Portrait (the levels are landscape): the level's ground runs the whole screen instead of a strip.
+  const fullBleed = !cam && isPortrait(cw, ch)
+  if (fullBleed && !backdrop) {
+    ctx.fillStyle = BG
+    ctx.fillRect(0, 0, cw, ch)
+  }
   ctx.setTransform(s, 0, 0, s, ox, oy)
   if (backdrop) {
-    // Outside the level the sky is veiled, so its edge still reads; inside, a
-    // faint night tint keeps the sky behind the play.
+    // Outside the level the sky is veiled, so its edge still reads (not in portrait,
+    // where the sky fills the screen); inside, a faint night tint keeps the sky behind the play.
     const { w: ww, h: wh } = w.level.world
-    ctx.fillStyle = 'rgba(10, 8, 24, 0.6)'
-    ctx.beginPath()
-    ctx.rect(-1e5, -1e5, 2e5, 2e5)
-    ctx.rect(0, 0, ww, wh)
-    ctx.fill('evenodd')
+    if (!fullBleed) {
+      ctx.fillStyle = 'rgba(10, 8, 24, 0.6)'
+      ctx.beginPath()
+      ctx.rect(-1e5, -1e5, 2e5, 2e5)
+      ctx.rect(0, 0, ww, wh)
+      ctx.fill('evenodd')
+    }
     ctx.fillStyle = 'rgba(26, 22, 56, 0.36)'
-    ctx.fillRect(0, 0, ww, wh)
-  } else {
+    if (fullBleed) ctx.fillRect(-1e5, -1e5, 2e5, 2e5)
+    else ctx.fillRect(0, 0, ww, wh)
+  } else if (!fullBleed) {
     ctx.fillStyle = BG
     ctx.fillRect(0, 0, w.level.world.w, w.level.world.h)
   }

@@ -149,13 +149,26 @@ def cut(mask, name, soft=False):
     x0, x1 = max(0, xs.min() - pad), min(W, xs.max() + pad + 1)
     rgb = im[y0:y1, x0:x1]
     if soft:
-        # Glow against the filled sky: alpha from how much lighter the painting is there.
+        # The paper body stays opaque. Around it the glow is LIGHT, not sky: warm lantern light whose
+        # alpha is how much lighter the painting is than the filled sky behind it, and which fades
+        # to nothing smoothly before the sprite's edge. (Tinting the glow from the night sky made it
+        # a dark ring over the moon, and a binary reach cut it off in a hard line.)
         bg = far[y0:y1, x0:x1]
-        d = (rgb - bg).max(axis=2)
-        a = np.clip(d / 90.0, 0, 1) * ndi.binary_dilation(mask, iterations=int(6 * sx))[y0:y1, x0:x1]
-        a = np.maximum(a, ndi.binary_erosion(mask, iterations=1)[y0:y1, x0:x1].astype(np.float32))
-        fg = np.clip(bg + (rgb - bg) / np.maximum(a[..., None], 1e-3), 0, 255)
-        col = np.where(a[..., None] > 0.02, fg, rgb)
+        m = mask[y0:y1, x0:x1]
+        body = ndi.binary_erosion(m, iterations=1)
+        lit = (0.299 * rgb[..., 0] + 0.587 * rgb[..., 1] + 0.114 * rgb[..., 2]) - (0.299 * bg[..., 0] + 0.587 * bg[..., 1] + 0.114 * bg[..., 2])
+        # The light's colour: the brightest warm edge of the lantern itself.
+        ring = ndi.binary_dilation(m, iterations=2) & ~body
+        light = np.percentile(rgb[ring], 90, axis=0) if ring.any() else np.array([255.0, 190.0, 120.0])
+        light = np.maximum(light, [235.0, 170.0, 105.0])
+        gain = max(1.0, float(0.299 * light[0] + 0.587 * light[1] + 0.114 * light[2]) - float(np.median(0.299 * bg[..., 0] + 0.587 * bg[..., 1] + 0.114 * bg[..., 2])))
+        reach = pad - 1  # px from the paper's edge to where the glow is gone
+        fall = np.clip(1 - ndi.distance_transform_edt(~m) / reach, 0, 1)
+        fall = fall * fall * (3 - 2 * fall)  # smoothstep
+        glow_a = np.clip(lit / gain, 0, 1) * fall
+        a = np.where(body, 1.0, glow_a)
+        a = ndi.gaussian_filter(a, 0.5)  # no stair-step where the paper meets its glow
+        col = np.where(body[..., None], rgb, light[None, None, :])
     else:
         a = ndi.gaussian_filter(mask[y0:y1, x0:x1].astype(np.float32), 0.6)
         col = rgb

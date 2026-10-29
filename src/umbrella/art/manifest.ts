@@ -263,7 +263,7 @@ export const SHEETS: SheetDef[] = [
     cols: 4, rows: 4, box: FIGURE, model: 'chad-model', tier: 2, fit: 'feet',
     anims: { walk: { frames: range(0, 15), fps: 0 } },
     blurb: `${CHAD_IS}, strolling to the right`, colour: CHAD_COLOUR, view: SIDE_VIEW, one: 'Chad',
-    readPanels: 'One full walk cycle in 16 even steps, exactly like Pweeg\'s: the tube legs lift and swing alternately, the free arm swings, the facing-side arm stays forward (it holds a furled umbrella the game draws separately — paint NO umbrella). Panel 16 leads straight back into panel 1.'
+    readPanels: 'One full walk cycle in 16 even steps, exactly like Pweeg\'s: the tube legs lift and swing alternately, the free arm swings, the facing-side arm stays forward (it holds a furled umbrella the game draws separately — paint NO umbrella). Panel 16 leads straight back into panel 1. EVERY one of the 16 panels is a SIDE-VIEW walking stride facing right, mid-step like the layout reference: none faces the viewer, stands still, kneels, presses its palms together or squats — those are the model sheet\'s poses, and no pose is ever copied from the model sheet.'
   },
   {
     id: 'chad-hover', styleRef: STYLE_WORLD, group: 'chad', doc: 'PROMPTS-CHARACTERS.md', title: 'Chad — float under the umbrella', use: 'sprite',

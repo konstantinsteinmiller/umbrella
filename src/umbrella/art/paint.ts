@@ -829,6 +829,10 @@ const LANTERN_IDS = Array.from({ length: 8 }, (_, i) => `backdrop-lantern-${i + 
 const SKY_LANTERNS = 30
 /** The town band starts this far down the painting. */
 const NEAR_TOP = 557
+/** The furthest a layer slides sideways, as a share of the screen width. A portrait screen scales the plate to
+ *  its height, which leaves it about four screens wide: sliding through all of that spare width swung the sky by a
+ *  third of the screen per step. Landscape never has this much spare width, so it is unchanged. */
+const SLIDE_MAX = 0.25
 
 /** One layer of the sky: a plate-sized picture slid by `depth` of the camera's travel. */
 interface Frame { x: number; y: number; k: number; dw: number; dh: number }
@@ -840,7 +844,7 @@ const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, 
   const plate = (depth: number): Frame => {
     const dw = PLATE.w * k
     const dh = PLATE.h * k
-    return { x: (cw - dw) / 2 - u * (dw - cw) * depth, y: (ch - dh) / 2 - v * (dh - ch) * depth, k, dw, dh }
+    return { x: (cw - dw) / 2 - u * Math.min(dw - cw, cw * SLIDE_MAX) * depth, y: (ch - dh) / 2 - v * (dh - ch) * depth, k, dw, dh }
   }
   const f = plate(1)
   ctx.drawImage(far, f.x, f.y, f.dw, f.dh)
@@ -888,7 +892,7 @@ const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, 
     const kn = k * 1.12
     const dw = PLATE.w * kn
     const dh = near.height * (dw / near.width)
-    const x = (cw - dw) / 2 - u * (dw - cw) * 1.8
+    const x = (cw - dw) / 2 - u * Math.min(dw - cw, cw * SLIDE_MAX) * 1.8
     const yTop = ch - dh * 0.92 - v * ch * 0.06
     for (const c of NEAR_CLOUDS) {
       const img = sheetImage(c.id)
@@ -922,7 +926,7 @@ const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Ca
   const k = Math.max(cw / img.width, ch / img.height) * 1.08
   const dw = img.width * k
   const dh = img.height * k
-  ctx.drawImage(img, (cw - dw) / 2 - u * (dw - cw), (ch - dh) / 2 - v * (dh - ch), dw, dh)
+  ctx.drawImage(img, (cw - dw) / 2 - u * Math.min(dw - cw, cw * SLIDE_MAX), (ch - dh) / 2 - v * (dh - ch), dw, dh)
   return true
 }
 

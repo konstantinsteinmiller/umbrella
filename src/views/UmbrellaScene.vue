@@ -759,7 +759,7 @@ let typed = ''
 const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if ((e.target as HTMLElement | null)?.tagName === 'INPUT' || !started.value) return
   if (down) unlockAudio() // a keyboard-only first visit must hear the intro too
-  if (down) touchUI.value = false // a keyboard player needs no joystick
+  if (down) lastTouch.value = false // a keyboard player at a desktop needs no joystick
   if (introOn.value && !showPause.value) {
     if (down && !e.repeat) {
       if (e.code === 'Escape') endIntro()
@@ -795,23 +795,31 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if (down) unlockAudio()
 }
 // ── Touch: a left/right joystick bottom-left, the umbrella button bottom-right ──
-/** Shown on touch screens, and from the first touch on any device. */
-/** Phones and tablets (the primary pointer is a finger): "Tap to play"; a mouse or a touch laptop: "Click to play". */
+/** The desktop key hints: a teaching aid, so only for the first three campaign levels and never beside the touch controls. */
 const showControls = computed(() => !touchUI.value && !introOn.value && !testing && !playing.value && !challenge.value && levelIndex.value < 3)
-// Touch controls start only on a phone or tablet, decided by the DEVICE (the shared `mobileCheck()` user-agent
-// test, Android / Kindle tablets, and iPadOS asking for the desktop site: a Mac user agent with several touch
-// points) — never by `(pointer: coarse)` or `'ontouchstart' in window`, which are true on desktops with a touch
-// screen and put the joystick there. From then on the controls follow the last input: a touch shows them, a
-// mouse click or a key press hides them.
+// The touch controls are how a phone plays, not hints: on a phone or tablet they show on every level, whatever the
+// last input was. The DEVICE decides (the shared `mobileCheck()` user-agent test, Android / Kindle tablets, and
+// iPadOS asking for the desktop site: a Mac user agent with several touch points) — never `(pointer: coarse)` or
+// `'ontouchstart' in window`, which are true on desktops with a touch screen and put the joystick there. A
+// phone-sized portrait viewport counts as a phone too. Only a desktop-sized window follows the last input: a
+// touch shows them, a mouse click or a key press hides them.
+/** Phones and tablets (the primary pointer is a finger): "Tap to play"; a mouse or a touch laptop: "Click to play". */
 const tapDevice = (() => {
   if (typeof navigator === 'undefined') return false
   const ua = navigator.userAgent || ''
   return mobileCheck() || /Android|iPad|Tablet|Kindle|Silk/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
 })()
-const touchUI = ref(tapDevice)
+/** Taller than wide and phone-narrow: laid out (and played) as a phone. */
+const PHONE_VIEWPORT_MAX = 600
+const isPhoneViewport = () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth && window.innerWidth <= PHONE_VIEWPORT_MAX
+const phoneViewport = ref(isPhoneViewport())
+const onViewport = () => { phoneViewport.value = isPhoneViewport() }
+/** The last input was a finger (a desktop only: phones and tablets always show the controls). */
+const lastTouch = ref(false)
+const touchUI = computed(() => tapDevice || phoneViewport.value || lastTouch.value)
 const onAnyPointer = (e: PointerEvent) => {
-  if (e.pointerType === 'touch') touchUI.value = true
-  else if (e.pointerType === 'mouse') touchUI.value = false
+  if (e.pointerType === 'touch') lastTouch.value = true
+  else if (e.pointerType === 'mouse') lastTouch.value = false
   unlockAudio()
   if (introOn.value && !(e.target as HTMLElement | null)?.closest('.intro-skip')) requestSkip()
 }
@@ -892,6 +900,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('blur', onBlur)
+  window.addEventListener('resize', onViewport)
   gui = createTuningGui({ tuning, levels: LEVELS, onLevelsChange: saveLevels })
   gui.setLevel(world.level)
   gui.toggle(editorUnlocked.value)
@@ -914,6 +923,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
   window.removeEventListener('blur', onBlur)
+  window.removeEventListener('resize', onViewport)
   cancelAnimationFrame(raf)
   window.clearTimeout(reviveTimer)
   window.clearTimeout(skipTimer)
@@ -979,7 +989,7 @@ onUnmounted(() => {
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true"><svg class="grid-ico" viewBox="0 0 18 18" aria-hidden="true"><rect v-for="k in 9" :key="k" :x="((k - 1) % 3) * 6 + 0.6" :y="Math.floor((k - 1) / 3) * 6 + 0.6" width="4.8" height="4.8" rx="1.3" /></svg></button>
 <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
-      <button v-if="communityEnabled" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 {{ t('umbrella.community.button') }}</button>
+      <button v-if="communityEnabled" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 <span class="hud-btn-text">{{ t('umbrella.community.button') }}</span></button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
     </template>
@@ -1004,8 +1014,8 @@ onUnmounted(() => {
       <li><span class="keys"><kbd class="wide">Space</kbd><i>/</i><kbd class="wide">Enter</kbd></span><span class="what">{{ t('umbrella.ctlUmbrella') }}</span></li>
       <li><span class="keys"><kbd>R</kbd></span><span class="what">{{ t('umbrella.ctlRestart') }}</span></li>
     </ul>
-    <!-- The touch controls: phones and tablets, or after a touch (`touchUI`) — never just because the key
-         list above is hidden (from level 4 on, in tests and player levels), which put them on every desktop. -->
+    <!-- The touch controls (`touchUI`): on phones, tablets and phone-sized portrait viewports at every level (they
+         are the controls, not hints); on a desktop only after a touch — never because the key list is hidden. -->
     <template v-if="touchUI && !introOn">
       <div
         class="stick"
@@ -1266,6 +1276,14 @@ onUnmounted(() => {
 }
 .umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); transform: scale(0.94); }
 .hud-btn.wide { width: auto; padding: 0 12px; font-size: 16px; font-weight: 700; }
+/* A phone held upright: the bar would run off both edges, so Community keeps only its globe,
+   the gaps tighten and, on the narrowest screens, the row wraps instead of clipping. */
+@media (max-width: 560px) {
+  .hud { left: 8px; right: 8px; transform: none; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .hud-level { min-width: 76px; font-size: 18px; }
+  .hud-btn.wide { width: 36px; padding: 0; }
+  .hud-btn-text { display: none; }
+}
 .hud-level.custom {
   max-width: 220px;
   overflow: hidden;

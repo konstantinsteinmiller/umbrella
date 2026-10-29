@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createWorld, step, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { LEVELS } from '@/umbrella/levels'
-import { cameraFor } from '@/umbrella/renderer'
+import { cameraFor, PORTRAIT_ZOOM } from '@/umbrella/renderer'
 import { DEFAULT_TUNING as T } from '@/umbrella/tuning'
 
 const DT = 1 / 120
@@ -212,10 +212,28 @@ describe('umbrella engine', () => {
     expect(Math.min(...seen)).toBeGreaterThanOrEqual(0)
     expect(Math.max(...seen)).toBeLessThanOrEqual(2780 - 1280 + 1e-6)
     expect(Math.max(...seen)).toBeGreaterThan(1200)
-    // A portrait phone keeps the screen's full width and is centred vertically.
+    // A portrait phone zooms in past the screen's full width and is centred vertically.
     const tall = cameraFor(w, 390, 844)
-    expect(tall.s).toBeCloseTo(390 / 1280)
+    expect(tall.s).toBeCloseTo((390 / 1280) * PORTRAIT_ZOOM)
     expect(tall.oy).toBeGreaterThan(0)
+  })
+
+  it('portrait screens zoom a one-screen level in by PORTRAIT_ZOOM and follow the player sideways inside the world; landscape keeps the whole level', () => {
+    const w = level(1)
+    const { w: ww, h: wh } = w.level.world
+    const wide = cameraFor(w, 1280, 720)
+    expect(wide.s).toBeCloseTo(Math.min(1280 / ww, 720 / wh))
+    const phone = cameraFor(w, 390, 844)
+    expect(phone.s).toBeCloseTo(Math.min(390 / ww, 844 / wh) * PORTRAIT_ZOOM)
+    // The screen shows less than the world's width: the view stays inside the world …
+    expect(phone.ox).toBeLessThanOrEqual(0)
+    expect(phone.ox).toBeGreaterThanOrEqual(390 - ww * phone.s - 1e-6)
+    // … and is centred vertically, the level's height fitting with room to spare.
+    expect(phone.oy).toBeCloseTo((844 - wh * phone.s) / 2)
+    // A player at the right end of the level brings the camera there.
+    const far = level(1)
+    far.player.x = ww - far.player.w - 10
+    expect(cameraFor(far, 390, 844).ox).toBeCloseTo(390 - ww * phone.s)
   })
 
   it('a proximity-triggered Walldorf waits, strikes once at an airborne player in range, faster with speed; non-hostile never hurts', () => {
