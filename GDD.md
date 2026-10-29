@@ -335,7 +335,17 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 **Sound**
 · Mine fields are quieter: one alert voice, a thinner fuse ticking when several mines are close.
 
-## Revision 
+## Revision 12
+**Chapters**
+· The campaign is split into chapters; Chapter 1 holds every current level. In the editor's Reorder dialog chapters are rows above their levels: rename, subtitle, move, delete, add, and pick the chapter a new player starts with. Saved on the server with the campaign order.
+· Chapter card: "Chapter N" and its subtitle with a chapter sound for 3 s on a chapter's first level; the start chapter's card plays right after the intro.
+· Game Jam chapter: campaign and saved levels put together for the jam; only the itch.io build plays it (as the whole game), and the editor can test it on any build.
+**Portal ads**
+· An interstitial when Pweeg dies, never in the first 240 s of play and at least 121 s apart, before the respawn. 20 taps in a row on the level label request a rewarded ad; typing "cmunc" an interstitial (tester shortcuts).
+· Ads and the menus silence the music and sounds; the click-to-play screen and the intro are not gameplay for the portals.
+**Art**
+· ?art=lantern opens the "Paper Moon" lantern-festival look (the normal game, painted); its art is being painted piece by piece, starting with the night sky, the ledges, the finish pad and the parasol.
+
 ## Revision 
 ## Revision 
 ## Revision 
