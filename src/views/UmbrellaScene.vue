@@ -18,7 +18,8 @@ import {
 import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
-import { isLantern } from '@/umbrella/kite'
+import { isKite, isLantern } from '@/umbrella/kite'
+import { ART_MODES, artModeUrl, currentArtMode, switchArtMode, type ArtMode } from '@/umbrella/artMode'
 import { editorAllowed } from '@/umbrella/editorAccess'
 import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
 import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
@@ -86,6 +87,10 @@ const backToEditor = () => {
   void router.push('/editor')
 }
 const openEditor = () => void router.push('/editor')
+// The art switch under it: the drawn game or the lantern origami, each its own build (artMode.ts).
+const artMode = currentArtMode()
+const artSwitch = !isKite && artModeUrl(window.location.href, 'drawn') !== null
+const pickArt = (e: Event) => switchArtMode((e.target as HTMLSelectElement).value as ArtMode)
 
 // ── Player levels: share links, the community list, stars ──
 const showCommunity = ref(false)
@@ -1012,7 +1017,16 @@ onUnmounted(() => {
       @close="showRate = false"
     />
 
-    <button v-if="editorUnlocked && !testing && editorAllowed" class="open-editor" :class="{ 'above-stick': touchUI }" @click="openEditor">OPEN EDITOR</button>
+    <div v-if="editorUnlocked && !testing && editorAllowed" class="designer-tools" :class="{ 'above-stick': touchUI }">
+      <button class="open-editor" @click="openEditor">OPEN EDITOR</button>
+      <!-- Which art the game is drawn in: picking one reloads the game in it (artMode.ts). -->
+      <label v-if="artSwitch" class="art-mode">
+        <span>Art</span>
+        <select :value="artMode" aria-label="Art style" @change="pickArt">
+          <option v-for="m in ART_MODES" :key="m.id" :value="m.id">{{ m.label }}</option>
+        </select>
+      </label>
+    </div>
     <!-- The controls, in the bottom right, for the first three campaign levels. -->
     <ul v-if="showControls" class="controls" :aria-label="t('umbrella.controls')">
       <li><span class="keys"><kbd>←</kbd><kbd>→</kbd><i>/</i><kbd>A</kbd><kbd>D</kbd></span><span class="what">{{ t('umbrella.ctlMove') }}</span></li>
@@ -1109,7 +1123,6 @@ onUnmounted(() => {
             >
               <span class="level-num" :class="{ timed: !!activeTimeLimit(LEVELS[i]!) }">{{ i + 1 }}</span>
               <StarRating v-if="activeTimeLimit(LEVELS[i]!)" class="tile-stars" :stars="timeStarBest[LEVELS[i]!.id] ?? 0" :label="t('umbrella.rating', { n: timeStarBest[LEVELS[i]!.id] ?? 0 })" />
-              <span v-if="cleared.includes(i)" class="level-tick">✓</span>
               <span v-if="LEVELS[i]!.stars?.length" class="level-stars">★{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
             </button>
           </div>
@@ -1212,10 +1225,41 @@ onUnmounted(() => {
 }
 .controls kbd.wide { padding: 3px 10px; }
 .controls .what { min-width: 150px; text-align: left; opacity: 0.85; }
-.open-editor {
+.designer-tools {
   position: absolute;
   left: 16px;
   bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  z-index: 2;
+}
+.designer-tools.above-stick { bottom: 170px; }
+.art-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 2px solid #fff;
+  border-radius: 10px;
+  background: rgba(7, 10, 20, 0.8);
+  color: #fff;
+  font: 800 14px system-ui, sans-serif;
+  letter-spacing: 0.04em;
+}
+.art-mode select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  color: #000;
+  font: 700 14px system-ui, sans-serif;
+  cursor: pointer;
+}
+.open-editor {
   padding: 14px 26px;
   border: 2px solid #fff;
   border-radius: 10px;
@@ -1227,7 +1271,6 @@ onUnmounted(() => {
   z-index: 2;
 }
 .open-editor:hover { filter: brightness(1.1); }
-.open-editor.above-stick { bottom: 170px; }
 .stick,
 .umbrella-btn {
   position: absolute;
@@ -1629,11 +1672,6 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   bottom: 13%;
   font-size: clamp(15px, 2.6vw, 19px);
 }
-.level-tick {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  font-size: 14px;
-  color: #7ee08a;
-}
+/* A cleared level shows its number in the tick's green: no extra mark to squeeze into a small tile. */
+.level-tile.cleared .level-num { color: #7ee08a; }
 </style>

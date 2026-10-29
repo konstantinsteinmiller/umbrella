@@ -12,6 +12,8 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 12 — 2026-10-29 ==
+- [x] Cheat mode: an "Art" dropdown under OPEN EDITOR picks "Drawn only" or "Origami: Lantern" and reloads the game in it (?art=lantern opens the lantern build of the same revision)
+- [x] Level select: a cleared level shows its number in green instead of a check mark squeezed into the tile (it sat misplaced on portrait phones)
 - [x] No more 404s at start: the predecessor's coin is no longer preloaded (Umbrella never shows it), the app icons exist (Pweeg under his umbrella, 192 and 512 px, drawn by the game itself), and the ad-block notice no longer asks for a ribbon image that never shipped
 - [x] Lantern finish: the concept's festival dais — a golden lantern-lit drum stage with a red lacquer band, gold tassels and red and blue pennants hanging under its rim and swaying — instead of the labelled pad
 - [x] Lantern warp gates are vermilion torii (black curved top beam, black feet) with a swirling teal portal turning between the posts; the posts stretch to any gate height
