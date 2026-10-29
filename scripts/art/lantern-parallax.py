@@ -107,10 +107,29 @@ def fill(img, hole, sigma, support=None):
 lantern_holes = ndi.binary_dilation(glow_zone, iterations=int(10 * sx))
 cloud_holes = ndi.binary_dilation(clouds, iterations=int(5 * sx))
 cloud_holes |= ndi.shift(cloud_holes, (int(7 * sy), 0), order=0)  # the shadow falls below
-sky_holes = (lantern_holes | cloud_holes) & ~moon & ~garlands
-moon_holes = (lantern_holes | cloud_holes) & moon
-far = fill(im, sky_holes, 4 * sx, support=~moon)
-far = fill(far, moon_holes, 3 * sx, support=moon)
+# The moon is rebuilt rather than patched: a patch along its rim leaves a jagged edge where the
+# fill meets the sky. So the sky is filled in behind the whole moon and its glow, the moon's own
+# painted texture is kept (only the spots lanterns covered are filled, from moon pixels alone),
+# and it goes back on as an anti-aliased disc (a 4× supersampled edge) with a soft halo.
+halo = (xx - moon_c[0]) ** 2 + (yy - moon_c[1]) ** 2 <= (moon_r + 26 * sx) ** 2
+# Near the moon a lantern always goes, string-light corner or not (it would bleed into the halo).
+near_moon_zone = (xx - moon_c[0]) ** 2 + (yy - moon_c[1]) ** 2 <= (moon_r + 70 * sx) ** 2
+sky_holes = ((lantern_holes | cloud_holes) & ~(garlands & ~near_moon_zone)) | halo
+far = fill(im, sky_holes, 4 * sx, support=~halo)
+inner = (xx - moon_c[0]) ** 2 + (yy - moon_c[1]) ** 2 <= (moon_r - 3) ** 2
+moon_tex = fill(im, (lantern_holes | cloud_holes | ~inner) & halo, 3 * sx, support=inner & ~lantern_holes & ~cloud_holes)
+d = np.hypot(xx - moon_c[0], yy - moon_c[1])
+ss = 4
+sub = (np.arange(ss) + 0.5) / ss - 0.5
+cov = np.zeros_like(d)
+for oy in sub:
+    for ox in sub:
+        cov += np.hypot(xx + ox - moon_c[0], yy + oy - moon_c[1]) <= moon_r - 0.5
+cov /= ss * ss
+glow = np.clip(1 - (d - moon_r) / (34 * sx), 0, 1) ** 2 * 0.32 * (d > moon_r - 1)
+cream = np.array([236.0, 222.0, 196.0])
+far = far * (1 - glow[..., None]) + cream * glow[..., None]
+far = far * (1 - cov[..., None]) + moon_tex * cov[..., None]
 # Under the town the mountains carry on: each column repeats its colour from just above the
 # roofs, softened, so a parallax shift never shows a hole.
 top_of_town = np.where(town.any(axis=0), town.argmax(axis=0), H)

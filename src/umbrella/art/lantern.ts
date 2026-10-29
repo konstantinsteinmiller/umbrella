@@ -76,7 +76,10 @@ export const LANTERN_SHEETS: SheetDef[] = [
   pweeg('pweeg-fall', {
     readPanels: 'A fast flail loop of ONE pose: in all 16 panels he is UPRIGHT, head at the top in exactly the same place, body straight below it — never rotated, tilted, upside-down, tumbling or lying down (the game tips him itself). Both arms flung up and out, legs bent out, a startled face; from panel to panel ONLY the arms and feet wiggle a little out and back. Panel 16 leads straight back into panel 1.'
   }),
-  pweeg('pweeg-terminal'),
+  // The kite wording says "goggle eyes" for his panic, which a painter reads as glasses: say what it means.
+  pweeg('pweeg-terminal', {
+    blurb: `${KAMI_IS}, at terminal velocity: no arms showing, his two legs stretched long and straight below him, pure panic in his face — his two ink-dot eyes opened WIDE into big round staring eyes (white with a small dark pupil, drawn ON his paper face). He wears NOTHING on his face: no glasses, no goggles, no spectacles, no rims. Paint him the way up the reference shows; the game turns him upside down`
+  }),
   // Raised arms reach the row above, so the grid cannot be measured; the panels sit on the lattice.
   pweeg('pweeg-cheer', { gridCheck: 'nominal' }),
   pweeg('pweeg-flattened', { blurb: `${KAMI_IS}, squashed flat by a hard landing like a crumpled, flattened sheet of origami paper` }, false),
