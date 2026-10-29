@@ -30,6 +30,9 @@ import { playEnemySfx, playSfx, setAudioLevels, setAudioMuted, unlockAudio, upda
 import { AMBIENCE_IDLE, type AmbienceState } from '@/umbrella/soundKit'
 import { getState, setState } from '@/use/useEpicState'
 import { isGamePaused, isAudioPaused } from '@/use/useGamePause'
+import { acquireModalOpen } from '@/use/useModalState'
+import { setRunBreak } from '@/use/usePortalGameplay'
+import { notePlayTime, onDeath, tapLevelLabel } from '@/umbrella/ads'
 import { isPlatformAudioMuted } from '@/use/useGamePauseAudio'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
 
@@ -512,7 +515,19 @@ const ambience = (): AmbienceState => {
 }
 let ambienceClock = 0
 
+/** A death interstitial is up: the world stays frozen on the death until it closes. */
+let deathAdHold = false
+/** Dying: the interstitial first when one is due (umbrella/ads.ts), then the respawn. */
+const die = () => {
+  if (testing) { fail(); return }
+  deathAdHold = onDeath(() => {
+    deathAdHold = false
+    fail()
+  })
+}
+
 const tick = () => {
+  if (deathAdHold) return
   if (warp) {
     // The current carries him: no physics, just the ride up the column.
     warp.t += DT
@@ -530,13 +545,14 @@ const tick = () => {
   const input: Input = { left: held.left || stickDir.value < 0, right: held.right || stickDir.value > 0, toggle: togglePending }
   togglePending = false
   const vyBefore = world.player.vy
+  if (world.phase === 'play') notePlayTime(DT)
   const events = step(world, input, DT, tuning)
   onEvents(events, vyBefore)
   if (events.includes('star')) syncStars()
   enemyCues(events)
   // Failure resets the level at the spawn point, or revives at the last checkpoint.
-  if (world.phase === 'out') fail()
-  else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) fail()
+  if (world.phase === 'out') die()
+  else if (world.phase === 'splat' && world.phaseTime >= tuning.splatReset) die()
   else if (world.phase === 'win' && world.phaseTime >= tuning.winHold) {
     if (testing) { if (testReturn) leaveTestChallenge(); else restart() }
     else if (challenge.value) leaveChallenge()
@@ -717,7 +733,21 @@ const toggleMute = () => {
   userMuted.value = !userMuted.value
   setState('umb_muted', userMuted.value)
 }
-const audioMuted = computed(() => userMuted.value || isAudioPaused.value || isPlatformAudioMuted.value || isMobileAudioMuted.value)
+// The menus (pause, level list, community, star rating) are modals: they freeze the game, tell the
+// portal gameplay has stopped, and silence the music and sounds until they close.
+const menuOpen = computed(() => showPause.value || showLevels.value || showCommunity.value || showRate.value)
+let releaseMenu: (() => void) | null = null
+watch(menuOpen, (open) => {
+  if (open) releaseMenu ??= acquireModalOpen()
+  else {
+    releaseMenu?.()
+    releaseMenu = null
+  }
+}, { immediate: true, flush: 'sync' })
+// The click-to-play screen and the intro cutscene are not gameplay: no portal gameplayStart under them.
+// (Default flush: the click that starts a new player's intro settles before the bracket reads it.)
+watch(() => !started.value || introOn.value, (held) => setRunBreak(held), { immediate: true })
+const audioMuted = computed(() => userMuted.value || menuOpen.value || isAudioPaused.value || isPlatformAudioMuted.value || isMobileAudioMuted.value)
 watch(audioMuted, (m) => setAudioMuted(m), { immediate: true, flush: 'sync' })
 watch(
   () => [tuning.masterVolume, tuning.musicVolume, tuning.sfxVolume, tuning.windVolume],
@@ -754,6 +784,9 @@ onUnmounted(() => {
   cancelAnimationFrame(raf)
   window.clearTimeout(reviveTimer)
   window.clearTimeout(skipTimer)
+  releaseMenu?.()
+  releaseMenu = null
+  setRunBreak(false)
   gui?.destroy()
 })
 
@@ -800,7 +833,7 @@ onUnmounted(() => {
     </div>
     <div v-else class="hud">
       <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="stepLevel(-1)">‹</button>
-      <span class="hud-level">{{ t('umbrella.level', { n: shownIndex() + 1 }) }}<template v-if="challenge"> · {{ t('umbrella.challenge') }}</template></span>
+      <span class="hud-level" @pointerdown="tapLevelLabel">{{ t('umbrella.level', { n: shownIndex() + 1 }) }}<template v-if="challenge"> · {{ t('umbrella.challenge') }}</template></span>
       <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="stepLevel(1)">›</button>
       <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true">☰</button>
@@ -944,6 +977,9 @@ onUnmounted(() => {
   font-size: 20px;
   min-width: 110px;
   text-align: center;
+  /* Tapped twenty times in a row it requests a rewarded ad (umbrella/ads.ts): no text selection, no double-tap zoom. */
+  user-select: none;
+  touch-action: manipulation;
 }
 .hud-btn {
   width: 36px;

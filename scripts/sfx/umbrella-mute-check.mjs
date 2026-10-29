@@ -87,9 +87,9 @@ try {
         await send('Input.dispatchKeyEvent', { type, code, key: keyName, windowsVirtualKeyCode: vk }, sessionId)
       }
     }
-    // The game opens on a Play button: that click is the first gesture.
+    // The game opens on a whole-screen "Click to play": that click is the first gesture.
     const clickPlay = async () => {
-      const r = await evaluate('(() => { const b = document.querySelector(".start-play")?.getBoundingClientRect(); return b ? [b.x + b.width / 2, b.y + b.height / 2] : null })()')
+      const r = await evaluate('(() => { const b = document.querySelector(".start-screen")?.getBoundingClientRect(); return b ? [b.x + b.width / 2, b.y + b.height / 2] : null })()')
       if (!r) return
       for (const type of ['mousePressed', 'mouseReleased']) {
         await send('Input.dispatchMouseEvent', { type, x: r[0], y: r[1], button: 'left', clickCount: 1 }, sessionId)
@@ -150,6 +150,18 @@ try {
   await muted('portal mute (game keeps running)',
     () => g.gate('useGamePauseAudio', 'm.setPlatformAudioMuted(true)'),
     () => g.gate('useGamePauseAudio', 'm.setPlatformAudioMuted(false)'))
+
+  // A menu (the pause menu, opened with Esc like a player does) silences music and sounds through the
+  // last gain stage — the context keeps running — and they come back when it closes.
+  await g.key('Escape', 'Escape', 27)
+  await sleep(400)
+  s = await g.snap()
+  const menuUp = await g.evaluate('!!document.querySelector(".pause-back")')
+  check('pause menu: open, music and sounds silent', menuUp && s.muted && s.rms < 1e-5 && s.voices === 0, { menuUp, ...s })
+  await g.key('Escape', 'Escape', 27)
+  await sleep(1500)
+  s = await g.snap()
+  check('pause menu: sound back after it closes', !s.muted && s.rms > 1e-4, s)
 
   // The second layer alone: mute only the last gain stage, leave the context
   // running (as if the suspend never landed) — the speakers must still go silent.
