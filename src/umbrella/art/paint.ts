@@ -516,15 +516,15 @@ const rnd = (n: number): number => {
   return x - Math.floor(x)
 }
 
-// ─── Lantern wind: painted ribbons bent along moving splines ───────────────
+// ─── Lantern wind: painted gusts gliding down the current ──────────────────
 //
-// Each wisp is its painted ribbon cut into thin slices, every slice placed and turned along the
-// lane's centre line, which meanders like moving air: two travelling waves of different length
-// drifting at different paces plus a slow lane drift, so a ribbon bends, the bend runs down it, and
-// no two wisps move alike. Gusts swell and ease each lane's speed. Everything stays INSIDE the box:
-// the lanes keep a margin, the ribbon is sized to the lane, the wobble to what is left, and every
-// slice fades in and out near the box's ends — never cut off at an edge.
-const WISP_SLICES = 18
+// Each wisp is its painted ribbon, kept whole in its own swoosh-and-curl shape, sliding downstream
+// along a lane like a gust streak. Nothing on it ever moves against the flow: no bends run along a
+// ribbon (a meandering spline did, and its bends crawled backwards against the ribbon's own travel).
+// Each wisp has its own pace and length, each lane its gusts that swell and ease it, and a slow sway
+// of the whole streak across its lane. Everything stays INSIDE the box: the lanes keep a margin, the
+// ribbon is sized to the lane, the sway to what is left, and the ribbons fade in and out near the
+// box's ends — never cut off at an edge.
 interface Rect { x0: number; y0: number; x1: number; y1: number }
 /** Where each panel's painted ribbon lies (sheet pixels), measured once from the decoded sheet's
  *  alpha: the spline bends exactly the ribbon, never the empty panel around it. */
@@ -565,7 +565,7 @@ const ribbonsOf = (img: HTMLImageElement, s: SheetDef): Rect[] => {
 }
 
 /** The wisps are drawn opaque into this layer and faded onto the scene in one go: semi-transparent
- *  slices drawn straight onto the scene would double up where they overlap (a seam per slice). */
+ *  streaks drawn straight onto the scene would double up where two overlap. */
 let windLayer: HTMLCanvasElement | null = null
 const windLayerFor = (main: HTMLCanvasElement): CanvasRenderingContext2D | null => {
   if (typeof document === 'undefined') return null
@@ -577,7 +577,7 @@ const windLayerFor = (main: HTMLCanvasElement): CanvasRenderingContext2D | null 
   return windLayer.getContext('2d')
 }
 
-const windSpline = (ctx: CanvasRenderingContext2D, live: WindDef, w: World, img: HTMLImageElement, s: SheetDef): void => {
+const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, w: World, img: HTMLImageElement, s: SheetDef): void => {
   const sup = !!live.super
   const vertical = live.dir === 'up' || live.dir === 'down'
   const along = vertical ? live.h : live.w
@@ -593,7 +593,6 @@ const windSpline = (ctx: CanvasRenderingContext2D, live: WindDef, w: World, img:
   const fadeLen = Math.min(along * 0.22, 70)
   const per = Math.max(1, Math.round(along / 220))
   const variants = sup ? s.anims.super!.frames : s.anims.normal!.frames
-  const step = len / WISP_SLICES
   const t = w.time
   const g = windLayerFor(ctx.canvas)
   if (!g) return
@@ -618,35 +617,25 @@ const windSpline = (ctx: CanvasRenderingContext2D, live: WindDef, w: World, img:
     const seedL = l * 3.7 + live.x * 0.011 + live.y * 0.017
     // The lane's own gusts: its speed swells and eases.
     const gust = 1 + 0.28 * Math.sin(t * 0.55 + seedL) + 0.12 * Math.sin(t * 1.7 + seedL * 2)
-    /** The lane's centre line at u (along the box), for a wobble of `amp`. */
-    const wave = (u: number): number =>
-      0.62 * Math.sin(u * 0.021 - t * 1.6 + seedL) + 0.38 * Math.sin(u * 0.047 + t * 0.9 + seedL * 1.9) + 0.25 * Math.sin(t * 0.35 + seedL)
     for (let k = 0; k < per; k++) {
       const seed = seedL * 5 + k * 13
-      const speed = live.speed * (0.38 + rnd(seed) * 0.22) * gust
-      const period = along + len
+      const speed = live.speed * (0.42 + rnd(seed) * 0.26) * gust
+      const lenK = len * (0.75 + rnd(seed + 3) * 0.4)
+      const period = along + lenK
       const head = ((((t * speed + rnd(seed + 1) * period + (k * period) / per) % period) + period) % period)
       const frame = variants[Math.floor(rnd(seed + 2) * variants.length)]!
       const r = boxes[frame]!
-      const sw = (r.x1 - r.x0) / WISP_SLICES
-      const ch = r.y1 - r.y0
-      const thick = Math.min((len * ch) / Math.max(1, r.x1 - r.x0), gap - margin * 2)
+      const thick = Math.min((lenK * (r.y1 - r.y0)) / Math.max(1, r.x1 - r.x0), gap - margin * 2)
       if (thick <= 2) continue
-      const amp = Math.max(0, Math.min(gap / 2 - margin - thick / 2, amp0))
-      for (let j = 0; j < WISP_SLICES; j++) {
-        // Slice j sits at u along the box (local x from -along/2): the ribbon's tail is upstream.
-        const u = head - len + (j + 0.5) * step
-        if (u < -step || u > along + step) continue
-        const x = u - along / 2
-        const y = c + amp * wave(u) / 1.25
-        const th = Math.atan2((amp * (wave(u + 2) - wave(u - 2))) / 1.25, 4)
-        g.save()
-        g.translate(x, y)
-        g.rotate(th)
-        // A hair of overlap so no gap shows between slices (opaque here, so no seam either).
-        g.drawImage(img, r.x0 + j * sw, r.y0, sw, ch, -step / 2 - 0.6, -thick / 2, step + 1.2, thick)
-        g.restore()
-      }
+      // A slow sway of the whole streak across its lane (never a bend running along it).
+      const room = Math.max(0, Math.min(gap / 2 - margin - thick / 2, amp0))
+      const sway = room * (0.7 * Math.sin(t * 0.45 + seed) + 0.3 * Math.sin(t * 0.17 + seed * 1.3))
+      const tilt = 0.06 * Math.cos(t * 0.45 + seed)
+      g.save()
+      g.translate(head - lenK / 2 - along / 2, c + sway)
+      g.rotate(tilt)
+      g.drawImage(img, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, -lenK / 2, -thick / 2, lenK, thick)
+      g.restore()
     }
   }
   // The ends of the box fade the ribbons in and out: a gradient cut out of the layer, so a
@@ -685,7 +674,7 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
     ctx.globalAlpha = sup ? 0.17 : 0.11
     softRect(ctx, tex, live.x, live.y, live.w, live.h, f)
     ctx.restore()
-    windSpline(ctx, live, w, img, sheet('wind-wisps'))
+    windGusts(ctx, live, w, img, sheet('wind-wisps'))
   } else if (live.speed > 0) {
     const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
     if (!tex) return false

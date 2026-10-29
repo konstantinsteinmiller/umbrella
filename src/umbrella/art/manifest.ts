@@ -525,13 +525,14 @@ export const EXTRA_SHEETS: SheetDef[] = [
     shape: [
       'WHAT COMES BACK IS ONE WARP PIPE FILLING THE WHOLE IMAGE, NOT A SCENE.',
       'One square image, 1024 x 1024 pixels, holding ONE short fat pipe standing upright, as wide as the image at its rim, read as three horizontal bands of equal height (the game cuts it there): the TOP third is the rim and its mouth, the MIDDLE third is plain straight tube, the BOTTOM third is the base.',
-      '· One pipe. Not a row of pipes, not a pipe in a landscape.'
+      '· One pipe. Not a row of pipes, not a pipe in a landscape.',
+      '· THE BAND LINES ARE EXACT: the rim, its mouth, its crest and the little torii ALL end above y = 341 (one third down); the base starts at y = 683 (two thirds down). Nothing crosses either line: no rim edge, no beam, no torii leg, no shadow. Between the lines there is only plain tube.'
     ],
     blurb: 'the WARP GATE: a fat green bamboo pipe dressed like a little torii gate — TOP THIRD: a wide rim of green-lacquered bamboo with a small red-lacquered torii crossbeam and two short posts across its front, and the mouth at its top a dark opening with a swirling glowing teal portal; MIDDLE THIRD: a plain straight green bamboo tube a little narrower than the rim, with ONE bamboo node line only at its very top and very bottom edges; BOTTOM THIRD: the same tube ending on a dark lacquer base ring',
     colour: 'green-lacquered bamboo (#3fae5a) with a darker green fold shadow (#21733a) and a pale lit edge, a small red torii beam (#c8402f), a teal portal glow (#7fe8d0) inside the mouth only, a dark lacquer base (#2a1d3a)',
     view: 'flat front-on, square on, no perspective — the mouth seen just a little from above.',
     note: 'The game STRETCHES the middle third to any height: it must be a plain straight tube that looks the same at its top edge and its bottom edge.',
-    check: ['· ONE pipe filling the image; the rim spans the full width, the tube a little narrower.', '· The middle third is a plain straight tube.']
+    check: ['· ONE pipe filling the image; the rim spans the full width, the tube a little narrower.', '· The rim and the torii end above one third of the height; the base starts at two thirds; the middle third is a plain straight tube.']
   }
 ]
 
