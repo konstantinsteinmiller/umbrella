@@ -248,7 +248,7 @@ export default {
       'shape': "Tampilan"
     },
     'scrollHint': "Kamera menampilkan satu layar dan mengikuti pemain.",
-    'timeLimitHint': "0 = tanpa batas. Waktu berjalan sejak titik awal; jika habis, level dimulai ulang dari titik awal (checkpoint tidak dihitung). Selesai dengan sisa setengah waktu dapat ★★★, seperempat ★★, selain itu ★.",
+    'timeLimitHint': "0 = tanpa batas. Waktu berjalan sejak titik awal; jika habis, level dimulai ulang dari titik awal (checkpoint tidak dihitung). Selesai dengan 2 detik atau lebih di jam dapat ★★★, 1 detik ★★, kurang dari itu ★.",
     'wholeHint': "Seluruh dunia ditampilkan sekaligus (diperkecil jika lebih besar dari satu layar).",
     'spawnSelected': "Titik mulai pemain (posisi kaki).",
     'spawnOpenHint': "Pemain mulai dengan payung yang sudah terbuka",

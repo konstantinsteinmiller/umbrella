@@ -248,7 +248,7 @@ export default {
       'shape': "Aspecto"
     },
     'scrollHint': "La cámara muestra una pantalla y sigue al jugador.",
-    'timeLimitHint': "0 = sin límite. El reloj corre desde la salida; si se acaba, el nivel vuelve a empezar desde la salida (los puntos de control no cuentan). Terminar con la mitad del tiempo da ★★★, con un cuarto ★★, si no ★.",
+    'timeLimitHint': "0 = sin límite. El reloj corre desde la salida; si se acaba, el nivel vuelve a empezar desde la salida (los puntos de control no cuentan). Terminar con 2 segundos o más en el reloj da ★★★, con 1 segundo ★★, con menos ★.",
     'wholeHint': "Todo el mundo se ve a la vez (alejado si es mayor que una pantalla).",
     'spawnSelected': "Inicio del jugador (posición de los pies).",
     'spawnOpenHint': "El jugador empieza con el paraguas ya abierto",

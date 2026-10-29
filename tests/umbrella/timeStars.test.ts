@@ -6,12 +6,13 @@ import { cloneLevel, parseLevel } from '@/umbrella/customLevels'
 import { LEVELS } from '@/umbrella/levels'
 
 describe('the rating', () => {
-  it('gives three stars with half the time left, two with a quarter, one otherwise', () => {
+  it('gives three stars with 2+ seconds on the clock, two with 1–1.99, one with less', () => {
     expect(timeStars(30, 60)).toBe(3)
-    expect(timeStars(29.9, 60)).toBe(2)
-    expect(timeStars(15, 60)).toBe(2)
-    expect(timeStars(14.9, 60)).toBe(1)
-    expect(timeStars(0.1, 60)).toBe(1)
+    expect(timeStars(2, 60)).toBe(3)
+    expect(timeStars(1.99, 60)).toBe(2)
+    expect(timeStars(1, 60)).toBe(2)
+    expect(timeStars(0.99, 60)).toBe(1)
+    expect(timeStars(0.01, 60)).toBe(1)
   })
   it('gives none when the clock ran out or there is no limit', () => {
     expect(timeStars(0, 60)).toBe(0)
@@ -20,11 +21,11 @@ describe('the rating', () => {
 })
 
 describe('the clock', () => {
-  it('reads m:ss, rounded up so it never shows 0:00 before the end', () => {
-    expect(formatClock(65)).toBe('1:05')
-    expect(formatClock(8.2)).toBe('0:09')
-    expect(formatClock(0.01)).toBe('0:01')
-    expect(formatClock(0)).toBe('0:00')
+  it('reads m:ss of the whole seconds left, the same seconds the rating counts', () => {
+    expect(formatClock(65.4)).toBe('1:05')
+    expect(formatClock(8.9)).toBe('0:08')
+    expect(formatClock(1.5)).toBe('0:01')
+    expect(formatClock(0.5)).toBe('0:00')
   })
   it('blinks for the last fifth of the limit, between 3 and 10 seconds', () => {
     expect(blinkFrom(10)).toBe(3)

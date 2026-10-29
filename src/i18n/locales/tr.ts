@@ -248,7 +248,7 @@ export default {
       'shape': "Görünüm"
     },
     'scrollHint': "Kamera tek ekran gösterir ve oyuncuyu takip eder.",
-    'timeLimitHint': "0 = sınır yok. Süre başlangıçtan itibaren işler; biterse bölüm başlangıçtan yeniden başlar (kontrol noktaları sayılmaz). Sürenin yarısı kalmışken bitirmek ★★★, çeyreği ★★, aksi halde ★ verir.",
+    'timeLimitHint': "0 = sınır yok. Süre başlangıçtan itibaren işler; biterse bölüm başlangıçtan yeniden başlar (kontrol noktaları sayılmaz). Saatte 2 saniye veya daha fazla kalmışken bitirmek ★★★, 1 saniye ★★, daha azı ★ verir.",
     'wholeHint': "Tüm dünya bir kerede gösterilir (bir ekrandan büyükse uzaklaştırılır).",
     'spawnSelected': "Oyuncu başlangıcı (ayak konumu).",
     'spawnOpenHint': "Oyuncu şemsiyesi zaten açık olarak başlar",

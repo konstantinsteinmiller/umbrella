@@ -248,7 +248,7 @@ export default {
       'shape': "Apparence"
     },
     'scrollHint': "La caméra montre un écran et suit le joueur.",
-    'timeLimitHint': "0 = aucune limite. Le chrono part du départ ; s’il arrive à zéro, le niveau recommence au départ (les points de contrôle ne comptent pas). Finir avec la moitié du temps rapporte ★★★, un quart ★★, sinon ★.",
+    'timeLimitHint': "0 = aucune limite. Le chrono part du départ ; s’il arrive à zéro, le niveau recommence au départ (les points de contrôle ne comptent pas). Finir avec 2 secondes ou plus au chrono rapporte ★★★, avec 1 seconde ★★, avec moins ★.",
     'wholeHint': "Le monde entier est affiché d'un coup (dézoomé s'il est plus grand qu'un écran).",
     'spawnSelected': "Départ du joueur (position des pieds).",
     'spawnOpenHint': "Le joueur démarre avec le parapluie déjà ouvert",

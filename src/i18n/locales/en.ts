@@ -251,7 +251,7 @@ export default {
       'shape': "Look"
     },
     'scrollHint': "The camera shows one screen and follows the player.",
-    'timeLimitHint': "0 = no limit. The clock runs from the spawn; when it runs out the level starts over from the spawn (checkpoints don't count). Finishing with half the time left earns ★★★, a quarter ★★, otherwise ★.",
+    'timeLimitHint': "0 = no limit. The clock runs from the spawn; when it runs out the level starts over from the spawn (checkpoints don't count). Finishing with 2 or more seconds on the clock earns ★★★, with 1 second ★★, with less ★.",
     'wholeHint': "The whole world is shown at once (zoomed out if it is bigger than a screen).",
     'spawnSelected': "Player start (feet position).",
     'spawnOpenHint': "The player starts with the umbrella already open",

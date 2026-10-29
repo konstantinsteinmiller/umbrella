@@ -248,7 +248,7 @@ export default {
       'shape': "Kiểu dáng"
     },
     'scrollHint': "Camera hiện một màn hình và theo người chơi.",
-    'timeLimitHint': "0 = không giới hạn. Đồng hồ chạy từ điểm xuất phát; hết giờ thì màn chơi bắt đầu lại từ điểm xuất phát (không tính điểm lưu). Về đích còn một nửa thời gian được ★★★, còn một phần tư được ★★, còn lại ★.",
+    'timeLimitHint': "0 = không giới hạn. Đồng hồ chạy từ điểm xuất phát; hết giờ thì màn chơi bắt đầu lại từ điểm xuất phát (không tính điểm lưu). Về đích khi đồng hồ còn 2 giây trở lên được ★★★, còn 1 giây được ★★, ít hơn được ★.",
     'wholeHint': "Hiện toàn bộ thế giới cùng lúc (thu nhỏ nếu lớn hơn màn hình).",
     'spawnSelected': "Điểm xuất phát (vị trí chân).",
     'spawnOpenHint': "Người chơi bắt đầu khi ô đã mở sẵn",

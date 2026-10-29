@@ -248,7 +248,7 @@ export default {
       'shape': "Uiterlijk"
     },
     'scrollHint': "De camera toont één scherm en volgt de speler.",
-    'timeLimitHint': "0 = geen limiet. De klok loopt vanaf de start; is de tijd op, dan begint het level opnieuw bij de start (checkpoints tellen niet). Met de helft van de tijd over: ★★★, met een kwart: ★★, anders ★.",
+    'timeLimitHint': "0 = geen limiet. De klok loopt vanaf de start; is de tijd op, dan begint het level opnieuw bij de start (checkpoints tellen niet). Met 2 of meer seconden op de klok: ★★★, met 1 seconde: ★★, met minder: ★.",
     'wholeHint': "De hele wereld wordt in één keer getoond (uitgezoomd als hij groter is dan een scherm).",
     'spawnSelected': "Startpunt speler (positie van de voeten).",
     'spawnOpenHint': "De speler begint met de paraplu al open",

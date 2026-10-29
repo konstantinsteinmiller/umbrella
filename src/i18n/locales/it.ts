@@ -248,7 +248,7 @@ export default {
       'shape': "Aspetto"
     },
     'scrollHint': "La telecamera mostra uno schermo e segue il giocatore.",
-    'timeLimitHint': "0 = nessun limite. Il tempo scorre dalla partenza; se scade, il livello ricomincia dalla partenza (i checkpoint non contano). Finire con metà del tempo dà ★★★, con un quarto ★★, altrimenti ★.",
+    'timeLimitHint': "0 = nessun limite. Il tempo scorre dalla partenza; se scade, il livello ricomincia dalla partenza (i checkpoint non contano). Finire con 2 o più secondi sull’orologio dà ★★★, con 1 secondo ★★, con meno ★.",
     'wholeHint': "Tutto il mondo è visibile insieme (con zoom indietro se è più grande di uno schermo).",
     'spawnSelected': "Partenza giocatore (posizione dei piedi).",
     'spawnOpenHint': "Il giocatore parte con l'ombrello già aperto",

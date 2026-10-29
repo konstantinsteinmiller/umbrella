@@ -248,7 +248,7 @@ export default {
       'shape': "Wygląd"
     },
     'scrollHint': "Kamera pokazuje jeden ekran i podąża za graczem.",
-    'timeLimitHint': "0 = bez limitu. Czas płynie od startu; gdy się skończy, poziom zaczyna się od nowa od startu (punkty kontrolne się nie liczą). Połowa czasu w zapasie daje ★★★, ćwierć ★★, inaczej ★.",
+    'timeLimitHint': "0 = bez limitu. Czas płynie od startu; gdy się skończy, poziom zaczyna się od nowa od startu (punkty kontrolne się nie liczą). 2 lub więcej sekund na zegarze daje ★★★, 1 sekunda ★★, mniej ★.",
     'wholeHint': "Cały świat jest widoczny naraz (oddalony, jeśli jest większy niż ekran).",
     'spawnSelected': "Start gracza (pozycja stóp).",
     'spawnOpenHint': "Gracz zaczyna z już otwartym parasolem",

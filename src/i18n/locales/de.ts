@@ -248,7 +248,7 @@ export default {
       'shape': "Aussehen"
     },
     'scrollHint': "Die Kamera zeigt einen Bildschirm und folgt dem Spieler.",
-    'timeLimitHint': "0 = kein Limit. Die Zeit läuft ab dem Start; ist sie abgelaufen, beginnt das Level wieder am Start (Checkpoints zählen nicht). Mit der Hälfte der Zeit übrig gibt es ★★★, mit einem Viertel ★★, sonst ★.",
+    'timeLimitHint': "0 = kein Limit. Die Zeit läuft ab dem Start; ist sie abgelaufen, beginnt das Level wieder am Start (Checkpoints zählen nicht). Mit 2 oder mehr Sekunden auf der Uhr gibt es ★★★, mit 1 Sekunde ★★, mit weniger ★.",
     'wholeHint': "Die ganze Welt wird auf einmal gezeigt (herausgezoomt, wenn sie größer als ein Bildschirm ist).",
     'spawnSelected': "Spielerstart (Fußposition).",
     'spawnOpenHint': "Der Spieler startet mit bereits geöffnetem Schirm",

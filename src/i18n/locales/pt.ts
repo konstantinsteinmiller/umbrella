@@ -248,7 +248,7 @@ export default {
       'shape': "Visual"
     },
     'scrollHint': "A câmera mostra uma tela e segue o jogador.",
-    'timeLimitHint': "0 = sem limite. O relógio corre desde a partida; se acabar, o nível recomeça da partida (checkpoints não contam). Terminar com metade do tempo dá ★★★, com um quarto ★★, senão ★.",
+    'timeLimitHint': "0 = sem limite. O relógio corre desde a partida; se acabar, o nível recomeça da partida (checkpoints não contam). Terminar com 2 segundos ou mais no relógio dá ★★★, com 1 segundo ★★, com menos ★.",
     'wholeHint': "O mundo inteiro aparece de uma vez (afastado se for maior que uma tela).",
     'spawnSelected': "Início do jogador (posição dos pés).",
     'spawnOpenHint': "O jogador começa com o guarda-chuva já aberto",

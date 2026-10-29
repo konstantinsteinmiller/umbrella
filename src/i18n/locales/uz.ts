@@ -248,7 +248,7 @@ export default {
       'shape': "Ko'rinish"
     },
     'scrollHint': "Kamera bitta ekranni ko‘rsatadi va o‘yinchini kuzatadi.",
-    'timeLimitHint': "0 = cheklovsiz. Vaqt boshlanish nuqtasidan hisoblanadi; tugasa, daraja boshidan qayta boshlanadi (nazorat nuqtalari hisobga olinmaydi). Vaqtning yarmi qolganda tugatsangiz ★★★, choragi qolganda ★★, aks holda ★.",
+    'timeLimitHint': "0 = cheklovsiz. Vaqt boshlanish nuqtasidan hisoblanadi; tugasa, daraja boshidan qayta boshlanadi (nazorat nuqtalari hisobga olinmaydi). Soatda 2 soniya yoki ko‘proq qolganda tugatsangiz ★★★, 1 soniya qolganda ★★, undan kam bo‘lsa ★.",
     'wholeHint': "Butun dunyo birdaniga ko‘rsatiladi (ekrandan katta bo‘lsa, uzoqlashtiriladi).",
     'spawnSelected': "O‘yinchi starti (oyoq holati).",
     'spawnOpenHint': "O'yinchi soyabon allaqachon ochiq holda boshlaydi",
