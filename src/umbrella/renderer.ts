@@ -1,16 +1,17 @@
 // ─── Canvas renderer (prototype look: white blocks on a dark field) ─────────
 //
-// The kite build (/umbrella/kite/) can draw painted sheets instead of these
-// shapes: each drawable first offers itself to `kiteArt` (art/hooks.ts), and
-// draws its vector self when the slot is empty or declines. `isKite` is a
-// build-time constant, so outside the kite build every such line folds away
+// The kite and lantern builds (/umbrella/kite/, /umbrella/lantern/) can draw
+// painted sheets instead of these shapes: each drawable first offers itself to
+// `kiteArt` (art/hooks.ts), and draws its vector self when the slot is empty
+// or declines. `artLayer` is a build-time constant, so outside those builds
+// every such line folds away
 // (tests/umbrella/vectorGolden.test.ts pins the vector path call for call).
 
 import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, type Hazard, type World } from './engine'
 import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
 import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
-import { isKite } from './kite'
+import { artLayer, isLantern } from './kite'
 import { kiteArt } from './art/hooks'
 
 /** One colour per button channel: a button and everything it switches share it. */
@@ -171,7 +172,7 @@ export const drawButton = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: bool
 
 /** A checkpoint flag: grey until touched, green and waving once it is yours. */
 export const drawCheckpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: boolean, time: number, waiting = 'rgba(255, 255, 255, 0.45)') => {
-  if (isKite && kiteArt.checkpoint?.(ctx, c, reached, time)) return
+  if (artLayer && kiteArt.checkpoint?.(ctx, c, reached, time)) return
   const box = checkpointBox(c)
   const poleX = box.x + 6
   ctx.fillStyle = FG
@@ -188,6 +189,7 @@ export const drawCheckpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, 
 
 /** A collectible in gold: a star, an umbrella or a cloud. It bobs and glints; a collected one leaves a faint outline. */
 export const drawStar = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; shape?: CollectShape }, got: boolean, time: number, phase = 0) => {
+  if (artLayer && kiteArt.collect?.(ctx, s, got, time, phase)) return
   const bob = got ? 0 : Math.sin(time * 3 + phase) * 3
   const r = STAR_R
   const cx = s.x
@@ -278,6 +280,10 @@ export const drawStar = (ctx: CanvasRenderingContext2D, s: { x: number; y: numbe
 /** A warp pipe, as in Super Mario Bros.: a green tube with a rim and a swirling dark mouth. */
 export const drawGate = (ctx: CanvasRenderingContext2D, g: { x: number; y: number; w: number; h: number }, time: number, hint = false) => {
   const rimH = Math.min(22, g.h * 0.35)
+  if (artLayer && kiteArt.gate?.(ctx, g, time)) {
+    if (hint) drawGateHint(ctx, g, time)
+    return
+  }
   ctx.save()
   ctx.lineWidth = 3
   ctx.strokeStyle = FG
@@ -310,6 +316,17 @@ export const drawGate = (ctx: CanvasRenderingContext2D, g: { x: number; y: numbe
     ctx.textBaseline = 'bottom'
     ctx.fillText('☂', mx, g.y - 8 + Math.sin(time * 6) * 4)
   }
+  ctx.restore()
+}
+
+/** The bobbing umbrella over a painted gate. */
+const drawGateHint = (ctx: CanvasRenderingContext2D, g: { x: number; y: number; w: number }, time: number): void => {
+  ctx.save()
+  ctx.fillStyle = '#e8fff3'
+  ctx.font = '700 30px system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  ctx.fillText('☂', g.x + g.w / 2, g.y - 8 + Math.sin(time * 6) * 4)
   ctx.restore()
 }
 
@@ -393,7 +410,7 @@ const drawHazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => {
   const pl = w.player
   const px = pl.x + pl.w / 2
   const py = pl.y + pl.h / 2
-  if (isKite && kiteArt.hazard?.(ctx, h, w)) return
+  if (artLayer && kiteArt.hazard?.(ctx, h, w)) return
   if (h.kind === 'spikes') drawSpikes(ctx, h)
   else if (h.kind === 'fan') drawFan(ctx, h, w.time)
   else if (h.kind === 'mine') drawPrickbait(ctx, h.x + h.w / 2, h.y + h.h / 2, h.w / 2, px, py, w.time)
@@ -438,7 +455,7 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   const umbrellaState = pl.broken ? 'broken' : shownOpen ? 'open' : 'furled'
   ctx.save()
   if (w.phase === 'splat') {
-    if (isKite && kiteArt.splat?.(ctx, fx, fy, look('stand'), w.phaseTime, hitByEnemy(w))) {
+    if (artLayer && kiteArt.splat?.(ctx, fx, fy, look('stand'), w.phaseTime, hitByEnemy(w))) {
       ctx.restore()
       return
     }
@@ -520,13 +537,28 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   ctx.fillRect(0, 0, cw, ch)
   const camera = cam ?? cameraFor(w, cw, ch, dt)
   const { s, ox, oy } = camera
+  // A painted backdrop (the lantern build's night sky) fills the screen behind the level.
+  const backdrop = artLayer && !!kiteArt.backdrop?.(ctx, cw, ch, camera, w)
   ctx.setTransform(s, 0, 0, s, ox, oy)
-  ctx.fillStyle = BG
-  ctx.fillRect(0, 0, w.level.world.w, w.level.world.h)
+  if (backdrop) {
+    // Outside the level the sky is veiled, so its edge still reads; inside, a
+    // faint night tint keeps the sky behind the play.
+    const { w: ww, h: wh } = w.level.world
+    ctx.fillStyle = 'rgba(10, 8, 24, 0.6)'
+    ctx.beginPath()
+    ctx.rect(-1e5, -1e5, 2e5, 2e5)
+    ctx.rect(0, 0, ww, wh)
+    ctx.fill('evenodd')
+    ctx.fillStyle = 'rgba(26, 22, 56, 0.36)'
+    ctx.fillRect(0, 0, ww, wh)
+  } else {
+    ctx.fillStyle = BG
+    ctx.fillRect(0, 0, w.level.world.w, w.level.world.h)
+  }
 
   for (const def of w.level.winds) {
     const wind = liveWind(w, def)
-    if (isKite && kiteArt.wind?.(ctx, wind, def, w, opts.windStyle === 'squiggles')) continue
+    if (artLayer && kiteArt.wind?.(ctx, wind, def, w, opts.windStyle === 'squiggles')) continue
     if (wind.speed > 0) (opts.windStyle === 'squiggles' ? drawSquiggles : drawWind)(ctx, wind, w.time)
     if (def.channel !== undefined && def.switched) {
       // A switchable current wears its channel's colour as a dashed frame.
@@ -550,10 +582,13 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
   for (const p of w.platforms) {
-    if (isKite && kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel))) {
-      continue
-    }
-    if (p.channel !== undefined) {
+    const painted = artLayer && !!kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel))
+    // The kite build dresses its painted finish instead of labelling it; the
+    // lantern build keeps the word on its painted finish pad.
+    if (painted && !(isLantern && p.finish)) continue
+    if (painted) {
+      // Painted: only the label below.
+    } else if (p.channel !== undefined) {
       const on = platformActive(w, p)
       ctx.save()
       ctx.strokeStyle = channelColor(p.channel)
@@ -592,7 +627,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   for (const b of w.level.buttons ?? []) {
     const on = channelOn(w, b.channel)
     const left = (w.channels[b.channel] ?? 0) - w.time
-    if (isKite && kiteArt.button?.(ctx, b, on, channelColor(b.channel))) drawButtonMarks(ctx, b, on, left)
+    if (artLayer && kiteArt.button?.(ctx, b, on, channelColor(b.channel))) drawButtonMarks(ctx, b, on, left)
     else drawButton(ctx, b, on, left)
   }
   for (const h of w.hazards) drawHazard(ctx, h, w)

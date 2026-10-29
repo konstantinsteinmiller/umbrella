@@ -1,8 +1,9 @@
 // ─── Kite art: which sheets shipped, and loading them in stages ────────────
 //
-// KITE ONLY. Imported lazily (art/install.ts) behind `isKite`, so no other
-// build bundles this module or a single painted byte: the sheets live in
-// src/assets/umbrella-art/ (not public/), and only this glob pulls them in.
+// KITE AND LANTERN ONLY. Imported lazily (art/install.ts) behind `artLayer`,
+// so no other build bundles this module or a single painted byte: the sheets
+// live in src/assets/umbrella-art/ (kite) or src/assets/umbrella-art-lantern/
+// (lantern), not public/, and only the `shipped` glob pulls them in.
 // The glob is also the build-time manifest — a sheet that was never painted
 // has no entry, so it is never requested (no 404 for a portal's QA console)
 // and its drawable keeps its vector self.
@@ -12,9 +13,8 @@
 // enemies of the level the player RESUMES on (plus Chad when the intro has not
 // been seen) — and is awaited behind the splash; tier 1 follows one sheet at a
 // time; tier 2 goes out in one low-priority batch when the page is idle.
+import { files } from '@/umbrella/art/shipped'
 import { GAME_SHEETS, SHEETS_FOR_HAZARD, sheetById, type SheetDef } from './manifest'
-
-const files = import.meta.glob('../../assets/umbrella-art/*.webp', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
 
 const URLS: Record<string, string> = {}
 for (const [path, url] of Object.entries(files)) URLS[path.slice(path.lastIndexOf('/') + 1).replace(/\.webp$/, '')] = url

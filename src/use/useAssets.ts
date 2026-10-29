@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { prependBaseUrl } from '@/utils/function'
-import { isKite } from '@/umbrella/kite'
+import { artLayer } from '@/umbrella/kite'
 
 // umbrella draws all gameplay art programmatically (via Canvas 2D)
 // and uses inline SVG for HUD icons, so the asset preloader is intentionally
@@ -288,9 +288,10 @@ export default () => {
     const tasks: Promise<unknown>[] = [...imageTasks]
     // The kite build's painted sheets (roadmap #6): tier 0 — what the first
     // screen draws — is held behind the splash, at most 6 s, so the game never
-    // starts on the drawing and swaps to paint a second later. `isKite` is a
-    // build-time constant: every other build drops this branch and its chunk.
-    if (isKite) {
+    // starts on the drawing and swaps to paint a second later. `artLayer` (kite
+    // or lantern) is a build-time constant: every other build drops this branch
+    // and its chunk.
+    if (artLayer) {
       tasks.push(Promise.race([
         import('@/umbrella/art/install').then((m) => m.startKiteArt()).catch(() => { /* vector art stays */ }),
         new Promise<void>((resolve) => setTimeout(resolve, 6000))

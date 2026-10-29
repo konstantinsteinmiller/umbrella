@@ -1,6 +1,6 @@
 // ─── Kite art: drawing the painted sheets ───────────────────────────────────
 //
-// KITE ONLY (loaded by art/install.ts behind `isKite`). Fills the `kiteArt`
+// KITE AND LANTERN ONLY (loaded by art/install.ts behind `artLayer`). Fills the `kiteArt`
 // slots the vector painters ask first. Every function returns false when it
 // cannot draw the painted version right now — the sheet was never painted,
 // has not decoded yet, the art is switched off — and the vector drawing then
@@ -11,9 +11,10 @@
 // the drawing stood. Animation is the sheets' frames; what must stay
 // IDENTICAL across motion (a pillar's body, a fan's rotor, a pupil that
 // follows Pweeg) is one painted part moved by code (ANIMATE.md).
-import { contactOf, type Hazard, type World } from '../engine'
-import { channelColor } from '../renderer'
-import type { ButtonDef, CheckpointDef, PlatformDef, WindDef } from '../levels'
+import { contactOf, STAR_R, type Hazard, type World } from '../engine'
+import { channelColor, type Camera } from '../renderer'
+import { isLantern } from '../kite'
+import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type GateDef, type PlatformDef, type StarDef, type WindDef } from '../levels'
 import { drawPrickbaitPupils, walldorfEyes, type PweegLook, type UmbrellaLook } from '../characters'
 import { boxOf, BUTTON_W, FAN_SIZE, PRICKBAIT_R, sheetById, SPIKE, type AnimDef, type SheetDef } from './manifest'
 import { hasSheet, setReady, sheetImage } from './sheets'
@@ -176,7 +177,8 @@ const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegL
     case 'cheer':
       if (chad) return false
       id = s('cheer').id
-      if (set.kite) {
+      // The lantern's painted cheer, like the kite's, is played as its arms-up frames on a bounce.
+      if (set.kite || isLantern) {
         // Arms up on a steady bounce (the sheet's arms-up frames, slowly ping-ponged)
         // with a gentle rock, instead of racing through 16 different poses.
         const img = sheetImage(id)
@@ -188,7 +190,7 @@ const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegL
         ctx.rotate(Math.sin(look.time * Math.PI * 1.6) * 0.07)
         blit(ctx, sheet(id), img, CHEER_LOOP[k]!, 0, 0, look.w / PWEEG_W, look.h / PWEEG_H, false)
         ctx.restore()
-        kiteDrawn = true
+        kiteDrawn = set.kite
         return true
       }
       frame = phaseFrame(s('cheer').anims.cheer!, (look.time * 9) / Math.PI)
@@ -411,7 +413,8 @@ const platform = (ctx: CanvasRenderingContext2D, p: PlatformDef, on: boolean, co
   const raw = sheetImage(id)!
   const img = color !== null && !p.finish ? tintOf(id, raw, color) : null
   nine(ctx, s, img ?? raw, p.x, p.y, p.w, p.h)
-  if (p.finish) drawFinishDressing(ctx, p, performance.now() / 1000)
+  // The kite build's flags and bunting; the lantern pad is its own goal (and keeps its label).
+  if (p.finish && !isLantern) drawFinishDressing(ctx, p, performance.now() / 1000)
   return true
 }
 
@@ -499,8 +502,9 @@ const softRect = (ctx: CanvasRenderingContext2D, tex: HTMLCanvasElement, x: numb
 }
 
 const NORMAL_RGB = '140,200,255'
-// The designer's Super Stream is a deeper swirling blue wave.
-const SUPER_RGB = '70,150,215'
+// The designer's Super Stream is a deeper swirling blue wave; the lantern
+// build's is a fierce orange firework ribbon (the vector game's orange arrows).
+const SUPER_RGB = isLantern ? '255,138,42' : '70,150,215'
 const hexRgb = (hex: string): string => {
   const v = Number.parseInt(hex.slice(1), 16)
   return `${(v >> 16) & 255},${(v >> 8) & 255},${v & 255}`
@@ -583,9 +587,89 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
 }
 
 
+// ─── Collectibles and the warp gate (lantern build) ─────────────────────────
+
+const collect = (ctx: CanvasRenderingContext2D, st: Pick<StarDef, 'x' | 'y' | 'shape'>, got: boolean, time: number, phase: number): boolean => {
+  if (!paintedOn) return false
+  const img = sheetImage('collect')
+  if (!img) return false
+  const s = sheet('collect')
+  const shape = st.shape ?? DEFAULT_COLLECT_SHAPE
+  const frame = s.anims[shape]!.frames[0]!
+  const cy = st.y + (got ? 0 : Math.sin(time * 3 + phase) * 3)
+  ctx.save()
+  if (got) {
+    // Collected: a faint paper ghost where it hung.
+    ctx.globalAlpha = 0.28
+    blit(ctx, s, img, frame, st.x, cy)
+  } else {
+    // A soft warm halo behind it, then the gold paper, then a sparkle now and then.
+    ctx.fillStyle = `rgba(250, 204, 21, ${0.14 + 0.08 * Math.sin(time * 4 + phase)})`
+    ctx.beginPath()
+    ctx.arc(st.x, cy, STAR_R * 1.55, 0, Math.PI * 2)
+    ctx.fill()
+    blit(ctx, s, img, frame, st.x, cy)
+    const sweep = (time * 0.6 + phase) % 3
+    if (sweep < 1) {
+      ctx.globalAlpha = Math.sin(sweep * Math.PI)
+      const k = 0.35 + 0.25 * Math.sin(sweep * Math.PI)
+      blit(ctx, s, img, s.anims.glint!.frames[0]!, st.x - STAR_R * 0.55 + sweep * STAR_R * 1.1, cy - STAR_R * 0.35, k, k)
+    }
+  }
+  ctx.restore()
+  return true
+}
+
+const gate = (ctx: CanvasRenderingContext2D, g: Pick<GateDef, 'x' | 'y' | 'w' | 'h'>, time: number): boolean => {
+  if (!paintedOn) return false
+  const img = sheetImage('gate')
+  if (!img) return false
+  const s = sheet('gate')
+  // Rim / tube / base: the rim keeps its shape, the tube stretches.
+  const rimH = Math.min(g.w / 3, g.h * 0.45)
+  const baseH = Math.min(rimH * 0.6, Math.max(0, g.h - rimH))
+  cell(ctx, s, img, 0, 0, g.x, g.y, g.w, rimH)
+  cell(ctx, s, img, 0, 1, g.x, g.y + rimH - 0.5, g.w, g.h - rimH - baseH + 1, 1)
+  if (baseH > 0) cell(ctx, s, img, 0, 2, g.x, g.y + g.h - baseH, g.w, baseH)
+  // The portal turns: a soft glint sweeping round the mouth.
+  ctx.save()
+  ctx.strokeStyle = `rgba(190, 255, 235, ${0.45 + 0.25 * Math.sin(time * 5)})`
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.ellipse(g.x + g.w / 2, g.y + rimH * 0.42, Math.max(2, g.w * 0.3), Math.max(2, rimH * 0.2), 0, time * 4, time * 4 + Math.PI * 1.4)
+  ctx.stroke()
+  ctx.restore()
+  return true
+}
+
+// ─── The backdrop (lantern build) ───────────────────────────────────────────
+
+const clamp01 = (v: number): number => Math.min(1, Math.max(0, v))
+
+/** The painted sky, covering the screen with a little room to spare, slid by
+ *  where the camera looks inside the level — a slow parallax that never shows
+ *  an edge. */
+const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Camera, w: World): boolean => {
+  if (!paintedOn) return false
+  const img = sheetImage('backdrop')
+  if (!img) return false
+  const k = Math.max(cw / img.width, ch / img.height) * 1.08
+  const dw = img.width * k
+  const dh = img.height * k
+  const u = clamp01((cw / 2 - cam.ox) / cam.s / w.level.world.w) - 0.5
+  const v = clamp01((ch / 2 - cam.oy) / cam.s / w.level.world.h) - 0.5
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, (cw - dw) / 2 - u * (dw - cw), (ch - dh) / 2 - v * (dh - ch), dw, dh)
+  return true
+}
+
 // ─── The slots ──────────────────────────────────────────────────────────────
 
 export const KITE_PAINTERS: Required<KiteArt> = {
+  backdrop,
+  collect,
+  gate,
   pweeg,
   umbrella,
   splat,

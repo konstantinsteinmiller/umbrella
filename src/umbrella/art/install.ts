@@ -1,15 +1,16 @@
 // ─── Kite art: switch the painted layer on and stage its loading ───────────
 //
-// KITE ONLY: `startKiteArt()` is reached through a dynamic import inside an
-// `isKite` branch (useAssets.ts), so in every other build neither this module
+// KITE AND LANTERN ONLY: `startKiteArt()` is reached through a dynamic import
+// inside an `artLayer` branch (useAssets.ts), so in every other build neither this module
 // nor the sheets it loads exist. It fills the `kiteArt` slots once and starts
 // the three loading tiers; the returned promise is tier 0, which the splash
 // waits for (capped — a slow sheet never strands it: the vector drawing
 // stands in until the paint arrives).
 import { LEVELS } from '../levels'
 import { kiteArt } from './hooks'
+import { EXTRA_SHEETS } from './manifest'
 import { KITE_PAINTERS, paintedArt, setPaintedArt } from './paint'
-import { loadSheets, refreshSheets, sheetStatus, tiersFor } from './sheets'
+import { hasSheet, loadSheets, refreshSheets, sheetStatus, tiersFor } from './sheets'
 
 let started: Promise<void> | null = null
 
@@ -37,7 +38,9 @@ export const startKiteArt = (): Promise<void> => {
   started = (async () => {
     const { level, introSeen } = await resumeState()
     const [t0, t1, t2] = tiersFor(LEVELS, level, introSeen)
-    await loadSheets(t0, 'high')
+    // The lantern's sky, collectibles and gate are on the first screen too.
+    const extra = ['backdrop', ...EXTRA_SHEETS.map((s) => s.id)].filter(hasSheet)
+    await loadSheets([...t0, ...extra], 'high')
     // Tier 1 one at a time, in order, so a slow line gets the next level's
     // enemy before the late cast; tier 2 in one low-priority batch when idle.
     void (async () => {

@@ -34,7 +34,8 @@ import { isKite } from '@/umbrella/kite'
 // (base ./) keep the plain key. The kite build (/umbrella/kite/, its own 100 levels)
 // keeps a save of its own too: its progress, level edits and tuning never mix with
 // the normal game's on the same origin.
-const REVISION_BASE = /\/(\d+)\/$/.exec(import.meta.env.BASE_URL ?? '')
+// The lantern build is the same game, so /umbrella/<N>/lantern/ shares revision N's save.
+const REVISION_BASE = /\/(\d+)\/(?:lantern\/)?$/.exec(import.meta.env.BASE_URL ?? '')
 export const STATE_KEY = REVISION_BASE ? `umbrella_state_rev${REVISION_BASE[1]}` : isKite ? 'umbrella_state_kite' : 'umbrella_state'
 
 /** Persisted values may be bare strings ("en"), stringified numbers ("120"),

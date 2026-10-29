@@ -20,7 +20,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { render, type Camera } from '@/umbrella/renderer'
 import { DEFAULT_TUNING } from '@/umbrella/tuning'
-import { isKite } from '@/umbrella/kite'
+import { artLayer } from '@/umbrella/kite'
 import { PLAYER_SCENES, sceneWorld, type PlayerScene } from '@/umbrella/art/scene'
 import { GAME_SHEETS, PANEL, boxOf, type SheetDef } from '@/umbrella/art/manifest'
 import { bakePanel, bakeWhole } from '@/umbrella/art/bake'
@@ -184,7 +184,7 @@ let off: (() => void) | null = null
 onMounted(() => {
   painted.value = paintedArt()
   void loadSheets(shipped)
-  if (isKite) void import('@/umbrella/art/install').then((m) => m.startKiteArt())
+  if (artLayer) void import('@/umbrella/art/install').then((m) => m.startKiteArt())
   off = onSheetsChanged(() => { /* redrawn next frame */ })
   raf = requestAnimationFrame(frame)
 })
@@ -200,7 +200,7 @@ onUnmounted(() => {
       h1 Umbrella kite art — playground
       button(@click="toggle") {{ painted ? 'Painted' : 'Drawn' }} (click to flip)
       span.sub {{ shipped.length }} / {{ GAME_SHEETS.length }} sheets painted · scene: {{ sceneName }}
-      span.sub(v-if="!isKite") · plain dev server: the LEVEL view is always drawn — run pnpm dev:kite for its A/B
+      span.sub(v-if="!artLayer") · plain dev server: the LEVEL view is always drawn — run pnpm dev:kite or dev:lantern for its A/B
     p.missing(v-if="missing.length") Still vector: {{ missing.join(', ') }}
     canvas.level(ref="levelEl")
     h2 Sheets — reference (left) · painted (right) · dashed = registration box · green = anchor

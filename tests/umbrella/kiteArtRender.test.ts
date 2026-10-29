@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 const fake = vi.hoisted(() => ({ on: false }))
-vi.mock('@/umbrella/kite', () => ({ isKite: true }))
+vi.mock('@/umbrella/kite', () => ({ isKite: true, isLantern: false, artLayer: true }))
 vi.mock('@/umbrella/art/sheets', async (orig) => {
   const real = await orig<typeof import('@/umbrella/art/sheets')>()
   const img = { width: 1024, height: 1024, naturalWidth: 1024, naturalHeight: 1024 }

@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest'
 import { render } from '@/umbrella/renderer'
 import { drawPweeg, drawPrickbait, drawUmbrella, drawWalldorf } from '@/umbrella/characters'
 import { drawChad, type ChadAction } from '@/umbrella/chad'
-import { isKite } from '@/umbrella/kite'
+import { artLayer, isKite } from '@/umbrella/kite'
 import { DEFAULT_TUNING } from '@/umbrella/tuning'
 import { recordingCtx } from './helpers/recordingCtx'
 import { PLAYER_SCENES, sceneWorld } from './helpers/artScenes'
@@ -74,6 +74,7 @@ const recordAll = (): Record<string, { calls: number; hash: string }> => {
 describe('vector drawing (every non-kite build)', () => {
   it('is a non-kite build under test', () => {
     expect(isKite).toBe(false)
+    expect(artLayer).toBe(false)
   })
 
   it('draws exactly what it drew before the art layer existed', () => {

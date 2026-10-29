@@ -1139,7 +1139,9 @@ export default defineConfig(({ mode, command }) => {
       // import.meta.env — so without this every non-kite build would carry the
       // kite art layer's chunk and its `isKite && …` checks. Folded to 'false',
       // the whole art branch is dead code there.
-      'import.meta.env.VITE_APP_KITE': JSON.stringify(env.VITE_APP_KITE === 'true' ? 'true' : 'false')
+      'import.meta.env.VITE_APP_KITE': JSON.stringify(env.VITE_APP_KITE === 'true' ? 'true' : 'false'),
+      // The lantern art build (?art=lantern, /umbrella/lantern/), folded the same way.
+      'import.meta.env.VITE_APP_LANTERN': JSON.stringify(env.VITE_APP_LANTERN === 'true' ? 'true' : 'false')
     },
     plugins: [
       tailwindcss(),
@@ -1183,10 +1185,15 @@ export default defineConfig(({ mode, command }) => {
         // entry point is a dynamic import behind `isKite`, but the obfuscated
         // builds keep the dead branch, so the chunk — and the painted sheets
         // its glob pulls in — would ride along in every portal zip. The stub
-        // keeps both out of every non-kite build.
-        ...(env.VITE_APP_KITE === 'true' ? {} : {
+        // keeps both out of every non-kite build. The lantern build carries the
+        // same layer with its OWN sheets: `shipped` is the one glob, aliased to
+        // the lantern folder there, so neither build holds the other's paint.
+        ...(env.VITE_APP_KITE === 'true' || env.VITE_APP_LANTERN === 'true' ? {} : {
           '@/umbrella/art/install': fileURLToPath(new URL('./src/umbrella/art/install.stub.ts', import.meta.url))
         }),
+        ...(env.VITE_APP_LANTERN === 'true' ? {
+          '@/umbrella/art/shipped': fileURLToPath(new URL('./src/umbrella/art/shipped-lantern.ts', import.meta.url))
+        } : {}),
         ...(env.VITE_APP_CRAZY_WEB === 'true' ? {} : {
           '@/use/useCrazyGames':fileURLToPath(new URL('./src/use/useCrazyGames.stub.ts', import.meta.url)),
           '@/use/ads/CrazyGamesProvider': fileURLToPath(new URL('./src/use/ads/CrazyGamesProvider.stub.ts', import.meta.url))

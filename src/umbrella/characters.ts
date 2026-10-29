@@ -7,12 +7,13 @@
 // The look follows the doc's ink sketches, turned light-on-dark for the game:
 // white shapes, dark eyes, the umbrella white with one red panel.
 //
-// The kite build (/umbrella/kite/) can draw painted sprites instead: each
-// painter first offers the frame to `kiteArt` (art/hooks.ts). `isKite` is a
-// build-time constant, so in every other build that line folds away and the
+// The kite and lantern builds (/umbrella/kite/, /umbrella/lantern/) can draw
+// painted sprites instead: each painter first offers the frame to `kiteArt`
+// (art/hooks.ts). `artLayer` is a build-time constant, so in every other build
+// that line folds away and the
 // drawing below is all there is (tests/umbrella/vectorGolden.test.ts).
 
-import { isKite } from './kite'
+import { artLayer } from './kite'
 import { kiteArt } from './art/hooks'
 
 const BODY = '#ffffff'
@@ -50,7 +51,7 @@ export interface PweegLook {
 
 /** Pweeg with his feet centred on (x, y). */
 export const drawPweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegLook): void => {
-  if (isKite && kiteArt.pweeg?.(ctx, x, y, look)) return
+  if (artLayer && kiteArt.pweeg?.(ctx, x, y, look)) return
   const { w: W, h: H, facing, pose } = look
   const r = W * 0.44
   const headY = y - H + r
@@ -224,7 +225,7 @@ const HALF = 30
 
 /** The umbrella held at its grip (x, y). */
 export const drawUmbrella = (ctx: CanvasRenderingContext2D, x: number, y: number, look: UmbrellaLook): void => {
-  if (isKite && kiteArt.umbrella?.(ctx, x, y, look)) return
+  if (artLayer && kiteArt.umbrella?.(ctx, x, y, look)) return
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(look.tilt)

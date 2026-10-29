@@ -36,7 +36,7 @@ export interface SpriteBox {
 export interface AnimDef { frames: number[]; fps: number; loop?: boolean }
 
 export type SheetGroup = 'pweeg' | 'chad' | 'kite' | 'chad-kite' | 'umbrella' | 'enemy' | 'world' | 'fx'
-export type PromptDoc = 'PROMPTS-KITE.md' | 'PROMPTS-CHARACTERS.md' | 'PROMPTS-ENEMIES.md' | 'PROMPTS-WORLD.md'
+export type PromptDoc = 'PROMPTS-KITE.md' | 'PROMPTS-CHARACTERS.md' | 'PROMPTS-ENEMIES.md' | 'PROMPTS-WORLD.md' | 'PROMPTS-LANTERN.md'
 
 /**
  * How the renderer uses the sheet:
@@ -86,6 +86,10 @@ export interface SheetDef {
   /** The ONE-THING clause's subject ("Pweeg", "this umbrella"). */
   one?: string
   note?: string
+  /** A shape a lattice cannot word (the warp gate): replaces the prompt's opening "what comes back". */
+  shape?: string[]
+  /** …and its count-and-check lines. */
+  check?: string[]
 }
 
 /** Where every sheet ships: kept out of public/ so no other build carries it —
@@ -145,10 +149,10 @@ const WISP: SpriteBox = { size: 80, ax: 0.5, ay: 0.5 }
 
 // ─── Shared words ───────────────────────────────────────────────────────────
 
-const PWEEG_IS = 'Pweeg, a tiny round creature: a big round head with two small dot eyes, no torso — two short thick rounded tube legs and two thin loop arms come straight out from under the head'
-const PWEEG_COLOUR = 'Pweeg is WHITE — a warm porcelain white body with a cool lavender-grey cel shadow; the eyes are deep plum-brown dots. He must read as a light shape on a dark navy night background'
-const CHAD_IS = 'Chad, Pweeg\'s cool friend: exactly Pweeg\'s body (a big round white head, no torso, two short thick tube legs, two thin loop arms) wearing a pair of black rounded-rectangle sunglasses with one small white glint'
-const CHAD_COLOUR = 'Chad is WHITE like Pweeg (warm porcelain white, lavender-grey cel shadow); his sunglasses are glossy black with a single white glint'
+export const PWEEG_IS = 'Pweeg, a tiny round creature: a big round head with two small dot eyes, no torso — two short thick rounded tube legs and two thin loop arms come straight out from under the head'
+export const PWEEG_COLOUR ='Pweeg is WHITE — a warm porcelain white body with a cool lavender-grey cel shadow; the eyes are deep plum-brown dots. He must read as a light shape on a dark navy night background'
+export const CHAD_IS = 'Chad, Pweeg\'s cool friend: exactly Pweeg\'s body (a big round white head, no torso, two short thick tube legs, two thin loop arms) wearing a pair of black rounded-rectangle sunglasses with one small white glint'
+export const CHAD_COLOUR = 'Chad is WHITE like Pweeg (warm porcelain white, lavender-grey cel shadow); his sunglasses are glossy black with a single white glint'
 const SIDE_VIEW = 'a flat side view, facing RIGHT like the reference (his eyes sit toward the right of his head). No three-quarter view, no perspective, no ground, no shadow on the ground.'
 const KITE_IS = 'Pweeg-Kite, the player as a KITE (exactly as the designer\'s Pweeg-Chad kite character model sheet draws him): a diamond kite body with a cute face on it, crossed spars, mustard-yellow paper panels with brick-red and dusty-blue edges, two stubby little arms and two stubby legs, and a string bow-tail with small red, yellow and blue bows. Pweeg-Kite NEVER wears sunglasses, goggles or glasses in any pose: his face is only two plum-brown dot eyes and a small smile (sunglasses belong to his friend Chad alone)'
 const KITE_COLOUR = 'mustard and golden-yellow kite paper, brick-red and dusty-blue edge panels, a warm brown spar cross; the face plum-brown dots and a small smile; bows red, mustard and blue'
@@ -496,7 +500,42 @@ export const SHEETS: SheetDef[] = [
   }
 ]
 
-export const sheetById = (id: string): SheetDef | undefined => SHEETS.find((s) => s.id === id)
+// ─── Drawables painted only by the lantern build ────────────────────────────
+//
+// The collectibles and the warp gate have no kite sheet (the kite build draws
+// them as vectors). Their references are notation made by
+// scripts/art/lantern-refs.py, not baked by the bench, so they are kept out of
+// SHEETS (and so out of the kite prompts, index and status).
+
+/** One collectible, centred: the vector one spans 2 × STAR_R = 32 units. */
+const COLLECT: SpriteBox = { size: 48, ax: 0.5, ay: 0.5 }
+
+export const EXTRA_SHEETS: SheetDef[] = [
+  {
+    id: 'collect', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Collectibles — star, parasol, cloud, sparkle', use: 'sprite',
+    cols: 2, rows: 2, box: COLLECT, tier: 0, fit: 'none', fresh: true,
+    anims: { star: { frames: [0], fps: 0 }, umbrella: { frames: [1], fps: 0 }, cloud: { frames: [2], fps: 0 }, glint: { frames: [3], fps: 0 } },
+    blurb: 'a SET of four small golden treasures, one per panel, centred: panel 1 a five-pointed golden origami STAR folded from gold foil paper; panel 2 a small golden folded PARASOL (a closed-top wagasa canopy with a short crook handle) folded from gold foil paper; panel 3 a puffy golden paper CLOUD of three round bumps on a flat base; panel 4 a small four-pointed white-gold SPARKLE',
+    colour: 'shining gold foil paper (#f6c235) with a warm light-gold lit facet (#fff0a0) and a deep amber fold shadow (#c98a0a); the sparkle white with a pale gold core',
+    view: 'flat front-on, no perspective.'
+  },
+  {
+    id: 'gate', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Warp gate — rim, tube, base', use: 'sprite',
+    cols: 1, rows: 3, tier: 0, fit: 'none', fresh: true, anims: {},
+    shape: [
+      'WHAT COMES BACK IS ONE WARP PIPE FILLING THE WHOLE IMAGE, NOT A SCENE.',
+      'One square image, 1024 x 1024 pixels, holding ONE short fat pipe standing upright, as wide as the image at its rim, read as three horizontal bands of equal height (the game cuts it there): the TOP third is the rim and its mouth, the MIDDLE third is plain straight tube, the BOTTOM third is the base.',
+      '· One pipe. Not a row of pipes, not a pipe in a landscape.'
+    ],
+    blurb: 'the WARP GATE: a fat green bamboo pipe dressed like a little torii gate — TOP THIRD: a wide rim of green-lacquered bamboo with a small red-lacquered torii crossbeam and two short posts across its front, and the mouth at its top a dark opening with a swirling glowing teal portal; MIDDLE THIRD: a plain straight green bamboo tube a little narrower than the rim, with ONE bamboo node line only at its very top and very bottom edges; BOTTOM THIRD: the same tube ending on a dark lacquer base ring',
+    colour: 'green-lacquered bamboo (#3fae5a) with a darker green fold shadow (#21733a) and a pale lit edge, a small red torii beam (#c8402f), a teal portal glow (#7fe8d0) inside the mouth only, a dark lacquer base (#2a1d3a)',
+    view: 'flat front-on, square on, no perspective — the mouth seen just a little from above.',
+    note: 'The game STRETCHES the middle third to any height: it must be a plain straight tube that looks the same at its top edge and its bottom edge.',
+    check: ['· ONE pipe filling the image; the rim spans the full width, the tube a little narrower.', '· The middle third is a plain straight tube.']
+  }
+]
+
+export const sheetById = (id: string): SheetDef | undefined => SHEETS.find((s) => s.id === id) ?? EXTRA_SHEETS.find((s) => s.id === id)
 
 /** The registration box of panel `i`. */
 export const boxOf = (s: SheetDef, i: number): SpriteBox => s.boxes?.[i] ?? s.box ?? { size: 1, ax: 0.5, ay: 0.5 }

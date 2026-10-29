@@ -28,13 +28,57 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // umbrella: `--set umbrella` writes the Umbrella KITE art's documents
 // (src/umbrella/art/manifest.ts + prompts.ts → art-sheets/umbrella/). Without
 // it: the barrage set, exactly as before.
+// `--set umbrella-lantern`: the lantern build's art (src/umbrella/art/lantern.ts →
+// art-sheets/umbrella-lantern/). Its sheets are painted over the kite set's own
+// references, so this copies those references across and writes the lantern
+// index from the kite index (same lattice, same measured fits).
 const SET_AT = process.argv.indexOf('--set')
 const SET = SET_AT > 1 ? process.argv[SET_AT + 1] ?? null : null
-if (SET && SET !== 'umbrella') { console.error(`--set ${SET} is unknown (known: umbrella)`); process.exit(1) }
+if (SET && SET !== 'umbrella' && SET !== 'umbrella-lantern') { console.error(`--set ${SET} is unknown (known: umbrella, umbrella-lantern)`); process.exit(1) }
 const OUT = SET ? join(ROOT, 'art-sheets', SET) : join(ROOT, 'art-sheets')
 const INDEX = join(OUT, 'sheet-index.json')
 const PAINTED = join(OUT, 'painted')
 const CHECK = process.argv.includes('--check')
+
+if (SET === 'umbrella-lantern') {
+  const pr = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'prompts.ts')).href)
+  const ln = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'lantern.ts')).href)
+  const KITE = join(ROOT, 'art-sheets', 'umbrella')
+  const kiteIndex = JSON.parse(readFileSync(join(KITE, 'sheet-index.json'), 'utf-8'))
+  const fits = {}
+  for (const w of kiteIndex.walks ?? []) if (w.fit) fits[w.id] = w.fit
+  const files = {
+    'sheet-index.json': `${JSON.stringify(ln.buildLanternIndex(fits), null, 1)}\n`,
+    'PROMPTS-LANTERN.md': ln.lanternPromptDoc(fits)
+  }
+  mkdirSync(PAINTED, { recursive: true })
+  let stale = 0
+  for (const s of ln.LANTERN_SHEETS) {
+    const ref = `${s.id}.png`
+    // The collectibles and the gate have no kite reference (scripts/art/lantern-refs.py draws theirs).
+    if (!existsSync(join(KITE, ref))) continue
+    const from = readFileSync(join(KITE, ref))
+    const to = join(OUT, ref)
+    if (existsSync(to) && readFileSync(to).equals(from)) continue
+    stale++
+    if (CHECK) console.error(`  ! ${ref} differs from the kite reference`)
+    else { writeFileSync(to, from); console.log(`  ✓ ${ref}  (reference, from art-sheets/umbrella/)`) }
+  }
+  for (const [name, text] of Object.entries(files)) {
+    const file = join(OUT, name)
+    if (existsSync(file) && readFileSync(file, 'utf-8') === text) { console.log(`  = ${name}  unchanged`); continue }
+    stale++
+    if (CHECK) console.error(`  ! ${name} is out of date — run pnpm art:prompts:lantern`)
+    else { writeFileSync(file, text, 'utf-8'); console.log(`  ✓ ${name}`) }
+  }
+  const painted = existsSync(PAINTED) ? readdirSync(PAINTED).map((f) => basename(f).replace(/\.[^.]+$/, '')) : []
+  const { targetOf } = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'manifest.ts')).href)
+  const shipped = (s) => existsSync(join(ROOT, ln.LANTERN_DIR, targetOf(s)))
+  for (const s of pr.paintOrder(ln.LANTERN_SHEETS)) console.log(`  ${shipped(s) ? '✓ shipped' : painted.includes(s.id) ? '? painted' : '· to paint'}  ${s.id}`)
+  console.log(`  ${existsSync(join(ROOT, ln.LANTERN_DIR, 'backdrop.webp')) ? '✓ shipped' : '· to paint'}  backdrop`)
+  if (CHECK && stale) process.exit(1)
+  process.exit(0)
+}
 
 /** One shape for both manifests: drawables with { id, title, doc, keys },
  *  the documents, each drawable's target, the folder targets live under. */

@@ -28,6 +28,16 @@ const NAMES: Record<string, string> = { pweeg: 'Pweeg', chad: 'Chad', kite: 'Pwe
 
 // ─── Shared clauses (hoisted: one copy to weaken, PROMPT-ANATOMY §8) ────────
 
+/** An art direction: the STYLE block, and how the first attached image (the
+ *  style reference) is introduced. The kite art's is KITE_LOOK; the lantern
+ *  build's is in lantern.ts. */
+export interface Look {
+  head: string
+  body: string[]
+  /** The line introducing the attached style reference of sheet `s`. */
+  styleSheet: (s: SheetDef) => string
+}
+
 const STYLE_HEAD = 'STYLE — one art direction for the whole game, the DESIGNER\'S OWN: HAND-DRAWN ON CREAM PAPER, SOFT CRAYON AND COLOURED-PENCIL, CEL-SHADED, CUTE AND COZY — exactly the finish of the attached style sheet.'
 const STYLE_BODY = [
   '· Soft crayon / pencil outlines in a warm dark brown (#3b2a20), never pure black and never a clean vector line: slightly wobbly and grainy like a real crayon, at their heaviest about 2% of the panel\'s shorter side. Hold the finished picture at thumbnail size: if the outline has thinned to a hairline there, it is several times too thin.',
@@ -89,7 +99,16 @@ const shapeLine = (s: SheetDef): string[] => {
   ]
 }
 
-const notLine = (s: SheetDef): string[] => {
+const KITE_LOOK: Look = {
+  head: STYLE_HEAD,
+  body: STYLE_BODY,
+  styleSheet: (s) => {
+    const kite = !!s.styleRef?.includes('kite')
+    return `· The FIRST attached image is the designer's STYLE SHEET (hand-drawn on cream paper). Copy its FINISH exactly: the soft crayon outlines, the coloured-pencil fills, the cel shading, the cosy palette.${kite && KITE_GROUPS.has(s.group) ? ' It is also the DESIGN of the kite characters: follow it for the diamond body, face, panels, arms, legs and bow-tail.' : FIGURE_GROUPS.has(s.group) ? ' Its characters are KITES — take only its drawing style from it: this character is NOT a kite.' : ' Take only its finish and, where it draws this very thing, its design.'} Take NO layout, no labels, no handwriting, no arrows and no paper from it.`
+  }
+}
+
+const notLine = (s: SheetDef, look: Look): string[] => {
   const out = [
     'DRAW ONLY WHAT EACH PANEL OF THE REFERENCE SHOWS — read this before the subject.',
     '· No ground, no floor line, no shadow on the ground, no scenery, no sky, no extra props.'
@@ -100,8 +119,7 @@ const notLine = (s: SheetDef): string[] => {
   let n = 0
   if (s.styleRef) {
     n++
-    const kite = s.styleRef.includes('kite')
-    out.push(`· The FIRST attached image is the designer's STYLE SHEET (hand-drawn on cream paper). Copy its FINISH exactly: the soft crayon outlines, the coloured-pencil fills, the cel shading, the cosy palette.${kite && KITE_GROUPS.has(s.group) ? ' It is also the DESIGN of the kite characters: follow it for the diamond body, face, panels, arms, legs and bow-tail.' : FIGURE_GROUPS.has(s.group) ? ' Its characters are KITES — take only its drawing style from it: this character is NOT a kite.' : ' Take only its finish and, where it draws this very thing, its design.'} Take NO layout, no labels, no handwriting, no arrows and no paper from it.`)
+    out.push(look.styleSheet(s))
   }
   if (s.model) {
     n++
@@ -145,7 +163,8 @@ const oneLine = (s: SheetDef): string[] => {
 
 const checkLine = (s: SheetDef): string[] => {
   const lines = ['BEFORE YOU CALL IT FINISHED, count and check:']
-  if (s.use === 'nine') lines.push('· ONE block, filling the whole square image; magenta only in the four rounded-off corners.', '· The middle third of each edge and the centre are plain and even.')
+  if (s.check) lines.push(...s.check)
+  else if (s.use === 'nine') lines.push('· ONE block, filling the whole square image; magenta only in the four rounded-off corners.', '· The middle third of each edge and the centre are plain and even.')
   else if (s.use === 'pillar') lines.push('· THREE pillars, each one third of the width and the full height; no face on any of them.', '· The middle third of each pillar is a plain straight section.')
   else lines.push(`· ${s.cols} panels across, ${s.rows} down, ${panels(s)} in all, on a square canvas.`, '· Every drawing is the size and in the place the reference panel has it.')
   if (FIGURE_GROUPS.has(s.group)) lines.push('· Not one umbrella anywhere. The same character, same size, same colours, in every panel.')
@@ -154,17 +173,17 @@ const checkLine = (s: SheetDef): string[] => {
 }
 
 /** One sheet's prompt: `# heading` then the body (block() fences it). */
-export const promptFor = (s: SheetDef, fit?: Fit): string => {
+export const promptFor = (s: SheetDef, fit?: Fit, look: Look = KITE_LOOK): string => {
   const body: string[] = []
   const para = (lines: string[]): void => { if (lines.length) body.push(lines.join('\n')) }
-  para(shapeLine(s))
-  para(notLine(s))
+  para(s.shape ?? shapeLine(s))
+  para(notLine(s, look))
   para([`WHAT IT IS: ${s.blurb}.`, ...(s.note ? [s.note] : [])])
   if (s.readPanels) para([`READ THE PANELS: ${s.readPanels}`])
   para([`COLOUR IDENTITY (keep the HUE — it is how a player tells this one from the others): ${s.colour}.`])
   para([`THE VIEW: ${s.view}`, '· No dramatic perspective, no tilt, no ground plane.'])
   para(oneLine(s))
-  para([STYLE_HEAD, s.fresh ? REF_FRESH : REF_REPAINT, ...STYLE_BODY])
+  para([look.head, s.fresh ? REF_FRESH : REF_REPAINT, ...look.body])
   para(sizeLine(s, fit))
   para(BACKGROUND)
   para(checkLine(s))
@@ -196,7 +215,9 @@ export const promptBody = (text: string): string => {
   return (cut < 0 ? '' : text.slice(cut + 1)).replace(/^\n+/, '')
 }
 
-const DOC_TITLES: Record<PromptDoc, string> = {
+type KiteDoc = Exclude<PromptDoc, 'PROMPTS-LANTERN.md'>
+
+const DOC_TITLES: Record<KiteDoc, string> = {
   'PROMPTS-KITE.md': 'the KITE characters (Pweeg-Kite and Chad-Kite) — the kite build\'s player; paint these first',
   'PROMPTS-CHARACTERS.md': 'Pweeg, Chad and the umbrella (the non-kite look, kept as a fallback)',
   'PROMPTS-ENEMIES.md': 'Walldorf and Prickbait',
@@ -204,22 +225,22 @@ const DOC_TITLES: Record<PromptDoc, string> = {
 }
 
 /** Paint in this order: a model sheet before every sheet that attaches it. */
-export const paintOrder = (): SheetDef[] => {
+export const paintOrder = (sheets: SheetDef[] = SHEETS): SheetDef[] => {
   const out: SheetDef[] = []
   const add = (s: SheetDef): void => {
     if (out.includes(s)) return
-    const m = s.model ? sheetById(s.model) : undefined
+    const m = s.model ? sheets.find((x) => x.id === s.model) : undefined
     if (m) add(m)
     out.push(s)
   }
-  for (const s of SHEETS) add(s)
+  for (const s of sheets) add(s)
   return out
 }
 
-export const promptDocs = (fits: Record<string, Fit> = {}): Record<PromptDoc, string> => {
-  const out = {} as Record<PromptDoc, string>
+export const promptDocs = (fits: Record<string, Fit> = {}): Record<KiteDoc, string> => {
+  const out = {} as Record<KiteDoc, string>
   const order = paintOrder()
-  for (const doc of Object.keys(DOC_TITLES) as PromptDoc[]) {
+  for (const doc of Object.keys(DOC_TITLES) as KiteDoc[]) {
     const items = order.filter((s) => s.doc === doc)
     out[doc] = [
       `# Prompts — Umbrella kite art: ${DOC_TITLES[doc]}`,
@@ -236,11 +257,11 @@ export const promptDocs = (fits: Record<string, Fit> = {}): Record<PromptDoc, st
 
 // ─── The slicer's index ─────────────────────────────────────────────────────
 
-export const buildIndex = (fits: Record<string, Fit> = {}) => ({
+export const buildIndex = (fits: Record<string, Fit> = {}, sheets: SheetDef[] = SHEETS, outDir: string = SHIPPED_DIR) => ({
   generator: 'src/umbrella/art/manifest.ts',
-  outDir: SHIPPED_DIR,
+  outDir,
   sheets: [],
-  walks: SHEETS.map((s) => ({
+  walks: sheets.map((s) => ({
     id: s.id,
     kind: s.group,
     title: s.title,
