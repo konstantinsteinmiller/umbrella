@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Volgend level",
     'restart': "Level opnieuw starten",
     'selectLevel': "Kies level",
+    'chapter': "Hoofdstuk {n}",
+    'jamChapter': "Game Jam",
     'clickToPlay': "Klik om te spelen",
     'tapToPlay': "Tik om te spelen",
     'ctlMove': "Bewegen",

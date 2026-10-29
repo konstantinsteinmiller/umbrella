@@ -13,6 +13,8 @@ export default {
     'nextLevel': "ด่านถัดไป",
     'restart': "เริ่มด่านใหม่",
     'selectLevel': "เลือกด่าน",
+    'chapter': "บทที่ {n}",
+    'jamChapter': "เกมแจม",
     'clickToPlay': "คลิกเพื่อเล่น",
     'tapToPlay': "แตะเพื่อเล่น",
     'ctlMove': "เคลื่อนที่",

@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Наступний рівень",
     'restart': "Перезапустити рівень",
     'selectLevel': "Вибір рівня",
+    'chapter': "Розділ {n}",
+    'jamChapter': "Гейм-джем",
     'clickToPlay': "Натисніть, щоб грати",
     'tapToPlay': "Торкніться, щоб грати",
     'ctlMove': "Рух",

@@ -39,6 +39,11 @@ import ConfirmModal from '@/components/umbrella/ConfirmModal.vue'
 import LanguageSelect from '@/components/umbrella/LanguageSelect.vue'
 import {
   AUTHORED_LEVEL_IDS,
+  campaignChapters,
+  jamEntries,
+  setJamTest,
+  startChapterId,
+  type Chapter,
   campaignEntries,
   campaignRemoved,
   campaignOrder,
@@ -870,71 +875,171 @@ const campaignOptions = computed(() => {
 })
 const slotNumber = (id: number) => LEVELS.findIndex((l) => l.id === id) + 1
 
-// ── Reorder dialog: drag the campaign into a new order, drag saved levels in ──
+// ── Reorder dialog: the campaign as chapters of levels in one list (a chapter is a header row; a level
+//    dragged past one moves into that chapter), saved levels to drag in, and the game-jam chapter ──
+type OrderRow = { kind: 'chapter'; id: string; name: string; subtitle: string } | { kind: 'level'; e: OrderEntry }
 const orderOpen = ref(false)
-const orderDraft = ref<OrderEntry[]>([])
-/** What is being dragged: a campaign row (its index) or a saved level (its name). */
+const orderRows = ref<OrderRow[]>([])
+/** The draft's levels in play order. */
+const orderDraft = computed(() => orderRows.value.flatMap((r) => (r.kind === 'level' ? [r.e] : [])))
+/** The chapter a new player starts with, and the jam chapter (itch.io build only). */
+const startDraft = ref('')
+const jamDraft = ref<OrderEntry[]>([])
+const jamNameDraft = ref('')
+const jamSubtitleDraft = ref('')
+/** What is being dragged: a row of the list (its index) or a saved level (its name). */
 const dragging = ref<{ row: number } | { lib: string } | null>(null)
 const dropAt = ref<number | null>(null)
+const jamDropOver = ref(false)
 /** The authored levels' ids in authored order, for "Original level N" and Reset. */
 const AUTHORED_IDS = AUTHORED_LEVEL_IDS
 /** Where the slot comes from: an authored level's original number, or the saved level added. */
 const orderOrigin = (e: OrderEntry) =>
   e.custom ? `★ ${e.custom}` : `Original level ${AUTHORED_IDS.indexOf(e.id) + 1}${campaignOverrides.value[e.id] ? ' (edited)' : ''}`
 const orderLabel = (e: OrderEntry) => e.name ?? orderOrigin(e)
-// Rename: the slot's mechanic or theme instead of its number.
-const renaming = ref<number | null>(null)
+/** A level row's campaign number (levels only), and a chapter row's place among the chapters. */
+const levelNumber = (i: number) => orderRows.value.slice(0, i + 1).filter((r) => r.kind === 'level').length
+const chapterNumber = (i: number) => orderRows.value.slice(0, i + 1).filter((r) => r.kind === 'chapter').length
+const chapterTitle = (r: OrderRow, i: number) => (r.kind === 'chapter' && r.name) || `Chapter ${chapterNumber(i)}`
+/** Where the chapter starting at row `i` ends (the next chapter row, or the end). */
+const blockEnd = (i: number) => {
+  let j = i + 1
+  while (j < orderRows.value.length && orderRows.value[j]!.kind === 'level') j++
+  return j
+}
+const chapterSize = (i: number) => blockEnd(i) - i - 1
+const isLastChapter = (i: number) => blockEnd(i) >= orderRows.value.length
+// Rename: a level by its mechanic or theme instead of its number; a chapter (its name or the
+// subtitle on its chapter card); the jam chapter.
+const renaming = ref<number | 'jam' | null>(null)
+const renameField = ref<'name' | 'subtitle'>('name')
 const renameDraft = ref('')
-const startRename = (i: number) => {
+const startRename = (i: number | 'jam', field: 'name' | 'subtitle' = 'name') => {
   renaming.value = i
-  renameDraft.value = orderDraft.value[i]?.name ?? ''
+  renameField.value = field
+  const r = i === 'jam' ? null : orderRows.value[i]
+  renameDraft.value = i === 'jam'
+    ? (field === 'subtitle' ? jamSubtitleDraft.value : jamNameDraft.value)
+    : r?.kind === 'chapter' ? r[field] : r?.e.name ?? ''
 }
 const commitRename = () => {
-  const e = renaming.value === null ? undefined : orderDraft.value[renaming.value]
-  if (e) {
-    const v = renameDraft.value.trim().slice(0, 40)
-    if (v) e.name = v
-    else delete e.name
+  const sub = renameField.value === 'subtitle'
+  const v = renameDraft.value.trim().slice(0, sub ? 60 : 40)
+  const at = renaming.value
+  const r = at === null || at === 'jam' ? null : orderRows.value[at]
+  if (at === 'jam') { if (sub) jamSubtitleDraft.value = v; else jamNameDraft.value = v }
+  else if (r?.kind === 'chapter') r[renameField.value] = v
+  else if (r) {
+    if (v) r.e.name = v
+    else delete r.e.name
   }
   renaming.value = null
 }
 const orderPool = computed(() => libraryNames.value.filter((n) => !orderDraft.value.some((e) => e.custom === n)))
-const orderKey = (list: OrderEntry[]) => JSON.stringify(list.map((e) => [e.id, e.custom, e.name ?? '']))
+const orderKey = () => JSON.stringify([
+  orderRows.value.map((r) => (r.kind === 'chapter' ? ['c', r.id, r.name, r.subtitle] : [r.e.id, r.e.custom, r.e.name ?? ''])),
+  startDraft.value,
+  jamDraft.value.map((e) => [e.id, e.custom]),
+  jamNameDraft.value,
+  jamSubtitleDraft.value
+])
 /** Authored levels deleted in this dialog (kept apart so Cancel and Reset can undo it). */
 const orderRemoved = ref<number[]>([])
-const orderChanged = computed(() => orderKey(orderDraft.value) !== orderKey(campaignEntries()) || orderRemoved.value.join() !== campaignRemoved().join())
+let openedKey = ''
+const orderChanged = computed(() => orderKey() !== openedKey || orderRemoved.value.join() !== campaignRemoved().join())
 
-const openOrder = () => { orderDraft.value = campaignEntries(); orderRemoved.value = campaignRemoved(); dragging.value = null; dropAt.value = null; renaming.value = null; orderOpen.value = true }
+const openOrder = () => {
+  const byId = new Map(campaignEntries().map((e) => [e.id, e]))
+  orderRows.value = campaignChapters().flatMap((c): OrderRow[] => [
+    { kind: 'chapter', id: c.id, name: c.name ?? '', subtitle: c.subtitle ?? '' },
+    ...c.levels.map((id): OrderRow => ({ kind: 'level', e: { ...byId.get(id)! } }))
+  ])
+  startDraft.value = startChapterId()
+  jamDraft.value = jamEntries()
+  jamNameDraft.value = campaignOrder.value?.jamName ?? ''
+  jamSubtitleDraft.value = campaignOrder.value?.jamSubtitle ?? ''
+  orderRemoved.value = campaignRemoved()
+  dragging.value = null
+  dropAt.value = null
+  renaming.value = null
+  openedKey = orderKey()
+  orderOpen.value = true
+}
 const closeOrder = () => {
   if (orderChanged.value && !window.confirm('Discard the new order?')) return
   orderOpen.value = false
 }
-const addToOrder = (name: string, at = orderDraft.value.length) => {
+/** A fresh id for a saved level joining the campaign or the jam chapter. */
+const freshId = () => nextCustomId([...orderDraft.value.map((e) => e.id), ...jamDraft.value.map((e) => e.id)])
+const addToOrder = (name: string, at = orderRows.value.length) => {
   const l = customLevels.value[name]
   if (!l) return
-  const id = nextCustomId(orderDraft.value.map((e) => e.id))
-  orderDraft.value.splice(at, 0, { id, custom: name, level: { ...cloneLevel(l), id } })
+  const id = freshId()
+  orderRows.value.splice(Math.max(1, at), 0, { kind: 'level', e: { id, custom: name, level: { ...cloneLevel(l), id } } })
 }
-/** Moves row `from` so it lands before what is now at `to` (to = length: the end). */
+/** Moves row `from` so it lands before what is now at `to` (to = length: the end). A level never
+ *  lands above the first chapter. */
 const moveInOrder = (from: number, to: number) => {
-  const list = orderDraft.value
+  const list = orderRows.value
   if (to < 0 || to > list.length) return
-  const [e] = list.splice(from, 1)
-  list.splice(to > from ? to - 1 : to, 0, e!)
+  const [r] = list.splice(from, 1)
+  let at = to > from ? to - 1 : to
+  if (r!.kind === 'level' && at === 0) at = 1
+  list.splice(at, 0, r!)
 }
-const removeFromOrder = (i: number) => { orderDraft.value.splice(i, 1) }
+/** Moves a whole chapter (its row and its levels) above the previous one or below the next one. */
+const moveChapter = (i: number, d: -1 | 1) => {
+  const list = orderRows.value
+  const end = blockEnd(i)
+  if (d < 0) {
+    let p = i - 1
+    while (p >= 0 && list[p]!.kind !== 'chapter') p--
+    if (p < 0) return
+    list.splice(p, 0, ...list.splice(i, end - i))
+  } else {
+    if (end >= list.length) return
+    const nextEnd = blockEnd(end)
+    const block = list.splice(i, end - i)
+    list.splice(nextEnd - block.length, 0, ...block)
+  }
+}
+const addChapter = () => {
+  const n = Math.max(0, ...orderRows.value.map((r) => (r.kind === 'chapter' ? Number(/^c(\d+)$/.exec(r.id)?.[1] ?? 0) : 0))) + 1
+  orderRows.value.push({ kind: 'chapter', id: `c${n}`, name: '', subtitle: '' })
+}
+/** Deletes a chapter: its levels join the previous chapter (the next one, for the first). */
+const deleteChapter = (i: number) => {
+  const list = orderRows.value
+  const r = list[i]
+  if (r?.kind !== 'chapter') return
+  if (list.filter((x) => x.kind === 'chapter').length <= 1) { flash('The campaign needs at least one chapter'); return }
+  const n = chapterSize(i)
+  if (!window.confirm(`Delete the chapter "${chapterTitle(r, i)}"?${n ? `\n\nIts ${n} level${n === 1 ? '' : 's'} join${n === 1 ? 's' : ''} the ${i === 0 ? 'next' : 'previous'} chapter.` : ''}`)) return
+  list.splice(i, 1)
+  if (i === 0) {
+    // The first row must be a chapter: the next chapter takes the deleted one's levels at its start.
+    const k = list.findIndex((x) => x.kind === 'chapter')
+    list.unshift(...list.splice(k, 1))
+  }
+  if (startDraft.value === r.id) startDraft.value = (list[0] as { id: string }).id
+  renaming.value = null
+}
+const removeFromOrder = (i: number) => { orderRows.value.splice(i, 1) }
 /** Deletes a level from the campaign after a confirm; an authored one is remembered so it does not come back. */
 const deleteFromOrder = (i: number) => {
-  const e = orderDraft.value[i]
-  if (!e) return
+  const r = orderRows.value[i]
+  if (r?.kind !== 'level') return
+  const e = r.e
   if (orderDraft.value.length <= 1) { flash('The campaign needs at least one level'); return }
   const note = e.custom
     ? 'It is also deleted from your saved levels right away (that part cannot be undone).'
     : 'It is gone for good once you press Save order; Cancel or Reset to original brings it back.'
-  if (!window.confirm(`Delete "${orderLabel(e)}" (slot ${i + 1}) from the campaign?
+  if (!window.confirm(`Delete "${orderLabel(e)}" (slot ${levelNumber(i)}) from the campaign?
 
 ${note}`)) return
-  orderDraft.value.splice(i, 1)
+  orderRows.value.splice(i, 1)
+  // A jam entry pointing at it would point at nothing.
+  jamDraft.value = jamDraft.value.filter((j) => j.id !== e.id || !!j.level)
   if (e.custom) deleteCustomLevel(e.custom)
   else orderRemoved.value = [...orderRemoved.value, e.id].sort((a, b) => a - b)
   renaming.value = null
@@ -947,18 +1052,78 @@ const onOrderDragOver = (e: DragEvent, i: number) => {
 }
 const onOrderDrop = () => {
   const d = dragging.value
-  const at = dropAt.value ?? orderDraft.value.length
+  const at = dropAt.value ?? orderRows.value.length
   if (d && 'row' in d) moveInOrder(d.row, at)
   else if (d) addToOrder(d.lib, at)
   dragging.value = null
   dropAt.value = null
 }
-const onOrderSave = () => {
-  saveCampaignOrder(orderDraft.value, Date.now(), orderRemoved.value)
-  orderOpen.value = false
-  flash(`Campaign order saved · ${orderDraft.value.length} levels`)
+
+// The game-jam chapter: campaign levels by reference (they stay where they are), saved levels as a snapshot.
+const inJam = (id: number) => jamDraft.value.some((j) => j.id === id && !j.level)
+const addToJam = (e: OrderEntry) => {
+  if (inJam(e.id)) { flash('Already in the Jam chapter'); return }
+  jamDraft.value.push({ id: e.id })
 }
-const onOrderReset = () => { orderDraft.value = AUTHORED_IDS.map((id) => ({ id })); orderRemoved.value = [] }
+const addSavedToJam = (name: string) => {
+  const l = customLevels.value[name]
+  if (!l) return
+  const id = freshId()
+  jamDraft.value.push({ id, custom: name, level: { ...cloneLevel(l), id } })
+}
+const jamLabel = (j: OrderEntry) => {
+  if (j.level) return `★ ${j.custom}`
+  const n = orderDraft.value.findIndex((e) => e.id === j.id)
+  return n < 0 ? `Level ${j.id}` : `Level ${n + 1} · ${orderLabel(orderDraft.value[n]!)}`
+}
+const moveJam = (i: number, d: -1 | 1) => {
+  const list = jamDraft.value
+  if (i + d < 0 || i + d >= list.length) return
+  list.splice(i + d, 0, ...list.splice(i, 1))
+}
+const onJamDrop = () => {
+  const d = dragging.value
+  if (d && 'row' in d) {
+    const r = orderRows.value[d.row]
+    if (r?.kind === 'level') addToJam(r.e)
+  } else if (d) addSavedToJam(d.lib)
+  dragging.value = null
+  dropAt.value = null
+  jamDropOver.value = false
+}
+
+const draftChapters = (): Chapter[] => {
+  const out: Chapter[] = []
+  for (const r of orderRows.value) {
+    if (r.kind === 'chapter') out.push({ id: r.id, ...(r.name ? { name: r.name } : {}), ...(r.subtitle ? { subtitle: r.subtitle } : {}), levels: [] })
+    else out[out.length - 1]!.levels.push(r.e.id)
+  }
+  return out
+}
+const onOrderSave = () => {
+  saveCampaignOrder(orderDraft.value, Date.now(), orderRemoved.value, {
+    chapters: draftChapters(),
+    start: startDraft.value,
+    jam: jamDraft.value,
+    jamName: jamNameDraft.value || undefined,
+    jamSubtitle: jamSubtitleDraft.value || undefined
+  })
+  orderOpen.value = false
+  flash(`Campaign order saved · ${draftChapters().length} chapters · ${orderDraft.value.length} levels`)
+}
+/** Plays the jam chapter as the itch.io build will (saving the dialog first). */
+const testJam = () => {
+  if (!jamDraft.value.length) { flash('Add levels to the Jam chapter first'); return }
+  if (orderChanged.value) onOrderSave()
+  orderOpen.value = false
+  setJamTest(true)
+  void router.push('/')
+}
+const onOrderReset = () => {
+  orderRows.value = [{ kind: 'chapter', id: 'c1', name: '', subtitle: '' }, ...AUTHORED_IDS.map((id): OrderRow => ({ kind: 'level', e: { id } }))]
+  startDraft.value = 'c1'
+  orderRemoved.value = []
+}
 
 const loadIntoEditor = (l: LevelDef, name: string) => {
   level.value = cloneLevel(l)
@@ -1818,43 +1983,109 @@ onUnmounted(() => {
           <div class="kind">Campaign order</div>
           <button class="btn" title="Close (Esc)" @click="closeOrder">✕ <kbd>Esc</kbd></button>
         </div>
-        <p class="hint">Drag a level to its new position (or use ▲ ▼); ✎ names a level by its mechanic or theme. Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again; 🗑 deletes a level (asks first).</p>
+        <p class="hint">Drag a level to its new position (or use ▲ ▼) — past a chapter row it moves into that chapter; ✎ names a level by its mechanic or theme. Chapters: ✎ rename, ▲ ▼ move the whole chapter, 🗑 delete it (its levels join the chapter before it), ☆ Start makes it the chapter a new player begins with. Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again; 🗑 deletes a level (asks first). 🎮 puts a level into the Game Jam chapter, which only the itch.io build plays.</p>
         <div class="order-cols">
           <ol class="order-list" @dragover.prevent @drop="onOrderDrop">
-            <li
-              v-for="(e, i) in orderDraft"
-              :key="e.id"
-              class="order-row"
-              :class="{ custom: !!e.custom, before: dropAt === i, after: dropAt === i + 1 && i === orderDraft.length - 1, lifted: !!dragging && 'row' in dragging && dragging.row === i }"
-              :draggable="renaming !== i"
-              @dragstart="dragging = { row: i }"
-              @dragend="dragging = null; dropAt = null"
-              @dragover="onOrderDragOver($event, i)"
-            >
-              <span class="order-num">{{ i + 1 }}</span>
+            <template v-for="(r, i) in orderRows" :key="r.kind === 'chapter' ? `ch:${r.id}` : r.e.id">
+              <li
+                v-if="r.kind === 'chapter'"
+                class="order-row chapter-row"
+                :class="{ before: dropAt === i, start: startDraft === r.id }"
+                @dragover="onOrderDragOver($event, i)"
+              >
+                <input
+                  v-if="renaming === i"
+                  v-model="renameDraft"
+                  class="field order-rename"
+                  :maxlength="renameField === 'subtitle' ? 60 : 40"
+                  :placeholder="renameField === 'subtitle' ? 'Subtitle on the chapter card, e.g. Into the storm' : `Chapter ${chapterNumber(i)}`"
+                  :aria-label="renameField === 'subtitle' ? 'Chapter subtitle' : 'Chapter name'"
+                  @keydown.enter.prevent="commitRename"
+                  @keydown.escape.stop.prevent="renaming = null"
+                  @blur="commitRename"
+                  @vue:mounted="({ el }: { el: HTMLInputElement }) => el.focus()"
+                />
+                <span v-else class="order-name chapter-name" @dblclick="startRename(i)">
+                  {{ chapterTitle(r, i) }}<small class="order-origin"> · {{ chapterSize(i) }} level{{ chapterSize(i) === 1 ? '' : 's' }}</small>
+                  <small v-if="r.subtitle" class="chapter-sub" @dblclick.stop="startRename(i, 'subtitle')">“{{ r.subtitle }}”</small>
+                </span>
+                <button class="mini start-btn" :class="{ on: startDraft === r.id }" title="The game starts with this chapter" @click="startDraft = r.id">{{ startDraft === r.id ? '★' : '☆' }} Start</button>
+                <button v-if="renaming !== i" class="mini" title="Rename the chapter (or double-click its name)" @click="startRename(i)">✎</button>
+                <button v-if="renaming !== i" class="mini" :class="{ on: !!r.subtitle }" title="Subtitle on the chapter card (shown under “Chapter N” when its first level starts)" @click="startRename(i, 'subtitle')">💬</button>
+                <button class="mini" :disabled="i === 0" title="Move the chapter up" @click="moveChapter(i, -1)">▲</button>
+                <button class="mini" :disabled="isLastChapter(i)" title="Move the chapter down" @click="moveChapter(i, 1)">▼</button>
+                <button class="mini danger" title="Delete the chapter (its levels stay in the campaign)" aria-label="Delete chapter" @click="deleteChapter(i)">🗑</button>
+              </li>
+              <li
+                v-else
+                class="order-row"
+                :class="{ custom: !!r.e.custom, before: dropAt === i, after: dropAt === i + 1 && i === orderRows.length - 1, lifted: !!dragging && 'row' in dragging && dragging.row === i }"
+                :draggable="renaming !== i"
+                @dragstart="dragging = { row: i }"
+                @dragend="dragging = null; dropAt = null"
+                @dragover="onOrderDragOver($event, i)"
+              >
+                <span class="order-num">{{ levelNumber(i) }}</span>
+                <input
+                  v-if="renaming === i"
+                  v-model="renameDraft"
+                  class="field order-rename"
+                  maxlength="40"
+                  placeholder="Mechanic or theme, e.g. Wind tunnel"
+                  aria-label="Level name"
+                  @keydown.enter.prevent="commitRename"
+                  @keydown.escape.stop.prevent="renaming = null"
+                  @blur="commitRename"
+                  @vue:mounted="({ el }: { el: HTMLInputElement }) => el.focus()"
+                />
+                <span v-else class="order-name" :title="orderOrigin(r.e)" @dblclick="startRename(i)">
+                  {{ orderLabel(r.e) }}<small v-if="r.e.name" class="order-origin"> · {{ orderOrigin(r.e) }}</small>
+                </span>
+                <button v-if="renaming !== i" class="mini" title="Rename (or double-click the name)" @click="startRename(i)">✎</button>
+                <button class="mini" :class="{ on: inJam(r.e.id) }" :title="inJam(r.e.id) ? 'In the Game Jam chapter' : 'Add to the Game Jam chapter'" @click="addToJam(r.e)">🎮</button>
+                <button class="mini" :disabled="i === 1" title="Move up" @click="moveInOrder(i, i - 1)">▲</button>
+                <button class="mini" :disabled="i === orderRows.length - 1" title="Move down" @click="moveInOrder(i, i + 2)">▼</button>
+                <button v-if="r.e.custom" class="mini" title="Take out of the campaign (stays in Saved levels)" @click="removeFromOrder(i)">✕</button>
+                <button class="mini danger" title="Delete this level from the campaign" aria-label="Delete level" @click="deleteFromOrder(i)">🗑</button>
+              </li>
+            </template>
+            <li class="order-add"><button class="btn" title="A new, empty chapter at the end" @click="addChapter">＋ Chapter</button></li>
+          </ol>
+          <div class="order-pool">
+            <div class="head jam-head">
               <input
-                v-if="renaming === i"
+                v-if="renaming === 'jam'"
                 v-model="renameDraft"
                 class="field order-rename"
-                maxlength="40"
-                placeholder="Mechanic or theme, e.g. Wind tunnel"
-                aria-label="Level name"
+                :maxlength="renameField === 'subtitle' ? 60 : 40"
+                :placeholder="renameField === 'subtitle' ? 'Subtitle on the chapter card' : 'Game Jam'"
+                :aria-label="renameField === 'subtitle' ? 'Jam chapter subtitle' : 'Jam chapter name'"
                 @keydown.enter.prevent="commitRename"
                 @keydown.escape.stop.prevent="renaming = null"
                 @blur="commitRename"
                 @vue:mounted="({ el }: { el: HTMLInputElement }) => el.focus()"
               />
-              <span v-else class="order-name" :title="orderOrigin(e)" @dblclick="startRename(i)">
-                {{ orderLabel(e) }}<small v-if="e.name" class="order-origin"> · {{ orderOrigin(e) }}</small>
-              </span>
-              <button v-if="renaming !== i" class="mini" title="Rename (or double-click the name)" @click="startRename(i)">✎</button>
-              <button class="mini" :disabled="i === 0" title="Move up" @click="moveInOrder(i, i - 1)">▲</button>
-              <button class="mini" :disabled="i === orderDraft.length - 1" title="Move down" @click="moveInOrder(i, i + 2)">▼</button>
-              <button v-if="e.custom" class="mini" title="Take out of the campaign (stays in Saved levels)" @click="removeFromOrder(i)">✕</button>
-              <button class="mini danger" title="Delete this level from the campaign" aria-label="Delete level" @click="deleteFromOrder(i)">🗑</button>
-            </li>
-          </ol>
-          <div class="order-pool">
+              <span v-else class="order-name" @dblclick="startRename('jam')">🎮 {{ jamNameDraft || 'Game Jam' }} <small class="order-origin">· itch.io build</small></span>
+              <button v-if="renaming !== 'jam'" class="mini" title="Rename the jam chapter" @click="startRename('jam')">✎</button>
+              <button v-if="renaming !== 'jam'" class="mini" :class="{ on: !!jamSubtitleDraft }" :title="jamSubtitleDraft ? `Card subtitle: ${jamSubtitleDraft}` : 'Subtitle on the chapter card'" @click="startRename('jam', 'subtitle')">💬</button>
+            </div>
+            <div
+              class="jam-list"
+              :class="{ over: jamDropOver }"
+              @dragover.prevent="jamDropOver = !!dragging"
+              @dragleave="jamDropOver = false"
+              @drop.stop="onJamDrop"
+            >
+              <div v-for="(j, k) in jamDraft" :key="j.id" class="order-row" :class="{ custom: !!j.level }">
+                <span class="order-num">{{ k + 1 }}</span>
+                <span class="order-name" :title="jamLabel(j)">{{ jamLabel(j) }}</span>
+                <button class="mini" :disabled="k === 0" title="Move up" @click="moveJam(k, -1)">▲</button>
+                <button class="mini" :disabled="k === jamDraft.length - 1" title="Move down" @click="moveJam(k, 1)">▼</button>
+                <button class="mini" title="Take out of the Jam chapter" @click="jamDraft.splice(k, 1)">✕</button>
+              </div>
+              <p v-if="!jamDraft.length" class="hint">Drag campaign or saved levels here (or press 🎮). Only the itch.io build plays this chapter.</p>
+            </div>
+            <button class="btn" :disabled="!jamDraft.length" title="Play the Jam chapter as the itch.io build will (saves first)" @click="testJam">▶ Test Jam chapter</button>
             <div class="head">Saved levels</div>
             <div
               v-for="n in orderPool"
@@ -1866,13 +2097,14 @@ onUnmounted(() => {
             >
               <span class="order-name">★ {{ n }}</span>
               <button class="mini" title="Add at the end of the campaign" @click="addToOrder(n)">+</button>
+              <button class="mini" title="Add to the Game Jam chapter" @click="addSavedToJam(n)">🎮</button>
               <button class="mini danger" title="Delete this saved level" aria-label="Delete saved level" @click="deleteSaved(n)">🗑</button>
             </div>
             <p v-if="!orderPool.length" class="hint">No saved levels left to add — Save one first.</p>
           </div>
         </div>
         <div class="row">
-          <button class="btn" title="The authored order, without added levels" @click="onOrderReset">Reset to original</button>
+          <button class="btn" title="The authored order in one chapter, without added levels (the Jam chapter stays)" @click="onOrderReset">Reset to original</button>
           <span class="grow" />
           <button class="btn" @click="closeOrder">Cancel</button>
           <button class="btn green" :disabled="!orderChanged" @click="onOrderSave">Save order</button>
@@ -2213,6 +2445,28 @@ kbd {
 .order-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-origin { opacity: 0.55; }
 .order-rename { flex: 1; min-width: 0; }
+.order-row.chapter-row {
+  margin-top: 8px;
+  background: rgba(234, 179, 8, 0.16);
+  border-left: 3px solid rgba(234, 179, 8, 0.6);
+  cursor: default;
+}
+.order-row.chapter-row:first-child { margin-top: 2px; }
+.order-row.chapter-row.start { border-left-color: #eab308; }
+.chapter-name { font-weight: 700; }
+.chapter-sub { display: block; font-weight: 400; font-style: italic; opacity: 0.7; }
+.mini.start-btn { white-space: nowrap; }
+.mini.on { background: rgba(234, 179, 8, 0.45); }
+.order-add { list-style: none; padding: 6px 2px 2px; }
+.jam-head { display: flex; align-items: center; gap: 6px; }
+.jam-list {
+  min-height: 48px;
+  margin: 4px 0 6px;
+  padding: 2px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+}
+.jam-list.over { border-color: #eab308; background: rgba(234, 179, 8, 0.12); }
 .mini {
   padding: 0 6px;
   border: 0;

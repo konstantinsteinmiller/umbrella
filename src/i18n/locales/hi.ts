@@ -13,6 +13,8 @@ export default {
     'nextLevel': "अगला स्तर",
     'restart': "स्तर फिर से शुरू करें",
     'selectLevel': "लेवल चुनें",
+    'chapter': "अध्याय {n}",
+    'jamChapter': "गेम जैम",
     'clickToPlay': "खेलने के लिए क्लिक करें",
     'tapToPlay': "खेलने के लिए टैप करें",
     'ctlMove': "चलना",

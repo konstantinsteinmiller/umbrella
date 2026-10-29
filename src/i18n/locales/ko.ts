@@ -13,6 +13,8 @@ export default {
     'nextLevel': "다음 레벨",
     'restart': "레벨 다시 시작",
     'selectLevel': "레벨 선택",
+    'chapter': "챕터 {n}",
+    'jamChapter': "게임 잼",
     'clickToPlay': "클릭하여 플레이",
     'tapToPlay': "탭하여 플레이",
     'ctlMove': "이동",

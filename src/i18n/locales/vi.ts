@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Màn sau",
     'restart': "Chơi lại màn",
     'selectLevel': "Chọn màn",
+    'chapter': "Chương {n}",
+    'jamChapter': "Game Jam",
     'clickToPlay': "Nhấp để chơi",
     'tapToPlay': "Chạm để chơi",
     'ctlMove': "Di chuyển",

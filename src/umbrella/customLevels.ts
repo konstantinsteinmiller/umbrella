@@ -154,32 +154,103 @@ export interface OrderEntry {
 }
 /** A slot name from untrusted JSON: trimmed, at most 40 characters, absent when empty. */
 const slotName = (v: unknown) => (typeof v === 'string' && v.trim() ? { name: v.trim().slice(0, 40) } : {})
-/** `removed`: authored levels the designer deleted from the campaign (they stay out of `campaignEntries`). */
-export interface CampaignOrder { editedAt: number; order: OrderEntry[]; removed?: number[] }
+/** A chapter card's subtitle from untrusted JSON: trimmed, at most 60 characters, absent when empty. */
+const subtitleOf = (v: unknown) => (typeof v === 'string' && v.trim() ? { subtitle: v.trim().slice(0, 60) } : {})
+/** A chapter: a named run of campaign levels (slot ids, in play order). An unnamed one shows "Chapter N". */
+export interface Chapter { id: string; name?: string; levels: number[]; subtitle?: string }
+/**
+ * `removed`: authored levels the designer deleted from the campaign (they stay out of `campaignEntries`).
+ * `chapters`: the campaign split into chapters, in play order (absent: one chapter holding everything);
+ * `order` stays the flat play order, so a client from before chapters still plays it right.
+ * `start`: the chapter a new player begins with. `jam`: the game-jam chapter — campaign levels (by id)
+ * and saved levels (snapshots under ids of their own), played ONLY by the itch.io build (`jamPlay`).
+ */
+export interface CampaignOrder {
+  editedAt: number
+  order: OrderEntry[]
+  removed?: number[]
+  chapters?: Chapter[]
+  start?: string
+  jam?: OrderEntry[]
+  /** The jam chapter's title (default: "Game Jam"). */
+  jamName?: string
+  /** The jam chapter card's subtitle. */
+  jamSubtitle?: string
+}
+/** The extra fields a saved order carries beside the flat order. */
+export type OrderExtras = Pick<CampaignOrder, 'chapters' | 'start' | 'jam' | 'jamName' | 'jamSubtitle'>
 /** Ids of library levels added to the campaign start here, clear of the authored ones. */
 export const CUSTOM_ID_BASE = 1000
 
 /** Ids of the authored levels, ascending. */
 export const AUTHORED_LEVEL_IDS: number[] = BUILT_IN.map((l) => l.id).sort((a, b) => a - b)
 const isBuiltIn = (id: number) => BUILT_IN.some((l) => l.id === id)
+/** The game-jam chapter's id (it is not one of `chapters`: it holds references, not a share of the campaign). */
+export const JAM_CHAPTER = 'jam'
+const chapterIdOf = (v: unknown): string | null => (typeof v === 'string' && /^[a-z0-9-]{1,24}$/i.test(v) && v !== JAM_CHAPTER ? v : null)
+
+/** An order entry from untrusted JSON: a built-in level, or a saved level's snapshot (id ≥ CUSTOM_ID_BASE). */
+const parseEntry = (raw: unknown, removed: number[]): OrderEntry | null => {
+  const e = raw as Partial<OrderEntry> | null
+  if (!e || !num(e.id) || removed.includes(e.id)) return null
+  if (isBuiltIn(e.id)) return { id: e.id, ...slotName(e.name) }
+  const level = e.id >= CUSTOM_ID_BASE ? parseLevel(e.level) : null
+  if (!level) return null
+  return { id: e.id, custom: typeof e.custom === 'string' && e.custom ? e.custom : `level-${e.id}`, level: { ...level, id: e.id }, ...slotName(e.name) }
+}
+
 /** An order from untrusted JSON, or null. Unknown ids and repeats are dropped. */
 export const parseOrder = (data: unknown): CampaignOrder | null => {
-  const o = data as { editedAt?: unknown; order?: unknown; removed?: unknown } | null
+  const o = data as { editedAt?: unknown; order?: unknown; removed?: unknown; chapters?: unknown; start?: unknown; jam?: unknown; jamName?: unknown; jamSubtitle?: unknown } | null
   if (!o || typeof o !== 'object' || !num(o.editedAt) || o.editedAt <= 0 || !Array.isArray(o.order)) return null
   const removed = Array.isArray(o.removed) ? [...new Set(o.removed.filter((x): x is number => num(x) && isBuiltIn(x)))] : []
   const order: OrderEntry[] = []
   const seen = new Set<number>()
   for (const raw of o.order) {
-    const e = raw as Partial<OrderEntry> | null
-    if (!e || !num(e.id) || seen.has(e.id)) continue
-    if (removed.includes(e.id)) continue
-    if (isBuiltIn(e.id)) { order.push({ id: e.id, ...slotName(e.name) }); seen.add(e.id); continue }
-    const level = e.id >= CUSTOM_ID_BASE ? parseLevel(e.level) : null
-    if (!level) continue
-    order.push({ id: e.id, custom: typeof e.custom === 'string' && e.custom ? e.custom : `level-${e.id}`, level: { ...level, id: e.id }, ...slotName(e.name) })
+    const e = parseEntry(raw, removed)
+    if (!e || seen.has(e.id)) continue
+    order.push(e)
     seen.add(e.id)
   }
-  return { editedAt: o.editedAt, order, ...(removed.length ? { removed } : {}) }
+  // Chapters hold the campaign's slots (the order's, and the authored levels it leaves out), each once.
+  const inCampaign = new Set([...seen, ...BUILT_IN.map((l) => l.id).filter((id) => !removed.includes(id))])
+  let chapters: Chapter[] | undefined
+  if (Array.isArray(o.chapters)) {
+    chapters = []
+    const placed = new Set<number>()
+    for (const raw of o.chapters) {
+      const c = raw as Partial<Chapter> | null
+      const id = chapterIdOf(c?.id)
+      if (!c || !id || chapters.some((x) => x.id === id) || !Array.isArray(c.levels)) continue
+      const levels = c.levels.filter((x): x is number => num(x) && inCampaign.has(x) && !placed.has(x))
+      for (const x of levels) placed.add(x)
+      chapters.push({ id, ...slotName(c.name), levels, ...subtitleOf(c.subtitle) })
+    }
+    if (!chapters.length) chapters = undefined
+  }
+  const start = chapters && typeof o.start === 'string' && chapters.some((c) => c.id === o.start) ? o.start : undefined
+  // The jam chapter: campaign slots by id, saved levels by snapshot; each once.
+  let jam: OrderEntry[] | undefined
+  if (Array.isArray(o.jam)) {
+    jam = []
+    for (const raw of o.jam) {
+      const r = raw as Partial<OrderEntry> | null
+      if (!r || !num(r.id) || jam.some((x) => x.id === r.id)) continue
+      if (inCampaign.has(r.id) && !r.level) { jam.push({ id: r.id }); continue }
+      const e = r.id >= CUSTOM_ID_BASE && !inCampaign.has(r.id) ? parseEntry(r, removed) : null
+      if (e) jam.push(e)
+    }
+  }
+  return {
+    editedAt: o.editedAt,
+    order,
+    ...(removed.length ? { removed } : {}),
+    ...(chapters ? { chapters } : {}),
+    ...(start ? { start } : {}),
+    ...(jam?.length ? { jam } : {}),
+    ...(slotName(o.jamName).name ? { jamName: slotName(o.jamName).name } : {}),
+    ...(subtitleOf(o.jamSubtitle).subtitle ? { jamSubtitle: subtitleOf(o.jamSubtitle).subtitle } : {})
+  }
 }
 const loadOrder = (): CampaignOrder | null => {
   const local = parseOrder(getState<unknown>(ORDER_KEY, null))
@@ -189,12 +260,80 @@ const loadOrder = (): CampaignOrder | null => {
 }
 export const campaignOrder = ref<CampaignOrder | null>(loadOrder())
 
-/** The campaign as it plays now, in order (built-ins missing from the order go last). */
-export const campaignEntries = (): OrderEntry[] => {
+/** The campaign's slots in the stored flat order (built-ins missing from the order go last). */
+const flatEntries = (): OrderEntry[] => {
   const out = (campaignOrder.value?.order ?? []).map((e) => ({ ...e }))
   const gone = campaignOrder.value?.removed ?? []
   for (const l of BUILT_IN) if (!gone.includes(l.id) && !out.some((e) => e.id === l.id)) out.push({ id: l.id })
   return out
+}
+/** The default chapter when none were made: everything. */
+const FIRST_CHAPTER = 'c1'
+/** The campaign's chapters, covering every slot once: a slot no chapter names joins the last one. */
+export const campaignChapters = (): Chapter[] => {
+  const all = flatEntries().map((e) => e.id)
+  const stored = campaignOrder.value?.chapters
+  if (!stored?.length) return [{ id: FIRST_CHAPTER, levels: all }]
+  const chapters = stored.map((c) => ({ ...c, levels: c.levels.filter((id) => all.includes(id)) }))
+  const placed = new Set(chapters.flatMap((c) => c.levels))
+  chapters[chapters.length - 1]!.levels.push(...all.filter((id) => !placed.has(id)))
+  return chapters
+}
+/** The campaign as it plays now: chapter by chapter, each in its own order. */
+export const campaignEntries = (): OrderEntry[] => {
+  const byId = new Map(flatEntries().map((e) => [e.id, e]))
+  return campaignChapters().flatMap((c) => c.levels.map((id) => byId.get(id)!))
+}
+/** The chapter a new player begins with (the first one unless the designer picked another). */
+export const startChapterId = (): string => {
+  const chapters = campaignChapters()
+  return chapters.find((c) => c.id === campaignOrder.value?.start)?.id ?? chapters[0]!.id
+}
+/** The game-jam chapter's entries (campaign slots by id, saved levels as snapshots). */
+export const jamEntries = (): OrderEntry[] => (campaignOrder.value?.jam ?? []).map((e) => ({ ...e }))
+
+// ── Which levels play: the campaign, or the jam chapter ──
+// The itch.io build is the game-jam submission: it plays the jam chapter alone (the campaign when
+// that is still empty). Anywhere else the designer can playtest it from the editor (`setJamTest`),
+// kept for this tab only so a reload stays in it.
+const IS_ITCH = import.meta.env.VITE_APP_ITCH === 'true'
+const JAM_TEST_KEY = 'umb_jam_test'
+const readJamTest = (): boolean => {
+  try { return sessionStorage.getItem(JAM_TEST_KEY) === '1' } catch { return false }
+}
+/** The jam chapter is what plays (itch.io build, or the designer's jam playtest). */
+export const jamPlay = ref(IS_ITCH || readJamTest())
+/** Itch.io build only: the jam chapter is the game. */
+export const isJamBuild = IS_ITCH
+const playsJam = (): boolean => jamPlay.value && !!campaignOrder.value?.jam?.length
+/** The designer's jam playtest on any build (the itch.io build always plays the jam chapter). */
+export const setJamTest = (on: boolean) => {
+  try { if (on) sessionStorage.setItem(JAM_TEST_KEY, '1'); else sessionStorage.removeItem(JAM_TEST_KEY) } catch { /* private mode: this page only */ }
+  jamPlay.value = IS_ITCH || on
+  rebuildLevels()
+}
+
+/** Index in LEVELS where a new player begins: the start chapter's first level (0 in the jam chapter). */
+export const startLevelIndex = (): number => {
+  if (playsJam()) return 0
+  const chapters = campaignChapters()
+  const from = chapters.findIndex((c) => c.id === startChapterId())
+  for (const c of [...chapters.slice(from), ...chapters.slice(0, from)]) {
+    const i = c.levels.length ? LEVELS.findIndex((l) => l.id === c.levels[0]) : -1
+    if (i >= 0) return i
+  }
+  return 0
+}
+/** The chapters as LEVELS index ranges, for the level selector (the jam chapter when it plays). */
+export const chapterRanges = (): { id: string; name?: string; subtitle?: string; n: number; from: number; to: number }[] => {
+  const o = campaignOrder.value
+  if (playsJam()) return [{ id: JAM_CHAPTER, name: o?.jamName, subtitle: o?.jamSubtitle, n: 1, from: 0, to: LEVELS.length }]
+  let at = 0
+  return campaignChapters().map((c, i) => {
+    const r = { id: c.id, name: c.name, subtitle: c.subtitle, n: i + 1, from: at, to: at + c.levels.length }
+    at = r.to
+    return r
+  })
 }
 /** Authored levels the designer has deleted from the campaign. */
 export const campaignRemoved = (): number[] => [...(campaignOrder.value?.removed ?? [])]
@@ -207,35 +346,50 @@ const baseLevel = (id: number): LevelDef | undefined => {
   return builtInLevel(id) ?? (added && cloneLevel(added))
 }
 
-/** Rebuilds LEVELS in place from the order and the overrides: every reader keeps its array. */
+/** Rebuilds LEVELS in place from the order (or the jam chapter) and the overrides: every reader keeps its array. */
 const rebuildLevels = () => {
   const next: LevelDef[] = []
-  for (const e of campaignEntries()) {
-    const l = campaignOverrides.value[e.id] ?? baseLevel(e.id)
+  for (const e of playsJam() ? jamEntries() : campaignEntries()) {
+    // A jam snapshot carries its own level; a campaign slot is the authored / added one.
+    const l = campaignOverrides.value[e.id] ?? (e.level ? cloneLevel(e.level) : baseLevel(e.id))
     if (l) next.push({ ...cloneLevel(l), id: e.id })
   }
   LEVELS.splice(0, LEVELS.length, ...next)
 }
 rebuildLevels()
 
-/** Saves a new campaign order (the editor's Reorder dialog). */
-export const saveCampaignOrder = (order: OrderEntry[], editedAt = Date.now(), removed: number[] = []) => {
-  const parsed = parseOrder({ editedAt, order, removed })
+/** The order's body as it rides in the bucket / the repo file (everything but `editedAt`). */
+const orderBody = (o: CampaignOrder) => ({
+  order: o.order,
+  ...(o.removed ? { removed: o.removed } : {}),
+  ...(o.chapters ? { chapters: o.chapters } : {}),
+  ...(o.start ? { start: o.start } : {}),
+  ...(o.jam ? { jam: o.jam } : {}),
+  ...(o.jamName ? { jamName: o.jamName } : {}),
+  ...(o.jamSubtitle ? { jamSubtitle: o.jamSubtitle } : {})
+})
+
+/** Saves a new campaign order (the editor's Reorder dialog). Chapters, the start chapter and the
+ *  jam chapter are kept as they are unless `extras` says otherwise. */
+export const saveCampaignOrder = (order: OrderEntry[], editedAt = Date.now(), removed: number[] = [], extras?: OrderExtras) => {
+  const keep = campaignOrder.value
+  const x = extras ?? { chapters: keep?.chapters, start: keep?.start, jam: keep?.jam, jamName: keep?.jamName, jamSubtitle: keep?.jamSubtitle }
+  const parsed = parseOrder({ editedAt, order, removed, ...x })
   if (!parsed) return
   putOrder(parsed)
-  pushEntry('campaign', ORDER_ENTRY, { order: parsed.order, removed: parsed.removed } as unknown as LevelDef, editedAt)
+  pushEntry('campaign', ORDER_ENTRY, orderBody(parsed) as unknown as LevelDef, editedAt)
 }
 const putOrder = (o: CampaignOrder) => {
   campaignOrder.value = o
   setState(ORDER_KEY, o)
-  postToDisk('/__maw/save-order', o)
+  postToDisk('/__maw/save-order', { editedAt: o.editedAt, ...orderBody(o) })
   rebuildLevels()
 }
 /** The bucket key of the order inside the campaign section (slot keys are numbers). */
 const ORDER_ENTRY = 'order'
 /** A fresh id for a library level joining the campaign. */
 export const nextCustomId = (taken: number[]): number =>
-  Math.max(CUSTOM_ID_BASE - 1, ...taken, ...campaignEntries().map((e) => e.id), ...Object.keys(campaignOverrides.value).map(Number)) + 1
+  Math.max(CUSTOM_ID_BASE - 1, ...taken, ...campaignEntries().map((e) => e.id), ...jamEntries().map((e) => e.id), ...Object.keys(campaignOverrides.value).map(Number)) + 1
 
 /** The tuning panel stores per-level knob edits (wind speeds, periods) by id;
  *  an edited slot drops them, or they would overwrite the editor's values. */
@@ -315,9 +469,9 @@ export const applyBucket = (data: unknown, opts: { library?: boolean } = {}): nu
   const b = data
   let changed = 0
   // The order first: it decides which slots exist for the entries below.
-  const rawOrder = b.campaign?.[ORDER_ENTRY] as { editedAt?: unknown; level?: { order?: unknown; removed?: unknown } | null } | undefined
+  const rawOrder = b.campaign?.[ORDER_ENTRY] as { editedAt?: unknown; level?: Record<string, unknown> | null } | undefined
   const order = rawOrder && num(rawOrder.editedAt) && rawOrder.editedAt <= Date.now() + 86_400_000
-    ? parseOrder({ editedAt: rawOrder.editedAt, order: rawOrder.level?.order, removed: rawOrder.level?.removed })
+    ? parseOrder({ ...(rawOrder.level ?? {}), editedAt: rawOrder.editedAt })
     : null
   if (order && order.editedAt > (campaignOrder.value?.editedAt ?? 0)) { putOrder(order); changed++ }
   for (const [key, raw] of Object.entries(b?.campaign ?? {})) {
@@ -352,7 +506,7 @@ export const localBucket = (): Bucket => {
     section[k.slice(2)] ??= { editedAt: at, level: null }
   }
   const o = campaignOrder.value
-  if (o) out.campaign[ORDER_ENTRY] = { editedAt: o.editedAt, level: { order: o.order, removed: o.removed } as unknown as LevelDef }
+  if (o) out.campaign[ORDER_ENTRY] = { editedAt: o.editedAt, level: orderBody(o) as unknown as LevelDef }
   return out
 }
 

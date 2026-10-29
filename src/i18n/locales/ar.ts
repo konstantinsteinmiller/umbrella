@@ -13,6 +13,8 @@ export default {
     'nextLevel': "المستوى التالي",
     'restart': "إعادة المستوى",
     'selectLevel': "اختر المستوى",
+    'chapter': "الفصل {n}",
+    'jamChapter': "جيم الألعاب",
     'clickToPlay': "انقر للعب",
     'tapToPlay': "اضغط للعب",
     'ctlMove': "حركة",

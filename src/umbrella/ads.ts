@@ -12,6 +12,8 @@
 // The ad plays BEFORE the level resets: the world stays frozen on the death
 // (`isAdShowing` pauses the loop) and the respawn happens when it closes.
 //
+// Typing "cmunc" in the game requests an interstitial at once (`requestTestInterstitial`).
+//
 // A rewarded ad is requested by 20 consecutive taps / clicks on the "Level N"
 // label (each within CHORD_GAP_MS of the one before). It is shipped in every
 // build on purpose: it is how a tester sees a real rewarded ad on a device, and
@@ -68,7 +70,8 @@ export const onDeath = (respawn: () => void): boolean => {
     return false
   }
   markInterstitialShown(now)
-  void showMidgameAd().finally(respawn)
+  // useAds reports its own failures; the respawn must come whatever the ad did.
+  void showMidgameAd().catch(() => {}).finally(respawn)
   return true
 }
 
@@ -98,11 +101,25 @@ export const tapLevelLabel = (): void => {
   rewardedBusy = true
   // A rewarded video counts against the interstitial clock: no death ad right behind it.
   markInterstitialShown()
-  void showRewardedAd().finally(() => { rewardedBusy = false })
+  void showRewardedAd().catch(() => false).finally(() => { rewardedBusy = false })
+}
+
+let interstitialBusy = false
+/**
+ * The tester's interstitial: typing "cmunc" in the game (UmbrellaScene) requests one right away —
+ * no grace, no gap — so a real interstitial can be seen on any build without playing 240 s and
+ * dying. It still charges the shared clock, so the next death ad keeps its 121 s.
+ */
+export const requestTestInterstitial = (): void => {
+  if (interstitialBusy || rewardedBusy) return
+  interstitialBusy = true
+  markInterstitialShown()
+  void showMidgameAd().catch(() => {}).finally(() => { interstitialBusy = false })
 }
 
 /** Test-only. */
 export const __resetUmbrellaAds = (): void => {
+  interstitialBusy = false
   playSeconds = 0
   rewardedBusy = false
 }

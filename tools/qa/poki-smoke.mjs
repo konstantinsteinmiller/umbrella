@@ -18,6 +18,7 @@
  *   · 20 clicks in a row on the "Level N" label request ONE rewarded ad, with
  *     gameplay stopped and every AudioContext suspended while it plays, and
  *     audio running + gameplay started again after it;
+ *   · typing "cmunc" requests one interstitial, audio suspended under it and back after;
  *   · no console errors, and no request leaves the page's own origin (Poki allows none).
  * Exits 1 on any failure; always stops its server and browser.
  */
@@ -137,7 +138,7 @@ try {
       while (Date.now() < end) { if (await ev(expr).catch(() => false)) return true; await sleep(250) }
       return false
     }
-    return { ev, calls, count, box, click, key, waitFor, errors, external, close:() => cdp.send('Target.closeTarget', { targetId }) }
+    return { S, ev, calls, count, box, click, key, waitFor, errors, external, close: () => cdp.send('Target.closeTarget', { targetId }) }
   }
 
   // ── A returning player (intro already seen) ──
@@ -179,6 +180,20 @@ try {
     const last = (await p.calls()).filter((c) => c.startsWith('gameplay')).at(-1)
     check('gameplay started again after it', last === 'gameplayStart', await p.calls())
     check('no death interstitial in the first minutes', (await p.count('commercialBreak')) === 0, await p.calls())
+
+    // Typing "cmunc" requests an interstitial at once.
+    for (const ch of 'cmunc') {
+      await p.S('Input.dispatchKeyEvent', { type: 'keyDown', key: ch, text: ch, code: `Key${ch.toUpperCase()}`, windowsVirtualKeyCode: ch.toUpperCase().charCodeAt(0) })
+      await p.S('Input.dispatchKeyEvent', { type: 'keyUp', key: ch, code: `Key${ch.toUpperCase()}`, windowsVirtualKeyCode: ch.toUpperCase().charCodeAt(0) })
+    }
+    await sleep(600)
+    check('typing cmunc requests one interstitial', (await p.count('commercialBreak')) === 1, await p.calls())
+    await sleep(1700)
+    const underI = (await p.ev('window.__poki.under.slice()')).find((u) => u.name === 'commercialBreak')
+    check('every AudioContext suspended under the interstitial', !!underI && underI.states.length > 0 && underI.states.every((s) => s === 'suspended'), underI?.states)
+    await sleep(600)
+    const afterI = await p.ev('window.__ctxs.map((c) => c.state)')
+    check('audio running again after the interstitial', afterI.length > 0 && afterI.every((s) => s === 'running'), afterI)
     check('returning: no console errors', p.errors.length === 0, p.errors.slice(0, 3))
     check('no external requests (Poki allows none)', p.external.length === 0, p.external.slice(0, 5))
     await p.close()

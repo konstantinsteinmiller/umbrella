@@ -64,7 +64,19 @@ export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE, orderFile = O
     let diskOrder = {}
     try { diskOrder = existsSync(orderFile) ? JSON.parse(readFileSync(orderFile, 'utf-8')) : {} } catch { /* rewritten below */ }
     if (o.editedAt > (diskOrder?.editedAt ?? 0)) {
-      writeFileSync(orderFile, JSON.stringify({ editedAt: o.editedAt, order: o.level.order }, null, 2) + '\n', 'utf-8')
+      // Everything the order carries: deleted authored levels, chapters, the start chapter, the jam chapter.
+      const { order, removed, chapters, start, jam, jamName, jamSubtitle } = o.level
+      const body = {
+        editedAt: o.editedAt,
+        order,
+        ...(Array.isArray(removed) && removed.length ? { removed } : {}),
+        ...(Array.isArray(chapters) && chapters.length ? { chapters } : {}),
+        ...(typeof start === 'string' && start ? { start } : {}),
+        ...(Array.isArray(jam) && jam.length ? { jam } : {}),
+        ...(typeof jamName === 'string' && jamName ? { jamName } : {}),
+        ...(typeof jamSubtitle === 'string' && jamSubtitle ? { jamSubtitle } : {})
+      }
+      writeFileSync(orderFile, JSON.stringify(body, null, 2) + '\n', 'utf-8')
       changed++
     }
   }

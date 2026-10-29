@@ -16,6 +16,8 @@ export default {
     'nextLevel': "Next level",
     'restart': "Restart level",
     'selectLevel': "Select level",
+    'chapter': "Chapter {n}",
+    'jamChapter': "Game Jam",
     'clickToPlay': "Click to play",
     'tapToPlay': "Tap to play",
     'ctlMove': "Move",

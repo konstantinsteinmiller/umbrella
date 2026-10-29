@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Keyingi daraja",
     'restart': "Darajani qayta boshlash",
     'selectLevel': "Darajani tanlash",
+    'chapter': "{n}-bob",
+    'jamChapter': "Geym-jem",
     'clickToPlay': "O'ynash uchun bosing",
     'tapToPlay': "O'ynash uchun teging",
     'ctlMove': "Yurish",

@@ -11,7 +11,10 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
-import { customLevels, customPlay, editorUnlocked, keepSharedLevel, setEditorUnlocked, testLevel, type CustomPlay } from '@/umbrella/customLevels'
+import {
+  campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, JAM_CHAPTER, jamPlay, keepSharedLevel,
+  setEditorUnlocked, setJamTest, startLevelIndex, testLevel, type CustomPlay
+} from '@/umbrella/customLevels'
 import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, countPlay } from '@/umbrella/community'
@@ -32,7 +35,7 @@ import { getState, setState } from '@/use/useEpicState'
 import { isGamePaused, isAudioPaused } from '@/use/useGamePause'
 import { acquireModalOpen } from '@/use/useModalState'
 import { setRunBreak } from '@/use/usePortalGameplay'
-import { notePlayTime, onDeath, tapLevelLabel } from '@/umbrella/ads'
+import { notePlayTime, onDeath, requestTestInterstitial, tapLevelLabel } from '@/umbrella/ads'
 import { isPlatformAudioMuted } from '@/use/useGamePauseAudio'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
 
@@ -99,11 +102,12 @@ let skipTimer = 0
 const startIntro = () => {
   showPause.value = showLevels.value = showCommunity.value = false
   if (playing.value) { playing.value = null; customPlay.value = null }
-  levelIndex.value = 0
+  // The intro plays on, and hands over to, the first level of the start chapter.
+  levelIndex.value = startIndex
   challenge.value = null
   warp = null
   held.left = held.right = false
-  intro = createIntro(LEVELS[0]!, tuning, (name) => {
+  intro = createIntro(LEVELS[startIndex]!, tuning, (name) => {
     if (name === 'land') playSfx('land', { intensity: 0.25 })
     else if (name === 'open') playSfx('open', { intensity: 0.2 })
     else if (name === 'step') playSfx('step', { intensity: 0.6 })
@@ -121,8 +125,9 @@ const endIntro = () => {
   skipShown.value = false
   window.clearTimeout(skipTimer)
   setState(INTRO_SEEN, true)
-  // Level 1 begins from the pose the intro ended on: Pweeg at the spawn.
-  loadLevel(0)
+  // The start level begins from the pose the intro ended on: Pweeg at the spawn.
+  loadLevel(startIndex)
+  showChapterCard(startIndex, true)
 }
 const requestSkip = () => {
   // Pweeg is looking at the player: the first key, tap or stick move is taking control.
@@ -188,8 +193,13 @@ let gui: TuningGui | null = null
 // The "cmonc" cheat shows the tuning panel and the OPEN EDITOR button together.
 watch(editorUnlocked, (on) => gui?.toggle(on))
 
-const levelIndex = ref(Math.min(LEVELS.length - 1, Math.max(0, getState<number>('umb_level', 0))))
-watch(levelIndex, (i) => setState('umb_level', i))
+// The jam chapter (itch.io build, or the designer's jam playtest) is its own run of levels: its place
+// and its cleared levels are kept apart from the campaign's, which index a different list.
+const progressKey = (key: string) => (jamPlay.value ? `${key}_jam` : key)
+/** Where a new player begins: the first level of the start chapter. */
+const startIndex = startLevelIndex()
+const levelIndex = ref(Math.min(LEVELS.length - 1, Math.max(0, getState<number>(progressKey('umb_level'), startIndex))))
+watch(levelIndex, (i) => setState(progressKey('umb_level'), i))
 
 // ── Gates and challenge levels ──
 // A level that some gate leads to is a challenge: the campaign walks past it, the level
@@ -305,11 +315,26 @@ const brokenFlash = ref(false)
 
 // ── Level select: every level is open; cleared ones get a tick. ──
 const showLevels = ref(false)
-const cleared = ref<number[]>(getState<number[]>('umb_cleared', []))
+const cleared = ref<number[]>(getState<number[]>(progressKey('umb_cleared'), []))
 const markCleared = (i: number) => {
   if (cleared.value.includes(i)) return
   cleared.value = [...cleared.value, i]
-  setState('umb_cleared', cleared.value)
+  setState(progressKey('umb_cleared'), cleared.value)
+}
+/** The level selector's sections: the chapters (or the jam chapter alone), each with its level indices. */
+const chapterSections = computed(() => {
+  void campaignOrder.value // LEVELS and the chapters are rebuilt together when the order changes
+  return chapterRanges().map((c) => ({
+    ...c,
+    title: c.name || (c.id === JAM_CHAPTER ? t('umbrella.jamChapter') : t('umbrella.chapter', { n: c.n })),
+    levels: Array.from({ length: c.to - c.from }, (_, k) => c.from + k).filter((i) => !isLocked(i))
+  })).filter((c) => c.levels.length)
+})
+/** The designer's jam playtest (not the itch.io build, where the jam chapter IS the game). */
+const jamTest = computed(() => jamPlay.value && !isJamBuild)
+const endJamTest = () => {
+  setJamTest(false)
+  void router.push('/editor')
 }
 /** The player's saved levels (share links, the editor), shown under the campaign. */
 const myLevelNames = computed(() => Object.keys(customLevels.value).sort((a, b) => a.localeCompare(b)))
@@ -329,6 +354,25 @@ const pickLevel = (i: number) => {
     challenge.value = { idx: i, ret: null }
     reload()
   }
+  else showChapterCard(i)
+}
+
+// ── The chapter card: "Chapter N" (and the designer's subtitle) with the chapter sound, for 3 s
+//    on the first level of a chapter. The level waits under it. The start chapter's card plays only
+//    right after the intro; any other chapter's when the player arrives at its first level — by
+//    finishing the chapter before it, or from the level selector. The jam chapter is Chapter 1. ──
+const CHAPTER_CARD_MS = 3000
+const chapterCard = ref<{ title: string; subtitle: string; key: number } | null>(null)
+let chapterCardTimer = 0
+const showChapterCard = (i: number, afterIntro = false) => {
+  if (testing || playing.value || challenge.value) return
+  if (i === startIndex && !afterIntro) return
+  const c = chapterRanges().find((r) => r.from === i && r.to > r.from)
+  if (!c) return
+  chapterCard.value = { title: t('umbrella.chapter', { n: c.n }), subtitle: c.subtitle ?? '', key: Date.now() }
+  playSfx('chapter')
+  window.clearTimeout(chapterCardTimer)
+  chapterCardTimer = window.setTimeout(() => { chapterCard.value = null }, CHAPTER_CARD_MS)
 }
 
 let world: World = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight })
@@ -564,7 +608,9 @@ const tick = () => {
     } else {
       markCleared(levelIndex.value)
       recordStars()
-      loadLevel(walkIndex(levelIndex.value, 1))
+      const next = walkIndex(levelIndex.value, 1)
+      loadLevel(next)
+      showChapterCard(next)
     }
   }
 }
@@ -585,7 +631,8 @@ const frame = (now: number) => {
     if (!isGamePaused.value && !showPause.value && (splashGone.value || introWait > 5)) intro.update(dtReal)
     if (intro.done) endIntro()
   }
-  if (!intro && started.value && !isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
+  // The level waits under a chapter card.
+  if (!intro && !chapterCard.value && started.value && !isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
     acc += dtReal
     while (acc >= DT) {
       tick()
@@ -630,6 +677,8 @@ const LEFT = new Set(['ArrowLeft', 'KeyA'])
 const RIGHT = new Set(['ArrowRight', 'KeyD'])
 // Typed letters (not physical keys): the designer types the word itself.
 const GUI_CODE = 'cmonc'
+/** Typed in the game: an interstitial right away (the tester's shortcut, umbrella/ads.ts). */
+const AD_CODE = 'cmunc'
 let typed = ''
 const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if ((e.target as HTMLElement | null)?.tagName === 'INPUT' || !started.value) return
@@ -645,6 +694,7 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if (down && e.key.length === 1) {
     typed = (typed + e.key.toLowerCase()).slice(-GUI_CODE.length)
     if (typed === GUI_CODE) { typed = ''; setEditorUnlocked(!editorUnlocked.value) }
+    else if (typed === AD_CODE) { typed = ''; requestTestInterstitial() }
   }
   if (down && (e.code === 'KeyL' || (e.code === 'Escape' && showLevels.value))) {
     showLevels.value = !showLevels.value
@@ -769,7 +819,7 @@ onMounted(() => {
 const begin = () => {
   if (!testing) void openSharedLink()
   // A new player's first start: the intro, then Level 1 (not when a shared level opens).
-  if (!testing && !playing.value && !levelParam() && levelIndex.value === 0 && !getState<boolean>(INTRO_SEEN, false)) startIntro()
+  if (!testing && !playing.value && !levelParam() && levelIndex.value === startIndex && !getState<boolean>(INTRO_SEEN, false)) startIntro()
 }
 const onPlay = () => {
   unlockAudio()
@@ -784,9 +834,12 @@ onUnmounted(() => {
   cancelAnimationFrame(raf)
   window.clearTimeout(reviveTimer)
   window.clearTimeout(skipTimer)
+  window.clearTimeout(chapterCardTimer)
   releaseMenu?.()
   releaseMenu = null
   setRunBreak(false)
+  // Leaving the scene ends a jam playtest (a reload stays in it: the flag lives in this tab).
+  if (jamTest.value) setJamTest(false)
   gui?.destroy()
 })
 
@@ -832,6 +885,8 @@ onUnmounted(() => {
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
     </div>
     <div v-else class="hud">
+      <!-- The designer's jam playtest (from the editor): English, like the other designer tools. -->
+      <button v-if="jamTest" class="hud-btn wide jam-test" title="Back to the editor" @click="endJamTest">◀ Jam test</button>
       <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="stepLevel(-1)">‹</button>
       <span class="hud-level" @pointerdown="tapLevelLabel">{{ t('umbrella.level', { n: shownIndex() + 1 }) }}<template v-if="challenge"> · {{ t('umbrella.challenge') }}</template></span>
       <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="stepLevel(1)">›</button>
@@ -907,6 +962,11 @@ onUnmounted(() => {
       <span class="collect-count"><b>{{ hudStars.got }}</b><i>/</i>{{ hudStars.total }}</span>
     </div>
     <div v-if="brokenFlash" class="toast">{{ t('umbrella.broken') }}</div>
+    <!-- The chapter card: 3 s on a chapter's first level (showChapterCard). -->
+    <div v-if="chapterCard" :key="chapterCard.key" class="chapter-card" role="status" aria-live="polite">
+      <div class="chapter-card-title">{{ chapterCard.title }}</div>
+      <div v-if="chapterCard.subtitle" class="chapter-card-sub">{{ chapterCard.subtitle }}</div>
+    </div>
 
     <div v-if="showLevels" class="levels-backdrop" @click.self="showLevels = false">
       <div class="levels" role="dialog" :aria-label="t('umbrella.selectLevel')">
@@ -914,21 +974,23 @@ onUnmounted(() => {
           <b>{{ t('umbrella.selectLevel') }}</b>
           <button class="hud-btn" :aria-label="t('umbrella.close')" @click="showLevels = false">✕</button>
         </div>
-        <div class="levels-grid">
-          <button
-            v-for="(lv, i) in LEVELS"
-            v-show="!isLocked(i)"
-            :key="lv.id"
-            class="level-tile"
-            :class="{ current: i === shownIndex(), cleared: cleared.includes(i), challenge: isChallenge(i) }"
-            :aria-label="t('umbrella.level', { n: i + 1 }) + (isChallenge(i) ? ' · ' + t('umbrella.challenge') : '')"
-            @click="pickLevel(i)"
-          >
-            <span class="level-num">{{ i + 1 }}</span>
-            <span v-if="cleared.includes(i)" class="level-tick">✓</span>
-            <span v-if="lv.stars?.length" class="level-stars">★{{ starBest[lv.id] ?? 0 }}/{{ lv.stars.length }}</span>
-          </button>
-        </div>
+        <section v-for="ch in chapterSections" :key="ch.id" class="chapter" :aria-label="ch.title">
+          <h3 v-if="chapterSections.length > 1 || ch.id === JAM_CHAPTER || ch.name" class="chapter-title">{{ ch.title }}</h3>
+          <div class="levels-grid">
+            <button
+              v-for="i in ch.levels"
+              :key="LEVELS[i]!.id"
+              class="level-tile"
+              :class="{ current: i === shownIndex(), cleared: cleared.includes(i), challenge: isChallenge(i) }"
+              :aria-label="t('umbrella.level', { n: i + 1 }) + (isChallenge(i) ? ' · ' + t('umbrella.challenge') : '')"
+              @click="pickLevel(i)"
+            >
+              <span class="level-num">{{ i + 1 }}</span>
+              <span v-if="cleared.includes(i)" class="level-tick">✓</span>
+              <span v-if="LEVELS[i]!.stars?.length" class="level-stars">★{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
+            </button>
+          </div>
+        </section>
         <!-- The player's own levels: opened from share links, built in the editor. -->
         <div class="levels-head mine">
           <b>{{ t('umbrella.myLevels') }}</b>
@@ -990,6 +1052,7 @@ onUnmounted(() => {
   line-height: 1;
 }
 .hud-btn:hover { background: rgba(255, 255, 255, 0.22); }
+.hud-btn.jam-test { background: rgba(234, 179, 8, 0.35); }
 .controls {
   position: absolute;
   right: calc(16px + env(safe-area-inset-right, 0px));
@@ -1166,6 +1229,40 @@ onUnmounted(() => {
   border-radius: 8px;
   font-weight: 700;
 }
+.chapter-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(8, 10, 20, 0.62) 0%, rgba(8, 10, 20, 0.35) 55%, transparent 80%);
+  /* A fade and a short slide, never a scale (a scaled card rasterises small and reads soft). */
+  animation: chapter-card 3s ease-out both;
+}
+.chapter-card-title {
+  font-size: clamp(34px, 8vw, 72px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.6);
+}
+.chapter-card-sub {
+  font-size: clamp(16px, 3.2vw, 26px);
+  font-style: italic;
+  opacity: 0.9;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+/* Arabic is joined: any tracking breaks it. */
+html[lang^='ar'] .chapter-card-title,
+html[lang^='ar'] .chapter-title { letter-spacing: 0; }
+@keyframes chapter-card {
+  0% { opacity: 0; transform: translateY(14px); }
+  15% { opacity: 1; transform: translateY(0); }
+  82% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
 .levels-backdrop {
   position: absolute;
   inset: 0;
@@ -1194,6 +1291,14 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 10px;
+}
+.chapter + .chapter { margin-top: 16px; }
+.chapter-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.8;
 }
 .level-tile {
   position: relative;

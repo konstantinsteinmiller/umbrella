@@ -680,6 +680,60 @@ const win: Recipe = (k, o, t) => {
 }
 
 /**
+ * CHAPTER — the chapter card: a gust of wind swelling in, a low temple bell
+ * (D3 with its D4 / A4 tubular partials), then a slow pentatonic phrase on
+ * the celesta climbing out of it — A4 D5 E5 F#5 … A5 — under a shimmer of
+ * chimes. Calmer and lower than WIN: a beginning, not a finish. In key.
+ */
+const chapter: Recipe = (k, o, t) => {
+  // The gust: pink noise through a band that opens as it swells, then settles.
+  const gust = noise(k, t, 2.2, k.pink)
+  const gb = filter(k, 'bandpass', 300, 0.8)
+  sweep(gb.frequency, t, 260, 1500, 1.1)
+  const gg = k.ctx.createGain()
+  gg.gain.setValueAtTime(0, t)
+  gg.gain.linearRampToValueAtTime(0.14, t + 0.7)
+  gg.gain.setTargetAtTime(0, t + 0.9, 0.4)
+  gust.connect(gb).connect(gg).connect(o.verb)
+  // The bell, struck as the gust peaks.
+  const tb = t + 0.35
+  const bell = gainNode(k, 1)
+  bell.connect(o.dry)
+  bell.connect(o.verb)
+  ring(k, bell, tb, midiHz(50), [[1, 1, 3.4], [2, 0.5, 2.6], [3, 0.22, 1.6], [4.07, 0.12, 0.9], [6.8, 0.05, 0.4]], 0.22, 0.004)
+  // The phrase.
+  const phrase: [m: number, dt: number][] = [[69, 0], [74, 0.22], [76, 0.44], [78, 0.66], [81, 1.02]]
+  for (const [m, dt] of phrase) {
+    const g = gainNode(k, 1)
+    g.connect(o.dry)
+    g.connect(o.verb)
+    celesta(k, g, tb + 0.25 + dt, midiHz(m), m === 81 ? 0.19 : 0.15)
+  }
+  // A soft D / A pad holding it together.
+  for (const [m, pan] of [[50, -0.2], [57, 0.2], [62, 0]] as const) {
+    const o1 = osc(k, 'triangle', midiHz(m), tb, 2.4)
+    const pg = k.ctx.createGain()
+    pg.gain.setValueAtTime(0, tb)
+    pg.gain.linearRampToValueAtTime(0.045, tb + 0.5)
+    pg.gain.setTargetAtTime(0, tb + 1.4, 0.35)
+    const pn = k.ctx.createStereoPanner()
+    pn.pan.value = pan
+    o1.connect(filter(k, 'lowpass', 1400)).connect(pg).connect(pn)
+    pn.connect(o.dry)
+    pn.connect(o.verb)
+  }
+  // Chimes shimmering after the last note.
+  for (let i = 0; i < 5; i++) {
+    const pn = k.ctx.createStereoPanner()
+    pn.pan.value = between(k, -0.6, 0.6)
+    pn.connect(o.dry)
+    pn.connect(o.verb)
+    chime(k, pn, tb + 1.3 + k.rand() * 0.9, midiHz(pentaNote(10 + Math.floor(k.rand() * 5))), 0.035)
+  }
+  return 3.4
+}
+
+/**
  * WHISTLE — the Looney-Tunes falling whistle as he drops off screen: a
  * breathy whistle tone (sine plus band-limited breath that tracks it) gliding
  * down, held, then faded to silence over `fade` s.
@@ -725,7 +779,8 @@ export const RECIPES = {
   lunge,
   arrive,
   win,
-  whistle
+  whistle,
+  chapter
 } satisfies Record<string, Recipe>
 
 export type SfxName = keyof typeof RECIPES
@@ -742,7 +797,8 @@ export const SFX_TRIM: Record<SfxName, number> = {
   lunge: 2,
   arrive: 2,
   win: 0.68, // −3.3 dB
-  whistle: 0.7 // −3 dB
+  whistle: 0.7, // −3 dB
+  chapter: 0.75 // a stinger, set beside WIN by the level report (sound.test.ts)
 }
 
 /** Seconds the music ducks under a sound, and how deep (dB). */
@@ -751,7 +807,8 @@ export const SFX_DUCK: Partial<Record<SfxName, [db: number, hold: number]>> = {
   splat: [-8, 0.5],
   hit: [-7, 0.4],
   win: [-6, 1.6],
-  whistle: [-4, 0.8]
+  whistle: [-4, 0.8],
+  chapter: [-8, 2.6]
 }
 
 // ─── Ambience: the wind, continuously ──────────────────────────────────────

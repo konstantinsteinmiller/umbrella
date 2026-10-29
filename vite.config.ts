@@ -449,14 +449,24 @@ const mawCampaignOverridesPlugin = (bucketUrl: string): Plugin => ({
     server.middlewares.use('/__maw/save-order', async (req, res, next) => {
       if (req.method !== 'POST') { next(); return }
       try {
-        const body = JSON.parse(await readBody(req)) as { editedAt?: unknown; order?: unknown; removed?: unknown }
+        const body = JSON.parse(await readBody(req)) as { editedAt?: unknown; order?: unknown; removed?: unknown; chapters?: unknown; start?: unknown; jam?: unknown; jamName?: unknown; jamSubtitle?: unknown }
         if (typeof body.editedAt !== 'number' || !Array.isArray(body.order)) {
           res.statusCode = 400
           res.end(JSON.stringify({ error: 'expected { editedAt: number, order: [] }' }))
           return
         }
         mkdirSync(dirname(ORDER_FILE), { recursive: true })
-        lastOrderWrite = JSON.stringify({ editedAt: body.editedAt, order: body.order, ...(Array.isArray(body.removed) && body.removed.length ? { removed: body.removed } : {}) }, null, 2) + '\n'
+        // The chapters, the start chapter and the jam chapter ride beside the flat order (customLevels.ts parses them).
+        lastOrderWrite = JSON.stringify({
+          editedAt: body.editedAt,
+          order: body.order,
+          ...(Array.isArray(body.removed) && body.removed.length ? { removed: body.removed } : {}),
+          ...(Array.isArray(body.chapters) && body.chapters.length ? { chapters: body.chapters } : {}),
+          ...(typeof body.start === 'string' && body.start ? { start: body.start } : {}),
+          ...(Array.isArray(body.jam) && body.jam.length ? { jam: body.jam } : {}),
+          ...(typeof body.jamName === 'string' && body.jamName ? { jamName: body.jamName } : {}),
+          ...(typeof body.jamSubtitle === 'string' && body.jamSubtitle ? { jamSubtitle: body.jamSubtitle } : {})
+        }, null, 2) + '\n'
         writeFileSync(ORDER_FILE, lastOrderWrite, 'utf-8')
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({ ok: true }))

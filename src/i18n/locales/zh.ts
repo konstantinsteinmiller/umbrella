@@ -13,6 +13,8 @@ export default {
     'nextLevel': "下一关",
     'restart': "重新开始本关",
     'selectLevel': "选择关卡",
+    'chapter': "第 {n} 章",
+    'jamChapter': "游戏 Jam",
     'clickToPlay': "点击开始游戏",
     'tapToPlay': "点按开始游戏",
     'ctlMove': "移动",

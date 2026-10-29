@@ -17,7 +17,7 @@ vi.mock('@/use/useAds', () => ({
 
 import {
   CHORD_TAPS, DEATH_AD_GRACE_S, DEATH_AD_MIN_GAP_MS, __resetUmbrellaAds, createTapChord, deathAdDue,
-  notePlayTime, onDeath, tapLevelLabel
+  notePlayTime, onDeath, requestTestInterstitial, tapLevelLabel
 } from '@/umbrella/ads'
 import { __resetInterstitialClock, markInterstitialShown } from '@/use/adTiming'
 
@@ -118,5 +118,21 @@ describe('the level-label chord', () => {
     ads.rewarded.mockClear()
     for (let i = 0; i < CHORD_TAPS; i++) tapLevelLabel()
     expect(ads.rewarded).toHaveBeenCalledOnce()
+  })
+})
+
+describe('typing cmunc', () => {
+  it('requests an interstitial at once and charges the clock, so no death ad follows within 121 s', async () => {
+    __resetUmbrellaAds()
+    __resetInterstitialClock()
+    ads.midgame.mockClear()
+    requestTestInterstitial()
+    requestTestInterstitial() // a second one while the first is up is ignored
+    expect(ads.midgame).toHaveBeenCalledOnce()
+    await vi.waitFor(() => expect(ads.midgame).toHaveBeenCalledOnce())
+    notePlayTime(DEATH_AD_GRACE_S)
+    const respawn = vi.fn()
+    expect(onDeath(respawn)).toBe(false)
+    expect(respawn).toHaveBeenCalledOnce()
   })
 })

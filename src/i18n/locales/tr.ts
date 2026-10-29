@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Sonraki seviye",
     'restart': "Seviyeyi yeniden başlat",
     'selectLevel': "Seviye seç",
+    'chapter': "Bölüm {n}",
+    'jamChapter': "Game Jam",
     'clickToPlay': "Oynamak için tıkla",
     'tapToPlay': "Oynamak için dokun",
     'ctlMove': "Hareket",

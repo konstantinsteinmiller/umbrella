@@ -13,6 +13,8 @@ export default {
     'nextLevel': "Келесі деңгей",
     'restart': "Деңгейді қайта бастау",
     'selectLevel': "Деңгейді таңдау",
+    'chapter': "{n}-тарау",
+    'jamChapter': "Ойын джемі",
     'clickToPlay': "Ойнау үшін басыңыз",
     'tapToPlay': "Ойнау үшін түртіңіз",
     'ctlMove': "Жүру",

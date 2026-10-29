@@ -13,6 +13,8 @@ export default {
     'nextLevel': "次のレベル",
     'restart': "レベルをリスタート",
     'selectLevel': "レベル選択",
+    'chapter': "第{n}章",
+    'jamChapter': "ゲームジャム",
     'clickToPlay': "クリックしてプレイ",
     'tapToPlay': "タップしてプレイ",
     'ctlMove': "移動",
