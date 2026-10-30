@@ -4,14 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- new wind, music">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- improving bg images">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/changelog.md" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/campaign-overrides.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-overrides.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/backdrop-far.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/backdrop-far.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/backdrop-far@2x.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/backdrop-far@2x.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/art/paint.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/paint.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/poki-qa-report.json" beforeDir="false" afterPath="$PROJECT_DIR$/poki-qa-report.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -76,7 +71,7 @@
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.deploy:poki:lantern">
+  <component name="RunManager" selected="npm.build:itch:lantern">
     <configuration name="art:desk" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
@@ -129,8 +124,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.deploy:poki:lantern" />
         <item itemvalue="npm.build:itch:lantern" />
+        <item itemvalue="npm.deploy:poki:lantern" />
         <item itemvalue="npm.deploy:poki:clay" />
         <item itemvalue="npm.art:desk:umbrella" />
         <item itemvalue="npm.art:desk" />
@@ -282,7 +277,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793378012494</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="- improving bg images">
+      <option name="closed" value="true" />
+      <created>1793380886204</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1793380886204</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -315,6 +318,7 @@
     <MESSAGE value="- cutscene editor and some fixes" />
     <MESSAGE value="- performance pass" />
     <MESSAGE value="- new wind, music" />
-    <option name="LAST_COMMIT_MESSAGE" value="- new wind, music" />
+    <MESSAGE value="- improving bg images" />
+    <option name="LAST_COMMIT_MESSAGE" value="- improving bg images" />
   </component>
 </project>

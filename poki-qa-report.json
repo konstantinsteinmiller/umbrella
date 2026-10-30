@@ -1,8 +1,8 @@
 {
-  "version": "Umbrella 0.13.2 · Clay art",
-  "versionId": "48fd850f-12c6-40ba-9cba-0aa734f901f7",
-  "when": "2026-10-30T15:13:03.157Z",
-  "inspector": "https://inspector.poki.dev/?game=poki-48fd850f-12c6-40ba-9cba-0aa734f901f7",
+  "version": "Umbrella 0.13.3 · Origami Lantern art",
+  "versionId": "56aa0db9-e0b4-4369-95a7-6017d2cf8b27",
+  "when": "2026-10-30T17:22:31.199Z",
+  "inspector": "https://inspector.poki.dev/?game=poki-56aa0db9-e0b4-4369-95a7-6017d2cf8b27",
   "evidence": {
     "sdkInit": {
       "verdict": "pass",
@@ -77,12 +77,12 @@
       "evidence": "no in-game chat (config: declares.chat)"
     },
     "resizeDynamic": {
-      "verdict": "fail",
-      "evidence": "640x360 → canvas 0x0 in 640x360 (0%x0%) | 836x470 → canvas 0x0 in 836x470 (0%x0%) | 1031x580 → canvas 0x0 in 1031x580 (0%x0%)"
+      "verdict": "pass",
+      "evidence": "640x360 → canvas 640x360 in 640x360 (100%x100%) | 836x470 → canvas 836x470 in 836x470 (100%x100%) | 1031x580 → canvas 1031x580 in 1031x580 (100%x100%)"
     },
     "mobileScaling": {
-      "verdict": "fail",
-      "evidence": "portrait 414x736 → canvas 0x0 in 414x736"
+      "verdict": "pass",
+      "evidence": "portrait 414x736 → canvas 414x736 in 414x736"
     },
     "mobilePlayable": {
       "verdict": "unproven",
@@ -120,7 +120,7 @@
       "match": {},
       "probe": "loadingFinished",
       "verdict": "pass",
-      "action": "already ticked"
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "gameplay-start",
@@ -128,7 +128,7 @@
       "match": {},
       "probe": "gameplayStart",
       "verdict": "pass",
-      "action": "already ticked"
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "gameplay-stop",
@@ -136,7 +136,7 @@
       "match": {},
       "probe": "gameplayStop",
       "verdict": "pass",
-      "action": "already ticked"
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "pause-bracket",
@@ -144,7 +144,7 @@
       "match": {},
       "probe": "pauseBracket",
       "verdict": "pass",
-      "action": "already ticked"
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "no-duplicates",
@@ -152,7 +152,7 @@
       "match": {},
       "probe": "noDuplicates",
       "verdict": "pass",
-      "action": "already ticked"
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "no-crashes",
@@ -199,8 +199,8 @@
       "module": "Mobile Optimization",
       "match": {},
       "probe": "mobileScaling",
-      "verdict": "fail",
-      "action": "ticked — but THIS RUN DISPROVED IT, see the report"
+      "verdict": "pass",
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "mobile-controls",
@@ -247,8 +247,8 @@
       "module": "Playground Integration",
       "match": {},
       "probe": "resizeDynamic",
-      "verdict": "fail",
-      "action": "ticked — but THIS RUN DISPROVED IT, see the report"
+      "verdict": "pass",
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "adblock",
@@ -311,7 +311,7 @@
   "hosts": [
     [
       "a0e9e4d5-1f73-4b9b-bb6e-edd6905cd867.gdn.poki.com",
-      164
+      181
     ],
     [
       "game-cdn.poki.com",
@@ -319,7 +319,7 @@
     ],
     [
       "a.poki-cdn.com",
-      12
+      6
     ],
     [
       "geo.poki.io",
@@ -328,18 +328,6 @@
     [
       "ads.poki.com",
       3
-    ],
-    [
-      "api.poki.com",
-      2
-    ],
-    [
-      "v.poki-cdn.com",
-      2
-    ],
-    [
-      "t.poki.io",
-      6
     ]
   ],
   "consoleErrors": []
