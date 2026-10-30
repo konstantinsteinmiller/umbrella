@@ -123,6 +123,7 @@ describe('Walldorf follows the player', () => {
   const lvl = (motion: object) => base({ hazards: [{ kind: 'pillar', x: 900, y: 100, w: 40, h: 120, contact: 'solid', motion } as never] })
   it('moves toward Pweeg at its speed', () => {
     const w = createWorld(lvl({ kind: 'follow', speed: 100 }))
+    w.moved = true // past the first move: a follower waits for it
     const x0 = w.hazards[0]!.x
     run(w, 1)
     expect(x0 - w.hazards[0]!.x).toBeGreaterThan(60)
@@ -130,12 +131,14 @@ describe('Walldorf follows the player', () => {
   })
   it('keeps to one axis when locked', () => {
     const w = createWorld(lvl({ kind: 'follow', speed: 100, axis: 'y' }))
+    w.moved = true // past the first move: a follower waits for it
     run(w, 1)
     expect(w.hazards[0]!.x).toBe(900)
     expect(w.hazards[0]!.y).toBeGreaterThan(100)
   })
   it('on a path, slides to the point nearest Pweeg (it blocks his way)', () => {
     const w = createWorld(lvl({ kind: 'follow', speed: 1000, a: { x: 600, y: 100 }, b: { x: 600, y: 700 } }))
+    w.moved = true // past the first move: a follower waits for it
     run(w, 2)
     const h = w.hazards[0]!
     expect(h.x + h.w / 2).toBeCloseTo(600, 0)

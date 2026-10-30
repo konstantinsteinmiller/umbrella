@@ -105,6 +105,9 @@ export interface World {
   gateInside: boolean[]
   /** The gate entered this run (index into level.gates), or -1. */
   gate: number
+  /** The player has walked or toggled the umbrella since this world began (the input that starts a
+   *  timed level's clock): a following mine waits until then, so a slow start is never blown up. */
+  moved: boolean
 }
 
 export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint' | 'bump' | 'charge-bump' | 'star' | 'gate'
@@ -248,6 +251,7 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
     starsGot: (level.stars ?? []).map((_, i) => !!opts.starsGot?.[i]),
     gateInside: (level.gates ?? []).map(() => open),
     gate: -1,
+    moved: false,
     level,
     time: 0,
     platformTime: 0,
@@ -357,6 +361,7 @@ const inTrigger = (m: Extract<Motion, { kind: 'lunge' }>, h: { w: number; h: num
 
 export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[] => {
   const events: GameEvent[] = []
+  if (input.left || input.right || input.toggle) w.moved = true
   w.time += dt
   w.phaseTime += dt
   w.platformTime += dt * t.platformSpeedScale
@@ -382,7 +387,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
       if (h.lungeAt === undefined && w.phase === 'play' && !pl.grounded && inTrigger(m, h, pl)) h.lungeAt = w.enemyTime
       placeMover(h, h.lungeAt === undefined ? 0 : m.period * lunge.rest + (w.enemyTime - h.lungeAt), lunge)
     } else if (m?.kind === 'follow') {
-      if (w.phase === 'play') follow(h, m, w.player, m.speed * t.enemySpeedScale * dt)
+      // It waits for the player's first move (the clock's start), then gives chase.
+      if (w.phase === 'play' && w.moved) follow(h, m, w.player, m.speed * t.enemySpeedScale * dt)
     } else placeMover(h, w.enemyTime, lunge)
     h.dx = h.x - ox
     h.dy = h.y - oy

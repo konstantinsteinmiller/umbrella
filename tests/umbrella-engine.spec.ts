@@ -362,3 +362,42 @@ describe('dropping onto the corner of a moving finish (level 27)', () => {
     expect(across).toBe(0)
   })
 })
+
+describe('a chasing mine waits for the first move', () => {
+  // A one-screen level: Pweeg on a ledge, a following mine across the screen.
+  const chaseLevel = () => {
+    const base = LEVELS[0]!
+    return createWorld({
+      ...base,
+      hazards: [{ kind: 'mine', x: 900, y: 200, w: 52, h: 52, motion: { kind: 'follow', speed: 120 } }]
+    } as typeof base)
+  }
+
+  it('stays put while the player has not moved, however long that takes', () => {
+    const w = chaseLevel()
+    const { x, y } = w.hazards[0]!
+    run(w, 5)
+    expect(w.moved).toBe(false)
+    expect(w.hazards[0]!.x).toBe(x)
+    expect(w.hazards[0]!.y).toBe(y)
+  })
+
+  it('gives chase once the player walks or opens the umbrella (the input that starts the clock)', () => {
+    for (const first of [{ right: true }, { toggle: true }] as Partial<Input>[]) {
+      const w = chaseLevel()
+      const { x, y } = w.hazards[0]!
+      run(w, 1)
+      step(w, { left: false, right: false, toggle: false, ...first }, DT, T)
+      run(w, 0.5)
+      expect(w.moved).toBe(true)
+      expect(Math.hypot(w.hazards[0]!.x - x, w.hazards[0]!.y - y)).toBeGreaterThan(5)
+    }
+  })
+
+  it('waits again in a fresh world (a restart or a checkpoint revive)', () => {
+    const w = chaseLevel()
+    step(w, { left: false, right: true, toggle: false }, DT, T)
+    expect(w.moved).toBe(true)
+    expect(chaseLevel().moved).toBe(false)
+  })
+})

@@ -1,7 +1,11 @@
 Umbrella — changelog (newest first)
 
 == Revision 13 — 2026-10-30 ==
-- [x] Lantern sky: the far painting's bottom (the blurred hole the town was cut out of, with hard cut edges) fades cleanly from the mountains into a dusky haze, so nothing broken shows between the roofs when the town slides with the camera
+- [x] Chasing mines wait for the player's first move (the walk or umbrella press that starts the clock), and again after every restart or checkpoint revive, so a slow start is never blown up
+- [x] Timed levels: the top bar keeps clear of the clock on phones (portrait and landscape), centred in the room left of it and wrapping to a second row where needed
+- [x] The restart button is gone from the top bar and the R line from the desktop controls (dying resets the level anyway; R still works); the editor's test bar keeps its restart
+- [x] Timed levels (the game jam chapter): running out of time no longer loses the level; the clock stops at 00:00 in red, the player plays on, and a finish after the time ran out earns the lowest rating (one star) to beat later; a better saved rating is never overwritten
+- [x] Lantern sky: the far painting's bottom (the blurred hole the town was cut out of, with hard cut edges) is two crisp cut-paper hill ranges (light cut edges, soft shadows, paper grain) instead of blur and cut edges: it shows between the town's roofs, deep in most places
 - [x] Lantern sky: the six paper lanterns painted still into the sky are removed (only the rising lanterns move there now); the strings of lights stay
 - [x] Lantern mine: the burning fuse sits on the painted spark (centred on its densest gold, not its ray tips) and is big enough to cover it
 - [x] Lantern sky: the left string of lights no longer ends in mid-air; its rope runs on up out of the top of the picture

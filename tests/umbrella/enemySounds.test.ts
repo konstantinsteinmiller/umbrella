@@ -220,7 +220,8 @@ describe('enemy cues', () => {
       { kind: 'mine', x: 300, y: 330, w: 40, h: 40 },
       { kind: 'pillar', x: 420, y: 300, w: 40, h: 100, contact: 'solid', motion: { kind: 'lunge', a: { x: 440, y: 350 }, b: { x: 600, y: 350 }, period: 2 } },
       { kind: 'pillar', x: 500, y: 300, w: 40, h: 100, contact: 'bounce', motion: { kind: 'follow', speed: 60, axis: 'x' } }
-    ]), 0.3)
+    // The player has moved (a follower waits for the first move).
+    ]), 0.3, (w) => { w.moved = true })
     const s = cues.bed(w, T, DT)
     expect(s.mine).toBeGreaterThan(0.5)
     expect(s.angry).toBeGreaterThan(0.3)
