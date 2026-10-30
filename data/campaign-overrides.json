@@ -43,7 +43,13 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1792703242296
+    "editedAt": 1793292859510,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "2": {
     "id": 2,
@@ -105,9 +111,13 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1792728882619,
+    "editedAt": 1793292884942,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "3": {
     "id": 3,
@@ -145,7 +155,13 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1792664240857
+    "editedAt": 1793292938495,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "4": {
     "id": 4,
@@ -154,50 +170,214 @@
       "h": 720
     },
     "spawn": {
-      "x": 320,
-      "y": 360
+      "x": 70,
+      "y": 480
     },
     "platforms": [
       {
-        "x": 250,
-        "y": 360,
-        "w": 130,
-        "h": 20
-      },
-      {
-        "x": -50,
-        "y": 50,
-        "w": 160,
+        "x": 1090,
+        "y": 420,
+        "w": 150,
         "h": 20,
         "finish": true,
         "motion": {
           "kind": "line",
           "a": {
-            "x": 1010,
-            "y": 260
+            "x": 1170,
+            "y": 440
           },
           "b": {
-            "x": 1010,
-            "y": 390
+            "x": 1170,
+            "y": 310
           },
-          "period": 6
+          "period": 4
         }
+      },
+      {
+        "x": 0,
+        "y": 480,
+        "w": 140,
+        "h": 20
       }
     ],
     "winds": [
       {
-        "x": 440,
-        "y": 290,
-        "w": 350,
-        "h": 440,
+        "x": 0,
+        "y": 0,
+        "w": 1280,
+        "h": 720,
         "dir": "up",
-        "speed": 260
+        "speed": 160
       }
     ],
-    "hazards": [],
-    "editedAt": 1792736154923,
+    "hazards": [
+      {
+        "kind": "pillar",
+        "x": 0,
+        "y": 190,
+        "w": 260,
+        "h": 50,
+        "contact": "bounce",
+        "bounce": 260
+      },
+      {
+        "kind": "pillar",
+        "x": 360,
+        "y": 190,
+        "w": 50,
+        "h": 250,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 260,
+        "y": 190,
+        "w": 100,
+        "h": 50,
+        "contact": "bounce",
+        "bounce": 230
+      },
+      {
+        "kind": "pillar",
+        "x": 140,
+        "y": 400,
+        "w": 40,
+        "h": 200,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 140,
+        "y": 600,
+        "w": 210,
+        "h": 50,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 350,
+        "y": 560,
+        "w": 220,
+        "h": 90,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 410,
+        "y": 380,
+        "w": 270,
+        "h": 60,
+        "contact": "bounce",
+        "bounce": 250
+      },
+      {
+        "kind": "pillar",
+        "x": 530,
+        "y": 260,
+        "w": 150,
+        "h": 120,
+        "contact": "bounce",
+        "bounce": 260
+      },
+      {
+        "kind": "pillar",
+        "x": 570,
+        "y": 480,
+        "w": 90,
+        "h": 170,
+        "contact": "bounce",
+        "bounce": 230
+      },
+      {
+        "kind": "pillar",
+        "x": 660,
+        "y": 530,
+        "w": 220,
+        "h": 50,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 670,
+        "y": 90,
+        "w": 250,
+        "h": 110,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 990,
+        "y": 310,
+        "w": 60,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 250
+      },
+      {
+        "kind": "pillar",
+        "x": 590,
+        "y": 190,
+        "w": 90,
+        "h": 70,
+        "contact": "bounce"
+      },
+      {
+        "kind": "pillar",
+        "x": 660,
+        "y": 580,
+        "w": 330,
+        "h": 80,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 990,
+        "y": 460,
+        "w": 60,
+        "h": 200,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 920,
+        "y": 50,
+        "w": 120,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 250
+      },
+      {
+        "kind": "pillar",
+        "x": 1040,
+        "y": 120,
+        "w": 240,
+        "h": 80,
+        "contact": "bounce",
+        "bounce": 230
+      },
+      {
+        "kind": "pillar",
+        "x": 1050,
+        "y": 460,
+        "w": 230,
+        "h": 120,
+        "contact": "bounce",
+        "bounce": 250
+      }
+    ],
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "editedAt": 1793258386285
   },
   "5": {
     "id": 5,
@@ -207,12 +387,12 @@
     },
     "spawn": {
       "x": 160,
-      "y": 370
+      "y": 380
     },
     "platforms": [
       {
         "x": 90,
-        "y": 370,
+        "y": 380,
         "w": 140,
         "h": 20
       },
@@ -241,18 +421,22 @@
     ],
     "winds": [
       {
-        "x": 310,
+        "x": 280,
         "y": 280,
         "w": 200,
         "h": 450,
         "dir": "up",
-        "speed": 300
+        "speed": 320
       }
     ],
     "hazards": [],
-    "editedAt": 1792731847072,
+    "editedAt": 1793292971471,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "6": {
     "id": 6,
@@ -298,11 +482,14 @@
         "w": 920,
         "h": 320,
         "dir": "up",
-        "speed": 260
+        "speed": 760,
+        "super": true
       }
     ],
     "hazards": [],
-    "editedAt": 1792620276090
+    "editedAt": 1793127939021,
+    "buttons": [],
+    "checkpoints": []
   },
   "7": {
     "id": 7,
@@ -464,22 +651,26 @@
     "hazards": [
       {
         "kind": "mine",
-        "x": 565,
-        "y": 275,
-        "w": 90,
-        "h": 90
+        "x": 570,
+        "y": 280,
+        "w": 80,
+        "h": 80
       },
       {
         "kind": "mine",
-        "x": 825,
-        "y": 275,
-        "w": 90,
-        "h": 90
+        "x": 830,
+        "y": 280,
+        "w": 80,
+        "h": 80
       }
     ],
-    "editedAt": 1792734651196,
+    "editedAt": 1793293179712,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
   },
   "10": {
     "id": 10,
@@ -539,7 +730,7 @@
         "h": 20
       },
       {
-        "x": 960,
+        "x": 950,
         "y": 370,
         "w": 140,
         "h": 20,
@@ -548,24 +739,24 @@
     ],
     "winds": [
       {
-        "x": 430,
-        "y": 300,
-        "w": 110,
+        "x": 420,
+        "y": 290,
+        "w": 120,
         "h": 220,
         "dir": "up",
         "speed": 200
       },
       {
-        "x": 730,
-        "y": 300,
-        "w": 110,
+        "x": 710,
+        "y": 290,
+        "w": 120,
         "h": 220,
         "dir": "up",
         "speed": 320
       }
     ],
     "hazards": [],
-    "editedAt": 1792735795984,
+    "editedAt": 1793132818047,
     "buttons": [],
     "checkpoints": []
   },
@@ -576,86 +767,165 @@
       "h": 720
     },
     "spawn": {
-      "x": 170,
-      "y": 390
+      "x": 130,
+      "y": 370
     },
     "platforms": [
       {
-        "x": 110,
-        "y": 390,
-        "w": 120,
+        "x": 60,
+        "y": 370,
+        "w": 130,
         "h": 20
       },
       {
-        "x": 1020,
-        "y": 400,
-        "w": 150,
+        "x": 1091,
+        "y": 380,
+        "w": 120,
         "h": 20,
         "finish": true
+      },
+      {
+        "x": 190,
+        "y": 20,
+        "w": 910,
+        "h": 60
+      },
+      {
+        "x": 190,
+        "y": 630,
+        "w": 910,
+        "h": 60
+      },
+      {
+        "x": 140,
+        "y": 20,
+        "w": 60,
+        "h": 210
+      },
+      {
+        "x": 1090,
+        "y": 20,
+        "w": 60,
+        "h": 210
+      },
+      {
+        "x": 140,
+        "y": 370,
+        "w": 60,
+        "h": 320
+      },
+      {
+        "x": 1090,
+        "y": 400,
+        "w": 60,
+        "h": 290
       }
     ],
     "winds": [
       {
-        "x": 320,
-        "y": 310,
-        "w": 120,
-        "h": 210,
+        "x": 190,
+        "y": 80,
+        "w": 910,
+        "h": 550,
         "dir": "up",
-        "speed": 260
-      },
-      {
-        "x": 540,
-        "y": 310,
-        "w": 120,
-        "h": 210,
-        "dir": "up",
-        "speed": 260
-      },
-      {
-        "x": 760,
-        "y": 310,
-        "w": 120,
-        "h": 210,
-        "dir": "up",
-        "speed": 260
+        "speed": 180
       }
     ],
     "hazards": [
       {
-        "kind": "mine",
-        "x": 455,
-        "y": 275,
-        "w": 70,
-        "h": 70
+        "kind": "pillar",
+        "x": 380,
+        "y": 140,
+        "w": 40,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 260
+      },
+      {
+        "kind": "pillar",
+        "x": 380,
+        "y": 390,
+        "w": 40,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 260
+      },
+      {
+        "kind": "pillar",
+        "x": 620,
+        "y": 80,
+        "w": 50,
+        "h": 200,
+        "contact": "bounce",
+        "bounce": 300
+      },
+      {
+        "kind": "pillar",
+        "x": 620,
+        "y": 430,
+        "w": 50,
+        "h": 200,
+        "contact": "bounce",
+        "bounce": 300
+      },
+      {
+        "kind": "pillar",
+        "x": 870,
+        "y": 140,
+        "w": 40,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 260
+      },
+      {
+        "kind": "pillar",
+        "x": 870,
+        "y": 390,
+        "w": 40,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 260
       },
       {
         "kind": "mine",
-        "x": 675,
-        "y": 275,
-        "w": 70,
-        "h": 70
-      },
-      {
-        "kind": "mine",
-        "x": 904,
-        "y": 344,
-        "w": 70,
-        "h": 70,
+        "x": 494,
+        "y": 174,
+        "w": 52,
+        "h": 52,
         "motion": {
           "kind": "line",
           "a": {
-            "x": 930,
-            "y": 370
+            "x": 520,
+            "y": 200
           },
           "b": {
-            "x": 930,
-            "y": 290
+            "x": 520,
+            "y": 510
           },
-          "period": 2.9
+          "period": 4
+        }
+      },
+      {
+        "kind": "mine",
+        "x": 744,
+        "y": 474,
+        "w": 52,
+        "h": 52,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 770,
+            "y": 500
+          },
+          "b": {
+            "x": 770,
+            "y": 200
+          },
+          "period": 4
         }
       }
     ],
-    "editedAt": 1792734898416,
+    "editedAt": 1793238544622,
     "buttons": [],
     "checkpoints": []
   },
@@ -705,9 +975,13 @@
         "bounce": 280
       }
     ],
-    "editedAt": 1792732152420,
+    "editedAt": 1793293278466,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 5,
+    "timeLimitJamOnly": true
   },
   "14": {
     "id": 14,
@@ -748,18 +1022,18 @@
       {
         "kind": "pillar",
         "x": 620,
-        "y": 340,
+        "y": 376,
         "w": 40,
         "h": 210,
         "motion": {
           "kind": "line",
           "a": {
             "x": 640,
-            "y": 440
+            "y": 366
           },
           "b": {
             "x": 640,
-            "y": 370
+            "y": 420
           },
           "period": 3.8
         },
@@ -767,9 +1041,13 @@
         "bounce": 280
       }
     ],
-    "editedAt": 1792732197937,
+    "editedAt": 1793293319228,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 5,
+    "timeLimitJamOnly": true
   },
   "15": {
     "id": 15,
@@ -809,32 +1087,37 @@
     "hazards": [
       {
         "kind": "pillar",
-        "x": 790,
-        "y": 275,
-        "w": 40,
-        "h": 210,
+        "x": 760,
+        "y": 285,
+        "w": 60,
+        "h": 190,
         "motion": {
           "kind": "lunge",
           "a": {
-            "x": 810,
-            "y": 380
+            "x": 780,
+            "y": 390
           },
           "b": {
-            "x": 510,
-            "y": 380
+            "x": 520,
+            "y": 390
           },
           "period": 3.2,
           "speed": 0.7,
           "trigger": true,
-          "radius": 230
+          "reach": 220,
+          "zoneWidth": 250
         },
         "contact": "bounce",
         "bounce": 120
       }
     ],
-    "editedAt": 1792730075545,
+    "editedAt": 1793293347677,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "16": {
     "id": 16,
@@ -843,19 +1126,125 @@
       "h": 720
     },
     "spawn": {
-      "x": 320,
+      "x": 150,
       "y": 370
     },
     "platforms": [
       {
-        "x": 250,
+        "x": 80,
         "y": 370,
-        "w": 140,
+        "w": 130,
         "h": 20
       },
       {
-        "x": 890,
-        "y": 370,
+        "x": 1030,
+        "y": 390,
+        "w": 150,
+        "h": 20,
+        "finish": true
+      }
+    ],
+    "winds": [
+      {
+        "x": 300,
+        "y": 290,
+        "w": 120,
+        "h": 220,
+        "dir": "up",
+        "speed": 260
+      },
+      {
+        "x": 550,
+        "y": 290,
+        "w": 120,
+        "h": 220,
+        "dir": "up",
+        "speed": 260
+      },
+      {
+        "x": 800,
+        "y": 290,
+        "w": 120,
+        "h": 220,
+        "dir": "up",
+        "speed": 260
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "mine",
+        "x": 305,
+        "y": 205,
+        "w": 80,
+        "h": 80,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 365,
+            "y": 240
+          },
+          "b": {
+            "x": 890,
+            "y": 240
+          },
+          "period": 3.7
+        }
+      },
+      {
+        "kind": "mine",
+        "x": 864,
+        "y": 534,
+        "w": 80,
+        "h": 80,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 890,
+            "y": 560
+          },
+          "b": {
+            "x": 360,
+            "y": 560
+          },
+          "period": 3.7
+        }
+      },
+      {
+        "kind": "mine",
+        "x": 945,
+        "y": 255,
+        "w": 70,
+        "h": 70
+      }
+    ],
+    "editedAt": 1793293247797,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 8,
+    "timeLimitJamOnly": true
+  },
+  "17": {
+    "id": 17,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 90,
+      "y": 330
+    },
+    "platforms": [
+      {
+        "x": 30,
+        "y": 330,
+        "w": 120,
+        "h": 20
+      },
+      {
+        "x": 1100,
+        "y": 290,
         "w": 140,
         "h": 20,
         "finish": true
@@ -869,89 +1258,100 @@
         "h": 210,
         "dir": "up",
         "speed": 240
+      },
+      {
+        "x": 200,
+        "y": 310,
+        "w": 140,
+        "h": 170,
+        "dir": "up",
+        "speed": 260
+      },
+      {
+        "x": 940,
+        "y": 300,
+        "w": 140,
+        "h": 170,
+        "dir": "up",
+        "speed": 260
       }
     ],
     "hazards": [
       {
         "kind": "pillar",
-        "x": 800,
-        "y": 250,
-        "w": 40,
-        "h": 210,
-        "harmless": true,
+        "x": 740,
+        "y": 295,
+        "w": 60,
+        "h": 190,
         "motion": {
           "kind": "lunge",
           "a": {
-            "x": 820,
-            "y": 370
+            "x": 760,
+            "y": 400
           },
           "b": {
-            "x": 510,
-            "y": 370
+            "x": 500,
+            "y": 400
           },
-          "period": 2.9,
+          "period": 3.2,
+          "speed": 0.7,
           "trigger": true,
-          "radius": 330
+          "reach": 190,
+          "zoneWidth": 250
+        },
+        "contact": "bounce",
+        "bounce": 190
+      },
+      {
+        "kind": "pillar",
+        "x": 360,
+        "y": 190,
+        "w": 40,
+        "h": 170,
+        "contact": "bounce",
+        "bounce": 260,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 380,
+            "y": 275
+          },
+          "b": {
+            "x": 380,
+            "y": 340
+          },
+          "period": 4
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 880,
+        "y": 180,
+        "w": 40,
+        "h": 170,
+        "contact": "bounce",
+        "bounce": 260,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 900,
+            "y": 280
+          },
+          "b": {
+            "x": 900,
+            "y": 340
+          },
+          "period": 4
         }
       }
     ],
-    "editedAt": 1792642018597
-  },
-  "17": {
-    "id": 17,
-    "world": {
-      "w": 1280,
-      "h": 720
-    },
-    "spawn": {
-      "x": 200,
-      "y": 580
-    },
-    "platforms": [
-      {
-        "x": 140,
-        "y": 580,
-        "w": 130,
-        "h": 20
-      },
-      {
-        "x": 1100,
-        "y": 210,
-        "w": 90,
-        "h": 20,
-        "finish": true
-      }
-    ],
-    "winds": [
-      {
-        "x": 310,
-        "y": 410,
-        "w": 130,
-        "h": 190,
-        "dir": "up",
-        "speed": 260
-      },
-      {
-        "x": 590,
-        "y": 240,
-        "w": 130,
-        "h": 190,
-        "dir": "up",
-        "speed": 260
-      },
-      {
-        "x": 880,
-        "y": 120,
-        "w": 130,
-        "h": 180,
-        "dir": "up",
-        "speed": 260
-      }
-    ],
-    "hazards": [],
-    "editedAt": 1792735174174,
+    "editedAt": 1793293370326,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 9,
+    "timeLimitJamOnly": true
   },
   "18": {
     "id": 18,
@@ -960,18 +1360,18 @@
       "h": 720
     },
     "spawn": {
-      "x": 270,
-      "y": 550
+      "x": 290,
+      "y": 560
     },
     "platforms": [
       {
-        "x": 190,
-        "y": 550,
+        "x": 220,
+        "y": 560,
         "w": 140,
         "h": 20
       },
       {
-        "x": 900,
+        "x": 930,
         "y": 270,
         "w": 140,
         "h": 20,
@@ -980,26 +1380,30 @@
     ],
     "winds": [
       {
-        "x": 390,
+        "x": 360,
         "y": 370,
         "w": 230,
         "h": 210,
         "dir": "up",
-        "speed": 260
+        "speed": 240
       },
       {
-        "x": 670,
+        "x": 700,
         "y": 140,
         "w": 230,
         "h": 200,
         "dir": "up",
-        "speed": 260
+        "speed": 240
       }
     ],
     "hazards": [],
-    "editedAt": 1792736019586,
+    "editedAt": 1793292917246,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "19": {
     "id": 19,
@@ -1008,38 +1412,163 @@
       "h": 720
     },
     "spawn": {
-      "x": 640,
-      "y": 540
+      "x": 120,
+      "y": 380
     },
     "platforms": [
       {
-        "x": 570,
-        "y": 540,
-        "w": 140,
+        "x": 60,
+        "y": 380,
+        "w": 120,
         "h": 20
       },
       {
-        "x": 570,
-        "y": 150,
-        "w": 140,
+        "x": 1091,
+        "y": 480,
+        "w": 120,
         "h": 20,
         "finish": true
       }
     ],
     "winds": [
       {
-        "x": 440,
-        "y": 150,
-        "w": 400,
-        "h": 410,
+        "x": 730,
+        "y": 260,
+        "w": 310,
+        "h": 220,
+        "dir": "up",
+        "speed": 145
+      },
+      {
+        "x": 550,
+        "y": 230,
+        "w": 100,
+        "h": 270,
+        "dir": "up",
+        "speed": 160
+      },
+      {
+        "x": 210,
+        "y": 230,
+        "w": 260,
+        "h": 270,
+        "dir": "up",
+        "speed": 160
+      },
+      {
+        "x": 850,
+        "y": 550,
+        "w": 90,
+        "h": 70,
         "dir": "up",
         "speed": 260
       }
     ],
-    "hazards": [],
+    "hazards": [
+      {
+        "kind": "pillar",
+        "x": 490,
+        "y": 170,
+        "w": 40,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 260,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 510,
+            "y": 260
+          },
+          "b": {
+            "x": 510,
+            "y": 200
+          },
+          "period": 4
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 490,
+        "y": 400,
+        "w": 40,
+        "h": 160,
+        "contact": "bounce",
+        "bounce": 260,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 510,
+            "y": 460
+          },
+          "b": {
+            "x": 510,
+            "y": 520
+          },
+          "period": 4
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 870,
+        "y": 90,
+        "w": 100,
+        "h": 50,
+        "contact": "bounce",
+        "motion": {
+          "kind": "lunge",
+          "a": {
+            "x": 890,
+            "y": 190
+          },
+          "b": {
+            "x": 890,
+            "y": 300
+          },
+          "period": 5.05,
+          "trigger": true,
+          "reach": 90,
+          "speed": 1.75
+        },
+        "bounce": 300
+      },
+      {
+        "kind": "pillar",
+        "x": 670,
+        "y": 280,
+        "w": 40,
+        "h": 160,
+        "contact": "bounce",
+        "bounce": 260
+      },
+      {
+        "kind": "mine",
+        "x": 855,
+        "y": 335,
+        "w": 70,
+        "h": 70
+      },
+      {
+        "kind": "mine",
+        "x": 305,
+        "y": 335,
+        "w": 70,
+        "h": 70
+      },
+      {
+        "kind": "mine",
+        "x": 1110,
+        "y": 200,
+        "w": 80,
+        "h": 80
+      }
+    ],
+    "editedAt": 1793293500145,
     "buttons": [],
     "checkpoints": [],
-    "editedAt": 1792733078761
+    "stars": [],
+    "gates": [],
+    "timeLimit": 10,
+    "timeLimitJamOnly": true
   },
   "20": {
     "id": 20,
@@ -1048,60 +1577,199 @@
       "h": 720
     },
     "spawn": {
-      "x": 620,
-      "y": 560
+      "x": 130,
+      "y": 390
     },
     "platforms": [
       {
-        "x": 550,
-        "y": 560,
-        "w": 140,
+        "x": 70,
+        "y": 390,
+        "w": 120,
         "h": 20
       },
       {
-        "x": 550,
-        "y": 140,
-        "w": 140,
+        "x": 1091,
+        "y": 390,
+        "w": 120,
         "h": 20,
         "finish": true
       }
     ],
     "winds": [
       {
-        "x": 420,
-        "y": 140,
-        "w": 400,
-        "h": 440,
+        "x": 340,
+        "y": 300,
+        "w": 130,
+        "h": 160,
         "dir": "up",
-        "speed": 200
+        "speed": 260
+      },
+      {
+        "x": 420,
+        "y": 520,
+        "w": 400,
+        "h": 90,
+        "dir": "up",
+        "speed": 260
       }
     ],
     "hazards": [
       {
-        "kind": "mine",
-        "x": 605,
-        "y": 215,
-        "w": 30,
-        "h": 30
+        "kind": "pillar",
+        "x": 1010,
+        "y": 70,
+        "w": 40,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 260,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 1030,
+            "y": 200
+          },
+          "b": {
+            "x": 1030,
+            "y": 130
+          },
+          "period": 4
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 1010,
+        "y": 370,
+        "w": 40,
+        "h": 160,
+        "contact": "bounce",
+        "bounce": 260,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 1030,
+            "y": 400
+          },
+          "b": {
+            "x": 1030,
+            "y": 470
+          },
+          "period": 4
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 1000,
+        "y": -150,
+        "w": 100,
+        "h": 50,
+        "contact": "bounce",
+        "motion": {
+          "kind": "lunge",
+          "a": {
+            "x": 1020,
+            "y": -50
+          },
+          "b": {
+            "x": 1020,
+            "y": 60
+          },
+          "period": 5.05,
+          "trigger": true,
+          "reach": 90,
+          "speed": 1.75
+        },
+        "bounce": 300
+      },
+      {
+        "kind": "pillar",
+        "x": 540,
+        "y": 260,
+        "w": 160,
+        "h": 160,
+        "contact": "bounce",
+        "bounce": 360
       },
       {
         "kind": "mine",
-        "x": 745,
-        "y": 405,
-        "w": 50,
-        "h": 50
+        "x": 700,
+        "y": 300,
+        "w": 110,
+        "h": 110,
+        "motion": {
+          "kind": "circle",
+          "center": {
+            "x": 620,
+            "y": 340
+          },
+          "radius": 220,
+          "period": 15.4
+        }
       },
       {
         "kind": "mine",
-        "x": 445,
-        "y": 405,
-        "w": 50,
-        "h": 50
+        "x": 1124,
+        "y": 124,
+        "w": 60,
+        "h": 60,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 1150,
+            "y": 150
+          },
+          "b": {
+            "x": 1150,
+            "y": 310
+          },
+          "period": 7
+        }
+      },
+      {
+        "kind": "mine",
+        "x": 244,
+        "y": 264,
+        "w": 52,
+        "h": 52,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 270,
+            "y": 290
+          },
+          "b": {
+            "x": 270,
+            "y": 460
+          },
+          "period": 4
+        }
+      },
+      {
+        "kind": "mine",
+        "x": 924,
+        "y": 214,
+        "w": 52,
+        "h": 52,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 950,
+            "y": 240
+          },
+          "b": {
+            "x": 950,
+            "y": 390
+          },
+          "period": 4
+        }
       }
     ],
+    "editedAt": 1793311295056,
     "buttons": [],
     "checkpoints": [],
-    "editedAt": 1792733431885
+    "stars": [],
+    "gates": [],
+    "timeLimit": 11,
+    "timeLimitJamOnly": true
   },
   "21": {
     "id": 21,
@@ -1110,45 +1778,262 @@
       "h": 720
     },
     "spawn": {
-      "x": 160,
-      "y": 620
+      "x": 650,
+      "y": 570
     },
     "platforms": [
       {
-        "x": 80,
-        "y": 620,
-        "w": 150,
+        "x": 580,
+        "y": 570,
+        "w": 130,
         "h": 20
       },
       {
-        "x": 0,
-        "y": 110,
-        "w": 1280,
-        "h": 40
-      },
-      {
-        "x": 1000,
-        "y": 440,
-        "w": 210,
+        "x": 570,
+        "y": 160,
+        "w": 150,
         "h": 20,
         "finish": true
       }
     ],
     "winds": [
       {
-        "x": 300,
-        "y": 150,
-        "w": 980,
-        "h": 600,
+        "x": 520,
+        "y": 160,
+        "w": 250,
+        "h": 430,
         "dir": "up",
-        "speed": 900,
+        "speed": 190
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "mine",
+        "x": 725,
+        "y": 215,
+        "w": 60,
+        "h": 60,
+        "motion": {
+          "kind": "circle",
+          "center": {
+            "x": 640,
+            "y": 250
+          },
+          "radius": 5,
+          "period": 0.4
+        }
+      }
+    ],
+    "buttons": [],
+    "checkpoints": [],
+    "editedAt": 1793308728797,
+    "stars": [],
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
+  },
+  "22": {
+    "id": 22,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 200,
+      "y": 160
+    },
+    "platforms": [
+      {
+        "x": 810,
+        "y": 560,
+        "w": 150,
+        "h": 20,
+        "finish": true
+      },
+      {
+        "x": 540,
+        "y": 60,
+        "w": 500,
+        "h": 170
+      },
+      {
+        "x": 110,
+        "y": -10,
+        "w": 930,
+        "h": 80
+      },
+      {
+        "x": 0,
+        "y": 160,
+        "w": 260,
+        "h": 470
+      },
+      {
+        "x": 0,
+        "y": 620,
+        "w": 1040,
+        "h": 100
+      },
+      {
+        "x": 1030,
+        "y": -10,
+        "w": 80,
+        "h": 730
+      }
+    ],
+    "winds": [
+      {
+        "x": 260,
+        "y": 160,
+        "w": 290,
+        "h": 470,
+        "dir": "up",
+        "speed": 750,
+        "super": true
+      },
+      {
+        "x": 550,
+        "y": 230,
+        "w": 480,
+        "h": 400,
+        "dir": "up",
+        "speed": 700,
         "super": true
       }
     ],
     "hazards": [],
     "buttons": [],
     "checkpoints": [],
-    "editedAt": 1792735413306
+    "editedAt": 1793306821903,
+    "stars": [],
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
+  },
+  "24": {
+    "id": 24,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 650,
+      "y": 640
+    },
+    "platforms": [
+      {
+        "x": 580,
+        "y": 640,
+        "w": 130,
+        "h": 20
+      },
+      {
+        "x": 570,
+        "y": 80,
+        "w": 150,
+        "h": 20,
+        "finish": true
+      }
+    ],
+    "winds": [
+      {
+        "x": 520,
+        "y": 80,
+        "w": 250,
+        "h": 580,
+        "dir": "up",
+        "speed": 190
+      },
+      {
+        "x": 260,
+        "y": 430,
+        "w": 110,
+        "h": 140,
+        "dir": "right",
+        "speed": 260
+      },
+      {
+        "x": 930,
+        "y": 220,
+        "w": 110,
+        "h": 150,
+        "dir": "left",
+        "speed": 260
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "mine",
+        "x": 725,
+        "y": 115,
+        "w": 60,
+        "h": 60,
+        "motion": {
+          "kind": "circle",
+          "center": {
+            "x": 640,
+            "y": 150
+          },
+          "radius": 5,
+          "period": 0.4
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 440,
+        "y": 240,
+        "w": 50,
+        "h": 80,
+        "contact": "bounce",
+        "motion": {
+          "kind": "lunge",
+          "a": {
+            "x": 465,
+            "y": 280
+          },
+          "b": {
+            "x": 700,
+            "y": 280
+          },
+          "period": 3.2,
+          "trigger": true,
+          "reach": 210,
+          "zoneWidth": 100
+        },
+        "bounce": 300
+      },
+      {
+        "kind": "pillar",
+        "x": 800,
+        "y": 410,
+        "w": 50,
+        "h": 80,
+        "contact": "bounce",
+        "motion": {
+          "kind": "lunge",
+          "a": {
+            "x": 825,
+            "y": 450
+          },
+          "b": {
+            "x": 600,
+            "y": 450
+          },
+          "period": 3.2,
+          "trigger": true,
+          "reach": 190,
+          "zoneWidth": 100
+        },
+        "bounce": 300
+      }
+    ],
+    "buttons": [],
+    "checkpoints": [],
+    "editedAt": 1793311399462,
+    "stars": [],
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
   },
   "25": {
     "id": 25,
@@ -1914,9 +2799,13 @@
       "w": 1280,
       "h": 720
     },
-    "editedAt": 1792728519254,
+    "editedAt": 1793293973078,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 21,
+    "timeLimitJamOnly": true
   },
   "26": {
     "id": 26,
@@ -1925,40 +2814,40 @@
       "h": 720
     },
     "spawn": {
-      "x": 220,
-      "y": 460
+      "x": 260,
+      "y": 440
     },
     "platforms": [
       {
         "x": 150,
-        "y": 460,
+        "y": 440,
         "w": 150,
         "h": 20
       },
       {
         "x": 950,
-        "y": 380,
+        "y": 420,
         "w": 200,
         "h": 20,
         "finish": true
       },
       {
         "x": 290,
-        "y": 40,
+        "y": 60,
         "w": 670,
         "h": 60
       },
       {
         "x": 950,
-        "y": 40,
+        "y": 60,
         "w": 60,
-        "h": 210
+        "h": 220
       },
       {
         "x": 950,
-        "y": 390,
+        "y": 430,
         "w": 60,
-        "h": 280
+        "h": 220
       },
       {
         "x": 280,
@@ -1968,15 +2857,15 @@
       },
       {
         "x": 240,
-        "y": 470,
+        "y": 440,
         "w": 60,
-        "h": 220
+        "h": 250
       },
       {
-        "x": 230,
-        "y": 40,
-        "w": 70,
-        "h": 250
+        "x": 240,
+        "y": 60,
+        "w": 60,
+        "h": 260
       }
     ],
     "winds": [
@@ -1986,122 +2875,161 @@
         "w": 650,
         "h": 520,
         "dir": "up",
-        "speed": 260
+        "speed": 180
       }
     ],
     "hazards": [
       {
         "kind": "mine",
-        "x": 710,
+        "x": 860,
         "y": 310,
         "w": 110,
         "h": 110,
         "motion": {
-          "kind": "circle",
-          "center": {
-            "x": 640,
+          "kind": "line",
+          "a": {
+            "x": 885,
             "y": 360
           },
-          "radius": 150,
-          "period": 2.6
+          "b": {
+            "x": 660,
+            "y": 360
+          },
+          "period": 4
         }
+      },
+      {
+        "kind": "spikes",
+        "x": 300,
+        "y": 594,
+        "w": 650,
+        "h": 26,
+        "facing": "up"
+      },
+      {
+        "kind": "spikes",
+        "x": 300,
+        "y": 120,
+        "w": 650,
+        "h": 26,
+        "facing": "down"
       }
     ],
-    "editedAt": 1792704337617
+    "editedAt": 1793294013317,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "27": {
     "id": 27,
     "world": {
-      "w": 2780,
-      "h": 720
-    },
-    "view": {
       "w": 1280,
       "h": 720
     },
     "spawn": {
-      "x": 160,
-      "y": 400
+      "x": 260,
+      "y": 440
     },
     "platforms": [
       {
-        "x": 60,
+        "x": 150,
         "y": 440,
-        "w": 200,
+        "w": 150,
         "h": 20
       },
       {
-        "x": 880,
-        "y": 440,
+        "x": 950,
+        "y": 420,
         "w": 200,
-        "h": 20
-      },
-      {
-        "x": 1700,
-        "y": 440,
-        "w": 200,
-        "h": 20
-      },
-      {
-        "x": 2520,
-        "y": 440,
-        "w": 160,
         "h": 20,
         "finish": true
+      },
+      {
+        "x": 290,
+        "y": 60,
+        "w": 670,
+        "h": 60
+      },
+      {
+        "x": 950,
+        "y": 60,
+        "w": 60,
+        "h": 220
+      },
+      {
+        "x": 950,
+        "y": 430,
+        "w": 60,
+        "h": 220
+      },
+      {
+        "x": 280,
+        "y": 620,
+        "w": 730,
+        "h": 70
+      },
+      {
+        "x": 240,
+        "y": 440,
+        "w": 60,
+        "h": 250
+      },
+      {
+        "x": 240,
+        "y": 60,
+        "w": 60,
+        "h": 260
       }
     ],
     "winds": [
       {
-        "x": 380,
-        "y": 320,
-        "w": 400,
-        "h": 400,
+        "x": 300,
+        "y": 100,
+        "w": 650,
+        "h": 520,
         "dir": "up",
-        "speed": 260
-      },
-      {
-        "x": 1200,
-        "y": 320,
-        "w": 400,
-        "h": 400,
-        "dir": "up",
-        "speed": 260
-      },
-      {
-        "x": 2020,
-        "y": 320,
-        "w": 400,
-        "h": 400,
-        "dir": "up",
-        "speed": 260
-      },
-      {
-        "x": 520,
-        "y": -80,
-        "w": 240,
-        "h": 320,
-        "dir": "down",
-        "speed": 260
-      },
-      {
-        "x": 1210,
-        "y": -200,
-        "w": 400,
-        "h": 370,
-        "dir": "down",
-        "speed": 260
-      },
-      {
-        "x": 810,
-        "y": 410,
-        "w": 10,
-        "h": 40,
-        "dir": "down",
-        "speed": 260
+        "speed": 180
       }
     ],
-    "hazards": [],
-    "editedAt": 1792609814018
+    "hazards": [
+      {
+        "kind": "mine",
+        "x": 850,
+        "y": 300,
+        "w": 110,
+        "h": 110,
+        "motion": {
+          "kind": "follow",
+          "speed": 100
+        }
+      },
+      {
+        "kind": "spikes",
+        "x": 300,
+        "y": 594,
+        "w": 650,
+        "h": 26,
+        "facing": "up"
+      },
+      {
+        "kind": "spikes",
+        "x": 300,
+        "y": 120,
+        "w": 650,
+        "h": 26,
+        "facing": "down"
+      }
+    ],
+    "editedAt": 1793294025174,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "1001": {
     "id": 1001,
@@ -2111,18 +3039,200 @@
     },
     "spawn": {
       "x": 150,
-      "y": 570
+      "y": 390
     },
     "platforms": [
       {
-        "x": 80,
-        "y": 570,
+        "x": 90,
+        "y": 390,
+        "w": 120,
+        "h": 20
+      },
+      {
+        "x": 1101,
+        "y": 490,
+        "w": 120,
+        "h": 20,
+        "finish": true
+      }
+    ],
+    "winds": [
+      {
+        "x": 240,
+        "y": 260,
+        "w": 120,
+        "h": 250,
+        "dir": "up",
+        "speed": 240
+      },
+      {
+        "x": 720,
+        "y": 260,
+        "w": 340,
+        "h": 210,
+        "dir": "up",
+        "speed": 155
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "pillar",
+        "x": 630,
+        "y": 170,
+        "w": 40,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 260,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 650,
+            "y": 260
+          },
+          "b": {
+            "x": 650,
+            "y": 200
+          },
+          "period": 3.5
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 630,
+        "y": 400,
+        "w": 40,
+        "h": 160,
+        "contact": "bounce",
+        "bounce": 260,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 650,
+            "y": 460
+          },
+          "b": {
+            "x": 650,
+            "y": 520
+          },
+          "period": 3.5
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 1080,
+        "y": 260,
+        "w": 50,
+        "h": 90,
+        "contact": "bounce",
+        "motion": {
+          "kind": "lunge",
+          "a": {
+            "x": 1100,
+            "y": 360
+          },
+          "b": {
+            "x": 660,
+            "y": 360
+          },
+          "period": 5.05,
+          "trigger": true,
+          "reach": 240,
+          "speed": 1
+        },
+        "bounce": 300
+      },
+      {
+        "kind": "mine",
+        "x": 405,
+        "y": 320,
+        "w": 80,
+        "h": 80
+      }
+    ],
+    "editedAt": 1793293404174,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 9,
+    "timeLimitJamOnly": true
+  },
+  "1002": {
+    "id": 1002,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 230,
+      "y": 410
+    },
+    "platforms": [
+      {
+        "x": 160,
+        "y": 410,
         "w": 130,
         "h": 20
       },
       {
-        "x": 1050,
-        "y": 220,
+        "x": 1011,
+        "y": 189,
+        "w": 110,
+        "h": 20,
+        "finish": true,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 1066,
+            "y": 199
+          },
+          "b": {
+            "x": 1066,
+            "y": 150
+          },
+          "period": 4
+        }
+      }
+    ],
+    "winds": [
+      {
+        "x": 840,
+        "y": 210,
+        "w": 170,
+        "h": 370,
+        "dir": "up",
+        "speed": 260
+      }
+    ],
+    "hazards": [],
+    "buttons": [],
+    "checkpoints": [],
+    "editedAt": 1793293034899,
+    "stars": [],
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
+  },
+  "1004": {
+    "id": 1004,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 150,
+      "y": 370
+    },
+    "platforms": [
+      {
+        "x": 80,
+        "y": 370,
+        "w": 130,
+        "h": 20
+      },
+      {
+        "x": 1030,
+        "y": 390,
         "w": 150,
         "h": 20,
         "finish": true
@@ -2130,76 +3240,806 @@
     ],
     "winds": [
       {
-        "x": 270,
-        "y": 370,
-        "w": 180,
+        "x": 300,
+        "y": 290,
+        "w": 120,
         "h": 220,
         "dir": "up",
-        "speed": 300
+        "speed": 260
       },
       {
         "x": 550,
-        "y": 250,
-        "w": 180,
-        "h": 230,
+        "y": 290,
+        "w": 120,
+        "h": 220,
         "dir": "up",
-        "speed": 300
+        "speed": 260
       },
       {
-        "x": 830,
-        "y": 140,
-        "w": 170,
-        "h": 230,
+        "x": 800,
+        "y": 290,
+        "w": 120,
+        "h": 220,
         "dir": "up",
         "speed": 260
       }
     ],
     "hazards": [
       {
-        "kind": "pillar",
-        "x": 490,
-        "y": 230,
-        "w": 30,
-        "h": 150,
-        "contact": "bounce",
-        "bounce": 280,
+        "kind": "mine",
+        "x": 445,
+        "y": 255,
+        "w": 80,
+        "h": 80,
         "motion": {
-          "kind": "follow",
-          "speed": 45,
+          "kind": "line",
           "a": {
-            "x": 505,
-            "y": 105
+            "x": 480,
+            "y": 290
           },
           "b": {
-            "x": 505,
-            "y": 505
-          }
+            "x": 480,
+            "y": 360
+          },
+          "period": 3.2
         }
       },
       {
-        "kind": "pillar",
-        "x": 760,
-        "y": 140,
-        "w": 30,
-        "h": 150,
-        "contact": "bounce",
-        "bounce": 280,
+        "kind": "mine",
+        "x": 705,
+        "y": 255,
+        "w": 80,
+        "h": 80,
         "motion": {
-          "kind": "follow",
-          "speed": 45,
+          "kind": "line",
           "a": {
-            "x": 775,
-            "y": 15
+            "x": 740,
+            "y": 290
           },
           "b": {
-            "x": 775,
-            "y": 415
-          }
+            "x": 740,
+            "y": 360
+          },
+          "period": 3.2
+        }
+      },
+      {
+        "kind": "mine",
+        "x": 945,
+        "y": 255,
+        "w": 70,
+        "h": 70
+      }
+    ],
+    "editedAt": 1793293211955,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 8,
+    "timeLimitJamOnly": true
+  },
+  "1005": {
+    "id": 1005,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 420,
+      "y": 390
+    },
+    "platforms": [
+      {
+        "x": 350,
+        "y": 390,
+        "w": 140,
+        "h": 20
+      },
+      {
+        "x": 800,
+        "y": 390,
+        "w": 220,
+        "h": 20,
+        "finish": true
+      }
+    ],
+    "winds": [
+      {
+        "x": 600,
+        "y": 310,
+        "w": 100,
+        "h": 220,
+        "dir": "up",
+        "speed": 220
+      },
+      {
+        "x": 540,
+        "y": -70,
+        "w": 240,
+        "h": 320,
+        "dir": "left",
+        "speed": 210
+      }
+    ],
+    "hazards": [],
+    "editedAt": 1793293120011,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 5,
+    "timeLimitJamOnly": true
+  },
+  "1006": {
+    "id": 1006,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 250,
+      "y": 370
+    },
+    "platforms": [
+      {
+        "x": 180,
+        "y": 370,
+        "w": 130,
+        "h": 20
+      },
+      {
+        "x": 950,
+        "y": 370,
+        "w": 140,
+        "h": 20,
+        "finish": true
+      }
+    ],
+    "winds": [
+      {
+        "x": 420,
+        "y": 290,
+        "w": 120,
+        "h": 220,
+        "dir": "up",
+        "speed": 200
+      },
+      {
+        "x": 710,
+        "y": 290,
+        "w": 120,
+        "h": 220,
+        "dir": "up",
+        "speed": 320
+      },
+      {
+        "x": 520,
+        "y": -110,
+        "w": 240,
+        "h": 320,
+        "dir": "left",
+        "speed": 210
+      }
+    ],
+    "hazards": [],
+    "editedAt": 1793293149022,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
+  },
+  "1007": {
+    "id": 1007,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 90,
+      "y": 610
+    },
+    "platforms": [
+      {
+        "x": 1050,
+        "y": 570,
+        "w": 150,
+        "h": 20,
+        "finish": true
+      },
+      {
+        "x": 170,
+        "y": 100,
+        "w": 980,
+        "h": 60
+      },
+      {
+        "x": 0,
+        "y": 610,
+        "w": 170,
+        "h": 20
+      }
+    ],
+    "winds": [
+      {
+        "x": 170,
+        "y": 160,
+        "w": 280,
+        "h": 260,
+        "dir": "up",
+        "speed": 750,
+        "super": true
+      },
+      {
+        "x": 630,
+        "y": 160,
+        "w": 520,
+        "h": 250,
+        "dir": "up",
+        "speed": 700,
+        "super": true
+      },
+      {
+        "x": 170,
+        "y": 420,
+        "w": 280,
+        "h": 210,
+        "dir": "up",
+        "speed": 260
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "mine",
+        "x": 1104,
+        "y": 364,
+        "w": 70,
+        "h": 70,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 1130,
+            "y": 390
+          },
+          "b": {
+            "x": 670,
+            "y": 390
+          },
+          "period": 4
         }
       }
     ],
     "buttons": [],
     "checkpoints": [],
-    "editedAt": 1792737803270
+    "editedAt": 1793307536554,
+    "stars": [],
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
+  },
+  "1008": {
+    "id": 1008,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 90,
+      "y": 610
+    },
+    "platforms": [
+      {
+        "x": 900,
+        "y": 570,
+        "w": 150,
+        "h": 20,
+        "finish": true,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 975,
+            "y": 580
+          },
+          "b": {
+            "x": 1070,
+            "y": 580
+          },
+          "period": 4
+        }
+      },
+      {
+        "x": 170,
+        "y": 100,
+        "w": 980,
+        "h": 60
+      },
+      {
+        "x": 0,
+        "y": 610,
+        "w": 170,
+        "h": 20
+      }
+    ],
+    "winds": [
+      {
+        "x": 170,
+        "y": 160,
+        "w": 290,
+        "h": 470,
+        "dir": "up",
+        "speed": 750,
+        "super": true
+      },
+      {
+        "x": 630,
+        "y": 160,
+        "w": 520,
+        "h": 470,
+        "dir": "up",
+        "speed": 700,
+        "super": true
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "pillar",
+        "x": 780,
+        "y": 330,
+        "w": 100,
+        "h": 90,
+        "contact": "bounce",
+        "bounce": 300
+      }
+    ],
+    "buttons": [],
+    "checkpoints": [],
+    "editedAt": 1793307386331,
+    "stars": [],
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
+  },
+  "1009": {
+    "id": 1009,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 70,
+      "y": 480
+    },
+    "platforms": [
+      {
+        "x": 1090,
+        "y": 420,
+        "w": 150,
+        "h": 20,
+        "finish": true,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 1170,
+            "y": 440
+          },
+          "b": {
+            "x": 1170,
+            "y": 310
+          },
+          "period": 4
+        }
+      },
+      {
+        "x": 0,
+        "y": 480,
+        "w": 140,
+        "h": 20
+      }
+    ],
+    "winds": [
+      {
+        "x": 0,
+        "y": 0,
+        "w": 1280,
+        "h": 720,
+        "dir": "up",
+        "speed": 160
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "pillar",
+        "x": 0,
+        "y": 190,
+        "w": 260,
+        "h": 50,
+        "contact": "bounce",
+        "bounce": 260
+      },
+      {
+        "kind": "pillar",
+        "x": 360,
+        "y": 190,
+        "w": 50,
+        "h": 250,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 260,
+        "y": 190,
+        "w": 100,
+        "h": 50,
+        "contact": "bounce",
+        "bounce": 230
+      },
+      {
+        "kind": "pillar",
+        "x": 140,
+        "y": 400,
+        "w": 40,
+        "h": 200,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 140,
+        "y": 600,
+        "w": 210,
+        "h": 50,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 350,
+        "y": 560,
+        "w": 220,
+        "h": 90,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 410,
+        "y": 380,
+        "w": 270,
+        "h": 60,
+        "contact": "bounce",
+        "bounce": 250
+      },
+      {
+        "kind": "pillar",
+        "x": 530,
+        "y": 260,
+        "w": 150,
+        "h": 120,
+        "contact": "bounce",
+        "bounce": 260
+      },
+      {
+        "kind": "pillar",
+        "x": 570,
+        "y": 480,
+        "w": 90,
+        "h": 170,
+        "contact": "bounce",
+        "bounce": 230
+      },
+      {
+        "kind": "pillar",
+        "x": 660,
+        "y": 530,
+        "w": 220,
+        "h": 50,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 670,
+        "y": 90,
+        "w": 250,
+        "h": 110,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 990,
+        "y": 310,
+        "w": 60,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 250
+      },
+      {
+        "kind": "pillar",
+        "x": 590,
+        "y": 190,
+        "w": 90,
+        "h": 70,
+        "contact": "bounce"
+      },
+      {
+        "kind": "pillar",
+        "x": 660,
+        "y": 580,
+        "w": 330,
+        "h": 80,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 990,
+        "y": 460,
+        "w": 60,
+        "h": 200,
+        "contact": "bounce",
+        "bounce": 240
+      },
+      {
+        "kind": "pillar",
+        "x": 920,
+        "y": 50,
+        "w": 120,
+        "h": 150,
+        "contact": "bounce",
+        "bounce": 250
+      },
+      {
+        "kind": "pillar",
+        "x": 1040,
+        "y": 120,
+        "w": 240,
+        "h": 80,
+        "contact": "bounce",
+        "bounce": 230
+      },
+      {
+        "kind": "pillar",
+        "x": 1050,
+        "y": 460,
+        "w": 230,
+        "h": 120,
+        "contact": "bounce",
+        "bounce": 250
+      },
+      {
+        "kind": "spikes",
+        "x": 160,
+        "y": 240,
+        "w": 200,
+        "h": 26,
+        "facing": "down"
+      },
+      {
+        "kind": "spikes",
+        "x": 710,
+        "y": 200,
+        "w": 200,
+        "h": 26,
+        "facing": "down"
+      },
+      {
+        "kind": "spikes",
+        "x": 880,
+        "y": 560,
+        "w": 110,
+        "h": 26,
+        "facing": "up"
+      },
+      {
+        "kind": "spikes",
+        "x": 760,
+        "y": 510,
+        "w": 110,
+        "h": 26,
+        "facing": "up"
+      }
+    ],
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "editedAt": 1793293869135,
+    "timeLimit": 10,
+    "timeLimitJamOnly": true
+  },
+  "1010": {
+    "id": 1010,
+    "world": {
+      "w": 1280,
+      "h": 720
+    },
+    "spawn": {
+      "x": 360,
+      "y": 440
+    },
+    "platforms": [
+      {
+        "x": 280,
+        "y": 440,
+        "w": 160,
+        "h": 20
+      },
+      {
+        "x": 840,
+        "y": 440,
+        "w": 200,
+        "h": 20,
+        "finish": true
+      }
+    ],
+    "winds": [
+      {
+        "x": 440,
+        "y": 400,
+        "w": 400,
+        "h": 330,
+        "dir": "up",
+        "speed": 260
+      }
+    ],
+    "hazards": [],
+    "editedAt": 1793292745111,
+    "buttons": [],
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 5,
+    "timeLimitJamOnly": true
+  },
+  "1011": {
+    "id": 1011,
+    "world": {
+      "w": 1280,
+      "h": 1440
+    },
+    "spawn": {
+      "x": 640,
+      "y": 1380
+    },
+    "platforms": [
+      {
+        "x": 580,
+        "y": 1380,
+        "w": 130,
+        "h": 20
+      },
+      {
+        "x": 570,
+        "y": 80,
+        "w": 150,
+        "h": 20,
+        "finish": true
+      }
+    ],
+    "winds": [
+      {
+        "x": 480,
+        "y": 80,
+        "w": 330,
+        "h": 1320,
+        "dir": "up",
+        "speed": 170
+      }
+    ],
+    "hazards": [
+      {
+        "kind": "mine",
+        "x": 845,
+        "y": 135,
+        "w": 70,
+        "h": 70,
+        "motion": {
+          "kind": "circle",
+          "center": {
+            "x": 645,
+            "y": 170
+          },
+          "radius": 5,
+          "period": 0.8
+        }
+      },
+      {
+        "kind": "pillar",
+        "x": 400,
+        "y": 820,
+        "w": 50,
+        "h": 80,
+        "contact": "bounce",
+        "motion": {
+          "kind": "lunge",
+          "a": {
+            "x": 425,
+            "y": 860
+          },
+          "b": {
+            "x": 670,
+            "y": 860
+          },
+          "period": 3.2,
+          "trigger": true,
+          "reach": 270,
+          "zoneWidth": 100
+        },
+        "bounce": 300
+      },
+      {
+        "kind": "pillar",
+        "x": 840,
+        "y": 1070,
+        "w": 50,
+        "h": 80,
+        "contact": "bounce",
+        "motion": {
+          "kind": "lunge",
+          "a": {
+            "x": 865,
+            "y": 1110
+          },
+          "b": {
+            "x": 610,
+            "y": 1110
+          },
+          "period": 3.2,
+          "trigger": true,
+          "reach": 270,
+          "zoneWidth": 100
+        },
+        "bounce": 300
+      },
+      {
+        "kind": "mine",
+        "x": 794,
+        "y": 364,
+        "w": 70,
+        "h": 70,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 770,
+            "y": 390
+          },
+          "b": {
+            "x": 530,
+            "y": 390
+          },
+          "period": 4
+        }
+      },
+      {
+        "kind": "mine",
+        "x": 500,
+        "y": 610,
+        "w": 70,
+        "h": 70,
+        "motion": {
+          "kind": "line",
+          "a": {
+            "x": 540,
+            "y": 650
+          },
+          "b": {
+            "x": 740,
+            "y": 650
+          },
+          "period": 4
+        }
+      }
+    ],
+    "buttons": [],
+    "checkpoints": [],
+    "editedAt": 1793315703219,
+    "stars": [],
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
   }
 }

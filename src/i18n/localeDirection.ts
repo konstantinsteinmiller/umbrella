@@ -61,7 +61,7 @@ export const isRtlLocale = (code: string): boolean => RTL_LOCALES.has(code)
  * 'Cherry Bomb One', 'Zora Rounded',
  */
 const LATIN_STACK =
-  `'Angry', 'Segoe UI', Roboto, system-ui, sans-serif`
+  `'Zora Rounded','Angry', 'Segoe UI', Roboto, system-ui, sans-serif`
 
 const ARABIC_STACK =
   `'Segoe UI', Tahoma, 'Geeza Pro', 'Noto Naskh Arabic', `

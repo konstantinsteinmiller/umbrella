@@ -9,7 +9,7 @@ export default {
   // Umbrella's P4D game id. The previous id was survivalist's — a deploy
   // with it would upload THIS build to THAT game. deploy.mjs refuses to run
   // until it is set.
-  gameId: '09c611d5-0f4c-468e-a4d9-50190b05a725',
+  gameId: 'a0e9e4d5-1f73-4b9b-bb6e-edd6905cd867',
   gameName: 'Umbrella',
 
   build: 'pnpm build:poki',

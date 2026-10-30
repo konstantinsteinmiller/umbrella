@@ -4,45 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- remove backgrounds">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- cutscene editor and some fixes">
+      <change afterPath="$PROJECT_DIR$/poki-qa-report.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/changelog.md" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/campaign-order.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-order.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/campaign-overrides.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-overrides.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/roadmap.md" beforeDir="false" afterPath="$PROJECT_DIR$/roadmap.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/sfx/umbrella-sounds.html" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/sfx/umbrella-sounds.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/promotion/cover_1280x720.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/promotion/cover_1280x720.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/audio.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/audio.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/engine.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/engine.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/intro.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/intro.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/music.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/music.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/soundEngine.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/soundEngine.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/soundKit.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/soundKit.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/views/UmbrellaEditor.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/UmbrellaEditor.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/views/UmbrellaScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/UmbrellaScene.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/umbrella/intro.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella/intro.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/workers/levels-bucket/src/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/workers/levels-bucket/src/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/favicon.ico" beforeDir="false" afterPath="$PROJECT_DIR$/public/favicon.ico" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/localeDirection.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/localeDirection.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/poki-deploy/poki.config.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/tools/poki-deploy/poki.config.mjs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -72,40 +42,54 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/konst/Documents/__p/umbrella&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
-    &quot;npm.build:gamemonetize.executor&quot;: &quot;Run&quot;,
-    &quot;npm.build:poki.executor&quot;: &quot;Run&quot;,
-    &quot;npm.build:wavedash.executor&quot;: &quot;Run&quot;,
-    &quot;npm.deploy:poki.executor&quot;: &quot;Run&quot;,
-    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/konst/Documents/__p/umbrella/public",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "pnpm",
+    "npm.art:desk.executor": "Run",
+    "npm.art:desk:umbrella.executor": "Run",
+    "npm.build:gamemonetize.executor": "Run",
+    "npm.build:itch.executor": "Run",
+    "npm.build:poki.executor": "Run",
+    "npm.build:wavedash.executor": "Run",
+    "npm.deploy:poki.executor": "Run",
+    "npm.dev.executor": "Run",
+    "ts.external.directory.path": "C:\\Users\\konst\\Documents\\__p\\umbrella\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\konst\Documents\__p\umbrella\public" />
+      <recent name="C:\Users\konst\Documents\__p\umbrella\public\fonts" />
       <recent name="C:\Users\konst\Documents\__p\umbrella" />
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage" />
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage\tools\poki-deploy" />
-      <recent name="C:\Users\konst\Documents\__p\elemental-barrage\tools" />
-      <recent name="C:\Users\konst\Documents\__p\elemental-barrage\public\enemies" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.dev">
-    <configuration name="build:gamemonetize" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+  <component name="RunManager" selected="npm.art:desk:umbrella">
+    <configuration name="art:desk" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="build:gamemonetize" />
+        <script value="art:desk" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="art:desk:umbrella" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="art:desk:umbrella" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
@@ -116,16 +100,6 @@
       <command value="run" />
       <scripts>
         <script value="build:poki" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
-    <configuration name="build:wavedash" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="build:wavedash" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
@@ -153,10 +127,10 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.dev" />
-        <item itemvalue="npm.build:gamemonetize" />
-        <item itemvalue="npm.build:wavedash" />
+        <item itemvalue="npm.art:desk:umbrella" />
+        <item itemvalue="npm.art:desk" />
         <item itemvalue="npm.deploy:poki" />
+        <item itemvalue="npm.dev" />
         <item itemvalue="npm.build:poki" />
       </list>
     </recent_temporary>
@@ -183,7 +157,8 @@
       <workItem from="1792480855847" duration="8517000" />
       <workItem from="1792515954451" duration="8738000" />
       <workItem from="1792597988049" duration="11108000" />
-      <workItem from="1792663620306" duration="22599000" />
+      <workItem from="1792663620306" duration="49199000" />
+      <workItem from="1792955229884" duration="2322000" />
     </task>
     <task id="LOCAL-00001" summary="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
       <option name="closed" value="true" />
@@ -281,11 +256,30 @@
       <option name="project" value="LOCAL" />
       <updated>1792453521268</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="- cutscene editor and some fixes">
+      <option name="closed" value="true" />
+      <created>1792773726932</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1792773726932</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
@@ -300,6 +294,7 @@
     <MESSAGE value="- game monetize and CG launch prepare" />
     <MESSAGE value="- implementing umbrella prototype" />
     <MESSAGE value="- remove backgrounds" />
-    <option name="LAST_COMMIT_MESSAGE" value="- remove backgrounds" />
+    <MESSAGE value="- cutscene editor and some fixes" />
+    <option name="LAST_COMMIT_MESSAGE" value="- cutscene editor and some fixes" />
   </component>
 </project>

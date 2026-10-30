@@ -162,8 +162,10 @@ describe('Ticket B — fonts name real Arabic/CJK faces, not just a generic', ()
   })
 
   it('keeps the Latin display face first so the Latin look is unchanged', () => {
-    for (const code of ['en', 'ar', 'ja']) {
-      expect(fontStackFor(code).startsWith("'Angry'")).toBe(true)
+    // Umbrella's Latin face is Zora Rounded, with Angry behind it for any glyph it lacks; Arabic and
+    // CJK open with faces that have their scripts (the other tests in this block).
+    for (const code of ['en', 'de', 'fr']) {
+      expect(fontStackFor(code).startsWith("'Zora Rounded','Angry'")).toBe(true)
     }
   })
 
