@@ -151,26 +151,43 @@ const LANTERN_STEP = [0, 1, 2, 3, 6, 5, 15, 8]
  *  The hand and fuse lookups read only the frame they are asked about, the first time it is drawn:
  *  reading every frame of a sheet at once was a 150-300 ms stall on a phone, the moment a pose first
  *  showed (Pweeg's first step, his first fall). */
-const sheetCopies = new WeakMap<HTMLImageElement, CanvasRenderingContext2D | null>()
-const framePixels = (img: HTMLImageElement, x: number, y: number, w: number, h: number): Uint8ClampedArray | null => {
-  let g = sheetCopies.get(img)
-  if (g === undefined) {
-    g = null
+/** The measurers need a figure's silhouette, not its paint: a frame is read at most this wide. */
+const MEASURE_PX = 96
+/** Each sheet read back ONCE, whole, at the small size: every getImageData waits for the GPU to
+ *  finish what it was given, so it is the number of reads that costs, not their size. */
+const sheetCopies = new WeakMap<HTMLImageElement, { data: Uint8ClampedArray; width: number } | null>()
+/** One frame of a sheet, scaled down to MEASURE_PX wide at most: its pixels and its size there.
+ *  (Read at full size, frame by frame, every walk, idle, fall and cheer frame cost a weak phone
+ *  ~0.5 s of pixel reads in its first seconds of play.) */
+const framePixels = (img: HTMLImageElement, s: SheetDef, frame: number): { d: Uint8ClampedArray; fw: number; fh: number } | null => {
+  const q = Math.min(1, MEASURE_PX / Math.max(1, img.width / s.cols))
+  const fw = Math.max(1, Math.round((img.width * q) / s.cols))
+  const fh = Math.max(1, Math.round((img.height * q) / s.rows))
+  let sheetPx = sheetCopies.get(img)
+  if (sheetPx === undefined) {
+    sheetPx = null
     try {
       const c = document.createElement('canvas')
-      c.width = img.width
-      c.height = img.height
-      g = c.getContext('2d', { willReadFrequently: true })
-      g?.drawImage(img, 0, 0)
-    } catch { g = null }
-    sheetCopies.set(img, g)
+      c.width = fw * s.cols
+      c.height = fh * s.rows
+      const g = c.getContext('2d', { willReadFrequently: true })
+      if (g) {
+        g.drawImage(img, 0, 0, c.width, c.height)
+        sheetPx = { data: g.getImageData(0, 0, c.width, c.height).data, width: c.width }
+      }
+    } catch { sheetPx = null }
+    sheetCopies.set(img, sheetPx)
   }
-  if (!g) return null
-  try {
-    return g.getImageData(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))).data
-  } catch {
-    return null
+  if (!sheetPx) return null
+  // The frame's rows, copied out of the sheet's pixels.
+  const d = new Uint8ClampedArray(fw * fh * 4)
+  const x0 = (frame % s.cols) * fw
+  const y0 = Math.floor(frame / s.cols) * fh
+  for (let y = 0; y < fh; y++) {
+    const from = ((y0 + y) * sheetPx.width + x0) * 4
+    d.set(sheetPx.data.subarray(from, from + fw * 4), y * fw * 4)
   }
+  return { d, fw, fh }
 }
 /** Per sheet, per frame: a measured point, or null where there is none (undefined: not measured yet). */
 type FramePoints = Map<number, { x: number; y: number } | null>
@@ -191,10 +208,9 @@ const measured = (cache: WeakMap<HTMLImageElement, FramePoints>, img: HTMLImageE
 const cheerHands = new WeakMap<HTMLImageElement, FramePoints>()
 const cheerHandOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: number; y: number } | null =>
   measured(cheerHands, img, frame, () => {
-    const fw = Math.round(img.width / s.cols)
-    const fh = Math.round(img.height / s.rows)
-    const d = framePixels(img, (frame % s.cols) * fw, Math.floor(frame / s.cols) * fh, fw, fh)
-    if (!d) return null
+    const px = framePixels(img, s, frame)
+    if (!px) return null
+    const { d, fw, fh } = px
     const solid = (x: number, y: number) => d[(y * fw + x) * 4 + 3]! > 120
     let l = fw, r = -1
     for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) if (solid(x, y)) { if (x < l) l = x; if (x > r) r = x }
@@ -218,10 +234,9 @@ const raisedHands = new WeakMap<HTMLImageElement, FramePoints>()
  *  the figure instead of where hands hang. */
 const sideHandOf = (img: HTMLImageElement, s: SheetDef, frame: number, raised = false): { x: number; y: number } | null =>
   measured(raised ? raisedHands : sideHands, img, frame, () => {
-    const fw = Math.round(img.width / s.cols)
-    const fh = Math.round(img.height / s.rows)
-    const d = framePixels(img, (frame % s.cols) * fw, Math.floor(frame / s.cols) * fh, fw, fh)
-    if (!d) return null
+    const px = framePixels(img, s, frame)
+    if (!px) return null
+    const { d, fw, fh } = px
     const solid = (x: number, y: number) => d[(y * fw + x) * 4 + 3]! > 120
     let t = fh, b = -1
     for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) if (solid(x, y)) { if (y < t) t = y; if (y > b) b = y }
