@@ -41,17 +41,34 @@ export interface Camera {
 const followed = new WeakMap<World, { x: number; y: number }>()
 /** Each world's look-ahead lean (world px, + = right), eased toward the player's motion. */
 const leans = new WeakMap<World, number>()
+/** Landscape: the camera's own state (Super Mario World style): where it is and how fast it moves,
+ *  where it is heading (`goal`), and which way it leads (+1 right, -1 left). */
+const sideCam = new WeakMap<World, { x: number; v: number; goal: number; side: 1 | -1 }>()
 /** At this sideways speed (px/s, a little under walking and floating) the camera leans fully… */
 const LEAN_SPEED = 190
-/** …this share of the view's width ahead of the player: walking right he stays in the screen's left quarter. */
+/** …this share of the view's width ahead of the player (portrait: little of the level is on screen,
+ *  so it looks far ahead): walking right he stays in the screen's left quarter. */
 const LOOK_AHEAD = 0.32
+/** Landscape, Super Mario World style: the camera leads this share of the view ahead of the player
+ *  (he sits a little behind the middle, facing the way he goes); it turns only when he walks back
+ *  past a trigger line this share of the view behind his lead spot; and it glides with a critically
+ *  damped spring of this stiffness (1/s): no overshoot, no lurch. */
+const CAM_LEAD = 0.14
+const CAM_TRIGGER = 0.05
+const CAM_SPRING = 6
+/** The camera's top speed while it turns (world px/s), or a little over the player's own speed. */
+const CAM_TURN_SPEED = 320
 
-/** A portrait screen zooms in at least this much past "the whole width fits", so Pweeg and the level read at phone size. */
-export const PORTRAIT_ZOOM = 1.69
+/** The camera's current look-ahead lean for a world (world px, + = right): for the tests. */
+export const leanOf = (w: World): number => leans.get(w) ?? 0
+
+/** A portrait screen zooms in at least this much past "the whole width fits", so Pweeg and the level read at phone size.
+ *  (1.69 until 2026-10-30, then zoomed out by 1.3: about 30 % more of the level on screen, to see what comes next.) */
+export const PORTRAIT_ZOOM = 1.3
 /** …and far enough that the level's height fills this share of the screen's height: the band between
  *  the HUD at the top and the touch controls at the bottom, instead of a strip with empty sky above
  *  and below. The camera follows the player sideways through the width this leaves off screen. */
-export const PORTRAIT_FILL = 0.72
+export const PORTRAIT_FILL = 0.55
 
 /** Taller than wide: the levels are laid out for landscape, so this screen gets the portrait camera and backdrop. */
 export const isPortrait = (cw: number, ch: number): boolean => ch > cw
@@ -83,8 +100,12 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0): Camera => {
   // LOOK_AHEAD of the view's width, so what lies ahead is on screen. The lean eases in and out more
   // slowly than the follow itself, so a quick turn does not whip the view across.
   let lean = leans.get(w) ?? 0
-  const leanTarget = Math.max(-1, Math.min(1, pl.vx / LEAN_SPEED)) * vw * LOOK_AHEAD
-  if (dt > 0) lean += (leanTarget - lean) * (1 - Math.exp(-dt * 3.3))
+  const heading = Math.max(-1, Math.min(1, pl.vx / LEAN_SPEED))
+  if (portrait) {
+    // Portrait: quick, far look-ahead (little of the level is on screen), eased straight to the target.
+    const leanTarget = heading * vw * LOOK_AHEAD
+    if (dt > 0) lean += (leanTarget - lean) * (1 - Math.exp(-dt * 3.3))
+  }
   leans.set(w, lean)
   const target = { x: pl.x + pl.w / 2 + lean, y: pl.y + pl.h / 2 }
   let c = followed.get(w)
@@ -93,6 +114,41 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0): Camera => {
     const k = 1 - Math.exp(-dt * 7)
     c.x += (target.x - c.x) * k
     c.y += (target.y - c.y) * k
+  }
+  if (!portrait) {
+    // Landscape, Super Mario World style. Two lines either side of the player: walking on in the
+    // direction it leads pushes the camera along (he stays at his lead spot); walking back moves
+    // nothing until he crosses the line behind that spot, and only then does the camera turn, gliding
+    // over to lead the other way. A quick back-and-forth between the lines leaves the view still.
+    const px = pl.x + pl.w / 2
+    const lead = vw * CAM_LEAD
+    const trigger = vw * CAM_TRIGGER
+    let sc = sideCam.get(w)
+    if (!sc) {
+      const side: 1 | -1 = pl.vx < 0 ? -1 : 1
+      sc = { x: px + side * lead, v: 0, goal: px + side * lead, side }
+      sideCam.set(w, sc)
+    }
+    if (sc.side > 0) {
+      if (px < sc.goal - lead - trigger) { sc.side = -1; sc.goal = px - lead }
+      else sc.goal = Math.max(sc.goal, px + lead)
+    } else {
+      if (px > sc.goal + lead + trigger) { sc.side = 1; sc.goal = px + lead }
+      else sc.goal = Math.min(sc.goal, px - lead)
+    }
+    // In steps of at most 1/60 s, so a slow frame (a weak phone) moves it as far as several quick ones.
+    const steps = dt > 0 ? Math.min(12, Math.ceil(dt * 60)) : 0
+    for (let i = 0; i < steps; i++) {
+      const h = Math.min(dt, 0.2) / steps
+      sc.v += (CAM_SPRING * CAM_SPRING * (sc.goal - sc.x) - 2 * CAM_SPRING * sc.v) * h
+      // A turn glides across at a capped speed (never much faster than the player), instead of
+      // whipping the view over by two leads at once.
+      const cap = Math.max(CAM_TURN_SPEED, Math.abs(pl.vx) * 1.15)
+      sc.v = Math.max(-cap, Math.min(cap, sc.v))
+      sc.x += sc.v * h
+    }
+    c.x = sc.x
+    leans.set(w, sc.x - px)
   }
   const axis = (centre: number, seen: number, size: number) =>
     seen >= size ? (seen - size) / 2 : -Math.min(size - seen, Math.max(0, centre - seen / 2))

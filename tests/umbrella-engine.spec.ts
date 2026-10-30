@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createWorld, step, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { LEVELS } from '@/umbrella/levels'
-import { cameraFor, PORTRAIT_FILL, PORTRAIT_ZOOM } from '@/umbrella/renderer'
+import { cameraFor, leanOf, PORTRAIT_FILL, PORTRAIT_ZOOM } from '@/umbrella/renderer'
 import { DEFAULT_TUNING as T } from '@/umbrella/tuning'
 
 const DT = 1 / 120
@@ -399,5 +399,42 @@ describe('a chasing mine waits for the first move', () => {
     step(w, { left: false, right: true, toggle: false }, DT, T)
     expect(w.moved).toBe(true)
     expect(chaseLevel().moved).toBe(false)
+  })
+})
+
+describe('landscape camera (Super Mario World style)', () => {
+  // The scrolling level 27 on a 1280 x 720 landscape screen: walk in, quick back-and-forth, then walk on.
+  const CW = 1280
+  const CH = 720
+  const pattern = (t: number): Partial<Input> =>
+    t < 1.2 ? { right: true } : t < 3.2 ? (Math.floor(t / 0.25) % 2 === 0 ? { right: true } : { left: true }) : t < 4.2 ? { left: true } : { right: true }
+  const runCam = () => {
+    const w = level(27)
+    const out: { t: number; cam: number; player: number }[] = []
+    for (let i = 0; i < 6 / DT && w.phase === 'play'; i++) {
+      const t = i * DT
+      step(w, { left: false, right: false, toggle: false, ...pattern(t) }, DT, T)
+      const cam = cameraFor(w, CW, CH, DT)
+      const pl = w.player
+      out.push({ t, cam: leanOf(w) + pl.x + pl.w / 2, player: pl.x + pl.w / 2 })
+    }
+    return out
+  }
+
+  it('holds still through a quick back-and-forth, leads ~14 % ahead walking, and turns when walked back', () => {
+    const r = runCam()
+    const vw = CW / cameraFor(level(27), CW, CH, 0).s
+    if (process.env.LEAN_CSV) require('node:fs').writeFileSync(process.env.LEAN_CSV, r.map((p) => `${p.t.toFixed(3)},${p.cam.toFixed(1)},${p.player.toFixed(1)}`).join('\n'))
+    // A quick back-and-forth never swings the camera back: it only follows where the player ends up
+    // (he creeps forward here, each forward step comes first), always the same way, never reversing.
+    const quick = r.filter((p) => p.t > 1.8 && p.t < 3.2)
+    for (let i = 1; i < quick.length; i++) expect(quick[i]!.cam - quick[i - 1]!.cam).toBeGreaterThan(-0.5)
+    // Walking right: the camera ahead of the player by the lead (plus a little spring lag).
+    const walking = r.filter((p) => p.t > 1.0 && p.t < 1.2)
+    for (const p of walking) expect(p.cam - p.player).toBeGreaterThan(vw * 0.08)
+    // Walked back: the camera turns to lead the other way…
+    expect(Math.min(...r.filter((p) => p.t > 4).map((p) => p.cam - p.player))).toBeLessThan(-vw * 0.03)
+    // …gliding across, never faster than its turn cap (320 px/s, or a little over the player's speed).
+    for (let i = 1; i < r.length; i++) expect(Math.abs(r[i]!.cam - r[i - 1]!.cam) / DT).toBeLessThan(420)
   })
 })

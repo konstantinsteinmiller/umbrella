@@ -1,6 +1,8 @@
 Umbrella — changelog (newest first)
 
 == Revision 13 — 2026-10-30 ==
+- [x] Camera (landscape scrolling levels), Super Mario World style: two trigger lines either side of the player; walking on pushes the view along with the player a little behind the middle (lead 14 % of the view, was 32 %); walking back moves nothing until he crosses the line behind him, then the camera turns, gliding across on a spring at a capped speed instead of whipping over
+- [x] Portrait phones show about 30 % more of the level (zoomed out by 1.3) to see what comes next; their camera otherwise unchanged
 - [x] Chasing mines wait for the player's first move (the walk or umbrella press that starts the clock), and again after every restart or checkpoint revive, so a slow start is never blown up
 - [x] Timed levels: the top bar keeps clear of the clock on phones (portrait and landscape), centred in the room left of it and wrapping to a second row where needed
 - [x] The restart button is gone from the top bar and the R line from the desktop controls (dying resets the level anyway; R still works); the editor's test bar keeps its restart
