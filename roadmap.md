@@ -53,6 +53,9 @@
   *Done:* four scenes painted per style (glide, danger, duo, finish); "danger" won for both (two big expressive faces nose to nose, high contrast, calm top left, reads as a thumbnail; no source backs 20%+ CTR, Steam treats ~7% as excellent, so A/B it in soft release). Square and portrait masters repainted from it; every size cut into src/assets/promotion/{lantern,clay}/ (scripts/art/umbrella-covers.mjs + umbrella-covers-cut.py).
   Do each of these for the clay art and each of these for the lantern art style.
   All covers go to /src/assets/promotion/
+- [x] #Cover-2 please create also a 630x500.jpg cover image and save the umbrella logo as a seperate umbrella_logo.jpg in C:\Users\konst\Documents\__p\umbrella\src\assets\promotion\lantern
+  *Done:* cover-630x500.jpg (the square master, logo bottom right) and umbrella_logo.jpg (the lantern wordmark on the night-sky indigo, 1205x351) in src/assets/promotion/lantern/.
+
 
 - [x] #Store-1 Create Screenshots that will be used for the Store entries. ~7-8 Screenshots that show the most variety of the game. All Screenshots should be usable for the store submissions and live in /src/assets/promotion/stores/
   compress all screenshots and save each as .jpg and .webp file. Do each of these for the clay art and each of these for the lantern art style.
