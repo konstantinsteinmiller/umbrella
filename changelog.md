@@ -12,6 +12,12 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 13 — 2026-10-30 ==
+- [x] Timed levels' clock in the painted styles' own UI: lantern a night-paper plaque in gold leaf with a washi dial, ink hand and a glowing gold fuse bar; clay a cream clay slab with a blue clay dial, red clay hand and a yellow clay roll for the bar; each blinks in its own way near the end
+- [x] Painted store covers for lantern and clay at every portal size, with and without the new logo (bottom right, clear of the CrazyGames banners)
+- [x] Painted UMBRELLA logos per art style in public/images/logo/
+- [x] Store screenshots, 8 per art style, in src/assets/promotion/stores/
+- [x] Poki playtest recordings show the gameplay: the recording stage (inherited from Elemental Barrage) only painted that game's board canvas, so Umbrella's videos were the HUD outline over black; it now paints Umbrella's scene canvas under the HUD
+- [x] Collision fix: a moving platform that runs into Pweeg's side (e.g. dropping onto the corner of the gliding level-27 finish) pushes him back on the side he is on, instead of throwing him across to its far edge
 - [x] Clay finish: the bunting wraps round the doorstep's front rim, each pennant hanging from the oval's own edge so the strip curves up toward its round ends
 - [x] Themed UI (roadmap #13) for the painted styles: lantern menus as lit washi sheets in lacquer frames with gold cloud scrolls, folded-paper corners and swaying painted lanterns; clay menus as clay slabs with a rolled-clay border and modelled corner pieces (raindrop, envelope, roof tiles, leaf), squashy clay buttons; modals unfold (lantern) or squash-pop (clay), level tiles bounce, the community tabs switch without the modal jumping; the drawn game's UI is unchanged
 - [x] The loading screen names the game in the art style's lettering: Cherry Bomb One with a stacked blue clay shadow in clay, glowing cream lettering in lantern

@@ -41,11 +41,28 @@
   use an Opus xHigh effort subagent for this task.
 - [x] #14 The Poki package does not allow external references, so bake the current levels at build time into the poki game build and remove the fetching from the server at runtime in the poki build, this includes the poki lantern and poki claymotion build.
   *Done:* every Poki build (plain, lantern, clay) bakes the server's current campaign in at build time and makes no request of its own at runtime — only Poki's SDK and its ad partners; the share link carries no outside address there. The Poki release gates pass with no external host; a test guards the Poki env.
-- [ ] #15 Create 
+- [ ] #15  
 - [ ] #1
 - [ ] #1
 - [ ] #1
 - [ ] #1
+- [x] #Cover-1 The game needs better ULTRA-HIGH-CTR(20%+) cover images painted with
+  Gemini for all the platforms (800x800, 1920x1080, 1080x1920(only jpg), 800x1200(only webp), 1360x850(only with logo, only jpg), 800x450(only with logo, only webp), 400x225(only with logo, only jpg),
+  512x512(only with logo, only jpg), 628x628(only with logo, only jpg), 512x384(only with logo, only jpg), 512x340(only with logo, only jpg) in jpg, and webp, once without a logo, once with a logo somewhere that is not in the top left corner as CG banners are placed in top left corner up to the middle of the image horizontally).
+  Create 4 different new cover image scenarios (like the current non-painted ones), paint them once in Gemini and compare them with the old cover images(not painted) for the CTR value. Go with the best results that would potentially and based on web-search evidence yield the best CTR results on web game platforms and Steam.
+  *Done:* four scenes painted per style (glide, danger, duo, finish); "danger" won for both (two big expressive faces nose to nose, high contrast, calm top left, reads as a thumbnail; no source backs 20%+ CTR, Steam treats ~7% as excellent, so A/B it in soft release). Square and portrait masters repainted from it; every size cut into src/assets/promotion/{lantern,clay}/ (scripts/art/umbrella-covers.mjs + umbrella-covers-cut.py).
+  Do each of these for the clay art and each of these for the lantern art style.
+  All covers go to /src/assets/promotion/
+
+- [x] #Store-1 Create Screenshots that will be used for the Store entries. ~7-8 Screenshots that show the most variety of the game. All Screenshots should be usable for the store submissions and live in /src/assets/promotion/stores/
+  compress all screenshots and save each as .jpg and .webp file. Do each of these for the clay art and each of these for the lantern art style.
+  *Done:* 8 screenshots per art style (1920x1080, .jpg and .webp) in src/assets/promotion/stores/, with a README naming what each shows.
+  
+
+- [x] #Logo-1 Update this games logo everywhere and save it to the public/images/logo folder, so the logos can be used to put on the final cover images.
+  Create a fitting logo based on the 
+  *Done:* painted UMBRELLA wordmarks per art style (washi paper with a wagasa for lantern, plasticine with a striped clay umbrella for clay), keyed to public/images/logo/logo-{lantern,clay}.png/.webp and placed on every "-logo" cover; the app icon is unchanged.
+
 
 ## v0.7.0 — from the mini design doc (checked 2026-10-23)
 
