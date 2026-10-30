@@ -1,6 +1,6 @@
 """2x sky for high-DPR phones: the lantern sky layers upscaled with Real-ESRGAN (anime 6B, CPU).
 
-    python scripts/art/upscale-sky.py <model.pth>
+    python scripts/art/upscale-sky.py <model.pth> [layer ...]   # e.g. backdrop-far: only that layer
 
 The model is not in the repo (17 MB): RealESRGAN_x4plus_anime_6B.pth from
 https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.2.2.4 — loaded as weights only.
@@ -86,13 +86,13 @@ def upscale4(net, rgb: np.ndarray, tile=256, pad=16) -> np.ndarray:
     return (out.clamp(0, 1)[0].numpy().transpose(1, 2, 0) * 255).round().astype(np.uint8)
 
 
-def main(model: str) -> None:
+def main(model: str, only: list[str]) -> None:
     torch.set_num_threads(8)
     net = RRDBNet()
     state = torch.load(model, map_location='cpu', weights_only=True)
     net.load_state_dict(state.get('params_ema', state.get('params', state)), strict=True)
     net.eval()
-    for name in LAYERS:
+    for name in (only or LAYERS):
         src = Image.open(ART / f'{name}.webp').convert('RGBA')
         w, h = src.size
         rgb = np.array(src.convert('RGB'))
@@ -106,4 +106,4 @@ def main(model: str) -> None:
 
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2:])
