@@ -338,3 +338,27 @@ describe('a Walldorf pressing down on Pweeg as he stands on a platform', () => {
     expect(w.phase).toBe('splat')
   })
 })
+
+describe('dropping onto the corner of a moving finish (level 27)', () => {
+  it('is pushed back on the side he is on, never thrown across to the far edge', () => {
+    // The level-27 finish: 200 x 20, gliding 240 px back and forth every 4 s.
+    const lvl = {
+      id: 0, world: { w: 3400, h: 720 }, spawn: { x: 100, y: 100 },
+      platforms: [{ x: 2850, y: 420, w: 200, h: 20, finish: true, motion: { kind: 'line' as const, a: { x: 2950, y: 430 }, b: { x: 3190, y: 430 }, period: 4 } }],
+      winds: [], hazards: []
+    }
+    let across = 0
+    for (let ph = 0; ph < 4; ph += 0.05) for (const vx of [-150, 0, 150]) for (const off of [-20, -10, -4, 0, 4]) {
+      const w = createWorld(lvl)
+      for (let t = 0; t < ph; t += 1 / 60) step(w, { left: false, right: false, toggle: false } as Input, 1 / 60, T)
+      const f = w.platforms[0]!
+      const pl = w.player
+      // Beside its left corner, his body level with it (half on, half off).
+      pl.x = f.x - pl.w + 6 + off; pl.y = f.y - pl.h + 8 + (off + 20) * 0.3; pl.vx = vx; pl.vy = 150; pl.open = false
+      const before = pl.x + pl.w / 2 - (f.x + f.w / 2)
+      step(w, { left: false, right: false, toggle: false } as Input, 1 / 60, T)
+      if (before < 0 && pl.x + pl.w / 2 - (f.x + f.w / 2) > 0) across++
+    }
+    expect(across).toBe(0)
+  })
+})

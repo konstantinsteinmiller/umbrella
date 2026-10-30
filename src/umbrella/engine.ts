@@ -513,7 +513,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     if (prevX + pl.w > p.x - p.dx && prevX < p.x - p.dx + p.w) continue
     // A mover's own rush (a lunging Walldorf, a fast platform) is not a slam: only the player's speed is.
     if (Math.abs(pl.vx) >= t.wallSplatSpeed) slam = true
-    if (pl.vx > 0 || p.dx < 0) pl.x = p.x - pl.w
+    // Out on the side he is on (the shallower way out), never across the platform to its far side.
+    if (pl.x + pl.w / 2 < p.x + p.w / 2) pl.x = p.x - pl.w
     else pl.x = p.x + p.w
     pl.vx = 0
   }
@@ -527,6 +528,10 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     const lo = Math.min(p.x, from)
     const hi = Math.max(p.x, from) + p.w
     if (pl.x + pl.w <= lo || pl.x >= hi || overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
+    // Only a player AHEAD of it last tick was in its path: one behind it (where it just left, e.g.
+    // falling past its trailing edge) is not carried across to its front.
+    const ahead = p.dx > 0 ? prevX + pl.w / 2 > from + p.w / 2 : prevX + pl.w / 2 < from + p.w / 2
+    if (!ahead) continue
     // The player was inside the path: shove them out along the direction it travelled.
     if (p.dx > 0) pl.x = p.x + p.w
     else pl.x = p.x - pl.w
