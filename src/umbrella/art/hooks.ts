@@ -26,6 +26,9 @@ export interface KiteArt {
   checkpoint?: (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: boolean, time: number) => boolean
   /** A collectible (star, parasol, cloud), bobbing; `got` leaves a faint ghost (lantern). */
   collect?: (ctx: CanvasRenderingContext2D, s: Pick<StarDef, 'x' | 'y' | 'shape'>, got: boolean, time: number, phase: number) => boolean
+  /** Where the last cheer drawn holds its raised hand (lantern), in the space it was drawn in: the
+   *  furled umbrella's grip goes there. Null when there is none. */
+  cheerHand?: () => { x: number; y: number } | null
   /** A warp gate: a torii with a swirling portal between its posts (lantern). */
   gate?: (ctx: CanvasRenderingContext2D, g: Pick<GateDef, 'x' | 'y' | 'w' | 'h'>, time: number) => boolean
   /** A painted sky behind the level, in SCREEN space (the lantern build). */

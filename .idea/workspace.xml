@@ -4,7 +4,23 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- cutscene editor and some fixes" />
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- cutscene editor and some fixes">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/changelog.md" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/campaign-order.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-order.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/campaign-overrides.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-overrides.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/roadmap.md" beforeDir="false" afterPath="$PROJECT_DIR$/roadmap.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/art/lantern-refs.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/lantern-refs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/pweeg-idle.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/pweeg-idle.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/pweeg-walk.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/pweeg-walk.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/walldorf-face.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/walldorf-face.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/art/hooks.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/hooks.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/art/lantern.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/lantern.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/art/paint.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/paint.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/renderer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/renderer.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/umbrella/fixtures/vectorGolden.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella/fixtures/vectorGolden.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/umbrella/lanternArt.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella/lanternArt.test.ts" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

@@ -12,6 +12,12 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 12 — 2026-10-29 ==
+- [x] Lantern wind currents read at a glance: a denser fill with a short feather and a faint light rim, so where the push ends is clear
+- [x] Lantern wind: about a seventh fewer gust streaks, each kept inside its own lane (its bow and curl never reach the next lane) and spaced evenly along it, so streaks no longer cross or pile up
+- [x] The finish platform is drawn in front of every other platform, enemy and prop; only the player goes over it (the wide lantern dais was overlapped by neighbouring blocks)
+- [x] Lantern Walldorfs watch you: their eyes stay in one place on the pillar (they used to jump from side to side as you passed) and only the pupils turn to follow Pweeg, re-aimed every third frame; the painted pupils are taken out of the face sheet (scripts/art/walldorf-pupils.py, run after slicing) and the game draws them
+- [x] Painted Walldorfs wider than tall lie on their side (the standing pillar turned a quarter, lit facet up) instead of being squashed flat; their stacked eyes stay upright, sized to their height
+- [x] Lantern Pweeg: idle and walk repainted from the same paper figure as his other poses (the idle was a warmer, boxier Pweeg with a smile, so stopping and starting popped); the walk plays one step ordered by its measured stride at a walking pace instead of jittering through panels out of order; in the cheer he raises the furled umbrella in his fist, which follows each frame's painted hand
 - [x] The lantern finish dais ships at 512 px a frame (sprites stay at 256): stretched across the whole finish platform it drew soft on 2x screens, now it is sharp
 - [x] Zora Rounded is the game's Latin font (Angry behind it for any glyph it lacks); the new Umbrella favicon; the campaign's latest level order and level edits; the Poki deploy set to Umbrella's own P4D game (version 0.12.2)
 - [x] Cheat mode: an "Art" dropdown under OPEN EDITOR picks "Drawn only" or "Origami: Lantern" and reloads the game in it (?art=lantern opens the lantern build of the same revision)

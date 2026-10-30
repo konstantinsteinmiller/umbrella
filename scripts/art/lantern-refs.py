@@ -196,19 +196,19 @@ def clean_wisps() -> None:
 
 
 def cards() -> None:
-    """A model sheet's first figure (side view, standing) on its own: attached to an animation
-    sheet that sets `modelCard` (manifest.ts) in place of the whole 3 x 3 sheet, whose grid and
-    poses the painter otherwise copies into the layout."""
+    """A sheet's first figure (side view, standing) on its own: attached to an animation sheet that
+    sets `modelCard` (manifest.ts) in place of the whole sheet, whose grid and poses the painter
+    otherwise copies into the layout."""
     out_dir = SHEETS / 'cards'
     out_dir.mkdir(exist_ok=True)
-    for name in ('pweeg-model', 'chad-model'):
+    for name, grid in (('pweeg-model', 3), ('chad-model', 3)):
         src = SHEETS / 'painted' / f'{name}.png'
         if not src.exists():
             print(f'{name}: not painted yet')
             continue
         im = Image.open(src).convert('RGB')
         w, h = im.size
-        card = im.crop((0, 0, w // 3, h // 3)).resize((512, 512), Image.LANCZOS)
+        card = im.crop((0, 0, w // grid, h // grid)).resize((512, 512), Image.LANCZOS)
         card.save(out_dir / f'{name}-card.png')
         print(f'cards/{name}-card.png: panel 1 of painted/{name}.png')
     # cards/prickbait-card.png is cut by hand from panel 1 of an approved earlier roll (the only one whose

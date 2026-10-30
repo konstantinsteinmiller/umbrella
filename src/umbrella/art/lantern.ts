@@ -68,8 +68,13 @@ export const LANTERN_SHEETS: SheetDef[] = [
     title: 'Pweeg (paper) — character model sheet',
     blurb: `${KAMI_IS}. This is his MODEL SHEET: the one picture every later animation of him is painted from. He is the concept art's paper figure, copied faithfully — the same cube head, pleated body, chunky limbs, paper colour and ink face — only posed like the layout reference`
   }),
-  pweeg('pweeg-idle'),
-  pweeg('pweeg-walk', { modelCard: true }),
+  // Idle and walk are painted from one figure of the model (cards/pweeg-model-card.png) like his other
+  // poses, so cutting between them never changes his paper, head or face.
+  pweeg('pweeg-idle', { modelCard: true }),
+  pweeg('pweeg-walk', {
+    modelCard: true,
+    readPanels: 'ONE walk cycle, played in order from panel 1 to panel 16 and round again: neighbouring panels differ only a LITTLE — legs and arms move by small even steps, never jumping. Panel 1: his front foot forward and his back foot behind, the widest stride. Panels 2, 3 and 4: the legs swing toward each other, a little more each panel. Panel 5: the legs together under him, passing, the back foot lifted a little. Panels 6, 7 and 8: that foot swings on forward, a little more each panel. Panel 9: the widest stride again with the feet swapped. Panels 10 to 16 do the same the other way, step by step, so panel 16 leads straight back into panel 1. His arms swing opposite to his legs by the same small steps. His head stays level at the same height in every panel, looking straight ahead to the right — never tilted up or down. EVERY panel is a side view facing right; none faces the viewer or stands with its feet together except the passing panels 5 and 13.'
+  }),
   pweeg('pweeg-hover', {
     blurb: `${KAMI_IS}, floating calmly with a small content smile: both arms raised straight up above his head and BOTH HANDS TOGETHER, gripping one single handle at one point (the parasol itself is painted separately — paint NO parasol; the two hands meet in the air, touching, never apart), his legs dangling loose`
   }),

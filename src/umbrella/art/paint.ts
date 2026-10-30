@@ -20,6 +20,7 @@ import { boxOf, BUTTON_W, FAN_SIZE, PRICKBAIT_R, sheetById, SPIKE, type AnimDef,
 import { hasSheet, setReady, sheetImage } from './sheets'
 import type { KiteArt } from './hooks'
 import { drawFinishDressing } from './kiteFinish'
+import walldorfFaceEyes from './walldorfFaceEyes.json'
 
 // ─── The switch ─────────────────────────────────────────────────────────────
 
@@ -133,8 +134,58 @@ let kiteDrawn = false
 /** The kite dance: the sheet's arms-up frames, forwards and back. */
 const CHEER_LOOP = [5, 6, 7, 8, 9, 8, 7, 6]
 
+/** The lantern Pweeg's walk: one step, its frames picked and ordered by their measured stride (the
+ *  width across his feet: 68, 100, 117, 124, 121, 116, 109, 72 px of a 256 px panel), all with the
+ *  same arm pose. The painter numbered its panels out of order, so playing them as painted jumps
+ *  from feet-together to a wide stride and back. Measured on the current sheet: re-measure the
+ *  feet span per panel after a repaint. */
+const LANTERN_STEP = [0, 1, 2, 3, 6, 5, 15, 8]
+
+/** The raised front hand of each cheer frame (lantern), measured once from the sheet: the topmost
+ *  paint in the right fifth of the figure, i.e. the fist above his head. In box units from the
+ *  sprite's anchor; null where nothing sits there. */
+const cheerHands = new WeakMap<HTMLImageElement, Array<{ x: number; y: number } | null>>()
+const cheerHandOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: number; y: number } | null => {
+  let hands = cheerHands.get(img)
+  if (!hands) {
+    hands = []
+    try {
+      const c = document.createElement('canvas')
+      c.width = img.width
+      c.height = img.height
+      const g = c.getContext('2d', { willReadFrequently: true })
+      if (g) {
+        g.drawImage(img, 0, 0)
+        const fw = Math.round(img.width / s.cols)
+        const fh = Math.round(img.height / s.rows)
+        for (let i = 0; i < s.cols * s.rows; i++) {
+          const d = g.getImageData((i % s.cols) * fw, Math.floor(i / s.cols) * fh, fw, fh).data
+          const solid = (x: number, y: number) => d[(y * fw + x) * 4 + 3]! > 120
+          let l = fw, r = -1
+          for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) if (solid(x, y)) { if (x < l) l = x; if (x > r) r = x }
+          if (r < l) { hands.push(null); continue }
+          const x0 = Math.floor(l + (r - l) * 0.78)
+          let top = -1
+          for (let y = 0; y < fh && top < 0; y++) for (let x = x0; x <= r; x++) if (solid(x, y)) { top = y; break }
+          if (top < 0) { hands.push(null); continue }
+          let sx = 0, n = 0
+          for (let y = top; y < Math.min(fh, top + fh * 0.05); y++) for (let x = x0; x <= r; x++) if (solid(x, y)) { sx += x; n++ }
+          const box = boxOf(s, i)
+          hands.push({ x: sx / n / fw - box.ax, y: (top + fh * 0.02) / fh - box.ay })
+        }
+      }
+    } catch { /* no hands: the umbrella stays at his side */ }
+    cheerHands.set(img, hands)
+  }
+  return hands[frame] ?? null
+}
+/** Where the last cheer drawn holds its raised hand, in the caller's space (the renderer puts the
+ *  furled umbrella's grip there); null when the last figure was no lantern cheer. */
+let cheerHandAt: { x: number; y: number } | null = null
+
 const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegLook): boolean => {
   kiteDrawn = false
+  cheerHandAt = null
   if (!paintedOn) return false
   const chad = !!look.shades
   const set = figureSet(chad)
@@ -161,11 +212,14 @@ const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegL
     case 'walk':
       id = s('walk').id
       // The painted frames are each drawn fresh, so cycling all 16 at the vector
-      // walk's cadence twitches the hands and feet. A kite walks on every other
-      // frame at half the pace: a slower, steadier waddle.
-      frame = set.kite
-        ? phaseFrame({ ...s('walk').anims.walk!, frames: s('walk').anims.walk!.frames.filter((_, i) => i % 2 === 0) }, (look.step ?? 0) / (Math.PI * 4))
-        : phaseFrame(s('walk').anims.walk!, (look.step ?? 0) / (Math.PI * 2))
+      // walk's cadence twitches the hands and feet. A kite, and the lantern's paper
+      // Pweeg and Chad, walk on every other frame at half the pace: a steadier stride.
+      // The lantern Pweeg plays one measured step per vector stride cycle (about 2.6 steps a second).
+      frame = isLantern && !chad && !set.kite
+        ? phaseFrame({ ...s('walk').anims.walk!, frames: LANTERN_STEP }, (look.step ?? 0) / (Math.PI * 2))
+        : set.kite || isLantern
+          ? phaseFrame({ ...s('walk').anims.walk!, frames: s('walk').anims.walk!.frames.filter((_, i) => i % 2 === 0) }, (look.step ?? 0) / (Math.PI * 4))
+          : phaseFrame(s('walk').anims.walk!, (look.step ?? 0) / (Math.PI * 2))
       break
     case 'hold': id = s('hover').id; frame = animFrame(s('hover').anims.hover!, look.time); break
     case 'flail':
@@ -185,11 +239,22 @@ const pweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, look: PweegL
         if (!img) return false
         const k = Math.floor(look.time * 5) % CHEER_LOOP.length
         const hop = Math.abs(Math.sin(look.time * Math.PI * 1.6))
+        const rock = Math.sin(look.time * Math.PI * 1.6) * 0.07
+        const sx = look.w / PWEEG_W
+        const sy = look.h / PWEEG_H
         ctx.save()
         ctx.translate(x, y - hop * look.h * 0.16)
-        ctx.rotate(Math.sin(look.time * Math.PI * 1.6) * 0.07)
-        blit(ctx, sheet(id), img, CHEER_LOOP[k]!, 0, 0, look.w / PWEEG_W, look.h / PWEEG_H, false)
+        ctx.rotate(rock)
+        blit(ctx, sheet(id), img, CHEER_LOOP[k]!, 0, 0, sx, sy, false)
         ctx.restore()
+        // The raised fist, carried through the same hop and rock, for the umbrella's grip (lantern).
+        const hand = isLantern ? cheerHandOf(img as HTMLImageElement, sheet(id), CHEER_LOOP[k]!) : null
+        if (hand) {
+          const size = boxOf(sheet(id), CHEER_LOOP[k]!).drawSize ?? boxOf(sheet(id), CHEER_LOOP[k]!).size
+          const lx = hand.x * size * sx
+          const ly = hand.y * size * sy
+          cheerHandAt = { x: x + Math.cos(rock) * lx - Math.sin(rock) * ly, y: y - hop * look.h * 0.16 + Math.sin(rock) * lx + Math.cos(rock) * ly }
+        }
         kiteDrawn = set.kite
         return true
       }
@@ -247,6 +312,54 @@ const umbrella = (ctx: CanvasRenderingContext2D, x: number, y: number, look: Umb
 /** Multiplied over the Walldorf body to make the charging one read as angry at a glance. */
 const ANGRY_TINT = '#ff8a78'
 
+// ─── The lantern Walldorf's watching eyes ───────────────────────────────────
+//
+// The painted face has its pupils taken out (scripts/art/walldorf-pupils.py), and the eyes stay in one
+// place on the pillar. The game draws the pupils: they turn to the player, re-aimed every third frame,
+// so the eyes hold still and only the gaze follows — the feeling of being watched.
+interface FaceEye { x: number; y: number; rx: number; ry: number; pupil: number }
+const FACE_EYES = (walldorfFaceEyes as { frames: FaceEye[][] }).frames
+/** Re-aim the pupils every this many frames. */
+const GAZE_EVERY = 3
+const gazes = new WeakMap<Hazard, { n: number; ux: number; uy: number }>()
+const gazeOf = (h: Hazard, ex: number, ey: number, px: number, py: number): { ux: number; uy: number } => {
+  const g = gazes.get(h) ?? { n: 0, ux: 0, uy: 0 }
+  if (g.n++ % GAZE_EVERY === 0) {
+    const d = Math.hypot(px - ex, py - ey) || 1
+    g.ux = (px - ex) / d
+    g.uy = (py - ey) / d
+  }
+  gazes.set(h, g)
+  return g
+}
+const watchingPupils = (ctx: CanvasRenderingContext2D, frame: number, x: number, y: number, k: number, gaze: { ux: number; uy: number }): void => {
+  ctx.save()
+  for (const e of FACE_EYES[frame] ?? []) {
+    const cx = x + e.x * k
+    const cy = y + e.y * k
+    const rx = e.rx * k * 0.86
+    const ry = e.ry * k * 0.86
+    const r = Math.min(e.pupil * k, ry * 0.95)
+    // The pupil rides toward the player, as far as the eye lets it; the lids clip it.
+    const px = cx + gaze.ux * Math.max(0, rx - r) * 0.8
+    const py = cy + gaze.uy * Math.max(0, ry - r) * 0.8
+    ctx.save()
+    ctx.beginPath()
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2)
+    ctx.clip()
+    ctx.fillStyle = '#1c1620'
+    ctx.beginPath()
+    ctx.arc(px, py, r, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+    ctx.beginPath()
+    ctx.arc(px + r * 0.35, py - r * 0.35, r * 0.28, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
+  ctx.restore()
+}
+
 /** When each bouncy Walldorf was last bumped (the squash and the surprised face). */
 const bumpedAt = new WeakMap<Hazard, number>()
 const wasBumping = new WeakMap<Hazard, boolean>()
@@ -293,13 +406,27 @@ const walldorf = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean =
   ctx.translate(cx, by)
   ctx.scale(kx, ky)
   ctx.translate(-cx, -by)
-  const cap = Math.min(h.w, h.h / 2)
-  cell(ctx, body, bodyImg, col, 0, h.x, h.y, h.w, cap)
-  cell(ctx, body, bodyImg, col, 1, h.x, h.y + cap - 0.5, h.w, h.h - cap * 2 + 1, 1)
-  cell(ctx, body, bodyImg, col, 2, h.x, h.y + h.h - cap, h.w, cap)
+  // The pillar is painted standing. A Walldorf wider than tall lies it on its side (turned a quarter
+  // clockwise, so its lit facet faces up) instead of squashing a tall pillar flat.
+  const lying = h.w > h.h
+  const [bx, by0, bw, bh] = lying ? [-h.h / 2, -h.w / 2, h.h, h.w] : [h.x, h.y, h.w, h.h]
+  if (lying) {
+    ctx.save()
+    ctx.translate(cx, h.y + h.h / 2)
+    ctx.rotate(Math.PI / 2)
+  }
+  const cap = Math.min(bw, bh / 2)
+  cell(ctx, body, bodyImg, col, 0, bx, by0, bw, cap)
+  cell(ctx, body, bodyImg, col, 1, bx, by0 + cap - 0.5, bw, bh - cap * 2 + 1, 1)
+  cell(ctx, body, bodyImg, col, 2, bx, by0 + bh - cap, bw, cap)
+  if (lying) ctx.restore()
 
-  // Face: the bench's eye geometry, so the painted eyes sit where the drawn ones did.
-  const eyes = walldorfEyes(h, facing)
+  // Face: the bench's eye geometry, so the painted eyes sit where the drawn ones did. It stays upright
+  // on a lying Walldorf, its two stacked eyes sized to his height and centred on it.
+  const eyes = lying ? (() => {
+    const er = Math.min(h.h * 0.2, 9)
+    return { er, ex: cx + facing * h.w * 0.18, top: h.y + h.h / 2 }
+  })() : walldorfEyes(h, facing)
   let frame: number
   if (sinceBump < BUMP_TIME) frame = animFrame(face.anims.bump!, sinceBump)
   else if (charging) frame = animFrame(face.anims.charge!, w.time)
@@ -310,7 +437,17 @@ const walldorf = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean =
     const beat = (w.time + h.x * 0.013) % 3.4
     frame = beat < 0.17 ? animFrame(face.anims.blink!, beat) : animFrame(face.anims.calm!, w.time)
   }
-  blit(ctx, face, faceImg, frame, eyes.ex, eyes.top, eyes.er / 9, eyes.er / 9, facing < 0)
+  if (isLantern) {
+    // The eyes stay put in the middle of the pillar and never flip; only the pupils follow the player.
+    const sc = eyes.er / 9
+    const ex = cx
+    blit(ctx, face, faceImg, frame, ex, eyes.top, sc, sc, false)
+    const box = boxOf(face, frame)
+    const k = (box.drawSize ?? box.size) * sc
+    watchingPupils(ctx, frame, ex, eyes.top, k, gazeOf(h, ex, eyes.top, pl.x + pl.w / 2, pl.y + pl.h / 2))
+  } else {
+    blit(ctx, face, faceImg, frame, eyes.ex, eyes.top, eyes.er / 9, eyes.er / 9, facing < 0)
+  }
   ctx.restore()
   return true
 }
@@ -856,8 +993,9 @@ const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w
   const along = vertical ? live.h : live.w
   const across = vertical ? live.w : live.h
   const angle = live.dir === 'right' ? 0 : live.dir === 'left' ? Math.PI : live.dir === 'down' ? Math.PI / 2 : -Math.PI / 2
-  // Lanes about 36 px apart; every lane holds a few streaks of different lengths, a little off its centre.
-  const lanes = Math.max(1, Math.round(across / 36))
+  // Lanes about 42 px apart (a seventh fewer streaks than at 36); every lane holds a few streaks of
+  // different lengths, each kept inside its own lane so neighbours never cross.
+  const lanes = Math.max(1, Math.round(across / 42))
   const gap = across / lanes
   const margin = Math.min(8, across * 0.08)
   const fadeLen = Math.min(along * 0.22, 70)
@@ -885,19 +1023,34 @@ const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w
   g.strokeStyle = ink
   for (let l = 0; l < lanes; l++) {
     const seedL = l * 3.7 + live.x * 0.011 + live.y * 0.017
+    // This lane's band across the current, a little gap kept free on each side of it (and the box's
+    // margin at the outer lanes).
+    const pad = Math.max(2, Math.min(5, gap * 0.1))
+    const laneLo = -across / 2 + gap * l + (l === 0 ? margin : pad)
+    const laneHi = -across / 2 + gap * (l + 1) - (l === lanes - 1 ? margin : pad)
+    const inner = Math.max(2, laneHi - laneLo)
+    // The lane's streaks share one loop, evenly spaced along it, so they never run into each other
+    // (the spacing, (along + longest) / per, is always longer than the longest streak).
+    const longest = Math.min(240, along * 0.7)
+    const period = along + longest
+    const start = rnd(seedL + 1) * period
     for (let k = 0; k < per; k++) {
       const seed = seedL * 5 + k * 13
       const len = Math.min(240, along * (0.32 + rnd(seed + 3) * 0.38))
-      const r = Math.max(2, Math.min(across / 4, 5 + rnd(seed + 4) * 5))
-      const bow = Math.max(0, Math.min(across / 4, len * (0.04 + rnd(seed + 5) * 0.05)))
-      const side: 1 | -1 = rnd(seed + 6) < 0.5 ? 1 : -1
       const width = (sup ? 3.4 : 2.8) * (0.7 + rnd(seed + 7) * 0.6)
-      // Off the lane's centre a little, but the bow and the curl always inside the box.
-      const reach = Math.max(bow, 2 * r)
-      const c = Math.min(across / 2 - margin - reach, Math.max(-across / 2 + margin + reach, -across / 2 + gap * (l + 0.5) + (rnd(seed + 8) - 0.5) * gap * 0.3))
-      // Every streak in a current travels together, at the current's own pace: only where it starts differs.
-      const period = along + len
-      const head = ((((travel + rnd(seed + 1) * period + (k * period) / per) % period) + period) % period)
+      // The bow and the curl stay inside the lane: they fit its width, minus the stroke.
+      const room = Math.max(1, inner - width)
+      const r = Math.max(1.5, Math.min(room / 2, 5 + rnd(seed + 4) * 5))
+      const bow = Math.max(0, Math.min(room, len * (0.04 + rnd(seed + 5) * 0.05)))
+      const side: 1 | -1 = rnd(seed + 6) < 0.5 ? 1 : -1
+      const reach = Math.min(room, Math.max(bow, 2 * r))
+      // The drawn shape is mirrored (streakOf), so a streak of \`side\` swings toward -side: place its
+      // centreline so that swing stays in the band, anywhere the band leaves room for it.
+      const lo = laneLo + width / 2 + (side > 0 ? reach : 0)
+      const hi = laneHi - width / 2 - (side < 0 ? reach : 0)
+      const c = hi > lo ? lo + rnd(seed + 8) * (hi - lo) : (laneLo + laneHi) / 2
+      // Every streak in a current travels together, at the current's own pace.
+      const head = ((((travel + start + (k * period) / per) % period) + period) % period)
       const { pts, widths } = streakOf(len, bow, r, side, width)
       g.save()
       g.translate(head - along / 2, c)
@@ -943,9 +1096,16 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
   if (live.speed > 0 && isLantern) {
     const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
     if (!tex) return false
+    // A clearly readable current: a denser fill with a short feather (its edge is where the push
+    // ends, so it must read at a glance), and a faint light rim along that edge.
+    const rgb = sup ? SUPER_RGB : NORMAL_RGB
     ctx.save()
-    ctx.globalAlpha = sup ? 0.17 : 0.11
-    softRect(ctx, tex, live.x, live.y, live.w, live.h, f)
+    ctx.globalAlpha = sup ? 0.3 : 0.22
+    softRect(ctx, tex, live.x, live.y, live.w, live.h, Math.min(f, 10))
+    ctx.globalAlpha = 1
+    ctx.strokeStyle = `rgba(${rgb}, ${sup ? 0.42 : 0.32})`
+    ctx.lineWidth = 1.5
+    ctx.strokeRect(live.x + 0.75, live.y + 0.75, live.w - 1.5, live.h - 1.5)
     ctx.restore()
     windGusts(ctx, live, def, w)
   } else if (live.speed > 0) {
@@ -1382,6 +1542,7 @@ const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Ca
 // ─── The slots ──────────────────────────────────────────────────────────────
 
 export const KITE_PAINTERS: Required<KiteArt> = {
+  cheerHand: () => cheerHandAt,
   backdrop,
   collect,
   gate,

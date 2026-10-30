@@ -7,7 +7,7 @@
 // every such line folds away
 // (tests/umbrella/vectorGolden.test.ts pins the vector path call for call).
 
-import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, type Hazard, type World } from './engine'
+import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, type Hazard, type Platform, type World } from './engine'
 import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
 import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
@@ -483,9 +483,10 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
     ctx.translate(fx, fy - hop)
     ctx.rotate(Math.sin(w.phaseTime * 9) * 0.25)
     drawPweeg(ctx, 0, 0, look('cheer'))
-    // The lantern cheer's arms swing up and down between frames, so no hand holds it overhead: he keeps
-    // it tucked at his side, where he carries it standing, and it hops with him.
-    const [ux, uy, ut] = isLantern ? [pl.facing * pl.w * 0.8, -pl.h * 0.35, pl.facing * 0.22] : [pl.facing * pl.w * 0.95, -pl.h - 2, pl.facing * 0.3]
+    // The lantern cheer raises the furled umbrella in his front fist, wherever the painted frame puts
+    // that fist (art/paint.ts measures it per frame); the vector cheer holds it up beside him.
+    const hand = isLantern && artLayer ? kiteArt.cheerHand?.() ?? null : null
+    const [ux, uy, ut] = hand ? [hand.x, hand.y, 0.18] : [pl.facing * pl.w * 0.95, -pl.h - 2, pl.facing * 0.3]
     drawUmbrella(ctx, ux, uy, { state: umbrellaState === 'open' ? 'furled' : umbrellaState, tilt: ut, time: w.time })
     ctx.restore()
     return
@@ -603,12 +604,12 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
-  for (const p of w.platforms) {
+  const drawPlatform = (p: Platform): void => {
     const drawn = artLayer ? kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel)) : false
     const painted = !!drawn
     // The kite build dresses its painted finish instead of labelling it, and so does the lantern
     // build's festival dais; a plain painted lantern finish pad keeps the word.
-    if (painted && (drawn === 'dressed' || !(isLantern && p.finish))) continue
+    if (painted && (drawn === 'dressed' || !(isLantern && p.finish))) return
     if (painted) {
       // Painted: only the label below.
     } else if (p.channel !== undefined) {
@@ -626,7 +627,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
         ctx.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2)
       }
       ctx.restore()
-      if (!on || !p.finish) continue
+      if (!on || !p.finish) return
     } else {
       ctx.fillStyle = FG
       ctx.fillRect(p.x, p.y, p.w, p.h)
@@ -646,6 +647,9 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
       }
     }
   }
+  // The finish is drawn last of the level, in front of every other platform, enemy and prop — only
+  // the player goes over it (the lantern dais is wider than its platform and was overlapped).
+  for (const p of w.platforms) if (!p.finish) drawPlatform(p)
 
   for (const b of w.level.buttons ?? []) {
     const on = channelOn(w, b.channel)
@@ -654,6 +658,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     else drawButton(ctx, b, on, left)
   }
   for (const h of w.hazards) drawHazard(ctx, h, w)
+  for (const p of w.platforms) if (p.finish) drawPlatform(p)
 
   if (!opts.hidePlayer) drawPlayer(ctx, w, t, dt)
   return camera

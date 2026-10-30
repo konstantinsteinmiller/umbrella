@@ -26,7 +26,8 @@
   The kite art is missing painted art for the spikes, the landing zone and the landing zone chevrons, also the angry walldorf in the kite version is too similar to the non-angry pushing one from level 48 and level 49, as they have the same color coding,but different behaviours.
   on level 71 the player can activate a button and walk off the platform to the activated platform, but the umbrella opens and closes very fast, seem the small gap triggers it. Also paint the gate art and the collectable stars/umbrellas/clouds art for the kite version.
   *Done (Revision 11):* the open kite is drawn at the umbrella's size; the angry Walldorf is tinted red-brown; the level 71 gap no longer flickers the umbrella; Prickbait no longer flickers left/right. *Still open:* painted art for the spikes, the landing zone and its chevrons, the gate and the collectibles (needs the Gemini art desk).
-
+- [ ] #10 Create another art style switchable to in the cheat mode dropdown or with ?art=clay which is the clay motion art style from the art-moodboard (concept 6. Rainy day post https://konstantinsteinmiller.github.io/umbrella/art-moodboards/).
+  Use all the learnings from the creation of the lantern art style, so the all the animation work(consistent and fluid animations, consistent lighting and consistent coloring across animation sheets, so the walk -> idle switch has no hard transitions, same for the other animation switches), umbrella placement, enemy designs and everything related.
 
 ## v0.7.0 — from the mini design doc (checked 2026-10-23)
 

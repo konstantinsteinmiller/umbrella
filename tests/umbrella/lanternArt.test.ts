@@ -85,3 +85,22 @@ describe('?art=lantern', () => {
     expect(redirect('/umbrella/', '?art=other')).toBeNull()
   })
 })
+
+describe('the lantern Walldorf face', () => {
+  it('records two open eyes (or none, the blink) in every frame, for the live pupils', async () => {
+    const { frames } = (await import('@/umbrella/art/walldorfFaceEyes.json')).default as { frames: { x: number; y: number; rx: number; ry: number; pupil: number }[][] }
+    const face = sheetById('walldorf-face')!
+    expect(frames).toHaveLength(face.cols * face.rows)
+    for (const eyes of frames) {
+      expect([0, 2]).toContain(eyes.length)
+      for (const e of eyes) {
+        expect(Math.abs(e.x)).toBeLessThan(0.5)
+        expect(Math.abs(e.y)).toBeLessThan(0.5)
+        expect(e.pupil).toBeGreaterThan(0)
+        expect(e.pupil).toBeLessThan(Math.max(e.rx, e.ry))
+      }
+      // Stacked: the first eye is the upper one.
+      if (eyes.length === 2) expect(eyes[0]!.y).toBeLessThan(eyes[1]!.y)
+    }
+  })
+})
