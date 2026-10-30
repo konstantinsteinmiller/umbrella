@@ -10,15 +10,21 @@
 //     freezes them; they would tail out on resume), and
 //   • refuses every new one-shot until it clears.
 // Music and the wind bed start only after the first user gesture, and only
-// once the context really runs.
+// once the context really runs. The music is the recorded loop
+// public/audio/music/bg-cozy.ogg (fetched then, never before the first
+// screen), played on the engine's music bus: the same gate, the same suspend
+// under an ad (it carries on from where it was when the ad closes), and the
+// same ducking under the big one-shots as the synthesised score had.
 
 import { getAudioContext, isAudioSuspended } from '@/use/useAssets'
 import { createSoundEngine, type MixLevels, type SoundEngine } from './soundEngine'
 import type { AmbienceState, SfxName, SfxParams } from './soundKit'
 import { createEnemySounds, ENEMY_BED_IDLE, type EnemyBedState, type EnemySfxName, type EnemySfxParams, type EnemySounds } from './enemySounds'
 
-/** How far ahead the live scheduler keeps the score written (s). */
-const MUSIC_LOOKAHEAD = 4
+/** The background music: a seamless loop, at the music bus's level (tuning.musicVolume). */
+const MUSIC_TRACK = `${import.meta.env.BASE_URL}audio/music/bg-cozy.ogg`
+/** Seconds the track fades in over when it first starts. */
+const MUSIC_FADE_IN = 4
 
 let engine: SoundEngine | null = null
 let muted = false
@@ -50,10 +56,19 @@ const startBeds = (): void => {
   bedsStarted = true
   e.startAmbience()
   enemies?.startBed()
-  e.startMusic(e.ctx.currentTime + 0.4, 5)
-  // A suspended context's clock stands still, so nothing piles up under an
-  // ad; a throttled background timer still finds 4 s of score written.
-  setInterval(() => e.scheduleMusic(e.ctx.currentTime + MUSIC_LOOKAHEAD), 500)
+  void startTrack(e)
+}
+
+/** Fetch and decode the track once, then start it (silently skipped if either fails). */
+const startTrack = async (e: SoundEngine): Promise<void> => {
+  try {
+    const res = await fetch(MUSIC_TRACK)
+    if (!res.ok) return
+    const buffer = await e.ctx.decodeAudioData(await res.arrayBuffer())
+    e.startTrack(buffer, e.ctx.currentTime + 0.1, MUSIC_FADE_IN)
+  } catch {
+    // No music: the game plays on with its effects and wind.
+  }
 }
 
 /** Call from a user gesture so the context may start. */

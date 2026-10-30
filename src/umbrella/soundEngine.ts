@@ -37,6 +37,8 @@ export interface SoundEngine {
   startMusic: (at?: number, fadeIn?: number) => void
   /** Write the score up to `t` (the live scheduler calls this ahead of time). */
   scheduleMusic: (t: number) => void
+  /** A recorded music track (a seamless loop), on the music bus in the score's place. */
+  startTrack: (buffer: AudioBuffer, at?: number, fadeIn?: number) => void
   readonly musicStarted: boolean
   duck: (db: number, hold: number, at?: number) => void
   setLevels: (l: MixLevels, at?: number) => void
@@ -52,6 +54,7 @@ export const createSoundEngine = (ctx: BaseAudioContext, dest: AudioNode, seed: 
   const mix = createMix(ctx, dest, seed)
   let ambience: Ambience | null = null
   let composer: Composer | null = null
+  let track: AudioBufferSourceNode | null = null
   type Voice = { gains: GainNode[]; until: number }
   const voices = new Set<Voice>()
   let whistle: Voice | null = null
@@ -128,7 +131,7 @@ export const createSoundEngine = (ctx: BaseAudioContext, dest: AudioNode, seed: 
         whistle = v
       }
       const d = SFX_DUCK[name]
-      if (d && composer) duck(d[0], d[1], at)
+      if (d && (composer || track)) duck(d[0], d[1], at)
     },
     startAmbience: (at = now()) => {
       if (ambience) return
@@ -152,7 +155,21 @@ export const createSoundEngine = (ctx: BaseAudioContext, dest: AudioNode, seed: 
       composer.scheduleUntil(at + MUSIC_SLOT * 0.5)
     },
     scheduleMusic: (t) => composer?.scheduleUntil(t),
-    get musicStarted() { return composer !== null },
+    startTrack: (buffer, at = now(), fadeIn = 4) => {
+      if (track || composer) return
+      // Dry only: the recording carries its own room. It loops sample-exact (the file is made to).
+      const fade = ctx.createGain()
+      fade.gain.setValueAtTime(0, at)
+      fade.gain.linearRampToValueAtTime(1, at + fadeIn)
+      fade.connect(mix.music.dry)
+      const src = ctx.createBufferSource()
+      src.buffer = buffer
+      src.loop = true
+      src.connect(fade)
+      src.start(at)
+      track = src
+    },
+    get musicStarted() { return composer !== null || track !== null },
     duck,
     setLevels: (l, at = now()) => {
       levels = { ...l }

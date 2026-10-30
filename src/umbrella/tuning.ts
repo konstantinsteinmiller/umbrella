@@ -132,10 +132,14 @@ export const DEFAULT_TUNING: Tuning = {
   walldorfChargeKnock: 0.6,
   fallPoseSideways: 0.6,
   fallPoseEase: 3,
+  // Set from the level report (scripts/sfx/render-umbrella-sounds.mjs, 2026-10): the effects 3 dB
+  // under their design level so a first play is never loud (win -17.9, a fast open -19.2 LUFS max
+  // momentary), the wind with them, and the music track (bg-cozy.ogg) a quiet bed about 8 dB under
+  // the quietest headline effect, ducking further under the big ones.
   masterVolume: 1,
-  musicVolume: 0,
-  sfxVolume: 1,
-  windVolume: 1
+  musicVolume: 0.33,
+  sfxVolume: 0.7,
+  windVolume: 0.7
 }
 
 /** Slider ranges for the tuning panel. */

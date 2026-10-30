@@ -76,7 +76,7 @@
 
 <script type="module">
 import { createSoundEngine } from '/src/umbrella/soundEngine.ts'
-import { AMBIENCE_IDLE } from '/src/umbrella/soundKit.ts'
+import { AMBIENCE_IDLE, SFX_TRIM } from '/src/umbrella/soundKit.ts'
 
 /**
  * Everything the page can play or render. `sfx` entries trigger one recipe;
@@ -121,6 +121,21 @@ const SOUNDS = {
   'enemy-mine': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, mine: 1, mineSpeed: 0.6 }, t + 0.1) } },
   'enemy-pillar': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, pillar: 1 }, t + 0.1) } },
   'wind-fall': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, speed: 1, danger: 1 }, t + 0.1) } },
+  // The recorded track (public/audio/music/bg-cozy.ogg) on the music bus, alone and under the game.
+  'track': { seconds: 60, skip: 2, track: true, run: (e, t, b) => { e.startTrack(b, t, 0.01) } },
+  'mix-track': { seconds: 30, skip: 2, track: true, run: (e, t, b) => {
+    e.startTrack(b, t, 0.01); e.startAmbience(t)
+    e.play('open', { intensity: 0.5 }, 6); e.play('land', { intensity: 0.2 }, 9); e.play('step', { intensity: 1 }, 10); e.play('step', { intensity: 1 }, 10.4); e.play('splat', { intensity: 1 }, 14); e.play('win', {}, 20)
+  } },
+  // The same moment at the game's default levels (DEFAULT_TUNING: music 0.33, effects and wind 0.7).
+  'track-tuned': { seconds: 60, skip: 2, track: true, run: (e, t, b) => { e.setLevels({ master: 1, music: 0.33, sfx: 0.7, wind: 0.7 }, t); e.startTrack(b, t, 0.01) } },
+  'open-tuned': { run: (e, t) => { e.setLevels({ master: 1, music: 0.33, sfx: 0.7, wind: 0.7 }, t); e.play('open', { intensity: 0 }, 0.02) } },
+  'win-tuned': { run: (e, t) => { e.setLevels({ master: 1, music: 0.33, sfx: 0.7, wind: 0.7 }, t); e.play('win', {}, 0.02) } },
+  'mix-tuned': { seconds: 30, skip: 2, track: true, run: (e, t, b) => {
+    e.setLevels({ master: 1, music: 0.33, sfx: 0.7, wind: 0.7 }, t)
+    e.startTrack(b, t, 0.01); e.startAmbience(t)
+    e.play('open', { intensity: 0.5 }, 6); e.play('land', { intensity: 0.2 }, 9); e.play('step', { intensity: 1 }, 10); e.play('step', { intensity: 1 }, 10.4); e.play('splat', { intensity: 1 }, 14); e.play('win', {}, 20)
+  } },
   // The game moment: score playing, an open, a landing and a splat on top.
   'mix-check': { seconds: 30, skip: 12, run: (e, t) => {
     e.startMusic(t, 0.01); e.scheduleMusic(30); e.startAmbience(t)
@@ -131,13 +146,23 @@ const SOUNDS = {
 const SR = 48000
 
 // ─── Offline render (the hook the render script calls) ──────────────────────
+const loadTrack = async (ctx) => {
+  for (const url of ['/audio/music/bg-cozy.ogg', '/public/audio/music/bg-cozy.ogg', '/@fs/' + TRACK_FS]) {
+    const r = await fetch(url).catch(() => null)
+    if (r?.ok) return ctx.decodeAudioData(await r.arrayBuffer())
+  }
+  throw new Error('bg-cozy.ogg not found')
+}
+const TRACK_FS = new URL('../../public/audio/music/bg-cozy.ogg', import.meta.url).pathname.replace(/^\/@fs\//, '')
+
 const renderOffline = async (name) => {
   const def = SOUNDS[name]
   if (!def) throw new Error(`unknown sound ${name}`)
   const seconds = def.seconds ?? 4
   const ctx = new OfflineAudioContext(2, Math.ceil(SR * seconds), SR)
   const e = createSoundEngine(ctx, ctx.destination, 20261020)
-  if (def.run) def.run(e, 0)
+  const track = def.track ? await loadTrack(ctx) : null
+  if (def.run) def.run(e, 0, track)
   else e.play(def.sfx, def.params, 0.02)
   return { buffer: await ctx.startRendering(), skip: def.skip ?? 0 }
 }
@@ -153,7 +178,8 @@ window.renderSfx = async ({ name }) => {
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000))
   return { sampleRate: buffer.sampleRate, channels: 2, skip, pcm: btoa(bin) }
 }
-window.SFX_NAMES = Object.keys(SOUNDS)
+// Entries for sounds the game no longer has are skipped (their trim is gone with them).
+window.SFX_NAMES = Object.keys(SOUNDS).filter((n) => SOUNDS[n].run || SOUNDS[n].sfx in SFX_TRIM)
 
 const db = (x) => (x > 0 ? 20 * Math.log10(x) : -Infinity)
 const stats = (buffer, skip) => {
