@@ -1,8 +1,8 @@
 {
-  "version": "Umbrella 0.12.2",
-  "versionId": "c3357191-0ddc-42f9-b53b-d1d8de588654",
-  "when": "2026-10-29T16:45:30.281Z",
-  "inspector": "https://inspector.poki.dev/?game=poki-c3357191-0ddc-42f9-b53b-d1d8de588654",
+  "version": "Umbrella 0.13.2 · Clay art",
+  "versionId": "48fd850f-12c6-40ba-9cba-0aa734f901f7",
+  "when": "2026-10-30T15:13:03.157Z",
+  "inspector": "https://inspector.poki.dev/?game=poki-48fd850f-12c6-40ba-9cba-0aa734f901f7",
   "evidence": {
     "sdkInit": {
       "verdict": "pass",
@@ -21,16 +21,16 @@
       "evidence": "a gameplayStop followed another tab taking the foreground"
     },
     "commercialBreak": {
-      "verdict": "pass",
-      "evidence": "Event log: commercial break, with \"Force show ads\" on"
-    },
-    "adNotInterrupted": {
-      "verdict": "pass",
-      "evidence": "space, arrow and escape did not end the break"
+      "verdict": "unproven",
+      "evidence": "no commercial break within 120 s of play, even with \"Force show ads\" on"
     },
     "adAudioMuted": {
-      "verdict": "pass",
-      "evidence": "10 sample(s) while the ad video played: worst 0 audible game element(s), 0 running AudioContext(s) — of 1 element(s) + 1 context(s) the game created (the SDK's own 3 ad/probe media excluded)"
+      "verdict": "unproven",
+      "evidence": "no break occurred to sample audio during"
+    },
+    "adNotInterrupted": {
+      "verdict": "unproven",
+      "evidence": "no break occurred to interrupt"
     },
     "gameplayStop": {
       "verdict": "pass",
@@ -38,7 +38,7 @@
     },
     "noDuplicates": {
       "verdict": "pass",
-      "evidence": "sequence: start → stop → start → stop → start → stop → start"
+      "evidence": "sequence: start → stop → start"
     },
     "rewardedBreak": {
       "verdict": "unproven",
@@ -62,7 +62,7 @@
     },
     "noExternal": {
       "verdict": "pass",
-      "evidence": "8 host(s) requested, all Poki or its ad stack"
+      "evidence": "5 host(s) requested, all Poki or its ad stack"
     },
     "cookieLabels": {
       "verdict": "unproven",
@@ -77,12 +77,12 @@
       "evidence": "no in-game chat (config: declares.chat)"
     },
     "resizeDynamic": {
-      "verdict": "pass",
-      "evidence": "640x360 → canvas 640x360 in 640x360 (100%x100%) | 836x470 → canvas 836x470 in 836x470 (100%x100%) | 1031x580 → canvas 1031x580 in 1031x580 (100%x100%)"
+      "verdict": "fail",
+      "evidence": "640x360 → canvas 0x0 in 640x360 (0%x0%) | 836x470 → canvas 0x0 in 836x470 (0%x0%) | 1031x580 → canvas 0x0 in 1031x580 (0%x0%)"
     },
     "mobileScaling": {
-      "verdict": "pass",
-      "evidence": "portrait 414x736 → canvas 414x736 in 414x736"
+      "verdict": "fail",
+      "evidence": "portrait 414x736 → canvas 0x0 in 414x736"
     },
     "mobilePlayable": {
       "verdict": "unproven",
@@ -101,8 +101,8 @@
       "evidence": "the game never requests pointer lock"
     },
     "adblock": {
-      "verdict": "pass",
-      "evidence": "boots and plays with the ad stack blocked, and says nothing about adblock"
+      "verdict": "unproven",
+      "evidence": "could not read the game frame with ad hosts blocked"
     }
   },
   "applied": [
@@ -199,8 +199,8 @@
       "module": "Mobile Optimization",
       "match": {},
       "probe": "mobileScaling",
-      "verdict": "pass",
-      "action": "ticked (proven by this run)"
+      "verdict": "fail",
+      "action": "ticked — but THIS RUN DISPROVED IT, see the report"
     },
     {
       "id": "mobile-controls",
@@ -247,16 +247,16 @@
       "module": "Playground Integration",
       "match": {},
       "probe": "resizeDynamic",
-      "verdict": "pass",
-      "action": "already ticked"
+      "verdict": "fail",
+      "action": "ticked — but THIS RUN DISPROVED IT, see the report"
     },
     {
       "id": "adblock",
       "module": "Playground Integration",
       "match": {},
       "probe": "adblock",
-      "verdict": "pass",
-      "action": "already ticked"
+      "verdict": "unproven",
+      "action": "ticked (not decidable by the harness — your declaration)"
     },
     {
       "id": "focus-scroll",
@@ -264,15 +264,15 @@
       "match": {},
       "probe": "focusScroll",
       "verdict": "pass",
-      "action": "already ticked"
+      "action": "ticked (proven by this run)"
     },
     {
       "id": "commercial-breaks",
       "module": "Ad Implementation",
       "match": {},
       "probe": "commercialBreak",
-      "verdict": "pass",
-      "action": "already ticked"
+      "verdict": "unproven",
+      "action": "ticked (not decidable by the harness — your declaration)"
     },
     {
       "id": "rewarded-breaks",
@@ -280,23 +280,23 @@
       "match": {},
       "probe": "rewardedBreak",
       "verdict": "unproven",
-      "action": "already ticked"
+      "action": "ticked (not decidable by the harness — your declaration)"
     },
     {
       "id": "ad-audio-muted",
       "module": "Ad Implementation",
       "match": {},
       "probe": "adAudioMuted",
-      "verdict": "pass",
-      "action": "already ticked"
+      "verdict": "unproven",
+      "action": "ticked (not decidable by the harness — your declaration)"
     },
     {
       "id": "ad-not-interrupted",
       "module": "Ad Implementation",
       "match": {},
       "probe": "adNotInterrupted",
-      "verdict": "pass",
-      "action": "already ticked"
+      "verdict": "unproven",
+      "action": "ticked (not decidable by the harness — your declaration)"
     },
     {
       "id": "pointer-lock",
@@ -304,34 +304,22 @@
       "match": {},
       "probe": "pointerLock",
       "verdict": "na",
-      "action": "already ticked"
+      "action": "ticked (not applicable to this game)"
     }
   ],
   "warnings": [],
   "hosts": [
     [
-      "api.poki.com",
-      2
-    ],
-    [
-      "a.poki-cdn.com",
-      9
-    ],
-    [
-      "v.poki-cdn.com",
-      1
-    ],
-    [
-      "t.poki.io",
-      6
-    ],
-    [
       "a0e9e4d5-1f73-4b9b-bb6e-edd6905cd867.gdn.poki.com",
-      78
+      164
     ],
     [
       "game-cdn.poki.com",
-      6
+      7
+    ],
+    [
+      "a.poki-cdn.com",
+      12
     ],
     [
       "geo.poki.io",
@@ -340,6 +328,18 @@
     [
       "ads.poki.com",
       3
+    ],
+    [
+      "api.poki.com",
+      2
+    ],
+    [
+      "v.poki-cdn.com",
+      2
+    ],
+    [
+      "t.poki.io",
+      6
     ]
   ],
   "consoleErrors": []
