@@ -1,8 +1,10 @@
 // ─── Timed levels: the countdown and its 1–3 star rating ────────────────────
 //
 // A level with `timeLimit` (seconds, set in the level editor) counts down from the spawn. The
-// clock keeps running through a checkpoint revive; when it runs out the level starts over from
-// the spawn (checkpoints do not count). Landing on the finish rates the run by the time left.
+// clock keeps running through a checkpoint revive; when it runs out it stops at 00:00 and the
+// player plays on: the level is never lost to the clock. Landing on the finish rates the run by the
+// time left, and a finish after the clock ran out still earns the lowest rating (one star), so the
+// player sees the level through and can come back to beat it.
 // Pure: the scene, the level selector and the tests all read it.
 
 /** Whole seconds still on the clock for three stars, and for two (less than that: one). */
@@ -12,9 +14,11 @@ export const TWO_STARS_AT = 1
 export const MAX_TIME_LIMIT = 999
 
 /** Stars for a finish with `left` of `limit` seconds still on the clock (0 when it ran out): the
- *  whole seconds the clock shows — 2 or more ★★★, 1 ★★, under a second ★. */
+ *  whole seconds the clock shows — 2 or more ★★★, 1 ★★, under a second or run out ★. A level
+ *  with no limit is not rated (0). */
 export const timeStars = (left: number, limit: number): 0 | 1 | 2 | 3 => {
-  if (!(limit > 0) || !(left > 0)) return 0
+  if (!(limit > 0)) return 0
+  if (!(left > 0)) return 1
   const s = Math.floor(left)
   return s >= THREE_STARS_AT ? 3 : s >= TWO_STARS_AT ? 2 : 1
 }

@@ -419,9 +419,23 @@ let togglePending = false
 //    (not the spawn itself, so a player can look first) and runs through a checkpoint revive; running
 //    out restarts the level at the spawn; landing on the finish rates the run with 1–3 stars. ──
 const timeLimit = ref(0)
+/** The clock on screen, measured so the HUD bar keeps clear of it (its width differs per look). */
+const clockEl = ref<HTMLElement | null>(null)
+const clockSpace = ref(0)
+let clockSizer: ResizeObserver | null = null
+watch(clockEl, (el) => {
+  clockSizer?.disconnect()
+  clockSizer = null
+  clockSpace.value = 0
+  if (!el || typeof ResizeObserver === 'undefined') return
+  clockSizer = new ResizeObserver(() => { clockSpace.value = Math.ceil(el.getBoundingClientRect().width) })
+  clockSizer.observe(el)
+})
 const timeLeft = ref(0)
 const clockText = computed(() => formatClock(timeLeft.value))
-const clockBlink = computed(() => timeLimit.value > 0 && timeLeft.value <= blinkFrom(timeLimit.value))
+const clockBlink = computed(() => timeLimit.value > 0 && timeLeft.value > 0 && timeLeft.value <= blinkFrom(timeLimit.value))
+/** Run out: 00:00, held still in red while the player plays on. */
+const clockOver = computed(() => timeLimit.value > 0 && timeLeft.value <= 0)
 /** The best rating per campaign level (by id). */
 const timeStarBest = ref<Record<number, number>>(getState<Record<number, number>>('umb_time_stars', {}))
 const startClock = () => {
@@ -467,7 +481,8 @@ const placeRating = (cam: { s: number; ox: number; oy: number }) => {
 startClock()
 let lastTickSecond = -1
 const runClock = (input: Input) => {
-  if (!timeLimit.value || world.phase === 'win') return
+  // Run out: the clock stays at 00:00 and the player plays on (the finish still rates it ★).
+  if (!timeLimit.value || world.phase === 'win' || timeLeft.value <= 0) return
   if (!clockArmed && !(input.left || input.right || input.toggle)) return
   clockArmed = true
   timeLeft.value = Math.max(0, timeLeft.value - DT)
@@ -478,7 +493,6 @@ const runClock = (input: Input) => {
   if (timeLeft.value <= 0) {
     flashNotice(t('umbrella.timeUp'))
     playSfx('timeUp')
-    restart()
   }
 }
 
@@ -700,8 +714,8 @@ const tick = () => {
   togglePending = false
   const vyBefore = world.player.vy
   if (world.phase === 'play') notePlayTime(DT)
+  // Run out, the clock holds at 00:00 and the level plays on (timeStars.ts).
   runClock(input)
-  if (timeLimit.value && timeLeft.value <= 0) return // the level just restarted
   const events = step(world, input, DT, tuning)
   onEvents(events, vyBefore)
   if (events.includes('star')) syncStars()
@@ -965,6 +979,7 @@ const onPlay = () => {
   begin()
 }
 onUnmounted(() => {
+  clockSizer?.disconnect()
   setStillSkyCanvas(null, null)
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
@@ -1015,7 +1030,7 @@ onUnmounted(() => {
     <!-- Designer tools behind the "cmonc" cheat: English only, like the lil-gui panel. -->
     <button v-if="introOn && skipShown" class="intro-skip u-btn" @click.stop="endIntro">{{ t('umbrella.intro.skip') }}</button>
     <template v-if="!introOn">
-    <div v-if="testing" class="hud">
+    <div v-if="testing" class="hud" :class="{ timed: clockSpace > 0 }" :style="clockSpace ? { '--clock-space': `${clockSpace}px` } : undefined">
       <button class="hud-btn wide" @click="backToEditor">◀ Editor</button>
       <button class="hud-btn" aria-label="Previous level" @click="stepTest(-1)">‹</button>
       <span class="hud-level">{{ testName || 'TEST LEVEL' }}</span>
@@ -1025,22 +1040,20 @@ onUnmounted(() => {
       <!-- The same mute as in the game (it is one setting): a mute made there must be undoable here too. -->
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute"><UiGlyph :name="userMuted ? 'mute' : 'sound'" :fallback="userMuted ? '🔇' : '🔊'" /></button>
     </div>
-    <div v-else-if="playing" class="hud">
+    <div v-else-if="playing" class="hud" :class="{ timed: clockSpace > 0 }" :style="clockSpace ? { '--clock-space': `${clockSpace}px` } : undefined">
       <button class="hud-btn" :aria-label="t('umbrella.back')" @click="leaveCustom"><UiGlyph name="prev" fallback="‹" /></button>
       <span class="hud-level custom" :title="playing.name">{{ playing.name }}</span>
-      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart"><UiGlyph name="restart" fallback="↻" /></button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true"><svg class="grid-ico" viewBox="0 0 18 18" aria-hidden="true"><rect v-for="k in 9" :key="k" :x="((k - 1) % 3) * 6 + 0.6" :y="Math.floor((k - 1) / 3) * 6 + 0.6" width="4.8" height="4.8" rx="1.3" /></svg></button>
       <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause"><UiGlyph name="pause" fallback="⏸" /></button>
       <button v-if="playing.communityId && canRate" class="hud-btn" :aria-label="t('umbrella.rateLevel')" @click="showRate = true"><UiGlyph name="star" fallback="★" /></button>
       <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute"><UiGlyph :name="userMuted ? 'mute' : 'sound'" :fallback="userMuted ? '🔇' : '🔊'" /></button>
     </div>
-    <div v-else class="hud">
+    <div v-else class="hud" :class="{ timed: clockSpace > 0 }" :style="clockSpace ? { '--clock-space': `${clockSpace}px` } : undefined">
       <!-- The designer's jam playtest (from the editor): English, like the other designer tools. -->
       <button v-if="jamTest" class="hud-btn wide jam-test" title="Back to the editor" @click="endJamTest">◀ Jam test</button>
       <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="stepLevel(-1)"><UiGlyph name="prev" fallback="‹" /></button>
       <span class="hud-level" @pointerdown="tapLevelLabel">{{ t('umbrella.level', { n: shownIndex() + 1 }) }}<template v-if="challenge"> · {{ t('umbrella.challenge') }}</template></span>
       <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="stepLevel(1)"><UiGlyph name="next" fallback="›" /></button>
-      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart"><UiGlyph name="restart" fallback="↻" /></button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true"><svg class="grid-ico" viewBox="0 0 18 18" aria-hidden="true"><rect v-for="k in 9" :key="k" :x="((k - 1) % 3) * 6 + 0.6" :y="Math.floor((k - 1) / 3) * 6 + 0.6" width="4.8" height="4.8" rx="1.3" /></svg></button>
 <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause"><UiGlyph name="pause" fallback="⏸" /></button>
       <button v-if="communityEnabled && communityUnlocked(cleared)" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true"><UiGlyph name="globe" fallback="🌐" /> <span class="hud-btn-text">{{ t('umbrella.community.button') }}</span></button>
@@ -1082,7 +1095,6 @@ onUnmounted(() => {
     <ul v-if="showControls" class="controls" :aria-label="t('umbrella.controls')">
       <li><span class="keys"><kbd>←</kbd><kbd>→</kbd><i>/</i><kbd>A</kbd><kbd>D</kbd></span><span class="what">{{ t('umbrella.ctlMove') }}</span></li>
       <li><span class="keys"><kbd class="wide">Space</kbd><i>/</i><kbd class="wide">Enter</kbd></span><span class="what">{{ t('umbrella.ctlUmbrella') }}</span></li>
-      <li><span class="keys"><kbd>R</kbd></span><span class="what">{{ t('umbrella.ctlRestart') }}</span></li>
     </ul>
     <!-- The touch controls (`touchUI`): on phones, tablets and phone-sized portrait viewports at every level (they
          are the controls, not hints); on a desktop only after a touch — never because the key list is hidden. -->
@@ -1132,8 +1144,9 @@ onUnmounted(() => {
     <!-- A timed level's clock (timeStars.ts), under the collectible badge; it blinks near the end. -->
     <div
       v-if="timeLimit && started && !introOn"
+      ref="clockEl"
       class="clock"
-      :class="{ blink: clockBlink, below: !!hudStars.total }"
+      :class="{ blink: clockBlink, over: clockOver, below: !!hudStars.total }"
       role="timer"
       :aria-label="t('umbrella.timeLeft', { t: clockText })"
     >
@@ -1398,6 +1411,15 @@ onUnmounted(() => {
 .hud-btn.wide { width: auto; padding: 0 12px; font-size: 16px; font-weight: 700; }
 /* A phone held upright: the bar would run off both edges, so Community keeps only its globe,
    the gaps tighten and, on the narrowest screens, the row wraps instead of clipping. */
+/* A timed level: the bar keeps clear of the clock in the top right corner, centred in the room left
+   of it and wrapping to a second row where that room runs out (it ran under the clock before). */
+.hud.timed {
+  left: calc(8px + env(safe-area-inset-left, 0px));
+  right: calc(var(--clock-space, 160px) + 20px + env(safe-area-inset-right, 0px));
+  transform: none;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 @media (max-width: 560px) {
   .hud { left: 8px; right: 8px; transform: none; gap: 6px; flex-wrap: wrap; justify-content: center; }
   .hud-level { min-width: 76px; font-size: 18px; }
@@ -1694,7 +1716,7 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
 }
 .clock-bar i { display: block; height: 100%; background: linear-gradient(90deg, #7ee08a, #c8f56b); transform-origin: left; }
 .clock.blink { animation: clock-blink 0.5s steps(2, jump-none) infinite alternate, clock-shake 0.5s ease-in-out infinite; }
-.clock.blink .clock-time { color: #ff6b5e; }
+.clock.blink .clock-time, .clock.over .clock-time { color: #ff6b5e; }
 .clock.blink .clock-bar i { background: linear-gradient(90deg, #ff6b5e, #ffb347); }
 @keyframes clock-blink {
   from { border-color: #ff6b5e; box-shadow: 0 0 0 2px #0d1226, 0 0 22px rgba(255, 90, 80, 0.9); }

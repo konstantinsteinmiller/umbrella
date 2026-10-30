@@ -14,8 +14,8 @@ describe('the rating', () => {
     expect(timeStars(0.99, 60)).toBe(1)
     expect(timeStars(0.01, 60)).toBe(1)
   })
-  it('gives none when the clock ran out or there is no limit', () => {
-    expect(timeStars(0, 60)).toBe(0)
+  it('gives the lowest rating when the clock ran out, and none when there is no limit', () => {
+    expect(timeStars(0, 60)).toBe(1)
     expect(timeStars(10, 0)).toBe(0)
   })
 })
