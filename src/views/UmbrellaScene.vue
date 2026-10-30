@@ -1223,8 +1223,8 @@ onUnmounted(() => {
             >
               <span class="level-num" :class="{ timed: !!activeTimeLimit(LEVELS[i]!) }">{{ i + 1 }}</span>
               <StarRating v-if="activeTimeLimit(LEVELS[i]!)" class="tile-stars" :stars="timeStarBest[LEVELS[i]!.id] ?? 0" :label="t('umbrella.rating', { n: timeStarBest[LEVELS[i]!.id] ?? 0 })" />
-              <!-- The level's own collectible (its golden umbrella, star or cloud); on a timed tile it moves up, clear of the rating. -->
-              <span v-if="LEVELS[i]!.stars?.length" class="level-stars" :class="{ up: !!activeTimeLimit(LEVELS[i]!) }"><CollectIcon :shape="LEVELS[i]!.stars![0]!.shape ?? DEFAULT_COLLECT_SHAPE" :size="11" />{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
+              <!-- The level's own collectible (its golden umbrella, star or cloud), under the rating. -->
+              <span v-if="LEVELS[i]!.stars?.length" class="level-stars"><CollectIcon :shape="LEVELS[i]!.stars![0]!.shape ?? DEFAULT_COLLECT_SHAPE" :size="11" />{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
             </button>
           </div>
         </section>
@@ -1592,6 +1592,10 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   grid-template-columns: repeat(6, 1fr);
   gap: 10px;
 }
+/* A phone held upright: four to a row, so each tile has room for its number, rating and count. */
+@media (max-width: 560px) and (orientation: portrait) {
+  .levels-grid { grid-template-columns: repeat(4, 1fr); }
+}
 .chapter + .chapter { margin-top: 16px; }
 .chapter-title {
   margin: 0 0 8px;
@@ -1602,7 +1606,16 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
 }
 .level-tile {
   position: relative;
-  aspect-ratio: 1;
+  /* A little taller than wide: the number, then (timed) the rating, then (collectibles) the count,
+     stacked in one centred column that fits the tile. */
+  aspect-ratio: 5 / 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4%;
+  padding: 6% 4%;
+  container-type: inline-size;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.1);
   font-size: 22px;
@@ -1628,21 +1641,16 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
 .my-empty { margin: 0; font-size: 14px; opacity: 0.7; }
 .level-tile.challenge { background: rgba(34, 163, 90, 0.35); }
 .level-stars {
-  position: absolute;
-  bottom: 3px;
-  left: 0;
-  right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-size: 11px;
+  font-size: max(11px, 14cqw);
+  line-height: 1;
   color: #facc15;
   text-align: center;
 }
-.level-stars .collect-icon { flex: none; fill: currentColor; }
-/* A timed tile shows its rating along the bottom: the collectible count sits at the top instead. */
-.level-stars.up { bottom: auto; top: 3px; }
+.level-stars .collect-icon { flex: none; fill: currentColor; width: 1em; height: 1em; }
 /* The collectible badge: a gilded pill in the top right corner. */
 .collect-badge {
   position: absolute;
@@ -1795,13 +1803,11 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   86% { opacity: 1; translate: -50% -100%; }
   100% { opacity: 0; translate: -50% -135%; }
 }
-.level-num.timed { display: block; margin-top: -24%; }
+.level-num { line-height: 1; }
 .tile-stars {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 13%;
-  font-size: clamp(15px, 2.6vw, 19px);
+  /* The rating's width is about 3.5em: 24cqw fills most of the tile's width at any size. */
+  font-size: 24cqw;
+  margin-top: 4%;
 }
 /* A cleared level shows its number in the tick's green: no extra mark to squeeze into a small tile. */
 .level-tile.cleared .level-num { color: #7ee08a; }
