@@ -63,13 +63,13 @@ const CAM_TURN_SPEED = 320
 export const leanOf = (w: World): number => leans.get(w) ?? 0
 
 /** A portrait screen zooms in at least this much past "the whole width fits", so Pweeg and the level read at phone size.
- *  (1.69 until 2026-10-30, then zoomed out by 1.3 and again by 1.2: about 56 % more of the level on screen than at
- *  first, to see what comes next.) */
-export const PORTRAIT_ZOOM = 1.083
+ *  (1.69 until 2026-10-30, then zoomed out by 1.3, 1.2 and 1.4 to see what comes next: about 2.2x the
+ *  level on screen of at first. Below 1 a level narrower than the screen's width stays centred.) */
+export const PORTRAIT_ZOOM = 0.774
 /** …and far enough that the level's height fills this share of the screen's height: the band between
  *  the HUD at the top and the touch controls at the bottom, instead of a strip with empty sky above
  *  and below. The camera follows the player sideways through the width this leaves off screen. */
-export const PORTRAIT_FILL = 0.46
+export const PORTRAIT_FILL = 0.33
 
 /** Taller than wide: the levels are laid out for landscape, so this screen gets the portrait camera and backdrop. */
 export const isPortrait = (cw: number, ch: number): boolean => ch > cw

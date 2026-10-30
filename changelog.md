@@ -1,12 +1,13 @@
 Umbrella — changelog (newest first)
 
 == Revision 13 — 2026-10-30 ==
+- [x] Poki playtest recordings: the swinging paper lanterns (start screen, chapter card) showed as broken-image icons; their image is now put into the recorded copy as data
 - [x] Lantern promotion: a 630x500 cover and the logo as umbrella_logo.jpg
 - [x] Touch controls turn see-through while they cover Pweeg or his starting ledge, until the first press, so he can be seen where a level starts him in a bottom corner
 - [x] Timed levels: no alarm sound when the clock runs out (the red 00:00 and a quiet note stay); the player plays on and decides whether to come back for more stars
 - [x] Level grid: taller tiles stack the level number, the time rating (as wide as the tile) and the collectible count with the level's own collectible icon in one centred column, nothing overlapping; four tiles to a row on a phone held upright
 - [x] Camera (landscape scrolling levels), Super Mario World style: two trigger lines either side of the player; walking on pushes the view along with the player a little behind the middle (lead 14 % of the view, was 32 %); walking back moves nothing until he crosses the line behind him, then the camera turns, gliding across on a spring at a capped speed instead of whipping over
-- [x] Portrait phones show more of the level (zoomed out by 1.3, then by another 1.2) to see what comes next; their camera otherwise unchanged
+- [x] Portrait phones show more of the level (zoomed out by 1.3, then 1.2, then 1.4) to see what comes next; their camera otherwise unchanged
 - [x] Chasing mines wait for the player's first move (the walk or umbrella press that starts the clock), and again after every restart or checkpoint revive, so a slow start is never blown up
 - [x] Timed levels: the top bar keeps clear of the clock on phones (portrait and landscape), centred in the room left of it and wrapping to a second row where needed
 - [x] The restart button is gone from the top bar and the R line from the desktop controls (dying resets the level anyway; R still works); the editor's test bar keeps its restart

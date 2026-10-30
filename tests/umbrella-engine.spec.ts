@@ -285,8 +285,13 @@ describe('portrait camera look-ahead', () => {
       let cam = cameraFor(w, 390, 844, 1 / 60)
       for (let i = 0; i < 240; i++) cam = cameraFor(w, 390, 844, 1 / 60)
       const ahead = (centreSeen(cam) - (pl.x + pl.w / 2)) * dir
-      // He stays in the quarter of the screen behind the way he moves.
-      expect(ahead).toBeGreaterThan((390 / cam.s) * 0.25)
+      // He stays in the quarter of the screen behind the way he moves — or the camera stands at the
+      // level's edge (zoomed out, the view covers most of the level's width).
+      const vw = 390 / cam.s
+      const px = pl.x + pl.w / 2
+      const room = dir > 0 ? w.level.world.w - vw / 2 - px : px - vw / 2
+      expect(ahead).toBeGreaterThan(Math.min(vw * 0.25, room) - 1)
+      expect(ahead).toBeGreaterThan(0)
     }
   })
 })
