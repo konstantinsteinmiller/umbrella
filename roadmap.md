@@ -35,7 +35,7 @@
 - [x] #12 Could you tweak the code so I can angle swing arcs under "Motion" dropdown? Similar to how you can change the angle of the path of "back and forth"?
   Actually, while you're at it. Could you code an ability in the Level Editor to place where in the radius an enemy will start their cycle for the "Circle" motion? So basicly a spawn phase(in degrees i guess with a easy to use pin that can be moved.)
   *Done:* swing has an "Arc angle (°)" (slider, number, or drag the orange rest dot); every repeating motion (back and forth, circle, swing, the repeating lunge) has a "Start (°)" for where in its cycle it starts (slider or number; on a circle also the blue pin). Old levels and share links play exactly as before.
-- [ ] #13 Revamp the lantern UI with very fancy AAA game studio UI/UX expert designer that make the UI playful, AAA standard with best-practices applied for UI animation states, fluid animations and transitions, thematically adjusted to the lantern and claymotion design based on selected art style.
+- [x] #13 Revamp the lantern UI with very fancy AAA game studio UI/UX expert designer that make the UI playful, AAA standard with best-practices applied for UI animation states, fluid animations and transitions, thematically adjusted to the lantern and claymotion design based on selected art style.
   In the end I want a mind-blowingly fantastic UI/UX design that blows the game jam and real players off the stools.
   Add really fancy and mind-blowingly cool ornaments in the FModal content inset and the button inset (also dropdown insets). The ornaments must be very detailed and not look low-effort. Nothing in the revamped UI design should look or read as low-effort.
   use an Opus xHigh effort subagent for this task.

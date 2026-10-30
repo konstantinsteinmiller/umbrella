@@ -97,6 +97,7 @@
     --u-press: 1;
   }
   .ui-theme.ui-theme .u-loop { animation: none !important; }
+  .ui-theme.ui-theme .u-backdrop::before { animation: none; }
 }
 
 /* The app sets its font on every element (App.vue `*`), so the theme's face is set on every element

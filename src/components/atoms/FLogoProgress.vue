@@ -32,8 +32,8 @@
     :class="{ 'splash-logo--out': done }"
   )
     div(class="relative flex flex-col items-center")
-      div.splash-title Umbrella
-      div.splash-bar
+      div.splash-title(:class="titleStyle") Umbrella
+      div.splash-bar(:class="titleStyle")
         div.splash-bar-fill(:style="{ width: `${Math.round(progress)}%` }")
 
       div.stuck-hint.mt-4(v-if="showStuckHint") {{ t('loading.tooLong') }}
@@ -42,8 +42,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { splashGone } from '@/use/useSplash'
+import { isClay, isLantern } from '@/umbrella/kite'
 import { useI18n } from 'vue-i18n'
 import useAssets from '@/use/useAssets'
+/** The painted builds letter the title like their start screen. */
+const titleStyle = isLantern ? 'title-lantern' : isClay ? 'title-clay' : ''
 import { stopLoading } from '@/use/useCrazyGames'
 import { armFirstLoadInterstitial, notifySplashGone } from '@/use/useFirstLoadInterstitial'
 
@@ -326,6 +329,18 @@ watch(done, (isDone) => {
   font-weight: 900
   font-size: clamp(2rem, 9vmin, 4rem)
   letter-spacing: 0.06em
+  // The painted builds name the game in their own lettering, like their "Click to play".
+  &.title-lantern
+    font-family: 'Zora Rounded', 'Segoe UI', system-ui, sans-serif
+    font-weight: 800
+    color: #fff3d6
+    text-shadow: 0 2px 0 #7e1a17, 0 4px 0 rgba(20, 8, 30, 0.6), 0 0 22px rgba(255, 170, 70, 0.85), 0 0 52px rgba(255, 140, 60, 0.5)
+  &.title-clay
+    font-family: 'Cherry Bomb One', 'Zora Rounded', 'Segoe UI', system-ui, sans-serif
+    font-weight: 400
+    letter-spacing: 0.05em
+    color: #fffaf0
+    text-shadow: 0 2px 0 #2f5fa8, 0 4px 0 #24508f, 0 6px 0 #1d3f78, 0 8px 0 #173464, 0 14px 22px rgba(0, 0, 0, 0.5)
 
 .splash-bar
   margin-top: 1rem
@@ -338,6 +353,15 @@ watch(done, (isDone) => {
 .splash-bar-fill
   height: 100%
   background: #ffb15a
+
+.splash-bar.title-lantern .splash-bar-fill
+  background: linear-gradient(90deg, #f2b544, #ffd98a)
+.splash-bar.title-clay
+  height: 8px
+  border-radius: 4px
+.splash-bar.title-clay .splash-bar-fill
+  background: #f1b72f
+  border-radius: 4px
   transition: width 0.2s ease-out
 
 // The two fades below are the former `splash-fade` / `logo-fade` <Transition>

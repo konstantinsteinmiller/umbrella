@@ -12,6 +12,9 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 13 — 2026-10-30 ==
+- [x] Themed UI (roadmap #13) for the painted styles: lantern menus as lit washi sheets in lacquer frames with gold cloud scrolls, folded-paper corners and swaying painted lanterns; clay menus as clay slabs with a rolled-clay border and modelled corner pieces (raindrop, envelope, roof tiles, leaf), squashy clay buttons; modals unfold (lantern) or squash-pop (clay), level tiles bounce, the community tabs switch without the modal jumping; the drawn game's UI is unchanged
+- [x] The loading screen names the game in the art style's lettering: Cherry Bomb One with a stacked blue clay shadow in clay, glowing cream lettering in lantern
+- [x] Clay finish: the postbox and the flag stand on the doorstep, set in from its round ends, with soft contact shadows
 - [x] Clay walls and ledges keep their brickwork at one size at any length or thickness (the stretched bricks smeared into streaks), with the coping stones along the top and a soft rounded clay edge and shadow
 - [x] A bouncy Walldorf that pushes Pweeg into a solid platform he stands on or against crushes him (splat) — any push into it, however small — instead of shoving him through it
 - [x] Clay mines blow up in clay: a squashy puff of soft clay balls, crimson clay lumps and spike cones flung out, clay dust drifting up

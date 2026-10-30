@@ -2007,17 +2007,28 @@ const finishPost = (ctx: CanvasRenderingContext2D, p: PlatformDef, time: number)
   }
   ctx.drawImage(img, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0, x, y, w, dh)
   // The postbox and the flag stand on the doorstep's top, at its two ends.
-  const stand = (k: string, h: number, cx: number, sway = 0) => {
+  // The doorstep is an oval slab seen from above: the postbox and the flag stand ON it, set in from its
+  // round ends to where the slab is deep enough (u = ±0.7 of its half-width), each with a soft contact
+  // shadow, at the same depth — not perched on the curved rim.
+  const cxs = x + w / 2
+  const cys = y + dh / 2
+  const stand = (k: string, h: number, u: number, sway = 0) => {
     const r = at(k)
     const ww = (h * (r.x1 - r.x0)) / (r.y1 - r.y0)
+    const sx = cxs + (u * w) / 2
+    const sy = cys - dh * 0.06
     ctx.save()
-    ctx.translate(cx, p.y + 2)
+    ctx.fillStyle = 'rgba(40, 30, 20, 0.28)'
+    ctx.beginPath()
+    ctx.ellipse(sx + ww * 0.08, sy, ww * 0.55, Math.max(1.5, dh * 0.07), 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.translate(sx, sy)
     ctx.rotate(sway)
     ctx.drawImage(img, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, -ww / 2, -h, ww, h)
     ctx.restore()
   }
-  stand('postbox', 46, p.x + p.w - 16)
-  stand('flag', 40, p.x + 12, Math.sin(time * 1.3) * 0.03)
+  stand('flag', Math.min(40, dh * 1.1), -0.7, Math.sin(time * 1.3) * 0.03)
+  stand('postbox', Math.min(46, dh * 1.25), 0.7)
   return true
 }
 

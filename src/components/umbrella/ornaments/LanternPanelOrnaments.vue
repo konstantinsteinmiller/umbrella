@@ -121,7 +121,7 @@ const CORNERS = ['tl', 'tr', 'bl', 'br'] as const
     <template v-if="tassels">
       <svg v-for="s in ['l', 'r']" :key="s" class="lpo-tassel u-loop" :class="s" viewBox="0 0 20 66">
         <path d="M10 0V12" stroke="#e8b450" stroke-width="1.8" />
-        <path d="M10 0V12" stroke="#2a1d3a" stroke-width="0.6" stroke-dasharray="1.2 1.6" opacity="0.6" />
+        <path d="M10.6 0V12" stroke="#fff3c8" stroke-width="0.5" opacity="0.7" />
         <circle cx="10" cy="14.4" r="3.6" :fill="`url(#${uid}gr)`" stroke="#2a1d3a" stroke-width="0.8" />
         <path d="M5.4 19Q10 16.6 14.6 19L13.6 25H6.4Z" :fill="`url(#${uid}g)`" stroke="#2a1d3a" stroke-width="0.7" />
         <path d="M6.4 25H13.6L16.4 58.5Q10 62 3.6 58.5Z" :fill="`url(#${uid}v)`" stroke="#4e0e0d" stroke-width="0.7" />
