@@ -1,6 +1,7 @@
 Umbrella — changelog (newest first)
 
 == Revision 13 — 2026-10-30 ==
+- [x] Portrait phones: a level entered from another one whose finish is not fully on screen at the start first shows the finish for 2 seconds, then swings smoothly to the player (the first move cuts it short; never on a restart or revive, never in landscape)
 - [x] Poki playtest recordings: the swinging paper lanterns (start screen, chapter card) showed as broken-image icons; their image is now put into the recorded copy as data
 - [x] Lantern promotion: a 630x500 cover and the logo as umbrella_logo.jpg
 - [x] Touch controls turn see-through while they cover Pweeg or his starting ledge, until the first press, so he can be seen where a level starts him in a bottom corner

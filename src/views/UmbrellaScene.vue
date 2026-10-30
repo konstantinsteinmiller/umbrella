@@ -27,7 +27,7 @@ import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import { createIntro, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
-import { render } from '@/umbrella/renderer'
+import { previewFinish, render } from '@/umbrella/renderer'
 import { ARRIVE_TIME, drawWarp, startWarp, warpPosition, warpTime, type Warp } from '@/umbrella/warp'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
@@ -537,8 +537,12 @@ const reload = (opts: { at?: { x: number; y: number } } = {}) => {
 }
 /** Opens a campaign level by position (this leaves any challenge). */
 const loadLevel = (i: number) => {
+  const from = levelIndex.value
   if (!testing && !playing.value) { levelIndex.value = (i + LEVELS.length) % LEVELS.length; challenge.value = null }
   reload()
+  // Entered from another level: on a phone held upright the camera shows the finish first, if the
+  // start view does not (renderer.ts previewFinish). Never on a restart or a revive.
+  if (levelIndex.value !== from) previewFinish(world)
 }
 const stepLevel = (d: 1 | -1) => loadLevel(walkIndex(levelIndex.value, d))
 const restart = () => reload()

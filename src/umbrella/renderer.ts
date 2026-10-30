@@ -59,6 +59,15 @@ const CAM_SPRING = 6
 /** The camera's top speed while it turns (world px/s), or a little over the player's own speed. */
 const CAM_TURN_SPEED = 320
 
+/** Portrait: a world entered from another level first shows its finish (if the start view does not),
+ *  then swings to the player. Seconds since it began, and whether the start view was checked. */
+const finishPreviews = new WeakMap<World, { t: number; checked: boolean }>()
+/** How long the camera rests on the finish, and how long it then swings to the player (s). */
+const PREVIEW_HOLD = 2
+const PREVIEW_SWING = 0.75
+/** Show this world's finish first (portrait only, and only where the start view does not show it). */
+export const previewFinish = (w: World): void => { finishPreviews.set(w, { t: 0, checked: false }) }
+
 /** The camera's current look-ahead lean for a world (world px, + = right): for the tests. */
 export const leanOf = (w: World): number => leans.get(w) ?? 0
 
@@ -153,7 +162,32 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0): Camera => {
   }
   const axis = (centre: number, seen: number, size: number) =>
     seen >= size ? (seen - size) / 2 : -Math.min(size - seen, Math.max(0, centre - seen / 2))
-  return { s, ox: axis(c.x, vw, ww) * s, oy: axis(c.y, vh, wh) * s }
+  let at = { x: c.x, y: c.y }
+  const pv = portrait ? finishPreviews.get(w) : undefined
+  if (pv) {
+    const fin = w.platforms.find((p) => p.finish)
+    if (!pv.checked) {
+      pv.checked = true
+      // Already on screen from the start (the whole finish in view): no preview.
+      const left = -axis(c.x, vw, ww)
+      const top = -axis(c.y, vh, wh)
+      if (!fin || (fin.x >= left && fin.x + fin.w <= left + vw && fin.y - 40 >= top && fin.y + fin.h <= top + vh)) finishPreviews.delete(w)
+    }
+    if (fin && finishPreviews.has(w)) {
+      // The player's first move cuts the rest short: straight to the swing back.
+      if (w.moved && pv.t < PREVIEW_HOLD) pv.t = PREVIEW_HOLD
+      pv.t += dt
+      const goal = { x: fin.x + fin.w / 2, y: fin.y }
+      if (pv.t < PREVIEW_HOLD) at = goal
+      else {
+        const u = Math.min(1, (pv.t - PREVIEW_HOLD) / PREVIEW_SWING)
+        const k = u * u * (3 - 2 * u)
+        at = { x: goal.x + (c.x - goal.x) * k, y: goal.y + (c.y - goal.y) * k }
+        if (u >= 1) finishPreviews.delete(w)
+      }
+    }
+  }
+  return { s, ox: axis(at.x, vw, ww) * s, oy: axis(at.y, vh, wh) * s }
 }
 
 /** The doc's sketch of a current: wavy lines drifting along the flow. */

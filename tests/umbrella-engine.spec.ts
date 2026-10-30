@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createWorld, step, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { LEVELS } from '@/umbrella/levels'
-import { cameraFor, leanOf, PORTRAIT_FILL, PORTRAIT_ZOOM } from '@/umbrella/renderer'
+import { cameraFor, leanOf, previewFinish, PORTRAIT_FILL, PORTRAIT_ZOOM } from '@/umbrella/renderer'
 import { DEFAULT_TUNING as T } from '@/umbrella/tuning'
 
 const DT = 1 / 120
@@ -441,5 +441,58 @@ describe('landscape camera (Super Mario World style)', () => {
     expect(Math.min(...r.filter((p) => p.t > 4).map((p) => p.cam - p.player))).toBeLessThan(-vw * 0.03)
     // …gliding across, never faster than its turn cap (320 px/s, or a little over the player's speed).
     for (let i = 1; i < r.length; i++) expect(Math.abs(r[i]!.cam - r[i - 1]!.cam) / DT).toBeLessThan(420)
+  })
+})
+
+describe('portrait: a level entered from another one first shows its finish', () => {
+  const PW = 390
+  const PH = 844
+  const view = (cam: { s: number; ox: number; oy: number }) => ({ l: -cam.ox / cam.s, t: -cam.oy / cam.s, r: (-cam.ox + PW) / cam.s, b: (-cam.oy + PH) / cam.s })
+  const inView = (v: ReturnType<typeof view>, x: number, y: number) => x >= v.l && x <= v.r && y >= v.t && y <= v.b
+  // A level whose finish the start view does not show (the scrolling level 27).
+  const far = () => {
+    const w = level(27)
+    const fin = w.platforms.find((p) => p.finish)!
+    const start = view(cameraFor(w, PW, PH, 0))
+    return { w, fin, startShowsFinish: inView(start, fin.x + fin.w / 2, fin.y) }
+  }
+
+  it('rests on the finish for 2 s, then swings to the player within a second', () => {
+    const { fin, startShowsFinish } = far()
+    expect(startShowsFinish).toBe(false)
+    const w = level(27)
+    previewFinish(w)
+    let cam = cameraFor(w, PW, PH, 0)
+    for (let i = 0; i < 60; i++) cam = cameraFor(w, PW, PH, 1 / 60)
+    expect(inView(view(cam), fin.x + fin.w / 2, fin.y)).toBe(true)
+    for (let i = 0; i < 120; i++) cam = cameraFor(w, PW, PH, 1 / 60)
+    const pl = w.player
+    expect(inView(view(cam), pl.x + pl.w / 2, pl.y + pl.h / 2)).toBe(true)
+  })
+
+  it('is cut short by the first move', () => {
+    const w = level(27)
+    previewFinish(w)
+    let cam = cameraFor(w, PW, PH, 0)
+    w.moved = true
+    for (let i = 0; i < 60; i++) cam = cameraFor(w, PW, PH, 1 / 60)
+    const pl = w.player
+    expect(inView(view(cam), pl.x + pl.w / 2, pl.y + pl.h / 2)).toBe(true)
+  })
+
+  it('does nothing in landscape, or where the start view already shows the finish', () => {
+    const w = level(27)
+    previewFinish(w)
+    const a = cameraFor(level(27), 1280, 720, 0)
+    const b = cameraFor(w, 1280, 720, 0)
+    expect(b).toEqual(a)
+    // Level 1 with its finish moved next to the start: in view from the first frame.
+    const near = () => {
+      const base = LEVELS[0]!
+      return createWorld({ ...base, platforms: base.platforms.map((q) => (q.finish ? { ...q, x: base.spawn.x + 60, y: base.spawn.y } : q)) })
+    }
+    const one = near()
+    previewFinish(one)
+    expect(cameraFor(one, PW, PH, 0)).toEqual(cameraFor(near(), PW, PH, 0))
   })
 })
