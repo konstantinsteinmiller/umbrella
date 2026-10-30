@@ -345,10 +345,59 @@
 /* ── The collectible badge and the clock ────────────────────────────────────── */
 .ui-lantern .collect-badge { box-shadow: 0 0 0 2px #2a1d3a, 0 0 0 4px #7e1a17, 0 0 0 5px #2a1d3a, 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 22px rgba(255, 170, 70, 0.5); }
 .ui-lantern .collect-glyph { background: radial-gradient(circle at 35% 30%, #3a3180, #15112e); }
-.ui-lantern .clock { background: linear-gradient(180deg, #342c6e 0%, #1b163f 100%); border-color: #e8b450; box-shadow: 0 0 0 2px #2a1d3a, 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 18px rgba(255, 170, 70, 0.3); border-radius: 8px; }
 .ui-clay .collect-badge { border-color: #fff3c4; box-shadow: inset 0 -3px 0 rgba(120, 80, 0, 0.25), 0 4px 0 #8a5a00, 0 8px 14px rgba(0, 0, 0, 0.4); }
 .ui-clay .collect-glyph { background: radial-gradient(circle at 35% 30%, #4f7fc8, #1d3f78); box-shadow: inset 0 0 0 2px #fff3a8; }
-.ui-clay .clock { background: radial-gradient(130% 150% at 30% 12%, #6f97d8, #2f5fa8 50%, #1d3f78); border: 0; border-radius: 18px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 #173464, 0 8px 14px rgba(0, 0, 0, 0.4); }
+
+/* The clock, in each style's own hand: the face, hand, digits and bar too, not just the plate. */
+.ui-theme .clock-time { font-family: var(--u-font); font-weight: 800; }
+.ui-theme .clock-bar { height: 6px; margin-top: 5px; border-radius: 3px; }
+/* Lantern: a lit night-paper plaque in gold leaf (like the key hints), a washi dial with a gold
+ * rim and an ink hand, glowing cream digits, a gold thread burning down. */
+.ui-lantern .clock {
+  color: #fff4dc;
+  background: radial-gradient(ellipse at 50% 130%, rgba(255, 176, 84, 0.35), transparent 70%), linear-gradient(180deg, #342c6e 0%, #1b163f 100%);
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3.5px #e8b450, 0 0 0 4.5px #2a1d3a, inset 0 0 0 3px #1b163f, inset 0 0 0 4px rgba(232, 180, 80, 0.45), 0 6px 16px rgba(0, 0, 0, 0.45), 0 0 22px rgba(255, 160, 70, 0.35);
+}
+.ui-lantern .clock-time { text-shadow: 0 0 10px rgba(255, 190, 100, 0.65); }
+.ui-lantern .clock-face { background: radial-gradient(circle at 40% 35%, #fffaf0, #f1dfb8 70%, #d9bd86); box-shadow: inset 0 0 0 1.5px #2a1d3a, 0 0 0 2.5px #e8b450, 0 0 0 3.5px #2a1d3a, 0 0 10px rgba(255, 170, 70, 0.5); }
+.ui-lantern .clock-face::before { background: #e8b450; box-shadow: 0 0 0 1px #2a1d3a; }
+.ui-lantern .clock-face i { background: #2a1d3a; }
+.ui-lantern .clock-face i::after { content: ''; position: absolute; left: 50%; bottom: -2px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #c0392b; }
+.ui-lantern .clock-bar { background: rgba(10, 8, 26, 0.7); box-shadow: inset 0 0 0 1px rgba(232, 180, 80, 0.35); border-radius: 1px; }
+.ui-lantern .clock-bar i { background: linear-gradient(90deg, #c98a2a, #ffe08a); box-shadow: 0 0 8px rgba(255, 200, 100, 0.7); }
+.ui-lantern .clock.blink { animation: lantern-clock-blink 0.5s steps(2, jump-none) infinite alternate, clock-shake 0.5s ease-in-out infinite; }
+.ui-lantern .clock.blink .clock-time { color: #ff8a6a; text-shadow: 0 0 12px rgba(255, 90, 60, 0.9); }
+.ui-lantern .clock.blink .clock-bar i { background: linear-gradient(90deg, #a92a1a, #ff7a4a); box-shadow: 0 0 8px rgba(255, 90, 60, 0.8); }
+@keyframes lantern-clock-blink {
+  from { box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3.5px #ff6b4a, 0 0 0 4.5px #2a1d3a, inset 0 0 0 3px #1b163f, 0 0 28px rgba(255, 90, 60, 0.9); }
+  to { box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3.5px #e8b450, 0 0 0 4.5px #2a1d3a, inset 0 0 0 3px #1b163f, 0 6px 16px rgba(0, 0, 0, 0.45); }
+}
+/* Clay: a cream clay slab (like the key hints and the rating card), a blue clay dial ring with a
+ * red clay hand, ink digits, a yellow clay roll in a blue groove. */
+.ui-clay .clock {
+  color: #2b2f3a;
+  background: radial-gradient(130% 100% at 30% 0%, #fffdf6, #f3ead8 50%, #e4d6ba);
+  border: 0;
+  border-radius: 20px;
+  box-shadow: inset 0 2px 0 #fff, inset 0 -3px 0 rgba(150, 120, 70, 0.25), 0 4px 0 #b9a888, 0 9px 14px rgba(0, 0, 0, 0.35);
+}
+.ui-clay .clock-face { background: radial-gradient(circle at 35% 30%, #fffdf6, #efe4cc); box-shadow: inset 0 -2px 0 rgba(150, 120, 70, 0.3), 0 0 0 3px #2f5fa8, 0 2px 0 3px #173464; }
+.ui-clay .clock-face::before { top: -7px; width: 10px; height: 6px; margin-left: -5px; border-radius: 5px 5px 2px 2px; background: #2f5fa8; box-shadow: 0 1px 0 #173464; }
+.ui-clay .clock-face i { width: 4px; margin-left: -2px; border-radius: 3px; background: #e0533d; box-shadow: 0 1px 0 #7a2014; }
+.ui-clay .clock-bar { background: #2f5fa8; box-shadow: inset 0 2px 1px rgba(10, 20, 50, 0.5); }
+.ui-clay .clock-bar i { border-radius: 3px; background: radial-gradient(120% 140% at 50% 10%, #ffe49a, #f1b72f 60%, #b07d0c); }
+.ui-clay .clock.blink { animation: clay-clock-squash 0.5s ease-in-out infinite; }
+.ui-clay .clock.blink .clock-time { color: #e0533d; }
+.ui-clay .clock.blink .clock-bar i { background: radial-gradient(120% 140% at 50% 10%, #ffab95, #e0533d 60%, #9c2d1d); }
+@keyframes clay-clock-squash {
+  0%, 100% { scale: 1 1; rotate: 0deg; box-shadow: inset 0 2px 0 #fff, 0 4px 0 #b9a888, 0 9px 14px rgba(0, 0, 0, 0.35); }
+  25% { rotate: -2deg; }
+  50% { scale: 1.06 0.94; box-shadow: inset 0 2px 0 #fff, 0 0 0 4px #e0533d, 0 4px 0 4px #9c2d1d, 0 9px 14px rgba(0, 0, 0, 0.35); }
+  75% { rotate: 2deg; }
+}
+@media (prefers-reduced-motion: reduce) { .ui-clay .clock.blink, .ui-lantern .clock.blink { animation: none; } }
 
 /* ── The timed level's rating over the player ───────────────────────────────── */
 .ui-lantern .rating-stars {

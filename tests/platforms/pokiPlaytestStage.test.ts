@@ -4,7 +4,7 @@
 // the picture only while the recorder films it, and never turns on the SDK's
 // DOM capture (a 2+ s freeze per snapshot on a phone).
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { __resetPokiPlaytestStage, fitLines, installPokiPlaytestStage, readArt, readHud } from '@/utils/pokiPlaytestStage'
+import { __resetPokiPlaytestStage, fitLines, installPokiPlaytestStage, paintStage, readArt, readHud } from '@/utils/pokiPlaytestStage'
 
 afterEach(() => {
   __resetPokiPlaytestStage()
@@ -59,6 +59,20 @@ describe('Poki playtest stage', () => {
     expect(stage.captureStream(24)).toBe(stream)
     expect(raf).toHaveBeenCalledTimes(1)
     delete (HTMLCanvasElement.prototype as { captureStream?: unknown }).captureStream
+  })
+
+  it('films the game: paints Umbrella\'s scene canvas into the stage', () => {
+    const stage = installPokiPlaytestStage({ playtestSetCanvas: vi.fn() })!
+    const scene = document.createElement('canvas')
+    scene.className = 'umbrella-canvas'
+    scene.width = scene.height = 100
+    document.body.appendChild(scene)
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100, x: 0, y: 0, toJSON: () => ({}) } as DOMRect)
+    const drawImage = vi.fn()
+    const g = { fillRect: vi.fn(), drawImage, measureText: () => ({ width: 0 }) } as unknown as CanvasRenderingContext2D
+    vi.spyOn(stage, 'getContext').mockReturnValue(g as never)
+    paintStage(0)
+    expect(drawImage).toHaveBeenCalledWith(scene, 0, 0, 100, 100)
   })
 
   it('outlines the HUD with what the player reads on it, a line per entry', () => {

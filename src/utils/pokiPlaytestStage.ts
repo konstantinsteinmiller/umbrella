@@ -44,7 +44,9 @@ import { fontStackFor } from '@/i18n/localeDirection'
 
 /** The element whose `background-image` is the scene backdrop (GameScene). */
 export const STAGE_BG_ATTR = 'data-poki-stage-bg'
-const BOARD_SEL = '.barrage-board__canvas'
+/** The game's own canvas: Umbrella's scene (the stage came from Elemental Barrage, whose board
+ *  canvas was the only one it painted — Umbrella's recordings were the HUD outline over black). */
+const BOARD_SEL = 'canvas.umbrella-canvas, .barrage-board__canvas'
 const PARTICLES_SEL = 'canvas.particle-canvas'
 /** What the HUD outline boxes: every button, a modal's panel and title, the
  *  tray, the wallet, and anything tagged `data-poki-hud` (the row badge). */
