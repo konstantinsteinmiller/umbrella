@@ -114,7 +114,7 @@ try {
   await g.clickPlay()
   await sleep(4000)
   s = await g.snap()
-  check('first gesture starts score + wind on a running context', s.state === 'running' && s.music && s.rms > 1e-4, s)
+  check('first gesture starts score + wind on a running context (music only when MUSIC_ENABLED)', s.state === 'running' && (s.music || !s.musicEnabled) && s.rms > 1e-4, s)
 
   // Control first: gameplay events really do sound when nothing is muted.
   await g.key('Space', ' ', 32)
@@ -197,7 +197,7 @@ try {
   await h.gate('useGamePause', 'm.isAdShowing.value = false')
   await sleep(3000)
   s = await h.snap()
-  check('…score and wind start once the ad closes', s.state === 'running' && s.music && s.rms > 1e-4, s)
+  check('…score and wind start once the ad closes (music only when MUSIC_ENABLED)', s.state === 'running' && (s.music || !s.musicEnabled) && s.rms > 1e-4, s)
 
   try { await send('Browser.close') } catch { /* going */ }
   ws.close()

@@ -10,17 +10,24 @@
 //     freezes them; they would tail out on resume), and
 //   • refuses every new one-shot until it clears.
 // Music and the wind bed start only after the first user gesture, and only
-// once the context really runs. The music is the recorded loop
-// public/audio/music/bg-cozy.ogg (fetched then, never before the first
-// screen), played on the engine's music bus: the same gate, the same suspend
-// under an ad (it carries on from where it was when the ad closes), and the
-// same ducking under the big one-shots as the synthesised score had.
+// once the context really runs. The music is the recorded loop bg-cozy.ogg
+// (fetched then, never before the first screen), played on the engine's music
+// bus: the same gate, the same suspend under an ad (it carries on from where it
+// was when the ad closes), and the same ducking under the big one-shots as the
+// synthesised score had.
+//
+// THE MUSIC IS OFF FOR NOW (MUSIC_ENABLED). The track waits, unshipped, in
+// src/assets/audio/bg-cozy.ogg: nothing imports it, so no build carries it and
+// the game never fetches it. To bring it back: move it to public/audio/music/
+// and set MUSIC_ENABLED (the pause menu's Music slider shows itself again).
 
 import { getAudioContext, isAudioSuspended } from '@/use/useAssets'
 import { createSoundEngine, type MixLevels, type SoundEngine } from './soundEngine'
 import type { AmbienceState, SfxName, SfxParams } from './soundKit'
 import { createEnemySounds, ENEMY_BED_IDLE, type EnemyBedState, type EnemySfxName, type EnemySfxParams, type EnemySounds } from './enemySounds'
 
+/** Whether the background music plays at all (off for now: see the header). */
+export const MUSIC_ENABLED = false
 /** The background music: a seamless loop, at the music bus's level (tuning.musicVolume). */
 const MUSIC_TRACK = `${import.meta.env.BASE_URL}audio/music/bg-cozy.ogg`
 /** Seconds the track fades in over when it first starts. */
@@ -56,7 +63,7 @@ const startBeds = (): void => {
   bedsStarted = true
   e.startAmbience()
   enemies?.startBed()
-  void startTrack(e)
+  if (MUSIC_ENABLED) void startTrack(e)
 }
 
 /** Fetch and decode the track once, then start it (silently skipped if either fails). */
@@ -129,7 +136,7 @@ export const setAudioLevels = (l: MixLevels): void => {
  */
 export const audioDebug = () => {
   const e = engine
-  if (!e) return { state: 'none', muted, gate: isAudioSuspended(), muteGain: null, voices: 0, music: false, rms: 0 }
+  if (!e) return { state: 'none', muted, gate: isAudioSuspended(), muteGain: null, voices: 0, music: false, musicEnabled: MUSIC_ENABLED, rms: 0 }
   const buf = new Float32Array(e.mix.meter.fftSize)
   e.mix.meter.getFloatTimeDomainData(buf)
   let sum = 0
@@ -141,6 +148,7 @@ export const audioDebug = () => {
     muteGain: e.mix.mute.gain.value,
     voices: e.activeVoices,
     music: e.musicStarted,
+    musicEnabled: MUSIC_ENABLED,
     rms: Math.sqrt(sum / buf.length)
   }
 }

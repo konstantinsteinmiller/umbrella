@@ -19,7 +19,7 @@ import OrnDivider from './ornaments/OrnDivider.vue'
 import UiGlyph from './ornaments/UiGlyph.vue'
 import { useUiTheme } from '@/umbrella/ui/theme'
 import useUser from '@/use/useUser'
-import { playSfx } from '@/umbrella/audio'
+import { MUSIC_ENABLED, playSfx } from '@/umbrella/audio'
 
 const emit = defineEmits<{ resume: []; restart: []; intro: []; audition: [on: boolean] }>()
 const { t } = useI18n()
@@ -76,7 +76,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
             <LanguageSelect />
           </div>
           <div v-else class="tab-body audio" role="tabpanel">
-            <label class="vol">
+            <label v-if="MUSIC_ENABLED" class="vol">
               <span class="vol-name">{{ t('options.music') }}</span>
               <input id="vol-music" type="range" min="0" max="100" step="1" :value="musicPct" @input="onMusic">
               <span class="vol-val">{{ musicPct }}%</span>

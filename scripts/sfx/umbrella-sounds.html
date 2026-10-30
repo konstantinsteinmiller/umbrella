@@ -121,7 +121,7 @@ const SOUNDS = {
   'enemy-mine': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, mine: 1, mineSpeed: 0.6 }, t + 0.1) } },
   'enemy-pillar': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, pillar: 1 }, t + 0.1) } },
   'wind-fall': { seconds: 10, skip: 4, run: (e, t) => { e.startAmbience(t); e.setAmbience({ ...AMBIENCE_IDLE, speed: 1, danger: 1 }, t + 0.1) } },
-  // The recorded track (public/audio/music/bg-cozy.ogg) on the music bus, alone and under the game.
+  // The recorded track (src/assets/audio/bg-cozy.ogg while the music is off) on the music bus, alone and under the game.
   'track': { seconds: 60, skip: 2, track: true, run: (e, t, b) => { e.startTrack(b, t, 0.01) } },
   'mix-track': { seconds: 30, skip: 2, track: true, run: (e, t, b) => {
     e.startTrack(b, t, 0.01); e.startAmbience(t)
@@ -147,13 +147,13 @@ const SR = 48000
 
 // ─── Offline render (the hook the render script calls) ──────────────────────
 const loadTrack = async (ctx) => {
-  for (const url of ['/audio/music/bg-cozy.ogg', '/public/audio/music/bg-cozy.ogg', '/@fs/' + TRACK_FS]) {
+  for (const url of ['/audio/music/bg-cozy.ogg', '/public/audio/music/bg-cozy.ogg', '/src/assets/audio/bg-cozy.ogg', '/@fs/' + TRACK_FS]) {
     const r = await fetch(url).catch(() => null)
     if (r?.ok) return ctx.decodeAudioData(await r.arrayBuffer())
   }
   throw new Error('bg-cozy.ogg not found')
 }
-const TRACK_FS = new URL('../../public/audio/music/bg-cozy.ogg', import.meta.url).pathname.replace(/^\/@fs\//, '')
+const TRACK_FS = new URL('../../src/assets/audio/bg-cozy.ogg', import.meta.url).pathname.replace(/^\/@fs\//, '')
 
 const renderOffline = async (name) => {
   const def = SOUNDS[name]
