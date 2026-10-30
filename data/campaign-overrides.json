@@ -708,9 +708,13 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1792735596477,
+    "editedAt": 1793329803842,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 5,
+    "timeLimitJamOnly": true
   },
   "11": {
     "id": 11,
@@ -756,9 +760,13 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1793132818047,
+    "editedAt": 1793329865072,
     "buttons": [],
-    "checkpoints": []
+    "checkpoints": [],
+    "stars": [],
+    "gates": [],
+    "timeLimit": 6,
+    "timeLimitJamOnly": true
   },
   "12": {
     "id": 12,
@@ -2069,7 +2077,9 @@
     "checkpoints": [],
     "stars": [],
     "gates": [],
-    "editedAt": 1793319299430
+    "editedAt": 1793329979951,
+    "timeLimit": 8,
+    "timeLimitJamOnly": true
   },
   "24": {
     "id": 24,
@@ -2752,12 +2762,12 @@
         "contact": "bounce"
       }
     ],
-    "editedAt": 1793323917317,
+    "editedAt": 1793330326079,
     "buttons": [],
     "checkpoints": [],
     "stars": [],
     "gates": [],
-    "timeLimit": 6,
+    "timeLimit": 17,
     "timeLimitJamOnly": true,
     "view": {
       "w": 1280,
@@ -4132,7 +4142,9 @@
     "checkpoints": [],
     "stars": [],
     "gates": [],
-    "editedAt": 1793320850608
+    "editedAt": 1793329988418,
+    "timeLimit": 8,
+    "timeLimitJamOnly": true
   },
   "1014": {
     "id": 1014,
@@ -4210,9 +4222,11 @@
     ],
     "buttons": [],
     "checkpoints": [],
-    "editedAt": 1793321879449,
+    "editedAt": 1793330041459,
     "stars": [],
-    "gates": []
+    "gates": [],
+    "timeLimit": 7,
+    "timeLimitJamOnly": true
   },
   "1015": {
     "id": 1015,
@@ -4664,6 +4678,8 @@
       "w": 1280,
       "h": 720
     },
-    "editedAt": 1793322790283
+    "editedAt": 1793330207916,
+    "timeLimit": 13,
+    "timeLimitJamOnly": true
   }
 }

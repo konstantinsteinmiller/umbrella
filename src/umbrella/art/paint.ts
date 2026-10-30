@@ -1992,20 +1992,43 @@ const finishPost = (ctx: CanvasRenderingContext2D, p: PlatformDef, time: number)
   const w = p.w + 12
   const dh = Math.max(24, Math.min(64, (w * (d.y1 - d.y0)) / (d.x1 - d.x0)))
   const y = p.y - dh * DAIS_TOP
-  // Bunting first: the slab covers where its string is tied on.
+  ctx.drawImage(img, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0, x, y, w, dh)
+  // The bunting wraps round the oval's front rim, in front of the slab: each pennant hangs from a
+  // point on the slab's own edge (evenly round the lower half of the ellipse), so the strip follows
+  // the curve up toward the round ends; a string sagging a little between the points ties them.
   const b = at('bunting')
-  const n = Math.max(3, Math.round(w / 26))
-  const bh = Math.max(10, Math.min(22, dh * 0.5))
+  const n = Math.max(4, Math.round(w / 24))
+  const bh = Math.max(10, Math.min(20, dh * 0.45))
   const bw = (bh * (b.x1 - b.x0)) / (b.y1 - b.y0)
+  const ex = x + w / 2
+  const ey = y + dh / 2
+  const tie = (i: number): [number, number] => {
+    const th = Math.PI * (0.1 + (0.8 * i) / (n - 1))
+    return [ex + Math.cos(th) * (w / 2) * 0.97, ey + Math.sin(th) * (dh / 2) * 0.93]
+  }
+  ctx.save()
+  ctx.strokeStyle = '#8a6a3a'
+  ctx.lineWidth = Math.max(1, bh * 0.08)
+  ctx.beginPath()
   for (let i = 0; i < n; i++) {
-    const u = (i + 0.5) / n
+    const [tx, ty] = tie(i)
+    if (i === 0) { ctx.moveTo(tx, ty); continue }
+    const [px, py] = tie(i - 1)
+    ctx.quadraticCurveTo((px + tx) / 2, (py + ty) / 2 + bh * 0.22, tx, ty)
+  }
+  ctx.stroke()
+  ctx.restore()
+  // The painted pennant without its own bit of string: its top fifth is cut off.
+  const top = b.y0 + (b.y1 - b.y0) * 0.18
+  for (let i = 0; i < n; i++) {
+    const [tx, ty] = tie(i)
     ctx.save()
-    ctx.translate(x + w * (0.06 + 0.88 * u), y + dh * 0.86)
+    ctx.translate(tx, ty)
     ctx.rotate(Math.sin(time * 1.8 + i * 0.8) * 0.1)
-    ctx.drawImage(img, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0, -bw / 2, 0, bw, bh)
+    const pw = bw * 0.7
+    ctx.drawImage(img, b.x0 + (b.x1 - b.x0) * 0.15, top, (b.x1 - b.x0) * 0.7, b.y1 - top, -pw / 2, 0, pw, bh * 0.82)
     ctx.restore()
   }
-  ctx.drawImage(img, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0, x, y, w, dh)
   // The postbox and the flag stand on the doorstep's top, at its two ends.
   // The doorstep is an oval slab seen from above: the postbox and the flag stand ON it, set in from its
   // round ends to where the slab is deep enough (u = ±0.7 of its half-width), each with a soft contact

@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 13 — 2026-10-30 ==
+- [x] Clay finish: the bunting wraps round the doorstep's front rim, each pennant hanging from the oval's own edge so the strip curves up toward its round ends
 - [x] Themed UI (roadmap #13) for the painted styles: lantern menus as lit washi sheets in lacquer frames with gold cloud scrolls, folded-paper corners and swaying painted lanterns; clay menus as clay slabs with a rolled-clay border and modelled corner pieces (raindrop, envelope, roof tiles, leaf), squashy clay buttons; modals unfold (lantern) or squash-pop (clay), level tiles bounce, the community tabs switch without the modal jumping; the drawn game's UI is unchanged
 - [x] The loading screen names the game in the art style's lettering: Cherry Bomb One with a stacked blue clay shadow in clay, glowing cream lettering in lantern
 - [x] Clay finish: the postbox and the flag stand on the doorstep, set in from its round ends, with soft contact shadows
