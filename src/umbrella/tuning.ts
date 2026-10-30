@@ -135,9 +135,10 @@ export const DEFAULT_TUNING: Tuning = {
   // Set from the level report (scripts/sfx/render-umbrella-sounds.mjs, 2026-10): the effects 3 dB
   // under their design level so a first play is never loud (win -17.9, a fast open -19.2 LUFS max
   // momentary), the wind with them, and the music track (bg-cozy.ogg) a quiet bed about 8 dB under
-  // the quietest headline effect, ducking further under the big ones.
+  // the quietest headline effect, ducking further under the big ones; then 30 % quieter again by
+  // ear (about 11 dB under it).
   masterVolume: 1,
-  musicVolume: 0.33,
+  musicVolume: 0.23,
   sfxVolume: 0.7,
   windVolume: 0.7
 }

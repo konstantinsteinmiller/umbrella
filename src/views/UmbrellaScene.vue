@@ -36,6 +36,7 @@ import { playEnemySfx, playSfx, setAudioLevels, setAudioMuted, unlockAudio, upda
 import { AMBIENCE_IDLE, type AmbienceState } from '@/umbrella/soundKit'
 import { getState, setState } from '@/use/useEpicState'
 import { mobileCheck } from '@/utils/function'
+import useUser, { DEFAULT_MUSIC_VOLUME, DEFAULT_SOUND_VOLUME } from '@/use/useUser'
 import { blinkFrom, formatClock, timeStars } from '@/umbrella/timeStars'
 import StarRating from '@/components/umbrella/StarRating.vue'
 import { isGamePaused, isAudioPaused } from '@/use/useGamePause'
@@ -907,6 +908,7 @@ const onBlur = () => {
 // the portal / mobile hard mutes. `sync` so the mute lands in the same call
 // stack that opens an ad (see useGamePause.ts).
 // The player's own mute button, remembered across visits.
+const { userMusicVolume, userSoundVolume } = useUser()
 const userMuted = ref(getState<boolean>('umb_muted', false))
 const toggleMute = () => {
   userMuted.value = !userMuted.value
@@ -915,6 +917,8 @@ const toggleMute = () => {
 // The menus (pause, level list, community, star rating) are modals: they freeze the game, tell the
 // portal gameplay has stopped, and silence the music and sounds until they close.
 const menuOpen = computed(() => showPause.value || showLevels.value || showCommunity.value || showRate.value)
+/** The pause menu's Audio tab is open: the music may be heard there while the player sets it. */
+const auditioning = ref(false)
 let releaseMenu: (() => void) | null = null
 watch(menuOpen, (open) => {
   if (open) releaseMenu ??= acquireModalOpen()
@@ -926,10 +930,12 @@ watch(menuOpen, (open) => {
 // The click-to-play screen and the intro cutscene are not gameplay: no portal gameplayStart under them.
 // (Default flush: the click that starts a new player's intro settles before the bracket reads it.)
 watch(() => !started.value || introOn.value, (held) => setRunBreak(held), { immediate: true })
-const audioMuted = computed(() => userMuted.value || menuOpen.value || isAudioPaused.value || isPlatformAudioMuted.value || isMobileAudioMuted.value)
+const audioMuted = computed(() => userMuted.value || (menuOpen.value && !(auditioning.value && showPause.value)) || isAudioPaused.value || isPlatformAudioMuted.value || isMobileAudioMuted.value)
 watch(audioMuted, (m) => setAudioMuted(m), { immediate: true, flush: 'sync' })
 watch(
-  () => [tuning.masterVolume, tuning.musicVolume, tuning.sfxVolume, tuning.windVolume],
+  // The player's volumes (pause menu → Settings → Audio) scale the tuned mix; at their defaults
+  // it plays as tuned. The effects volume carries the wind and the enemies too (the effects bus).
+  () => [tuning.masterVolume, tuning.musicVolume * (userMusicVolume.value / DEFAULT_MUSIC_VOLUME), tuning.sfxVolume * (userSoundVolume.value / DEFAULT_SOUND_VOLUME), tuning.windVolume * (userSoundVolume.value / DEFAULT_SOUND_VOLUME)],
   ([master, music, sfx, wind]) => setAudioLevels({ master: master!, music: music!, sfx: sfx!, wind: wind! }),
   { immediate: true }
 )
@@ -1047,7 +1053,7 @@ onUnmounted(() => {
 
     <!-- The themed builds fold / squash the menus away (u-dlg in umbrella-ui.css); the plain UI closes at once. -->
     <Transition name="u-dlg" :css="!!uiTheme">
-      <PauseMenu v-if="showPause" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
+      <PauseMenu v-if="showPause" @audition="auditioning = $event" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
     </Transition>
     <Transition name="u-dlg" :css="!!uiTheme">
       <CommunityLevelsModal v-if="showCommunity" @close="showCommunity = false" @play="playCustom" />

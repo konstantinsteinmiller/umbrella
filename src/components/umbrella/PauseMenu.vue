@@ -1,12 +1,16 @@
 <script setup lang="ts">
 /**
  * The game's pause menu: Resume, Restart, Settings. Settings opens tabs; the
- * General tab holds the language dropdown. The scene stops the simulation
+ * General tab holds the language dropdown, the Audio tab the music and sound
+ * effects volumes (useUser's saved player volumes; at their defaults the game
+ * plays its tuned mix). While the Audio tab is open the scene lets the music be
+ * heard, and letting go of the effects slider plays one sample, so the player
+ * hears what they set. The scene stops the simulation
  * while this is open. In the lantern / clay builds it wears the scene's theme
  * (umbrella/ui/theme.ts): an ornamented sheet, themed buttons and icons, and a
  * slide between the menu and the settings.
  */
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LanguageSelect from './LanguageSelect.vue'
 import PanelOrnaments from './ornaments/PanelOrnaments.vue'
@@ -14,13 +18,26 @@ import BtnOrnaments from './ornaments/BtnOrnaments.vue'
 import OrnDivider from './ornaments/OrnDivider.vue'
 import UiGlyph from './ornaments/UiGlyph.vue'
 import { useUiTheme } from '@/umbrella/ui/theme'
+import useUser from '@/use/useUser'
+import { playSfx } from '@/umbrella/audio'
 
-const emit = defineEmits<{ resume: []; restart: []; intro: [] }>()
+const emit = defineEmits<{ resume: []; restart: []; intro: []; audition: [on: boolean] }>()
 const { t } = useI18n()
 const theme = useUiTheme()
 
 const view = ref<'menu' | 'settings'>('menu')
-const tab = ref<'general'>('general')
+const tab = ref<'general' | 'audio'>('general')
+
+const { userMusicVolume, userSoundVolume, setSettingValue } = useUser()
+const musicPct = computed(() => Math.round(userMusicVolume.value * 100))
+const soundPct = computed(() => Math.round(userSoundVolume.value * 100))
+const onMusic = (e: Event) => setSettingValue('music', +(e.target as HTMLInputElement).value / 100)
+const onSound = (e: Event) => setSettingValue('sound', +(e.target as HTMLInputElement).value / 100)
+/** The open of the umbrella: the effect a player hears most. */
+const sampleSound = () => playSfx('open', { intensity: 0.3 })
+const auditioning = computed(() => view.value === 'settings' && tab.value === 'audio')
+watch(auditioning, (on) => emit('audition', on))
+onUnmounted(() => emit('audition', false))
 
 const onKey = (e: KeyboardEvent) => {
   if (e.key !== 'Escape') return
@@ -37,7 +54,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
   <div class="pause-back u-backdrop" @click.self="emit('resume')">
     <div class="pause u-panel u-modal" role="dialog" aria-modal="true" :aria-label="t('umbrella.pause.title')">
       <PanelOrnaments />
-      <Transition name="u-view" mode="out-in" :css="!!theme">
+      <Transition name="u-view" mode="out-in">
         <div v-if="view === 'menu'" key="menu" class="pause-view">
           <b class="pause-title u-title"><UiGlyph name="pause" fallback="⏸" /> {{ t('umbrella.pause.title') }}</b>
           <OrnDivider class="pause-divider" />
@@ -53,9 +70,22 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
           </div>
           <div class="tabs" role="tablist">
             <button role="tab" class="tab u-tab" :class="{ on: tab === 'general' }" :aria-selected="tab === 'general'" @click="tab = 'general'">{{ t('options.general') }}</button>
+            <button role="tab" class="tab u-tab" :class="{ on: tab === 'audio' }" :aria-selected="tab === 'audio'" @click="tab = 'audio'">{{ t('options.audio') }}</button>
           </div>
           <div v-if="tab === 'general'" class="tab-body" role="tabpanel">
             <LanguageSelect />
+          </div>
+          <div v-else class="tab-body audio" role="tabpanel">
+            <label class="vol">
+              <span class="vol-name">{{ t('options.music') }}</span>
+              <input id="vol-music" type="range" min="0" max="100" step="1" :value="musicPct" @input="onMusic">
+              <span class="vol-val">{{ musicPct }}%</span>
+            </label>
+            <label class="vol">
+              <span class="vol-name">{{ t('options.soundEffects') }}</span>
+              <input id="vol-sound" type="range" min="0" max="100" step="1" :value="soundPct" @input="onSound" @change="sampleSound">
+              <span class="vol-val">{{ soundPct }}%</span>
+            </label>
           </div>
         </div>
       </Transition>
@@ -89,6 +119,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 .tab { padding: 6px 14px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); font-weight: 700; }
 .tab.on { background: #2563eb; }
 .tab-body { padding: 10px 2px; font-size: 16px; }
+.audio { display: flex; flex-direction: column; gap: 14px; }
+.vol { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'name val' 'bar bar'; align-items: center; gap: 6px 10px; font-weight: 700; }
+.vol-name { grid-area: name; display: flex; align-items: center; gap: 0.35em; }
+.vol-val { grid-area: val; font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; opacity: 0.85; }
+.vol input { grid-area: bar; width: 100%; min-height: 32px; accent-color: #2563eb; cursor: pointer; }
+.ui-lantern .vol input { accent-color: #c0392b; }
+.ui-clay .vol input { accent-color: #2f5fa8; }
 
 /* ── Themed (lantern / clay) ── */
 .ui-theme .pause-back { padding: 52px 16px 44px; }
