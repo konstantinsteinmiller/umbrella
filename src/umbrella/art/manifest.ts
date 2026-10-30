@@ -548,13 +548,13 @@ export const EXTRA_SHEETS: SheetDef[] = [
     check: ['· ONE vermilion torii, front-on, filling the image width at its top beam.', '· Black top beam with its ends sweeping up; black feet; plain straight posts in the middle; NOTHING painted between the posts.']
   },
   {
-    id: 'clay-wind', group: 'world', doc: 'PROMPTS-CLAY.md', title: 'Clay wind — four rolled-clay swooshes', use: 'sprite',
+    id: 'clay-wind', group: 'world', doc: 'PROMPTS-CLAY.md', title: 'Clay wind — twisted-rope and three-curl gusts', use: 'sprite',
     cols: 2, rows: 2, box: { size: 64, ax: 0.5, ay: 0.5 }, tier: 0, fit: 'none', fresh: true, gridCheck: 'nominal',
     anims: { blueA: { frames: [0], fps: 0 }, blueB: { frames: [1], fps: 0 }, orangeA: { frames: [2], fps: 0 }, orangeB: { frames: [3], fps: 0 } },
-    blurb: 'the wind of the clay town, as a SET of four separate SWOOSHES of rolled plasticine, one per panel, exactly like the swirling clay wind of the attached concept art: each one ONE long smooth rolled-clay stroke lying across its panel from left to right, THICK in its middle and TAPERING to a fine point at BOTH ends, in a gentle wave, its right-hand (downstream) end curling over into a small spiral; panels 1 and 2 two slightly different swooshes in soft dusty-blue clay; panels 3 and 4 the same two shapes in warm orange clay. Each swoosh alone, nothing else in its panel',
+    blurb: 'the wind of the clay town, as a SET of four separate gusts of rolled plasticine, one per panel: panels 1 and 3 a TWISTED-ROPE GUST (one fat rolled-clay stroke rising from a thin tail into a big round spiral curl, with a smaller curl tucked beside it); panels 2 and 4 THREE CURLS (three fat rolled-clay spirals side by side, each a short stroke rolling up into a round curl at its right end, the left one smallest and the right one biggest); panels 1-2 in soft dusty-blue clay, panels 3-4 the same two in warm orange clay. Each gust alone, blowing from left to right, nothing else in its panel',
     colour: 'panels 1-2 a soft dusty-blue clay (#6f96bd) with a lighter top edge (#a9c6e2) and a deeper shadow underneath (#4c6f93); panels 3-4 a warm orange clay (#e8873a) with a light apricot top edge (#ffbf86) and a burnt-orange shadow (#b45a1f)',
-    view: 'flat front-on, no perspective, lit softly from the upper left.', one: 'the clay swoosh',
-    note: 'Each swoosh lies flat across the MIDDLE of its panel and spans about four fifths of the panel\'s width, leaving magenta all round it: no leaves, no arrows, no second stroke, no background, no shadow cast on the ground.'
+    view: 'flat front-on, no perspective, lit softly from the upper left.', one: 'the clay gust',
+    note: 'Each gust sits in the MIDDLE of its panel and spans about four fifths of the panel\'s width, leaving magenta all round it: no leaves, no arrows, no background, no shadow cast on the ground.'
   },
   {
     id: 'wind-paper', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Wind paper — blue and gold washi, chevron, arrow', use: 'sprite',

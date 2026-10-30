@@ -19,9 +19,11 @@ import { GAME_SHEETS, SHEETS_FOR_HAZARD, sheetById, type SheetDef } from './mani
 const URLS: Record<string, string> = {}
 for (const [path, url] of Object.entries(files)) URLS[path.slice(path.lastIndexOf('/') + 1).replace(/\.webp$/, '')] = url
 
-/** Sheet ids that shipped with this build. */
-export const shippedSheets = (): string[] => Object.keys(URLS)
-export const hasSheet = (id: string): boolean => id in URLS
+/** A sharper twin (`<id>@2x`): never a sheet of its own, only ever fetched through sharpImage. */
+const isTwin = (id: string): boolean => id.endsWith('@2x')
+/** Sheet ids that shipped with this build (the @2x twins are not sheets). */
+export const shippedSheets = (): string[] => Object.keys(URLS).filter((id) => !isTwin(id))
+export const hasSheet = (id: string): boolean => id in URLS && !isTwin(id)
 
 interface Entry { img: HTMLImageElement; ready: boolean; failed: boolean; done: Promise<void> }
 const entries = new Map<string, Entry>()
@@ -61,6 +63,18 @@ const request = (id: string, priority: 'high' | 'low' | 'auto' = 'auto'): Entry 
  *  nobody staged is requested on first use — it draws from the next frame on. */
 export const sheetImage = (id: string): HTMLImageElement | null => {
   const e = entries.get(id) ?? request(id, 'low')
+  return e?.ready ? e.img : null
+}
+
+/** The sharper twin of a sheet (`<id>@2x`, the sky layers) on a screen of 2x or more, once the
+ *  normal one has loaded: fetched then at low priority, so the first screen never waits for it and a
+ *  1x screen never downloads it. Null until it has decoded (draw the normal one meanwhile). It
+ *  is drawn in the normal one's place at the same on-screen size, so read sizes from the normal one. */
+export const sharpImage = (id: string): HTMLImageElement | null => {
+  const twin = `${id}@2x`
+  if (!(twin in URLS) || typeof window === 'undefined' || (window.devicePixelRatio || 1) < 2) return null
+  if (!entries.get(id)?.ready) return null
+  const e = entries.get(twin) ?? request(twin, 'low')
   return e?.ready ? e.img : null
 }
 

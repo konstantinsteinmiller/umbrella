@@ -15,10 +15,11 @@ import { contactOf, STAR_R, type Hazard, type World } from '../engine'
 import { channelColor, type Camera } from '../renderer'
 import { isClay, isLantern, paintedGame } from '../kite'
 import { windStyle } from '../windStyle'
+import { liteMode, stillSkyCanvas } from '../liteMode'
 import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type GateDef, type PlatformDef, type StarDef, type WindDef } from '../levels'
 import { drawPrickbaitPupils, walldorfEyes, type PweegLook, type UmbrellaLook } from '../characters'
 import { boxOf, BUTTON_W, FAN_SIZE, PRICKBAIT_R, sheetById, SPIKE, type AnimDef, type SheetDef } from './manifest'
-import { hasSheet, setReady, sheetImage } from './sheets'
+import { hasSheet, setReady, sharpImage, sheetImage } from './sheets'
 import type { KiteArt } from './hooks'
 import { drawFinishDressing } from './kiteFinish'
 import walldorfFaceEyes from './walldorfFaceEyes.json'
@@ -146,85 +147,95 @@ const LANTERN_STEP = [0, 1, 2, 3, 6, 5, 15, 8]
 /** The raised front hand of each cheer frame (lantern), measured once from the sheet: the topmost
  *  paint in the right fifth of the figure, i.e. the fist above his head. In box units from the
  *  sprite's anchor; null where nothing sits there. */
-const cheerHands = new WeakMap<HTMLImageElement, Array<{ x: number; y: number } | null>>()
-const cheerHandOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: number; y: number } | null => {
-  let hands = cheerHands.get(img)
-  if (!hands) {
-    hands = []
+/** One frame's pixels of a decoded sheet, read back from a CPU-side copy of it made once per sheet.
+ *  The hand and fuse lookups read only the frame they are asked about, the first time it is drawn:
+ *  reading every frame of a sheet at once was a 150-300 ms stall on a phone, the moment a pose first
+ *  showed (Pweeg's first step, his first fall). */
+const sheetCopies = new WeakMap<HTMLImageElement, CanvasRenderingContext2D | null>()
+const framePixels = (img: HTMLImageElement, x: number, y: number, w: number, h: number): Uint8ClampedArray | null => {
+  let g = sheetCopies.get(img)
+  if (g === undefined) {
+    g = null
     try {
       const c = document.createElement('canvas')
       c.width = img.width
       c.height = img.height
-      const g = c.getContext('2d', { willReadFrequently: true })
-      if (g) {
-        g.drawImage(img, 0, 0)
-        const fw = Math.round(img.width / s.cols)
-        const fh = Math.round(img.height / s.rows)
-        for (let i = 0; i < s.cols * s.rows; i++) {
-          const d = g.getImageData((i % s.cols) * fw, Math.floor(i / s.cols) * fh, fw, fh).data
-          const solid = (x: number, y: number) => d[(y * fw + x) * 4 + 3]! > 120
-          let l = fw, r = -1
-          for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) if (solid(x, y)) { if (x < l) l = x; if (x > r) r = x }
-          if (r < l) { hands.push(null); continue }
-          const x0 = Math.floor(l + (r - l) * 0.78)
-          let top = -1
-          for (let y = 0; y < fh && top < 0; y++) for (let x = x0; x <= r; x++) if (solid(x, y)) { top = y; break }
-          if (top < 0) { hands.push(null); continue }
-          let sx = 0, n = 0
-          for (let y = top; y < Math.min(fh, top + fh * 0.05); y++) for (let x = x0; x <= r; x++) if (solid(x, y)) { sx += x; n++ }
-          const box = boxOf(s, i)
-          hands.push({ x: sx / n / fw - box.ax, y: (top + fh * 0.02) / fh - box.ay })
-        }
-      }
-    } catch { /* no hands: the umbrella stays at his side */ }
-    cheerHands.set(img, hands)
+      g = c.getContext('2d', { willReadFrequently: true })
+      g?.drawImage(img, 0, 0)
+    } catch { g = null }
+    sheetCopies.set(img, g)
   }
-  return hands[frame] ?? null
+  if (!g) return null
+  try {
+    return g.getImageData(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))).data
+  } catch {
+    return null
+  }
 }
-/** The front hand of each standing / walking frame, measured once from the sheet: the outermost
+/** Per sheet, per frame: a measured point, or null where there is none (undefined: not measured yet). */
+type FramePoints = Map<number, { x: number; y: number } | null>
+const measured = (cache: WeakMap<HTMLImageElement, FramePoints>, img: HTMLImageElement, frame: number, measure: () => { x: number; y: number } | null): { x: number; y: number } | null => {
+  let points = cache.get(img)
+  if (!points) cache.set(img, points = new Map())
+  if (!points.has(frame)) {
+    let at: { x: number; y: number } | null = null
+    try { at = measure() } catch { at = null }
+    points.set(frame, at)
+  }
+  return points.get(frame) ?? null
+}
+
+/** The raised front hand of each cheer frame (lantern), measured from the sheet: the topmost paint
+ *  in the right fifth of the figure, i.e. the fist above his head. In box units from the sprite's
+ *  anchor; null where nothing sits there. */
+const cheerHands = new WeakMap<HTMLImageElement, FramePoints>()
+const cheerHandOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: number; y: number } | null =>
+  measured(cheerHands, img, frame, () => {
+    const fw = Math.round(img.width / s.cols)
+    const fh = Math.round(img.height / s.rows)
+    const d = framePixels(img, (frame % s.cols) * fw, Math.floor(frame / s.cols) * fh, fw, fh)
+    if (!d) return null
+    const solid = (x: number, y: number) => d[(y * fw + x) * 4 + 3]! > 120
+    let l = fw, r = -1
+    for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) if (solid(x, y)) { if (x < l) l = x; if (x > r) r = x }
+    if (r < l) return null
+    const x0 = Math.floor(l + (r - l) * 0.78)
+    let top = -1
+    for (let y = 0; y < fh && top < 0; y++) for (let x = x0; x <= r; x++) if (solid(x, y)) { top = y; break }
+    if (top < 0) return null
+    let sx = 0, n = 0
+    for (let y = top; y < Math.min(fh, top + fh * 0.05); y++) for (let x = x0; x <= r; x++) if (solid(x, y)) { sx += x; n++ }
+    const box = boxOf(s, frame)
+    return { x: sx / n / fw - box.ax, y: (top + fh * 0.02) / fh - box.ay }
+  })
+/** The front hand of each standing / walking frame, measured from the sheet a frame at a time: the outermost
  *  paint on the side he faces (the right), in the band of his body where his hands hang. In box
  *  units from the sprite's anchor. A carried umbrella's grip goes there instead of at a fixed
  *  offset, which left it floating beside a painted figure whose arms sit elsewhere. */
-const sideHands = new WeakMap<HTMLImageElement, Array<{ x: number; y: number } | null>>()
-const raisedHands = new WeakMap<HTMLImageElement, Array<{ x: number; y: number } | null>>()
+const sideHands = new WeakMap<HTMLImageElement, FramePoints>()
+const raisedHands = new WeakMap<HTMLImageElement, FramePoints>()
 /** `raised`: the falling poses fling the arms up and out, so look for the hand in the upper part of
  *  the figure instead of where hands hang. */
-const sideHandOf = (img: HTMLImageElement, s: SheetDef, frame: number, raised = false): { x: number; y: number } | null => {
-  const cache = raised ? raisedHands : sideHands
-  let hands = cache.get(img)
-  if (!hands) {
-    hands = []
-    try {
-      const c = document.createElement('canvas')
-      c.width = img.width
-      c.height = img.height
-      const g = c.getContext('2d', { willReadFrequently: true })
-      if (g) {
-        g.drawImage(img, 0, 0)
-        const fw = Math.round(img.width / s.cols)
-        const fh = Math.round(img.height / s.rows)
-        for (let i = 0; i < s.cols * s.rows; i++) {
-          const d = g.getImageData((i % s.cols) * fw, Math.floor(i / s.cols) * fh, fw, fh).data
-          const solid = (x: number, y: number) => d[(y * fw + x) * 4 + 3]! > 120
-          let t = fh, b = -1
-          for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) if (solid(x, y)) { if (y < t) t = y; if (y > b) b = y }
-          if (b < t) { hands.push(null); continue }
-          // His hands hang between about half and three quarters of the way down him.
-          let hx = -1, hy = 0
-          const [b0, b1] = raised ? [0.12, 0.55] : [0.48, 0.75]
-          for (let y = Math.floor(t + (b - t) * b0); y <= Math.floor(t + (b - t) * b1); y++) {
-            for (let x = fw - 1; x > hx; x--) if (solid(x, y)) { hx = x; hy = y; break }
-          }
-          if (hx < 0) { hands.push(null); continue }
-          const box = boxOf(s, i)
-          hands.push({ x: (hx - fw * 0.015) / fw - box.ax, y: hy / fh - box.ay })
-        }
-      }
-    } catch { /* no hands: the umbrella keeps its fixed place */ }
-    cache.set(img, hands)
-  }
-  return hands[frame] ?? null
-}
+const sideHandOf = (img: HTMLImageElement, s: SheetDef, frame: number, raised = false): { x: number; y: number } | null =>
+  measured(raised ? raisedHands : sideHands, img, frame, () => {
+    const fw = Math.round(img.width / s.cols)
+    const fh = Math.round(img.height / s.rows)
+    const d = framePixels(img, (frame % s.cols) * fw, Math.floor(frame / s.cols) * fh, fw, fh)
+    if (!d) return null
+    const solid = (x: number, y: number) => d[(y * fw + x) * 4 + 3]! > 120
+    let t = fh, b = -1
+    for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) if (solid(x, y)) { if (y < t) t = y; if (y > b) b = y }
+    if (b < t) return null
+    // His hands hang between about half and three quarters of the way down him.
+    let hx = -1, hy = 0
+    const [b0, b1] = raised ? [0.12, 0.55] : [0.48, 0.75]
+    for (let y = Math.floor(t + (b - t) * b0); y <= Math.floor(t + (b - t) * b1); y++) {
+      for (let x = fw - 1; x > hx; x--) if (solid(x, y)) { hx = x; hy = y; break }
+    }
+    if (hx < 0) return null
+    const box = boxOf(s, frame)
+    return { x: (hx - fw * 0.015) / fw - box.ax, y: hy / fh - box.ay }
+  })
 
 /** Where the last painted figure drawn holds the umbrella (its raised fist in the cheer, its front
  *  hand standing or walking), in the caller's space; null when it was not a painted-game figure. */
@@ -1354,28 +1365,126 @@ const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w
 // travel downstream at the current's own pace. A regular current is all blue paper with double
 // chevrons; a Super Stream is golden paper with bold solid arrowheads and speed dashes. Drawn into the
 // shared wind layer and faded out at the box's two ends, like the gust streaks.
-const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World): void => {
+/** One folded strip's facets: one segment long each, shifted sideways by its fold, shaded by turns,
+ *  each a piece of the painted washi (else flat colour), with its crease and cut edges. */
+const drawStripFacets = (
+  g: CanvasRenderingContext2D, i: number, c: number, sw: number, along: number, seg: number, sup: boolean,
+  col: number[], alpha: number, wp: HTMLImageElement | null, swatch: Rect | null
+): void => {
+  const fold = sw * 0.09
+  const n = Math.ceil(along / seg) + 1
+  for (let k = 0; k < n; k++) {
+    const x0 = -along / 2 + k * seg
+    const off = (k % 2 ? 1 : -1) * fold
+    const shade = k % 2 ? 0.84 : 1
+    g.beginPath()
+    g.moveTo(x0, c - sw / 2 + off)
+    g.lineTo(x0 + seg, c - sw / 2 - off)
+    g.lineTo(x0 + seg, c + sw / 2 - off)
+    g.lineTo(x0, c + sw / 2 + off)
+    g.closePath()
+    if (wp && swatch) {
+      // A piece of the painted washi, from a different place of the swatch for every facet.
+      g.save()
+      g.clip()
+      g.globalAlpha = alpha
+      const sw0 = swatch.x1 - swatch.x0
+      const sh0 = swatch.y1 - swatch.y0
+      const cwid = Math.min(sw0, sh0) * 0.5
+      // Clear of the swatch's painted rim.
+      const inset = Math.min(sw0, sh0) * 0.06
+      const sx = swatch.x0 + inset + rnd(i * 31 + k * 7) * (sw0 - cwid - 2 * inset)
+      const sy = swatch.y0 + inset + rnd(i * 17 + k * 13 + 5) * (sh0 - cwid - 2 * inset)
+      g.drawImage(wp, sx, sy, cwid, cwid * ((sw + 2 * fold) / seg), x0, c - sw / 2 - fold, seg, sw + 2 * fold)
+      if (shade < 1) {
+        g.globalAlpha = alpha * 0.22
+        g.fillStyle = '#1a1638'
+        g.fillRect(x0, c - sw / 2 - fold, seg, sw + 2 * fold)
+      }
+      g.restore()
+    } else {
+      g.fillStyle = `rgba(${Math.round(col[0]! * shade)}, ${Math.round(col[1]! * shade)}, ${Math.round(col[2]! * shade)}, ${alpha})`
+      g.fill()
+    }
+    // The crease, and the strip's cut edges.
+    g.strokeStyle = `rgba(42, 29, 58, ${sup ? 0.4 : 0.3})`
+    g.lineWidth = 1
+    g.beginPath()
+    g.moveTo(x0 + seg, c - sw / 2 - off)
+    g.lineTo(x0 + seg, c + sw / 2 - off)
+    g.moveTo(x0, c - sw / 2 + off)
+    g.lineTo(x0 + seg, c - sw / 2 - off)
+    g.moveTo(x0, c + sw / 2 + off)
+    g.lineTo(x0 + seg, c + sw / 2 - off)
+    g.stroke()
+  }
+}
+
+/** Room round the cached strips for their folds and antialiased rims (world px). */
+const PAPER_PAD = 8
+/** A cache bigger than this (device px) is not made: the strips are drawn facet by facet instead. */
+const PAPER_CACHE_MAX_PX = 8_000_000
+const paperBodies = new WeakMap<WindDef, { key: string; canvas: HTMLCanvasElement }>()
+/** A current's folded strips, drawn once into a canvas in the current's own frame (along x, across
+ *  y), at the screen's device-px scale rounded UP to an eighth, so the copy is never softer than
+ *  drawing it live. Redrawn only when the zoom moves to another eighth or the washi arrives. */
+const foldedStrips = (
+  def: WindDef, along: number, across: number, strips: number, gap: number, seg: number, scale: number,
+  sup: boolean, col: number[], alpha: number, wp: HTMLImageElement | null, swatch: Rect | null, fadeLen: number,
+  field: PaperField, layerAlpha: number
+): HTMLCanvasElement | null => {
+  if (typeof document === 'undefined' || !(scale > 0)) return null
+  const k = Math.ceil(scale * 8) / 8
+  const key = `${along}|${across}|${strips}|${seg}|${sup}|${k}|${fadeLen}|${field.alpha}|${field.f}|${wp && swatch ? 1 : 0}`
+  const have = paperBodies.get(def)
+  if (have?.key === key) return have.canvas
+  const cw = Math.ceil((along + 2 * PAPER_PAD) * k)
+  const chh = Math.ceil((across + 2 * PAPER_PAD) * k)
+  if (cw * chh > PAPER_CACHE_MAX_PX) return null
+  const canvas = have?.canvas ?? document.createElement('canvas')
+  canvas.width = cw
+  canvas.height = chh
+  const g = canvas.getContext('2d')
+  if (!g) return null
+  g.setTransform(cw / (along + 2 * PAPER_PAD), 0, 0, chh / (across + 2 * PAPER_PAD), 0, 0)
+  g.translate(along / 2 + PAPER_PAD, across / 2 + PAPER_PAD)
+  for (let i = 0; i < strips; i++) drawStripFacets(g, i, -across / 2 + gap * (i + 0.5), Math.min(gap * 0.56, 58), along, seg, sup, col, alpha, wp, swatch)
+  // Faded in at the upstream end and out at the downstream end, and nothing outside the box.
+  g.globalCompositeOperation = 'destination-out'
+  const inFade = g.createLinearGradient(-along / 2, 0, -along / 2 + fadeLen, 0)
+  inFade.addColorStop(0, 'rgba(0, 0, 0, 1)')
+  inFade.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  g.fillStyle = inFade
+  g.fillRect(-along / 2 - PAPER_PAD, -across / 2 - PAPER_PAD, fadeLen + PAPER_PAD, across + 2 * PAPER_PAD)
+  const outFade = g.createLinearGradient(along / 2 - fadeLen, 0, along / 2, 0)
+  outFade.addColorStop(0, 'rgba(0, 0, 0, 0)')
+  outFade.addColorStop(1, 'rgba(0, 0, 0, 1)')
+  g.fillStyle = outFade
+  g.fillRect(along / 2 - fadeLen, -across / 2 - PAPER_PAD, fadeLen + PAPER_PAD, across + 2 * PAPER_PAD)
+  g.fillStyle = '#000'
+  g.fillRect(-along / 2 - PAPER_PAD, -across / 2 - PAPER_PAD, along + 2 * PAPER_PAD, PAPER_PAD)
+  g.fillRect(-along / 2 - PAPER_PAD, across / 2, along + 2 * PAPER_PAD, PAPER_PAD)
+  // The current's faint field, under the strips (it was a second fill of the whole current every
+  // frame), at its own strength once the cache is laid down at layerAlpha.
+  g.globalCompositeOperation = 'destination-over'
+  g.globalAlpha = Math.min(1, field.alpha / layerAlpha)
+  softRect(g, field.tex, -along / 2, -across / 2, along, across, field.f)
+  g.globalAlpha = 1
+  g.globalCompositeOperation = 'source-over'
+  paperBodies.set(def, { key, canvas })
+  return canvas
+}
+
+/** The faint field under the strips: its feathered texture, alpha and feather width. */
+interface PaperField { tex: HTMLCanvasElement; alpha: number; f: number }
+const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World, field: PaperField): void => {
   const sup = !!live.super
   const vertical = live.dir === 'up' || live.dir === 'down'
   const along = vertical ? live.h : live.w
   const across = vertical ? live.w : live.h
   const angle = live.dir === 'right' ? 0 : live.dir === 'left' ? Math.PI : live.dir === 'down' ? Math.PI / 2 : -Math.PI / 2
   const travel = travelOf(def, live, w.time)
-  const g = windLayerFor(ctx.canvas)
-  if (!g) return
   const m = ctx.getTransform()
-  const corners = [[live.x, live.y], [live.x + live.w, live.y], [live.x, live.y + live.h], [live.x + live.w, live.y + live.h]].map(([x, y]) => m.transformPoint({ x, y }))
-  const bx = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x))) - 2)
-  const by = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y))) - 2)
-  const bw = Math.min(g.canvas.width, Math.ceil(Math.max(...corners.map((p) => p.x))) + 2) - bx
-  const bh = Math.min(g.canvas.height, Math.ceil(Math.max(...corners.map((p) => p.y))) + 2) - by
-  if (bw <= 0 || bh <= 0) return
-  g.setTransform(1, 0, 0, 1, 0, 0)
-  g.clearRect(bx, by, bw, bh)
-  g.setTransform(m)
-  g.save()
-  g.translate(live.x + live.w / 2, live.y + live.h / 2)
-  g.rotate(angle)
   // Strips about 70 px apart, all alike: blue paper for a regular current, golden paper for a
   // Super Stream — the two read apart at a glance.
   const strips = Math.max(1, Math.round(across / 70))
@@ -1384,63 +1493,62 @@ const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef,
   const col = sup ? [246, 196, 72] : [132, 168, 222]
   const alpha = sup ? 0.92 : 0.62
   const ink = sup ? '#5a2c0c' : '#1f2a4a'
+  const layerAlpha = sup ? 0.95 : 0.88
+  const fadeLen = Math.min(along * 0.18, 56)
   // The painted washi and marks (wind-paper sheet), when they shipped; else flat colour and drawn marks.
   const wp = sheetImage('wind-paper') as HTMLImageElement | null
   const wps = wp ? sheet('wind-paper') : null
   const wpBoxes = wp && wps ? boxesOf(wp, wps) : null
   const swatch = wpBoxes && wps ? wpBoxes[wps.anims[sup ? 'paperGold' : 'paperBlue']!.frames[0]!]! : null
   const mark = wpBoxes && wps ? wpBoxes[wps.anims[sup ? 'arrow' : 'chevron']!.frames[0]!]! : null
+  // The folded strips never change (only the marks travel): drawn once per current and zoom into a
+  // cache with their end fades, then laid straight onto the scene each frame, the marks over them,
+  // each faded by where it is. Re-drawing every facet each frame (a clip, a scaled cut of the washi
+  // sheet, a shade and a crease, dozens per current) and compositing a wind layer the size of the
+  // current held a weak phone to ~5 fps.
+  const body = foldedStrips(def, along, across, strips, gap, seg, Math.hypot(m.a, m.b), sup, col, alpha, wp, swatch, fadeLen, field, layerAlpha)
+  if (!body) {
+    ctx.save()
+    ctx.globalAlpha = field.alpha
+    softRect(ctx, field.tex, live.x, live.y, live.w, live.h, field.f)
+    ctx.restore()
+  }
+  let g: CanvasRenderingContext2D
+  let bx = 0, by = 0, bw = 0, bh = 0
+  if (body) {
+    g = ctx
+    g.save()
+    g.translate(live.x + live.w / 2, live.y + live.h / 2)
+    g.rotate(angle)
+    g.globalAlpha = layerAlpha
+    g.drawImage(body, -along / 2 - PAPER_PAD, -across / 2 - PAPER_PAD, along + 2 * PAPER_PAD, across + 2 * PAPER_PAD)
+  } else {
+    const layer = windLayerFor(ctx.canvas)
+    if (!layer) return
+    g = layer
+    const corners = [[live.x, live.y], [live.x + live.w, live.y], [live.x, live.y + live.h], [live.x + live.w, live.y + live.h]].map(([x, y]) => m.transformPoint({ x, y }))
+    bx = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x))) - 2)
+    by = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y))) - 2)
+    bw = Math.min(g.canvas.width, Math.ceil(Math.max(...corners.map((p) => p.x))) + 2) - bx
+    bh = Math.min(g.canvas.height, Math.ceil(Math.max(...corners.map((p) => p.y))) + 2) - by
+    if (bw <= 0 || bh <= 0) return
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.clearRect(bx, by, bw, bh)
+    g.setTransform(m)
+    g.save()
+    g.translate(live.x + live.w / 2, live.y + live.h / 2)
+    g.rotate(angle)
+  }
+  /** A mark's share of its own alpha: faded in and out over the box's two ends, like the strips. */
+  const markFade = (x: number): number => {
+    if (!body) return 1
+    const u = Math.min(x + along / 2, along / 2 - x) / Math.max(1, fadeLen)
+    return u <= 0 ? 0 : Math.min(1, u) * layerAlpha
+  }
   for (let i = 0; i < strips; i++) {
     const c = -across / 2 + gap * (i + 0.5)
     const sw = Math.min(gap * 0.56, 58)
-    const fold = sw * 0.09
-    // The folded strip: facets one segment long, each shifted sideways by its fold, shaded by turns.
-    const n = Math.ceil(along / seg) + 1
-    for (let k = 0; k < n; k++) {
-      const x0 = -along / 2 + k * seg
-      const off = (k % 2 ? 1 : -1) * fold
-      const shade = k % 2 ? 0.84 : 1
-      g.beginPath()
-      g.moveTo(x0, c - sw / 2 + off)
-      g.lineTo(x0 + seg, c - sw / 2 - off)
-      g.lineTo(x0 + seg, c + sw / 2 - off)
-      g.lineTo(x0, c + sw / 2 + off)
-      g.closePath()
-      if (wp && swatch) {
-        // A piece of the painted washi, from a different place of the swatch for every facet.
-        g.save()
-        g.clip()
-        g.globalAlpha = alpha
-        const sw0 = swatch.x1 - swatch.x0
-        const sh0 = swatch.y1 - swatch.y0
-        const cwid = Math.min(sw0, sh0) * 0.5
-        // Clear of the swatch's painted rim.
-        const inset = Math.min(sw0, sh0) * 0.06
-        const sx = swatch.x0 + inset + rnd(i * 31 + k * 7) * (sw0 - cwid - 2 * inset)
-        const sy = swatch.y0 + inset + rnd(i * 17 + k * 13 + 5) * (sh0 - cwid - 2 * inset)
-        g.drawImage(wp, sx, sy, cwid, cwid * ((sw + 2 * fold) / seg), x0, c - sw / 2 - fold, seg, sw + 2 * fold)
-        if (shade < 1) {
-          g.globalAlpha = alpha * 0.22
-          g.fillStyle = '#1a1638'
-          g.fillRect(x0, c - sw / 2 - fold, seg, sw + 2 * fold)
-        }
-        g.restore()
-      } else {
-        g.fillStyle = `rgba(${Math.round(col[0]! * shade)}, ${Math.round(col[1]! * shade)}, ${Math.round(col[2]! * shade)}, ${alpha})`
-        g.fill()
-      }
-      // The crease, and the strip's cut edges.
-      g.strokeStyle = `rgba(42, 29, 58, ${sup ? 0.4 : 0.3})`
-      g.lineWidth = 1
-      g.beginPath()
-      g.moveTo(x0 + seg, c - sw / 2 - off)
-      g.lineTo(x0 + seg, c + sw / 2 - off)
-      g.moveTo(x0, c - sw / 2 + off)
-      g.lineTo(x0 + seg, c - sw / 2 - off)
-      g.moveTo(x0, c + sw / 2 + off)
-      g.lineTo(x0 + seg, c + sw / 2 - off)
-      g.stroke()
-    }
+    if (!body) drawStripFacets(g, i, c, sw, along, seg, sup, col, alpha, wp, swatch)
     // The marks, travelling with the current.
     const step = seg * (sup ? 1.25 : 1.6)
     const head = sw * (sup ? 0.36 : 0.26)
@@ -1450,17 +1558,19 @@ const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef,
     g.lineJoin = 'round'
     const shift = (((travel + i * step * 0.37) % step) + step) % step
     for (let x = -along / 2 - step + shift; x < along / 2 + step; x += step) {
+      const fade = markFade(x)
+      if (fade <= 0) continue
       if (wp && mark) {
         // The painted mark, printed on the strip and travelling with it.
         const mh = head * 2.1
         const mw = (mh * (mark.x1 - mark.x0)) / Math.max(1, mark.y1 - mark.y0)
-        g.globalAlpha = sup ? 0.9 : 0.7
+        g.globalAlpha = (sup ? 0.9 : 0.7) * fade
         g.drawImage(wp, mark.x0, mark.y0, mark.x1 - mark.x0, mark.y1 - mark.y0, x - mw / 2, c - mh / 2, mw, mh)
         continue
       }
       if (sup) {
         // A Super Stream: a bold solid arrowhead with two speed dashes trailing it.
-        g.globalAlpha = 0.85
+        g.globalAlpha = 0.85 * fade
         g.beginPath()
         g.moveTo(x + head * 0.9, c)
         g.lineTo(x - head * 0.35, c - head)
@@ -1468,7 +1578,7 @@ const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef,
         g.lineTo(x - head * 0.35, c + head)
         g.closePath()
         g.fill()
-        g.globalAlpha = 0.6
+        g.globalAlpha = 0.6 * fade
         g.lineWidth = Math.max(2, sw * 0.07)
         g.beginPath()
         g.moveTo(x - head * 0.75, c - head * 0.42)
@@ -1478,7 +1588,7 @@ const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef,
         g.stroke()
       } else {
         // A regular current: a double chevron.
-        g.globalAlpha = 0.6
+        g.globalAlpha = 0.6 * fade
         g.lineWidth = Math.max(2, sw * 0.08)
         g.beginPath()
         for (const d of [0, head * 0.85]) {
@@ -1491,8 +1601,11 @@ const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef,
     }
     g.globalAlpha = 1
   }
+  if (body) {
+    g.restore()
+    return
+  }
   // Fade in at the upstream end and out at the downstream end, like the streaks.
-  const fadeLen = Math.min(along * 0.18, 56)
   g.globalCompositeOperation = 'destination-out'
   const inFade = g.createLinearGradient(-along / 2, 0, -along / 2 + fadeLen, 0)
   inFade.addColorStop(0, 'rgba(0, 0, 0, 1)')
@@ -1512,7 +1625,7 @@ const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef,
   g.restore()
   ctx.save()
   ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.globalAlpha = sup ? 0.95 : 0.88
+  ctx.globalAlpha = layerAlpha
   ctx.drawImage(g.canvas, bx, by, bw, bh, bx, by, bw, bh)
   ctx.restore()
 }
@@ -1566,6 +1679,30 @@ const clayLeaf = (g: CanvasRenderingContext2D, x: number, y: number, size: numbe
   g.restore()
 }
 
+/** One tile of the clay arrow grid: `step` wide and two rows tall, an arrow at the start of the first
+ *  row (and again at its end, so the tile wraps without a seam) and one half a step on in the second.
+ *  Drawn at the screen's device-px scale rounded UP to an eighth, so the pattern is never softer
+ *  than drawing the arrows live. */
+const arrowTiles = new Map<string, HTMLCanvasElement>()
+const clayArrowTile = (size: number, rowGap: number, step: number, scale: number, sup: boolean, cols: [string, string]): HTMLCanvasElement | null => {
+  if (typeof document === 'undefined' || !(scale > 0)) return null
+  const k = Math.ceil(scale * 8) / 8
+  const key = `${size.toFixed(2)}|${rowGap.toFixed(2)}|${step}|${k}|${sup}`
+  const have = arrowTiles.get(key)
+  if (have) return have
+  const c = document.createElement('canvas')
+  c.width = Math.max(1, Math.round(step * k))
+  c.height = Math.max(1, Math.round(2 * rowGap * k))
+  const g = c.getContext('2d')
+  if (!g) return null
+  g.scale(c.width / step, c.height / (2 * rowGap))
+  for (const x of [0, step]) clayArrow(g, x, rowGap * 0.5, size, cols)
+  clayArrow(g, step / 2, rowGap * 1.5, size, cols)
+  if (arrowTiles.size > 32) arrowTiles.clear()
+  arrowTiles.set(key, c)
+  return c
+}
+
 const clayWind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World): void => {
   const sup = !!live.super
   const vertical = live.dir === 'up' || live.dir === 'down'
@@ -1573,9 +1710,32 @@ const clayWind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w:
   const across = vertical ? live.w : live.h
   const angle = live.dir === 'right' ? 0 : live.dir === 'left' ? Math.PI : live.dir === 'down' ? Math.PI / 2 : -Math.PI / 2
   const travel = travelOf(def, live, w.time)
+  const m = ctx.getTransform()
+  const layerAlpha = sup ? 0.95 : 0.9
+  const fadeLen = Math.min(along * 0.18, 56)
+  // Weak phones (liteMode.ts): everything goes straight onto the scene, each piece faded by where it
+  // is, instead of through a wind layer the size of the current (cleared, filled, faded and laid
+  // down again every frame: two more fills of the whole current).
+  const direct = liteMode.value
+  /** A piece's share of its alpha at x along the current: faded in and out over the two ends. */
+  const endFade = (x: number): number => {
+    if (!direct) return 1
+    const u = Math.min(x + along / 2, along / 2 - x) / Math.max(1, fadeLen)
+    return u <= 0 ? 0 : Math.min(1, u) * layerAlpha
+  }
+  if (direct) {
+    ctx.save()
+    ctx.translate(live.x + live.w / 2, live.y + live.h / 2)
+    ctx.rotate(angle)
+    ctx.beginPath()
+    ctx.rect(-along / 2, -across / 2, along, across)
+    ctx.clip()
+    clayWindPieces(ctx, live, def, w, along, across, travel, m, endFade, direct)
+    ctx.restore()
+    return
+  }
   const g = windLayerFor(ctx.canvas)
   if (!g) return
-  const m = ctx.getTransform()
   const corners = [[live.x, live.y], [live.x + live.w, live.y], [live.x, live.y + live.h], [live.x + live.w, live.y + live.h]].map(([x, y]) => m.transformPoint({ x, y }))
   const bx = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x))) - 2)
   const by = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y))) - 2)
@@ -1591,49 +1751,8 @@ const clayWind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w:
   g.beginPath()
   g.rect(-along / 2, -across / 2, along, across)
   g.clip()
-  const ribbonCols: [string, string, string] = sup ? ['#b4561e', '#e8803a', '#ffc28a'] : ['#7e9fbe', '#bcd4e8', '#eef5fb']
-  const arrowCols: [string, string] = sup ? ['#7a3510', '#c45a1c'] : ['#3c5a78', '#5f86ab']
-  // The arrow grid: rows 44 px apart, an arrow every 58 px, every other row half a step on.
-  const rows = Math.max(1, Math.round(across / 44))
-  const rowGap = across / rows
-  const step = 58
-  const size = Math.min(16, rowGap * 0.42)
-  for (let r = 0; r < rows; r++) {
-    const c = -across / 2 + rowGap * (r + 0.5)
-    const shift = (((travel + (r % 2) * step * 0.5) % step) + step) % step
-    g.globalAlpha = 0.8
-    for (let x = -along / 2 - step + shift; x < along / 2 + step; x += step) clayArrow(g, x, c, size, arrowCols)
-  }
-  g.globalAlpha = 1
-  // The swooshes: the painted rolled-clay strokes (clay-wind sheet), one per ~120 px across, gliding
-  // along at the current's pace, the two shapes by turns. No sheet yet: arrows and leaves alone.
-  const cw = sheetImage('clay-wind') as HTMLImageElement | null
-  if (cw) {
-    const cs = sheet('clay-wind')
-    const boxes = boxesOf(cw, cs)
-    const ribbons = Math.max(1, Math.round(across / 120))
-    const lane = across / ribbons
-    for (let i = 0; i < ribbons; i++) {
-      const r = boxes[cs.anims[(sup ? 'orange' : 'blue') + (i % 2 ? 'B' : 'A')]!.frames[0]!]!
-      const len = Math.min(240, along * 0.62)
-      const h = Math.min(lane * 0.8, 34, (len * (r.y1 - r.y0)) / Math.max(1, r.x1 - r.x0))
-      const period = along + len + 40
-      const head = ((((travel + rnd(i * 7.3 + def.x * 0.01) * period) % period) + period) % period) - along / 2
-      const c = -across / 2 + lane * (i + 0.5)
-      g.drawImage(cw, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, head - len, c - h / 2, len, h)
-    }
-  }
-  // Leaves: one per ~90 px of the current's length, tumbling a little as they go.
-  const leaves = Math.max(1, Math.round(along / 90))
-  for (let i = 0; i < leaves; i++) {
-    const period = along + 40
-    const x = ((((travel * 1.05 + (i * period) / leaves) % period) + period) % period) - along / 2 - 20
-    const c = -across / 2 + across * (0.15 + 0.7 * rnd(i * 3.1 + def.y * 0.01))
-    const bob = Math.sin(w.time * 2.4 + i * 1.7) * 4
-    clayLeaf(g, x, c + bob, sup ? 11 : 10, Math.sin(w.time * 1.8 + i) * 0.9 + i, sup ? '#f2a03a' : '#d9822b')
-  }
+  clayWindPieces(g, live, def, w, along, across, travel, m, endFade, direct)
   // Fade in at the upstream end and out at the downstream end.
-  const fadeLen = Math.min(along * 0.18, 56)
   g.globalCompositeOperation = 'destination-out'
   const inFade = g.createLinearGradient(-along / 2, 0, -along / 2 + fadeLen, 0)
   inFade.addColorStop(0, 'rgba(0, 0, 0, 1)')
@@ -1649,9 +1768,102 @@ const clayWind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w:
   g.restore()
   ctx.save()
   ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.globalAlpha = sup ? 0.95 : 0.9
+  ctx.globalAlpha = layerAlpha
   ctx.drawImage(g.canvas, bx, by, bw, bh, bx, by, bw, bh)
   ctx.restore()
+}
+
+/** The clay current's moving pieces, in its own frame (along x, across y): the arrow grid, the
+ *  painted gusts and the leaves. `direct`: drawn onto the scene with `endFade` per piece (the arrow
+ *  grid in a few bands at each end); else into the wind layer, which the caller fades and lays down. */
+const clayWindPieces = (
+  g: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World, along: number, across: number,
+  travel: number, m: DOMMatrix, endFade: (x: number) => number, direct: boolean
+): void => {
+  const sup = !!live.super
+  const fadeLen = Math.min(along * 0.18, 56)
+  const ribbonCols: [string, string, string] = sup ? ['#b4561e', '#e8803a', '#ffc28a'] : ['#7e9fbe', '#bcd4e8', '#eef5fb']
+  const arrowCols: [string, string] = sup ? ['#7a3510', '#c45a1c'] : ['#3c5a78', '#5f86ab']
+  // The arrow grid: rows 44 px apart, an arrow every 58 px, every other row half a step on.
+  const rows = Math.max(1, Math.round(across / 44))
+  const rowGap = across / rows
+  const step = 58
+  const size = Math.min(16, rowGap * 0.42)
+  const shift = ((travel % step) + step) % step
+  const tile = clayArrowTile(size, rowGap, step, Math.hypot(m.a, m.b), sup, arrowCols)
+  const pat = tile ? g.createPattern(tile, 'repeat') : null
+  g.globalAlpha = 0.8
+  if (tile && pat) {
+    // The grid is one tile (two rows, the second half a step on) repeated and slid along: drawing a
+    // hundred-odd arrows one by one in every current, every frame, cost a phone most of its frame.
+    pat.setTransform(new DOMMatrix().translateSelf(-along / 2 + shift, -across / 2).scaleSelf(step / tile.width, (2 * rowGap) / tile.height))
+    g.fillStyle = pat
+    if (!direct) {
+      g.fillRect(-along / 2, -across / 2, along, across)
+    } else {
+      // The middle at full strength, each end in FADE_BANDS steps (the arrows are small and far
+      // apart: the steps do not show).
+      const FADE_BANDS = 5
+      const band = fadeLen / FADE_BANDS
+      g.globalAlpha = 0.8 * endFade(0)
+      g.fillRect(-along / 2 + fadeLen, -across / 2, along - 2 * fadeLen, across)
+      for (let k = 0; k < FADE_BANDS; k++) {
+        g.globalAlpha = 0.8 * endFade(-along / 2 + band * (k + 0.5))
+        g.fillRect(-along / 2 + band * k, -across / 2, band, across)
+        g.fillRect(along / 2 - band * (k + 1), -across / 2, band, across)
+      }
+    }
+  } else {
+    for (let r = 0; r < rows; r++) {
+      const c = -across / 2 + rowGap * (r + 0.5)
+      const rs = (((travel + (r % 2) * step * 0.5) % step) + step) % step
+      for (let x = -along / 2 - step + rs; x < along / 2 + step; x += step) clayArrow(g, x, c, size, arrowCols)
+    }
+  }
+  g.globalAlpha = 1
+  // The gusts: the painted clay gusts (clay-wind sheet: a twisted rope and three curls), one per
+  // ~120 px across, gliding along at the current's pace, the two by turns. No sheet yet: arrows and
+  // leaves alone.
+  const cw = sheetImage('clay-wind') as HTMLImageElement | null
+  if (cw) {
+    const cs = sheet('clay-wind')
+    const boxes = boxesOf(cw, cs)
+    const ribbons = Math.max(1, Math.round(across / 120))
+    const lane = across / ribbons
+    for (let i = 0; i < ribbons; i++) {
+      const r = boxes[cs.anims[(sup ? 'orange' : 'blue') + (i % 2 ? 'B' : 'A')]!.frames[0]!]!
+      // Drawn at the painting's own proportions, never stretched along the flow: as tall as most
+      // of its lane allows (64 at most), its length following from that, and both shrunk together
+      // when that would run past three fifths of the current.
+      const aspect = (r.x1 - r.x0) / Math.max(1, r.y1 - r.y0)
+      let h = Math.min(lane * 0.8, 64)
+      let len = h * aspect
+      if (len > along * 0.6) {
+        len = along * 0.6
+        h = len / aspect
+      }
+      const period = along + len + 40
+      const head = ((((travel + rnd(i * 7.3 + def.x * 0.01) * period) % period) + period) % period) - along / 2
+      const c = -across / 2 + lane * (i + 0.5)
+      const fade = endFade(head - len / 2)
+      if (fade <= 0) continue
+      g.globalAlpha = fade
+      g.drawImage(cw, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, head - len, c - h / 2, len, h)
+    }
+  }
+  // Leaves: one per ~90 px of the current's length, tumbling a little as they go.
+  const leaves = Math.max(1, Math.round(along / 90))
+  for (let i = 0; i < leaves; i++) {
+    const period = along + 40
+    const x = ((((travel * 1.05 + (i * period) / leaves) % period) + period) % period) - along / 2 - 20
+    const c = -across / 2 + across * (0.15 + 0.7 * rnd(i * 3.1 + def.y * 0.01))
+    const bob = Math.sin(w.time * 2.4 + i * 1.7) * 4
+    const fade = endFade(x)
+    if (fade <= 0) continue
+    g.globalAlpha = fade
+    clayLeaf(g, x, c + bob, sup ? 11 : 10, Math.sin(w.time * 1.8 + i) * 0.9 + i, sup ? '#f2a03a' : '#d9822b')
+  }
+  g.globalAlpha = 1
 }
 
 const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World): boolean => {
@@ -1672,10 +1884,11 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
     // The clay current is a soft pale-blue (or orange) clay field of its own; the paper strips carry
     // their own colour, so under them the field stays faint.
     ctx.globalAlpha = isClay ? (sup ? 0.34 : 0.3) : paper ? (sup ? 0.14 : 0.1) : sup ? 0.3 : 0.22
-    softRect(ctx, tex, live.x, live.y, live.w, live.h, Math.min(f, 10))
+    // The paper strips carry their field in their cache (one fill of the current a frame, not two).
+    if (!paper) softRect(ctx, tex, live.x, live.y, live.w, live.h, Math.min(f, 10))
     ctx.restore()
     if (isClay) clayWind(ctx, live, def, w)
-    else if (paper) paperStrips(ctx, live, def, w)
+    else if (paper) paperStrips(ctx, live, def, w, { tex, alpha: sup ? 0.14 : 0.1, f: Math.min(f, 10) })
     else windGusts(ctx, live, def, w)
   } else if (live.speed > 0 && img) {
     const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
@@ -2114,7 +2327,12 @@ const SLIDE_MAX = 0.25
 /** One layer of the sky: a plate-sized picture slid by `depth` of the camera's travel. */
 interface Frame { x: number; y: number; k: number; dw: number; dh: number }
 
-const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, u: number, v: number, t: number, far: HTMLImageElement): void => {
+/** High-DPR phones (not the weak phones' light look): the sky layer's 2x twin once it has loaded,
+ *  drawn in the 1x one's place — sizes still come from the 1x image. */
+const sharp = (id: string, img: HTMLImageElement): HTMLImageElement => (liteMode.value ? null : sharpImage(id)) ?? img
+
+/** `lanterns`: the rising sky lanterns (left out of the weak phones' merged still sky). */
+const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, u: number, v: number, t: number, far: HTMLImageElement, lanterns = true): void => {
   // The far plate covers the screen with a little room to spare and slides by where the camera
   // looks inside the level (u, v ∈ −½..½).
   const k = Math.max(cw / PLATE.w, ch / PLATE.h) * 1.08
@@ -2124,7 +2342,7 @@ const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, 
     return { x: (cw - dw) / 2 - u * Math.min(dw - cw, cw * SLIDE_MAX) * depth, y: (ch - dh) / 2 - v * (dh - ch) * depth, k, dw, dh }
   }
   const f = plate(1)
-  ctx.drawImage(far, f.x, f.y, f.dw, f.dh)
+  ctx.drawImage(sharp('backdrop-far', far), f.x, f.y, f.dw, f.dh)
 
   // The big clouds: their own slow drift (wrapping round the plate), a little more parallax than the plate.
   for (const c of FAR_CLOUDS) {
@@ -2133,13 +2351,13 @@ const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, 
     const p = plate(1 + c.depth)
     const span = PLATE.w + img.width
     const px = ((((c.x + t * c.drift + img.width) % span) + span) % span) - img.width
-    ctx.drawImage(img, p.x + px * k, p.y + c.y * k, img.width * k, img.height * k)
+    ctx.drawImage(sharp(c.id, img), p.x + px * k, p.y + c.y * k, img.width * k, img.height * k)
   }
 
   // Sky lanterns: each rises from above the mountains to the top and fades in and out, swaying;
   // the far ones smaller, dimmer, slower and with less parallax.
   const imgs = LANTERN_IDS.map((id) => sheetImage(id)).filter((x): x is HTMLImageElement => !!x)
-  if (imgs.length) {
+  if (imgs.length && lanterns) {
     for (let i = 0; i < SKY_LANTERNS; i++) {
       const depth = 0.15 + rnd(i * 7.3) * 0.85 // 0 far … 1 near
       const img = imgs[Math.floor(rnd(i * 3.1 + 1) * imgs.length)]!
@@ -2177,12 +2395,75 @@ const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, 
       const span = PLATE.w + img.width
       const px = ((((c.x + t * c.drift) % span) + span) % span) - img.width * 0.5
       const s = kn * c.scale
-      ctx.drawImage(img, x + px * kn, yTop + (c.y - NEAR_TOP) * kn, img.width * s, img.height * s)
+      ctx.drawImage(sharp(c.id, img), x + px * kn, yTop + (c.y - NEAR_TOP) * kn, img.width * s, img.height * s)
     }
-    ctx.drawImage(near, x, yTop, dw, dh)
+    ctx.drawImage(sharp('backdrop-near', near), x, yTop, dw, dh)
     // Below the band (when the town rises) the town's own ground carries on to the screen's edge.
     if (yTop + dh < ch) ctx.drawImage(near, 0, near.height - 2, near.width, 2, x, yTop + dh - 1, dw, ch - yTop - dh + 1)
   }
+}
+
+/** Weak phones (liteMode.ts): the sky's layers merged once into one still picture of the screen's
+ *  size, the camera centred and no lanterns, then laid down as a single unscaled copy a frame —
+ *  instead of five or six stretched, high-quality draws and thirty lanterns. Remade when the screen
+ *  changes size or another layer finishes loading. */
+let skyStill: { key: string; canvas: HTMLCanvasElement } | null = null
+
+let stillKey = ''
+/** Weak phones: keep the background canvas painted (the base colour, the merged sky and, in
+ *  portrait, the night tint over it), repainting only when the screen size or a layer changes. */
+const stillBackdrop = (canvas: HTMLCanvasElement, fullBleed: boolean): boolean => {
+  const t = stillSkyCanvas
+  // Lantern: the parallax layers merged; clay: its one painting, centred.
+  const far = sheetImage('backdrop-far')
+  const single = far ? null : sheetImage('backdrop')
+  const on = !!t && t.main === canvas && liteMode.value && paintedOn && !!(far || single)
+  if (t) t.bg.hidden = !on
+  if (!on || !t) return false
+  const cw = canvas.width
+  const ch = canvas.height
+  const sky = far ? mergedSky(cw, ch, far) : single
+  if (!sky) return false
+  const key = `${far ? skyStill?.key : `${cw}x${ch}|single`}|${fullBleed}`
+  if (key !== stillKey || t.bg.width !== cw || t.bg.height !== ch) {
+    if (t.bg.width !== cw || t.bg.height !== ch) {
+      t.bg.width = cw
+      t.bg.height = ch
+    }
+    const g = t.bg.getContext('2d')
+    if (!g) return false
+    g.fillStyle = '#0d1018'
+    g.fillRect(0, 0, cw, ch)
+    if (far) {
+      g.drawImage(sky, 0, 0)
+    } else {
+      const k = Math.max(cw / sky.width, ch / sky.height) * 1.08
+      g.imageSmoothingQuality = 'high'
+      g.drawImage(sky, (cw - sky.width * k) / 2, (ch - sky.height * k) / 2, sky.width * k, sky.height * k)
+    }
+    if (fullBleed) {
+      g.fillStyle = 'rgba(26, 22, 56, 0.36)'
+      g.fillRect(0, 0, cw, ch)
+    }
+    stillKey = key
+  }
+  return true
+}
+const mergedSky = (cw: number, ch: number, far: HTMLImageElement): HTMLCanvasElement | null => {
+  if (typeof document === 'undefined') return null
+  const layers = [...FAR_CLOUDS, ...NEAR_CLOUDS].filter((c) => sheetImage(c.id)).length + (sheetImage('backdrop-near') ? 1 : 0)
+  const key = `${cw}x${ch}|${layers}`
+  if (skyStill?.key === key) return skyStill.canvas
+  const canvas = skyStill?.canvas ?? document.createElement('canvas')
+  canvas.width = cw
+  canvas.height = ch
+  const g = canvas.getContext('2d')
+  if (!g) return null
+  g.imageSmoothingEnabled = true
+  g.imageSmoothingQuality = 'high'
+  layeredBackdrop(g, cw, ch, 0, 0, 0, far, false)
+  skyStill = { key, canvas }
+  return canvas
 }
 
 /** The painted sky behind the level, in screen space: the parallax layers when they shipped,
@@ -2197,7 +2478,9 @@ const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Ca
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
   if (far) {
-    layeredBackdrop(ctx, cw, ch, u, v, w.time, far)
+    const still = liteMode.value ? mergedSky(cw, ch, far) : null
+    if (still) ctx.drawImage(still, 0, 0)
+    else layeredBackdrop(ctx, cw, ch, u, v, w.time, far)
     return true
   }
   const k = Math.max(cw / img.width, ch / img.height) * 1.08
@@ -2212,6 +2495,7 @@ const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Ca
 export const KITE_PAINTERS: Required<KiteArt> = {
   cheerHand: () => cheerHandAt,
   backdrop,
+  stillBackdrop,
   collect,
   gate,
   pweeg,

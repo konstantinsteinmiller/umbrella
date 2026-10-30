@@ -19,6 +19,7 @@ import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, 
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
 import { isKite, paintedGame } from '@/umbrella/kite'
+import { setStillSkyCanvas, watchFrame } from '@/umbrella/liteMode'
 import { ART_MODES, artModeUrl, currentArtMode, switchArtMode, type ArtMode } from '@/umbrella/artMode'
 import { editorAllowed } from '@/umbrella/editorAccess'
 import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
@@ -328,6 +329,8 @@ const leaveChallenge = () => {
 }
 
 const canvas = ref<HTMLCanvasElement | null>(null)
+/** Weak phones: the painted sky sits still on this canvas behind the game (liteMode.ts). */
+const bgCanvas = ref<HTMLCanvasElement | null>(null)
 const brokenFlash = ref(false)
 
 // ── Level select: every level is open; cleared ones get a tick. ──
@@ -727,6 +730,8 @@ const frame = (now: number) => {
   // The level waits under a chapter card.
   if (!intro && !chapterCard.value && started.value && !isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
     acc += dtReal
+    // Weak phones: a slow median frame switches the painted styles to their light look (liteMode.ts).
+    if (paintedGame) watchFrame(dtReal * 1000)
     while (acc >= DT) {
       tick()
       acc -= DT
@@ -915,6 +920,7 @@ watch(
 )
 
 onMounted(() => {
+  setStillSkyCanvas(canvas.value, bgCanvas.value)
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   window.addEventListener('blur', onBlur)
@@ -938,6 +944,7 @@ const onPlay = () => {
   begin()
 }
 onUnmounted(() => {
+  setStillSkyCanvas(null, null)
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
   window.removeEventListener('blur', onBlur)
@@ -959,6 +966,7 @@ onUnmounted(() => {
 
 <template>
   <div class="umbrella-scene" :class="themeClass" @pointerdown="onAnyPointer" @pointerdown.capture="onSwipeDown" @pointerup="onSwipeUp">
+    <canvas ref="bgCanvas" class="umbrella-bg" aria-hidden="true" hidden />
     <canvas ref="canvas" class="umbrella-canvas" />
 
     <!-- The whole screen is the start button: the first click or tap is what lets the browser play sound. -->
@@ -1191,10 +1199,19 @@ onUnmounted(() => {
   user-select: none;
 }
 .umbrella-canvas {
+  position: relative;
   width: 100%;
   height: 100%;
   display: block;
 }
+.umbrella-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.umbrella-bg[hidden] { display: none; }
 .hud {
   position: absolute;
   top: 12px;

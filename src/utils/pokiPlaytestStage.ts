@@ -41,6 +41,8 @@
 // badges and count.
 
 import { fontStackFor } from '@/i18n/localeDirection'
+import { liteMode } from '@/umbrella/liteMode'
+import { decodeSvg, drawRaster, findUnits, loadCss, paintRect, serializeUnit, styleWithoutPosition, svgDataUrl, cssFor, type Rect, type Unit } from '@/utils/domRaster'
 
 /** The element whose `background-image` is the scene backdrop (GameScene). */
 export const STAGE_BG_ATTR = 'data-poki-stage-bg'
@@ -48,6 +50,8 @@ export const STAGE_BG_ATTR = 'data-poki-stage-bg'
  *  canvas was the only one it painted — Umbrella's recordings were the HUD outline over black). */
 const BOARD_SEL = 'canvas.umbrella-canvas, .barrage-board__canvas'
 const PARTICLES_SEL = 'canvas.particle-canvas'
+/** Weak phones: the still sky on its own canvas behind the game canvas (liteMode.ts). */
+const STILL_SKY_SEL = 'canvas.umbrella-bg:not([hidden])'
 /** What the HUD outline boxes: every button, a modal's panel and title, the
  *  tray, the wallet, and anything tagged `data-poki-hud` (the row badge). */
 const HUD_SEL = 'button, .modal-frame, .ribbon-header, [data-tut="tray"], .coin-badge, [data-poki-hud]'
@@ -57,8 +61,10 @@ const PANEL_SEL = '.modal-frame'
 const ARIA_FIRST_SEL = '[role="group"]'
 /** The page colour under the backdrop art (GameScene's gradient ends on it). */
 const BASE_FILL = '#070a14'
-/** The recorder encodes at 24 fps; painting faster buys nothing. */
-const FRAME_MS = 1000 / 30
+/** The stage paints at the rate the recorder asked `captureStream` for (the SDK core asks 24 on a
+ *  desktop, 12 on a phone): painting faster only spends a weak phone's frames on pictures the
+ *  recorder drops. This is the rate when it names none. */
+const DEFAULT_FPS = 24
 /** The HUD outline's boxes are re-read this often (a layout read, not per frame). */
 const HUD_MS = 200
 /** A label line longer than this is cut (the outline is a guide, not the UI). */
@@ -137,6 +143,7 @@ let onRecordOnce: (() => void) | null = null
 let ctx: CanvasRenderingContext2D | null = null
 let raf = 0
 let last = 0
+let frameMs = 1000 / DEFAULT_FPS
 let hudAt = -Infinity
 let hud: HudBox[] = []
 let hudArt: HudArt[] = []
@@ -496,6 +503,93 @@ const drawArt = (g: CanvasRenderingContext2D, items: readonly HudArt[]): void =>
   }
 }
 
+// ─── The real HUD, baked ─────────────────────────────────────────────────────
+//
+// The recording shows the page's own buttons, dialogs and badges as the player sees them: each
+// piece of the page (domRaster.ts `findUnits`) is drawn by the browser itself through an SVG
+// image, ONCE, and re-drawn only when its content, size or the theme changes. A piece that only
+// moved is laid down from its bake at the new place. At most BAKES_AT_ONCE are drawn at a time,
+// decoded off the main thread. Images and canvases are copied straight from the live element.
+// Weak phones skip all of it (liteMode.ts). If the browser cannot bake (no stylesheet access, an
+// SVG that fails to decode twice running), the stage falls back to the labelled outline above.
+
+interface Baked { sig: string; canvas: HTMLCanvasElement; rect: Rect; box: Rect; failed: number }
+const baked = new Map<Element, Baked>()
+let units: Unit[] = []
+let inFlight = 0
+let bakeBroken = false
+let failuresInRow = 0
+const BAKES_AT_ONCE = 2
+
+/** What a piece looks like, minus where it is: its markup (position left out of its own style),
+ *  its size, and the page's theme and language classes. */
+const signature = (u: Unit): string => {
+  const el = u.el as HTMLElement
+  const own = u.kind === 'tree' ? el.outerHTML.replace(el.getAttribute('style') ?? '', styleWithoutPosition(el.getAttribute('style'))) : `${el.className}|${styleWithoutPosition(el.getAttribute('style'))}|${Array.from(el.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent).join('')}`
+  return `${u.kind}|${Math.round(u.box.w)}x${Math.round(u.box.h)}|${document.documentElement.className}|${document.documentElement.lang}|${own}`
+}
+
+const bake = async (u: Unit, sig: string, vw: number, vh: number): Promise<void> => {
+  inFlight++
+  try {
+    await loadCss()
+    const rect = paintRect(u, vw, vh)
+    if (rect.w <= 0 || rect.h <= 0) return
+    const img = await decodeSvg(svgDataUrl(cssFor(u), serializeUnit(u, vw, vh), vw, vh), vw, vh)
+    const prev = baked.get(u.el)
+    const canvas = prev?.canvas ?? document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(rect.w))
+    canvas.height = Math.max(1, Math.round(rect.h))
+    const c = canvas.getContext('2d')
+    if (!c) return
+    c.clearRect(0, 0, canvas.width, canvas.height)
+    c.drawImage(img, rect.x, rect.y, rect.w, rect.h, 0, 0, canvas.width, canvas.height)
+    baked.set(u.el, { sig, canvas, rect, box: { ...u.box }, failed: 0 })
+    failuresInRow = 0
+  } catch (e) {
+    const prev = baked.get(u.el)
+    baked.set(u.el, { sig, canvas: prev?.canvas ?? document.createElement('canvas'), rect: prev?.rect ?? { x: 0, y: 0, w: 0, h: 0 }, box: { ...u.box }, failed: (prev?.failed ?? 0) + 1 })
+    if (++failuresInRow >= 6) {
+      console.warn('[poki] HUD bake failed, recording the outline instead', e)
+      bakeBroken = true
+    }
+  } finally {
+    inFlight--
+  }
+}
+
+/** Find the page's pieces now, and start the bakes the changed ones need. */
+const scheduleBakes = (vw: number, vh: number): void => {
+  const game = document.querySelector<HTMLCanvasElement>(BOARD_SEL)
+  if (!game) return
+  units = findUnits(game, vw, vh).filter((u) => !(u.el as Element).matches?.(`${PARTICLES_SEL}, canvas.umbrella-bg, [data-poki-playtest-stage]`))
+  const live = new Set<Element>(units.map((u) => u.el))
+  for (const el of baked.keys()) if (!live.has(el)) baked.delete(el)
+  for (const u of units) {
+    if (u.kind === 'raster') continue
+    if (inFlight >= BAKES_AT_ONCE) break
+    const sig = signature(u)
+    const have = baked.get(u.el)
+    // Unchanged, or failed twice as it is now: leave it.
+    if (have && have.sig === sig && (have.failed === 0 || have.failed >= 2)) continue
+    void bake(u, sig, vw, vh)
+  }
+}
+
+/** Every piece, in paint order: a bake laid down where its piece is now, a raster from the live element. */
+const drawBaked = (g: CanvasRenderingContext2D): void => {
+  for (const u of units) {
+    if (u.kind === 'raster') {
+      drawRaster(g, u)
+      continue
+    }
+    const b = baked.get(u.el)
+    if (!b || b.failed || b.rect.w <= 0) continue
+    const r = (u.el as Element).getBoundingClientRect()
+    g.drawImage(b.canvas, b.rect.x + (r.left - b.box.x), b.rect.y + (r.top - b.box.y), b.rect.w, b.rect.h)
+  }
+}
+
 /** One stage frame: backdrop, board, particles, HUD outline — as on screen. */
 export const paintStage = (now = performance.now()): void => {
   const c = stage
@@ -513,15 +607,27 @@ export const paintStage = (now = performance.now()): void => {
   const bg = document.querySelector(`[${STAGE_BG_ATTR}]`)
   const art = bg ? backdrop(bg) : null
   if (bg && art) drawCover(g, art, bg.getBoundingClientRect())
+  drawCanvasAt(g, document.querySelector<HTMLCanvasElement>(STILL_SKY_SEL))
   drawCanvasAt(g, document.querySelector<HTMLCanvasElement>(BOARD_SEL))
-  if (now - hudAt >= HUD_MS) {
+  // Weak phones (liteMode.ts): the recording films the game alone — no bake, no outline.
+  if (!liteMode.value && now - hudAt >= HUD_MS) {
     hudAt = now
-    hud = readHud()
-    fitHud(g, hud)
-    hudArt = readArt()
+    if (bakeBroken) {
+      hud = readHud()
+      fitHud(g, hud)
+      hudArt = readArt()
+    } else {
+      scheduleBakes(w, h)
+    }
   }
-  drawHud(g, hud)
-  drawArt(g, hudArt)
+  if (!liteMode.value) {
+    if (bakeBroken) {
+      drawHud(g, hud)
+      drawArt(g, hudArt)
+    } else {
+      drawBaked(g)
+    }
+  }
   drawCanvasAt(g, document.querySelector<HTMLCanvasElement>(PARTICLES_SEL))
 }
 
@@ -532,7 +638,7 @@ const loop = (now: number): void => {
     return
   }
   raf = requestAnimationFrame(loop)
-  if (now - last < FRAME_MS) return
+  if (now - last < frameMs) return
   last = now
   paintStage(now)
 }
@@ -573,6 +679,7 @@ export const installPokiPlaytestStage = (sdk: PlaytestSdk, onRecord?: () => void
       value: (frameRequestRate?: number): MediaStream => {
         const stream = frameRequestRate === undefined ? native() : native(frameRequestRate)
         tracks.push(...stream.getVideoTracks())
+        if (typeof frameRequestRate === 'number' && frameRequestRate > 0) frameMs = 1000 / Math.min(DEFAULT_FPS, frameRequestRate)
         startPainting()
         // T0.3: did the recording stage run during this play? (a `diag` measure)
         const told = onRecordOnce
@@ -596,11 +703,17 @@ export const __resetPokiPlaytestStage = (): void => {
   if (raf) cancelAnimationFrame(raf)
   raf = 0
   last = 0
+  frameMs = 1000 / DEFAULT_FPS
   hudAt = -Infinity
   hud = []
   hudArt = []
   silhouettes.clear()
   tracks.length = 0
+  baked.clear()
+  units = []
+  inFlight = 0
+  bakeBroken = false
+  failuresInRow = 0
   stage?.remove()
   stage = null
   ctx = null

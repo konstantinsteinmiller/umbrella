@@ -568,14 +568,20 @@ export interface RenderOptions {
 export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, t: Tuning, dt: number, cam?: Camera, opts: RenderOptions = {}): Camera => {
   const { width: cw, height: ch } = ctx.canvas
   ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.fillStyle = '#0d1018'
-  ctx.fillRect(0, 0, cw, ch)
   const camera = cam ?? cameraFor(w, cw, ch, dt)
   const { s, ox, oy } = camera
-  // A painted backdrop (the lantern build's night sky) fills the screen behind the level.
-  const backdrop = artLayer && !!kiteArt.backdrop?.(ctx, cw, ch, camera, w)
   // Portrait (the levels are landscape): the level's ground runs the whole screen instead of a strip.
   const fullBleed = !cam && isPortrait(cw, ch)
+  // Weak phones: the sky sits still on a background canvas behind this one (never repainted per frame).
+  const still = artLayer && !cam && !!kiteArt.stillBackdrop?.(ctx.canvas, fullBleed)
+  if (still) {
+    ctx.clearRect(0, 0, cw, ch)
+  } else {
+    ctx.fillStyle = '#0d1018'
+    ctx.fillRect(0, 0, cw, ch)
+  }
+  // A painted backdrop (the lantern build's night sky) fills the screen behind the level.
+  const backdrop = still || (artLayer && !!kiteArt.backdrop?.(ctx, cw, ch, camera, w))
   if (fullBleed && !backdrop) {
     ctx.fillStyle = BG
     ctx.fillRect(0, 0, cw, ch)
@@ -593,8 +599,8 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
       ctx.fill('evenodd')
     }
     ctx.fillStyle = 'rgba(26, 22, 56, 0.36)'
-    if (fullBleed) ctx.fillRect(-1e5, -1e5, 2e5, 2e5)
-    else ctx.fillRect(0, 0, ww, wh)
+    // (In portrait on a still background canvas, the tint is painted into it.)
+    if (fullBleed) { if (!still) ctx.fillRect(-1e5, -1e5, 2e5, 2e5) } else ctx.fillRect(0, 0, ww, wh)
   } else if (!fullBleed) {
     ctx.fillStyle = BG
     ctx.fillRect(0, 0, w.level.world.w, w.level.world.h)

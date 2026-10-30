@@ -64,6 +64,12 @@
   *Done:* painted UMBRELLA wordmarks per art style (washi paper with a wagasa for lantern, plasticine with a striped clay umbrella for clay), keyed to public/images/logo/logo-{lantern,clay}.png/.webp and placed on every "-logo" cover; the app icon is unchanged.
 
 
+- [ ] #Perf-1 The game seems to have performance issues(at least after the changes to have the Poki recording show the visible game).
+  A poki playtest showed one user from Bangladesh had 4-6 fps on such a super simple game, that should really not be possible.
+  Is it due to some baking? (can we make the baking less often to reduce the the cpu strain? Or move the gameplay to the canvas for the Poki build`?)
+  *Progress (2026-10-30):* reproduced at 4.7 fps (lantern Poki build, emulated weak phone: software raster, 4x CPU, DPR 2); the plain drawn build ran 17.8 under the same conditions, so the painted art was the cost, not the recording. Fixed the biggest costs (paper wind strips cached, clay arrow grid as a pattern, hand lookups spread out, recorder stage at 12 fps): 4.7 -> 8.7 fps, with the recorder 3.4 -> 7.5; GPU-on 39 -> 54 fps, p95 frame 50 -> 18 ms. A sky buffer was measured and rejected (no gain). Still open: the sky's stretched full-screen layers; a low render tier would need dropping below the screen's pixel ratio, which the sharpness rule forbids, so that is a decision for the owner.
+
+
 ## v0.7.0 — from the mini design doc (checked 2026-10-23)
 
 Checked against *Umbrella mini design doc v0.7.0* (Google Doc). Reference images saved in
