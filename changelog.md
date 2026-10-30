@@ -12,6 +12,11 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 13 — 2026-10-30 ==
+- [x] Settings → Audio: Music and Sound Effects volume sliders (saved; at their defaults the game plays its tuned mix; the effects volume also carries the wind and the enemies); the music can be heard while the Audio tab is open and letting go of the effects slider plays a sample
+- [x] The background music 30% quieter
+- [x] Fix: Settings opened an empty panel in the drawn game (the menu's view transition threw when its CSS was switched off)
+- [x] Weak phones start in the light look at once when the GPU is one the slow playtests named (Adreno 3xx-51x, Mali-4xx/T/G3x/G5x, PowerVR Rogue GE/GX), and the watchdog decides in half the time; Pweeg's hand positions are read once per sheet at a small size instead of frame by frame (no stall on the first step or fall)
+- [x] description.md (store texts, how to play, controls, categories) and a fuller README
 - [x] Background music: the cozy loop (public/audio/music/bg-cozy.ogg) plays after the first tap on the game's music bus, silent while an ad loads or plays and carrying on after it, ducking under the big sound effects; a calmer first-play mix (effects and wind 3 dB down, music a quiet bed about 8 dB under the quietest headline effect); the mix levels are saved under their own key so old saved levels do not override the new defaults
 - [x] Weak phones: the painted sky (lantern and clay) sits still on its own canvas behind the game, painted only when the screen changes size, and the game canvas clears instead of repainting it every frame (lantern about 25 to 32 fps, clay about 15 to 26 fps on an emulated weak phone); Poki recordings still show it
 - [x] Wind fills each current once a frame: the lantern current's faint field is baked into its cached paper strips; in the weak-phone look the clay current draws straight onto the scene instead of through a wind layer (about 30% faster in both styles on an emulated weak phone)
