@@ -376,8 +376,8 @@ if __name__ == '__main__':
         collect()
         (gate_pipe if CLAY else gate)()
         (finish_clay if CLAY else finish_dais)()
-        if not CLAY:
-            wind_paper()
-        else:
+        # The folded-strip wind: lantern's washi, and clay's default wind too (in clay).
+        wind_paper()
+        if CLAY:
             clay_wind()
         print('collect.png, gate.png, finish-dais.png')

@@ -12,6 +12,8 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 13 — 2026-10-30 ==
+- [x] The painted skies are shown untinted: the dark veil outside the level's box and the night tint inside it drew a dark rectangle beside a lighter strip, which read as a bug
+- [x] Clay wind: the lantern's folded strips with travelling chevrons (a golden Super Stream with arrowheads), painted in clay slabs, as the default clay wind; the clay gusts and arrow grid stay the alternative in the editor's View menu
 - [x] Settings → Audio: Music and Sound Effects volume sliders (saved; at their defaults the game plays its tuned mix; the effects volume also carries the wind and the enemies); the music can be heard while the Audio tab is open and letting go of the effects slider plays a sample
 - [x] The background music 30% quieter
 - [x] Fix: Settings opened an empty panel in the drawn game (the menu's view transition threw when its CSS was switched off)

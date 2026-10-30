@@ -33,7 +33,7 @@ import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
-import { isLantern } from '@/umbrella/kite'
+import { isLantern, isClay } from '@/umbrella/kite'
 import { setWindStyle, windStyle } from '@/umbrella/windStyle'
 import { MAX_TIME_LIMIT, parseTimeLimit } from '@/umbrella/timeStars'
 import { encodeLevel, shareLink } from '@/umbrella/levelCode'
@@ -650,14 +650,14 @@ const designer = computed(() => editorUnlocked.value)
 const menus = computed(() => [
   { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
   { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'deselect'] },
-  { id: 'view', items: ['fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern ? ['-', 'paperWind'] : [])] },
+  { id: 'view', items: ['fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern || isClay ? ['-', 'paperWind'] : [])] },
   { id: 'level', items: ['test', 'prevLevel', 'nextLevel', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
   ...(designer.value ? [{ id: 'campaign', items: ['campaignOverwrite', 'campaignReplace', 'campaignRevert', 'reorder', '-', 'sync', 'password', '-', 'exportLibrary', 'importLibrary'] }] : []),
   { id: 'help', items: ['shortcuts'] }
 ])
 /** Commands reachable now: the designer's only after "cmonc", Submit only where the community exists. */
 const visibleCommands = computed(() => Object.keys(commands).filter((id) =>
-  (!commands[id]!.designer || designer.value) && (id !== 'submit' || communityEnabled) && (id !== 'paperWind' || isLantern)))
+  (!commands[id]!.designer || designer.value) && (id !== 'submit' || communityEnabled) && (id !== 'paperWind' || isLantern || isClay)))
 const cmdKeys = (id: string) => (commands[id]?.keys?.[0] ? fmtKeys(commands[id]!.keys![0]!) : '')
 const cmdEnabled = (id: string) => commands[id]?.enabled?.() ?? true
 const runCmd = (id: string) => {

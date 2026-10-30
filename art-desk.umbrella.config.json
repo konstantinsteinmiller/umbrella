@@ -12,7 +12,7 @@
     "profileDir": "~/.cache/mcp-browser-profiles/umbrella-gemini",
     "gapSeconds": 90,
     "jitterSeconds": 60,
-    "dailyCap": 40,
+    "dailyCap": 200,
     "timeoutSeconds": 300,
     "retries": 1,
     "noImageRetries": 1,

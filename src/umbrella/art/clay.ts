@@ -170,6 +170,16 @@ export const CLAY_SHEETS: SheetDef[] = [
   }),
   // The wind's painted swooshes (the game lays its own arrows and leaves around them).
   extraSheet('clay-wind', { designRef: 'designs/clay-wind-design.png' }),
+  // The wind as the lantern build draws it (folded strips printed with travelling marks: the most
+  // readable current), in clay: the game folds the slabs into strips and lays the marks on them.
+  // The default clay wind; the clay gusts and arrow grid above stay the alternative (windStyle).
+  extraSheet('wind-paper', {
+    title: 'Wind clay — blue and golden clay slabs, chevron, arrow',
+    blurb: 'the clay the game folds its wind currents from, and the marks pressed on it, as a SET of four separate pieces, one per panel — panel 1 a flat SLAB of soft dusty-BLUE plasticine filling the WHOLE panel edge to edge (no outline, no border, no magenta in it): rolled out smooth and even, with faint thumbprints and a soft satin sheen, nothing drawn on it; panel 2 the same kind of flat slab in warm GOLDEN mustard plasticine, filling the whole panel edge to edge; panel 3 ONE double CHEVRON pointing RIGHT made of two chunky rolled-clay strokes, one behind the other, in dark navy clay, alone and centred; panel 4 ONE bold solid ARROWHEAD of dark brown clay pointing RIGHT with two short rolled-clay speed dashes trailing behind it, alone and centred',
+    colour: 'panel 1 a soft dusty-blue clay (#7fa3d6) with slightly lighter and darker thumbprints; panel 2 a warm golden mustard clay (#f1b72f) with amber thumbprints; the chevron a dark navy clay (#1f2a4a); the arrow a dark brown clay (#5a2c0c)',
+    view: 'flat front-on, no perspective, no folds — the game folds and lights the clay itself.', one: 'the wind clay',
+    note: 'The two slabs are PLAIN clay the game cuts into strips: no pattern, no stripes, no motif, no gradient, no vignette, no edge darker than the middle. The chevron and the arrow stand alone on flat magenta, nothing around them.'
+  }),
   extraSheet('gate', {
     title: 'Warp pipe — rim, tube, base (three pieces)',
     shape: [

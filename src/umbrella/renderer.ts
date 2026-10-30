@@ -587,21 +587,10 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     ctx.fillRect(0, 0, cw, ch)
   }
   ctx.setTransform(s, 0, 0, s, ox, oy)
-  if (backdrop) {
-    // Outside the level the sky is veiled, so its edge still reads (not in portrait,
-    // where the sky fills the screen); inside, a faint night tint keeps the sky behind the play.
-    const { w: ww, h: wh } = w.level.world
-    if (!fullBleed) {
-      ctx.fillStyle = 'rgba(10, 8, 24, 0.6)'
-      ctx.beginPath()
-      ctx.rect(-1e5, -1e5, 2e5, 2e5)
-      ctx.rect(0, 0, ww, wh)
-      ctx.fill('evenodd')
-    }
-    ctx.fillStyle = 'rgba(26, 22, 56, 0.36)'
-    // (In portrait on a still background canvas, the tint is painted into it.)
-    if (fullBleed) { if (!still) ctx.fillRect(-1e5, -1e5, 2e5, 2e5) } else ctx.fillRect(0, 0, ww, wh)
-  } else if (!fullBleed) {
+  // A painted sky is shown as painted, untinted inside and outside the level: a veil outside the
+  // level's box and a night tint inside it drew a dark rectangle with a lighter strip beside it
+  // wherever the box did not fill the screen, which read as a rendering bug.
+  if (!backdrop && !fullBleed) {
     ctx.fillStyle = BG
     ctx.fillRect(0, 0, w.level.world.w, w.level.world.h)
   }

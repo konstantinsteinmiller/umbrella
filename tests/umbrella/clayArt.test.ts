@@ -15,10 +15,9 @@ describe('clay sheets', () => {
     }
   })
 
-  it('paints the same drawables as the lantern set, the wind excepted (the game draws its streaks)', () => {
+  it('paints the same drawables as the lantern set, plus its own clay gusts (the wisps excepted)', () => {
     const lantern = new Set(LANTERN_SHEETS.map((s) => s.id))
     lantern.delete('wind-wisps')
-    lantern.delete('wind-paper')
     expect(new Set(CLAY_SHEETS.map((s) => s.id).filter((id) => id !== 'clay-wind'))).toEqual(lantern)
   })
 

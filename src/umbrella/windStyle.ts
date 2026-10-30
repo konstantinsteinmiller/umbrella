@@ -1,7 +1,8 @@
-// ─── How the lantern build draws its wind (a designer's view switch) ───────
+// ─── How the painted builds draw their wind (a designer's view switch) ─────
 //
-// Two looks for the same currents: the gust streaks (thin strokes with a curl) and the folded paper
-// strips of the concept art, printed with chevron arrows. A view choice of this browser only — kept
+// Two looks for the same currents. Lantern: the folded paper strips of the concept art, printed with
+// chevron arrows, or the gust streaks (thin strokes with a curl). Clay: the same folded strips in
+// clay slabs (once its wind-paper sheet has shipped), or the clay gusts over a grid of clay arrows. A view choice of this browser only — kept
 // in the save, never in a level, never synced to the levels bucket — toggled from the level editor's
 // View menu. Leaf module: the renderer reads it every frame.
 import { ref } from 'vue'

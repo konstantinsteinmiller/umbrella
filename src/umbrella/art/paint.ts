@@ -1894,7 +1894,9 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
     // A clearly readable current: a denser fill with a short feather, so its edge (where the push
     // ends) reads at a glance without a drawn border.
     // The paper strips carry their own colour: under them the field stays faint.
-    const paper = isLantern && windStyle.value === 'paper'
+    // The folded strips: lantern's washi, and clay's default wind once its clay slabs have shipped
+    // (the clay gusts and arrow grid are the other look, and the fallback until then).
+    const paper = windStyle.value === 'paper' && (isLantern || (isClay && hasSheet('wind-paper')))
     ctx.save()
     // The clay current is a soft pale-blue (or orange) clay field of its own; the paper strips carry
     // their own colour, so under them the field stays faint.
@@ -1902,8 +1904,8 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
     // The paper strips carry their field in their cache (one fill of the current a frame, not two).
     if (!paper) softRect(ctx, tex, live.x, live.y, live.w, live.h, Math.min(f, 10))
     ctx.restore()
-    if (isClay) clayWind(ctx, live, def, w)
-    else if (paper) paperStrips(ctx, live, def, w, { tex, alpha: sup ? 0.14 : 0.1, f: Math.min(f, 10) })
+    if (paper) paperStrips(ctx, live, def, w, { tex, alpha: sup ? 0.14 : 0.1, f: Math.min(f, 10) })
+    else if (isClay) clayWind(ctx, live, def, w)
     else windGusts(ctx, live, def, w)
   } else if (live.speed > 0 && img) {
     const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
@@ -2425,8 +2427,8 @@ const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, 
 let skyStill: { key: string; canvas: HTMLCanvasElement } | null = null
 
 let stillKey = ''
-/** Weak phones: keep the background canvas painted (the base colour, the merged sky and, in
- *  portrait, the night tint over it), repainting only when the screen size or a layer changes. */
+/** Weak phones: keep the background canvas painted (the base colour and the merged sky),
+ *  repainting only when the screen size or a layer changes. */
 const stillBackdrop = (canvas: HTMLCanvasElement, fullBleed: boolean): boolean => {
   const t = stillSkyCanvas
   // Lantern: the parallax layers merged; clay: its one painting, centred.
@@ -2455,10 +2457,6 @@ const stillBackdrop = (canvas: HTMLCanvasElement, fullBleed: boolean): boolean =
       const k = Math.max(cw / sky.width, ch / sky.height) * 1.08
       g.imageSmoothingQuality = 'high'
       g.drawImage(sky, (cw - sky.width * k) / 2, (ch - sky.height * k) / 2, sky.width * k, sky.height * k)
-    }
-    if (fullBleed) {
-      g.fillStyle = 'rgba(26, 22, 56, 0.36)'
-      g.fillRect(0, 0, cw, ch)
     }
     stillKey = key
   }

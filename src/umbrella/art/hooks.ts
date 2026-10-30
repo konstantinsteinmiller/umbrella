@@ -33,9 +33,9 @@ export interface KiteArt {
   gate?: (ctx: CanvasRenderingContext2D, g: Pick<GateDef, 'x' | 'y' | 'w' | 'h'>, time: number) => boolean
   /** A painted sky behind the level, in SCREEN space (the lantern build). */
   backdrop?: (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Camera, w: World) => boolean
-  /** Weak phones: the sky (and in portrait its night tint) lives on a still background canvas behind
-   *  `canvas`, painted only when the screen changes size. True: the caller clears `canvas` to
-   *  transparent instead of filling and painting the sky, and skips the portrait tint. */
+  /** Weak phones: the sky lives on a still background canvas behind `canvas`, painted only when the
+   *  screen changes size. True: the caller clears `canvas` to transparent instead of filling and
+   *  painting the sky. */
   stillBackdrop?: (canvas: HTMLCanvasElement, fullBleed: boolean) => boolean
 }
 
