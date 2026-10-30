@@ -291,8 +291,8 @@ export const buildIndex = (fits: Record<string, Fit> = {}, sheets: SheetDef[] = 
     // the slicer's flood fallback must not take its stone for a background.
     ...(s.use === 'nine' || s.use === 'pillar' ? { autoBg: false } : {}),
     tight: false,
-    maxEdge: PANEL,
-    exact: false,
+    maxEdge: s.edge ?? PANEL,
+    exact: !!s.edge,
     fit: s.fit === 'none' ? null : (fits[s.id] ?? null)
   }))
 })

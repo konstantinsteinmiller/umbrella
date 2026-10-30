@@ -12,6 +12,7 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 12 — 2026-10-29 ==
+- [x] The lantern finish dais ships at 512 px a frame (sprites stay at 256): stretched across the whole finish platform it drew soft on 2x screens, now it is sharp
 - [x] Zora Rounded is the game's Latin font (Angry behind it for any glyph it lacks); the new Umbrella favicon; the campaign's latest level order and level edits; the Poki deploy set to Umbrella's own P4D game (version 0.12.2)
 - [x] Cheat mode: an "Art" dropdown under OPEN EDITOR picks "Drawn only" or "Origami: Lantern" and reloads the game in it (?art=lantern opens the lantern build of the same revision)
 - [x] Level select: a cleared level shows its number in green instead of a check mark squeezed into the tile (it sat misplaced on portrait phones)

@@ -74,6 +74,10 @@ export interface SheetDef {
   /** The approved concept design of this very thing, cut from the concept art (under the sheets
    *  dir), attached after the style sheet: paint THIS design. */
   designRef?: string
+  /** Write this sheet's frames at this many px (the slicer's \`exact\`), above its 256 px default
+   *  cap: only for art drawn far bigger on screen than a sprite — the finish dais spans the whole
+   *  finish platform, about 520 device px on a 2x phone. */
+  edge?: number
   /** The designer's hand-drawn style reference (under SHEETS_DIR), attached
    *  FIRST: it sets the finish — cream-paper crayon, cel-shaded — never the subject. */
   styleRef?: string
@@ -545,7 +549,7 @@ export const EXTRA_SHEETS: SheetDef[] = [
   },
   {
     id: 'finish-dais', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Finish dais — the dais, a tassel and two pennants', use: 'sprite',
-    cols: 2, rows: 2, box: { size: 64, ax: 0.5, ay: 0 }, tier: 0, fit: 'none', fresh: true,
+    cols: 2, rows: 2, edge: 512, box: { size: 64, ax: 0.5, ay: 0 }, tier: 0, fit: 'none', fresh: true,
     anims: { dais: { frames: [0], fps: 0 }, tassel: { frames: [1], fps: 0 }, pennantRed: { frames: [2], fps: 0 }, pennantBlue: { frames: [3], fps: 0 } },
     blurb: 'the FINISH: a festival DAIS and the decorations that hang from it, as a SET of four separate pieces, one per panel — panel 1 the DAIS alone: a big round flat lacquered drum stage seen a little from above, so its top is a wide flat ellipse — the top a glowing warm golden-cream paper disc with thin concentric rings drawn on it, a gold rim round it, and below the rim a thin band of red lacquer with a gold edge; it spans the panel\'s whole width, and nothing hangs from it; panel 2 ONE golden TASSEL: a small gold knot with a long gold fringe hanging straight down from a tiny loop at the top middle of the panel; panel 3 ONE red hanging PENNANT: a narrow swallow-tailed paper banner hanging straight down from the top middle of the panel; panel 4 ONE slate-blue hanging PENNANT, the same shape as panel 3',
     colour: 'the dais top glowing warm golden cream (#ffe2a0 at its centre to #f2b544 at its edge) with thin amber rings (#d08a2a), a gold rim (#f2b544), a red lacquer band (#b8361a) with a gold edge; the tassel gold (#e8b83a) with an amber shadow; the pennants lacquer red (#c8402f) and slate blue (#5a6f8f) washi paper; a thin deep plum-indigo cut-edge outline (#2a1d3a)',
