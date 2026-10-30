@@ -42,7 +42,7 @@
 
 import { fontStackFor } from '@/i18n/localeDirection'
 import { liteMode } from '@/umbrella/liteMode'
-import { decodeSvg, drawRaster, findUnits, loadCss, paintRect, serializeUnit, styleWithoutPosition, svgDataUrl, cssFor, type Rect, type Unit } from '@/utils/domRaster'
+import { decodeSvg, drawRaster, findUnits, loadCss, paintRect, primeImages, serializeUnit, styleWithoutPosition, svgDataUrl, cssFor, type Rect, type Unit } from '@/utils/domRaster'
 
 /** The element whose `background-image` is the scene backdrop (GameScene). */
 export const STAGE_BG_ATTR = 'data-poki-stage-bg'
@@ -533,6 +533,7 @@ const bake = async (u: Unit, sig: string, vw: number, vh: number): Promise<void>
   inFlight++
   try {
     await loadCss()
+    if (u.kind === 'tree') await primeImages(u.el)
     const rect = paintRect(u, vw, vh)
     if (rect.w <= 0 || rect.h <= 0) return
     const img = await decodeSvg(svgDataUrl(cssFor(u), serializeUnit(u, vw, vh), vw, vh), vw, vh)

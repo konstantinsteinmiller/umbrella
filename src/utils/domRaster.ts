@@ -118,6 +118,16 @@ const toDataUrl = (abs: string): Promise<string | null> => {
 }
 
 /**
+ * Load, as data URLs, the images inside a unit that is baked whole (a swinging lantern: a turned
+ * container is never split, so its <img> goes into the SVG). An SVG image loads nothing itself, so
+ * an <img> left pointing at its file shows as a broken-image icon in the bake. Same-origin only.
+ */
+export const primeImages = async (el: Element): Promise<void> => {
+  const imgs = el instanceof HTMLImageElement ? [el] : Array.from(el.getElementsByTagName('img'))
+  await Promise.all(imgs.map((i) => (i.currentSrc || i.src) && toDataUrl(i.currentSrc || i.src)))
+}
+
+/**
  * The keys a selector list can match by, browser-style: the id, else the
  * first class, else the tag of each selector's RIGHTMOST compound. `null`
  * when any selector in the list has none (`*`, `:root`, `[dir=rtl]`, `html`):
@@ -502,6 +512,11 @@ export const serializeUnit = (u: Unit, vw: number, vh: number): string => {
       map.set(s, c)
       if (SKIP.has(s.localName)) drop.push(c)
       else if (s.localName === 'input' || s.localName === 'textarea') c.setAttribute('value', (s as HTMLInputElement).value)
+      else if (s.localName === 'img') {
+        // Inlined (primeImages), or left out: never a file the SVG cannot load (a broken-image icon).
+        const d = dataUrls.get(new URL((s as HTMLImageElement).currentSrc || (s as HTMLImageElement).src, location.href).href)
+        if (d) { c.setAttribute('src', d); c.removeAttribute('srcset') } else drop.push(c)
+      }
     }
     for (const c of drop) c.remove()
   }
