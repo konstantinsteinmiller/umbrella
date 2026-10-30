@@ -222,7 +222,7 @@ export const promptBody = (text: string): string => {
   return (cut < 0 ? '' : text.slice(cut + 1)).replace(/^\n+/, '')
 }
 
-type KiteDoc = Exclude<PromptDoc, 'PROMPTS-LANTERN.md'>
+type KiteDoc = Exclude<PromptDoc, 'PROMPTS-LANTERN.md' | 'PROMPTS-CLAY.md'>
 
 const DOC_TITLES: Record<KiteDoc, string> = {
   'PROMPTS-KITE.md': 'the KITE characters (Pweeg-Kite and Chad-Kite) — the kite build\'s player; paint these first',

@@ -122,6 +122,7 @@ export default {
       'snap': "10 px グリッドにスナップ",
       'animate': "動くものをアニメーション",
       'mobile': "スマホプレビュー",
+      'paperWind': "紙の風の帯",
       'test': "テスト",
       'share': "共有リンクをコピー",
       'submit': "コミュニティに投稿…",
@@ -298,7 +299,9 @@ export default {
       'duration': "滑空 (秒)",
       'followSpeed': "追う速さ",
       'reach': "範囲の長さ",
-      'zoneWidth': "範囲の幅"
+      'zoneWidth': "範囲の幅",
+      'angle': "弧の角度 (°)",
+      'phase': "開始位置 (°)"
     },
     'problem': {
       'noFinish': "ゴールの足場がありません — クリアできません。",

@@ -11,8 +11,28 @@ Umbrella — changelog (newest first)
 
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
+== Revision 13 — 2026-10-30 ==
+- [x] Clay walls and ledges keep their brickwork at one size at any length or thickness (the stretched bricks smeared into streaks), with the coping stones along the top and a soft rounded clay edge and shadow
+- [x] A bouncy Walldorf that pushes Pweeg into a solid platform he stands on or against crushes him (splat) — any push into it, however small — instead of shoving him through it
+- [x] Clay mines blow up in clay: a squashy puff of soft clay balls, crimson clay lumps and spike cones flung out, clay dust drifting up
+- [x] Pweeg holds the umbrella in his flung-out hand while falling too (painted builds)
+- [x] Clay finish: the post office doorstep with a woven mat, a red postbox and a little flag standing on it and yellow bunting along its front
+- [x] Clay art style (roadmap #10): ?art=clay (and the cheat-mode Art menu) opens the "Rainy Day Post" claymation look — a clay postman Pweeg and Chad, a red-and-white clay umbrella, slate and brick rooftop ledges, chimney Walldorfs with live googly eyes, a spiky clay mine, a chimney fan, gold clay stamp/umbrella/cloud collectibles, a green clay warp pipe and a misty rainy rooftop town behind; every pose painted from one figure of the model so cuts between animations never pop. Served at /umbrella/clay/ and /umbrella/<N>/clay/ from revision 12 on
+- [x] Clay wind like the concept, made consistent: a soft pale-blue clay current with an even grid of rolled-clay arrows, painted rolled-clay swooshes (tapered, curling at their head) gliding along, and autumn leaves tumbling with the flow, all travelling at the current's speed; Super Streams in orange clay
+- [x] Phones held upright: the level fills the band between the HUD and the touch controls (72% of the screen's height, at least 1.69× the fit-the-width view), and the camera leans ahead the way Pweeg walks, floats or is blown (up to 32% of the view, so moving right he stays in the screen's left quarter), easing in quickly, so hazards ahead are on screen
+- [x] Lantern wind strips are painted: blue and golden washi paper with fibres, folded-paper chevrons on the regular currents and folded-paper arrows with speed marks on the Super Streams (drawn marks stay as the fallback)
+- [x] Lantern wind is drawn as the paper strips by default: every regular current the same blue folded paper with chevrons, every Super Stream golden paper with bold solid arrowheads and speed dashes, all travelling with the current (the gust streaks stay one View-menu switch away)
+- [x] Painted Pweeg and Chad hold the furled umbrella in their hand while standing and walking (in the game, the intro and Chad's scenes): its grip follows each painted frame's front hand instead of floating at a fixed spot beside them
+- [x] Lantern wind, second look: folded washi paper strips laid along the current, printed with arrows (single on the warm middle strip, double chevrons on the paler ones) that travel at the wind's speed; switched in the level editor's View menu ("Paper wind strips", this browser only), the gust streaks stay the default
+- [x] Painted floor buttons are exactly as big as what you press: the painting is fitted by its own outline into the button's box and base (it stood nearly three times too tall)
+- [x] Poki builds are fully offline: the campaign is baked in at build time, nothing is fetched from the levels server at runtime, and the editor's share link carries no outside address (Poki's release gates pass with no external host, plain and lantern)
+- [x] Level editor: a swing's arc can be angled ("Arc angle", or drag the orange rest dot) and every repeating mover's start point set ("Start (°)" on back-and-forth, circle, swing and the repeating lunge; on a circle also by dragging the blue pin round it); old levels and share links play exactly as before
+- [x] Intro clouds are proper cloud banks: puffs of different sizes along the top, round ends and a soft scalloped underside shaded a little cooler, instead of a flat bottom edge
+- [x] Poki builds in one painted art style: `pnpm deploy:poki:lantern` and `pnpm deploy:poki:clay` build, check and upload the game drawn only in that style (the version is named after it); a Poki build has no art switch in the cheat mode
+- [x] Lantern wind currents: no drawn border round the box; the denser fill and short feather mark its edge
+- [x] Lantern wind currents read at a glance: a denser fill with a short feather, so where the push ends is clear
+
 == Revision 12 — 2026-10-29 ==
-- [x] Lantern wind currents read at a glance: a denser fill with a short feather and a faint light rim, so where the push ends is clear
 - [x] Lantern wind: about a seventh fewer gust streaks, each kept inside its own lane (its bow and curl never reach the next lane) and spaced evenly along it, so streaks no longer cross or pile up
 - [x] The finish platform is drawn in front of every other platform, enemy and prop; only the player goes over it (the wide lantern dais was overlapped by neighbouring blocks)
 - [x] Lantern Walldorfs watch you: their eyes stay in one place on the pillar (they used to jump from side to side as you passed) and only the pupils turn to follow Pweeg, re-aimed every third frame; the painted pupils are taken out of the face sheet (scripts/art/walldorf-pupils.py, run after slicing) and the game draws them

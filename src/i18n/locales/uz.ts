@@ -122,6 +122,7 @@ export default {
       'snap': "10 px to‘rga yopishtirish",
       'animate': "Harakatlanuvchi narsalarni jonlantirish",
       'mobile': "Telefonda ko‘rish",
+      'paperWind': "Qogʻoz shamol tasmalari",
       'test': "Sinash",
       'share': "Ulashish havolasini nusxalash",
       'submit': "Hamjamiyatga yuborish…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Sirpanish (s)",
       'followSpeed': "Ergashish tezligi",
       'reach': "Zona uzunligi",
-      'zoneWidth': "Zona kengligi"
+      'zoneWidth': "Zona kengligi",
+      'angle': "Yoy burchagi (°)",
+      'phase': "Boshlanish (°)"
     },
     'problem': {
       'noFinish': "Marra platformasi yo‘q — darajani yutib bo‘lmaydi.",

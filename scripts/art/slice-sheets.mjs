@@ -58,7 +58,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // only the kite build bundles it). Without it: the barrage set, as before.
 const SET_AT = process.argv.indexOf('--set')
 const SET = SET_AT > 1 ? process.argv[SET_AT + 1] ?? null : null
-const SET_OUT = { umbrella: 'src/assets/umbrella-art', 'umbrella-lantern': 'src/assets/umbrella-art-lantern' }
+const SET_OUT = { umbrella: 'src/assets/umbrella-art', 'umbrella-lantern': 'src/assets/umbrella-art-lantern', 'umbrella-clay': 'src/assets/umbrella-art-clay' }
 if (SET && !SET_OUT[SET]) { console.error(`--set ${SET} is unknown (known: ${Object.keys(SET_OUT).join(', ')})`); process.exit(1) }
 const SHEETS_ROOT = SET ? join(ROOT, 'art-sheets', SET) : join(ROOT, 'art-sheets')
 const INDEX = join(SHEETS_ROOT, 'sheet-index.json')

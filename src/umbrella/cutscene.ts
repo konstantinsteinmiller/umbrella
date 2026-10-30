@@ -12,7 +12,7 @@
 
 import { createWorld, type World } from './engine'
 import { render, type Camera, type Labels } from './renderer'
-import { drawPweeg, drawUmbrella, type PweegPose } from './characters'
+import { drawPweeg, drawUmbrella, heldAt, type PweegPose } from './characters'
 import { drawChad, flipArc, type ChadAction } from './chad'
 import type { LevelDef, Vec } from './levels'
 import type { Tuning } from './tuning'
@@ -145,19 +145,52 @@ export const createCutscene = (def: CutsceneDef, level: LevelDef, tuning: Tuning
     ctx.beginPath()
     ctx.rect(0, 0, level.world.w, level.world.h)
     ctx.clip()
-    for (const r of def.clouds) {
-      ctx.fillStyle = r.fill
-      ctx.beginPath()
-      const n = Math.max(2, Math.round((r.x1 - r.x0) / 46))
-      for (let i = 0; i <= n; i++) {
-        const cx = r.x0 + ((r.x1 - r.x0) * i) / n
-        const rad = 24 + ((i * 53) % 7) * 2
-        ctx.moveTo(cx + rad, r.top + rad * 0.7)
-        ctx.arc(cx, r.top + rad * 0.7, rad, 0, Math.PI * 2)
-      }
-      ctx.rect(r.x0, r.top + 16, r.x1 - r.x0, r.depth)
-      ctx.fill()
+    for (const r of def.clouds) cloudBank(ctx, r)
+    ctx.restore()
+  }
+
+  /** One cloud bank: puffs of different sizes along its top, a round puff at each end and a
+   *  scalloped underside of smaller puffs — never a straight edge — shaded a little cooler toward
+   *  the bottom. Each puff's size is fixed by its place, so the bank holds still. */
+  const cloudBank = (ctx: CanvasRenderingContext2D, r: CloudRow) => {
+    const bottom = r.top + 16 + r.depth
+    const w = r.x1 - r.x0
+    const endR = Math.max(16, Math.min(42, r.depth * 0.45))
+    ctx.beginPath()
+    const puff = (x: number, y: number, rad: number) => {
+      ctx.moveTo(x + rad, y)
+      ctx.arc(x, y, rad, 0, Math.PI * 2)
     }
+    // The top: big puffs, a little uneven in height.
+    const n = Math.max(2, Math.round(w / 46))
+    for (let i = 0; i <= n; i++) {
+      const rad = 24 + ((i * 53) % 7) * 2
+      puff(r.x0 + (w * i) / n, r.top + rad * 0.7 + ((i * 31) % 5) - 2, rad)
+    }
+    // The underside: smaller puffs, set in so the bank's foot is a soft scallop.
+    const m = Math.max(2, Math.round(w / 30))
+    const footR = (i: number) => Math.min(endR, 12 + ((i * 37) % 7) * 2)
+    for (let i = 0; i <= m; i++) {
+      const rad = footR(i)
+      puff(r.x0 + (w * i) / m + (((i * 17) % 5) - 2) * 3, bottom - rad * (0.7 + ((i * 29) % 4) * 0.12), rad)
+    }
+    // The two ends, round.
+    puff(r.x0, (r.top + bottom) / 2, endR)
+    puff(r.x1, (r.top + bottom) / 2, endR)
+    // The body between them.
+    ctx.rect(r.x0, r.top + 16, w, Math.max(0, r.depth - 16))
+    ctx.fillStyle = r.fill
+    ctx.fill()
+    // Shade: cooler toward the underside, a touch of light along the top.
+    ctx.save()
+    ctx.clip()
+    const shade = ctx.createLinearGradient(0, r.top, 0, bottom + 4)
+    shade.addColorStop(0, 'rgba(255, 255, 255, 0.35)')
+    shade.addColorStop(0.35, 'rgba(255, 255, 255, 0)')
+    shade.addColorStop(0.7, 'rgba(150, 160, 200, 0)')
+    shade.addColorStop(1, 'rgba(150, 160, 200, 0.35)')
+    ctx.fillStyle = shade
+    ctx.fillRect(r.x0 - endR - 4, r.top - 40, w + endR * 2 + 8, bottom - r.top + 50)
     ctx.restore()
   }
 
@@ -172,7 +205,10 @@ export const createCutscene = (def: CutsceneDef, level: LevelDef, tuning: Tuning
     const p = pweeg ? poseAt(pweeg, time) : null
     if (p) {
       drawPweeg(ctx, p.x, p.y, { pose: p.pose ?? 'stand', facing: 1, w: size.w, h: size.h, time: time + waited, step: p.step, front: p.front, blink: p.blink })
-      if (p.pose !== 'cheer') drawUmbrella(ctx, p.x + size.w * 0.8, p.y - size.h * 0.35, { state: 'furled', tilt: 0.22, time })
+      if (p.pose !== 'cheer') {
+        const at = heldAt(p.x + size.w * 0.8, p.y - size.h * 0.35)
+        drawUmbrella(ctx, at.x, at.y, { state: 'furled', tilt: 0.22, time })
+      }
     }
     // Fade in from black.
     if (time < def.fadeIn) {

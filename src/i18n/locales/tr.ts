@@ -122,6 +122,7 @@ export default {
       'snap': "10 px ızgaraya hizala",
       'animate': "Hareketli nesneleri canlandır",
       'mobile': "Telefon önizlemesi",
+      'paperWind': "Kâğıt rüzgâr şeritleri",
       'test': "Test et",
       'share': "Paylaşım bağlantısını kopyala",
       'submit': "Topluluğa gönder…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Süzülme (sn)",
       'followSpeed': "Takip hızı",
       'reach': "Bölge uzunluğu",
-      'zoneWidth': "Bölge genişliği"
+      'zoneWidth': "Bölge genişliği",
+      'angle': "Yay açısı (°)",
+      'phase': "Başlangıç (°)"
     },
     'problem': {
       'noFinish': "Bitiş platformu yok — seviye kazanılamaz.",

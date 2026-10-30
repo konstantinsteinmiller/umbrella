@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createWorld, step, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { LEVELS } from '@/umbrella/levels'
-import { cameraFor, PORTRAIT_ZOOM } from '@/umbrella/renderer'
+import { cameraFor, PORTRAIT_FILL, PORTRAIT_ZOOM } from '@/umbrella/renderer'
 import { DEFAULT_TUNING as T } from '@/umbrella/tuning'
 
 const DT = 1 / 120
@@ -214,17 +214,20 @@ describe('umbrella engine', () => {
     expect(Math.max(...seen)).toBeGreaterThan(1200)
     // A portrait phone zooms in past the screen's full width and is centred vertically.
     const tall = cameraFor(w, 390, 844)
-    expect(tall.s).toBeCloseTo((390 / 1280) * PORTRAIT_ZOOM)
+    const screenH = w.level.view?.h ?? w.level.world.h
+    expect(tall.s).toBeCloseTo(Math.max((390 / 1280) * PORTRAIT_ZOOM, (844 * PORTRAIT_FILL) / screenH))
     expect(tall.oy).toBeGreaterThan(0)
   })
 
-  it('portrait screens zoom a one-screen level in by PORTRAIT_ZOOM and follow the player sideways inside the world; landscape keeps the whole level', () => {
+  it('portrait screens zoom a one-screen level in until it fills PORTRAIT_FILL of the height and follow the player sideways inside the world; landscape keeps the whole level', () => {
     const w = level(1)
     const { w: ww, h: wh } = w.level.world
     const wide = cameraFor(w, 1280, 720)
     expect(wide.s).toBeCloseTo(Math.min(1280 / ww, 720 / wh))
     const phone = cameraFor(w, 390, 844)
-    expect(phone.s).toBeCloseTo(Math.min(390 / ww, 844 / wh) * PORTRAIT_ZOOM)
+    expect(phone.s).toBeCloseTo(Math.max(Math.min(390 / ww, 844 / wh) * PORTRAIT_ZOOM, (844 * PORTRAIT_FILL) / wh))
+    // The level's height fills most of the screen's.
+    expect((wh * phone.s) / 844).toBeGreaterThanOrEqual(PORTRAIT_FILL - 1e-9)
     // The screen shows less than the world's width: the view stays inside the world …
     expect(phone.ox).toBeLessThanOrEqual(0)
     expect(phone.ox).toBeGreaterThanOrEqual(390 - ww * phone.s - 1e-6)
@@ -266,5 +269,72 @@ describe('umbrella engine', () => {
     const safe = lungeAt({}, true)
     safe.player.x = 520; safe.player.y = 280; safe.player.grounded = false
     expect(run(safe, 3, (s) => { s.player.vy = 0; return {} })).not.toContain('hit')
+  })
+})
+
+describe('portrait camera look-ahead', () => {
+  const centreSeen = (cam: { s: number; ox: number }) => (-cam.ox + 390 / 2) / cam.s
+  it('leans the way the player moves, so what lies ahead is on screen', () => {
+    for (const dir of [1, -1]) {
+      const w = level(1)
+      const pl = w.player
+      pl.x = w.level.world.w / 2 - pl.w / 2
+      pl.vx = 0
+      cameraFor(w, 390, 844, 0)
+      pl.vx = dir * 220
+      let cam = cameraFor(w, 390, 844, 1 / 60)
+      for (let i = 0; i < 240; i++) cam = cameraFor(w, 390, 844, 1 / 60)
+      const ahead = (centreSeen(cam) - (pl.x + pl.w / 2)) * dir
+      // He stays in the quarter of the screen behind the way he moves.
+      expect(ahead).toBeGreaterThan((390 / cam.s) * 0.25)
+    }
+  })
+})
+
+describe('a bouncy Walldorf against a platform', () => {
+  it('crushes Pweeg (splat) instead of pushing him into or through the platform', () => {
+    const lvl = {
+      id: 0, world: { w: 1280, h: 720 }, spawn: { x: 400, y: 380 },
+      platforms: [{ x: 300, y: 400, w: 400, h: 40 }], winds: [],
+      // A bouncy Walldorf right on top of him: the shallowest way out is down, into the ledge.
+      hazards: [{ kind: 'pillar' as const, x: 380, y: 300, w: 120, h: 90, contact: 'bounce' as const }]
+    }
+    const w = createWorld(lvl)
+    const pl = w.player
+    pl.x = 420; pl.y = 400 - pl.h; pl.vx = 0; pl.vy = 0
+    const ev = step(w, { left: false, right: false, toggle: false } as Input, 1 / 60, T)
+    expect(w.phase).toBe('splat')
+    expect(ev).toContain('splat')
+  })
+
+  it('still bounces him off when there is room', () => {
+    const lvl = {
+      id: 0, world: { w: 1280, h: 720 }, spawn: { x: 100, y: 380 },
+      platforms: [{ x: 0, y: 400, w: 200, h: 40 }], winds: [],
+      hazards: [{ kind: 'pillar' as const, x: 600, y: 200, w: 60, h: 200, contact: 'bounce' as const }]
+    }
+    const w = createWorld(lvl)
+    const pl = w.player
+    pl.x = 600 - pl.w + 6; pl.y = 260; pl.vx = 0; pl.vy = 0
+    step(w, { left: false, right: false, toggle: false } as Input, 1 / 60, T)
+    expect(w.phase).toBe('play')
+    expect(pl.vx).toBeLessThan(0)
+  })
+})
+
+describe('a Walldorf pressing down on Pweeg as he stands on a platform', () => {
+  it('crushes him even when it overlaps him by only a pixel', () => {
+    const lvl = {
+      id: 0, world: { w: 1280, h: 720 }, spawn: { x: 400, y: 380 },
+      platforms: [{ x: 300, y: 400, w: 400, h: 40 }], winds: [],
+      hazards: [{ kind: 'pillar' as const, x: 380, y: 300, w: 140, h: 60, contact: 'bounce' as const }]
+    }
+    const w = createWorld(lvl)
+    const pl = w.player
+    pl.x = 420; pl.y = 400 - pl.h; pl.vx = 0; pl.vy = 0
+    // The Walldorf's bottom just 1 px into his head.
+    w.hazards[0]!.y = pl.y - 60 + 1
+    step(w, { left: false, right: false, toggle: false } as Input, 1 / 60, T)
+    expect(w.phase).toBe('splat')
   })
 })

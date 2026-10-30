@@ -1141,7 +1141,12 @@ export default defineConfig(({ mode, command }) => {
       // the whole art branch is dead code there.
       'import.meta.env.VITE_APP_KITE': JSON.stringify(env.VITE_APP_KITE === 'true' ? 'true' : 'false'),
       // The lantern art build (?art=lantern, /umbrella/lantern/), folded the same way.
-      'import.meta.env.VITE_APP_LANTERN': JSON.stringify(env.VITE_APP_LANTERN === 'true' ? 'true' : 'false')
+      'import.meta.env.VITE_APP_LANTERN': JSON.stringify(env.VITE_APP_LANTERN === 'true' ? 'true' : 'false'),
+      // The clay art build (?art=clay, /umbrella/clay/), likewise.
+      'import.meta.env.VITE_APP_CLAY': JSON.stringify(env.VITE_APP_CLAY === 'true' ? 'true' : 'false'),
+      // Poki allows no outside references in its package: the editor's share link there is a bare
+      // `?level=…` (levelCode.ts), and the public web build's address never enters the bundle.
+      ...(env.VITE_APP_POKI === 'true' ? { 'import.meta.env.VITE_APP_SHARE_URL': JSON.stringify('') } : {})
     },
     plugins: [
       tailwindcss(),
@@ -1190,11 +1195,13 @@ export default defineConfig(({ mode, command }) => {
         // the lantern folder there, so neither build holds the other's paint.
         // A dev server keeps the real layer, so `?art=lantern` can switch it on at runtime
         // (kite.ts, art/shipped-dev.ts).
-        ...(env.VITE_APP_KITE === 'true' || env.VITE_APP_LANTERN === 'true' || command === 'serve' ? {} : {
+        ...(env.VITE_APP_KITE === 'true' || env.VITE_APP_LANTERN === 'true' || env.VITE_APP_CLAY === 'true' || command === 'serve' ? {} : {
           '@/umbrella/art/install': fileURLToPath(new URL('./src/umbrella/art/install.stub.ts', import.meta.url))
         }),
         ...(env.VITE_APP_LANTERN === 'true' ? {
           '@/umbrella/art/shipped': fileURLToPath(new URL('./src/umbrella/art/shipped-lantern.ts', import.meta.url))
+        } : env.VITE_APP_CLAY === 'true' ? {
+          '@/umbrella/art/shipped': fileURLToPath(new URL('./src/umbrella/art/shipped-clay.ts', import.meta.url))
         } : command === 'serve' && env.VITE_APP_KITE !== 'true' ? {
           '@/umbrella/art/shipped': fileURLToPath(new URL('./src/umbrella/art/shipped-dev.ts', import.meta.url))
         } : {}),

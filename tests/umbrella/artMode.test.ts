@@ -12,6 +12,12 @@ describe('the designers\' art switch', () => {
     expect(artModeUrl('https://x.github.io/umbrella/12/lantern/#/?art=lantern', 'drawn', false)).toBe('https://x.github.io/umbrella/12/#/')
   })
 
+  it('opens the clay build the same way, and switches straight between the painted builds', () => {
+    expect(artModeUrl('https://x.github.io/umbrella/12/#/', 'clay', false)).toBe('https://x.github.io/umbrella/12/?art=clay#/')
+    expect(artModeUrl('https://x.github.io/umbrella/12/clay/?art=clay#/', 'lantern', false)).toBe('https://x.github.io/umbrella/12/?art=lantern#/')
+    expect(artModeUrl('https://x.github.io/umbrella/12/clay/#/', 'drawn', false)).toBe('https://x.github.io/umbrella/12/#/')
+  })
+
   it('on a dev server keeps the page and only sets or clears the flag', () => {
     expect(artModeUrl('http://127.0.0.1:5173/#/', 'lantern', true)).toBe('http://127.0.0.1:5173/?art=lantern#/')
     expect(artModeUrl('http://127.0.0.1:5173/?art=lantern#/', 'drawn', true)).toBe('http://127.0.0.1:5173/#/')

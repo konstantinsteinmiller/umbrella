@@ -82,6 +82,8 @@ describe('?art=lantern', () => {
     expect(redirect('/umbrella/lantern/', '?art=lantern')).toBeNull()
     expect(redirect('/umbrella/lantern/', '?art=kite')).toBe('/umbrella/kite/?art=kite')
     expect(redirect('/umbrella/', '?art=kite')).toBe('/umbrella/kite/?art=kite')
+    expect(redirect('/umbrella/12/', '?art=clay')).toBe('/umbrella/12/clay/?art=clay')
+    expect(redirect('/umbrella/clay/', '?art=clay')).toBeNull()
     expect(redirect('/umbrella/', '?art=other')).toBeNull()
   })
 })

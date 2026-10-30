@@ -36,7 +36,7 @@ export interface SpriteBox {
 export interface AnimDef { frames: number[]; fps: number; loop?: boolean }
 
 export type SheetGroup = 'pweeg' | 'chad' | 'kite' | 'chad-kite' | 'umbrella' | 'enemy' | 'world' | 'fx'
-export type PromptDoc = 'PROMPTS-KITE.md' | 'PROMPTS-CHARACTERS.md' | 'PROMPTS-ENEMIES.md' | 'PROMPTS-WORLD.md' | 'PROMPTS-LANTERN.md'
+export type PromptDoc = 'PROMPTS-KITE.md' | 'PROMPTS-CHARACTERS.md' | 'PROMPTS-ENEMIES.md' | 'PROMPTS-WORLD.md' | 'PROMPTS-LANTERN.md' | 'PROMPTS-CLAY.md'
 
 /**
  * How the renderer uses the sheet:
@@ -546,6 +546,24 @@ export const EXTRA_SHEETS: SheetDef[] = [
     view: 'flat front-on, square on, no perspective.', one: 'the gate',
     note: 'The game CUTS this gate into three: the beams on top, a stretch of the two posts in the middle (stretched to any height), and the two black feet at the bottom.',
     check: ['· ONE vermilion torii, front-on, filling the image width at its top beam.', '· Black top beam with its ends sweeping up; black feet; plain straight posts in the middle; NOTHING painted between the posts.']
+  },
+  {
+    id: 'clay-wind', group: 'world', doc: 'PROMPTS-CLAY.md', title: 'Clay wind — four rolled-clay swooshes', use: 'sprite',
+    cols: 2, rows: 2, box: { size: 64, ax: 0.5, ay: 0.5 }, tier: 0, fit: 'none', fresh: true, gridCheck: 'nominal',
+    anims: { blueA: { frames: [0], fps: 0 }, blueB: { frames: [1], fps: 0 }, orangeA: { frames: [2], fps: 0 }, orangeB: { frames: [3], fps: 0 } },
+    blurb: 'the wind of the clay town, as a SET of four separate SWOOSHES of rolled plasticine, one per panel, exactly like the swirling clay wind of the attached concept art: each one ONE long smooth rolled-clay stroke lying across its panel from left to right, THICK in its middle and TAPERING to a fine point at BOTH ends, in a gentle wave, its right-hand (downstream) end curling over into a small spiral; panels 1 and 2 two slightly different swooshes in soft dusty-blue clay; panels 3 and 4 the same two shapes in warm orange clay. Each swoosh alone, nothing else in its panel',
+    colour: 'panels 1-2 a soft dusty-blue clay (#6f96bd) with a lighter top edge (#a9c6e2) and a deeper shadow underneath (#4c6f93); panels 3-4 a warm orange clay (#e8873a) with a light apricot top edge (#ffbf86) and a burnt-orange shadow (#b45a1f)',
+    view: 'flat front-on, no perspective, lit softly from the upper left.', one: 'the clay swoosh',
+    note: 'Each swoosh lies flat across the MIDDLE of its panel and spans about four fifths of the panel\'s width, leaving magenta all round it: no leaves, no arrows, no second stroke, no background, no shadow cast on the ground.'
+  },
+  {
+    id: 'wind-paper', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Wind paper — blue and gold washi, chevron, arrow', use: 'sprite',
+    cols: 2, rows: 2, box: { size: 64, ax: 0.5, ay: 0.5 }, tier: 0, fit: 'none', fresh: true, gridCheck: 'nominal',
+    anims: { paperBlue: { frames: [0], fps: 0 }, paperGold: { frames: [1], fps: 0 }, chevron: { frames: [2], fps: 0 }, arrow: { frames: [3], fps: 0 } },
+    blurb: 'the paper the game folds its wind currents from, and the marks printed on it, as a SET of four separate pieces, one per panel — panel 1 a flat SWATCH of soft BLUE washi paper filling the WHOLE panel edge to edge (no outline, no border, no magenta in it): even colour with fine visible paper fibres and a few faint fibre flecks, nothing drawn on it; panel 2 the same kind of flat swatch in warm GOLDEN washi paper, filling the whole panel edge to edge; panel 3 ONE double CHEVRON pointing RIGHT (two bold rounded strokes, one behind the other), printed in dark ink, alone and centred; panel 4 ONE bold solid ARROWHEAD pointing RIGHT with two short speed dashes trailing behind it, printed in dark brown ink, alone and centred',
+    colour: 'panel 1 a calm cornflower-blue washi (#84a8de) with lighter and darker fibres; panel 2 a warm golden-yellow washi (#f6c448) with amber fibres; the chevron a deep indigo ink (#1f2a4a) with a soft brush edge; the arrow a dark brown ink (#5a2c0c)',
+    view: 'flat front-on, no perspective, no shading, no folds — the game folds and lights the paper itself.', one: 'the wind paper',
+    note: 'The two swatches are PLAIN paper the game cuts into strips: no pattern, no stripes, no motif, no gradient, no vignette, no edge darker than the middle. The chevron and the arrow stand alone on flat magenta, nothing around them.'
   },
   {
     id: 'finish-dais', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Finish dais — the dais, a tassel and two pennants', use: 'sprite',

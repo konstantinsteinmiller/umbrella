@@ -122,6 +122,7 @@ export default {
       'snap': "Am 10-px-Raster ausrichten",
       'animate': "Bewegliche Objekte animieren",
       'mobile': "Handy-Vorschau",
+      'paperWind': "Papier-Windbänder",
       'test': "Testen",
       'share': "Teilen-Link kopieren",
       'submit': "In der Community einreichen…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Gleiten (s)",
       'followSpeed': "Folgetempo",
       'reach': "Zonenlänge",
-      'zoneWidth': "Zonenbreite"
+      'zoneWidth': "Zonenbreite",
+      'angle': "Bogenwinkel (°)",
+      'phase': "Start (°)"
     },
     'problem': {
       'noFinish': "Keine Zielplattform — das Level kann nicht gewonnen werden.",

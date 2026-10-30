@@ -125,6 +125,7 @@ export default {
       'snap': "Snap to 10 px grid",
       'animate': "Animate moving things",
       'mobile': "Phone preview",
+      'paperWind': "Paper wind strips",
       'test': "Test",
       'share': "Copy share link",
       'submit': "Submit to community…",
@@ -301,7 +302,9 @@ export default {
       'duration': "Glide (s)",
       'followSpeed': "Follow speed",
       'reach': "Zone length",
-      'zoneWidth': "Zone width"
+      'zoneWidth': "Zone width",
+      'angle': "Arc angle (°)",
+      'phase': "Start (°)"
     },
     'problem': {
       'noFinish': "No finish platform — the level cannot be won.",

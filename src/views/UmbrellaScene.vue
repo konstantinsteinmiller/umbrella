@@ -7,7 +7,7 @@
  * dances, then moves on. Typing "cmonc" opens the hidden feel-tuning panel
  * the GDD asks designers to send numbers from.
  */
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
@@ -18,7 +18,7 @@ import {
 import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
-import { isKite, isLantern } from '@/umbrella/kite'
+import { isKite, paintedGame } from '@/umbrella/kite'
 import { ART_MODES, artModeUrl, currentArtMode, switchArtMode, type ArtMode } from '@/umbrella/artMode'
 import { editorAllowed } from '@/umbrella/editorAccess'
 import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
@@ -43,9 +43,17 @@ import { setRunBreak } from '@/use/usePortalGameplay'
 import { notePlayTime, onDeath, requestTestInterstitial, tapLevelLabel } from '@/umbrella/ads'
 import { isPlatformAudioMuted } from '@/use/useGamePauseAudio'
 import { isMobileAudioMuted } from '@/use/useMobileAudioMute'
+import { UI_THEME, uiTheme, uiThemeClass } from '@/umbrella/ui/theme'
+import UiGlyph from '@/components/umbrella/ornaments/UiGlyph.vue'
+import PanelOrnaments from '@/components/umbrella/ornaments/PanelOrnaments.vue'
+import HangingLantern from '@/components/umbrella/ornaments/HangingLantern.vue'
+import OrnDivider from '@/components/umbrella/ornaments/OrnDivider.vue'
 
 const { t } = useI18n()
 const router = useRouter()
+// The lantern / clay builds dress the menus, HUD and touch controls in their art (umbrella/ui/theme.ts).
+provide(UI_THEME, uiTheme)
+const themeClass = uiThemeClass(uiTheme)
 
 /** A level handed over by the editor's "Test" button: it loops until you go back. */
 const testing = testLevel.value
@@ -550,7 +558,7 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         playSfx('win', { pan: pan * 0.5 })
         break
       case 'splat': mineDeath = false; playSfx('splat', { intensity: 1, pan }); break
-      case 'hit': mineDeath = isLantern && touchedHazard() === 'mine'; playSfx('hit', { hazard: (touchedHazard() === 'fan' ? 'mine' : touchedHazard()) as 'pillar' | 'mine' | 'spikes' | undefined, pan }); break
+      case 'hit': mineDeath = paintedGame && touchedHazard() === 'mine'; playSfx('hit', { hazard: (touchedHazard() === 'fan' ? 'mine' : touchedHazard()) as 'pillar' | 'mine' | 'spikes' | undefined, pan }); break
       case 'out': playSfx('whistle', { fade: tuning.whistleFade, pan }); break
       case 'break':
         playSfx('break', { pan })
@@ -950,14 +958,14 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="umbrella-scene" @pointerdown="onAnyPointer" @pointerdown.capture="onSwipeDown" @pointerup="onSwipeUp">
+  <div class="umbrella-scene" :class="themeClass" @pointerdown="onAnyPointer" @pointerdown.capture="onSwipeDown" @pointerup="onSwipeUp">
     <canvas ref="canvas" class="umbrella-canvas" />
 
     <!-- The whole screen is the start button: the first click or tap is what lets the browser play sound. -->
     <div
       v-if="!started"
       ref="playBtn"
-      class="start-screen"
+      class="start-screen u-backdrop"
       role="button"
       tabindex="0"
       :aria-label="t(tapDevice ? 'umbrella.tapToPlay' : 'umbrella.clickToPlay')"
@@ -965,57 +973,71 @@ onUnmounted(() => {
       @keydown.enter.prevent="onPlay"
       @keydown.space.prevent="onPlay"
     >
+      <template v-if="uiTheme === 'lantern'">
+        <HangingLantern class="start-lantern l" />
+        <HangingLantern class="start-lantern r" />
+        <HangingLantern class="start-lantern s" />
+      </template>
+      <span v-else-if="uiTheme === 'clay'" class="start-badge" aria-hidden="true"><UiGlyph name="umbrella" fallback="☂" /></span>
       <span class="start-label">{{ t(tapDevice ? 'umbrella.tapToPlay' : 'umbrella.clickToPlay') }}</span>
+      <OrnDivider class="start-divider" />
     </div>
 
     <!-- Designer tools behind the "cmonc" cheat: English only, like the lil-gui panel. -->
-    <button v-if="introOn && skipShown" class="intro-skip" @click.stop="endIntro">{{ t('umbrella.intro.skip') }}</button>
+    <button v-if="introOn && skipShown" class="intro-skip u-btn" @click.stop="endIntro">{{ t('umbrella.intro.skip') }}</button>
     <template v-if="!introOn">
     <div v-if="testing" class="hud">
       <button class="hud-btn wide" @click="backToEditor">◀ Editor</button>
       <button class="hud-btn" aria-label="Previous level" @click="stepTest(-1)">‹</button>
       <span class="hud-level">{{ testName || 'TEST LEVEL' }}</span>
       <button class="hud-btn" aria-label="Next level" @click="stepTest(1)">›</button>
-      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
-      <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
+      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart"><UiGlyph name="restart" fallback="↻" /></button>
+      <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause"><UiGlyph name="pause" fallback="⏸" /></button>
       <!-- The same mute as in the game (it is one setting): a mute made there must be undoable here too. -->
-      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
+      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute"><UiGlyph :name="userMuted ? 'mute' : 'sound'" :fallback="userMuted ? '🔇' : '🔊'" /></button>
     </div>
     <div v-else-if="playing" class="hud">
-      <button class="hud-btn" :aria-label="t('umbrella.back')" @click="leaveCustom">‹</button>
+      <button class="hud-btn" :aria-label="t('umbrella.back')" @click="leaveCustom"><UiGlyph name="prev" fallback="‹" /></button>
       <span class="hud-level custom" :title="playing.name">{{ playing.name }}</span>
-      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
+      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart"><UiGlyph name="restart" fallback="↻" /></button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true"><svg class="grid-ico" viewBox="0 0 18 18" aria-hidden="true"><rect v-for="k in 9" :key="k" :x="((k - 1) % 3) * 6 + 0.6" :y="Math.floor((k - 1) / 3) * 6 + 0.6" width="4.8" height="4.8" rx="1.3" /></svg></button>
-      <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
-      <button v-if="playing.communityId && canRate" class="hud-btn" :aria-label="t('umbrella.rateLevel')" @click="showRate = true">★</button>
-      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
+      <button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause"><UiGlyph name="pause" fallback="⏸" /></button>
+      <button v-if="playing.communityId && canRate" class="hud-btn" :aria-label="t('umbrella.rateLevel')" @click="showRate = true"><UiGlyph name="star" fallback="★" /></button>
+      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute"><UiGlyph :name="userMuted ? 'mute' : 'sound'" :fallback="userMuted ? '🔇' : '🔊'" /></button>
     </div>
     <div v-else class="hud">
       <!-- The designer's jam playtest (from the editor): English, like the other designer tools. -->
       <button v-if="jamTest" class="hud-btn wide jam-test" title="Back to the editor" @click="endJamTest">◀ Jam test</button>
-      <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="stepLevel(-1)">‹</button>
+      <button class="hud-btn" :aria-label="t('umbrella.prevLevel')" @click="stepLevel(-1)"><UiGlyph name="prev" fallback="‹" /></button>
       <span class="hud-level" @pointerdown="tapLevelLabel">{{ t('umbrella.level', { n: shownIndex() + 1 }) }}<template v-if="challenge"> · {{ t('umbrella.challenge') }}</template></span>
-      <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="stepLevel(1)">›</button>
-      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart">↻</button>
+      <button class="hud-btn" :aria-label="t('umbrella.nextLevel')" @click="stepLevel(1)"><UiGlyph name="next" fallback="›" /></button>
+      <button class="hud-btn" :aria-label="t('umbrella.restart')" @click="restart"><UiGlyph name="restart" fallback="↻" /></button>
       <button class="hud-btn" :aria-label="t('umbrella.selectLevel')" @click="showLevels = true"><svg class="grid-ico" viewBox="0 0 18 18" aria-hidden="true"><rect v-for="k in 9" :key="k" :x="((k - 1) % 3) * 6 + 0.6" :y="Math.floor((k - 1) / 3) * 6 + 0.6" width="4.8" height="4.8" rx="1.3" /></svg></button>
-<button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause">⏸</button>
-      <button v-if="communityEnabled && communityUnlocked(cleared)" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true">🌐 <span class="hud-btn-text">{{ t('umbrella.community.button') }}</span></button>
-      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute">{{ userMuted ? '🔇' : '🔊' }}</button>
+<button class="hud-btn" :aria-label="t('umbrella.pause.open')" @click="openPause"><UiGlyph name="pause" fallback="⏸" /></button>
+      <button v-if="communityEnabled && communityUnlocked(cleared)" class="hud-btn wide" :aria-label="t('umbrella.community.open')" @click="showCommunity = true"><UiGlyph name="globe" fallback="🌐" /> <span class="hud-btn-text">{{ t('umbrella.community.button') }}</span></button>
+      <button class="hud-btn" :aria-label="t(userMuted ? 'umbrella.unmute' : 'umbrella.mute')" :aria-pressed="userMuted" @click="toggleMute"><UiGlyph :name="userMuted ? 'mute' : 'sound'" :fallback="userMuted ? '🔇' : '🔊'" /></button>
     </div>
     </template>
 
-    <button v-if="showRevive" class="revive-restart" @click="restart">↻ {{ t('umbrella.reviveRestart') }}</button>
+    <button v-if="showRevive" class="revive-restart u-btn u-primary" @click="restart"><UiGlyph name="restart" fallback="↻" /> {{ t('umbrella.reviveRestart') }}</button>
     <div v-if="notice" class="toast info" role="status">{{ notice }}</div>
 
-    <PauseMenu v-if="showPause" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
-    <CommunityLevelsModal v-if="showCommunity" @close="showCommunity = false" @play="playCustom" />
-    <RateLevelCard
-      v-if="showRate && playing?.communityId"
-      :level-id="playing.communityId"
-      :name="playing.name"
-      @done="showRate = false; rated = true"
-      @close="showRate = false"
-    />
+    <!-- The themed builds fold / squash the menus away (u-dlg in umbrella-ui.css); the plain UI closes at once. -->
+    <Transition name="u-dlg" :css="!!uiTheme">
+      <PauseMenu v-if="showPause" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
+    </Transition>
+    <Transition name="u-dlg" :css="!!uiTheme">
+      <CommunityLevelsModal v-if="showCommunity" @close="showCommunity = false" @play="playCustom" />
+    </Transition>
+    <Transition name="u-dlg" :css="!!uiTheme">
+      <RateLevelCard
+        v-if="showRate && playing?.communityId"
+        :level-id="playing.communityId"
+        :name="playing.name"
+        @done="showRate = false; rated = true"
+        @close="showRate = false"
+      />
+    </Transition>
 
     <div v-if="editorUnlocked && !testing && editorAllowed" class="designer-tools" :class="{ 'above-stick': touchUI }">
       <button class="open-editor" @click="openEditor">OPEN EDITOR</button>
@@ -1048,8 +1070,8 @@ onUnmounted(() => {
         @pointerup="onStickUp"
         @pointercancel="onStickUp"
       >
-        <span class="stick-arrow left">‹</span>
-        <span class="stick-arrow right">›</span>
+        <span class="stick-arrow left"><UiGlyph name="prev" fallback="‹" /></span>
+        <span class="stick-arrow right"><UiGlyph name="next" fallback="›" /></span>
         <span class="stick-knob" :style="{ transform: `translateX(${knobX}px)` }" />
       </div>
       <button
@@ -1060,7 +1082,7 @@ onUnmounted(() => {
         @pointerup="onUmbrellaUp"
         @pointercancel="onUmbrellaUp"
         @contextmenu.prevent
-      >☂</button>
+      ><UiGlyph name="umbrella" fallback="☂" /></button>
     </template>
     <!-- Collectibles: a gold badge in the top right, popping with every pickup. -->
     <div v-if="hudStars.total && started && !introOn" :key="'badge' + hudStars.total" class="collect-badge" :class="{ done: hudStars.got === hudStars.total }" role="status" :aria-label="t('umbrella.stars', hudStars)">
@@ -1100,22 +1122,32 @@ onUnmounted(() => {
     <div v-if="brokenFlash" class="toast">{{ t('umbrella.broken') }}</div>
     <!-- The chapter card: 3 s on a chapter's first level (showChapterCard). -->
     <div v-if="chapterCard" :key="chapterCard.key" class="chapter-card" role="status" aria-live="polite">
-      <div class="chapter-card-title">{{ chapterCard.title }}</div>
+      <div class="chapter-card-row">
+        <HangingLantern v-if="uiTheme === 'lantern'" class="cc-lantern" />
+        <div class="chapter-card-title">{{ chapterCard.title }}</div>
+        <HangingLantern v-if="uiTheme === 'lantern'" class="cc-lantern" />
+      </div>
+      <OrnDivider class="cc-divider" />
       <div v-if="chapterCard.subtitle" class="chapter-card-sub">{{ chapterCard.subtitle }}</div>
     </div>
 
-    <div v-if="showLevels" class="levels-backdrop" @click.self="showLevels = false">
-      <div class="levels" role="dialog" :aria-label="t('umbrella.selectLevel')">
+    <Transition name="u-dlg" :css="!!uiTheme">
+    <div v-if="showLevels" class="levels-backdrop u-backdrop" @click.self="showLevels = false">
+      <!-- The frame holds the theme's ornaments outside the scrolling sheet (plain UI: no box at all). -->
+      <div class="levels-frame u-modal">
+      <PanelOrnaments />
+      <div class="levels u-panel" role="dialog" :aria-label="t('umbrella.selectLevel')">
         <div class="levels-head">
-          <b>{{ t('umbrella.selectLevel') }}</b>
-          <button class="hud-btn" :aria-label="t('umbrella.close')" @click="showLevels = false">✕</button>
+          <b class="u-title">{{ t('umbrella.selectLevel') }}</b>
+          <button class="hud-btn u-icon-btn u-close" :aria-label="t('umbrella.close')" @click="showLevels = false"><UiGlyph name="close" fallback="✕" /></button>
         </div>
         <section v-for="ch in chapterSections" :key="ch.id" class="chapter" :aria-label="ch.title">
           <h3 v-if="chapterSections.length > 1 || ch.id === JAM_CHAPTER || ch.name" class="chapter-title">{{ ch.title }}</h3>
           <div class="levels-grid">
             <button
-              v-for="i in ch.levels"
+              v-for="(i, k) in ch.levels"
               :key="LEVELS[i]!.id"
+              :style="{ '--i': k }"
               class="level-tile"
               :class="{ current: i === shownIndex(), cleared: cleared.includes(i), challenge: isChallenge(i) }"
               :aria-label="t('umbrella.level', { n: i + 1 }) + (isChallenge(i) ? ' · ' + t('umbrella.challenge') : '')"
@@ -1129,20 +1161,22 @@ onUnmounted(() => {
         </section>
         <!-- The player's own levels: opened from share links, built in the editor. -->
         <div class="levels-head mine">
-          <b>{{ t('umbrella.myLevels') }}</b>
+          <b class="u-title">{{ t('umbrella.myLevels') }}</b>
         </div>
         <div v-if="myLevelNames.length" class="my-levels">
           <button
             v-for="n in myLevelNames"
             :key="n"
-            class="my-level"
+            class="my-level u-btn"
             :class="{ current: playing?.name === n && !playing?.communityId }"
             @click="playMine(n)"
-          >▶ {{ n }}</button>
+          ><UiGlyph name="play" fallback="▶" /> {{ n }}</button>
         </div>
         <p v-else class="my-empty">{{ t('umbrella.myLevelsEmpty') }}</p>
       </div>
+      </div>
     </div>
+    </Transition>
 
   </div>
 </template>
@@ -1674,4 +1708,9 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
 }
 /* A cleared level shows its number in the tick's green: no extra mark to squeeze into a small tile. */
 .level-tile.cleared .level-num { color: #7ee08a; }
+/* Wrappers the themed builds dress; the plain UI lays their children out as before. */
+.levels-frame,
+.chapter-card-row { display: contents; }
 </style>
+
+<style scoped src="@/assets/css/umbrella-scene-theme.css"></style>

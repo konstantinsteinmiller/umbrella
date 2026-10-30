@@ -2,9 +2,13 @@
 /**
  * A confirmation card in the game's own look, for the things the browser's confirm() is too
  * blunt for: an icon medallion, a title, a message, an optional fact list, and two buttons.
- * Esc and a click outside cancel; the safe button is focused first.
+ * Esc and a click outside cancel; the safe button is focused first. Inside the game scene of the
+ * lantern / clay builds it wears the scene's theme (teleported, so it carries the theme class itself).
  */
 import { onMounted, onUnmounted, ref } from 'vue'
+import { uiThemeClass, useUiTheme } from '@/umbrella/ui/theme'
+import PanelOrnaments from './ornaments/PanelOrnaments.vue'
+import BtnOrnaments from './ornaments/BtnOrnaments.vue'
 
 defineProps<{
   title: string
@@ -21,6 +25,7 @@ defineProps<{
   busy?: boolean
 }>()
 const emit = defineEmits<{ confirm: []; cancel: [] }>()
+const theme = useUiTheme()
 
 const cancelBtn = ref<HTMLButtonElement | null>(null)
 const onKey = (e: KeyboardEvent) => {
@@ -37,10 +42,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 
 <template>
   <Teleport to="body">
-    <div class="cm-back" @pointerdown.self="emit('cancel')">
-      <div class="cm" :class="{ danger }" role="alertdialog" aria-modal="true" :aria-label="title">
+    <div class="cm-root" :class="uiThemeClass(theme)">
+    <div class="cm-back u-backdrop" @pointerdown.self="emit('cancel')">
+      <div class="cm u-panel u-modal" :class="{ danger }" role="alertdialog" aria-modal="true" :aria-label="title">
+        <PanelOrnaments :crest="false" />
         <div class="cm-medal" aria-hidden="true"><span>{{ icon ?? '!' }}</span></div>
-        <h2 class="cm-title">{{ title }}</h2>
+        <h2 class="cm-title u-title">{{ title }}</h2>
         <p class="cm-text">{{ message }}</p>
         <dl v-if="facts?.length" class="cm-facts">
           <div v-for="f in facts" :key="f.label" class="cm-fact">
@@ -49,10 +56,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
           </div>
         </dl>
         <div class="cm-actions">
-          <button ref="cancelBtn" type="button" class="cm-btn" :disabled="busy" @click="emit('cancel')">{{ cancelLabel }}</button>
-          <button type="button" class="cm-btn primary" :disabled="busy" @click="emit('confirm')">{{ confirmLabel }}</button>
+          <button ref="cancelBtn" type="button" class="cm-btn u-btn" :disabled="busy" @click="emit('cancel')"><BtnOrnaments />{{ cancelLabel }}</button>
+          <button type="button" class="cm-btn primary u-btn u-primary" :class="{ 'u-danger': danger }" :disabled="busy" @click="emit('confirm')"><BtnOrnaments />{{ confirmLabel }}</button>
         </div>
       </div>
+    </div>
     </div>
   </Teleport>
 </template>
@@ -159,4 +167,41 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 @media (prefers-reduced-motion: reduce) {
   .cm, .cm-back, .cm-medal { animation: none; }
 }
+
+/* ── Themed (lantern / clay): the sheet, buttons and motion come from umbrella-ui.css ── */
+.ui-theme .cm-back { backdrop-filter: none; }
+.ui-theme .cm { width: min(460px, 100%); padding: 58px 26px 26px; gap: 12px; }
+.ui-theme .cm::before { display: none; }
+.ui-theme .cm > :not(.lpo, .cpo, .cm-medal) { position: relative; z-index: 4; }
+.ui-theme .cm-medal { z-index: 5; width: 70px; height: 70px; top: -34px; animation: u-bob 2.8s ease-in-out infinite; }
+.ui-theme .cm-title { font-size: 24px; }
+.ui-theme .cm-text { font-size: 16px; color: var(--u-ink-soft); }
+.ui-theme .cm-fact { font-size: 15px; }
+.ui-theme .cm-fact dt { color: var(--u-ink-soft); }
+.ui-theme .cm-actions { gap: 12px; margin-top: 8px; }
+.ui-theme .cm-btn { min-height: 50px; padding: 10px 34px; font-size: 17px; }
+.ui-clay .cm-btn { padding-inline: 20px; }
+/* A lacquer roundel ringed in gold leaf. */
+.ui-lantern .cm-medal,
+.ui-lantern .cm.danger .cm-medal {
+  border: 0;
+  background: radial-gradient(circle at 38% 30%, #f6866a 0%, #d6452c 40%, #7e1a17 100%);
+  box-shadow: 0 0 0 2px #2a1d3a, 0 0 0 5px #e8b450, 0 0 0 6.5px #2a1d3a, 0 8px 20px rgba(10, 5, 25, 0.5), 0 0 30px rgba(255, 160, 70, 0.55);
+}
+.ui-lantern .cm-medal span,
+.ui-lantern .cm.danger .cm-medal span { color: #fff4dc; text-shadow: 0 1px 0 #4e0e0d; }
+.ui-lantern .cm-facts { background: rgba(126, 26, 23, 0.06); border: 1px solid rgba(160, 106, 30, 0.45); border-radius: 4px; box-shadow: inset 0 0 0 3px rgba(255, 250, 235, 0.5); }
+.ui-lantern .cm-fact dd { color: #7e1a17; }
+/* A tomato clay seal pressed onto the slab. */
+.ui-clay .cm-medal,
+.ui-clay .cm.danger .cm-medal {
+  border: 0;
+  border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%;
+  background: radial-gradient(circle at 34% 28%, #ffab95 0%, #e0533d 48%, #9c2d1d 100%);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.4), inset 0 -4px 6px rgba(0, 0, 0, 0.2), 0 5px 0 #7a2014, 0 10px 18px rgba(20, 25, 45, 0.4);
+}
+.ui-clay .cm-medal span,
+.ui-clay .cm.danger .cm-medal span { color: #fffaf0; text-shadow: 0 2px 0 rgba(90, 20, 10, 0.5); }
+.ui-clay .cm-facts { background: #e8ddc5; border: 0; border-radius: 14px; box-shadow: inset 0 3px 6px rgba(110, 85, 45, 0.3), inset 0 -1px 0 rgba(255, 255, 255, 0.85); }
+.ui-clay .cm-fact dd { color: #2f5fa8; }
 </style>

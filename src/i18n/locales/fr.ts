@@ -122,6 +122,7 @@ export default {
       'snap': "Aimanter à la grille de 10 px",
       'animate': "Animer les objets mobiles",
       'mobile': "Aperçu mobile",
+      'paperWind': "Bandes de vent en papier",
       'test': "Tester",
       'share': "Copier le lien de partage",
       'submit': "Proposer à la communauté…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Glissade (s)",
       'followSpeed': "Vitesse de poursuite",
       'reach': "Longueur de la zone",
-      'zoneWidth': "Largeur de la zone"
+      'zoneWidth': "Largeur de la zone",
+      'angle': "Angle de l'arc (°)",
+      'phase': "Départ (°)"
     },
     'problem': {
       'noFinish': "Pas de plateforme d'arrivée — le niveau ne peut pas être gagné.",

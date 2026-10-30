@@ -5,6 +5,7 @@
  * list. Each level's preview is drawn from its share code (LevelThumb). "Create a level" jumps to the editor,
  * where levels are submitted (5 per week). Only shown where the build may talk
  * to the level server (not Poki / YouTube Playables — see community.ts).
+ * In the lantern / clay builds it wears the scene's theme (umbrella/ui/theme.ts).
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -14,10 +15,15 @@ import { decodeLevel } from '@/umbrella/levelCode'
 import { bucketPassword, editorUnlocked, type CustomPlay } from '@/umbrella/customLevels'
 import LevelThumb from './LevelThumb.vue'
 import ConfirmModal from './ConfirmModal.vue'
+import PanelOrnaments from './ornaments/PanelOrnaments.vue'
+import BtnOrnaments from './ornaments/BtnOrnaments.vue'
+import UiGlyph from './ornaments/UiGlyph.vue'
+import { useUiTheme } from '@/umbrella/ui/theme'
 
 const emit = defineEmits<{ close: []; play: [p: CustomPlay] }>()
 const { t } = useI18n()
 const router = useRouter()
+const theme = useUiTheme()
 
 const PAGE_SIZE = 12
 /** Grid of preview cards or a compact list; the player's pick is remembered. */
@@ -43,6 +49,9 @@ const state = ref<'loading' | 'ready' | 'error'>('loading')
 const opening = ref<string | null>(null)
 const openError = ref(false)
 const pages = () => Math.max(1, Math.ceil((data.value?.total ?? 0) / PAGE_SIZE))
+/** The themed builds keep the shown page on screen (dimmed) while another sort or page loads, or
+ *  when it fails, so the sheet never collapses to a one-line note and back: no jump, no re-entry. */
+const keepList = computed(() => !!theme && !!data.value?.items.length)
 
 let request = 0
 const load = async () => {
@@ -50,7 +59,7 @@ const load = async () => {
   state.value = 'loading'
   const res = await listLevels(sort.value, page.value, PAGE_SIZE)
   if (mine !== request) return
-  data.value = res
+  if (res || !keepList.value) data.value = res
   state.value = res ? 'ready' : 'error'
 }
 watch(sort, () => { page.value = 1; void load() })
@@ -105,17 +114,20 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <template>
-  <div class="cl-back" @click.self="emit('close')">
-    <div class="cl" role="dialog" aria-modal="true" :aria-label="t('umbrella.community.title')">
+  <div class="cl-back u-backdrop" @click.self="emit('close')">
+    <!-- The frame holds the theme's ornaments outside the scrolling sheet (plain UI: no box at all). -->
+    <div class="cl-frame u-modal">
+    <PanelOrnaments />
+    <div class="cl u-panel" role="dialog" aria-modal="true" :aria-label="t('umbrella.community.title')">
       <div class="cl-head">
-        <b>🌐 {{ t('umbrella.community.title') }}</b>
-        <button v-if="canManage" class="cl-btn manage" :class="{ on: managing }" :aria-pressed="managing" title="Delete bad, accidental or test submissions" @click="managing = !managing; manageNote = ''">🛠 {{ managing ? 'Done' : 'Manage' }}</button>
-        <button class="cl-x" :aria-label="t('umbrella.close')" @click="emit('close')">✕</button>
+        <b class="u-title"><UiGlyph name="globe" fallback="🌐" /> {{ t('umbrella.community.title') }}</b>
+        <button v-if="canManage" class="cl-btn manage u-btn" :class="{ on: managing }" :aria-pressed="managing" title="Delete bad, accidental or test submissions" @click="managing = !managing; manageNote = ''">🛠 {{ managing ? 'Done' : 'Manage' }}</button>
+        <button class="cl-x u-icon-btn" :aria-label="t('umbrella.close')" @click="emit('close')"><UiGlyph name="close" fallback="✕" /></button>
       </div>
 
       <div class="cl-create">
         <p>{{ t('umbrella.community.createHint') }}</p>
-        <button class="cl-btn yellow" @click="create">✎ {{ t('umbrella.community.create') }}</button>
+        <button class="cl-btn yellow u-btn u-gold" @click="create"><BtnOrnaments /><UiGlyph name="edit" fallback="✎" /> {{ t('umbrella.community.create') }}</button>
       </div>
 
       <div class="cl-bar">
@@ -124,26 +136,26 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
           v-for="s in SORTS"
           :key="s.id"
           role="tab"
-          class="cl-tab"
+          class="cl-tab u-tab"
           :class="{ on: sort === s.id }"
           :aria-selected="sort === s.id"
           @click="sort = s.id"
         >{{ t(`umbrella.community.${s.key}`) }}</button>
       </div>
       <div class="cl-layouts" role="group" :aria-label="t('umbrella.community.layout')">
-        <button class="cl-layout" :class="{ on: layout === 'grid' }" :aria-pressed="layout === 'grid'" :aria-label="t('umbrella.community.layoutGrid')" :title="t('umbrella.community.layoutGrid')" @click="setLayout('grid')">▦</button>
-        <button class="cl-layout" :class="{ on: layout === 'list' }" :aria-pressed="layout === 'list'" :aria-label="t('umbrella.community.layoutList')" :title="t('umbrella.community.layoutList')" @click="setLayout('list')">☰</button>
+        <button class="cl-layout u-tab" :class="{ on: layout === 'grid' }" :aria-pressed="layout === 'grid'" :aria-label="t('umbrella.community.layoutGrid')" :title="t('umbrella.community.layoutGrid')" @click="setLayout('grid')"><UiGlyph name="grid" fallback="▦" /></button>
+        <button class="cl-layout u-tab" :class="{ on: layout === 'list' }" :aria-pressed="layout === 'list'" :aria-label="t('umbrella.community.layoutList')" :title="t('umbrella.community.layoutList')" @click="setLayout('list')"><UiGlyph name="list" fallback="☰" /></button>
       </div>
       </div>
 
-      <p v-if="state === 'loading'" class="cl-note">{{ t('umbrella.community.loading') }}</p>
+      <p v-if="state === 'loading' && !keepList" class="cl-note cl-loading">{{ t('umbrella.community.loading') }}</p>
       <div v-else-if="state === 'error'" class="cl-note">
         <p>{{ t('umbrella.community.error') }}</p>
-        <button class="cl-btn" @click="load">{{ t('umbrella.community.retry') }}</button>
+        <button class="cl-btn u-btn" @click="load"><BtnOrnaments />{{ t('umbrella.community.retry') }}</button>
       </div>
-      <p v-else-if="!data?.items.length" class="cl-note">{{ t('umbrella.community.empty') }}</p>
-      <ul v-else class="cl-list" :class="layout">
-        <li v-for="m in data.items" :key="m.id" class="cl-row">
+      <p v-else-if="state === 'ready' && !data?.items.length" class="cl-note">{{ t('umbrella.community.empty') }}</p>
+      <ul v-if="data?.items.length && (state === 'ready' || keepList)" class="cl-list" :class="[layout, { busy: state === 'loading' }]" :aria-busy="state === 'loading'">
+        <li v-for="(m, k) in data.items" :key="m.id" class="cl-row" :style="{ '--i': k }">
           <LevelThumb class="cl-thumb" :code="m.code" :label="m.name" />
           <div class="cl-info">
             <div class="cl-name">{{ m.name }}</div>
@@ -155,14 +167,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
               · {{ t('umbrella.community.plays', m.plays) }}
             </div>
           </div>
-          <button v-if="managing" class="cl-btn danger" :aria-label="`Delete ${m.name}`" title="Delete this level for everyone" @click="askDelete(m)">🗑</button>
-          <button class="cl-btn green" :disabled="opening !== null" @click="play(m)">
-            {{ opening === m.id ? t('umbrella.community.opening') : `▶ ${t('umbrella.community.play')}` }}
+          <button v-if="managing" class="cl-btn danger u-btn u-primary u-danger" :aria-label="`Delete ${m.name}`" title="Delete this level for everyone" @click="askDelete(m)">🗑</button>
+          <button class="cl-btn green u-btn u-primary" :disabled="opening !== null" @click="play(m)">
+            <BtnOrnaments /><template v-if="opening === m.id">{{ t('umbrella.community.opening') }}</template><template v-else><UiGlyph name="play" fallback="▶" /> {{ t('umbrella.community.play') }}</template>
           </button>
         </li>
       </ul>
-      <p v-if="openError" class="cl-note warn">{{ t('umbrella.community.broken') }}</p>
-      <p v-if="managing && manageNote" class="cl-note warn" role="status">{{ manageNote }}</p>
+      <p v-if="openError" class="cl-note warn u-warn">{{ t('umbrella.community.broken') }}</p>
+      <p v-if="managing && manageNote" class="cl-note warn u-warn" role="status">{{ manageNote }}</p>
       <ConfirmModal
         v-if="toDelete"
         title="Delete this community level?"
@@ -183,10 +195,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
       />
 
       <div v-if="state === 'ready' && pages() > 1" class="cl-pager">
-        <button class="cl-btn" :disabled="page <= 1" :aria-label="t('umbrella.community.prev')" @click="page--">‹</button>
+        <button class="cl-btn u-btn" :disabled="page <= 1" :aria-label="t('umbrella.community.prev')" @click="page--"><UiGlyph name="prev" fallback="‹" /></button>
         <span>{{ t('umbrella.community.page', { page, pages: pages() }) }}</span>
-        <button class="cl-btn" :disabled="page >= pages()" :aria-label="t('umbrella.community.next')" @click="page++">›</button>
+        <button class="cl-btn u-btn" :disabled="page >= pages()" :aria-label="t('umbrella.community.next')" @click="page++"><UiGlyph name="next" fallback="›" /></button>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -258,4 +271,54 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .cl-note { margin: 0; text-align: center; opacity: 0.8; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .cl-note.warn { color: #fbbf24; }
 .cl-pager { display: flex; align-items: center; justify-content: center; gap: 12px; }
+/* The plain UI has no frame box: the sheet sits straight in the backdrop. */
+.cl-frame { display: contents; }
+
+/* ── Themed (lantern / clay): sheet, buttons, tabs and motion come from umbrella-ui.css ── */
+.ui-theme .cl-back { padding: 50px 16px 30px; }
+.ui-theme .cl-frame { position: relative; display: flex; flex-direction: column; width: min(800px, 100%); max-height: 100%; }
+.ui-theme .cl { width: 100%; flex: 1 1 auto; min-height: 0; max-height: none; padding: 36px 24px 24px; gap: 14px; overscroll-behavior: contain; }
+.ui-theme .cl-head { font-size: 24px; gap: 10px; }
+.ui-theme .cl-head .u-title { flex: 1; min-width: 0; }
+.ui-theme .cl-x { flex: none; width: 38px; height: 38px; font-size: 20px; }
+.ui-theme .cl-create { flex-wrap: wrap; gap: 12px 14px; padding: 12px 14px; }
+.ui-theme .cl-create p { flex: 1 1 220px; font-size: 15px; line-height: 1.35; }
+.ui-theme .cl-create .cl-btn { flex: 1 0 auto; }
+.ui-theme .cl-btn { min-height: 44px; padding: 9px 18px; font-size: 16px; }
+.ui-theme .cl-btn.yellow,
+.ui-theme .cl-btn.green { padding: 9px 38px; }
+.ui-clay .cl-btn.yellow,
+.ui-clay .cl-btn.green { padding-inline: 22px; }
+.ui-theme .cl-tab { min-height: 40px; padding: 7px 16px; font-size: 15px; }
+.ui-theme .cl-layout { width: 44px; height: 40px; font-size: 18px; display: grid; place-items: center; }
+.ui-theme .cl-list.grid { gap: 14px; }
+.ui-theme .cl-row { animation: var(--u-tile-in) 0.5s var(--u-ease-out) backwards; animation-delay: calc(min(var(--i), 12) * 45ms + 160ms); transition: transform var(--u-t) var(--u-ease-spring), filter var(--u-t) ease; }
+.ui-theme .cl-row:hover { transform: translateY(-3px); }
+.ui-theme .cl-name { font-size: 17px; }
+.ui-theme .cl-meta { font-size: 12.5px; opacity: 1; line-height: 1.45; }
+.ui-theme .cl-pager { gap: 14px; font-weight: 800; }
+@media (max-width: 560px) {
+  .ui-theme .cl { padding: 32px 16px 20px; }
+  .ui-theme .cl-head { font-size: 21px; }
+}
+.ui-theme .cl-note { opacity: 1; font-weight: 700; }
+/* The first load holds the list's room; later loads keep the shown cards, dimmed, in place. */
+.ui-theme .cl-note.cl-loading { min-height: 220px; justify-content: center; }
+.ui-theme .cl-list { transition: opacity 0.22s ease, filter 0.22s ease; }
+.ui-theme .cl-list.busy { opacity: 0.55; filter: saturate(0.7); pointer-events: none; }
+/* Lantern: the create box is a vermilion-ruled inset; each level a night window in a gold hairline. */
+.ui-lantern .cl-create { border: 0; border-radius: 4px; background: rgba(214, 69, 44, 0.08); box-shadow: inset 0 0 0 1px rgba(160, 106, 30, 0.55), inset 0 0 0 4px rgba(255, 250, 235, 0.45), inset 0 0 0 5px rgba(214, 69, 44, 0.35); }
+.ui-lantern .cl-create p { color: #5b4766; }
+.ui-lantern .cl-row { border-radius: 6px; color: #fbf1dc; background: linear-gradient(180deg, #2f2866 0%, #1b163f 100%); box-shadow: 0 0 0 1.5px #2a1d3a, inset 0 0 0 3px #1b163f, inset 0 0 0 4px rgba(232, 180, 80, 0.5), 0 4px 0 1px #110d2a, 0 8px 16px rgba(20, 10, 40, 0.3); }
+.ui-lantern .cl-row:hover { filter: drop-shadow(0 0 10px rgba(255, 170, 70, 0.45)); }
+.ui-lantern .cl-thumb { box-shadow: 0 0 0 1px #e8b450, 0 0 0 2.5px #2a1d3a; border-radius: 3px; }
+.ui-lantern .cl-meta { color: rgba(251, 241, 220, 0.78); }
+.ui-lantern .cl-stars { color: #ffd23f; }
+/* Clay: a mustard recess for "create"; each level a little cream slab with a lip. */
+.ui-clay .cl-create { border: 0; border-radius: 18px; background: #f6dfa0; box-shadow: inset 0 3px 6px rgba(140, 100, 20, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.8); }
+.ui-clay .cl-create p { color: #5a4512; }
+.ui-clay .cl-row { border-radius: 18px; color: #2b2f3a; background: radial-gradient(130% 120% at 30% 0%, #fffdf6, #efe4cc); box-shadow: inset 0 2px 0 #fff, inset 0 -3px 6px rgba(130, 100, 55, 0.18), 0 5px 0 #c9b893, 0 10px 16px rgba(20, 25, 45, 0.2); }
+.ui-clay .cl-thumb { border-radius: 12px; box-shadow: 0 0 0 3px #2f5fa8, 0 3px 0 3px #173464; }
+.ui-clay .cl-meta { color: #66615a; }
+.ui-clay .cl-stars { color: #e09a10; }
 </style>

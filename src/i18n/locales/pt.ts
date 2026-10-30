@@ -122,6 +122,7 @@ export default {
       'snap': "Alinhar à grade de 10 px",
       'animate': "Animar objetos móveis",
       'mobile': "Prévia no celular",
+      'paperWind': "Faixas de vento de papel",
       'test': "Testar",
       'share': "Copiar link de compartilhamento",
       'submit': "Enviar para a comunidade…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Planeio (s)",
       'followSpeed': "Velocidade de perseguição",
       'reach': "Comprimento da zona",
-      'zoneWidth': "Largura da zona"
+      'zoneWidth': "Largura da zona",
+      'angle': "Ângulo do arco (°)",
+      'phase': "Início (°)"
     },
     'problem': {
       'noFinish': "Sem plataforma de chegada — o nível não pode ser vencido.",

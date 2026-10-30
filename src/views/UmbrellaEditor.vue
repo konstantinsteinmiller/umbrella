@@ -27,12 +27,14 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
-import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
+import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
+import { isLantern } from '@/umbrella/kite'
+import { setWindStyle, windStyle } from '@/umbrella/windStyle'
 import { MAX_TIME_LIMIT, parseTimeLimit } from '@/umbrella/timeStars'
 import { encodeLevel, shareLink } from '@/umbrella/levelCode'
 import { communityEnabled, getQuota, submitLevel } from '@/umbrella/community'
@@ -82,7 +84,8 @@ type Tool =
 
 type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates'
 type Entity = { group: Group; i: number }
-type HandleKey = 'a' | 'b' | 'center' | 'pivot'
+/** `arm`: a swing's rest point (sets its arc angle and rope); `phase`: a circle's start pin. */
+type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase'
 type Selection =
   | ({ type: 'entity' } & Entity)
   | { type: 'spawn' }
@@ -145,7 +148,7 @@ const PHONE = { w: 390, h: 844 }
 const MOTION_KINDS: Motion['kind'][] = ['static', 'line', 'circle', 'swing', 'lunge', 'arrive', 'follow']
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, te } = useI18n()
 const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r3', {}) }
 
 const blankLevel = (): LevelDef => ({
@@ -266,12 +269,43 @@ const translateMotion = (m: Motion, dx: number, dy: number) => {
   else if (m.kind === 'circle') mv(m.center)
   else if (m.kind === 'swing') mv(m.pivot)
 }
+/** A swing's rest point (the middle of its arc) and a circle mover's start: the engine's pose at time 0. */
+const swingRest = (m: Extract<Motion, { kind: 'swing' }>): Vec =>
+  ({ x: m.pivot.x - Math.sin(motionRad(m.angle)) * m.radius, y: m.pivot.y + Math.cos(motionRad(m.angle)) * m.radius })
+const circleStart = (m: Extract<Motion, { kind: 'circle' }>): Vec =>
+  ({ x: m.center.x + Math.cos(motionRad(m.phase)) * m.radius, y: m.center.y + Math.sin(motionRad(m.phase)) * m.radius })
+/** Degrees wrapped into [lo, lo + 360). */
+const wrapDeg = (deg: number, lo = 0) => lo + ((((deg - lo) % 360) + 360) % 360)
+/** The arm and the start pin are not stored points: a drag sets the angle / phase instead (see dragHandle). */
 const handlesOf = (m: Motion): { key: HandleKey; v: Vec }[] => {
   if (m.kind === 'line' || m.kind === 'lunge' || m.kind === 'arrive') return [{ key: 'a', v: m.a }, { key: 'b', v: m.b }]
   if (m.kind === 'follow' && m.a && m.b) return [{ key: 'a', v: m.a }, { key: 'b', v: m.b }]
-  if (m.kind === 'circle') return [{ key: 'center', v: m.center }]
-  if (m.kind === 'swing') return [{ key: 'pivot', v: m.pivot }]
+  if (m.kind === 'circle') return [{ key: 'center', v: m.center }, { key: 'phase', v: circleStart(m) }]
+  if (m.kind === 'swing') return [{ key: 'pivot', v: m.pivot }, { key: 'arm', v: swingRest(m) }]
   return []
+}
+/** Drags a motion handle to `p`. The swing's arm turns the arc and sets the rope (like a
+ *  line's end sets its direction and length); the circle's pin slides round to set the start. */
+const dragHandle = (m: Motion, key: HandleKey, p: Vec) => {
+  const snapDeg = (deg: number) => (snap.value ? Math.round(deg / 5) * 5 : Math.round(deg))
+  if (m.kind === 'swing' && key === 'arm') {
+    const dx = p.x - m.pivot.x, dy = p.y - m.pivot.y
+    // Clockwise from straight down, the engine's convention.
+    const angle = wrapDeg(snapDeg((Math.atan2(-dx, dy) * 180) / Math.PI), -180)
+    if (angle) m.angle = angle
+    else delete m.angle
+    m.radius = Math.max(0, snapV(Math.hypot(dx, dy), 5))
+    return
+  }
+  if (m.kind === 'circle' && key === 'phase') {
+    if (Math.hypot(p.x - m.center.x, p.y - m.center.y) < 1) return
+    const phase = wrapDeg(snapDeg((Math.atan2(p.y - m.center.y, p.x - m.center.x) * 180) / Math.PI))
+    if (phase) m.phase = phase
+    else delete m.phase
+    return
+  }
+  const h = handlesOf(m).find((x) => x.key === key)
+  if (h) { h.v.x = snapV(p.x); h.v.y = snapV(p.y) }
 }
 
 // ── Canvas mapping: the world fits the canvas with a margin for off-world movers ──
@@ -488,8 +522,7 @@ const onPointerMove = (e: PointerEvent) => {
   }
   if (drag.mode === 'handle') {
     const m = motionOf(drag.target)
-    const h = m && handlesOf(m).find((x) => x.key === (drag as { key: HandleKey }).key)
-    if (h) { h.v.x = snapV(p.x); h.v.y = snapV(p.y) }
+    if (m) dragHandle(m, drag.key, p)
   }
 }
 
@@ -584,6 +617,8 @@ const commands: Record<string, Command> = {
   snap: { keys: [{ key: 'g' }], run: () => { snap.value = !snap.value }, checked: () => snap.value },
   animate: { keys: [{ key: 'a', shift: true }], run: () => { animate.value = !animate.value }, checked: () => animate.value },
   mobile: { keys: [{ key: 'm', shift: true }], run: () => toggleMobileView(), checked: () => mobileView.value },
+  // Lantern build: draw the currents as folded paper strips with arrows instead of gust streaks (this browser only).
+  paperWind: { run: () => setWindStyle(windStyle.value === 'paper' ? 'gusts' : 'paper'), checked: () => windStyle.value === 'paper' },
   test: { keys: [{ key: 'enter' }], run: () => onTest() },
   prevLevel: { keys: [{ key: 'arrowleft', shift: true }], run: () => stepCampaign(-1) },
   nextLevel: { keys: [{ key: 'arrowright', shift: true }], run: () => stepCampaign(1) },
@@ -615,14 +650,14 @@ const designer = computed(() => editorUnlocked.value)
 const menus = computed(() => [
   { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
   { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'deselect'] },
-  { id: 'view', items: ['fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile'] },
+  { id: 'view', items: ['fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern ? ['-', 'paperWind'] : [])] },
   { id: 'level', items: ['test', 'prevLevel', 'nextLevel', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
   ...(designer.value ? [{ id: 'campaign', items: ['campaignOverwrite', 'campaignReplace', 'campaignRevert', 'reorder', '-', 'sync', 'password', '-', 'exportLibrary', 'importLibrary'] }] : []),
   { id: 'help', items: ['shortcuts'] }
 ])
 /** Commands reachable now: the designer's only after "cmonc", Submit only where the community exists. */
 const visibleCommands = computed(() => Object.keys(commands).filter((id) =>
-  (!commands[id]!.designer || designer.value) && (id !== 'submit' || communityEnabled)))
+  (!commands[id]!.designer || designer.value) && (id !== 'submit' || communityEnabled) && (id !== 'paperWind' || isLantern)))
 const cmdKeys = (id: string) => (commands[id]?.keys?.[0] ? fmtKeys(commands[id]!.keys![0]!) : '')
 const cmdEnabled = (id: string) => commands[id]?.enabled?.() ?? true
 const runCmd = (id: string) => {
@@ -679,17 +714,26 @@ const setMotionKind = (kind: Motion['kind']) => {
   }
   ent.motion = motions[kind]
 }
-const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; max: number; step: number; def?: number; triggerOnly?: boolean; zone?: 'rect' | 'circle'; i18n?: string }[]> = {
-  line: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }],
-  circle: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }, { key: 'radius', label: 'Radius', min: 0, max: 800, step: 5 }],
+/** `deg`: an angle in degrees, also typed into a number box; unset reads as `def` (0). */
+const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; max: number; step: number; def?: number; triggerOnly?: boolean; zone?: 'rect' | 'circle'; i18n?: string; deg?: boolean; cycleOnly?: boolean }[]> = {
+  // `phase` on every repeating motion: where in its cycle it starts (so where it spawns).
+  line: [{ key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 }, { key: 'phase', label: 'Start (°)', min: 0, max: 355, step: 5, def: 0, deg: true }],
+  circle: [
+    { key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 },
+    { key: 'radius', label: 'Radius', min: 0, max: 800, step: 5 },
+    { key: 'phase', label: 'Start (°)', min: 0, max: 355, step: 5, def: 0, deg: true }
+  ],
   swing: [
     { key: 'period', label: 'Period (s)', min: 0.3, max: 20, step: 0.1 },
     { key: 'amplitude', label: 'Swing (rad)', min: 0, max: 3, step: 0.05 },
-    { key: 'radius', label: 'Rope length', min: 0, max: 900, step: 5 }
+    { key: 'radius', label: 'Rope length', min: 0, max: 900, step: 5 },
+    { key: 'angle', label: 'Arc angle (°)', min: -180, max: 180, step: 5, def: 0, deg: true },
+    { key: 'phase', label: 'Start (°)', min: 0, max: 355, step: 5, def: 0, deg: true }
   ],
   lunge: [
     { key: 'period', label: 'Period (s)', min: 0.3, max: 10, step: 0.05 },
     { key: 'speed', label: 'Lunge speed ×', min: 0.25, max: 4, step: 0.05, def: 1 },
+    { key: 'phase', label: 'Start (°)', min: 0, max: 355, step: 5, def: 0, deg: true, cycleOnly: true },
     { key: 'reach', label: 'Zone length', min: 40, max: 1200, step: 10, def: DEFAULT_TRIGGER_REACH, triggerOnly: true, zone: 'rect' },
     { key: 'zoneWidth', label: 'Zone width', min: 40, max: 1200, step: 10, def: 160, triggerOnly: true, zone: 'rect' },
     { key: 'radius', label: 'Trigger radius', min: 40, max: 1200, step: 10, def: DEFAULT_TRIGGER_RADIUS, triggerOnly: true, zone: 'circle' }
@@ -698,6 +742,8 @@ const MOTION_FIELDS: Record<string, { key: string; label: string; min: number; m
   follow: [{ key: 'speed', i18n: 'followSpeed', label: 'Speed', min: 10, max: 800, step: 5 }]
 }
 const motionFields = computed(() => (MOTION_FIELDS[motionKind.value] ?? []).filter((f) => {
+  // A triggered lunge waits at rest for the player: it has no cycle to start part-way through.
+  if (f.cycleOnly) return !(selectedMotion.value?.kind === 'lunge' && selectedMotion.value.trigger)
   if (!f.triggerOnly) return true
   const m = selectedMotion.value
   if (m?.kind !== 'lunge' || !m.trigger) return false
@@ -710,7 +756,7 @@ const makeZoneRect = () => {
   if (m?.kind !== 'lunge') return
   delete m.radius
   m.reach = DEFAULT_TRIGGER_REACH
-  const ent = selected.value?.ent
+  const ent = selectedMover.value
   if (ent) m.zoneWidth = ent.h + TRIGGER_MARGIN * 2
 }
 const fieldValue = (key: string, def?: number) => (selectedMotion.value as Record<string, number> | undefined)?.[key] ?? def
@@ -751,6 +797,18 @@ const setTrigger = (on: boolean) => {
 const setMotionField = (key: string, v: number) => {
   const m = selectedMotion.value as Record<string, unknown> | undefined
   if (m && Number.isFinite(v)) m[key] = v
+}
+/** An angle field: a typed value outside the slider wraps round; 0 (the default) is left out of the level. */
+const setMotionDeg = (f: { key: string; min: number; max: number }, v: number) => {
+  const m = selectedMotion.value as Record<string, unknown> | undefined
+  if (!m || !Number.isFinite(v)) return
+  const deg = v < f.min || v > f.max ? wrapDeg(v, f.min) : v
+  if (deg) m[f.key] = deg
+  else delete m[f.key]
+}
+const fieldLabel = (f: { key: string; label: string; i18n?: string }) => {
+  const k = `umbrellaEditor.motionField.${f.i18n ?? f.key}`
+  return te(k) ? t(k) : f.label
 }
 const setRect = (key: 'x' | 'y' | 'w' | 'h', v: number) => {
   const ent = selected.value?.ent
@@ -1444,19 +1502,30 @@ const paint = (now: number) => {
       else if (m.kind === 'line' || m.kind === 'lunge' || m.kind === 'arrive') { ctx.moveTo(m.a.x, m.a.y); ctx.lineTo(m.b.x, m.b.y) }
       else if (m.kind === 'circle') ctx.arc(m.center.x, m.center.y, m.radius, 0, Math.PI * 2)
       else if (m.kind === 'swing') {
+        // Straight down is π/2 on the canvas; the arc's angle turns it clockwise like the engine.
+        const mid = Math.PI / 2 + motionRad(m.angle)
         ctx.moveTo(m.pivot.x, m.pivot.y)
-        ctx.arc(m.pivot.x, m.pivot.y, m.radius, Math.PI / 2 - m.amplitude, Math.PI / 2 + m.amplitude)
+        ctx.arc(m.pivot.x, m.pivot.y, m.radius, mid - m.amplitude, mid + m.amplitude)
         ctx.closePath()
       }
       ctx.stroke()
       ctx.setLineDash([])
+      if (isSel && m.kind === 'circle') {
+        // The start pin's spoke, so the pin reads as a clock hand.
+        const p = circleStart(m)
+        ctx.strokeStyle = 'rgba(125,211,252,0.9)'
+        ctx.beginPath()
+        ctx.moveTo(m.center.x, m.center.y)
+        ctx.lineTo(p.x, p.y)
+        ctx.stroke()
+      }
       if (m.kind === 'lunge' && m.trigger) {
         // The trigger zone, around the rest point.
         ctx.strokeStyle = isSel ? 'rgba(255,90,95,0.85)' : 'rgba(255,90,95,0.35)'
         ctx.fillStyle = 'rgba(255,90,95,0.06)'
         ctx.setLineDash([6 / s, 6 / s])
         ctx.beginPath()
-        const ent = entityOf({ group, i })
+        const ent = entityOf({ group, i }) as PlatformDef | HazardDef | undefined
         if (m.reach !== undefined && ent) {
           const z = triggerZone(m, ent.w, ent.h)
           ctx.rect(z.x, z.y, z.w, z.h)
@@ -1465,7 +1534,7 @@ const paint = (now: number) => {
         ctx.stroke()
         ctx.setLineDash([])
       }
-      if (isSel) for (const h of handlesOf(m)) dot(ctx, h.v, handleRadius(), h.key === 'b' ? '#ffb347' : '#ffe066')
+      if (isSel) for (const h of handlesOf(m)) dot(ctx, h.v, handleRadius(), h.key === 'b' || h.key === 'arm' ? '#ffb347' : h.key === 'phase' ? '#7dd3fc' : '#ffe066')
     })
   }
 
@@ -1881,8 +1950,11 @@ onUnmounted(() => {
               <option v-for="k in motionKinds" :key="k" :value="k">{{ t(`umbrellaEditor.motion.${k}`) }}</option>
             </select>
             <label v-for="f in motionFields" :key="f.key" class="row col">
-              <span>{{ t(`umbrellaEditor.motionField.${f.i18n ?? f.key}`) }}: {{ fieldValue(f.key, f.def) }}</span>
-              <input type="range" :min="f.min" :max="f.max" :step="f.step" :value="fieldValue(f.key, f.def)" @input="setMotionField(f.key, +($event.target as HTMLInputElement).value)" />
+              <span v-if="f.deg" class="row">{{ fieldLabel(f) }}
+                <input class="field num" type="number" :step="f.step" :value="fieldValue(f.key, f.def)" @change="setMotionDeg(f, +($event.target as HTMLInputElement).value)" />
+              </span>
+              <span v-else>{{ fieldLabel(f) }}: {{ fieldValue(f.key, f.def) }}</span>
+              <input type="range" :min="f.min" :max="f.max" :step="f.step" :value="fieldValue(f.key, f.def)" @input="f.deg ? setMotionDeg(f, +($event.target as HTMLInputElement).value) : setMotionField(f.key, +($event.target as HTMLInputElement).value)" />
             </label>
             <label v-if="selectedMotion?.kind === 'lunge'" class="check" :title="t('umbrellaEditor.triggerHint')">
               <input type="checkbox" :checked="!!selectedMotion.trigger" @change="setTrigger(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.trigger') }}

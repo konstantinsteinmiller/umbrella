@@ -22,6 +22,8 @@
 //   pnpm deploy:poki --strict           recommended-size warnings fail the run
 //   pnpm deploy:poki --honest-ticks     tick only what the run proved
 //   pnpm deploy:poki --keep             leave Chrome open at the end
+//   pnpm deploy:poki --art lantern      build the game in one painted art style (lantern | clay):
+//                                       pnpm deploy:poki:lantern / deploy:poki:clay
 //
 // The first run opens a real Chrome window and waits for a Google sign-in;
 // after that the profile at ~/.poki-deploy/chrome-profile carries the session.
@@ -62,9 +64,17 @@ const KEEP = flag('keep')
 // proven. --honest-ticks leaves the undecidable blank and crosses failures.
 const HONEST = flag('honest-ticks')
 const PORT = Number(arg('port', 9333))
+// The painted art style the Poki build is drawn in, instead of the vector drawing. It is a build
+// flag (VITE_APP_LANTERN / VITE_APP_CLAY, folded by vite.config.ts): the build carries that one set
+// of sheets and nothing else, and has no art switch (the cheat-mode dropdown only offers one where
+// sibling builds exist, on GitHub Pages).
+const ART = arg('art', null)
+const ART_FLAGS = { lantern: 'VITE_APP_LANTERN', clay: 'VITE_APP_CLAY' }
+const ART_LABEL = { lantern: 'Origami Lantern', clay: 'Clay' }
+if (ART && !ART_FLAGS[ART]) die(`--art ${ART} is unknown`, `known: ${Object.keys(ART_FLAGS).join(', ')}`)
 const PROFILE = arg('profile', DEFAULT_PROFILE)
 
-console.log(bold(`\nPoki deploy — ${cfg.gameName}`))
+console.log(bold(`\nPoki deploy — ${cfg.gameName}${ART ? ` (${ART_LABEL[ART]} art)` : ''}`))
 console.log(dim(`  team ${cfg.team} · game ${cfg.gameId || `"${cfg.gameName}" (looked up by name)`}`))
 if (DRY) console.log(yellow('  --dry-run: nothing will actually be uploaded'))
 
@@ -86,13 +96,14 @@ if (!QA_ONLY && !GATES_ONLY) {
     version = next
   }
 }
-const versionName = cfg.versionName(version)
+const versionName = cfg.versionName(version) + (ART ? ` · ${ART_LABEL[ART]} art` : '')
 
 // ── 2. build ────────────────────────────────────────────────────────────────
 if (!SKIP_BUILD && !GATES_ONLY) {
   step(`Build  ${dim(cfg.build)}`)
   try {
-    execSync(cfg.build, { cwd: ROOT, stdio: 'inherit' })
+    // The art flag rides in the build's environment: vite's loadEnv reads it like an .env entry.
+    execSync(cfg.build, { cwd: ROOT, stdio: 'inherit', env: { ...process.env, ...(ART ? { [ART_FLAGS[ART]]: 'true' } : {}) } })
   } catch {
     die('the Poki build failed', 'fix the build, then re-run — the version bump above is already written')
   }

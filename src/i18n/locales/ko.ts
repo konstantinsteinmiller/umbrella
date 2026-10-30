@@ -122,6 +122,7 @@ export default {
       'snap': "10 px 격자에 맞추기",
       'animate': "움직이는 오브젝트 애니메이션",
       'mobile': "휴대폰 미리보기",
+      'paperWind': "종이 바람 띠",
       'test': "테스트",
       'share': "공유 링크 복사",
       'submit': "커뮤니티에 제출…",
@@ -298,7 +299,9 @@ export default {
       'duration': "활강 (초)",
       'followSpeed': "따라가는 속도",
       'reach': "구역 길이",
-      'zoneWidth': "구역 너비"
+      'zoneWidth': "구역 너비",
+      'angle': "호 각도 (°)",
+      'phase': "시작 (°)"
     },
     'problem': {
       'noFinish': "도착 발판이 없어요 — 레벨을 클리어할 수 없어요.",

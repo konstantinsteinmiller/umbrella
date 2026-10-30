@@ -122,6 +122,7 @@ export default {
       'snap': "Tempel ke grid 10 px",
       'animate': "Animasikan benda bergerak",
       'mobile': "Pratinjau ponsel",
+      'paperWind': "Pita angin kertas",
       'test': "Uji",
       'share': "Salin tautan bagikan",
       'submit': "Kirim ke komunitas…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Luncur (dtk)",
       'followSpeed': "Kecepatan mengikuti",
       'reach': "Panjang zona",
-      'zoneWidth': "Lebar zona"
+      'zoneWidth': "Lebar zona",
+      'angle': "Sudut busur (°)",
+      'phase': "Mulai (°)"
     },
     'problem': {
       'noFinish': "Tidak ada platform finis — level tidak bisa dimenangkan.",

@@ -5,21 +5,68 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- cutscene editor and some fixes">
+      <change beforePath="$PROJECT_DIR$/.github/workflows/static.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/static.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GDD.md" beforeDir="false" afterPath="$PROJECT_DIR$/GDD.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/changelog.md" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/campaign-order.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-order.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/campaign-overrides.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-overrides.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/js/art-kite-redirect.js" beforeDir="false" afterPath="$PROJECT_DIR$/public/js/art-kite-redirect.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/roadmap.md" beforeDir="false" afterPath="$PROJECT_DIR$/roadmap.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/art/art-prompts.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/art-prompts.mjs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scripts/art/lantern-refs.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/lantern-refs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/pweeg-idle.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/pweeg-idle.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/pweeg-walk.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/pweeg-walk.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/walldorf-face.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/walldorf-face.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/art/hooks.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/hooks.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/art/slice-sheets.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/slice-sheets.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/art/walldorf-pupils.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/walldorf-pupils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/umbrella/CommunityLevelsModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/umbrella/CommunityLevelsModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/umbrella/ConfirmModal.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/umbrella/ConfirmModal.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/umbrella/LanguageSelect.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/umbrella/LanguageSelect.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/umbrella/PauseMenu.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/umbrella/PauseMenu.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/umbrella/RateLevelCard.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/umbrella/RateLevelCard.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/localeDirection.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/localeDirection.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ar.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/de.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/de.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/en.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/en.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/es.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/es.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/fr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/fr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/hi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/hi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/id.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/id.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/it.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/it.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ja.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ja.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/kk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/kk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ko.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ko.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/nl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/nl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pl.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pl.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/pt.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/pt.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/ru.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/ru.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/th.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/th.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/tr.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/tr.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uk.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uk.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/uz.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/uz.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/vi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/vi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/i18n/locales/zh.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/i18n/locales/zh.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/umbrella/art/lantern.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/lantern.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/art/manifest.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/manifest.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/umbrella/art/paint.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/paint.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/art/prompts.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/prompts.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/art/shipped-dev.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/shipped-dev.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/artMode.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/artMode.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/chad.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/chad.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/characters.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/characters.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/cutscene.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/cutscene.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/engine.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/engine.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/kite.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/kite.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/umbrella/levels.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/levels.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/umbrella/renderer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/renderer.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/umbrella/fixtures/vectorGolden.json" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella/fixtures/vectorGolden.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/use/useEpicState.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useEpicState.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/views/UmbrellaEditor.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/UmbrellaEditor.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/views/UmbrellaScene.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/UmbrellaScene.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/umbrella-engine.spec.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella-engine.spec.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/umbrella/artMode.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella/artMode.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/umbrella/kiteArtRender.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella/kiteArtRender.test.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/umbrella/lanternArt.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella/lanternArt.test.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/poki-deploy/deploy.mjs" beforeDir="false" afterPath="$PROJECT_DIR$/tools/poki-deploy/deploy.mjs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/vite.config.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -67,6 +114,7 @@
     "npm.build:poki.executor": "Run",
     "npm.build:wavedash.executor": "Run",
     "npm.deploy:poki.executor": "Run",
+    "npm.deploy:poki:lantern.executor": "Run",
     "npm.dev.executor": "Run",
     "ts.external.directory.path": "C:\\Users\\konst\\Documents\\__p\\umbrella\\node_modules\\typescript\\lib",
     "vue.rearranger.settings.migration": "true"
@@ -81,7 +129,7 @@
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage\tools\poki-deploy" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.art:desk:umbrella">
+  <component name="RunManager" selected="npm.deploy:poki:lantern">
     <configuration name="art:desk" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
@@ -102,21 +150,21 @@
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="build:poki" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
-      <package-json value="$PROJECT_DIR$/package.json" />
-      <command value="run" />
-      <scripts>
-        <script value="build:poki" />
-      </scripts>
-      <node-interpreter value="project" />
-      <envs />
-      <method v="2" />
-    </configuration>
     <configuration name="deploy:poki" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
         <script value="deploy:poki" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="deploy:poki:lantern" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="deploy:poki:lantern" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
@@ -134,11 +182,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="npm.deploy:poki:lantern" />
         <item itemvalue="npm.art:desk:umbrella" />
         <item itemvalue="npm.art:desk" />
         <item itemvalue="npm.deploy:poki" />
         <item itemvalue="npm.dev" />
-        <item itemvalue="npm.build:poki" />
       </list>
     </recent_temporary>
   </component>

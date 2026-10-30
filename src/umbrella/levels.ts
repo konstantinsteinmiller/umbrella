@@ -12,15 +12,23 @@ export type Vec = { x: number; y: number }
 /** How a platform moves. Position is the platform's CENTRE at time t. */
 export type Motion =
   | { kind: 'static' }
-  /** Ping-pong between two centres; `period` is a full there-and-back. */
-  | { kind: 'line'; a: Vec; b: Vec; period: number }
-  /** Orbit around `center`. */
-  | { kind: 'circle'; center: Vec; radius: number; period: number }
-  /** Pendulum hanging from `pivot`, swinging ±`amplitude` radians. */
-  | { kind: 'swing'; pivot: Vec; radius: number; amplitude: number; period: number }
+  /** Ping-pong between two centres; `period` is a full there-and-back. `phase`: where in that
+   *  cycle it starts, in degrees of the cycle (0, the default, starts at `a`; 180 starts at `b`). */
+  | { kind: 'line'; a: Vec; b: Vec; period: number; phase?: number }
+  /** Orbit around `center`, clockwise on screen. `phase`: where on the circle it
+   *  is at time 0 (so where it spawns), in degrees clockwise from the right
+   *  (3 o'clock = 0, the default; 90 = bottom). */
+  | { kind: 'circle'; center: Vec; radius: number; period: number; phase?: number }
+  /** Pendulum hanging from `pivot`, swinging ±`amplitude` radians. `angle`: the
+   *  whole arc turned clockwise around `pivot`, in degrees (0, the default, hangs
+   *  straight down; 90 points left, 180 stands straight up). `phase`: where in its swing it starts,
+   *  in degrees of the cycle (0, the default, starts in the middle swinging one way; 90 at one end). */
+  | { kind: 'swing'; pivot: Vec; radius: number; amplitude: number; period: number; angle?: number; phase?: number }
   /** Rest at `a`, strike to `b` fast, hold, pull back slowly; repeats every `period`. */
   | {
       kind: 'lunge'; a: Vec; b: Vec; period: number
+      /** Where in the repeating cycle it starts, in degrees of the cycle (not for a triggered one). */
+      phase?: number
       /** Strike speed multiplier (1 = the tuning's strike time; 2 = twice as fast). */
       speed?: number
       /** Thwomp mode: rest at `a` until the player is airborne within `radius`

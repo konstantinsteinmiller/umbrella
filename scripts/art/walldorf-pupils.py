@@ -1,7 +1,8 @@
 """Take the painted pupils out of the lantern Walldorf's face, so the game can draw its own pupils that
 track the player while the eyes stay put.
 
-    python scripts/art/walldorf-pupils.py      # after `pnpm art:slice:lantern`
+    python scripts/art/walldorf-pupils.py              # after `pnpm art:slice:lantern`
+    python scripts/art/walldorf-pupils.py --set clay   # after `pnpm art:slice:clay`
 
 Per 4 x 4 panel of src/assets/umbrella-art-lantern/walldorf-face.webp:
   - finds each eye white (a big light component),
@@ -19,8 +20,9 @@ from PIL import Image
 from scipy import ndimage as ndi
 
 ROOT = Path(__file__).resolve().parents[2]
-SHEET = ROOT / 'src' / 'assets' / 'umbrella-art-lantern' / 'walldorf-face.webp'
-OUT = ROOT / 'src' / 'umbrella' / 'art' / 'walldorfFaceEyes.json'
+CLAY = '--set' in sys.argv and sys.argv[sys.argv.index('--set') + 1:][:1] == ['clay']
+SHEET = ROOT / 'src' / 'assets' / ('umbrella-art-clay' if CLAY else 'umbrella-art-lantern') / 'walldorf-face.webp'
+OUT = ROOT / 'src' / 'umbrella' / 'art' / ('walldorfFaceEyes-clay.json' if CLAY else 'walldorfFaceEyes.json')
 GRID = 4
 
 
@@ -48,6 +50,7 @@ def main() -> None:
     for i in range(GRID * GRID):
         r, c = divmod(i, GRID)
         p = im[r * n:(r + 1) * n, c * n:(c + 1) * n]
+        original = p.copy()
         rgb = p[..., :3].astype(np.int32)
         lum = rgb.mean(axis=2)
         solid = p[..., 3] > 128
@@ -85,13 +88,20 @@ def main() -> None:
                         'pupil': round(float(np.sqrt(dark.sum() / np.pi)) / n, 4)
                     })
         eyes.sort(key=lambda e: e['y'])
+        if len(eyes) not in (0, 2):
+            # Not two clear eyes (a squint the finder misreads): this frame keeps its painted
+            # pupils and gets no live ones, rather than one of each.
+            print(f'  frame {i + 1}: {len(eyes)} eye(s) found -- keeps its painted pupils')
+            eyes = []
+            p = original
         frames.append(eyes)
         im[r * n:(r + 1) * n, c * n:(c + 1) * n] = p
+    if cleared < 8:
+        # Run twice, the second pass finds the pupils already gone and would record no eyes.
+        sys.exit(f'walldorf-pupils: only {cleared} pupils found -- the face looks cleared already; slice it again first')
     Image.fromarray(im, 'RGBA').save(SHEET, 'WEBP', quality=88, method=6)
     OUT.write_text(json.dumps({'_': 'scripts/art/walldorf-pupils.py: per face frame, its eyes (fractions of a panel from its centre)', 'frames': frames}, indent=1) + '\n', encoding='utf-8', newline='\n')
     print(f'walldorf-face.webp: {cleared} pupils cleared; eyes per frame {[len(f) for f in frames]}')
-    if any(len(f) not in (0, 2) for f in frames):
-        sys.exit('walldorf-pupils: a frame does not have two eyes -- check the sheet')
 
 
 if __name__ == '__main__':

@@ -346,6 +346,18 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 **Art**
 · ?art=lantern opens the "Paper Moon" lantern-festival look (the normal game, painted); its art is being painted piece by piece, starting with the night sky, the ledges, the finish pad and the parasol.
 
+## Revision 13
+**Art styles**
+· ?art=clay opens the "Rainy Day Post" claymation look: a clay postman Pweeg on rainy rooftops, chimney Walldorfs, a spiky clay mine, clay currents with rolled-clay arrows, ribbons and leaves. The level editor's cheat mode switches between the drawn game, lantern and clay.
+· Lantern currents are folded washi paper strips: blue for a regular current, golden with bold arrows for a Super Stream.
+· The finish is a festival dais (lantern); enemies and props follow the concept art; mines blow up on touch.
+**Phones**
+· Held upright, the level fills the screen's height and the camera looks ahead the way Pweeg moves.
+**Level editor**
+· Swing arcs can be angled, and every repeating motion has a start position.
+**Poki**
+· Poki builds can be made in one art style (lantern or clay) and run fully offline with the campaign baked in.
+
 ## Revision 
 ## Revision 
 ## Revision 

@@ -58,10 +58,10 @@ export const isRtlLocale = (code: string): boolean => RTL_LOCALES.has(code)
  *               Noto Sans CJK (Android/Linux)
  *
  * `sans-serif` remains as the last resort, never as the only fallback.
- * 'Cherry Bomb One', 'Zora Rounded',
+ * 'Cherry Bomb One', 'Zora Rounded', 'Zora Rounded',
  */
 const LATIN_STACK =
-  `'Zora Rounded','Angry', 'Segoe UI', Roboto, system-ui, sans-serif`
+  `'Angry', 'Segoe UI', Roboto, system-ui, sans-serif`
 
 const ARABIC_STACK =
   `'Segoe UI', Tahoma, 'Geeza Pro', 'Noto Naskh Arabic', `

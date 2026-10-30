@@ -6,7 +6,7 @@
 // drawing + small math helpers; the intro's timeline runner (#0.7.0-10) decides
 // when each action plays and, for the float, where the engine has moved him.
 
-import { drawPweeg, drawUmbrella, type PweegPose } from './characters'
+import { drawPweeg, drawUmbrella, heldAt, type PweegPose } from './characters'
 import type { Vec } from './levels'
 
 export type ChadAction = 'idle' | 'flip' | 'land' | 'float' | 'walk'
@@ -52,7 +52,7 @@ export const drawChad = (ctx: CanvasRenderingContext2D, x: number, y: number, s:
       ctx.rotate(s.facing * ease * Math.PI * 2)
       ctx.translate(-x, -cy)
       drawPweeg(ctx, x, y, look('stand'))
-      drawUmbrella(ctx, x + s.facing * s.w * 0.8, y - s.h * 0.35, { state: 'furled', tilt: s.facing * 0.22, time: s.t })
+      { const at = heldAt(x + s.facing * s.w * 0.8, y - s.h * 0.35); drawUmbrella(ctx, at.x, at.y, { state: 'furled', tilt: s.facing * 0.22, time: s.t }) }
       break
     }
     case 'land': {
@@ -63,7 +63,7 @@ export const drawChad = (ctx: CanvasRenderingContext2D, x: number, y: number, s:
       ctx.scale(1 + squash, 1 - squash)
       ctx.translate(-x, -y)
       drawPweeg(ctx, x, y, look('stand'))
-      drawUmbrella(ctx, x + s.facing * s.w * 0.8, y - s.h * 0.35, { state: 'furled', tilt: s.facing * 0.22, time: s.t })
+      { const at = heldAt(x + s.facing * s.w * 0.8, y - s.h * 0.35); drawUmbrella(ctx, at.x, at.y, { state: 'furled', tilt: s.facing * 0.22, time: s.t }) }
       break
     }
     case 'idle': {
@@ -73,14 +73,14 @@ export const drawChad = (ctx: CanvasRenderingContext2D, x: number, y: number, s:
       ctx.rotate(tilt)
       ctx.translate(-x, -y)
       drawPweeg(ctx, x, y, look('stand'))
-      drawUmbrella(ctx, x + s.facing * s.w * 0.8, y - s.h * 0.35, { state: 'furled', tilt: s.facing * 0.22, time: s.t })
+      { const at = heldAt(x + s.facing * s.w * 0.8, y - s.h * 0.35); drawUmbrella(ctx, at.x, at.y, { state: 'furled', tilt: s.facing * 0.22, time: s.t }) }
       break
     }
     case 'walk': {
       // A relaxed stroll: legs step with the distance walked.
       const look2 = { ...look('walk'), step: s.t * Math.abs(s.vx ?? 120) * 0.09 }
       drawPweeg(ctx, x, y, look2)
-      drawUmbrella(ctx, x + s.facing * s.w * 0.8, y - s.h * 0.35, { state: 'furled', tilt: s.facing * 0.22, time: s.t })
+      { const at = heldAt(x + s.facing * s.w * 0.8, y - s.h * 0.35); drawUmbrella(ctx, at.x, at.y, { state: 'furled', tilt: s.facing * 0.22, time: s.t }) }
       break
     }
     case 'float': {

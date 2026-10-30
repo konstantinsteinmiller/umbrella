@@ -1,4 +1,8 @@
-"""Layout references for the lantern drawables the bench does not bake.
+"""Layout references for the painted sets' drawables the bench does not bake.
+
+    --set clay   works on the clay set (art-sheets/umbrella-clay → src/assets/umbrella-art-clay)
+                 instead of the lantern one. Its gate is a pipe in three pieces, its finish a
+                 doorstep, a postbox, a flag and a bunting pennant.
 
     python scripts/art/lantern-refs.py          # writes art-sheets/umbrella-lantern/{collect,gate,finish-dais}.png
     python scripts/art/lantern-refs.py --cut    # keys painted/gate.png → src/assets/umbrella-art-lantern/gate.webp
@@ -22,8 +26,9 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
-SHEETS = ROOT / 'art-sheets' / 'umbrella-lantern'
-SHIPPED = ROOT / 'src' / 'assets' / 'umbrella-art-lantern'
+CLAY = '--set' in sys.argv and sys.argv[sys.argv.index('--set') + 1:][:1] == ['clay']
+SHEETS = ROOT / 'art-sheets' / ('umbrella-clay' if CLAY else 'umbrella-lantern')
+SHIPPED = ROOT / 'src' / 'assets' / ('umbrella-art-clay' if CLAY else 'umbrella-art-lantern')
 MAGENTA = (255, 0, 255)
 GOLD = (246, 194, 53)
 INK = (42, 29, 58)
@@ -75,6 +80,76 @@ def gate() -> None:
     im.save(SHEETS / 'gate.png')
 
 
+def finish_clay() -> None:
+    """The clay finish: a doorstep slab (panel 1), a postbox (2) and a flag (3) standing on their
+    panel's bottom, a bunting pennant (4) hanging from its panel's top."""
+    im = Image.new('RGB', (PANEL * 2, PANEL * 2), MAGENTA)
+    d = ImageDraw.Draw(im)
+    p = PANEL
+    d.rectangle([6, p * 0.42, p - 7, p * 0.62], fill=(173, 150, 112), outline=INK, width=4)
+    d.ellipse([6, p * 0.3, p - 7, p * 0.52], fill=(216, 195, 160), outline=INK, width=4)
+    d.rectangle([p * 0.3, p * 0.36, p * 0.7, p * 0.46], fill=(138, 90, 52))
+    d.rectangle([p * 1.3, p * 0.2, p * 1.7, p - 6], fill=(200, 48, 42), outline=INK, width=4)
+    d.rectangle([p * 1.36, p * 0.38, p * 1.64, p * 0.43], fill=INK)
+    d.rectangle([p * 0.48, p * 1.2, p * 0.52, p * 2 - 6], fill=(142, 148, 156))
+    d.polygon([(p * 0.52, p * 1.2), (p * 0.8, p * 1.28), (p * 0.52, p * 1.36)], fill=(243, 236, 224), outline=INK)
+    cx, top = p * 1.5, p + 10
+    d.line([cx - 30, top, cx + 30, top], fill=INK, width=3)
+    d.polygon([(cx - 28, top), (cx + 28, top), (cx, top + p * 0.45)], fill=(241, 183, 47), outline=INK)
+    im.save(SHEETS / 'finish-dais.png')
+
+
+def wind_paper() -> None:
+    """Two plain paper swatches filling their panels, a double chevron and a bold arrow (lantern wind)."""
+    im = Image.new('RGB', (PANEL * 2, PANEL * 2), MAGENTA)
+    d = ImageDraw.Draw(im)
+    p = PANEL
+    d.rectangle([0, 0, p - 1, p - 1], fill=(132, 168, 222))
+    d.rectangle([p, 0, 2 * p - 1, p - 1], fill=(246, 196, 72))
+    cx, cy = p / 2, p * 1.5
+    for dx in (-22, 22):
+        d.line([(cx + dx - 30, cy - 42), (cx + dx + 18, cy), (cx + dx - 30, cy + 42)], fill=(31, 42, 74), width=16)
+    cx = p * 1.5
+    d.polygon([(cx + 52, cy), (cx - 18, cy - 50), (cx, cy), (cx - 18, cy + 50)], fill=(90, 44, 12))
+    for dy in (-20, 20):
+        d.line([(cx - 36, cy + dy), (cx - 86, cy + dy)], fill=(90, 44, 12), width=10)
+    im.save(SHEETS / 'wind-paper.png')
+
+
+def clay_wind() -> None:
+    """Four tapered swooshes across their panels, curling at the right end: two blue, two orange (clay wind)."""
+    im = Image.new('RGB', (PANEL * 2, PANEL * 2), MAGENTA)
+    d = ImageDraw.Draw(im)
+    p = PANEL
+    for i, col in enumerate(((111, 150, 189), (111, 150, 189), (232, 135, 58), (232, 135, 58))):
+        ox, oy = (i % 2) * p, (i // 2) * p
+        n = 40
+        for k in range(n):
+            u = k / n
+            x = ox + p * (0.1 + 0.72 * u)
+            y = oy + p * 0.5 + math.sin(u * math.pi * (1.5 if i % 2 == 0 else 1.1)) * p * 0.1
+            r = 2 + 14 * math.sin(math.pi * u)
+            d.ellipse([x - r, y - r, x + r, y + r], fill=col)
+        cx, cy = ox + p * 0.84, oy + p * 0.42
+        d.arc([cx - 18, cy - 18, cx + 18, cy + 18], 90, 360, fill=col, width=7)
+    im.save(SHEETS / 'clay-wind.png')
+
+
+def gate_pipe() -> None:
+    n = PANEL * 3
+    third = n // 3
+    im = Image.new('RGB', (n, n), MAGENTA)
+    d = ImageDraw.Draw(im)
+    green, dark = (34, 163, 90), (11, 61, 34)
+    gap = third * 0.12
+    # Rim with its mouth, a short plain tube section, the base ring: apart, magenta between.
+    d.rectangle([4, 4, n - 5, third - gap], fill=green, outline=INK, width=6)
+    d.ellipse([n * 0.12, third * 0.14, n * 0.88, third * 0.66], fill=dark, outline=INK, width=4)
+    d.rectangle([n * 0.12, third + gap, n * 0.88, 2 * third - gap], fill=green)
+    d.rectangle([n * 0.1, 2 * third + gap, n * 0.9, n - 4], fill=INK)
+    im.save(SHEETS / 'gate.png')
+
+
 def finish_dais() -> None:
     im = Image.new('RGB', (PANEL * 2, PANEL * 2), MAGENTA)
     d = ImageDraw.Draw(im)
@@ -110,6 +185,52 @@ def key(img: Image.Image) -> Image.Image:
                 a = int(255 * (150 - m) / 90)
                 px[x, y] = (min(r, g + 40), g, min(b, g + 40), a)
     return img
+
+
+def register_pipe(img: Image.Image) -> Image.Image:
+    """The painted gate is three separate pieces (rim, a short plain tube section, base) with
+    magenta between them. Find the three biggest pieces, top to bottom, and stack them into three
+    equal bands, each centred at the width it was painted. The tube section loses a few rows top
+    and bottom (its cut edges' ink) because the game stretches it. Refuses loudly when the pieces
+    are not three, or touch."""
+    import numpy as np
+    from scipy import ndimage as ndi
+    a = np.asarray(img)
+    lab, k = ndi.label(a[..., 3] > 128)
+    if k < 3:
+        sys.exit(f'gate: {k} piece(s) painted, not three separate ones -- repaint it')
+    sizes = ndi.sum(np.ones(lab.shape), lab, index=np.arange(1, k + 1))
+    big = sorted(np.argsort(sizes)[::-1][:3] + 1, key=lambda i: ndi.find_objects(lab == i)[0][0].start)
+    boxes = [ndi.find_objects((lab == i).astype(int))[0] for i in big]
+    if sizes[big[2] - 1] < 0.02 * a.shape[0] * a.shape[1]:
+        sys.exit('gate: the third piece is a speck, not a base -- repaint it')
+    third = img.height // 3
+    # The tube piece is painted as a short ring, often seen a little from above: its top
+    # shows the opening and its bottom curves. Only its plainest strip of front face is
+    # stretchable — the 30 % of its height that changes least from row to row.
+    (ty, tx) = boxes[1]
+    th = ty.stop - ty.start
+    rgb = a[ty.start:ty.stop, tx.start:tx.stop, :3].astype(np.float32)
+    diff = np.abs(np.diff(rgb, axis=0)).mean(axis=(1, 2))
+    span = max(4, int(th * 0.3))
+    lo, hi = int(th * 0.15), th - int(th * 0.15) - span
+    s0 = min(range(lo, max(lo + 1, hi)), key=lambda y: diff[y:y + span].mean())
+    tube = img.crop((tx.start, ty.start + s0, tx.stop, ty.start + s0 + span)).resize((tx.stop - tx.start, third), Image.LANCZOS)
+    out = Image.new('RGBA', (img.width, third * 3), (0, 0, 0, 0))
+    left = (img.width - tube.width) // 2
+    # Behind the rim's lower half: the tube's top row drawn down, so the rim's curved bottom
+    # edge sits ON the tube (no notches of sky) and meets the tube band without a seam.
+    out.alpha_composite(tube.crop((0, 0, tube.width, 1)).resize((tube.width, third // 2)), (left, third - third // 2))
+    # The base ring is seen a little from above too: keep its front band only (below its
+    # opening), so its top is the straight edge the tube stands on.
+    (bys, bxs) = boxes[2]
+    base_top = bys.start + int((bys.stop - bys.start) * 0.35)
+    crops = [(boxes[0][1].start, boxes[0][0].start, boxes[0][1].stop, boxes[0][0].stop), None, (bxs.start, base_top, bxs.stop, bys.stop)]
+    for n, (ys, xs) in enumerate(boxes):
+        piece = tube if n == 1 else img.crop(crops[n]).resize((xs.stop - xs.start, third), Image.LANCZOS)
+        out.alpha_composite(piece, ((img.width - piece.width) // 2, n * third))
+        print(f'gate piece {n + 1}: x {xs.start}-{xs.stop}, y {ys.start}-{ys.stop}' + (f' (strip {ty.start + s0}-{ty.start + s0 + span})' if n == 1 else ''))
+    return out
 
 
 def register_gate(img: Image.Image) -> Image.Image:
@@ -163,7 +284,7 @@ def cut() -> None:
     src = next((SHEETS / 'painted' / f'gate{ext}' for ext in ('.png', '.jpg', '.webp') if (SHEETS / 'painted' / f'gate{ext}').exists()), None)
     if src is None:
         sys.exit('no painted/gate.* to cut')
-    out = register_gate(key(Image.open(src))).resize((PANEL, PANEL), Image.LANCZOS)
+    out = (register_pipe if CLAY else register_gate)(key(Image.open(src))).resize((PANEL, PANEL), Image.LANCZOS)
     SHIPPED.mkdir(parents=True, exist_ok=True)
     out.save(SHIPPED / 'gate.webp', 'WEBP', quality=88, method=6)
     print(f'gate.webp {out.size} from {src.name}')
@@ -208,7 +329,9 @@ def cards() -> None:
             continue
         im = Image.open(src).convert('RGB')
         w, h = im.size
-        card = im.crop((0, 0, w // grid, h // grid)).resize((512, 512), Image.LANCZOS)
+        # A little inside the panel: some returns draw white lines between panels.
+        m = int(w * 0.006)
+        card = im.crop((m, m, w // grid - m, h // grid - m)).resize((512, 512), Image.LANCZOS)
         card.save(out_dir / f'{name}-card.png')
         print(f'cards/{name}-card.png: panel 1 of painted/{name}.png')
     # cards/prickbait-card.png is cut by hand from panel 1 of an approved earlier roll (the only one whose
@@ -251,6 +374,10 @@ if __name__ == '__main__':
         cut()
     else:
         collect()
-        gate()
-        finish_dais()
+        (gate_pipe if CLAY else gate)()
+        (finish_clay if CLAY else finish_dais)()
+        if not CLAY:
+            wind_paper()
+        else:
+            clay_wind()
         print('collect.png, gate.png, finish-dais.png')

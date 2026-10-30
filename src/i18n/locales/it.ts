@@ -122,6 +122,7 @@ export default {
       'snap': "Aggancia alla griglia di 10 px",
       'animate': "Anima gli oggetti in movimento",
       'mobile': "Anteprima telefono",
+      'paperWind': "Strisce di vento di carta",
       'test': "Prova",
       'share': "Copia link di condivisione",
       'submit': "Invia alla community…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Planata (s)",
       'followSpeed': "Velocità di inseguimento",
       'reach': "Lunghezza zona",
-      'zoneWidth': "Larghezza zona"
+      'zoneWidth': "Larghezza zona",
+      'angle': "Angolo dell'arco (°)",
+      'phase': "Inizio (°)"
     },
     'problem': {
       'noFinish': "Nessuna piattaforma d'arrivo — il livello non si può vincere.",

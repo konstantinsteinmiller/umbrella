@@ -141,25 +141,31 @@ export const gateExit = (g: GateDef) => ({ x: g.x + g.w / 2, y: g.y + g.h })
 export interface LungeShape { rest: number; strike: number; hold: number }
 const DEFAULT_LUNGE: LungeShape = { rest: 0.45, strike: 0.15, hold: 0.12 }
 
+/** An optional degrees field of a motion (a swing's `angle`, any cycle's `phase`) in
+ *  radians; missing or not a number counts as 0, so older levels move as they did. */
+export const motionRad = (deg: unknown): number => (typeof deg === 'number' && Number.isFinite(deg) ? (deg * Math.PI) / 180 : 0)
+
 const platformCenter = (m: Motion, t: number, lunge: LungeShape) => {
   switch (m.kind) {
     case 'static':
       return null
     case 'line': {
-      const k = 0.5 - 0.5 * Math.cos((t / m.period) * Math.PI * 2)
+      const k = 0.5 - 0.5 * Math.cos((t / m.period) * Math.PI * 2 + motionRad(m.phase))
       return { x: m.a.x + (m.b.x - m.a.x) * k, y: m.a.y + (m.b.y - m.a.y) * k }
     }
     case 'circle': {
-      const a = (t / m.period) * Math.PI * 2
+      const a = (t / m.period) * Math.PI * 2 + motionRad(m.phase)
       return { x: m.center.x + Math.cos(a) * m.radius, y: m.center.y + Math.sin(a) * m.radius }
     }
     case 'swing': {
-      const a = Math.sin((t / m.period) * Math.PI * 2) * m.amplitude
+      // Turning the arc clockwise by `angle` is the same as swinging back by it.
+      const a = Math.sin((t / m.period) * Math.PI * 2 + motionRad(m.phase)) * m.amplitude - motionRad(m.angle)
       return { x: m.pivot.x + Math.sin(a) * m.radius, y: m.pivot.y + Math.cos(a) * m.radius }
     }
     case 'lunge': {
       // Rest, strike, hold, then pull back for the rest of the period.
-      const f = ((t / m.period) % 1 + 1) % 1
+      // `phase` starts the cycle part-way through (a triggered lunge waits at rest and has none).
+      const f = ((t / m.period + (m.trigger ? 0 : motionRad(m.phase) / (Math.PI * 2))) % 1 + 1) % 1
       const ease = (x: number) => x * x * (3 - 2 * x)
       const a = lunge.rest
       const b = Math.min(1, a + lunge.strike / Math.max(0.05, m.speed ?? 1))
@@ -578,6 +584,19 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     const [nx, ny] = m === outU ? [0, -1] : m === outD ? [0, 1] : m === outL ? [-1, 0] : [1, 0]
     pl.x += nx * (nx < 0 ? outL : outR) * Math.abs(nx)
     pl.y += ny * (ny < 0 ? outU : outD) * Math.abs(ny)
+    // Pushed into a solid platform: there is nowhere to go, so he is crushed between the two (never
+    // shoved through it). Probe a little further the way he is pushed — any push into a platform he
+    // is standing on or against counts, however small — with the box trimmed on the other axis so a
+    // platform he only grazes along that side does not.
+    const probe = 2
+    const [px, py, pw, ph] = nx
+      ? [pl.x + nx * probe, pl.y + probe, pl.w, pl.h - probe * 2]
+      : [pl.x + probe, pl.y + ny * probe, pl.w - probe * 2, pl.h]
+    if (w.platforms.some((p) => platformActive(w, p) && overlaps(px, py, pw, ph, p))) {
+      setPhase(w, 'splat')
+      events.push('splat')
+      return events
+    }
     const charge = Math.max(0, ((h.dx * nx + h.dy * ny) / dt) * t.walldorfChargeKnock)
     const speed = (h.bounce ?? t.walldorfBounce) + charge
     if (nx) pl.vx = nx * speed

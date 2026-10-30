@@ -122,6 +122,7 @@ export default {
       'snap': "吸附到 10 px 网格",
       'animate': "播放移动物体动画",
       'mobile': "手机预览",
+      'paperWind': "纸质风带",
       'test': "测试",
       'share': "复制分享链接",
       'submit': "提交到社区…",
@@ -298,7 +299,9 @@ export default {
       'duration': "滑行（秒）",
       'followSpeed': "跟随速度",
       'reach': "触发区长度",
-      'zoneWidth': "触发区宽度"
+      'zoneWidth': "触发区宽度",
+      'angle': "弧线角度 (°)",
+      'phase': "起点 (°)"
     },
     'problem': {
       'noFinish': "没有终点平台——关卡无法通过。",

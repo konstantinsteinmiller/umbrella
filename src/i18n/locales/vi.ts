@@ -122,6 +122,7 @@ export default {
       'snap': "Bám lưới 10 px",
       'animate': "Chạy vật chuyển động",
       'mobile': "Xem trên điện thoại",
+      'paperWind': "Dải gió bằng giấy",
       'test': "Thử",
       'share': "Sao chép liên kết",
       'submit': "Gửi lên cộng đồng…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Lướt (giây)",
       'followSpeed': "Tốc độ đuổi theo",
       'reach': "Chiều dài vùng",
-      'zoneWidth': "Chiều rộng vùng"
+      'zoneWidth': "Chiều rộng vùng",
+      'angle': "Góc cung (°)",
+      'phase': "Bắt đầu (°)"
     },
     'problem': {
       'noFinish': "Không có bục đích — màn này không thể thắng.",

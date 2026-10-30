@@ -175,7 +175,8 @@ export const LANTERN_SHEETS: SheetDef[] = [
   }),
   { ...EXTRA_SHEETS.find((s) => s.id === 'collect')!, styleRef: STYLE_WORLD, designRef: 'designs/collect-design.png' },
   { ...EXTRA_SHEETS.find((s) => s.id === 'gate')!, styleRef: STYLE_WORLD, designRef: 'designs/gate-design.png' },
-  { ...EXTRA_SHEETS.find((s) => s.id === 'finish-dais')!, styleRef: STYLE_WORLD, designRef: 'designs/finish-design.png' }
+  { ...EXTRA_SHEETS.find((s) => s.id === 'finish-dais')!, styleRef: STYLE_WORLD, designRef: 'designs/finish-design.png' },
+  { ...EXTRA_SHEETS.find((s) => s.id === 'wind-paper')!, styleRef: STYLE_WORLD }
 ]
 
 export const lanternSheet = (id: string): SheetDef | undefined => LANTERN_SHEETS.find((s) => s.id === id)

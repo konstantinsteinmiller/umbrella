@@ -106,6 +106,22 @@ jobs:
             npx vite build --mode lantern --base="/umbrella/$N/lantern/" --outDir="$GITHUB_WORKSPACE/dist/$N/lantern"
           fi
 
+      - name: Build current revision's clay art → /umbrella/<N>/clay/ (from revision 12)
+        working-directory: main
+        env:
+          VITE_APP_CLAY: 'true'
+        run: |
+          N="${{ steps.rev.outputs.n }}"
+          if [ "$N" -ge 12 ]; then
+            npx vite build --mode clay --base="/umbrella/$N/clay/" --outDir="$GITHUB_WORKSPACE/dist/$N/clay"
+          fi
+
+      - name: Build clay art (the normal game, claymation) → /umbrella/clay/
+        working-directory: main
+        env:
+          VITE_APP_CLAY: 'true'
+        run: npx vite build --mode clay --base=/umbrella/clay/ --outDir="$GITHUB_WORKSPACE/dist/clay"
+
       - name: Build lantern art (the normal game, painted) → /umbrella/lantern/
         working-directory: main
         env:
@@ -148,6 +164,10 @@ jobs:
             if [ -f "../rev-$N/src/umbrella/art/lantern.ts" ]; then
               (cd "../rev-$N" && VITE_APP_LANTERN=true \
                 npx vite build --mode lantern --base="/umbrella/$N/lantern/" --outDir="$GITHUB_WORKSPACE/dist/$N/lantern")
+            fi
+            if [ -f "../rev-$N/src/umbrella/art/clay.ts" ]; then
+              (cd "../rev-$N" && VITE_APP_CLAY=true \
+                npx vite build --mode clay --base="/umbrella/$N/clay/" --outDir="$GITHUB_WORKSPACE/dist/$N/clay")
             fi
             echo "::endgroup::"
           done

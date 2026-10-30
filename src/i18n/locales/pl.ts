@@ -122,6 +122,7 @@ export default {
       'snap': "Przyciągaj do siatki 10 px",
       'animate': "Animuj ruchome obiekty",
       'mobile': "Podgląd na telefonie",
+      'paperWind': "Papierowe pasy wiatru",
       'test': "Testuj",
       'share': "Kopiuj link do udostępnienia",
       'submit': "Wyślij do społeczności…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Lot (s)",
       'followSpeed': "Szybkość pościgu",
       'reach': "Długość strefy",
-      'zoneWidth': "Szerokość strefy"
+      'zoneWidth': "Szerokość strefy",
+      'angle': "Kąt łuku (°)",
+      'phase': "Start (°)"
     },
     'problem': {
       'noFinish': "Brak platformy mety — poziomu nie da się wygrać.",

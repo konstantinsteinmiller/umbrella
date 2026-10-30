@@ -1,0 +1,429 @@
+/* ─── UmbrellaScene, themed (lantern / clay) — loaded as the scene's second <style scoped> ─────
+ *
+ * Every rule here sits under the scene root's `.ui-theme` / `.ui-lantern` / `.ui-clay` class
+ * (src/umbrella/ui/theme.ts), so the drawn build's UI is untouched. Panels, buttons, tabs and the
+ * modal motion are shared (umbrella-ui.css); this file dresses what only the scene has: the HUD,
+ * the start screen, the level tiles, the chapter card, the rating, the clock and the touch controls.
+ * Motion: transform / opacity / filter only; prefers-reduced-motion keeps the fades.
+ */
+
+.umbrella-scene.ui-theme { font-family: var(--u-font); }
+
+/* ── HUD ─────────────────────────────────────────────────────────────────────── */
+.ui-theme .hud { top: calc(12px + env(safe-area-inset-top, 0px)); }
+.ui-theme .hud-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  color: var(--uc);
+  background: var(--ub);
+  cursor: pointer;
+  transition: transform var(--u-t) var(--u-ease-spring), filter var(--u-t) ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.ui-theme .hud-btn.wide { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+/* A 44 px tall touch target around the 36 px button, without moving the bar. */
+.ui-theme .hud-btn::after { content: ''; position: absolute; inset: -4px -3px; }
+.ui-theme .hud-btn:hover { background: var(--ub); transform: translateY(var(--u-lift)); }
+.ui-theme .hud-btn:active { background: var(--ub); transform: translateY(1px) scale(0.92); transition-duration: var(--u-t-fast); }
+.ui-theme .hud-btn:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 3px; }
+.ui-theme .hud-btn .ui-glyph { width: 20px; height: 20px; }
+.ui-theme .hud-btn.wide .ui-glyph { width: 19px; height: 19px; }
+.ui-theme .hud-btn .grid-ico { width: 17px; height: 17px; }
+
+/* Lantern: little night-paper tiles in a gold hairline, a corner folded back to show the washi. */
+.ui-lantern .hud-btn {
+  --ub:
+    linear-gradient(225deg, #f3e4c4 0 6px, #a88c5e 6px 7.2px, transparent 7.2px),
+    linear-gradient(180deg, #3a3178 0%, #251f50 55%, #18133a 100%);
+  --uc: #ffe7a6;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1.5px #2a1d3a, 0 3px 0 1px #0f0b26, 0 6px 12px rgba(5, 3, 20, 0.45), inset 0 0 0 2.5px #251f50, inset 0 0 0 3.5px rgba(232, 180, 80, 0.62);
+}
+.ui-lantern .hud-btn:hover { filter: brightness(1.15) drop-shadow(0 0 8px rgba(255, 170, 70, 0.6)); }
+.ui-lantern .hud-btn[aria-pressed='true'] {
+  --ub:
+    linear-gradient(225deg, #f3e4c4 0 6px, #a88c5e 6px 7.2px, transparent 7.2px),
+    linear-gradient(180deg, #f27a53 0%, #d6452c 50%, #a92a1a 100%);
+  --uc: #fff4dc;
+}
+.ui-lantern .hud-btn.jam-test { --ub: linear-gradient(180deg, #ffe7a6, #e8b450 50%, #b47c25); --uc: #3a2008; }
+/* The level label on a washi banner with swallowtail ends and a gold rule. */
+.ui-theme .hud-level { position: relative; isolation: isolate; font-family: var(--u-display); }
+.ui-lantern .hud-level { color: #7e1a17; font-weight: 800; letter-spacing: 0.02em; filter: drop-shadow(0 3px 0 rgba(15, 10, 35, 0.55)) drop-shadow(0 0 12px rgba(255, 170, 70, 0.35)); }
+.ui-lantern .hud-level::before {
+  content: '';
+  position: absolute;
+  inset: -2px -6px;
+  z-index: -1;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 50%, 100% 100%, 0 100%, 9px 50%);
+  background:
+    linear-gradient(#b8862e, #b8862e) left 0 top 4px / 100% 1px no-repeat,
+    linear-gradient(#b8862e, #b8862e) left 0 bottom 4px / 100% 1px no-repeat,
+    radial-gradient(120% 140% at 50% 40%, #fffaf0 0%, #f3e4c4 60%, #dcc69a 100%);
+}
+/* Clay: soft raised postal-blue plasticine — a light top bevel and darker underside, a slim rim that
+   runs on into the lip it stands on, a glossy crescent, a soft shadow onto the scene. Pressed, it
+   squashes down into its base. */
+.ui-clay .hud-btn {
+  --ub: radial-gradient(140% 120% at 50% 0%, #86aae4 0%, #4373bd 36%, #2f5fa8 62%, #24508f 100%);
+  --uc: #fffaf0;
+  --ulip: #163463;
+  border-radius: 13px;
+  text-shadow: 0 1px 0 rgba(15, 30, 60, 0.5);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.42),
+    inset 0 -3px 2px rgba(10, 20, 50, 0.28),
+    0 0 0 1.5px var(--ulip),
+    0 4px 0 0.5px var(--ulip),
+    0 9px 14px rgba(5, 10, 30, 0.42);
+}
+/* The gloss where the light catches the clay: a feathered ellipse, fading out on every side. */
+.ui-clay .hud-btn::before {
+  content: '';
+  position: absolute;
+  inset: 1px 3px auto;
+  height: 56%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.22) 55%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+.ui-clay .hud-btn > * { position: relative; }
+.ui-clay .hud-btn .ui-glyph { filter: drop-shadow(0 1.5px 0 rgba(15, 30, 60, 0.55)); }
+.ui-clay .hud-btn:hover { animation: u-c-wobble 0.45s var(--u-ease-out); }
+.ui-clay .hud-btn:active {
+  transform: translateY(3px) scale(1.06, 0.9);
+  box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.32), inset 0 -2px 2px rgba(10, 20, 50, 0.24), 0 0 0 1.5px var(--ulip), 0 1px 0 0.5px var(--ulip), 0 3px 5px rgba(5, 10, 30, 0.4);
+  animation: none;
+}
+.ui-clay .hud-btn:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 4px; }
+.ui-clay .hud-btn[aria-pressed='true'] { --ub: radial-gradient(140% 120% at 50% 0%, #ff9f88 0%, #ee6a50 36%, #e0533d 62%, #b93a27 100%); --ulip: #7a2014; }
+.ui-clay .hud-btn.jam-test { --ub: radial-gradient(140% 120% at 50% 0%, #ffe9a8, #f1b72f 60%, #c98f12); --uc: #3d2a02; --ulip: #7d5806; }
+/* The level label on a soft cream clay plaque: bevel, a slim rim into its lip, a feathered gloss. */
+.ui-clay .hud-level { color: #2f5fa8; font-weight: 400; }
+.ui-clay .hud-level::before {
+  content: '';
+  position: absolute;
+  inset: -2px -6px;
+  z-index: -1;
+  border-radius: 14px;
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0)) center top 1px / 86% 60% no-repeat,
+    radial-gradient(140% 120% at 50% 0%, #fffdf6 0%, #f3ead8 55%, #e2d4b6 100%);
+  box-shadow: inset 0 -3px 2px rgba(120, 95, 55, 0.22), 0 0 0 1.5px #b9a27a, 0 4px 0 0.5px #b9a27a, 0 9px 14px rgba(5, 10, 30, 0.4);
+}
+/* A player level's name is clipped with an ellipsis: its banner stays inside the box, the text padded clear of it. */
+.ui-theme .hud-level.custom { padding-inline: 14px; }
+.ui-theme .hud-level.custom::before { inset-inline: 0; }
+@media (max-width: 560px) {
+  .ui-theme .hud-btn.wide { gap: 0; }
+  .ui-lantern .hud-level::before { inset: -2px -4px; clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 50%, 100% 100%, 0 100%, 6px 50%); }
+  .ui-clay .hud-level::before { inset: -3px -5px; }
+  .ui-theme .hud-level.custom::before { inset-inline: 0; }
+}
+
+/* ── Start screen ────────────────────────────────────────────────────────────── */
+.ui-theme .start-screen { flex-direction: column; gap: 14px; }
+.ui-theme .start-label { font-family: var(--u-display); position: relative; }
+.ui-theme .start-divider { width: min(320px, 72%); }
+.ui-lantern .start-label {
+  color: #fff3d6;
+  font-weight: 800;
+  text-shadow: 0 2px 0 #7e1a17, 0 4px 0 rgba(20, 8, 30, 0.6), 0 0 22px rgba(255, 170, 70, 0.85), 0 0 52px rgba(255, 140, 60, 0.5);
+  animation: start-glow 2.8s ease-in-out infinite;
+}
+@keyframes start-glow {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.9; filter: brightness(0.86); }
+}
+/* Three lanterns hanging from the top of the screen, either side of the HUD (under it on a phone). */
+.ui-lantern .start-lantern { position: absolute; top: -4px; width: clamp(40px, 6.5vw, 72px); pointer-events: none; }
+.ui-lantern .start-lantern.l { left: 11%; }
+.ui-lantern .start-lantern.r { right: 12%; width: clamp(46px, 7.4vw, 82px); animation-delay: -1.3s; }
+.ui-lantern .start-lantern.s { right: 23.5%; top: -36px; width: clamp(28px, 4vw, 46px); animation-delay: -2.4s; opacity: 0.85; }
+@media (max-width: 560px) {
+  .ui-lantern .start-lantern { top: calc(64px + env(safe-area-inset-top, 0px)); }
+  .ui-lantern .start-lantern.l { left: 8%; }
+  .ui-lantern .start-lantern.r { right: 9%; }
+  .ui-lantern .start-lantern.s { right: 30%; top: calc(46px + env(safe-area-inset-top, 0px)); }
+}
+.ui-clay .start-label {
+  color: #fffaf0;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 0 #2f5fa8, 0 4px 0 #24508f, 0 6px 0 #1d3f78, 0 8px 0 #173464, 0 14px 22px rgba(0, 0, 0, 0.5);
+  animation: start-squish 2.6s var(--u-ease-out) infinite;
+}
+@keyframes start-squish {
+  0%, 62%, 100% { transform: none; }
+  70% { transform: translateY(3px) scale(1.06, 0.92); }
+  80% { transform: translateY(-6px) scale(0.97, 1.05); }
+  90% { transform: scale(1.01, 0.99); }
+}
+/* A mustard clay coin with the umbrella pressed into it, bobbing over the call to play. */
+.ui-clay .start-badge {
+  display: grid;
+  place-items: center;
+  width: clamp(76px, 12vw, 104px);
+  aspect-ratio: 1;
+  border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%;
+  font-size: clamp(42px, 6.6vw, 58px);
+  color: #e0533d;
+  background: radial-gradient(circle at 34% 28%, #ffe7a0 0%, #f1b72f 50%, #a9760a 100%);
+  background:
+    radial-gradient(56% 34% at 50% 16%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(circle at 34% 28%, #ffe7a0 0%, #f1b72f 50%, #a9760a 100%);
+  box-shadow: inset 0 3px 2px rgba(255, 255, 255, 0.45), inset 0 -6px 8px rgba(120, 80, 0, 0.35), 0 0 0 2px #7d5806, 0 6px 0 1px #7d5806, 0 16px 24px rgba(0, 0, 0, 0.45);
+  animation: u-bob 2.6s ease-in-out infinite;
+}
+.ui-clay .start-badge .ui-glyph { filter: drop-shadow(0 2px 0 #7a2014); }
+@media (prefers-reduced-motion: reduce) {
+  .ui-theme .start-label,
+  .ui-clay .start-badge { animation: none; }
+}
+
+/* ── Chapter card ───────────────────────────────────────────────────────────── */
+.ui-theme .chapter-card-row { display: flex; align-items: center; gap: clamp(12px, 3vw, 28px); }
+.ui-theme .chapter-card-title { font-family: var(--u-display); }
+.ui-theme .cc-divider { width: min(340px, 70vw); }
+.ui-lantern .chapter-card { background: radial-gradient(ellipse at center, rgba(40, 18, 50, 0.66) 0%, rgba(14, 9, 34, 0.4) 55%, transparent 80%); }
+.ui-lantern .chapter-card-title { color: #fff3d6; text-shadow: 0 3px 0 #7e1a17, 0 5px 0 rgba(20, 8, 30, 0.5), 0 0 26px rgba(255, 170, 70, 0.8), 0 0 60px rgba(255, 140, 60, 0.45); }
+.ui-lantern .chapter-card-sub { color: #ffe7a6; }
+.ui-lantern .cc-lantern { width: clamp(30px, 5vw, 52px); align-self: flex-start; margin-top: -10px; }
+.ui-clay .chapter-card { background: radial-gradient(ellipse at center, rgba(29, 40, 70, 0.6) 0%, rgba(29, 40, 70, 0.32) 55%, transparent 80%); }
+.ui-clay .chapter-card-title { color: #fffaf0; font-weight: 400; text-shadow: 0 3px 0 #2f5fa8, 0 6px 0 #1d3f78, 0 9px 0 #173464, 0 16px 26px rgba(0, 0, 0, 0.5); }
+.ui-clay .chapter-card-sub { color: #ffe49a; font-style: normal; font-weight: 800; }
+
+/* ── Level select ───────────────────────────────────────────────────────────── */
+/* Over the HUD badges and the touch controls, like the other menus. */
+.ui-theme .levels-backdrop { z-index: 9; padding: 50px 16px 30px; }
+.ui-theme .levels-frame { position: relative; display: flex; flex-direction: column; width: min(580px, 100%); max-height: 100%; }
+.ui-theme .levels { width: 100%; flex: 1 1 auto; min-height: 0; max-height: none; padding: 34px 22px 26px; overscroll-behavior: contain; }
+.ui-theme .levels > * { position: relative; z-index: 4; }
+.ui-theme .levels-head { margin-bottom: 14px; gap: 10px; }
+.ui-theme .levels-head .u-title { font-size: 24px; }
+.ui-theme .levels-head.mine { margin-top: 22px; }
+.ui-theme .levels-head.mine .u-title { font-size: 20px; }
+.ui-theme .levels-head .u-close { flex: none; width: 38px; height: 38px; font-size: 20px; }
+.ui-theme .levels-grid { gap: 9px; }
+.ui-theme .chapter + .chapter { margin-top: 20px; }
+.ui-theme .chapter-title { display: flex; align-items: center; gap: 10px; margin: 2px 0 10px; font-size: 16px; font-weight: 800; opacity: 1; letter-spacing: 0.04em; }
+.ui-theme .chapter-title::before,
+.ui-theme .chapter-title::after { content: ''; flex: 1; height: 6px; }
+.ui-lantern .chapter-title { color: #7e1a17; }
+.ui-lantern .chapter-title::before,
+.ui-lantern .chapter-title::after {
+  background:
+    linear-gradient(45deg, transparent 45%, #d6452c 46% 54%, transparent 55%) center / 6px 6px no-repeat,
+    linear-gradient(-45deg, transparent 45%, #d6452c 46% 54%, transparent 55%) center / 6px 6px no-repeat,
+    linear-gradient(#c09040, #c09040) center / 100% 1px no-repeat,
+    linear-gradient(rgba(192, 144, 64, 0.5), rgba(192, 144, 64, 0.5)) center bottom / 100% 1px no-repeat;
+}
+.ui-clay .chapter-title { color: #2f5fa8; font-family: var(--u-display); font-weight: 400; }
+/* A little rolled clay coil either side of the chapter name. */
+.ui-clay .chapter-title::before,
+.ui-clay .chapter-title::after {
+  height: 7px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #8fb1e6 0%, #4373bd 35%, #2f5fa8 60%, #1d3f78 100%);
+  box-shadow: 0 2px 0 rgba(23, 52, 100, 0.35);
+}
+
+/* Tiles cascade in (fill `backwards` only, so the entrance never pins `transform` and the hover and
+   press below stay live), hop with a squash and stretch on hover, settle lifted, and squash flat into
+   the sheet on press, springing back on release. The entrance stays first in the hover's animation
+   list, so it never replays. */
+.ui-theme .level-tile {
+  --tile-in: var(--u-tile-in) 0.46s var(--u-ease-out) calc(min(var(--i), 30) * 16ms + 140ms) backwards;
+  font-family: var(--u-display);
+  cursor: pointer;
+  color: var(--uc);
+  background: var(--ub);
+  animation: var(--tile-in);
+  transition: transform 0.32s var(--u-ease-spring), filter var(--u-t) ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.ui-theme .level-tile:hover { background: var(--ub); transform: translateY(-4px); animation: var(--tile-in), var(--u-hop) 0.55s var(--u-ease-out); }
+.ui-theme .level-tile:active { background: var(--ub); transform: translateY(2px) scale(1.08, 0.86); animation: var(--tile-in); transition-duration: 70ms; }
+.ui-theme .level-tile:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 3px; }
+.ui-theme .level-tile > * { font-family: inherit; }
+.ui-theme .level-tile .level-num { position: relative; text-shadow: 0 2px 0 rgba(10, 8, 30, 0.55); }
+/* Cleared: the tick's green stays, outlined so it reads on every tile. */
+.ui-theme .level-tile.cleared .level-num { color: #7ee08a; text-shadow: 0 2px 0 rgba(4, 20, 10, 0.75), 0 0 1px #0b2a12, 0 0 10px rgba(126, 224, 138, 0.35); }
+.ui-theme .level-stars { color: #ffd23f; font-weight: 800; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6); }
+/* Lantern: night windows in a gold hairline, a corner folded back; the current one lit like a lantern. */
+.ui-lantern .level-tile {
+  --ub:
+    linear-gradient(225deg, #f3e4c4 0 7px, #a88c5e 7px 8.2px, transparent 8.2px),
+    linear-gradient(180deg, #352d70 0%, #231d4e 55%, #17123a 100%);
+  --uc: #fbf1dc;
+  border-radius: 6px;
+  font-weight: 800;
+  box-shadow: 0 0 0 1.5px #2a1d3a, inset 0 0 0 3px #231d4e, inset 0 0 0 4px rgba(232, 180, 80, 0.55), 0 3px 0 1px #110d2a;
+}
+.ui-lantern .level-tile:hover { filter: brightness(1.15) drop-shadow(0 0 9px rgba(255, 170, 70, 0.6)); }
+.ui-lantern .level-tile.challenge {
+  --ub:
+    linear-gradient(225deg, #f3e4c4 0 7px, #a88c5e 7px 8.2px, transparent 8.2px),
+    linear-gradient(180deg, #6b2f6e 0%, #4a1f52 55%, #321438 100%);
+}
+.ui-lantern .level-tile.current {
+  outline: none;
+  --ub:
+    linear-gradient(225deg, #f3e4c4 0 7px, #a88c5e 7px 8.2px, transparent 8.2px),
+    radial-gradient(circle at 50% 115%, rgba(255, 176, 84, 0.75) 0%, rgba(255, 140, 60, 0.25) 45%, transparent 75%),
+    linear-gradient(180deg, #3d3480 0%, #2a2360 55%, #1c1744 100%);
+  box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 4px #d6452c, 0 0 0 5.5px #ffe7a6, 0 0 0 6.5px #2a1d3a, 0 0 20px rgba(255, 150, 60, 0.7), inset 0 0 0 3px #2a2360, inset 0 0 0 4px rgba(255, 231, 166, 0.8);
+}
+.ui-lantern .level-tile.current:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 8px; }
+/* Clay: postal-blue plasticine squares with a lip; the current one ringed in mustard with a tomato rivet. */
+/* The same soft raised clay as the buttons: bevel, slim rim into the lip, a glossy crescent. */
+.ui-clay .level-tile {
+  --ub: radial-gradient(140% 120% at 50% 0%, #86aae4 0%, #4373bd 36%, #2f5fa8 62%, #24508f 100%);
+  --uc: #fffaf0;
+  --ulip: #163463;
+  border-radius: 15px;
+  font-weight: 400;
+  box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.4), inset 0 -4px 3px rgba(10, 20, 50, 0.26), 0 0 0 1.5px var(--ulip), 0 4px 0 0.5px var(--ulip), 0 9px 12px rgba(20, 25, 45, 0.28);
+}
+.ui-clay .level-tile::before {
+  content: '';
+  position: absolute;
+  inset: 1px 4px auto;
+  height: 40%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.14) 60%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+.ui-clay .level-tile:hover { filter: brightness(1.08); }
+.ui-clay .level-tile:active { box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.3), inset 0 -2px 2px rgba(10, 20, 50, 0.24), 0 0 0 1.5px var(--ulip), 0 1px 0 0.5px var(--ulip), 0 3px 5px rgba(20, 25, 45, 0.28); }
+.ui-clay .level-tile.challenge { --ub: radial-gradient(140% 120% at 50% 0%, #d29d6b 0%, #a06c38 40%, #8b5a2b 64%, #6a421d 100%); --ulip: #4d2f13; }
+.ui-clay .level-tile.current { outline: none; box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.4), inset 0 -4px 3px rgba(10, 20, 50, 0.26), 0 0 0 1.5px var(--ulip), 0 0 0 5px #f1b72f, 0 4px 0 5px #b07d0c, 0 10px 14px rgba(20, 25, 45, 0.35); }
+.ui-clay .level-tile.current::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffab95, #e0533d 55%, #9c2d1d);
+  box-shadow: 0 2px 0 #7a2014;
+}
+.ui-clay .level-tile.current:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 8px; }
+
+.ui-theme .my-levels { gap: 8px; }
+.ui-theme .my-level { min-height: 44px; padding: 10px 16px; font-size: 16px; text-align: start; }
+.ui-theme .my-level .ui-glyph { margin-right: 0.3em; }
+.ui-theme .my-level.current { outline: 2.5px solid var(--u-focus); outline-offset: 2px; }
+.ui-theme .my-empty { font-size: 15px; opacity: 1; color: var(--u-ink-soft); }
+@media (max-width: 560px) {
+  .ui-theme .levels { padding: 32px 18px 22px; }
+  .ui-theme .levels-grid { gap: 7px; }
+}
+
+/* ── Notices, the revive button, the intro skip ─────────────────────────────── */
+.ui-theme .revive-restart { top: calc(66px + env(safe-area-inset-top, 0px)); min-height: 46px; padding: 10px 22px; font-size: 18px; }
+.ui-theme .revive-restart.u-btn { transform: translateX(-50%); }
+.ui-theme .revive-restart.u-btn:hover:not(:disabled) { transform: translateX(-50%) translateY(var(--u-lift)); }
+.ui-theme .revive-restart.u-btn:active:not(:disabled) { transform: translateX(-50%) scale(var(--u-press)); }
+.ui-theme .intro-skip { min-height: 46px; padding: 10px 22px; font-size: 18px; }
+.ui-theme .toast { font-family: var(--u-font); font-weight: 800; padding: 8px 18px; animation: toast-in 0.42s var(--u-ease-spring) both; }
+@keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.9); } }
+.ui-lantern .toast { color: #fff4dc; background: linear-gradient(180deg, #e2573a, #a92a1a); border-radius: 4px; box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3px #e8b450, 0 0 0 4px #2a1d3a, 0 8px 18px rgba(0, 0, 0, 0.45); }
+.ui-lantern .toast.info { color: #fbf1dc; background: linear-gradient(180deg, #3a3178, #1b163f); }
+.ui-clay .toast { color: #fffaf0; background: radial-gradient(130% 150% at 30% 12%, #ff9b84, #e0533d 48%, #a3301f); border-radius: 999px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 #7a2014, 0 9px 14px rgba(0, 0, 0, 0.35); }
+.ui-clay .toast.info { background: radial-gradient(130% 150% at 30% 12%, #8fb1e6, #2f5fa8 48%, #1d3f78); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 #173464, 0 9px 14px rgba(0, 0, 0, 0.35); }
+@media (prefers-reduced-motion: reduce) { .ui-theme .toast { animation: none; } }
+
+/* ── The desktop key hints ──────────────────────────────────────────────────── */
+.ui-lantern .controls { background: rgba(26, 22, 56, 0.78); border: 0; border-radius: 6px; box-shadow: 0 0 0 1px #2a1d3a, inset 0 0 0 3px rgba(26, 22, 56, 0.9), inset 0 0 0 4px rgba(232, 180, 80, 0.45); color: #fbf1dc; }
+.ui-lantern .controls kbd { color: #2a1d3a; background: linear-gradient(180deg, #fffaf0, #e8d6b0); border: 1px solid #2a1d3a; border-bottom-width: 3px; }
+.ui-clay .controls { background: rgba(243, 234, 216, 0.9); border: 0; border-radius: 16px; color: #2b2f3a; box-shadow: inset 0 2px 0 #fff, 0 4px 0 #b9a888, 0 8px 14px rgba(0, 0, 0, 0.3); }
+.ui-clay .controls kbd { color: #fffaf0; background: radial-gradient(130% 150% at 30% 12%, #8fb1e6, #2f5fa8 50%, #1d3f78); border: 0; border-radius: 8px; box-shadow: 0 2px 0 #173464; }
+
+/* ── The collectible badge and the clock ────────────────────────────────────── */
+.ui-lantern .collect-badge { box-shadow: 0 0 0 2px #2a1d3a, 0 0 0 4px #7e1a17, 0 0 0 5px #2a1d3a, 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 22px rgba(255, 170, 70, 0.5); }
+.ui-lantern .collect-glyph { background: radial-gradient(circle at 35% 30%, #3a3180, #15112e); }
+.ui-lantern .clock { background: linear-gradient(180deg, #342c6e 0%, #1b163f 100%); border-color: #e8b450; box-shadow: 0 0 0 2px #2a1d3a, 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 18px rgba(255, 170, 70, 0.3); border-radius: 8px; }
+.ui-clay .collect-badge { border-color: #fff3c4; box-shadow: inset 0 -3px 0 rgba(120, 80, 0, 0.25), 0 4px 0 #8a5a00, 0 8px 14px rgba(0, 0, 0, 0.4); }
+.ui-clay .collect-glyph { background: radial-gradient(circle at 35% 30%, #4f7fc8, #1d3f78); box-shadow: inset 0 0 0 2px #fff3a8; }
+.ui-clay .clock { background: radial-gradient(130% 150% at 30% 12%, #6f97d8, #2f5fa8 50%, #1d3f78); border: 0; border-radius: 18px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 #173464, 0 8px 14px rgba(0, 0, 0, 0.4); }
+
+/* ── The timed level's rating over the player ───────────────────────────────── */
+.ui-lantern .rating-stars {
+  border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 120%, rgba(255, 176, 84, 0.45), transparent 65%), radial-gradient(ellipse at 50% 30%, #3a3180, #1b163f);
+  box-shadow: 0 0 0 2px #2a1d3a, inset 0 0 0 4px #1b163f, inset 0 0 0 5px rgba(232, 180, 80, 0.6), 0 0 0 5px #e8b450, 0 0 0 6.5px #2a1d3a, 0 10px 26px rgba(0, 0, 0, 0.5), 0 0 44px rgba(255, 160, 70, 0.5);
+}
+.ui-lantern .rating-time { color: #fff4dc; background: linear-gradient(180deg, #f27a53, #a92a1a); box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3px #e8b450, 0 0 0 4px #2a1d3a; border-radius: 4px; }
+.ui-clay .rating-stars {
+  border-radius: 26px;
+  background: radial-gradient(130% 100% at 30% 0%, #fffdf6, #f3ead8 50%, #e4d6ba);
+  box-shadow: inset 0 3px 0 #fff, 0 0 0 5px #2f5fa8, 0 3px 0 5px #173464, 0 14px 26px rgba(0, 0, 0, 0.45);
+}
+.ui-clay .rating-time { color: #3d2a02; background: radial-gradient(130% 150% at 30% 12%, #ffe49a, #f1b72f 50%, #b07d0c); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 3px 0 #7d5806; }
+
+/* ── Touch controls ─────────────────────────────────────────────────────────── */
+.ui-theme .stick-arrow { display: grid; place-items: center; }
+.ui-theme .stick-arrow .ui-glyph { width: 26px; height: 26px; }
+.ui-theme .stick-knob { transition: filter var(--u-t) ease; }
+.ui-theme .stick:active .stick-knob { filter: brightness(1.15); }
+.ui-theme .umbrella-btn { display: grid; place-items: center; background: var(--ub); transition: transform 0.28s var(--u-ease-spring), filter var(--u-t) ease; }
+.ui-theme .umbrella-btn .ui-glyph { width: 38px; height: 38px; }
+.ui-theme .umbrella-btn:focus-visible { outline: 3px solid var(--u-focus); outline-offset: 6px; }
+/* Lantern: a night-paper track in gold leaf, a lit paper lantern for a knob, a wagasa for the umbrella. */
+.ui-lantern .stick {
+  border: 0;
+  background: linear-gradient(180deg, rgba(42, 36, 92, 0.9), rgba(24, 19, 58, 0.9));
+  box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3.5px rgba(232, 180, 80, 0.85), 0 0 0 4.5px #2a1d3a, inset 0 0 0 5px rgba(24, 19, 58, 0.9), inset 0 0 0 6px rgba(232, 180, 80, 0.35), 0 8px 18px rgba(0, 0, 0, 0.4);
+}
+.ui-lantern .stick-arrow { color: #e8b450; opacity: 0.85; }
+.ui-lantern .stick-knob {
+  border-radius: 44% 44% 44% 44% / 50% 50% 50% 50%;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 7px, rgba(126, 26, 23, 0.32) 7px 8px),
+    radial-gradient(circle at 46% 40%, #fff2c4 0%, #ffc66e 35%, #e6612f 75%, #a92a1a 100%);
+  box-shadow: inset 0 5px 0 #e8b450, inset 0 6px 0 #2a1d3a, inset 0 -5px 0 #e8b450, inset 0 -6px 0 #2a1d3a, 0 0 0 1.5px #2a1d3a, 0 0 22px 4px rgba(255, 170, 70, 0.55);
+}
+.ui-lantern .umbrella-btn {
+  --ub:
+    radial-gradient(circle, #fbeec9 0 27%, #2a1d3a 27% 28.5%, transparent 29%),
+    radial-gradient(circle, transparent 0 55%, #2a1d3a 55% 56%, #f3e4c4 56% 64%, #2a1d3a 64% 65%, transparent 65.5%),
+    repeating-conic-gradient(from 0deg, #d6452c 0 15deg, #b52f1d 15deg 30deg);
+  border: 0;
+  color: #7e1a17;
+  box-shadow: 0 0 0 2px #2a1d3a, 0 0 0 4.5px #e8b450, 0 0 0 5.5px #2a1d3a, 0 10px 22px rgba(0, 0, 0, 0.45), 0 0 28px rgba(255, 140, 60, 0.4);
+}
+.ui-lantern .umbrella-btn .ui-glyph { width: 32px; height: 32px; filter: none; }
+.ui-lantern .umbrella-btn.pressed { background: var(--ub); transform: scale(0.9) rotate(-22deg); filter: brightness(1.2); }
+/* Clay: a slate groove in a cream clay ring, a mustard thumb-printed ball, a stitched tomato disc. */
+.ui-clay .stick {
+  border: 0;
+  background: linear-gradient(180deg, #4b5462, #606b7b);
+  box-shadow: inset 0 5px 9px rgba(0, 0, 0, 0.45), inset 0 -2px 0 rgba(255, 255, 255, 0.2), 0 0 0 6px #efe4cc, 0 4px 0 6px #b9a888, 0 12px 18px 6px rgba(0, 0, 0, 0.3);
+}
+.ui-clay .stick-arrow { color: #f3ead8; opacity: 0.75; }
+.ui-clay .stick-knob {
+  background:
+    repeating-radial-gradient(ellipse at 56% 62%, rgba(125, 88, 6, 0.14) 0 1px, transparent 1.4px 4px),
+    radial-gradient(circle at 36% 30%, #ffe7a0 0%, #f1b72f 50%, #a9760a 100%);
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.45), inset 0 -4px 6px rgba(0, 0, 0, 0.2), 0 4px 0 #7d5806, 0 9px 12px rgba(0, 0, 0, 0.4);
+}
+.ui-clay .umbrella-btn {
+  --ub:
+    radial-gradient(54% 32% at 50% 15%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 72%),
+    radial-gradient(circle at 50% 30%, #ff9f88 0%, #ee6a50 34%, #e0533d 58%, #a9321f 100%);
+  border: 0;
+  color: #fffaf0;
+  box-shadow: inset 0 3px 2px rgba(255, 255, 255, 0.4), inset 0 -7px 9px rgba(80, 10, 0, 0.3), 0 0 0 2px #7a2014, 0 6px 0 1px #7a2014, 0 16px 22px rgba(0, 0, 0, 0.42);
+}
+.ui-clay .umbrella-btn .ui-glyph { filter: drop-shadow(0 2px 0 #7a2014); }
+.ui-clay .umbrella-btn.pressed { background: var(--ub); transform: translateY(5px) scale(1.07, 0.9); box-shadow: inset 0 3px 2px rgba(255, 255, 255, 0.32), inset 0 -4px 6px rgba(80, 10, 0, 0.28), 0 0 0 2px #7a2014, 0 1px 0 1px #7a2014, 0 4px 8px rgba(0, 0, 0, 0.4); }
+.ui-clay .umbrella-btn:focus-visible { outline: 3px solid var(--u-focus); outline-offset: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-theme .level-tile:active { transform: none; }
+  .ui-clay .hud-btn:hover { animation: none; }
+  .ui-theme .umbrella-btn.pressed { transform: scale(0.94); }
+}

@@ -224,6 +224,11 @@ const DOME = 40
 const HALF = 30
 
 /** The umbrella held at its grip (x, y). */
+/** Where to put a carried umbrella's grip: the hand of the painted figure just drawn (the painted
+ *  game measures it per frame), else the drawing's fixed spot (`x`, `y`). */
+export const heldAt = (x: number, y: number): { x: number; y: number } =>
+  (artLayer ? kiteArt.cheerHand?.() : null) ?? { x, y }
+
 export const drawUmbrella = (ctx: CanvasRenderingContext2D, x: number, y: number, look: UmbrellaLook): void => {
   if (artLayer && kiteArt.umbrella?.(ctx, x, y, look)) return
   ctx.save()

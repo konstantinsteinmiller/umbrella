@@ -26,8 +26,26 @@
   The kite art is missing painted art for the spikes, the landing zone and the landing zone chevrons, also the angry walldorf in the kite version is too similar to the non-angry pushing one from level 48 and level 49, as they have the same color coding,but different behaviours.
   on level 71 the player can activate a button and walk off the platform to the activated platform, but the umbrella opens and closes very fast, seem the small gap triggers it. Also paint the gate art and the collectable stars/umbrellas/clouds art for the kite version.
   *Done (Revision 11):* the open kite is drawn at the umbrella's size; the angry Walldorf is tinted red-brown; the level 71 gap no longer flickers the umbrella; Prickbait no longer flickers left/right. *Still open:* painted art for the spikes, the landing zone and its chevrons, the gate and the collectibles (needs the Gemini art desk).
-- [ ] #10 Create another art style switchable to in the cheat mode dropdown or with ?art=clay which is the clay motion art style from the art-moodboard (concept 6. Rainy day post https://konstantinsteinmiller.github.io/umbrella/art-moodboards/).
+- [x] #10 Create another art style switchable to in the cheat mode dropdown or with ?art=clay which is the clay motion art style from the art-moodboard (concept 6. Rainy day post https://konstantinsteinmiller.github.io/umbrella/art-moodboards/).
   Use all the learnings from the creation of the lantern art style, so the all the animation work(consistent and fluid animations, consistent lighting and consistent coloring across animation sheets, so the walk -> idle switch has no hard transitions, same for the other animation switches), umbrella placement, enemy designs and everything related.
+  *Done:* the clay build (?art=clay, /umbrella/clay/, /umbrella/<N>/clay/, the cheat-mode Art menu): 28 painted clay sheets (characters painted from one model figure, enemies, props, collectibles, warp pipe, doorstep finish, wind swooshes), the clay backdrop, clay wind and clay mine blast.
+- [x] #11 add the poki build script options that sets a specific art style as the default for the game, overwriting the drawn art.
+  so e.g. "deploy:poki:lantern" does build the game as lantern only art style and the art style is not changeable in the poki cheat mode.(cheat mode stays enabled in production as it only allows using the level editor and the game is not competitive).  and e.g. "deploy:poki:clay" should build it with the clay motion art style form #10.
+  *Done:* `pnpm deploy:poki:lantern` / `pnpm deploy:poki:clay` (deploy.mjs `--art`); no art switch in Poki builds. The clay one is usable once #10's art is painted.
+- [x] #12 Could you tweak the code so I can angle swing arcs under "Motion" dropdown? Similar to how you can change the angle of the path of "back and forth"?
+  Actually, while you're at it. Could you code an ability in the Level Editor to place where in the radius an enemy will start their cycle for the "Circle" motion? So basicly a spawn phase(in degrees i guess with a easy to use pin that can be moved.)
+  *Done:* swing has an "Arc angle (°)" (slider, number, or drag the orange rest dot); every repeating motion (back and forth, circle, swing, the repeating lunge) has a "Start (°)" for where in its cycle it starts (slider or number; on a circle also the blue pin). Old levels and share links play exactly as before.
+- [ ] #13 Revamp the lantern UI with very fancy AAA game studio UI/UX expert designer that make the UI playful, AAA standard with best-practices applied for UI animation states, fluid animations and transitions, thematically adjusted to the lantern and claymotion design based on selected art style.
+  In the end I want a mind-blowingly fantastic UI/UX design that blows the game jam and real players off the stools.
+  Add really fancy and mind-blowingly cool ornaments in the FModal content inset and the button inset (also dropdown insets). The ornaments must be very detailed and not look low-effort. Nothing in the revamped UI design should look or read as low-effort.
+  use an Opus xHigh effort subagent for this task.
+- [x] #14 The Poki package does not allow external references, so bake the current levels at build time into the poki game build and remove the fetching from the server at runtime in the poki build, this includes the poki lantern and poki claymotion build.
+  *Done:* every Poki build (plain, lantern, clay) bakes the server's current campaign in at build time and makes no request of its own at runtime — only Poki's SDK and its ad partners; the share link carries no outside address there. The Poki release gates pass with no external host; a test guards the Poki env.
+- [ ] #15 
+- [ ] #1
+- [ ] #1
+- [ ] #1
+- [ ] #1
 
 ## v0.7.0 — from the mini design doc (checked 2026-10-23)
 

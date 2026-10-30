@@ -122,6 +122,7 @@ export default {
       'snap': "Ajustar a cuadrícula de 10 px",
       'animate': "Animar objetos móviles",
       'mobile': "Vista de móvil",
+      'paperWind': "Tiras de viento de papel",
       'test': "Probar",
       'share': "Copiar enlace para compartir",
       'submit': "Enviar a la comunidad…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Planeo (s)",
       'followSpeed': "Velocidad de persecución",
       'reach': "Longitud de la zona",
-      'zoneWidth': "Anchura de la zona"
+      'zoneWidth': "Anchura de la zona",
+      'angle': "Ángulo del arco (°)",
+      'phase': "Inicio (°)"
     },
     'problem': {
       'noFinish': "No hay plataforma de meta: el nivel no se puede ganar.",

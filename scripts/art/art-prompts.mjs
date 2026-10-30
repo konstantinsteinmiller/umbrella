@@ -34,26 +34,33 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // index from the kite index (same lattice, same measured fits).
 const SET_AT = process.argv.indexOf('--set')
 const SET = SET_AT > 1 ? process.argv[SET_AT + 1] ?? null : null
-if (SET && SET !== 'umbrella' && SET !== 'umbrella-lantern') { console.error(`--set ${SET} is unknown (known: umbrella, umbrella-lantern)`); process.exit(1) }
+// `--set umbrella-clay`: the clay build's art (src/umbrella/art/clay.ts → art-sheets/umbrella-clay/), the same way.
+const PAINTED_SETS = {
+  'umbrella-lantern': { file: 'lantern.ts', sheets: 'LANTERN_SHEETS', dir: 'LANTERN_DIR', index: 'buildLanternIndex', doc: ['PROMPTS-LANTERN.md', 'lanternPromptDoc'], cmd: 'pnpm art:prompts:lantern' },
+  'umbrella-clay': { file: 'clay.ts', sheets: 'CLAY_SHEETS', dir: 'CLAY_DIR', index: 'buildClayIndex', doc: ['PROMPTS-CLAY.md', 'clayPromptDoc'], cmd: 'pnpm art:prompts:clay' }
+}
+if (SET && SET !== 'umbrella' && !PAINTED_SETS[SET]) { console.error(`--set ${SET} is unknown (known: umbrella, ${Object.keys(PAINTED_SETS).join(', ')})`); process.exit(1) }
 const OUT = SET ? join(ROOT, 'art-sheets', SET) : join(ROOT, 'art-sheets')
 const INDEX = join(OUT, 'sheet-index.json')
 const PAINTED = join(OUT, 'painted')
 const CHECK = process.argv.includes('--check')
 
-if (SET === 'umbrella-lantern') {
+if (PAINTED_SETS[SET]) {
+  const P = PAINTED_SETS[SET]
   const pr = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'prompts.ts')).href)
-  const ln = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'lantern.ts')).href)
+  const mod = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', P.file)).href)
+  const ln = { SHEETS: mod[P.sheets], DIR: mod[P.dir], buildIndex: mod[P.index], promptDoc: mod[P.doc[1]] }
   const KITE = join(ROOT, 'art-sheets', 'umbrella')
   const kiteIndex = JSON.parse(readFileSync(join(KITE, 'sheet-index.json'), 'utf-8'))
   const fits = {}
   for (const w of kiteIndex.walks ?? []) if (w.fit) fits[w.id] = w.fit
   const files = {
-    'sheet-index.json': `${JSON.stringify(ln.buildLanternIndex(fits), null, 1)}\n`,
-    'PROMPTS-LANTERN.md': ln.lanternPromptDoc(fits)
+    'sheet-index.json': `${JSON.stringify(ln.buildIndex(fits), null, 1)}\n`,
+    [P.doc[0]]: ln.promptDoc(fits)
   }
   mkdirSync(PAINTED, { recursive: true })
   let stale = 0
-  for (const s of ln.LANTERN_SHEETS) {
+  for (const s of ln.SHEETS) {
     const ref = `${s.id}.png`
     // The collectibles and the gate have no kite reference (scripts/art/lantern-refs.py draws theirs).
     if (!existsSync(join(KITE, ref))) continue
@@ -68,14 +75,14 @@ if (SET === 'umbrella-lantern') {
     const file = join(OUT, name)
     if (existsSync(file) && readFileSync(file, 'utf-8') === text) { console.log(`  = ${name}  unchanged`); continue }
     stale++
-    if (CHECK) console.error(`  ! ${name} is out of date — run pnpm art:prompts:lantern`)
+    if (CHECK) console.error(`  ! ${name} is out of date — run ${P.cmd}`)
     else { writeFileSync(file, text, 'utf-8'); console.log(`  ✓ ${name}`) }
   }
   const painted = existsSync(PAINTED) ? readdirSync(PAINTED).map((f) => basename(f).replace(/\.[^.]+$/, '')) : []
   const { targetOf } = await import(pathToFileURL(join(ROOT, 'src', 'umbrella', 'art', 'manifest.ts')).href)
-  const shipped = (s) => existsSync(join(ROOT, ln.LANTERN_DIR, targetOf(s)))
-  for (const s of pr.paintOrder(ln.LANTERN_SHEETS)) console.log(`  ${shipped(s) ? '✓ shipped' : painted.includes(s.id) ? '? painted' : '· to paint'}  ${s.id}`)
-  console.log(`  ${existsSync(join(ROOT, ln.LANTERN_DIR, 'backdrop.webp')) ? '✓ shipped' : '· to paint'}  backdrop`)
+  const shipped = (s) => existsSync(join(ROOT, ln.DIR, targetOf(s)))
+  for (const s of pr.paintOrder(ln.SHEETS)) console.log(`  ${shipped(s) ? '✓ shipped' : painted.includes(s.id) ? '? painted' : '· to paint'}  ${s.id}`)
+  console.log(`  ${existsSync(join(ROOT, ln.DIR, 'backdrop.webp')) ? '✓ shipped' : '· to paint'}  backdrop`)
   if (CHECK && stale) process.exit(1)
   process.exit(0)
 }

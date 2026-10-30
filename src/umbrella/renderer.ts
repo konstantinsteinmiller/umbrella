@@ -8,10 +8,10 @@
 // (tests/umbrella/vectorGolden.test.ts pins the vector path call for call).
 
 import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, type Hazard, type Platform, type World } from './engine'
-import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, type PweegLook, type PweegPose } from './characters'
+import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, heldAt, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
 import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
-import { artLayer, isLantern } from './kite'
+import { artLayer, isLantern, paintedGame } from './kite'
 import { kiteArt } from './art/hooks'
 
 /** One colour per button channel: a button and everything it switches share it. */
@@ -39,9 +39,19 @@ export interface Camera {
 
 /** Where each world's camera looks (smoothed); a new world (restart) snaps. */
 const followed = new WeakMap<World, { x: number; y: number }>()
+/** Each world's look-ahead lean (world px, + = right), eased toward the player's motion. */
+const leans = new WeakMap<World, number>()
+/** At this sideways speed (px/s, a little under walking and floating) the camera leans fully… */
+const LEAN_SPEED = 190
+/** …this share of the view's width ahead of the player: walking right he stays in the screen's left quarter. */
+const LOOK_AHEAD = 0.32
 
-/** A portrait screen zooms in this much past "the whole width fits", so Pweeg and the level read at phone size. */
-export const PORTRAIT_ZOOM = 1.3
+/** A portrait screen zooms in at least this much past "the whole width fits", so Pweeg and the level read at phone size. */
+export const PORTRAIT_ZOOM = 1.69
+/** …and far enough that the level's height fills this share of the screen's height: the band between
+ *  the HUD at the top and the touch controls at the bottom, instead of a strip with empty sky above
+ *  and below. The camera follows the player sideways through the width this leaves off screen. */
+export const PORTRAIT_FILL = 0.72
 
 /** Taller than wide: the levels are laid out for landscape, so this screen gets the portrait camera and backdrop. */
 export const isPortrait = (cw: number, ch: number): boolean => ch > cw
@@ -51,7 +61,7 @@ export const isPortrait = (cw: number, ch: number): boolean => ch > cw
  * With `view` (one screen, in world units) it fits that screen into the
  * canvas and scrolls with the player, clamped to the world's edges; an axis
  * where the world is smaller than what the canvas shows stays centred.
- * A portrait screen zooms in by PORTRAIT_ZOOM on either kind and follows the
+ * A portrait screen zooms in (PORTRAIT_ZOOM / PORTRAIT_FILL) on either kind and follows the
  * player sideways through the part of the width it no longer shows.
  */
 export const cameraFor = (w: World, cw: number, ch: number, dt = 0): Camera => {
@@ -64,11 +74,19 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0): Camera => {
     return { s, ox: (cw - ww * s) / 2, oy: (ch - wh * s) / 2 }
   }
   const screen = whole ? { w: ww, h: wh } : view!
-  const s = Math.min(cw / screen.w, ch / screen.h) * (portrait ? PORTRAIT_ZOOM : 1)
+  const fit = Math.min(cw / screen.w, ch / screen.h)
+  const s = portrait ? Math.max(fit * PORTRAIT_ZOOM, (ch * PORTRAIT_FILL) / screen.h) : fit
   const vw = cw / s
   const vh = ch / s
   const pl = w.player
-  const target = { x: pl.x + pl.w / 2, y: pl.y + pl.h / 2 }
+  // Look ahead: the camera leans the way the player moves (walking, floating or blown), up to
+  // LOOK_AHEAD of the view's width, so what lies ahead is on screen. The lean eases in and out more
+  // slowly than the follow itself, so a quick turn does not whip the view across.
+  let lean = leans.get(w) ?? 0
+  const leanTarget = Math.max(-1, Math.min(1, pl.vx / LEAN_SPEED)) * vw * LOOK_AHEAD
+  if (dt > 0) lean += (leanTarget - lean) * (1 - Math.exp(-dt * 3.3))
+  leans.set(w, lean)
+  const target = { x: pl.x + pl.w / 2 + lean, y: pl.y + pl.h / 2 }
   let c = followed.get(w)
   if (!c) followed.set(w, (c = { ...target }))
   else if (dt > 0) {
@@ -485,7 +503,7 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
     drawPweeg(ctx, 0, 0, look('cheer'))
     // The lantern cheer raises the furled umbrella in his front fist, wherever the painted frame puts
     // that fist (art/paint.ts measures it per frame); the vector cheer holds it up beside him.
-    const hand = isLantern && artLayer ? kiteArt.cheerHand?.() ?? null : null
+    const hand = paintedGame && artLayer ? kiteArt.cheerHand?.() ?? null : null
     const [ux, uy, ut] = hand ? [hand.x, hand.y, 0.18] : [pl.facing * pl.w * 0.95, -pl.h - 2, pl.facing * 0.3]
     drawUmbrella(ctx, ux, uy, { state: umbrellaState === 'open' ? 'furled' : umbrellaState, tilt: ut, time: w.time })
     ctx.restore()
@@ -506,11 +524,14 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   if (pose === 'hold') {
     drawUmbrella(ctx, fx, pl.y - 4, { state: umbrellaState, tilt: Math.max(-1, Math.min(1, pl.vx / t.airSpeed)) * 0.28, time: w.time })
   } else if (pose === 'flail') {
-    drawUmbrella(ctx, fx + pl.facing * pl.w * 0.98, pl.y + pl.w * 0.15, { state: umbrellaState, tilt: pl.facing * 0.35, time: w.time })
+    // In the painted fall the grip goes in his flung-out front hand (art/paint.ts finds it per frame).
+    const at = heldAt(fx + pl.facing * pl.w * 0.98, pl.y + pl.w * 0.15)
+    drawUmbrella(ctx, at.x, at.y, { state: umbrellaState, tilt: pl.facing * 0.35, time: w.time })
   } else if (pose === 'terminal') {
     drawUmbrella(ctx, fx, pl.y - 4, { state: umbrellaState, tilt: 0, time: w.time })
   } else {
-    drawUmbrella(ctx, fx + pl.facing * pl.w * 0.8, fy - pl.h * 0.35, { state: umbrellaState, tilt: pl.facing * 0.22, time: w.time })
+    const at = heldAt(fx + pl.facing * pl.w * 0.8, fy - pl.h * 0.35)
+    drawUmbrella(ctx, at.x, at.y, { state: umbrellaState, tilt: pl.facing * 0.22, time: w.time })
   }
   ctx.restore()
 }
@@ -609,7 +630,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     const painted = !!drawn
     // The kite build dresses its painted finish instead of labelling it, and so does the lantern
     // build's festival dais; a plain painted lantern finish pad keeps the word.
-    if (painted && (drawn === 'dressed' || !(isLantern && p.finish))) return
+    if (painted && (drawn === 'dressed' || !(paintedGame && p.finish))) return
     if (painted) {
       // Painted: only the label below.
     } else if (p.channel !== undefined) {

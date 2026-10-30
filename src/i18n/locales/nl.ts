@@ -122,6 +122,7 @@ export default {
       'snap': "Uitlijnen op raster van 10 px",
       'animate': "Bewegende dingen animeren",
       'mobile': "Telefoonvoorbeeld",
+      'paperWind': "Papieren windstroken",
       'test': "Testen",
       'share': "Deellink kopiëren",
       'submit': "Insturen naar community…",
@@ -298,7 +299,9 @@ export default {
       'duration': "Glijden (s)",
       'followSpeed': "Volgsnelheid",
       'reach': "Zonelengte",
-      'zoneWidth': "Zonebreedte"
+      'zoneWidth': "Zonebreedte",
+      'angle': "Boogshoek (°)",
+      'phase': "Start (°)"
     },
     'problem': {
       'noFinish': "Geen finishplatform — het level kan niet worden gewonnen.",
