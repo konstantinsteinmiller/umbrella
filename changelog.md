@@ -1,24 +1,14 @@
 Umbrella — changelog (newest first)
 
-== Kite build (/umbrella/kite/) — unreleased ==
-- [x] 100 kite levels (roadmap #7), designed after the Super Mario Bros. philosophy written up in mario-platformer-philosophy.md: ten worlds of ten (First Breeze, Free Fall, Crosswinds, Thorns, Walldorf, Prickbait, Ventilators & Super Streams, Switches, Hunters, The Storm), each one idea told as introduce → develop → twist → conclude, with tall and wide scrolling worlds and checkpoint flags in the long ones
-- [x] The kite build plays only these levels: no levels server (no pull, push or sync, cutscenes included), no community levels, the repo's campaign overrides and order are not used; its save (progress, local level edits, tuning) is kept apart from the normal game's; players can still edit the kite levels in the level editor, in their browser
-- [x] Every kite level is proven beatable: a bot plays the real engine (scripts/kite-solve.mjs) and the test suite replays its recorded wins; it also checks safe spawns and a rising difficulty curve across the worlds
-
-- [x] Painted kite art (roadmap #6, kite build only): Pweeg and Chad are kites in a cream-paper crayon style (20 spritesheets: idle, walk, float, fall, terminal, broken, cheer, flattened, destroyed, front; platforms, finish, switch platform, ventilator, checkpoint); no umbrella is drawn over a kite. Enemies, props and wind wisps stay vector until painted; the normal /umbrella build contains no painted art
-- [x] Kite animation polish: the walk uses every other painted frame at half cadence, the dance is a steady arms-up bounce with a rock, fast flutters capped at 10–12 fps, the checkpoint flag ping-pongs and dissolves between frames; the goal platform has no label any more and gets flag kites, bunting, a gold landing ring and bobbing chevrons
-- [x] Kite art update: enemy art painted (Prickbait, Walldorf body and face, wind wisps); the dance sheet repainted (it had a pink ground that flickered), kite Pweeg no longer wears sunglasses (Chad's trademark); the Art Desk accepts Gemini's "Automatic" model when the Create image tool is on
-
-- [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
-
 == Revision 13 — 2026-10-30 ==
+- [x] Lantern sky: the far painting's bottom (the blurred hole the town was cut out of, with hard cut edges) fades cleanly from the mountains into a dusky haze, so nothing broken shows between the roofs when the town slides with the camera
 - [x] Lantern sky: the six paper lanterns painted still into the sky are removed (only the rising lanterns move there now); the strings of lights stay
 - [x] Lantern mine: the burning fuse sits on the painted spark (centred on its densest gold, not its ray tips) and is big enough to cover it
 - [x] Lantern sky: the left string of lights no longer ends in mid-air; its rope runs on up out of the top of the picture
 - [x] Lantern sky: the smudged patches on the mountains (where sky lanterns and clouds were cut out of the painting for the parallax layers and the holes were blurred over) are repainted as continuous paper mountains and sky; the 2x sky rebuilt from it
 - [x] Background music off for now (audio.ts MUSIC_ENABLED): bg-cozy.ogg moved to src/assets/audio/, so no build ships or fetches it; the Music slider hides while it is off
 - [x] itch.io builds in the painted styles: pnpm build:itch:lantern / build:itch:clay (tools/build-art.mjs, a real PKZIP per style in dist/)
-- [x] Wind currents read where they start: the box under the folded strips (lantern and clay) is a dark navy field (dark amber in a Super Stream) with a short soft edge (no border line: a drawn edge read as something solid), instead of a faint light field that melted into the sky
+- [x] Wind currents read where they start: the box under the clay folded strips is a dark navy field (dark amber in a Super Stream) with a short soft edge (no border line: a drawn edge read as something solid), instead of a faint light field that melted into the misty sky; the lantern keeps its light blue field, which reads best on the night sky
 - [x] The painted skies are shown untinted: the dark veil outside the level's box and the night tint inside it drew a dark rectangle beside a lighter strip, which read as a bug
 - [x] Clay wind: the lantern's folded strips with travelling chevrons (a golden Super Stream with arrowheads), painted in clay slabs, as the default clay wind; the clay gusts and arrow grid stay the alternative in the editor's View menu
 - [x] Settings → Audio: Music and Sound Effects volume sliders (saved; at their defaults the game plays its tuned mix; the effects volume also carries the wind and the enemies); the music can be heard while the Audio tab is open and letting go of the effects slider plays a sample
@@ -191,3 +181,14 @@ Umbrella — changelog (newest first)
 - Editor: Reorder dialog — drag campaign levels into a new order, drag saved custom levels into the campaign
 - Designer tuning of 22 Oct is the new default (float speed, Super Stream resistance, wall splat, air turning/drag; level 3, 7, 8 currents)
 - New feel slider: walk speed deceleration
+
+== Kite build (/umbrella/kite/) — unreleased ==
+- [x] 100 kite levels (roadmap #7), designed after the Super Mario Bros. philosophy written up in mario-platformer-philosophy.md: ten worlds of ten (First Breeze, Free Fall, Crosswinds, Thorns, Walldorf, Prickbait, Ventilators & Super Streams, Switches, Hunters, The Storm), each one idea told as introduce → develop → twist → conclude, with tall and wide scrolling worlds and checkpoint flags in the long ones
+- [x] The kite build plays only these levels: no levels server (no pull, push or sync, cutscenes included), no community levels, the repo's campaign overrides and order are not used; its save (progress, local level edits, tuning) is kept apart from the normal game's; players can still edit the kite levels in the level editor, in their browser
+- [x] Every kite level is proven beatable: a bot plays the real engine (scripts/kite-solve.mjs) and the test suite replays its recorded wins; it also checks safe spawns and a rising difficulty curve across the worlds
+
+- [x] Painted kite art (roadmap #6, kite build only): Pweeg and Chad are kites in a cream-paper crayon style (20 spritesheets: idle, walk, float, fall, terminal, broken, cheer, flattened, destroyed, front; platforms, finish, switch platform, ventilator, checkpoint); no umbrella is drawn over a kite. Enemies, props and wind wisps stay vector until painted; the normal /umbrella build contains no painted art
+- [x] Kite animation polish: the walk uses every other painted frame at half cadence, the dance is a steady arms-up bounce with a rock, fast flutters capped at 10–12 fps, the checkpoint flag ping-pongs and dissolves between frames; the goal platform has no label any more and gets flag kites, bunting, a gold landing ring and bobbing chevrons
+- [x] Kite art update: enemy art painted (Prickbait, Walldorf body and face, wind wisps); the dance sheet repainted (it had a pink ground that flickered), kite Pweeg no longer wears sunglasses (Chad's trademark); the Art Desk accepts Gemini's "Automatic" model when the Create image tool is on
+
+- [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds

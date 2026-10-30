@@ -1197,7 +1197,8 @@ const NORMAL_RGB = '140,200,255'
 // The designer's Super Stream is a deeper swirling blue wave; the lantern
 // build's is a fierce orange firework ribbon (the vector game's orange arrows).
 const SUPER_RGB = isLantern ? '255,138,42' : isClay ? '232,128,58' : '70,150,215'
-/** The folded strips' box: a deep navy (a dark amber for a Super Stream), so it reads against the sky. */
+/** Clay's folded strips' box: a deep navy (a dark amber for a Super Stream), so it reads against the
+ *  misty town (lantern keeps its light field: the night sky is dark). */
 const PAPER_FIELD_RGB = '20,28,62'
 const PAPER_FIELD_SUPER_RGB = '72,38,8'
 /** The clay field is a paler, milkier blue than the drawn one. */
@@ -1923,12 +1924,15 @@ const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: Wor
     // The paper strips carry their field in their cache (one fill of the current a frame, not two).
     if (!paper) softRect(ctx, tex, live.x, live.y, live.w, live.h, Math.min(f, 10))
     ctx.restore()
-    if (paper) {
-      // The current's box, dark and with a short soft edge, so the light strips stand out on it and a
-      // player reads at a glance where the wind starts (a faint light field melted into the sky).
+    if (paper && isClay) {
+      // Clay: the current's box dark and with a short soft edge, so the light clay strips stand out on
+      // it against the misty town and a player reads at a glance where the wind starts.
       const box = feather(sup ? PAPER_FIELD_SUPER_RGB : PAPER_FIELD_RGB, false)
       if (!box) return false
       paperStrips(ctx, live, def, w, { tex: box, alpha: sup ? 0.44 : 0.4, f: Math.min(f, 5) })
+    } else if (paper) {
+      // Lantern: the light blue (or gold) field reads best on the dark night sky.
+      paperStrips(ctx, live, def, w, { tex, alpha: sup ? 0.14 : 0.1, f: Math.min(f, 10) })
     }
     else if (isClay) clayWind(ctx, live, def, w)
     else windGusts(ctx, live, def, w)

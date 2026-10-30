@@ -4,20 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- performance pass">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- new wind, music">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/art-desk.umbrella.config.json" beforeDir="false" afterPath="$PROJECT_DIR$/art-desk.umbrella.config.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/changelog.md" beforeDir="false" afterPath="$PROJECT_DIR$/changelog.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data/campaign-overrides.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-overrides.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/art/lantern-refs.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/art/lantern-refs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/art/clay.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/clay.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/art/hooks.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/hooks.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/backdrop-far.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/backdrop-far.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/backdrop-far@2x.webp" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/umbrella-art-lantern/backdrop-far@2x.webp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/umbrella/art/paint.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/art/paint.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/renderer.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/renderer.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/umbrella/windStyle.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/umbrella/windStyle.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/use/useUser.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/use/useUser.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/views/UmbrellaEditor.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/views/UmbrellaEditor.vue" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/umbrella/clayArt.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/tests/umbrella/clayArt.test.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,6 +56,7 @@
     "npm.art:desk:umbrella.executor": "Run",
     "npm.build:gamemonetize.executor": "Run",
     "npm.build:itch.executor": "Run",
+    "npm.build:itch:lantern.executor": "Run",
     "npm.build:poki.executor": "Run",
     "npm.build:wavedash.executor": "Run",
     "npm.deploy:poki.executor": "Run",
@@ -81,7 +76,7 @@
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.deploy:poki:clay">
+  <component name="RunManager" selected="npm.deploy:poki:lantern">
     <configuration name="art:desk" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
@@ -102,11 +97,11 @@
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="deploy:poki" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+    <configuration name="build:itch:lantern" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="deploy:poki" />
+        <script value="build:itch:lantern" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
@@ -134,11 +129,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.deploy:poki:clay" />
         <item itemvalue="npm.deploy:poki:lantern" />
+        <item itemvalue="npm.build:itch:lantern" />
+        <item itemvalue="npm.deploy:poki:clay" />
         <item itemvalue="npm.art:desk:umbrella" />
         <item itemvalue="npm.art:desk" />
-        <item itemvalue="npm.deploy:poki" />
       </list>
     </recent_temporary>
   </component>
@@ -279,7 +274,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793372778502</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="- new wind, music">
+      <option name="closed" value="true" />
+      <created>1793378012494</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1793378012494</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -311,6 +314,7 @@
     <MESSAGE value="- remove backgrounds" />
     <MESSAGE value="- cutscene editor and some fixes" />
     <MESSAGE value="- performance pass" />
-    <option name="LAST_COMMIT_MESSAGE" value="- performance pass" />
+    <MESSAGE value="- new wind, music" />
+    <option name="LAST_COMMIT_MESSAGE" value="- new wind, music" />
   </component>
 </project>

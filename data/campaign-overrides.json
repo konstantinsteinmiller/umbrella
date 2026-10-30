@@ -734,9 +734,9 @@
         "h": 20
       },
       {
-        "x": 950,
+        "x": 940,
         "y": 370,
-        "w": 140,
+        "w": 180,
         "h": 20,
         "finish": true
       }
@@ -752,7 +752,7 @@
       },
       {
         "x": 710,
-        "y": 290,
+        "y": 260,
         "w": 120,
         "h": 220,
         "dir": "up",
@@ -760,7 +760,7 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1793329865072,
+    "editedAt": 1793378558090,
     "buttons": [],
     "checkpoints": [],
     "stars": [],
@@ -3596,9 +3596,9 @@
       {
         "kind": "pillar",
         "x": 570,
-        "y": 480,
+        "y": 520,
         "w": 90,
-        "h": 170,
+        "h": 130,
         "contact": "bounce",
         "bounce": 230
       },
@@ -3719,7 +3719,7 @@
     "checkpoints": [],
     "stars": [],
     "gates": [],
-    "editedAt": 1793293869135,
+    "editedAt": 1793380615598,
     "timeLimit": 10,
     "timeLimitJamOnly": true
   },
