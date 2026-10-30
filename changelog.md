@@ -1,6 +1,9 @@
 Umbrella — changelog (newest first)
 
 == Revision 13 — 2026-10-30 ==
+- [x] Touch controls turn see-through while they cover Pweeg or his starting ledge, until the first press, so he can be seen where a level starts him in a bottom corner
+- [x] Timed levels: no alarm sound when the clock runs out (the red 00:00 and a quiet note stay); the player plays on and decides whether to come back for more stars
+- [x] Level grid: a level's collectible count shows the level's own collectible (golden umbrella, star or cloud) instead of a star, and on a timed tile it sits at the top, clear of the time rating
 - [x] Camera (landscape scrolling levels), Super Mario World style: two trigger lines either side of the player; walking on pushes the view along with the player a little behind the middle (lead 14 % of the view, was 32 %); walking back moves nothing until he crosses the line behind him, then the camera turns, gliding across on a spring at a capped speed instead of whipping over
 - [x] Portrait phones show about 30 % more of the level (zoomed out by 1.3) to see what comes next; their camera otherwise unchanged
 - [x] Chasing mines wait for the player's first move (the walk or umbrella press that starts the clock), and again after every restart or checkpoint revive, so a slow start is never blown up

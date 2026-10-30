@@ -10,7 +10,7 @@
 import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
+import { DEFAULT_COLLECT_SHAPE, LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
 import {
   activeTimeLimit, campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, JAM_CHAPTER, jamPlay, keepSharedLevel,
   setEditorUnlocked, setJamTest, startLevelIndex, testLevel, testLevelLabel, type CustomPlay
@@ -49,6 +49,7 @@ import { UI_THEME, uiTheme, uiThemeClass } from '@/umbrella/ui/theme'
 import UiGlyph from '@/components/umbrella/ornaments/UiGlyph.vue'
 import PanelOrnaments from '@/components/umbrella/ornaments/PanelOrnaments.vue'
 import HangingLantern from '@/components/umbrella/ornaments/HangingLantern.vue'
+import CollectIcon from '@/components/umbrella/CollectIcon.vue'
 import OrnDivider from '@/components/umbrella/ornaments/OrnDivider.vue'
 
 const { t } = useI18n()
@@ -477,6 +478,37 @@ const placeRating = (cam: { s: number; ox: number; oy: number }) => {
   const y = r.top + ((pl.y - 18) * cam.s + cam.oy) / dpr
   el.style.transform = `translate(${Math.round(x)}px, ${Math.round(Math.max(110, y))}px)`
 }
+/** The touch controls, measured for the see-through check below. */
+const stickEl = ref<HTMLElement | null>(null)
+const umbrellaBtnEl = ref<HTMLElement | null>(null)
+/** Which touch control covers Pweeg or the ledge he starts on, before the first press: it turns
+ *  see-through so the player can see where he is (some levels start him in a bottom corner). */
+const seeThrough = reactive({ stick: false, umbrella: false })
+let seeThroughAt = 0
+const checkSeeThrough = (cam: { s: number; ox: number; oy: number }, now: number) => {
+  if (now - seeThroughAt < 150) return
+  seeThroughAt = now
+  const c = canvas.value
+  if (!touchUI.value || world.moved || !c) {
+    seeThrough.stick = false
+    seeThrough.umbrella = false
+    return
+  }
+  const dpr = window.devicePixelRatio || 1
+  const r = c.getBoundingClientRect()
+  const pl = world.player
+  const sx = (x: number) => r.left + (x * cam.s + cam.ox) / dpr
+  const sy = (y: number) => r.top + (y * cam.s + cam.oy) / dpr
+  // Pweeg, with room for his umbrella above and the ledge under his feet.
+  const box = { l: sx(pl.x - pl.w * 1.5), r: sx(pl.x + pl.w * 2.5), t: sy(pl.y - pl.h * 0.8), b: sy(pl.y + pl.h) + 26 }
+  const covers = (el: HTMLElement | null) => {
+    if (!el) return false
+    const e = el.getBoundingClientRect()
+    return e.left < box.r && e.right > box.l && e.top < box.b && e.bottom > box.t
+  }
+  seeThrough.stick = covers(stickEl.value)
+  seeThrough.umbrella = covers(umbrellaBtnEl.value)
+}
 // The first level on screen is built at setup (not through reload): its clock starts here.
 startClock()
 let lastTickSecond = -1
@@ -490,10 +522,9 @@ const runClock = (input: Input) => {
   const sec = Math.ceil(timeLeft.value)
   if (clockBlink.value && sec !== lastTickSecond && sec > 0) playSfx('tick', { intensity: 1 - sec / blinkFrom(timeLimit.value) })
   lastTickSecond = sec
-  if (timeLeft.value <= 0) {
-    flashNotice(t('umbrella.timeUp'))
-    playSfx('timeUp')
-  }
+  // Run out: a quiet note and the red 00:00, no alarm. The level plays on, and the player decides
+  // for themselves whether to come back for more stars.
+  if (timeLeft.value <= 0) flashNotice(t('umbrella.timeUp'))
 }
 
 const reload = (opts: { at?: { x: number; y: number } } = {}) => {
@@ -780,6 +811,7 @@ const frame = (now: number) => {
   else if (ctx) {
     const cam = render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal)
     if (rating.value) placeRating(cam)
+    checkSeeThrough(cam, now)
     if (warp) drawWarp(ctx, cam, warp)
     if (arrive > 0) {
       arrive = Math.max(0, arrive - dtReal)
@@ -1100,7 +1132,9 @@ onUnmounted(() => {
          are the controls, not hints); on a desktop only after a touch — never because the key list is hidden. -->
     <template v-if="touchUI && !introOn">
       <div
+        ref="stickEl"
         class="stick"
+        :class="{ 'see-through': seeThrough.stick }"
         role="slider"
         :aria-label="t('umbrella.joystick')"
         aria-valuemin="-1"
@@ -1116,8 +1150,9 @@ onUnmounted(() => {
         <span class="stick-knob" :style="{ transform: `translateX(${knobX}px)` }" />
       </div>
       <button
+        ref="umbrellaBtnEl"
         class="umbrella-btn"
-        :class="{ pressed: umbrellaPressed }"
+        :class="{ pressed: umbrellaPressed, 'see-through': seeThrough.umbrella }"
         :aria-label="t('umbrella.umbrellaButton')"
         @pointerdown.stop="onUmbrellaDown"
         @pointerup="onUmbrellaUp"
@@ -1128,16 +1163,7 @@ onUnmounted(() => {
     <!-- Collectibles: a gold badge in the top right, popping with every pickup. -->
     <div v-if="hudStars.total && started && !introOn" :key="'badge' + hudStars.total" class="collect-badge" :class="{ done: hudStars.got === hudStars.total }" role="status" :aria-label="t('umbrella.stars', hudStars)">
       <span :key="badgePop" class="collect-glyph">
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-          <path v-if="hudStars.shape === 'star'" d="M12 2.5l2.9 6.2 6.7.8-5 4.6 1.4 6.7L12 17.4l-6 3.4 1.4-6.7-5-4.6 6.7-.8z" />
-          <template v-else-if="hudStars.shape === 'cloud'">
-            <path d="M6.5 19a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.5 9a5 5 0 0 1 .5 10z" />
-          </template>
-          <template v-else>
-            <path d="M2.5 12.5C2.5 7 6.7 3 12 3s9.5 4 9.5 9.5c-1.3-1.2-2.6-1.2-3.9 0-1.3-1.2-2.6-1.2-3.8 0-1.3-1.2-2.5-1.2-3.8 0-1.3-1.2-2.6-1.2-3.9 0z" />
-            <path d="M11 12.5h2V19a2.6 2.6 0 0 1-5.2 0h1.8a.8.8 0 0 0 1.6 0z" />
-          </template>
-        </svg>
+        <CollectIcon :shape="hudStars.shape" :size="20" />
       </span>
       <span class="collect-count"><b>{{ hudStars.got }}</b><i>/</i>{{ hudStars.total }}</span>
     </div>
@@ -1197,7 +1223,8 @@ onUnmounted(() => {
             >
               <span class="level-num" :class="{ timed: !!activeTimeLimit(LEVELS[i]!) }">{{ i + 1 }}</span>
               <StarRating v-if="activeTimeLimit(LEVELS[i]!)" class="tile-stars" :stars="timeStarBest[LEVELS[i]!.id] ?? 0" :label="t('umbrella.rating', { n: timeStarBest[LEVELS[i]!.id] ?? 0 })" />
-              <span v-if="LEVELS[i]!.stars?.length" class="level-stars">★{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
+              <!-- The level's own collectible (its golden umbrella, star or cloud); on a timed tile it moves up, clear of the rating. -->
+              <span v-if="LEVELS[i]!.stars?.length" class="level-stars" :class="{ up: !!activeTimeLimit(LEVELS[i]!) }"><CollectIcon :shape="LEVELS[i]!.stars![0]!.shape ?? DEFAULT_COLLECT_SHAPE" :size="11" />{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
             </button>
           </div>
         </section>
@@ -1408,6 +1435,9 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); transform: scale(0.94); }
+/* Covering Pweeg or his starting ledge before the first press: see-through, so he can be found. */
+.stick, .umbrella-btn { transition: opacity 0.3s ease; }
+.stick.see-through, .umbrella-btn.see-through { opacity: 0.4; }
 .hud-btn.wide { width: auto; padding: 0 12px; font-size: 16px; font-weight: 700; }
 /* A phone held upright: the bar would run off both edges, so Community keeps only its globe,
    the gaps tighten and, on the narrowest screens, the row wraps instead of clipping. */
@@ -1602,10 +1632,17 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   bottom: 3px;
   left: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   font-size: 11px;
   color: #facc15;
   text-align: center;
 }
+.level-stars .collect-icon { flex: none; fill: currentColor; }
+/* A timed tile shows its rating along the bottom: the collectible count sits at the top instead. */
+.level-stars.up { bottom: auto; top: 3px; }
 /* The collectible badge: a gilded pill in the top right corner. */
 .collect-badge {
   position: absolute;
