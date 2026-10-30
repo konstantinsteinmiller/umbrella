@@ -12,6 +12,10 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 13 — 2026-10-30 ==
+- [x] Lantern sky: the smudged patches on the mountains (where sky lanterns and clouds were cut out of the painting for the parallax layers and the holes were blurred over) are repainted as continuous paper mountains and sky; the 2x sky rebuilt from it
+- [x] Background music off for now (audio.ts MUSIC_ENABLED): bg-cozy.ogg moved to src/assets/audio/, so no build ships or fetches it; the Music slider hides while it is off
+- [x] itch.io builds in the painted styles: pnpm build:itch:lantern / build:itch:clay (tools/build-art.mjs, a real PKZIP per style in dist/)
+- [x] Wind currents read where they start: the box under the folded strips (lantern and clay) is a dark navy field (dark amber in a Super Stream) with a short soft edge (no border line: a drawn edge read as something solid), instead of a faint light field that melted into the sky
 - [x] The painted skies are shown untinted: the dark veil outside the level's box and the night tint inside it drew a dark rectangle beside a lighter strip, which read as a bug
 - [x] Clay wind: the lantern's folded strips with travelling chevrons (a golden Super Stream with arrowheads), painted in clay slabs, as the default clay wind; the clay gusts and arrow grid stay the alternative in the editor's View menu
 - [x] Settings → Audio: Music and Sound Effects volume sliders (saved; at their defaults the game plays its tuned mix; the effects volume also carries the wind and the enemies); the music can be heard while the Audio tab is open and letting go of the effects slider plays a sample
