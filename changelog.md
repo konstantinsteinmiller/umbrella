@@ -12,6 +12,9 @@ Umbrella — changelog (newest first)
 - [x] Sounds reverted to their Revision 7 state (sound kit, music, mix and engine); the Revision 9 sound pass is gone, the Walldorf and Prickbait sounds stay. The intro's whoosh/cool, the button and the checkpoint borrow the closest Revision 7 sounds
 
 == Revision 13 — 2026-10-30 ==
+- [x] Lantern sky: the six paper lanterns painted still into the sky are removed (only the rising lanterns move there now); the strings of lights stay
+- [x] Lantern mine: the burning fuse sits on the painted spark (centred on its densest gold, not its ray tips) and is big enough to cover it
+- [x] Lantern sky: the left string of lights no longer ends in mid-air; its rope runs on up out of the top of the picture
 - [x] Lantern sky: the smudged patches on the mountains (where sky lanterns and clouds were cut out of the painting for the parallax layers and the holes were blurred over) are repainted as continuous paper mountains and sky; the 2x sky rebuilt from it
 - [x] Background music off for now (audio.ts MUSIC_ENABLED): bg-cozy.ogg moved to src/assets/audio/, so no build ships or fetches it; the Music slider hides while it is off
 - [x] itch.io builds in the painted styles: pnpm build:itch:lantern / build:itch:clay (tools/build-art.mjs, a real PKZIP per style in dist/)

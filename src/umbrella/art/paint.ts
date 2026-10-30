@@ -769,12 +769,14 @@ const mineBlast = (ctx: CanvasRenderingContext2D, x: number, y: number, r: numbe
   ctx.restore()
 }
 
-/** The painted fuse's tip, in mine radii from its centre: where the sheet's own gold spark sits,
- *  measured once per frame from the decoded sheet (the moving frames are squashed, so their tip sits
- *  elsewhere than the idle ones'). FUSE_TIP is the fallback when a frame cannot be read. */
-const FUSE_TIP = { x: 0.78, y: -1.13 }
-const fuseTips = new WeakMap<HTMLImageElement, Array<{ x: number; y: number } | null>>()
-const fuseTipOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: number; y: number } | null => {
+/** The painted fuse's spark, in mine radii from its centre: where the sheet's own gold spark sits and
+ *  how big it is (`s`), measured once per frame from the decoded sheet (the moving frames are squashed,
+ *  so their spark sits elsewhere than the idle ones'). FUSE_TIP is the fallback when a frame cannot be
+ *  read. Centred on the spark's DENSEST gold (a few mean-shift steps): the topmost gold pixels are its
+ *  ray tips, which put the burning spark above and beside the painted one. */
+const FUSE_TIP = { x: 0.78, y: -1.13, s: 0.2 }
+const fuseTips = new WeakMap<HTMLImageElement, Array<{ x: number; y: number; s: number } | null>>()
+const fuseTipOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: number; y: number; s: number } | null => {
   let tips = fuseTips.get(img)
   if (!tips) {
     tips = []
@@ -797,11 +799,23 @@ const fuseTipOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: numb
           }
           // Too few gold pixels: no painted fuse in this frame (the clay mine has none at all).
           if (pts.length < 12) { tips.push(null); continue }
+          // Start at the topmost gold (the spark, not a gold glint lower on the body), then walk to
+          // the middle of the gold within a spark's reach a few times.
           const top = Math.min(...pts.map((q) => q[1]))
-          const near = pts.filter((q) => q[1] < top + fh * 0.12)
-          const mx = near.reduce((t, q) => t + q[0], 0) / near.length
-          const my = near.reduce((t, q) => t + q[1], 0) / near.length
-          tips.push({ x: (mx / fw - 0.5) * unit, y: (my / fh - 0.5) * unit })
+          let cx = pts.filter((q) => q[1] < top + fh * 0.06).reduce((t, q) => t + q[0], 0) / Math.max(1, pts.filter((q) => q[1] < top + fh * 0.06).length)
+          let cy = top + fh * 0.04
+          const reach = fw * 0.12
+          for (let it = 0; it < 8; it++) {
+            const near = pts.filter((q) => Math.hypot(q[0] - cx, q[1] - cy) < reach)
+            if (!near.length) break
+            cx = near.reduce((t, q) => t + q[0], 0) / near.length
+            cy = near.reduce((t, q) => t + q[1], 0) / near.length
+          }
+          // Its size: how far out most of its gold reaches (the 85th percentile, so a stray ray tip
+          // does not count).
+          const ds = pts.map((q) => Math.hypot(q[0] - cx, q[1] - cy)).filter((dd) => dd < reach * 1.6).sort((a, b) => a - b)
+          const ext = ds.length ? ds[Math.floor(ds.length * 0.85)]! : fw * 0.05
+          tips.push({ x: (cx / fw - 0.5) * unit, y: (cy / fh - 0.5) * unit, s: (ext / fw) * unit })
         }
       }
     } catch { /* the fallback tip */ }
@@ -811,8 +825,10 @@ const fuseTipOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: numb
 }
 /** The lit fuse: a warm glow, a spark star whose rays flicker, and tiny embers popping off the tip.
  *  It burns IN PLACE at the tip — nothing creeps down the fuse — so it loops for ever. */
-const fuseSpark = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, t: number): void => {
-  const R = r * 0.17
+/** `size`: the painted spark's radius (mine radii): the burning one covers it, never smaller than before. */
+const fuseSpark = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, size = 0.17): void => {
+  // The painted star (its outline and rays) reaches about 1.4x past its gold core: cover all of it.
+  const R = r * Math.max(0.17, size * 1.45)
   const flick = 0.75 + 0.25 * Math.sin(t * 31) * Math.sin(t * 17 + 1.3)
   ctx.save()
   ctx.translate(x, y)
@@ -905,7 +921,7 @@ const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean 
   blit(ctx, s, img, frame, x, y, r / PRICKBAIT_R, r / PRICKBAIT_R, flip)
   // A painted fuse burns (the lantern firecracker); the clay mine has none.
   const tip = paintedGame ? fuseTipOf(img as HTMLImageElement, s, frame) : null
-  if (tip) fuseSpark(ctx, x + (flip ? -1 : 1) * r * tip.x, y + r * tip.y, r, w.time + h.x * 0.013)
+  if (tip) fuseSpark(ctx, x + (flip ? -1 : 1) * r * tip.x, y + r * tip.y, r, w.time + h.x * 0.013, tip.s)
   const pl = w.player
   drawPrickbaitPupils(ctx, x, y, r, pl.x + pl.w / 2, pl.y + pl.h / 2)
   // The painted mine's angry brows are drawn live like its pupils: one painting never kept them the
