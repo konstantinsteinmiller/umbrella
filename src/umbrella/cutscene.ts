@@ -12,6 +12,7 @@
 
 import { createWorld, type World } from './engine'
 import { render, type Camera, type Labels } from './renderer'
+import { kiteArt } from './art/hooks'
 import { drawPweeg, drawUmbrella, heldAt, type PweegPose } from './characters'
 import { drawChad, flipArc, type ChadAction } from './chad'
 import type { LevelDef, Vec } from './levels'
@@ -36,7 +37,8 @@ export interface HoldSeg extends SegBase {
 /** A walk along the ground at `speed` px/s. */
 export interface WalkSeg extends SegBase { kind: 'walk'; a: Vec; speed: number }
 /** Pweeg hanging off an edge and lowering himself to the cloud below (needs `to`). */
-export interface ClimbSeg extends SegBase { kind: 'climb'; to: number; edgeX: number; top: number; ground: number }
+/** `hang`: how far below the edge his feet hang while his raised hands hold it (about his height). */
+export interface ClimbSeg extends SegBase { kind: 'climb'; to: number; edgeX: number; top: number; ground: number; hang?: number }
 /** Pre-sampled path (Chad's float, simulated with the engine), `rate` frames per second. */
 export interface FramesSeg extends SegBase {
   kind: 'frames'; rate: number
@@ -108,10 +110,15 @@ export const poseAt = (a: ActorDef, t: number): Pose | null => {
     case 'walk':
       return { ...base, x: s.a.x + local * s.speed, y: s.a.y, pose: 'walk', at: local, step: local * s.speed * STEP_STRIDE }
     case 'climb': {
-      // Hanging from the edge by his hands, lowering himself, then the last little drop.
+      // Hanging from the edge by his hands (raised over his head, on the rim: his feet a body's height
+      // below it), lowering himself, then the last little drop. The first moment swings him off
+      // the top into the hang.
       const k = local / Math.max(1e-6, s.to - s.from)
       const x = s.edgeX + Math.min(1, k * 3) * 28
-      const y = s.top + (s.ground - s.top) * (k < 0.7 ? k / 0.7 * 0.6 : 0.6 + ((k - 0.7) / 0.3) ** 2 * 0.4)
+      const hang = Math.min(s.ground, s.top + (s.hang ?? 0))
+      const swing = Math.min(1, k * 5)
+      const start = s.top + (hang - s.top) * swing * swing * (3 - 2 * swing)
+      const y = k < 0.2 ? start : hang + (s.ground - hang) * (k < 0.7 ? ((k - 0.2) / 0.5) * 0.4 : 0.4 + ((k - 0.7) / 0.3) ** 2 * 0.6)
       return { ...base, x, y, pose: 'cheer', at: local }
     }
     case 'frames': {
@@ -141,10 +148,13 @@ export const createCutscene = (def: CutsceneDef, level: LevelDef, tuning: Tuning
 
   const drawClouds = (ctx: CanvasRenderingContext2D) => {
     ctx.save()
-    // Inside the world only: never over the letterbox bars.
-    ctx.beginPath()
-    ctx.rect(0, 0, level.world.w, level.world.h)
-    ctx.clip()
+    // Inside the world only: never over the letterbox bars (a painted sky has none: there the
+    // clouds carry on past the world's edge, so a wide screen never cuts them off).
+    if (!kiteArt.cloudBank) {
+      ctx.beginPath()
+      ctx.rect(0, 0, level.world.w, level.world.h)
+      ctx.clip()
+    }
     for (const r of def.clouds) cloudBank(ctx, r)
     ctx.restore()
   }
@@ -154,6 +164,8 @@ export const createCutscene = (def: CutsceneDef, level: LevelDef, tuning: Tuning
    *  the bottom. Each puff's size is fixed by its place, so the bank holds still. */
   const cloudBank = (ctx: CanvasRenderingContext2D, r: CloudRow) => {
     const bottom = r.top + 16 + r.depth
+    // The lantern build: its own folded-paper clouds instead of the drawn puffs.
+    if (kiteArt.cloudBank?.(ctx, r.x0, r.x1, r.top, bottom)) return
     const w = r.x1 - r.x0
     const endR = Math.max(16, Math.min(42, r.depth * 0.45))
     ctx.beginPath()

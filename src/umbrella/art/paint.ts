@@ -2456,6 +2456,37 @@ const layeredBackdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, 
 let skyStill: { key: string; canvas: HTMLCanvasElement } | null = null
 
 let stillKey = ''
+
+/** A cutscene's cloud bank in the lantern build: the painted long folded-paper cloud (intro-cloud,
+ *  a rolling, nearly level top) laid along the bank, its top puffs on the walkable line so the actors
+ *  walk on the cloud itself, and its two rounded ends at the bank's ends so the step down shows. */
+const INTRO_CLOUD_TOP = 0.05
+const cloudBank = (ctx: CanvasRenderingContext2D, x0: number, x1: number, top: number, bottom: number): boolean => {
+  if (!isLantern || !paintedOn) return false
+  const img = sheetImage('intro-cloud')
+  if (!img) return false
+  const span = x1 - x0
+  // Its height follows its own shape a little, never squashed thin on a long bank.
+  const h = Math.max((bottom - top) * 1.6, Math.min(span * (img.height / img.width), (bottom - top) * 2.6))
+  ctx.save()
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  const y = top - h * INTRO_CLOUD_TOP
+  // A bank that starts off the level's left edge carries on off screen: the painting's middle
+  // (no end curl) repeated leftward, so a wide screen never shows where it stops.
+  const left = x0 - span * 0.03 - 10
+  const w = span * 1.06 + 34
+  if (x0 < 0) {
+    const mid = { sx: img.width * 0.25, sw: img.width * 0.5 }
+    const dw = (mid.sw / img.width) * w
+    for (let x = left + w * 0.25 - dw; x > -3000; x -= dw * 0.98) ctx.drawImage(img, mid.sx, 0, mid.sw, img.height, x, y, dw, h)
+  }
+  // A little past both ends: the painting's ends curl in, and the level's start plank under the
+  // lower bank must not peek out.
+  ctx.drawImage(img, left, y, w, h)
+  ctx.restore()
+  return true
+}
 /** Weak phones: keep the background canvas painted (the base colour and the merged sky),
  *  repainting only when the screen size or a layer changes. */
 const stillBackdrop = (canvas: HTMLCanvasElement, fullBleed: boolean): boolean => {
@@ -2538,6 +2569,7 @@ export const KITE_PAINTERS: Required<KiteArt> = {
   cheerHand: () => cheerHandAt,
   backdrop,
   stillBackdrop,
+  cloudBank,
   collect,
   gate,
   pweeg,

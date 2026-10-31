@@ -113,7 +113,7 @@ export const introCutscene = (level: LevelDef, tuning: Tuning): CutsceneDef => {
   const pweeg: Seg[] = [
     { kind: 'walk', from: tPweeg, to: tEdge, a: { x: upperLeft + 20, y: upperTop }, speed: WALK_SPEED },
     { kind: 'hold', from: tEdge, to: tClimb, at: { x: upperEdge - 14, y: upperTop }, pose: 'stand' },
-    { kind: 'climb', from: tClimb, to: tDown, edgeX: upperEdge - 14, top: upperTop, ground },
+    { kind: 'climb', from: tClimb, to: tDown, edgeX: upperEdge - 14, top: upperTop, ground, hang: tuning.playerHeight * 1.05 },
     { kind: 'walk', from: tDown, to: tSpawn, a: { x: upperEdge + 14, y: ground }, speed: WALK_SPEED },
     { kind: 'hold', from: tSpawn, at: { x: level.spawn.x, y: ground }, pose: 'stand', frontAfter: 0.15, blink: [0.3, 0.42] }
   ]

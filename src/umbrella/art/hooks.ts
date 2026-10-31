@@ -37,6 +37,9 @@ export interface KiteArt {
    *  screen changes size. True: the caller clears `canvas` to transparent instead of filling and
    *  painting the sky. */
   stillBackdrop?: (canvas: HTMLCanvasElement, fullBleed: boolean) => boolean
+  /** A cutscene's cloud bank (x0..x1, its walkable top at `top`, `bottom` its underside), in world
+   *  space: the lantern build lays its folded-paper cloud cut-outs along it. */
+  cloudBank?: (ctx: CanvasRenderingContext2D, x0: number, x1: number, top: number, bottom: number) => boolean
 }
 
 export const kiteArt: KiteArt = {}
