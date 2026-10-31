@@ -522,9 +522,8 @@ const runClock = (input: Input) => {
   const sec = Math.ceil(timeLeft.value)
   if (clockBlink.value && sec !== lastTickSecond && sec > 0) playSfx('tick', { intensity: 1 - sec / blinkFrom(timeLimit.value) })
   lastTickSecond = sec
-  // Run out: a quiet note and the red 00:00, no alarm. The level plays on, and the player decides
-  // for themselves whether to come back for more stars.
-  if (timeLeft.value <= 0) flashNotice(t('umbrella.timeUp'))
+  // Run out: the clock just holds at 00:00 in red, nothing else. The level plays on, and the player
+  // decides after landing whether to come back for more stars.
 }
 
 const reload = (opts: { at?: { x: number; y: number } } = {}) => {

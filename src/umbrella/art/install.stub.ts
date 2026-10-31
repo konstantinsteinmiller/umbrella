@@ -2,3 +2,4 @@
 // alias): no painted layer, no sheets, nothing to load — the vector drawing is
 // all there is.
 export const startKiteArt = (): Promise<void> => Promise.resolve()
+export const figureArtReady = (): Promise<void> => Promise.resolve()

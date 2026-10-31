@@ -115,10 +115,12 @@ onMounted(() => {
   }
 
   // Hard fallback so the splash always clears, even if the asset loader
-  // never reports 100% (offline / blocked images / dropped requests).
+  // never reports 100% (offline / blocked images / dropped requests). It must come AFTER the
+  // loader's own caps (useAssets: 6 s for the first-screen art, 20 s for Pweeg's): at 4 s it beat
+  // them on every slow line and opened the game on the drawn stand-in figure (Poki playtest).
   settleFallbackId = window.setTimeout(() => {
     if (!done.value) done.value = true
-  }, 4000)
+  }, 22000)
   stuckHintId = window.setTimeout(() => {
     if (!done.value) showStuckHint.value = true
   }, 10000)
@@ -133,7 +135,7 @@ onUnmounted(() => {
 // `immediate: true` fires the handler with the current value the moment
 // the watcher is set up. Without it, an asset loader that already reports
 // 100% (instant boots, especially on localhost) never trips the watcher
-// and the splash sits around for the full 4s `settleFallbackId` window.
+// and the splash sits around for the full `settleFallbackId` window.
 watch(progress, (val) => {
   if (val >= 100 && !done.value) {
     setTimeout(() => { done.value = true }, 100)

@@ -13,6 +13,18 @@ import { KITE_PAINTERS, paintedArt, setPaintedArt } from './paint'
 import { hasSheet, loadSheets, refreshSheets, sheetStatus, shippedSheets, tiersFor } from './sheets'
 
 let started: Promise<void> | null = null
+let figureReady: Promise<void> | null = null
+
+/** What the first screen must never show as the drawing: Pweeg standing (front and side), his first
+ *  steps, and his umbrella. Fetched FIRST, ahead of the sky and props, and waited for longer: a slow
+ *  line (Poki playtests, 2026-10) let the 6 s cap pass with Pweeg still the vector stand-in. */
+const FIGURE_FIRST = ['pweeg-front', 'pweeg-idle', 'pweeg-walk', 'umbrella']
+
+/** Pweeg and his umbrella decoded (resolves at once where none shipped). Starts the art if needed. */
+export const figureArtReady = (): Promise<void> => {
+  void startKiteArt()
+  return figureReady ?? Promise.resolve()
+}
 
 const idle = (fn: () => void): void => {
   const ric = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback
@@ -35,7 +47,11 @@ const resumeState = async (): Promise<{ level: number; introSeen: boolean }> => 
 export const startKiteArt = (): Promise<void> => {
   if (started) return started
   Object.assign(kiteArt, KITE_PAINTERS)
+  // The figure first, on its own: nothing else competes with it for the line.
+  const figure = FIGURE_FIRST.filter(hasSheet)
+  figureReady = loadSheets(figure, 'high')
   started = (async () => {
+    await figureReady
     const { level, introSeen } = await resumeState()
     const [t0, t1, t2] = tiersFor(LEVELS, level, introSeen)
     // The lantern's sky, collectibles and gate are on the first screen too.

@@ -284,14 +284,22 @@ export default () => {
     const imageTasks = CRITICAL_IMAGE_SRCS.map(decodeImage)
     const tasks: Promise<unknown>[] = [...imageTasks]
     // The kite build's painted sheets (roadmap #6): tier 0 — what the first
-    // screen draws — is held behind the splash, at most 6 s, so the game never
+    // screen draws — is held behind the splash, at most 6 s (Pweeg and his umbrella, fetched first,
+    // up to 20 s), so the game never
     // starts on the drawing and swaps to paint a second later. `artLayer` (kite
     // or lantern) is a build-time constant: every other build drops this branch
     // and its chunk.
     if (artLayer) {
+      const art = import('@/umbrella/art/install')
       tasks.push(Promise.race([
-        import('@/umbrella/art/install').then((m) => m.startKiteArt()).catch(() => { /* vector art stays */ }),
+        art.then((m) => m.startKiteArt()).catch(() => { /* vector art stays */ }),
         new Promise<void>((resolve) => setTimeout(resolve, 6000))
+      ]))
+      // Pweeg himself is fetched first and waited for much longer: a game that opens on the plain
+      // drawn figure in the painted world looks broken (a Poki playtest on a slow line).
+      tasks.push(Promise.race([
+        art.then((m) => m.figureArtReady()).catch(() => { /* vector art stays */ }),
+        new Promise<void>((resolve) => setTimeout(resolve, 20000))
       ]))
     }
     let done = 0

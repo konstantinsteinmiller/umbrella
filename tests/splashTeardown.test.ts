@@ -114,11 +114,12 @@ describe('the loading splash', () => {
   })
 
   it('clears itself even when the asset loader never reports 100%', async () => {
-    // Offline / blocked images: `done` comes from the 4 s hard fallback instead.
+    // Offline / blocked images: `done` comes from the 22 s hard fallback instead (after the
+    // loader's own 6 s / 20 s art caps, so it never opens the game on half-loaded art).
     vi.stubGlobal('requestAnimationFrame', () => { rafCalls += 1; return 0 })
 
     const w = render()
-    await tick(6000)
+    await tick(24000)
 
     expect(splashParts()).toEqual({ backdrop: false, logo: false })
     w.unmount()
