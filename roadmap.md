@@ -41,11 +41,39 @@
   use an Opus xHigh effort subagent for this task.
 - [x] #14 The Poki package does not allow external references, so bake the current levels at build time into the poki game build and remove the fetching from the server at runtime in the poki build, this includes the poki lantern and poki claymotion build.
   *Done:* every Poki build (plain, lantern, clay) bakes the server's current campaign in at build time and makes no request of its own at runtime — only Poki's SDK and its ad partners; the share link carries no outside address there. The Poki release gates pass with no external host; a test guards the Poki env.
-- [ ] #15  
+- [x] #15 Create a script "download:recordings" that is able to scan all video recording at https://app.poki.dev/hyperg8/games/a0e9e4d5-1f73-4b9b-bb6e-edd6905cd867/playtests, open each one, download the recording video and save the video with a name like "mobile-landscape_2-36_Umbrella-0-13-3_Oct-30.webm" (device with orientation / time played / version / date) to a https://www.dropbox.com/scl/fo/e1ag994gf9dtlqmddtml3/AIRviWij4UXO0-6EFmGEYGk?rlkey=o7ybiqq514ctwk1p0f7x9yvie&st=7lho8p76&dl=0, where you can create folders and sort the downloaded recordings by played at date. *Done:* `pnpm download:recordings` runs headless: it borrows the Poki session from the deploy profile, lists every recording (archived too) through the P4D API, fetches the public .webm files into Dropbox/X-Else/Poki recordings/<date>/ and keeps an index so reruns only fetch new ones.
 - [ ] #1
 - [ ] #1
 - [ ] #1
 - [ ] #1
+
+- [x] #Play-1 The game needs a full level consistency check with headed browser, use 3 Sonnet subagents (low effort). 
+  I need 1 to play on desktop, one mobile portrait and one on mobile landscape.
+  The Playtesters are not blind and know how to control the player well. If an platforming area cannot be overcome by the agent, he skips that area and goes ahead to the next level using the right arrow at the top.
+  The goal of this playtests is to find out if the game is fun. Where are really frustrating game parts, where would the playtester quit the game (which levels and which spots)?
+  Collect all findings in a structured browser report and add the findings here in 
+  the roadmap.md as new bullet points to fix later as #play-1-1...XXX.
+  In the end I want the subagents to find all issues in the game that would deminish its polished value to a gaming audience.
+  Also I want to understand why Poki players quit after 30-50 seconds into the game (sometimes after finishing level 4 or level 5), only very few play for more than 2:30 (the highest recorded playtime was 7 minutes out of ~70 playtests)
+  *Done (2026-10-31):* three Sonnet playtesters (desktop, phone portrait, phone landscape) on the lantern build; report: https://claude.ai/artifact/KSHjhVQStm3i67V35E9vUj . Why players leave at 30-50 s: 20-30 s pass before the first real input (loader, tap, an intro that needs a second tap, chapter banner); levels 1-3 are near-automatic; levels 4-5 are a wall (none of the three solved level 5); deaths show no cause and cost ~10 s each; nothing teaches the controls or the goal. Findings to fix (#play-1-4 and #play-1-5 dropped: the testers' screenshot gaps and scripted held keys made them miss the win chime and dance and carry keys into the next level; not game bugs):
+  - [ ] #play-1-1 [blocker] (level 4–5) Levels 4 and 5 are a wall right after three near-automatic levels. Smooth the ramp: move levels 4/5 later or soften them (shorter gaps, a ledge under the dais, gentler wind top), and add 1–2 levels that teach 'close the umbrella to drop' and 'ride the wind's edge' on their own before combining them.
+  - [ ] #play-1-2 [major] (level start) 20–30 s before the first real input. Make the first tap start play (intro skippable by any tap, or shortened to a few seconds / played once later), never return to 'Click to play' after the intro, and show the chapter banner over live play.
+  - [ ] #play-1-3 [major] (level 1) Nothing teaches the controls or the goal. A wordless control coach on level 1–2: a pulsing hand/glyph on the stick and the umbrella button where they are needed, kept until the player has used each a few times (the playbook's 'glyphs earned away by use').
+  - [ ] #play-1-6 [major] (level 3, 4, 27) Wind lifts Pweeg above the top edge, under the top bar. Let the camera follow upward when Pweeg leaves the view; cap how high a column can carry him on one-screen levels.
+  - [ ] #play-1-7 [major] (level 5, 17, 27) The umbrella button and the stick cover the action. Reserve a band at the bottom for the controls in landscape (lift the camera's bottom edge above them), or move/shrink the controls when they cover the finish; extend the see-through rule to the finish and to Pweeg during play.
+  - [ ] #play-1-8 [major] (level 1, 6, 8) Portrait view: tiny characters and empty sky. Step the portrait zoom back (e.g. undo the last 1.4×), place the level lower in the frame, and make sure the start view always contains Pweeg.
+  - [ ] #play-1-9 [major] (level all) Walking is slow and drifts after release. Faster walk and much less ground/air drift on release (tuning: friction, air control), a clear open/closed cue on the button.
+  - [ ] #play-1-12 [minor] (level all) Pweeg blends in; A thin dark outline or soft shadow on Pweeg.
+  - [ ] #play-1-13 [minor] (level intro) The intro looks unfinished. Paint the intro cloud in the art style (or keep the plank), seat Pweeg on it, and keep the bubble inside the safe area.
+  - [ ] #play-1-14 [minor] (level start) Mixed languages on one screen. Route the top bar's level label through the same locale (check the umbrella.level key in every locale).
+  - [ ] #play-1-15 [minor] (level 29) The jam chapter looks like a different game. Re-skin the jam levels' props in the lantern/clay art and keep the counter clear of the play area.
+  - [ ] #play-1-16 [minor] (level 6, 13, 15) Some props do not say what they do. Telegraph motion (a short wind-up or track line) and make solid props read as solid.
+  - [ ] #play-1-17 [minor] (level 12) 'Level 12' crowds the ‹ button. Narrower font or padding for two digits in portrait.
+  - [ ] #play-1-18 [polish] (level grid) Level grid overlaps the HUD; scrollbar nearly invisible. Push the dialog below the HUD bar, show a visible scroll cue.
+  - [ ] #play-1-19 [polish] (level all) Buttons keep a focus ring after a click. Show the focus ring only for keyboard focus (:focus-visible).
+  - [ ] #play-1-20 [minor] (level start) Black screen for several seconds on first load. Check on the production build: the static splash in index.html should show at once; investigate any second loader.
+  - [ ] #play-1-21 [polish] (level all) Stick small for thumbs; knob gives no feedback. Larger hit area than the drawing, knob follows the thumb.
+
 - [x] #Cover-1 The game needs better ULTRA-HIGH-CTR(20%+) cover images painted with
   Gemini for all the platforms (800x800, 1920x1080, 1080x1920(only jpg), 800x1200(only webp), 1360x850(only with logo, only jpg), 800x450(only with logo, only webp), 400x225(only with logo, only jpg),
   512x512(only with logo, only jpg), 628x628(only with logo, only jpg), 512x384(only with logo, only jpg), 512x340(only with logo, only jpg) in jpg, and webp, once without a logo, once with a logo somewhere that is not in the top left corner as CG banners are placed in top left corner up to the middle of the image horizontally).

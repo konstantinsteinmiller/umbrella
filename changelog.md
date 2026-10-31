@@ -1,6 +1,11 @@
 Umbrella — changelog (newest first)
 
 == Revision 13 — 2026-10-30 ==
+- Tools: `pnpm download:recordings` saves every Poki playtest recording headless into the Dropbox folder, one folder per day played
+- [x] Lantern intro: the two cloud banks are a newly painted long cut-paper cloud matching the sky's moving clouds (no platforms), running on past the screen's left edge on wide windows; Pweeg walks across its top and climbs down from the upper cloud with his hands on its edge
+- [x] Lantern Chad repainted as Pweeg's boxy folded-paper figure with black paper sunglasses (idle, walk, umbrella float), replacing the round-headed figure that read as a stray drawing in the intro
+- [x] Painted builds on slow lines: the loading screen no longer closes after a hard 4 s while the art is still coming (it opened on the drawn stand-in Pweeg); Pweeg and his umbrella are fetched first and waited for up to 20 s, the rest of the first-screen art up to 6 s
+- [x] Timed levels: no "Time's up!" message either when the clock runs out (it covered much of the screen); the red 00:00 is all
 - [x] Portrait phones: a level entered from another one whose finish is not fully on screen at the start first shows the finish for 2 seconds, then swings smoothly to the player (the first move cuts it short; never on a restart or revive, never in landscape)
 - [x] Poki playtest recordings: the swinging paper lanterns (start screen, chapter card) showed as broken-image icons; their image is now put into the recorded copy as data
 - [x] Lantern promotion: a 630x500 cover and the logo as umbrella_logo.jpg
