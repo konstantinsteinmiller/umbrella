@@ -2,7 +2,9 @@
 /**
  * pnpm download:recordings — fetch every Poki playtest recording, headless.
  *
- *   node tools/poki-deploy/download-recordings.mjs [--out <dir>] [--dry] [--no-archived]
+ *   node tools/poki-deploy/download-recordings.mjs [--out <dir>] [--dry] [--no-archived] [--min <seconds>]
+ *
+ * Recordings shorter than --min seconds of play (default 20) are skipped: a player who left at once shows nothing.
  *
  * Auth: opens app.poki.dev in a headless Chrome on the deploy tool's own
  * profile (~/.poki-deploy/chrome-profile, signed in once by `deploy:poki`),
@@ -31,6 +33,7 @@ const OUT = opt('--out', join(process.env.USERPROFILE ?? process.env.HOME, 'Drop
 const API = `https://devs-api.poki.io/games/${GAME_ID}`
 const VIDEO = (id) => `https://storage.googleapis.com/poki-playtest-recordings/${id}.webm`
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
+const MIN_SECONDS = Number(opt('--min', 20))
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 // ── token ────────────────────────────────────────────────────────────────────
@@ -125,12 +128,13 @@ const done = existsSync(INDEX) ? JSON.parse(readFileSync(INDEX, 'utf8')) : {}
 const saveIndex = () => writeFileSync(INDEX, JSON.stringify(done, null, 1))
 
 console.log(`${recordings.length} recordings → ${OUT}`)
-let fetched = 0, skipped = 0, failed = 0
+let fetched = 0, skipped = 0, failed = 0, short = 0
 const tmp = mkdtempSync(join(tmpdir(), 'poki-rec-'))
 
 for (const r of recordings) {
   const a = r.attributes
   if (done[r.id] && existsSync(join(OUT, done[r.id]))) { skipped++; continue }
+  if ((a.duration ?? 0) < MIN_SECONDS) { short++; continue }
   const date = playedDate(a.created_at)
   const dir = join(OUT, date.folder)
   const tail = `${duration(a.duration ?? 0)}_${versionLabel(versions.get(a.version_id))}_${date.short}`
@@ -163,5 +167,5 @@ for (const r of recordings) {
   }
 }
 rmSync(tmp, { recursive: true, force: true })
-console.log(`done: ${fetched} downloaded, ${skipped} already there, ${failed} failed`)
+console.log(`done: ${fetched} downloaded, ${skipped} already there, ${short} under ${MIN_SECONDS} s skipped, ${failed} failed`)
 process.exit(failed ? 1 : 0)

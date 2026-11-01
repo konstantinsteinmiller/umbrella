@@ -1,5 +1,11 @@
 Umbrella — changelog (newest first)
 
+== Revision 14 — 2026-11-01 ==
+- Tools: `pnpm download:recordings` skips recordings with under 20 s of play (`--min <seconds>` to change)
+- [x] Keyboard layouts: the key hints show the player's own letters (Q / D on AZERTY), detected from the browser's keyboard map, else from the keys they type, else their language; Space and Enter read as words in the game's language
+- [x] Pause → Settings → Controls (desktop only): layout detection on/off with a manual QWERTY / QWERTZ / AZERTY pick, and rebinding for move left/right, umbrella, restart and level select (a key another action uses swaps; Reset keys); the hints follow the new keys
+- [x] Key hints: a long translated caption ("Abrir / fechar o guarda-chuva") no longer wraps and spills out of the hint panel
+
 == Revision 13 — 2026-10-30 ==
 - Tools: `pnpm download:recordings` saves every Poki playtest recording headless into the Dropbox folder, one folder per day played
 - [x] Lantern intro: the two cloud banks are a newly painted long cut-paper cloud matching the sky's moving clouds (no platforms), running on past the screen's left edge on wide windows; Pweeg walks across its top and climbs down from the upper cloud with his hands on its edge
