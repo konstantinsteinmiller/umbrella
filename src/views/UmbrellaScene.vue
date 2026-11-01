@@ -51,6 +51,8 @@ import PanelOrnaments from '@/components/umbrella/ornaments/PanelOrnaments.vue'
 import HangingLantern from '@/components/umbrella/ornaments/HangingLantern.vue'
 import CollectIcon from '@/components/umbrella/CollectIcon.vue'
 import OrnDivider from '@/components/umbrella/ornaments/OrnDivider.vue'
+import { actionForCode, codesFor } from '@/umbrella/keyBindings'
+import { keyLabel, loadKeyboardLayout, observeKey } from '@/umbrella/keyLabels'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -836,9 +838,7 @@ const resize = (el: HTMLCanvasElement) => {
   }
 }
 
-// ── Input (physical keys: WASD sits under the same fingers on any layout) ──
-const LEFT = new Set(['ArrowLeft', 'KeyA'])
-const RIGHT = new Set(['ArrowRight', 'KeyD'])
+// ── Input (physical keys through umbrella/keyBindings.ts: A / D sit under the same fingers on any layout) ──
 // Typed letters (not physical keys): the designer types the word itself.
 const GUI_CODE = 'cmonc'
 /** Typed in the game: an interstitial right away (the tester's shortcut, umbrella/ads.ts). */
@@ -861,7 +861,9 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
     if (typed === GUI_CODE) { typed = ''; setEditorUnlocked(!editorUnlocked.value) }
     else if (typed === AD_CODE) { typed = ''; requestTestInterstitial() }
   }
-  if (down && (e.code === 'KeyL' || (e.code === 'Escape' && showLevels.value))) {
+  if (down && !tapDevice) observeKey(e)
+  const action = actionForCode(e.code)
+  if (down && (action === 'levels' || (e.code === 'Escape' && showLevels.value))) {
     showLevels.value = !showLevels.value
     held.left = held.right = false
     e.preventDefault()
@@ -873,16 +875,37 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
     return
   }
   if (showLevels.value || showCommunity.value || showRate.value || showPause.value) return
-  if (LEFT.has(e.code)) held.left = down
-  else if (RIGHT.has(e.code)) held.right = down
-  else if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+  if (action === 'left') held.left = down
+  else if (action === 'right') held.right = down
+  else if (action === 'umbrella') {
     if (down && !e.repeat) togglePending = true
-  } else if (down && e.code === 'KeyR') restart()
+  } else if (down && action === 'restart') restart()
   else return
   e.preventDefault()
   if (down) unlockAudio()
 }
 // ── Touch: a left/right joystick bottom-left, the umbrella button bottom-right ──
+/**
+ * The key hints' rows, in this keyboard's letters and as the player bound them: the moving keys as an arrow pair and a
+ * letter pair (whichever of them still works), the umbrella's keys one per group.
+ */
+const hintRows = computed(() => {
+  const label = (c: string) => keyLabel(c, t)
+  const left = codesFor('left')
+  const right = codesFor('right')
+  const pairs: string[][] = []
+  for (let i = 0; i < Math.max(left.length, right.length); i++) {
+    const pair = [left[i], right[i]].filter((c): c is string => !!c).map(label)
+    if (pair.length) pairs.push(pair)
+  }
+  // Arrows first, as the hint has always read.
+  pairs.sort((a, b) => Number(!a.includes('←')) - Number(!b.includes('←')))
+  const umbrella = codesFor('umbrella').filter((c) => c !== 'NumpadEnter').map((c) => [label(c)])
+  return [
+    { what: 'umbrella.ctlMove', groups: pairs },
+    { what: 'umbrella.ctlUmbrella', groups: umbrella }
+  ]
+})
 /** The desktop key hints: a teaching aid, so only for the first three campaign levels and never beside the touch controls. */
 const showControls = computed(() => !touchUI.value && !introOn.value && !testing && !playing.value && !challenge.value && levelIndex.value < 3)
 // The touch controls are how a phone plays, not hints: on a phone or tablet they show on every level, whatever the
@@ -990,6 +1013,7 @@ watch(
 )
 
 onMounted(() => {
+  if (!tapDevice) void loadKeyboardLayout()
   setStillSkyCanvas(canvas.value, bgCanvas.value)
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
@@ -1101,7 +1125,7 @@ onUnmounted(() => {
 
     <!-- The themed builds fold / squash the menus away (u-dlg in umbrella-ui.css); the plain UI closes at once. -->
     <Transition name="u-dlg" :css="!!uiTheme">
-      <PauseMenu v-if="showPause" @audition="auditioning = $event" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
+      <PauseMenu v-if="showPause" :keys="!tapDevice" @audition="auditioning = $event" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
     </Transition>
     <Transition name="u-dlg" :css="!!uiTheme">
       <CommunityLevelsModal v-if="showCommunity" @close="showCommunity = false" @play="playCustom" />
@@ -1128,8 +1152,15 @@ onUnmounted(() => {
     </div>
     <!-- The controls, in the bottom right, for the first three campaign levels. -->
     <ul v-if="showControls" class="controls" :aria-label="t('umbrella.controls')">
-      <li><span class="keys"><kbd>←</kbd><kbd>→</kbd><i>/</i><kbd>A</kbd><kbd>D</kbd></span><span class="what">{{ t('umbrella.ctlMove') }}</span></li>
-      <li><span class="keys"><kbd class="wide">Space</kbd><i>/</i><kbd class="wide">Enter</kbd></span><span class="what">{{ t('umbrella.ctlUmbrella') }}</span></li>
+      <li v-for="row in hintRows" :key="row.what">
+        <span class="keys">
+          <template v-for="(group, gi) in row.groups" :key="gi">
+            <i v-if="gi">/</i>
+            <kbd v-for="(k, ki) in group" :key="ki" :class="{ wide: k.length > 1 }">{{ k }}</kbd>
+          </template>
+        </span>
+        <span class="what">{{ t(row.what) }}</span>
+      </li>
     </ul>
     <!-- The touch controls (`touchUI`): on phones, tablets and phone-sized portrait viewports at every level (they
          are the controls, not hints); on a desktop only after a touch — never because the key list is hidden. -->
@@ -1339,7 +1370,9 @@ onUnmounted(() => {
   text-align: center;
 }
 .controls kbd.wide { padding: 3px 10px; }
-.controls .what { min-width: 150px; text-align: left; opacity: 0.85; }
+/* One line per hint: the panel is shrink-to-fit from the right edge, so a narrow window squeezed the label into a
+   wrap ("guarda-/chuva") that spilled out of the panel. The panel grows leftwards instead. */
+.controls .what { min-width: 150px; text-align: left; opacity: 0.85; white-space: nowrap; }
 .designer-tools {
   position: absolute;
   left: 16px;

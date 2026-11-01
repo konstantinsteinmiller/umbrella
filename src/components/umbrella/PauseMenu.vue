@@ -8,7 +8,10 @@
  * hears what they set. The scene stops the simulation
  * while this is open. In the lantern / clay builds it wears the scene's theme
  * (umbrella/ui/theme.ts): an ornamented sheet, themed buttons and icons, and a
- * slide between the menu and the settings.
+ * slide between the menu and the settings. On a desktop (`keys`) a Controls tab
+ * holds the keyboard layout (detected, or picked) and the key rebinding: keys
+ * are physical (umbrella/keyBindings.ts), the layout only names them
+ * (umbrella/keyLabels.ts).
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -20,13 +23,16 @@ import UiGlyph from './ornaments/UiGlyph.vue'
 import { useUiTheme } from '@/umbrella/ui/theme'
 import useUser from '@/use/useUser'
 import { MUSIC_ENABLED, playSfx } from '@/umbrella/audio'
+import { ACTIONS, bindKey, bindingsChanged, isBindable, primaryCode, resetBindings, type Action } from '@/umbrella/keyBindings'
+import { keyboard, keyLabel, LAYOUTS, setAutoLayout, setManualLayout, type Layout } from '@/umbrella/keyLabels'
 
+const props = withDefaults(defineProps<{ keys?: boolean }>(), { keys: false })
 const emit = defineEmits<{ resume: []; restart: []; intro: []; audition: [on: boolean] }>()
 const { t } = useI18n()
 const theme = useUiTheme()
 
 const view = ref<'menu' | 'settings'>('menu')
-const tab = ref<'general' | 'audio'>('general')
+const tab = ref<'general' | 'audio' | 'controls'>('general')
 
 const { userMusicVolume, userSoundVolume, setSettingValue } = useUser()
 const musicPct = computed(() => Math.round(userMusicVolume.value * 100))
@@ -39,8 +45,45 @@ const auditioning = computed(() => view.value === 'settings' && tab.value === 'a
 watch(auditioning, (on) => emit('audition', on))
 onUnmounted(() => emit('audition', false))
 
+// ── Controls: the keyboard layout and key rebinding ──
+const ACTION_NAME: Record<Action, string> = {
+  left: 'umbrella.kb.left', right: 'umbrella.kb.right', umbrella: 'umbrella.ctlUmbrella', restart: 'umbrella.ctlRestart', levels: 'umbrella.selectLevel'
+}
+const detectedName = computed(() => (keyboard.detected ?? 'qwerty').toUpperCase())
+const pickAuto = (e: Event) => setAutoLayout((e.target as HTMLSelectElement).value === 'on')
+const pickLayout = (e: Event) => {
+  const v = (e.target as HTMLSelectElement).value
+  if ((LAYOUTS as string[]).includes(v)) setManualLayout(v as Layout)
+}
+/** The action waiting for its new key, if any. */
+const capturing = ref<Action | null>(null)
+const onCapture = (e: KeyboardEvent): void => {
+  const a = capturing.value
+  if (!a) return
+  // Ours alone: neither the game nor this menu's Escape must also act on this press.
+  e.preventDefault()
+  e.stopImmediatePropagation()
+  if (e.code === 'Escape') { stopCapture(); return }
+  if (!isBindable(e.code)) return
+  bindKey(a, e.code)
+  stopCapture()
+}
+const stopCapture = (): void => {
+  capturing.value = null
+  window.removeEventListener('keydown', onCapture, true)
+}
+const startCapture = (a: Action): void => {
+  if (capturing.value === a) { stopCapture(); return }
+  stopCapture()
+  capturing.value = a
+  window.addEventListener('keydown', onCapture, true)
+}
+watch([tab, view], stopCapture)
+onUnmounted(stopCapture)
+
 const onKey = (e: KeyboardEvent) => {
-  if (e.key !== 'Escape') return
+  // While a key is being captured, Escape cancels the capture (onCapture), not the menu.
+  if (e.key !== 'Escape' || capturing.value) return
   e.preventDefault()
   e.stopImmediatePropagation()
   if (view.value === 'settings') view.value = 'menu'
@@ -71,9 +114,37 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
           <div class="tabs" role="tablist">
             <button role="tab" class="tab u-tab" :class="{ on: tab === 'general' }" :aria-selected="tab === 'general'" @click="tab = 'general'">{{ t('options.general') }}</button>
             <button role="tab" class="tab u-tab" :class="{ on: tab === 'audio' }" :aria-selected="tab === 'audio'" @click="tab = 'audio'">{{ t('options.audio') }}</button>
+            <button v-if="props.keys" role="tab" class="tab u-tab" :class="{ on: tab === 'controls' }" :aria-selected="tab === 'controls'" @click="tab = 'controls'">{{ t('umbrella.kb.tab') }}</button>
           </div>
           <div v-if="tab === 'general'" class="tab-body" role="tabpanel">
             <LanguageSelect />
+          </div>
+          <div v-else-if="tab === 'controls'" class="tab-body ctl" role="tabpanel">
+            <label class="ctl-row">
+              <span class="ctl-name">{{ t('umbrella.kb.auto') }}</span>
+              <select class="ctl-select" :value="keyboard.auto ? 'on' : 'off'" @change="pickAuto">
+                <option value="on">{{ t('umbrella.kb.on') }}</option>
+                <option value="off">{{ t('umbrella.kb.off') }}</option>
+              </select>
+            </label>
+            <p v-if="keyboard.auto" class="ctl-note">{{ t('umbrella.kb.detected', { layout: detectedName }) }}</p>
+            <label v-else class="ctl-row">
+              <span class="ctl-name">{{ t('umbrella.kb.layout') }}</span>
+              <select class="ctl-select" :value="keyboard.manual" @change="pickLayout">
+                <option v-for="l in LAYOUTS" :key="l" :value="l">{{ l.toUpperCase() }}</option>
+              </select>
+            </label>
+            <div class="ctl-row ctl-head">
+              <span class="ctl-name">{{ t('umbrella.kb.bindings') }}</span>
+              <button type="button" class="ctl-reset u-btn" :disabled="!bindingsChanged()" @click="resetBindings()">{{ t('umbrella.kb.reset') }}</button>
+            </div>
+            <p v-if="capturing" class="ctl-note">{{ t('umbrella.kb.press') }}</p>
+            <ul class="binds">
+              <li v-for="a in ACTIONS" :key="a" class="ctl-row">
+                <span>{{ t(ACTION_NAME[a]) }}</span>
+                <button type="button" class="bind-key" :class="{ waiting: capturing === a }" :aria-label="t(ACTION_NAME[a])" @click="startCapture(a)">{{ capturing === a ? '…' : keyLabel(primaryCode(a), t) }}</button>
+              </li>
+            </ul>
           </div>
           <div v-else class="tab-body audio" role="tabpanel">
             <label v-if="MUSIC_ENABLED" class="vol">
@@ -125,6 +196,32 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 .vol-val { grid-area: val; font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; opacity: 0.85; }
 .vol input { grid-area: bar; width: 100%; min-height: 32px; accent-color: #2563eb; cursor: pointer; }
 .ui-lantern .vol input { accent-color: #c0392b; }
+.ctl { display: flex; flex-direction: column; gap: 8px; }
+.ctl-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ctl-name { font-weight: 700; }
+.ctl-head { margin-top: 6px; }
+.ctl-note { margin: -4px 0 0; font-size: 0.85em; opacity: 0.8; }
+.ctl-select { padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.35); color: inherit; font: inherit; cursor: pointer; }
+.ctl-select option { background: #1a1f2e; color: #fff; }
+.ctl-reset { padding: 4px 12px; border-radius: 8px; background: rgba(255, 255, 255, 0.12); font-size: 0.85em; font-weight: 700; }
+.ctl-reset:disabled { opacity: 0.45; cursor: default; }
+.binds { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.bind-key {
+  min-width: 2.6em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-bottom-width: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  font: 700 14px system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bind-key.waiting { background: #fbbf24; color: #1a1f2e; animation: key-wait 0.9s ease-in-out infinite; }
+@keyframes key-wait { 50% { transform: scale(1.08); } }
+.ui-lantern .bind-key { color: #2a1d3a; background: linear-gradient(180deg, #fffaf0, #e8d6b0); border-color: #2a1d3a; }
+.ui-clay .bind-key { color: #fffaf0; background: radial-gradient(130% 150% at 30% 12%, #8fb1e6, #2f5fa8 50%, #1d3f78); border: 0; box-shadow: 0 2px 0 #173464; }
+.ui-lantern .bind-key.waiting, .ui-clay .bind-key.waiting { background: #fbbf24; color: #1a1f2e; }
 .ui-clay .vol input { accent-color: #2f5fa8; }
 
 /* ── Themed (lantern / clay) ── */
