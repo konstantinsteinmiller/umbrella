@@ -483,15 +483,15 @@ const placeRating = (cam: { s: number; ox: number; oy: number }) => {
 /** The touch controls, measured for the see-through check below. */
 const stickEl = ref<HTMLElement | null>(null)
 const umbrellaBtnEl = ref<HTMLElement | null>(null)
-/** Which touch control covers Pweeg or the ledge he starts on, before the first press: it turns
- *  see-through so the player can see where he is (some levels start him in a bottom corner). */
+/** Which touch control covers Pweeg (with the ledge under him) or the finish: it turns see-through so
+ *  the player can see where he is and where he goes (some levels start him or end in a bottom corner). */
 const seeThrough = reactive({ stick: false, umbrella: false })
 let seeThroughAt = 0
 const checkSeeThrough = (cam: { s: number; ox: number; oy: number }, now: number) => {
   if (now - seeThroughAt < 150) return
   seeThroughAt = now
   const c = canvas.value
-  if (!touchUI.value || world.moved || !c) {
+  if (!touchUI.value || !c) {
     seeThrough.stick = false
     seeThrough.umbrella = false
     return
@@ -502,14 +502,29 @@ const checkSeeThrough = (cam: { s: number; ox: number; oy: number }, now: number
   const sx = (x: number) => r.left + (x * cam.s + cam.ox) / dpr
   const sy = (y: number) => r.top + (y * cam.s + cam.oy) / dpr
   // Pweeg, with room for his umbrella above and the ledge under his feet.
-  const box = { l: sx(pl.x - pl.w * 1.5), r: sx(pl.x + pl.w * 2.5), t: sy(pl.y - pl.h * 0.8), b: sy(pl.y + pl.h) + 26 }
+  const boxes = [{ l: sx(pl.x - pl.w * 1.5), r: sx(pl.x + pl.w * 2.5), t: sy(pl.y - pl.h * 0.8), b: sy(pl.y + pl.h) + 26 }]
+  // The finish: its platform and the room above it where Pweeg lands.
+  const fin = world.platforms.find((p) => p.finish)
+  if (fin) boxes.push({ l: sx(fin.x), r: sx(fin.x + fin.w), t: sy(fin.y - pl.h * 1.5), b: sy(fin.y + fin.h) })
   const covers = (el: HTMLElement | null) => {
     if (!el) return false
     const e = el.getBoundingClientRect()
-    return e.left < box.r && e.right > box.l && e.top < box.b && e.bottom > box.t
+    return boxes.some((box) => e.left < box.r && e.right > box.l && e.top < box.b && e.bottom > box.t)
   }
   seeThrough.stick = covers(stickEl.value)
   seeThrough.umbrella = covers(umbrellaBtnEl.value)
+}
+/** Landscape touch play: the stick and umbrella button's band at the bottom (canvas px), kept clear of
+ *  the level so they cover sky rather than ledges. At most a fifth of the height (a short phone would
+ *  shrink the level too far); where they still reach into play the see-through rule above takes over. */
+const CONTROLS_BAND_MAX = 0.2
+const controlsBand = (c: HTMLCanvasElement): number => {
+  if (!touchUI.value || c.height > c.width) return 0
+  const r = c.getBoundingClientRect()
+  const tops = [stickEl.value, umbrellaBtnEl.value].filter((e): e is HTMLElement => !!e).map((e) => e.getBoundingClientRect().top)
+  if (!tops.length || !r.height) return 0
+  const band = Math.min(r.bottom - Math.min(...tops) + 6, r.height * CONTROLS_BAND_MAX)
+  return Math.max(0, band) * (c.height / r.height)
 }
 // The first level on screen is built at setup (not through reload): its clock starts here.
 startClock()
@@ -814,7 +829,7 @@ const frame = (now: number) => {
   const ctx = el.getContext('2d')
   if (ctx && intro) intro.draw(ctx, { finish: t('umbrella.finish') }, dtReal)
   else if (ctx) {
-    const cam = render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal)
+    const cam = render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal, undefined, { padBottom: controlsBand(el) })
     if (rating.value) placeRating(cam)
     checkSeeThrough(cam, now)
     if (warp) drawWarp(ctx, cam, warp)
@@ -1471,9 +1486,17 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); transform: scale(0.94); }
-/* Covering Pweeg or his starting ledge before the first press: see-through, so he can be found. */
+/* Covering Pweeg, his ledge or the finish: see-through, so both can be seen. */
 .stick, .umbrella-btn { transition: opacity 0.3s ease; }
 .stick.see-through, .umbrella-btn.see-through { opacity: 0.4; }
+/* Short landscape phones: smaller controls, closer to the edge, so their band at the bottom (kept clear
+   of the level, controlsBand) costs the level less height. */
+@media (orientation: landscape) and (max-height: 460px) {
+  .stick, .umbrella-btn { bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .stick { left: calc(16px + env(safe-area-inset-left)); width: 124px; height: 60px; border-radius: 30px; }
+  .umbrella-btn { right: calc(16px + env(safe-area-inset-right)); width: 76px; height: 76px; font-size: 36px; }
+  .stick-knob { width: 48px; height: 48px; margin: -24px 0 0 -24px; }
+}
 .hud-btn.wide { width: auto; padding: 0 12px; font-size: 16px; font-weight: 700; }
 /* A phone held upright: the bar would run off both edges, so Community keeps only its globe,
    the gaps tighten and, on the narrowest screens, the row wraps instead of clipping. */

@@ -90,21 +90,25 @@ export const isPortrait = (cw: number, ch: number): boolean => ch > cw
  * where the world is smaller than what the canvas shows stays centred.
  * A portrait screen zooms in (PORTRAIT_ZOOM / PORTRAIT_FILL) on either kind and follows the
  * player sideways through the part of the width it no longer shows.
+ * `padBottom` (canvas px, landscape only): a band at the bottom kept for the touch controls; the
+ * level is fitted into the height above it, so the stick and the umbrella button cover sky, not play.
  */
-export const cameraFor = (w: World, cw: number, ch: number, dt = 0): Camera => {
+export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 0): Camera => {
   const { w: ww, h: wh } = w.level.world
   const view = w.level.view
   const whole = !view || (view.w >= ww && view.h >= wh)
   const portrait = isPortrait(cw, ch)
+  // The height the level is fitted into: above the controls' band (landscape only).
+  const fh = portrait ? ch : Math.max(ch * 0.5, ch - Math.max(0, padBottom))
   if (whole && !portrait) {
-    const s = Math.min(cw / ww, ch / wh)
-    return { s, ox: (cw - ww * s) / 2, oy: (ch - wh * s) / 2 }
+    const s = Math.min(cw / ww, fh / wh)
+    return { s, ox: (cw - ww * s) / 2, oy: (fh - wh * s) / 2 }
   }
   const screen = whole ? { w: ww, h: wh } : view!
-  const fit = Math.min(cw / screen.w, ch / screen.h)
+  const fit = Math.min(cw / screen.w, fh / screen.h)
   const s = portrait ? Math.max(fit * PORTRAIT_ZOOM, (ch * PORTRAIT_FILL) / screen.h) : fit
   const vw = cw / s
-  const vh = ch / s
+  const vh = fh / s
   const pl = w.player
   // Look ahead: the camera leans the way the player moves (walking, floating or blown), up to
   // LOOK_AHEAD of the view's width, so what lies ahead is on screen. The lean eases in and out more
@@ -653,13 +657,15 @@ export interface RenderOptions {
   hidePlayer?: boolean
   /** The design doc's wavy rising lines instead of the gameplay arrows. */
   windStyle?: 'arrows' | 'squiggles'
+  /** Canvas px at the bottom kept clear of the level for the touch controls (landscape; see cameraFor). */
+  padBottom?: number
 }
 
 /** Draws a frame and returns the camera it used (to draw more on top in world space). */
 export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, t: Tuning, dt: number, cam?: Camera, opts: RenderOptions = {}): Camera => {
   const { width: cw, height: ch } = ctx.canvas
   ctx.setTransform(1, 0, 0, 1, 0, 0)
-  const camera = cam ?? cameraFor(w, cw, ch, dt)
+  const camera = cam ?? cameraFor(w, cw, ch, dt, opts.padBottom ?? 0)
   const { s, ox, oy } = camera
   // Portrait (the levels are landscape): the level's ground runs the whole screen instead of a strip.
   const fullBleed = !cam && isPortrait(cw, ch)

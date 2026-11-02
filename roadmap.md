@@ -43,7 +43,7 @@
   *Done:* every Poki build (plain, lantern, clay) bakes the server's current campaign in at build time and makes no request of its own at runtime — only Poki's SDK and its ad partners; the share link carries no outside address there. The Poki release gates pass with no external host; a test guards the Poki env.
 - [x] #15 Create a script "download:recordings" that is able to scan all video recording at https://app.poki.dev/hyperg8/games/a0e9e4d5-1f73-4b9b-bb6e-edd6905cd867/playtests, open each one, download the recording video and save the video with a name like "mobile-landscape_2-36_Umbrella-0-13-3_Oct-30.webm" (device with orientation / time played / version / date) to a https://www.dropbox.com/scl/fo/e1ag994gf9dtlqmddtml3/AIRviWij4UXO0-6EFmGEYGk?rlkey=o7ybiqq514ctwk1p0f7x9yvie&st=7lho8p76&dl=0, where you can create folders and sort the downloaded recordings by played at date. *Done:* `pnpm download:recordings` runs headless: it borrows the Poki session from the deploy profile, lists every recording (archived too) through the P4D API, fetches the public .webm files into Dropbox/X-Else/Poki recordings/<date>/ and keeps an index so reruns only fetch new ones.
 - [ ] #1
-- [ ] #1
+- [ ] #1 calculate chance of merge golf success on poki and cg and youtube playables. 
 - [ ] #1
 - [ ] #1
 
@@ -60,7 +60,8 @@
   - [ ] #play-1-2 [major] (level start) 20–30 s before the first real input. Make the first tap start play (intro skippable by any tap, or shortened to a few seconds / played once later), never return to 'Click to play' after the intro, and show the chapter banner over live play.
   - [ ] #play-1-3 [major] (level 1) Nothing teaches the controls or the goal. A wordless control coach on level 1–2: a pulsing hand/glyph on the stick and the umbrella button where they are needed, kept until the player has used each a few times (the playbook's 'glyphs earned away by use').
   - [ ] #play-1-6 [major] (level 3, 4, 27) Wind lifts Pweeg above the top edge, under the top bar. Let the camera follow upward when Pweeg leaves the view; cap how high a column can carry him on one-screen levels.
-  - [ ] #play-1-7 [major] (level 5, 17, 27) The umbrella button and the stick cover the action. Reserve a band at the bottom for the controls in landscape (lift the camera's bottom edge above them), or move/shrink the controls when they cover the finish; extend the see-through rule to the finish and to Pweeg during play.
+  - [x] #play-1-7 [major] (level 5, 17, 27) The umbrella button and the stick cover the action. Reserve a band at the bottom for the controls in landscape (lift the camera's bottom edge above them), or move/shrink the controls when they cover the finish; extend the see-through rule to the finish and to Pweeg during play.
+    *Done:* landscape touch play keeps a band at the bottom for the stick and the umbrella button (at most a fifth of the height): the level is fitted above it, and on short landscape phones the controls are a little smaller. A control turns see-through whenever it covers Pweeg or the finish, during play too, not only before the first press.
   - [ ] #play-1-8 [major] (level 1, 6, 8) Portrait view: tiny characters and empty sky. Step the portrait zoom back (e.g. undo the last 1.4×), place the level lower in the frame, and make sure the start view always contains Pweeg.
   - [ ] #play-1-9 [major] (level all) Walking is slow and drifts after release. Faster walk and much less ground/air drift on release (tuning: friction, air control), a clear open/closed cue on the button.
   - [ ] #play-1-12 [minor] (level all) Pweeg blends in; A thin dark outline or soft shadow on Pweeg.

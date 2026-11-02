@@ -1,6 +1,7 @@
 Umbrella — changelog (newest first)
 
 == Revision 13 — 2026-10-30 ==
+- [x] Landscape phones: the stick and the umbrella button get their own band at the bottom, so the level sits above them instead of under them (smaller controls on short screens); a control turns see-through whenever it covers Pweeg or the finish, also during play
 - Tools: `pnpm download:recordings` skips recordings with under 20 s of play (`--min <seconds>` to change)
 - [x] Keyboard layouts: the key hints show the player's own letters (Q / D on AZERTY), detected from the browser's keyboard map, else from the keys they type, else their language; Space and Enter read as words in the game's language
 - [x] Pause → Settings → Controls (desktop only): layout detection on/off with a manual QWERTY / QWERTZ / AZERTY pick, and rebinding for move left/right, umbrella, restart and level select (a key another action uses swaps; Reset keys); the hints follow the new keys
