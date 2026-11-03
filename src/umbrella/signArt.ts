@@ -73,7 +73,7 @@ const arrowPath = (ctx: CanvasRenderingContext2D, bob: number): void => {
   ctx.closePath()
 }
 
-/** A hanging paper lantern centred on `cx`, its cord going up off the top of the design box. */
+/** A paper lantern floating at `cx`, no rope above it; the board hangs from its tassel cord. */
 const lantern = (ctx: CanvasRenderingContext2D, cx: number, tilt: number, lit: boolean): void => {
   const w = L.lanternW
   const top = L.lanternTop
@@ -89,15 +89,10 @@ const lantern = (ctx: CanvasRenderingContext2D, cx: number, tilt: number, lit: b
     g.addColorStop(0.5, 'rgba(255, 150, 60, 0.25)')
     g.addColorStop(1, 'rgba(255, 138, 60, 0)')
     ctx.fillStyle = g
-    ctx.fillRect(cx - w * 1.6, top - 10, w * 3.2, h + 30)
+    // The whole disc, so the light fades out on every side instead of stopping at a box edge.
+    const R = w * 1.5
+    ctx.fillRect(cx - R, top + h / 2 - R, R * 2, R * 2)
   }
-  // Cord.
-  ctx.strokeStyle = lit ? '#5a2a14' : '#111'
-  ctx.lineWidth = lit ? 1.6 : 2
-  ctx.beginPath()
-  ctx.moveTo(cx, -30)
-  ctx.lineTo(cx, top)
-  ctx.stroke()
   // Body.
   const body = ctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0)
   if (lit) {
