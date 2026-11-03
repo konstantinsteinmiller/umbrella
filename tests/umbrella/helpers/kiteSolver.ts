@@ -20,7 +20,7 @@
 
 import { contactOf, createWorld, step, type Input, type World } from '@/umbrella/engine'
 import type { LevelDef } from '@/umbrella/levels'
-import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
+import { KITE_TUNING as DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 
 export const DT = 1 / 120
 /** Ticks per decision: 0.1 s, a pace a person keeps up with. */

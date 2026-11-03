@@ -19,7 +19,7 @@ const props = defineProps<{ id: string }>()
 const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 
-const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r3', {}) }
+const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r4', {}) }
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v))
 const builtIn = (): CutsceneDef => introCutscene(LEVELS[0]!, tuning)
 const load = (): CutsceneDef => clone(editedCutscene(props.id) ?? builtIn())

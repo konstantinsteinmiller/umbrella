@@ -150,7 +150,7 @@ const MOTION_KINDS: Motion['kind'][] = ['static', 'line', 'circle', 'swing', 'lu
 
 const router = useRouter()
 const { t, te } = useI18n()
-const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r3', {}) }
+const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r4', {}) }
 
 const blankLevel = (): LevelDef => ({
   id: 0,

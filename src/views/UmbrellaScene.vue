@@ -208,9 +208,9 @@ const DT = 1 / 120
 
 // The mix levels are saved apart from the rest of the tuning (umb_mix_r1): the background music
 // track (2026-10) came with new default levels, and every save that had touched the panel held the
-// old ones (music 0, effects 1) under umb_tuning_r3.
+// old ones (music 0, effects 1) under umb_tuning_r4.
 const MIX_KEYS = ['masterVolume', 'musicVolume', 'sfxVolume', 'windVolume'] as const
-const savedTuning = { ...getState<Partial<Tuning>>('umb_tuning_r3', {}) }
+const savedTuning = { ...getState<Partial<Tuning>>('umb_tuning_r4', {}) }
 for (const k of MIX_KEYS) delete savedTuning[k]
 const tuning = reactive<Tuning>({ ...DEFAULT_TUNING, ...savedTuning, ...getState<Partial<Tuning>>('umb_mix_r1', {}) })
 watch(tuning, () => {
@@ -220,12 +220,12 @@ watch(tuning, () => {
     mix[k] = tuning[k]
     delete rest[k]
   }
-  setState('umb_tuning_r3', rest)
+  setState('umb_tuning_r4', rest)
   setState('umb_mix_r1', mix)
 }, { deep: true })
 // Level edits from the panel (wind speeds, platform periods) persist alongside.
-applyTuning({ levels: getState<TuningExport['levels']>('umb_levels_r3', []) }, tuning, LEVELS)
-const saveLevels = () => setState('umb_levels_r3', exportTuning(tuning, LEVELS).levels)
+applyTuning({ levels: getState<TuningExport['levels']>('umb_levels_r4', []) }, tuning, LEVELS)
+const saveLevels = () => setState('umb_levels_r4', exportTuning(tuning, LEVELS).levels)
 let gui: TuningGui | null = null
 // The "cmonc" cheat shows the tuning panel and the OPEN EDITOR button together.
 watch(editorUnlocked, (on) => gui?.toggle(on))

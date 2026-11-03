@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { contactOf, createWorld, step, type World } from '@/umbrella/engine'
 import { KITE_LEVELS } from '@/umbrella/kiteLevels'
 import { parseLevel } from '@/umbrella/customLevels'
-import { DEFAULT_TUNING } from '@/umbrella/tuning'
+import { KITE_TUNING as DEFAULT_TUNING } from '@/umbrella/tuning'
 import { difficulty, DT, MACRO, replay, solve, tuningSize, type SolutionRecord } from './helpers/kiteSolver'
 import solutions from './kite-solutions.json'
 

@@ -409,7 +409,7 @@ export const nextCustomId = (taken: number[]): number =>
 
 /** The tuning panel stores per-level knob edits (wind speeds, periods) by id;
  *  an edited slot drops them, or they would overwrite the editor's values. */
-const TUNING_LEVELS_KEY = 'umb_levels_r3'
+const TUNING_LEVELS_KEY = 'umb_levels_r4'
 const dropPanelEdits = (id: number) =>
   setState(TUNING_LEVELS_KEY, getState<{ id: number }[]>(TUNING_LEVELS_KEY, []).filter((l) => l?.id !== id))
 

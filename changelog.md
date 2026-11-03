@@ -1,6 +1,7 @@
 Umbrella — changelog (newest first)
 
 == Revision 15 — 2026-11-03 ==
+- [x] Designer tuning of 3 Nov imported: walk speed 240 → 260, air speed 200 → 240, air drag 240 → 280 (the kite build keeps its old feel, its 100 levels were proven under it); level 1 second current 260 → 280, level 11 currents 200/320 → 260/260. The saved-tuning keys moved to r4 so an older saved copy does not shadow the new defaults. Chad's intro float crosses at the right edge now that he flies farther
 - Tools: the Pages workflow caches the builds of earlier revisions (kite, lantern and clay included) in the Actions cache and builds only a revision that is new to it, instead of rebuilding all of them on every push; pushes made while a deploy is running now queue behind it instead of cancelling it
 - [x] An open umbrella's canopy collects the golden collectibles too, not only Pweeg's body
 - [x] A collected collectible disappears: no greyed-out copy stays behind in the level

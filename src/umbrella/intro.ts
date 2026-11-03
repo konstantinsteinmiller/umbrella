@@ -55,7 +55,7 @@ export const simulateChad = (l: LevelDef, from: Vec, tuning: Tuning, dt = 1 / 12
     frames.push({ x: pl.x + pl.w / 2, y: pl.y + pl.h, airborne: !pl.grounded, vx: pl.vx })
     if (w.phase !== 'play') return null
     // Across: past the far side of the screen, or standing on another platform.
-    const crossed = pl.x > l.world.w + 20 || (pl.grounded && pl.x > start + 200)
+    const crossed = pl.x > l.world.w - 100 || (pl.grounded && pl.x > start + 200)
     if (crossed) return frames
   }
   return null

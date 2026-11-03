@@ -7,6 +7,8 @@
 //
 // Units: world pixels (a 1280×720 screen at zoom 1) and seconds.
 
+import { isKite } from './kite'
+
 export interface Tuning {
   /** Player hitbox size (px). */
   playerWidth: number
@@ -92,7 +94,7 @@ export interface Tuning {
 
 // GDD Revision 1 ("a weighted feather"): slower walk + walk-up, softer gravity,
 // a gentler umbrella catch, a bob at the top of updrafts, floatier air turns.
-export const DEFAULT_TUNING: Tuning = {
+export const GAME_TUNING: Tuning = {
   playerWidth: 24,
   playerHeight: 36,
   hitboxInset: 3,
@@ -112,12 +114,12 @@ export const DEFAULT_TUNING: Tuning = {
   closedWindResistance: 0.4,
   superClosedResistance: 0.75,
   wallSplatSpeed: 870,
-  walkSpeed: 240,
+  walkSpeed: 260,
   walkAccelTime: 0.09,
   walkDecelTime: 0.09,
-  airSpeed: 200,
+  airSpeed: 240,
   airTurnTime: 0.75,
-  airDrag: 240,
+  airDrag: 280,
   whistleFade: 1.2,
   splatReset: 0.5,
   winHold: 1.6,
@@ -142,6 +144,13 @@ export const DEFAULT_TUNING: Tuning = {
   sfxVolume: 0.7,
   windVolume: 0.7
 }
+
+/** The feel the 100 kite levels were solved and proven beatable under (tests/umbrella/kite-solutions.json): the
+ *  game's own walk and air speeds moved on (designer tuning of 3 Nov), the kite build keeps these. */
+export const KITE_FEEL: Partial<Tuning> = { walkSpeed: 240, airSpeed: 200, airDrag: 240 }
+export const KITE_TUNING: Tuning = { ...GAME_TUNING, ...KITE_FEEL }
+/** What every build plays with: the game's tuning, or the kite build's. */
+export const DEFAULT_TUNING: Tuning = isKite ? KITE_TUNING : GAME_TUNING
 
 /** Slider ranges for the tuning panel. */
 export const TUNING_RANGES: Record<keyof Tuning, [min: number, max: number, step: number]> = {

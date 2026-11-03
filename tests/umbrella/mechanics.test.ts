@@ -58,7 +58,7 @@ describe('buttons', () => {
     expect(platformActive(w, w.level.platforms[1]!)).toBe(true)
     expect(liveWinds(w)).toHaveLength(0)
     run(w, 0.4, { left: false, right: true, toggle: false }) // walk off
-    run(w, 0.4, { left: true, right: false, toggle: false }) // and back on
+    run(w, 0.5, { left: true, right: false, toggle: false }) // and back on (the faster walk goes farther before it turns)
     expect(channelOn(w, 1)).toBe(false)
   })
   it('a timed button keeps its channel on for its duration', () => {

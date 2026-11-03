@@ -28,7 +28,7 @@ import { drawPweeg, drawUmbrella } from '@/umbrella/characters'
 import { drawChad } from '@/umbrella/chad'
 import { kiteArt } from '@/umbrella/art/hooks'
 import { KITE_PAINTERS, setPaintedArt } from '@/umbrella/art/paint'
-import { DEFAULT_TUNING } from '@/umbrella/tuning'
+import { DEFAULT_TUNING, GAME_TUNING } from '@/umbrella/tuning'
 import { recordingCtx } from './helpers/recordingCtx'
 import { PLAYER_SCENES, sceneWorld } from './helpers/artScenes'
 
@@ -48,7 +48,7 @@ const renderScene = (scene: (typeof PLAYER_SCENES)[number]) => {
   const rec = recordingCtx()
   for (let i = 0; i < 5; i++) {
     rec.log.length = 0
-    render(rec.ctx, w, { finish: 'Finish' }, DEFAULT_TUNING, 1 / 60)
+    render(rec.ctx, w, { finish: 'Finish' }, GAME_TUNING, 1 / 60)
     w.time += 1 / 60
     w.phaseTime += 1 / 60
   }
