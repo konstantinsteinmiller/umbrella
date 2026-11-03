@@ -94,6 +94,8 @@ export const isPortrait = (cw: number, ch: number): boolean => ch > cw
  * `padBottom` (canvas px, landscape only): a band at the bottom kept for the touch controls; the
  * level is fitted into the height above it, so the stick and the umbrella button cover sky, not play.
  */
+/** How much closer than fitting the whole level a wide landscape phone looks (the width fills first). */
+export const LANDSCAPE_ZOOM_MAX = 1.6
 export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 0): Camera => {
   const { w: ww, h: wh } = w.level.world
   const view = w.level.view
@@ -101,13 +103,19 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 
   const portrait = isPortrait(cw, ch)
   // The height the level is fitted into: above the controls' band (landscape only).
   const fh = portrait ? ch : Math.max(ch * 0.5, ch - Math.max(0, padBottom))
-  if (whole && !portrait) {
-    const s = Math.min(cw / ww, fh / wh)
+  // A wide landscape phone (the screen is wider than the level, and its controls' band takes height) would
+  // letterbox the level small. It zooms in towards filling the width instead, at most LANDSCAPE_ZOOM_MAX
+  // times the fit, and the camera then follows the player up and down.
+  const fitWhole = Math.min(cw / (whole ? ww : view!.w), fh / (whole ? wh : view!.h))
+  const landscapeZoom = !portrait && Math.min(cw / (whole ? ww : view!.w), fitWhole * LANDSCAPE_ZOOM_MAX) > fitWhole * 1.001
+  if (whole && !portrait && !landscapeZoom) {
+    const s = fitWhole
     return { s, ox: (cw - ww * s) / 2, oy: (fh - wh * s) / 2 }
   }
   const screen = whole ? { w: ww, h: wh } : view!
-  const fit = Math.min(cw / screen.w, fh / screen.h)
-  const s = portrait ? Math.max(fit * PORTRAIT_ZOOM, (ch * PORTRAIT_FILL) / screen.h) : fit
+  const fit = fitWhole
+  const s = portrait ? Math.max(fit * PORTRAIT_ZOOM, (ch * PORTRAIT_FILL) / screen.h)
+    : landscapeZoom ? Math.min(cw / screen.w, fit * LANDSCAPE_ZOOM_MAX) : fit
   const vw = cw / s
   const vh = fh / s
   const pl = w.player

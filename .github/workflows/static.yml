@@ -3,9 +3,7 @@ name: Deploy Static Content to Pages
 # Publishes:
 #   /umbrella/      → latest main
 #   /umbrella/<N>/  → every GDD revision (N = scripts/revision.mjs)
-#   /umbrella/kite/ → the 100 kite levels with the painted art (no server);
-#                     opened by `?art=kite` on /umbrella/ and on every revision from 11 on
-#                     (/umbrella/<N>/?art=kite → /umbrella/<N>/kite/, built here per revision)
+#   (the kite build, /umbrella/kite/, is no longer built: obsolete for now)
 #   /umbrella/lantern/ → the normal game in the painted "Paper Moon" lantern art; opened by
 #                     `?art=lantern` (and /umbrella/<N>/lantern/ per revision from 11 on)
 #   /umbrella/sounds/ → sound + music listening page (latest)
@@ -88,16 +86,6 @@ jobs:
           N="${{ steps.rev.outputs.n }}"
           npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N"
 
-      - name: Build current revision's kite → /umbrella/<N>/kite/ (from revision 11)
-        working-directory: main
-        env:
-          VITE_APP_KITE: 'true'
-        run: |
-          N="${{ steps.rev.outputs.n }}"
-          if [ "$N" -ge 11 ]; then
-            npx vite build --mode kite --base="/umbrella/$N/kite/" --outDir="$GITHUB_WORKSPACE/dist/$N/kite"
-          fi
-
       - name: Build current revision's lantern art → /umbrella/<N>/lantern/ (from revision 11)
         working-directory: main
         env:
@@ -130,14 +118,6 @@ jobs:
           VITE_APP_LANTERN: 'true'
         run: npx vite build --mode lantern --base=/umbrella/lantern/ --outDir="$GITHUB_WORKSPACE/dist/lantern"
 
-      - name: Build kite levels + painted art → /umbrella/kite/
-        working-directory: main
-        env:
-          VITE_APP_KITE: 'true'
-          # Kite never pulls or syncs the server's campaign (vite.config.ts, customLevels.ts); it keeps the bucket URL so the
-          # community list and submissions are the same as the normal game's.
-        run: npx vite build --mode kite --base=/umbrella/kite/ --outDir="$GITHUB_WORKSPACE/dist/kite"
-
       - name: Build sound listening page → /umbrella/sounds/
         working-directory: main
         run: |
@@ -153,7 +133,7 @@ jobs:
         run: cp -r competitors "$GITHUB_WORKSPACE/dist/competitors"
 
       # Earlier revisions are frozen: their tag never moves, so their build never changes. Each one is built
-      # once into rev-cache/<N>/ (the main build, kite, lantern and clay of that revision) and restored from the
+      # once into rev-cache/<N>/ (the main build, lantern and clay of that revision) and restored from the
       # Actions cache afterwards; only a revision that is new to the cache is built. The key follows the set of
       # frozen tags and their commits, so a newly frozen revision adds one build and nothing else is redone.
       # Bump CACHE_VERSION to force a rebuild of every old revision (e.g. after changing this recipe).
@@ -161,7 +141,7 @@ jobs:
         id: frozen
         working-directory: main
         env:
-          CACHE_VERSION: v1
+          CACHE_VERSION: v2
         run: |
           CUR="${{ steps.rev.outputs.n }}"
           LIST=$(for TAG in $(git tag --list 'revision-*' | sort); do
@@ -177,7 +157,7 @@ jobs:
           path: rev-cache
           key: ${{ steps.frozen.outputs.key }}
           restore-keys: |
-            old-revisions-v1-
+            old-revisions-v2-
 
       - name: Build earlier revisions from their tags (only those not cached)
         working-directory: main
@@ -196,9 +176,6 @@ jobs:
             rm -rf "$CACHE/$N"
             git worktree add --detach "../rev-$N" "$TAG"
             (cd "../rev-$N" && pnpm install --no-frozen-lockfile               && npx vite build --base="/umbrella/$N/" --outDir="$CACHE/$N")
-            if [ "$N" -ge 11 ]; then
-              (cd "../rev-$N" && VITE_APP_KITE=true                 npx vite build --mode kite --base="/umbrella/$N/kite/" --outDir="$CACHE/$N/kite")
-            fi
             if [ -f "../rev-$N/src/umbrella/art/lantern.ts" ]; then
               (cd "../rev-$N" && VITE_APP_LANTERN=true                 npx vite build --mode lantern --base="/umbrella/$N/lantern/" --outDir="$CACHE/$N/lantern")
             fi
