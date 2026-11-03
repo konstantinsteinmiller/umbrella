@@ -1,6 +1,7 @@
 Umbrella — changelog (newest first)
 
 == Revision 15 — 2026-11-03 ==
+- Tools: competitor + market report (wind/umbrella/glider games, what they do better, what to add, audiences, Poki/CrazyGames playtime estimates, how to win Poki, revenue and player-growth scenarios) published at /umbrella/competitors/
 - Tools: `pnpm poki:deploy-quick-playtest` (= `deploy:poki --playtest-chapter`) builds, uploads and QAs a Poki version that plays only the Playtest Build chapter, so a round can test any set of levels (1-10, 11-20, 25-30...) on fresh players; it refuses to ship when that chapter is empty, and the version is named "· playtest chapter"
 - [x] Level editor: spikes point any way — an angle box with 90° helper buttons (up, right, down, left) in the spikes' properties; sideways and slanted spikes draw and hurt along their turned shape. Old levels are unchanged
 - [x] Touch controls are never fully opaque (0.85) and turn see-through whenever Pweeg or any level object (ledges, hazards, buttons, gates, flags, collectibles, the finish) is behind them

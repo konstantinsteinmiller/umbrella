@@ -10,6 +10,7 @@ name: Deploy Static Content to Pages
 #                     `?art=lantern` (and /umbrella/<N>/lantern/ per revision from 11 on)
 #   /umbrella/sounds/ → sound + music listening page (latest)
 #   /umbrella/art-moodboards/ → art-concept rating page (static, from art-moodboards/)
+#   /umbrella/competitors/ → competitor + market report (static, from competitors/)
 #
 # Each push to main moves the tag `revision-<current N>` to that commit, so a
 # revision's URL keeps following main until the GDD opens the next revision;
@@ -145,6 +146,10 @@ jobs:
       - name: Art-concept moodboards → /umbrella/art-moodboards/
         working-directory: main
         run: cp -r art-moodboards "$GITHUB_WORKSPACE/dist/art-moodboards"
+
+      - name: Competitor report → /umbrella/competitors/
+        working-directory: main
+        run: cp -r competitors "$GITHUB_WORKSPACE/dist/competitors"
 
       - name: Build earlier revisions from their tags
         working-directory: main

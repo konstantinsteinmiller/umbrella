@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Umbrella — competitor report</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1d2230; --muted: #5d6475; --line: #dcd8cd;
+    --accent: #c2410c; --accent2: #1d6fa5; --good: #1a7f4b; --warn: #a15c00; --bad: #b3261e; --chip: #ece8dd;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11141c; --card: #1a1f2b; --ink: #e8eaf0; --muted: #9aa2b4; --line: #2b3242;
+      --accent: #ff9a62; --accent2: #6cb8ec; --good: #5fd39a; --warn: #f0b45a; --bad: #ff8a80; --chip: #262d3c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #11141c; --card: #1a1f2b; --ink: #e8eaf0; --muted: #9aa2b4; --line: #2b3242;
+    --accent: #ff9a62; --accent2: #6cb8ec; --good: #5fd39a; --warn: #f0b45a; --bad: #ff8a80; --chip: #262d3c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px 80px; }
+  header { padding: 40px 0 8px; }
+  h1 { font-size: clamp(28px, 5vw, 42px); margin: 0 0 6px; line-height: 1.1; }
+  .sub { color: var(--muted); margin: 0; }
+  nav { position: sticky; top: 0; background: var(--bg); border-bottom: 1px solid var(--line); z-index: 5; margin: 18px -16px 0; padding: 8px 16px; display: flex; gap: 6px; overflow-x: auto; }
+  nav a { white-space: nowrap; color: var(--ink); text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 999px; background: var(--chip); }
+  nav a:hover { outline: 2px solid var(--accent); }
+  section { margin-top: 44px; scroll-margin-top: 56px; }
+  h2 { font-size: 26px; margin: 0 0 6px; }
+  h3 { font-size: 18px; margin: 22px 0 6px; }
+  p { margin: 8px 0; }
+  .lead { font-size: 18px; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card h3 { margin-top: 0; }
+  .kpi { font-size: 30px; font-weight: 700; line-height: 1.1; }
+  .kpi small { display: block; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 4px; }
+  .chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); margin-right: 4px; }
+  .chip.good { color: var(--good); } .chip.warn { color: var(--warn); } .chip.bad { color: var(--bad); }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--chip); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  .scroll { overflow-x: auto; }
+  .scroll table { min-width: 720px; }
+  .note { border-left: 4px solid var(--warn); background: var(--card); padding: 10px 14px; border-radius: 0 10px 10px 0; margin: 14px 0; font-size: 15px; }
+  .note.info { border-left-color: var(--accent2); }
+  ul { padding-left: 20px; margin: 6px 0; } li { margin: 3px 0; }
+  .bar { display: grid; grid-template-columns: 150px 1fr 70px; gap: 8px; align-items: center; margin: 6px 0; font-size: 14px; }
+  .bar i { display: block; height: 14px; border-radius: 7px; background: var(--accent2); }
+  .calc { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 12px 0; }
+  .calc label { font-size: 13px; color: var(--muted); display: block; }
+  .calc input { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 16px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  a { color: var(--accent2); }
+  .src li { font-size: 14px; word-break: break-word; }
+  footer { margin-top: 50px; color: var(--muted); font-size: 13px; }
+  .theme { float: right; background: var(--chip); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <button class="theme" id="theme" type="button" aria-label="Toggle light / dark">◐</button>
+  <h1>Umbrella — competitor report</h1>
+  <p class="sub">Wind + umbrella/glider platformers · what they do better · where Umbrella can grow · money &amp; player projections · compiled 2026-11-03 from public web sources</p>
+</header>
+<nav aria-label="Sections">
+  <a href="#summary">Summary</a><a href="#landscape">Competitors</a><a href="#better">They do better</a><a href="#incorporate">What to add</a>
+  <a href="#audience">Audience</a><a href="#playtime">Playtime</a><a href="#poki">Win Poki</a><a href="#money">Money</a><a href="#growth">Growth</a><a href="#risks">Risks</a><a href="#sources">Sources</a>
+</nav>
+
+<section id="summary">
+  <h2>Summary</h2>
+  <p class="lead">Umbrella sits in a thin niche: <b>wind as the puzzle, the umbrella as the only tool</b>. Nobody found in this research ships exactly that on a big web portal. The nearest games are either premium indie titles that treat the umbrella as a multi-purpose action tool (Gunbrella, Emma's Umbrella, Moonbrella) or tiny itch.io prototypes (Windward, Bea &amp; Brolly). Web portals reward adjacent "glide / one-input flow" games (paper-plane titles on CrazyGames and Poki).</p>
+  <div class="grid">
+    <div class="card"><div class="kpi">~0<small>direct, successful web-portal competitors found for "wind + umbrella puzzle platformer" — a gap, not proof of demand</small></div></div>
+    <div class="card"><div class="kpi">30–50 s<small>where Poki playtesters leave Umbrella today (own data; ~70 playtests, longest 7 min)</small></div></div>
+    <div class="card"><div class="kpi">100 M<small>monthly players on Poki (Poki's own figure); 625 M in 2025</small></div></div>
+    <div class="card"><div class="kpi">€1 M / yr<small>what Poki says its best single game earns from rewarded video alone</small></div></div>
+  </div>
+  <div class="note info"><b>Read this first.</b> Facts are tagged with a source number [n]. <b>Projections are scenario models built on stated assumptions, not forecasts:</b> no source found gives a reliable revenue-per-play for web portals, and Umbrella's real play counts are in the Poki dashboard, not in this repo. Replace the assumed inputs in the calculators with real numbers before relying on any dollar figure.</div>
+  <h3>The five things that matter most</h3>
+  <ol>
+    <li><b>Fix the first 60 seconds before anything else.</b> Money on web portals scales with ad impressions per session; sessions that end after 30–50 s cannot earn, whatever the traffic.</li>
+    <li><b>Give the umbrella a second verb.</b> Every successful umbrella game found uses it for more than float/close (dash, jab, swing, build platforms, dive for speed).</li>
+    <li><b>Add a meta loop</b> (unlockable umbrellas/skins, daily challenge, ghost races, stars → rewards). Umbrella already has time-stars, a level editor and community levels — the pieces exist but are not a loop yet.</li>
+    <li><b>Treat web portals as the funnel, not the destination.</b> The realistic upside is the same game as a paid Steam title (with the level editor as the selling point) and/or a hybrid-casual mobile build.</li>
+    <li><b>Use Poki Playtest rounds deliberately</b> (the new Playtest Build chapter does this): one change per round, measure % of players past 90 s.</li>
+  </ol>
+</section>
+
+<section id="landscape">
+  <h2>Competitive landscape</h2>
+  <p>Grouped by how close they are to Umbrella's core idea. "Evidence" is what the public pages show; sales are rarely public, so estimates are labelled.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Game</th><th>Where</th><th>Umbrella / wind use</th><th>Evidence of success</th><th>Threat</th></tr></thead>
+    <tbody>
+      <tr><td colspan="5"><b>Tier 1 — umbrella is the core mechanic</b></td></tr>
+      <tr><td><b>Gunbrella</b> (doinksoft / Devolver, 2023)</td><td>Steam, Switch · €14.79</td><td>Weapon-umbrella: glide, swing, dash, dive [1]</td><td>85% positive of 944 reviews, Metacritic 81 [1]; third-party estimate ≈ 28.9 k units / ≈ $311 k gross on Steam only [2] (unofficial)</td><td><span class="chip warn">Medium</span> sets the quality bar, different audience</td></tr>
+      <tr><td><b>Emma's Umbrella</b> (2025)</td><td>Steam · €1.99</td><td>Float, dash, hang from pipes, <i>create temporary platforms</i>, wall-jump [3]</td><td>90% positive, only 11 reviews [3] → small hit</td><td><span class="chip">Low</span> proves a cheap niche exists</td></tr>
+      <tr><td><b>Moonbrella</b> (in development)</td><td>Steam, demo out</td><td>Umbrella jabs into terrain, floats, hooks ledges; physics Metroidvania [4]</td><td>No reviews yet; release "coming soon" [4]</td><td><span class="chip warn">Medium</span> same physics-umbrella pitch, deeper</td></tr>
+      <tr><td><b>Upbrella</b> (in development)</td><td>Steam</td><td>Puzzle platformer where "every trick you discover reopens the world" using only an umbrella [5]</td><td>No review / price data found [5]</td><td><span class="chip warn">Medium</span> closest <i>puzzle</i> framing</td></tr>
+      <tr><td><b>Windward</b> (itch.io, HTML5)</td><td>Browser</td><td>Hover on vents, glide, six levels [6]</td><td>Prototype; no numbers found (page blocked automated access)</td><td><span class="chip good">Low</span> but the closest in format</td></tr>
+      <tr><td><b>Bea &amp; Brolly</b>, <b>The Umbrella Game</b>, <b>Umbrage</b>, others</td><td>itch.io</td><td>Drafts / wind steer an umbrella [7][6]</td><td>Prototypes: 4.5★ from 2 ratings [7]</td><td><span class="chip good">Low</span></td></tr>
+      <tr><td colspan="5"><b>Tier 2 — glide / float feel without an umbrella</b></td></tr>
+      <tr><td><b>Ynglet</b> (Nifflas / Akupara)</td><td>Steam</td><td>Jump, dash, slide, bounce, <i>float</i> in a sky, no platforms [8]</td><td>98% positive, 296 reviews; Metacritic 81 [8]</td><td><span class="chip">Low</span> shows pure "feel" + art sells</td></tr>
+      <tr><td><b>Paperly: Paper Plane Adventure</b>, <b>Paper Airplane</b></td><td>CrazyGames</td><td>Steer a glider; dive for speed, climb loses it [9]</td><td>Ratings 9.4 and 8.6 (CrazyGames, last 6 months) [9]</td><td><span class="chip bad">High for attention</span> same portal shelf, simpler loop</td></tr>
+      <tr><td><b>Papery Planes</b></td><td>Poki</td><td>Fly as far as possible, weather, unlock planes [9]</td><td>~4.5 from ~18.5 k votes (third-party mirror, weak source) [9]</td><td><span class="chip bad">High</span> endless-run loop retains better than 27 levels</td></tr>
+      <tr><td><b>Alto's Adventure</b> / <b>Odyssey</b></td><td>Mobile</td><td>Momentum, glide, mood; wind as atmosphere</td><td>Alto's Adventure: >$3.5 M lifetime gross (Sensor Tower, 2018) [10]; free version listed at 67 M installs, ~$200 K/month [10]; Odyssey $1 M in 8 months [10]</td><td><span class="chip">Aspirational</span> proves calm + one-touch can scale</td></tr>
+      <tr><td><b>Tiny Wings</b></td><td>iOS</td><td>One-tap glide over hills</td><td>#1 UK downloads within six days of launch [10]; lifetime totals not found</td><td><span class="chip">Aspirational</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Steam review counts (a rough proxy for sales)</h3>
+  <div id="rev"></div>
+  <p class="sub">Rule of thumb (Boxleiter-style, heuristic, not a measurement): units sold ≈ 30–50 × review count. For Gunbrella that gives ≈ 28–47 k, which matches the third-party estimate [2]. Emma's Umbrella would be ≈ 330–550 units; Ynglet ≈ 9–15 k.</p>
+
+  <h3>Where Umbrella is different</h3>
+  <ul>
+    <li><b>Wind is the puzzle, not decoration</b> — currents, super streams, buttons that change direction, gates (levels are authored around reading air).</li>
+    <li><b>Risk that you can feel</b> — fall too far and you splat; opening at speed flips the umbrella inside out.</li>
+    <li><b>A built-in editor with share links and a community list</b> — none of the umbrella games found ship that.</li>
+    <li><b>Runs everywhere</b> — web portals, touch and desktop, 21 languages.</li>
+  </ul>
+</section>
+
+<section id="better">
+  <h2>What competitors do better than Umbrella</h2>
+  <div class="grid">
+    <div class="card"><h3>Verb depth</h3><p>Gunbrella (glide, swing, dash, dive) [1], Emma's Umbrella (float, dash, hang, build platforms, wall-jump) [3] and Moonbrella (jab, hook, float) [4] all use the umbrella as a toolkit. Umbrella has two states: open and closed.</p></div>
+    <div class="card"><h3>A reason to come back</h3><p>Papery Planes unlocks planes; Alto's has goals and moods [9][10]; Gunbrella has scrap → upgrades [1]. Umbrella has stars and a level list, but no progression that changes how it plays.</p></div>
+    <div class="card"><h3>Instant, endless loop</h3><p>The CrazyGames/Poki paper-plane games are "tap and fly" from second one, with score as the goal [9]. Umbrella's first 20–30 s are loader, tap and intro (own playtest report), then levels 4–5 are a wall.</p></div>
+    <div class="card"><h3>Identity &amp; hook line</h3><p>"A gun that is also an umbrella" and "a floating non-platformer" [1][8] are one-sentence hooks. Umbrella's store text is accurate but generic ("one-button sky platformer").</p></div>
+    <div class="card"><h3>Production &amp; publisher muscle</h3><p>Gunbrella was acquired and published by Devolver [2]; Ynglet by Akupara [8]. Umbrella is a solo web build with no marketing budget.</p></div>
+    <div class="card"><h3>Discoverability tools</h3><p>Moonbrella uses a public Steam demo [4]; Poki pushes new games it can measure fast. Umbrella's levels 1–3 are near-automatic, so a short demo does not yet show the "wind puzzle" hook.</p></div>
+  </div>
+</section>
+
+<section id="incorporate">
+  <h2>What Umbrella could incorporate</h2>
+  <p>Ordered by expected impact on retention per unit of work. All fit the existing engine/editor.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th>Idea</th><th>Seen in</th><th>Why it helps</th><th>Effort</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>10-second first win</b>: a level-1 where the player floats once and lands on the finish; wordless coach (already added for touch)</td><td>Paper-plane portal games [9]</td><td>Poki playtesters leave after 30–50 s; reaching a first win quickly is the lever</td><td>Low</td></tr>
+      <tr><td>2</td><td><b>Dive-for-speed energy trade</b>: closed umbrella dives faster and stores speed, open umbrella spends it</td><td>Paperly [9]</td><td>Adds a skill ceiling and a score to chase on the same controls</td><td>Medium</td></tr>
+      <tr><td>3</td><td><b>Umbrella as a tool</b>: pogo-jab off hazards/floor, hook ledges, or a "gust burst" that costs a charge</td><td>Moonbrella, Gunbrella, Emma's [1][3][4]</td><td>Second verb; unlocks new level designs and trailer moments</td><td>Medium–high</td></tr>
+      <tr><td>4</td><td><b>Collectible umbrellas / skins</b> earned by stars, plus an earned-only trophy skin</td><td>Papery Planes, Alto's [9][10]</td><td>Meta goal; feeds rewarded-ad placements without paywalls</td><td>Low–medium</td></tr>
+      <tr><td>5</td><td><b>Daily level + ghost replay</b> of the friend/best run</td><td>Mobile casual standard</td><td>Return visits; the leaderboard/worker stack exists</td><td>Medium</td></tr>
+      <tr><td>6</td><td><b>Endless wind-run mode</b> built from level-editor chunks</td><td>Papery Planes, Alto's, Tiny Wings [9][10]</td><td>The retention shape portals reward; reuses authored chunks</td><td>Medium</td></tr>
+      <tr><td>7</td><td><b>Rewarded retry / checkpoint</b> and a rewarded second umbrella charge</td><td>Poki guidance on rewarded video [11]</td><td>Poki reports its top game earns up to €1 M a year from rewarded video alone [11]</td><td>Low (hooks exist)</td></tr>
+      <tr><td>8</td><td><b>Steam demo + Steam page</b> featuring the level editor and community levels</td><td>Moonbrella demo [4]</td><td>The only umbrella game with a player-level editor</td><td>High</td></tr>
+      <tr><td>9</td><td><b>Sharper one-line hook</b> and store art</td><td>Gunbrella, Ynglet [1][8]</td><td>Click-through: "the wind is the puzzle" (cover tests already prepared)</td><td>Low</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="audience">
+  <h2>Audiences Umbrella could target</h2>
+  <p class="sub">No reliable age/gender data was found for any portal; the groups below are inferred from what the competing games attract.</p>
+  <div class="grid">
+    <div class="card"><h3>1 · Portal casual players <span class="chip good">now</span></h3><p>Short-session, desktop and mobile players on Poki/CrazyGames (Poki says 40 % mobile by its own count, Similarweb ≈ 32 % [12]). They reward instant fun and a visible next goal.</p></div>
+    <div class="card"><h3>2 · Cozy / precision indie fans <span class="chip">next</span></h3><p>Steam players of Ynglet, Emma's Umbrella, Gris-like art games: willing to pay €2–15 for feel and art [3][8].</p></div>
+    <div class="card"><h3>3 · Level creators &amp; sharers <span class="chip">next</span></h3><p>People who like making and sending levels (Mario-Maker audience). Umbrella's share links make each creator a distribution channel.</p></div>
+    <div class="card"><h3>4 · Speedrunners &amp; streamers <span class="chip">later</span></h3><p>Time-stars, leaderboards and deterministic levels suit short speedrun videos.</p></div>
+    <div class="card"><h3>5 · Families &amp; school-break players <span class="chip">later</span></h3><p>One-button play and a calm tone suit unblocked-friendly portals; needs a clean content rating and no heavy ads.</p></div>
+    <div class="card"><h3>6 · Mobile hybrid-casual <span class="chip warn">needs UA budget</span></h3><p>A native build with rewarded ads and IAP skins. Medians: D1 ≈ 22 %, D7 ≈ 3.4–3.9 % across mobile games [13].</p></div>
+  </div>
+</section>
+
+<section id="playtime">
+  <h2>Average playtime: Poki and CrazyGames</h2>
+  <p>Portals do not publish per-game playtime. What exists are site-wide visit durations from traffic estimators (different tools disagree) and Poki's own target for a good game. The per-game figures below are <b>derived estimates</b>.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Measure</th><th>Value</th><th>Source / confidence</th></tr></thead>
+    <tbody>
+      <tr><td>poki.com, average <i>session on the site</i></td><td>≈ 15 min 10 s (Jan 2026, 150 M visits)</td><td>Semrush [16] · medium; counts the whole visit across several games</td></tr>
+      <tr><td>crazygames.com, average visit</td><td>≈ 7 min 44 s, 4.05 pages per visit</td><td>one undated Similarweb comparison page, columns inferred [17] · low</td></tr>
+      <tr><td>CrazyGames regional domains (BR, ID, HU)</td><td>≈ 15–18 min</td><td>Semrush [16] · low; other countries' sites</td></tr>
+      <tr><td>Top-100 US gaming sites, average visit</td><td>≈ 8 min 25 s, 7.4 pages</td><td>Similarweb benchmark [17] · low (undated)</td></tr>
+      <tr><td><b>Poki's target for one game</b></td><td><b>5+ min average playtime</b> (10+ for management/simulation); 65 %+ conversion to play</td><td>Poki developer guide [14] · official</td></tr>
+      <tr><td>Umbrella today (Poki playtests)</td><td>quits at 30–50 s; very few reach 2:30; longest 7:00 of ~70</td><td>own data</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Estimated playtime of one game (per session)</h3>
+  <div id="ptime"></div>
+  <p class="sub"><b>How these were derived:</b> a CrazyGames visit of ≈ 7¾ min over ≈ 4 pages is ≈ 2 min per page, so a game that holds a player is plausibly 2–5 min there. Poki's 15 min visit is spread over several games, and Poki's own bar for a healthy game is 5+ min, so a typical decent Poki game likely sits around 3–6 min. These are inferences, not measurements: your own Poki Player Fit Test histogram (500 players) replaces them with the real thing.</p>
+  <div class="note info">Umbrella is roughly <b>6–10× below</b> Poki's 5-minute bar. At about 40–60 s per level, reaching 5 minutes means a typical player must clear <b>5–7 levels in one sitting</b> — today most leave around level 4–5.</div>
+</section>
+
+<section id="poki">
+  <h2>How to win over the Poki audience</h2>
+  <p>Poki decides with three measurements [14]: <b>Playtest</b> (recordings, the "why"), <b>Player fit test</b> (playtime histogram across 500 players, the "how much"), and <b>Web fit test</b> (CTR, time on page and conversion to play against category averages, ~10,000 players). Trade coverage adds that recommendations favour engagement such as average playtime and conversion over paid acquisition [11].</p>
+  <h3>Read the histogram, then fix that part (Poki's own diagnosis [14] mapped to Umbrella)</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>What the data shows</th><th>Poki's likely cause</th><th>What Umbrella's own evidence says</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>Leans left: quits in the first minute</td><td>Onboarding or loading</td><td>20–30 s pass before the first real input; two taps; chapter banner</td><td>Static splash with wordmark (done), single tap start, 10-second first win, shorter or no banner on level 1</td></tr>
+      <tr><td>Starts well, drops mid-histogram</td><td>Not enough depth or no hook</td><td>Levels 1–3 near-automatic; levels 4–5 a wall; deaths show no cause</td><td>Smooth the 3→6 difficulty curve, telegraph deaths, add the meta loop (skins, stars → rewards)</td></tr>
+      <tr><td>Converts, then leaves quickly</td><td>Thumbnail overpromises, or an early difficulty wall</td><td>Cover images tested but not yet A/B'd on Poki</td><td>Make the cover match the first 20 s; A/B "danger" vs. other covers</td></tr>
+    </tbody>
+  </table></div>
+  <h3>What Poki's audience rewards (traits of its current top games [15])</h3>
+  <ul>
+    <li><b>Easy to learn with no tutorial</b>, tap/drag/swipe controls that work on desktop and phone, and sessions of seconds to a couple of minutes — Umbrella's one-button play already fits; the coach and first-win level close the gap.</li>
+    <li><b>Strong feedback on every action</b> and <b>instant restart</b> — a close cousin on the Popular list is the short-level "rage" platformer Level Devil; Umbrella's splat can become that same "one more try" loop if restart is immediate and the cause of death is obvious.</li>
+    <li><b>Shareable moments</b> (funny failures, high scores) — add a replay/ghost or a share link on the splat and win screens.</li>
+    <li><b>Retention hooks</b> — progression, upgrades, unlocks, instant restarts [15].</li>
+    <li><b>Earned rewarded video</b> — rewards that feel earned rather than interrupting give higher retention, and one Poki game earns up to €1 M a year from rewarded video alone [11].</li>
+  </ul>
+  <h3>A 6-round plan using the Playtest Build</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Round</th><th>Playtest Build chapter</th><th>One change</th><th>Measure</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Levels 1–10</td><td>10-second first win + shorter intro</td><td>conversion to play (target 65 %+), % past 60 s</td></tr>
+      <tr><td>2</td><td>Levels 1–10</td><td>Telegraphed deaths + instant restart</td><td>% past 90 s, retries per level</td></tr>
+      <tr><td>3</td><td>Levels 4–10 re-ordered for a gentler 3→6 ramp</td><td>Difficulty curve</td><td>level 4–5 drop-off</td></tr>
+      <tr><td>4</td><td>Levels 11–20</td><td>Second umbrella verb introduced in level 11</td><td>average playtime (target 5+ min)</td></tr>
+      <tr><td>5</td><td>Levels 1–10</td><td>Collectible umbrellas + rewarded retry</td><td>return rate, average playtime</td></tr>
+      <tr><td>6</td><td>Levels 25–30</td><td>Late-game check with fresh players</td><td>completion, playtime</td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub">Poki's guidance: change <b>one</b> thing, retest with playtests or a player fit test, and only then run another web fit test [14]. Ten recordings show why players leave but are not statistics [14].</p>
+</section>
+
+<section id="money">
+  <h2>How profitable could it become?</h2>
+  <div class="note"><b>Assumption-driven.</b> Every number below is Scenario = (inputs you can change) × (formula shown). Sourced facts: Poki's 50/50 split on Poki-sourced traffic and 100 % on your own traffic (one guide, unverified) [12]; CrazyGames "up to 55–60 %" (sources disagree) [12]; hybrid-casual ARPDAU $0.15–0.50 (vendor blog) [13]. <b>No source gave eCPM or revenue per 1,000 plays for web portals</b> — the inputs below are assumptions to be replaced with your Poki dashboard values.</div>
+
+  <h3>A · Web portals (Poki / CrazyGames) — ad revenue</h3>
+  <p>Monthly revenue = sessions × ad impressions per session × eCPM ÷ 1000 × developer share.</p>
+  <div class="calc" id="calcWeb"></div>
+  <div class="scroll"><table id="webTable"></table></div>
+
+  <h3>B · Steam (premium) — one-off sales</h3>
+  <p>Net per unit ≈ price × 0.70 (Steam's cut) × ~0.85 (VAT, refunds, regional pricing) — an assumption. Units come from the review heuristic above.</p>
+  <div class="scroll"><table id="steamTable"></table></div>
+  <p class="sub">Reference: Emma's Umbrella (€1.99, 11 reviews) ≈ a few hundred units [3]; Ynglet 296 reviews [8]; Gunbrella ≈ 28.9 k units / ≈ $311 k gross, third-party [2]. Publisher, art and marketing explain most of the gap between rows.</p>
+
+  <h3>C · Mobile hybrid-casual</h3>
+  <p>Monthly revenue = DAU × ARPDAU × 30. Organic only; paid acquisition cost per install was not found for this genre, so profit after UA is <b>not</b> modelled.</p>
+  <div class="scroll"><table id="mobTable"></table></div>
+
+  <h3>Realistic reading</h3>
+  <ul>
+    <li><b>Today:</b> a funnel that loses most players at 30–50 s earns tens of dollars a month even with decent traffic (see the "Base" row).</li>
+    <li><b>Most plausible upside (12 months):</b> fix the funnel, add a meta loop and rewarded hooks → low four figures per month on portals, plus a Steam release in the €5–25 k range if the editor lands.</li>
+    <li><b>Tail case:</b> a portal feature or viral level-sharing could reach five figures per month — it is a lottery ticket made more likely by retention, not a plan.</li>
+  </ul>
+</section>
+
+<section id="growth">
+  <h2>Player growth projections</h2>
+  <p>Monthly sessions over 12 months for the three web scenarios (same inputs as above; change them in the calculator). The starting point (20 k sessions/month) is a <b>placeholder</b> — set it to your real Poki figure.</p>
+  <div id="chart"></div>
+  <div class="scroll"><table id="growTable"></table></div>
+  <h3>What would move each scenario</h3>
+  <ul>
+    <li><b>Base → Funnel fixed:</b> past-90-seconds rate (Poki Playtest A/B), first-win level, readable deaths, cover image CTR.</li>
+    <li><b>Funnel fixed → Portal feature:</b> a retention that portals' algorithms reward (return visits, session length), then curation/featuring; both Poki and CrazyGames are said to promote games they can measure fast [11][12].</li>
+    <li><b>Spillover:</b> every shared level link is free acquisition; track shared-level opens per player.</li>
+  </ul>
+</section>
+
+<section id="risks">
+  <h2>Risks &amp; caveats</h2>
+  <ul>
+    <li><span class="chip bad">Niche size</span> only a handful of umbrella games sell, and most have tiny review counts [3][5].</li>
+    <li><span class="chip bad">Crowding</span> over 15,000 HTML5 games shipped in H1 2025, 2.7× H1 2024 [12].</li>
+    <li><span class="chip warn">Source quality</span> market-size and visitor numbers vary by source (e.g. CrazyGames 35–90 M); revenue estimates for Gunbrella are third-party [2]; Windward's page could not be read automatically.</li>
+    <li><span class="chip warn">Direct rivals</span> Moonbrella and Upbrella may reach Steam with the same pitch and more depth [4][5].</li>
+    <li><span class="chip warn">Revenue share</span> terms differ by traffic source and deal; check the portal contracts [12].</li>
+  </ul>
+</section>
+
+<section id="sources">
+  <h2>Sources</h2>
+  <ol class="src">
+    <li>[1] Gunbrella on Steam — <a href="https://store.steampowered.com/app/1580180/Gunbrella/">store.steampowered.com/app/1580180</a></li>
+    <li>[2] Gunbrella estimates — <a href="https://steamdata.ai/game/1580180">steamdata.ai</a>; Devolver acquisition — <a href="https://gematsu.com/2023/04/devolver-digital-acquires-doinksoft">gematsu.com</a></li>
+    <li>[3] Emma's Umbrella on Steam — <a href="https://store.steampowered.com/app/3489990">store.steampowered.com/app/3489990</a></li>
+    <li>[4] Moonbrella on Steam — <a href="https://store.steampowered.com/app/3433800">store.steampowered.com/app/3433800</a></li>
+    <li>[5] Upbrella — <a href="https://nodal.gg/game/upbrella-4939600">nodal.gg</a> · <a href="https://store.steampowered.com/app/4939600/">Steam</a></li>
+    <li>[6] Windward (itch.io, HTML5) — <a href="https://mathisjean2.itch.io/windward">mathisjean2.itch.io/windward</a> · itch.io umbrella games — <a href="https://itch.io/games/tag-umbrella">itch.io/games/tag-umbrella</a></li>
+    <li>[7] Bea &amp; Brolly — <a href="https://chickentrain.itch.io/bea-and-brolly">chickentrain.itch.io</a> · Bella — <a href="https://stanfordstudentgames.itch.io/bella">stanfordstudentgames.itch.io/bella</a> · The Umbrella Game — <a href="https://umbrellagame.itch.io/theumbrellagame-september-beta">umbrellagame.itch.io</a></li>
+    <li>[8] Ynglet on Steam — <a href="https://store.steampowered.com/app/1015920/Ynglet">store.steampowered.com/app/1015920</a></li>
+    <li>[9] Paperly — <a href="https://www.crazygames.com/game/paperly-paper-plane-adventure">CrazyGames</a> · Paper Airplane — <a href="https://www.crazygames.com/game/paper-airplane-vmo">CrazyGames</a> · Papery Planes — <a href="https://webcatalog.io/games/poki-papery-planes">webcatalog.io</a></li>
+    <li>[10] Alto's Adventure — <a href="https://appgoblin.info/apps/com.noodlecake.altosadventure">AppGoblin</a> · <a href="https://www.pocketgamer.biz/news/69361/altos-odyssey-earns-1-million-in-its-first-eight-months/">PocketGamer.biz</a> · Tiny Wings — <a href="https://www.pocketgamer.com/tiny-wings/overnight-iphone-smash-tiny-wings-storms-ahead-of-angry-birds-tops-the-uk-app-st">PocketGamer</a></li>
+    <li>[11] Poki 2025 interview — <a href="https://mobidictum.com/pokis-web-gaming-interview-michiel-van-amerongen">mobidictum.com</a> · <a href="https://www.superjumpmagazine.com/what-pokis-100-million-monthly-gamers-reveal-about-the-future-of-browser-games/">Superjump</a></li>
+    <li>[12] Portal terms and market — <a href="https://app.cinevva.com/guides/publish-game-poki">Cinevva Poki guide</a> · <a href="https://multigamedev.blogspot.com/2025/11/html5-game-publishing-platforms-and-monetization.html">multigamedev</a> · <a href="https://gamedevreports.substack.com/p/playgama-most-popular-engines-for">Playgama H1'25</a> · <a href="https://windowsreport.com/?p=1492218">Windows Report</a></li>
+    <li>[13] Mobile benchmarks — <a href="https://gamedevreports.substack.com/p/gameanalytics-mobile-gaming-benchmarks">GameAnalytics (via GameDev Reports)</a> · <a href="https://blog.playio.co/arpdau-benchmarks-mobile-games">ARPDAU benchmarks</a> · <a href="https://gameindustrylibrary.com/documents/mobile-casual-benchmarks-report-2025">Appodeal casual report 2025</a></li>
+    <li>[14] Poki developer guide, reading results — <a href="https://developers.poki.com/guide/reading-results">developers.poki.com/guide/reading-results</a></li>
+    <li>[15] Top Poki games, Nov 2025 — <a href="https://multigamedev.blogspot.com/2025/11/top-10-poki-games-2025.html">multigamedev.blogspot.com</a> (traits are the author's inference)</li>
+    <li>[16] Visit duration — <a href="https://www.semrush.com/website/poki.com/overview">Semrush poki.com</a> · <a href="https://www.semrush.com/website/crazygames.co.id/overview">Semrush crazygames.co.id</a></li>
+    <li>[17] <a href="https://www.similarweb.com/website/webgltest-17af1.firebaseapp.com/vs/crazygames.com">Similarweb comparison incl. crazygames.com</a> · <a href="https://www.similarweb.com/blog/research/business-benchmarking/online-gaming-industry-benchmarks">Similarweb gaming benchmarks</a></li>
+    <li>Own data — Umbrella Poki playtests (about 70; players leave at 30–50 s; longest 7 min) and the three-agent playtest report in the project roadmap.</li>
+  </ol>
+</section>
+<footer>Umbrella · competitor report · figures are scenario models unless tagged with a source. Not financial advice.</footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = function (n) { return n >= 1000 ? '$' + Math.round(n).toLocaleString('en-US') : '$' + n.toFixed(n < 10 ? 2 : 0); };
+  var num = function (n) { return Math.round(n).toLocaleString('en-US'); };
+
+  // Theme toggle (stored per viewer, optional).
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem('umb-comp-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+  $('theme').addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark' || (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var next = dark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('umb-comp-theme', next); } catch (e) {}
+  });
+
+  // Steam review bars.
+  var revs = [['Gunbrella', 944], ['Ynglet', 296], ["Emma's Umbrella", 11]];
+  $('rev').innerHTML = revs.map(function (r) {
+    return '<div class="bar"><span>' + r[0] + '</span><span><i style="width:' + Math.max(1, r[1] / 944 * 100) + '%"></i></span><b>' + r[1] + '</b></div>';
+  }).join('');
+
+  // Playtime ranges (seconds); estimates, see the note under the chart.
+  var pt = [['Umbrella today', 30, 50, '#b3261e'], ['CrazyGames, one game (est.)', 120, 300, '#1d6fa5'], ['Poki, one decent game (est.)', 180, 360, '#1d6fa5'], ['Poki target (5+ min)', 300, 400, '#1a7f4b']];
+  var mm = function (x) { return Math.floor(x / 60) + ':' + ('0' + Math.round(x % 60)).slice(-2); };
+  $('ptime').innerHTML = pt.map(function (r, i) {
+    var max = 400, label = i === 3 ? '5:00+' : mm(r[1]) + '–' + mm(r[2]);
+    return '<div class="bar" style="grid-template-columns:200px 1fr 80px"><span>' + r[0] + '</span><span style="position:relative;display:block;height:14px;background:var(--chip);border-radius:7px"><i style="position:absolute;left:' + (r[1] / max * 100) + '%;width:' + ((r[2] - r[1]) / max * 100) + '%;background:' + r[3] + '"></i></span><b>' + label + '</b></div>';
+  }).join('');
+
+  // Web scenarios (inputs are assumptions).
+  var S = [
+    { name: 'Base (nothing changes)', start: 20000, growth: 0.02, imp: 1.3, ecpm: 3, share: 0.5, color: '#b3261e' },
+    { name: 'Funnel fixed + meta loop', start: 20000, growth: 0.20, imp: 3, ecpm: 5, share: 0.5, color: '#1d6fa5' },
+    { name: 'Portal feature / viral', start: 20000, growth: 0.45, imp: 4, ecpm: 6, share: 0.5, color: '#1a7f4b' }
+  ];
+  var fields = [['start', 'Sessions / month today'], ['imp', 'Ads / session (base, fixed, hit shown in table)'], ['ecpm', 'eCPM $ (base)'], ['share', 'Developer share (0–1)']];
+  $('calcWeb').innerHTML =
+    '<div><label>Sessions / month today (all scenarios)</label><input id="in_start" type="number" min="0" step="1000" value="20000"></div>' +
+    '<div><label>Developer share (0–1)</label><input id="in_share" type="number" min="0" max="1" step="0.05" value="0.5"></div>' +
+    '<div><label>eCPM multiplier (1 = table values)</label><input id="in_ecpm" type="number" min="0" step="0.1" value="1"></div>' +
+    '<div><label>Ads-per-session multiplier (1 = table values)</label><input id="in_imp" type="number" min="0" step="0.1" value="1"></div>';
+
+  function series(sc, k) {
+    var start = +$('in_start').value || 0, out = [], v = start;
+    for (var m = 0; m <= 12; m++) { out.push(v); v = v * (1 + sc.growth); }
+    return out;
+  }
+  function monthlyRevenue(sc, sessions) {
+    var share = +$('in_share').value, e = +$('in_ecpm').value, i = +$('in_imp').value;
+    return sessions * sc.imp * i * sc.ecpm * e / 1000 * share;
+  }
+  function render() {
+    var rows = S.map(function (sc) {
+      var s = series(sc), m12 = s[12], rev12 = monthlyRevenue(sc, m12);
+      var total = 0; for (var i = 1; i <= 12; i++) total += monthlyRevenue(sc, s[i]);
+      sc._s = s;
+      return '<tr><td><b>' + sc.name + '</b></td><td>' + (sc.growth * 100).toFixed(0) + '% / month</td><td>' + sc.imp + '</td><td>$' + sc.ecpm + '</td><td>' + num(m12) + '</td><td>' + fmt(rev12) + '</td><td>' + fmt(total) + '</td></tr>';
+    }).join('');
+    $('webTable').innerHTML = '<thead><tr><th>Scenario</th><th>Session growth</th><th>Ads / session</th><th>eCPM (assumed)</th><th>Sessions in month 12</th><th>Revenue in month 12</th><th>Revenue over 12 months</th></tr></thead><tbody>' + rows + '</tbody>';
+    $('growTable').innerHTML = '<thead><tr><th>Scenario</th>' + [0, 3, 6, 9, 12].map(function (m) { return '<th>Month ' + m + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      S.map(function (sc) { return '<tr><td><b>' + sc.name + '</b></td>' + [0, 3, 6, 9, 12].map(function (m) { return '<td>' + num(sc._s[m]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody>';
+    drawChart();
+  }
+
+  function drawChart() {
+    var W = 720, H = 300, L = 54, B = 28, T = 12, R = 120;
+    var max = 0; S.forEach(function (sc) { max = Math.max(max, sc._s[12]); });
+    var logMax = Math.log10(Math.max(max, 10)), logMin = Math.log10(Math.max(S[0]._s[0], 1000)) - 0.3;
+    var x = function (m) { return L + (W - L - R) * m / 12; };
+    var y = function (v) { return T + (H - T - B) * (1 - (Math.log10(Math.max(v, 1)) - logMin) / (logMax - logMin)); };
+    var g = '';
+    for (var p = Math.ceil(logMin); p <= Math.floor(logMax); p++) {
+      g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(Math.pow(10, p)) + '" y2="' + y(Math.pow(10, p)) + '" stroke="currentColor" opacity=".12"/><text x="' + (L - 6) + '" y="' + (y(Math.pow(10, p)) + 4) + '" text-anchor="end">' + num(Math.pow(10, p)) + '</text>';
+    }
+    for (var m = 0; m <= 12; m += 3) g += '<text x="' + x(m) + '" y="' + (H - 8) + '" text-anchor="middle">m' + m + '</text>';
+    S.forEach(function (sc) {
+      var d = sc._s.map(function (v, m) { return (m ? 'L' : 'M') + x(m).toFixed(1) + ' ' + y(v).toFixed(1); }).join(' ');
+      g += '<path d="' + d + '" fill="none" stroke="' + sc.color + '" stroke-width="2.5"/><circle cx="' + x(12) + '" cy="' + y(sc._s[12]) + '" r="4" fill="' + sc.color + '"/>' +
+        '<text x="' + (x(12) + 8) + '" y="' + (y(sc._s[12]) + 4) + '">' + num(sc._s[12]) + '</text>';
+    });
+    $('chart').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Projected monthly sessions, three scenarios, log scale">' + g + '</svg>' +
+      '<p class="sub">' + S.map(function (sc) { return '<span style="color:' + sc.color + '">●</span> ' + sc.name; }).join(' &nbsp; ') + ' · logarithmic scale</p>';
+  }
+
+  ['in_start', 'in_share', 'in_ecpm', 'in_imp'].forEach(function (id) { $(id).addEventListener('input', render); });
+
+  // Steam scenarios.
+  var steam = [['Low (hidden gem)', 4.99, 1500], ['Mid (decent word of mouth)', 4.99, 8000], ['High (editor goes viral)', 7.99, 30000]];
+  $('steamTable').innerHTML = '<thead><tr><th>Scenario</th><th>Price (€)</th><th>Units</th><th>Gross</th><th>Net ≈ price × 0.70 × 0.85</th></tr></thead><tbody>' +
+    steam.map(function (r) { var gross = r[1] * r[2]; return '<tr><td><b>' + r[0] + '</b></td><td>' + r[1] + '</td><td>' + num(r[2]) + '</td><td>€' + num(gross) + '</td><td>€' + num(gross * 0.7 * 0.85) + '</td></tr>'; }).join('') + '</tbody>';
+
+  // Mobile scenarios.
+  var mob = [['Low', 1000, 0.15], ['Mid', 5000, 0.25], ['High', 20000, 0.40]];
+  $('mobTable').innerHTML = '<thead><tr><th>Scenario</th><th>DAU</th><th>ARPDAU (vendor range $0.15–0.50)</th><th>Revenue / month</th><th>Revenue / year</th></tr></thead><tbody>' +
+    mob.map(function (r) { var mth = r[1] * r[2] * 30; return '<tr><td><b>' + r[0] + '</b></td><td>' + num(r[1]) + '</td><td>$' + r[2].toFixed(2) + '</td><td>' + fmt(mth) + '</td><td>' + fmt(mth * 12) + '</td></tr>'; }).join('') + '</tbody>';
+
+  render();
+})();
+</script>
+</body>
+</html>
