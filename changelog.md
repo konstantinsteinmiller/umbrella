@@ -3,6 +3,7 @@ Umbrella — changelog (newest first)
 == Revision 15 — 2026-11-03 ==
 - [x] New level prop: the hint board (editor tool, key N, under Build): paper held by two lanterns showing the SPACE key and a big arrow pointing down; on phones and tablets it shows the round umbrella button instead of the key. Lantern build paints it with lit washi lanterns and a gold-rimmed vermilion arrow, the skinless build draws the flat marker-on-paper version. Decoration only, resizable, not placed in any level yet
 - [x] Second hint board, the float board (editor tool, Shift+N): the same lantern-held paper with Pweeg floating down under his open umbrella in a wavy current and a small arrow below; same look in both builds, no key or touch variant. The prop's `kind` is `float` (absent: the SPACE / umbrella-button board)
+- [x] Hint boards: the lanterns hold still so the board hangs firmly from them (the cords no longer wobble), and the arrow is now the fat solid black marker arrow (paper-white rim on the dark sky, gold rim in the lantern build)
 - [x] Touch umbrella button: with the umbrella shut its symbol fades while the round button and its outline stay clearly visible, so the pressable area shows
 - [x] Level grid: a tile with no rating and no collectible under its number is shorter (5:4 instead of 5:6) and no longer stretched to the height of its row
 - [x] Chapter blend-ins (the "World 1" card at the start and at each chapter's first level) are switched off for now; the card, its lanterns and the code stay behind one switch (CHAPTER_CARDS in UmbrellaScene.vue)

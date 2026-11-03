@@ -26,14 +26,14 @@ const DROP = {
   lanternH: 34,
   board: { x: 6, y: 54, w: 108, h: 58 },
   key: { x: 18, y: 66, w: 84, h: 34 },
-  arrow: { cx: 60, top: 118, shaftW: 20, headW: 50, shaftH: 20, headH: 30 }
+  arrow: { cx: 60, top: 117, shaftW: 32, headW: 68, shaftH: 20, headH: 30 }
 }
 /** The tall board: Pweeg floating under his umbrella, a small arrow at the foot. */
 const FLOAT: typeof DROP = {
   ...DROP,
   lanternX: [34, 86],
   board: { x: 24, y: 52, w: 72, h: 116 },
-  arrow: { cx: 60, top: 146, shaftW: 7, headW: 22, shaftH: 8, headH: 10 }
+  arrow: { cx: 60, top: 143, shaftW: 12, headW: 30, shaftH: 8, headH: 13 }
 }
 /** The geometry of the board being drawn (set by `enter`). */
 let L = DROP
@@ -266,7 +266,7 @@ const floatScene = (ctx: CanvasRenderingContext2D, time: number, lit: boolean): 
 /** Skinless: flat shapes, marker ink on paper. */
 export const drawSignVector = (ctx: CanvasRenderingContext2D, b: SignBox, time: number, kind?: SignKind): void => {
   enter(ctx, b, kind)
-  const sway = Math.sin(time * 1.6) * 0.03
+  const sway = 0
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
   lantern(ctx, L.lanternX[0]!, sway, false)
@@ -280,11 +280,15 @@ export const drawSignVector = (ctx: CanvasRenderingContext2D, b: SignBox, time: 
   ctx.stroke()
   if (kind === 'float') floatScene(ctx, time, false)
   else legend(ctx, false)
+  // The iconic arrow: a fat solid marker-black block arrow (a paper-white rim keeps it readable on the dark sky).
   arrowPath(ctx, Math.sin(time * 4) * 3)
-  ctx.fillStyle = '#f4efe2'
-  ctx.fill()
+  ctx.strokeStyle = '#f4efe2'
+  ctx.lineWidth = 7
+  ctx.stroke()
+  ctx.fillStyle = '#111'
   ctx.strokeStyle = '#111'
   ctx.lineWidth = 3
+  ctx.fill()
   ctx.stroke()
   ctx.restore()
 }
@@ -292,11 +296,11 @@ export const drawSignVector = (ctx: CanvasRenderingContext2D, b: SignBox, time: 
 /** Lantern build: lit washi lanterns, a washi board with fibres, a gold-edged vermilion arrow. */
 export const drawSignLantern = (ctx: CanvasRenderingContext2D, b: SignBox, time: number, kind?: SignKind): void => {
   enter(ctx, b, kind)
-  const sway = Math.sin(time * 1.4) * 0.05
+  const sway = 0
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
   lantern(ctx, L.lanternX[0]!, sway, true)
-  lantern(ctx, L.lanternX[1]!, -sway * 0.8, true)
+  lantern(ctx, L.lanternX[1]!, 0, true)
   const bd = L.board
   // Soft drop shadow, then the paper.
   ctx.save()
@@ -336,22 +340,21 @@ export const drawSignLantern = (ctx: CanvasRenderingContext2D, b: SignBox, time:
   ctx.stroke()
   if (kind === 'float') floatScene(ctx, time, true)
   else legend(ctx, true)
-  // The arrow, bobbing, vermilion with a gold rim.
+  // The iconic arrow: a fat solid ink-black block arrow with a lit gold rim, bobbing.
   const bob = Math.sin(time * 4) * 3
   ctx.save()
-  ctx.shadowColor = 'rgba(255, 150, 60, 0.6)'
+  ctx.shadowColor = 'rgba(255, 170, 70, 0.7)'
   ctx.shadowBlur = 10
   arrowPath(ctx, bob)
-  const a = L.arrow
-  const fill = ctx.createLinearGradient(0, a.top, 0, a.top + a.shaftH + a.headH)
-  fill.addColorStop(0, '#ff7a45')
-  fill.addColorStop(1, '#c2331d')
-  ctx.fillStyle = fill
-  ctx.fill()
+  ctx.strokeStyle = '#e8b84a'
+  ctx.lineWidth = 7
+  ctx.stroke()
   ctx.restore()
   arrowPath(ctx, bob)
-  ctx.strokeStyle = '#e8b84a'
-  ctx.lineWidth = 2.4
+  ctx.fillStyle = '#1c0b05'
+  ctx.strokeStyle = '#1c0b05'
+  ctx.lineWidth = 3
+  ctx.fill()
   ctx.stroke()
   ctx.restore()
 }
