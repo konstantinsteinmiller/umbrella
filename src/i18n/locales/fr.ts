@@ -270,6 +270,8 @@ export default {
       'angle': "Angle",
       'trigger': "Attaque quand le joueur est proche",
       'spawnOpen': "Commencer avec le parapluie ouvert",
+      'openTop': "Ouvert sur le ciel (sans plafond)",
+      'followTop': "La caméra suit le joueur vers le haut",
       'gateTo': "Mène à",
       'shape': "Apparence"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Le monde entier est affiché d'un coup (dézoomé s'il est plus grand qu'un écran).",
     'spawnSelected': "Départ du joueur (position des pieds).",
     'spawnOpenHint': "Le joueur démarre avec le parapluie déjà ouvert",
+    'openTopHint': "Aucun plafond n'arrête le joueur en haut. Avec la seconde option, la caméra monte avec lui ; sans elle, l'écran reste fixe et il peut en sortir par le haut.",
     'gateHint': "Le joueur ouvre le parapluie dans le tuyau et est emporté vers le niveau choisi. Ce niveau devient un défi : la campagne le saute et la sélection des niveaux le débloque une fois atteint.",
     'nothingSelected': "Rien de sélectionné — choisis un élément sur le canevas.",
     'switchedWindHint': "Tant que son canal de bouton est actif, ce courant devient :",

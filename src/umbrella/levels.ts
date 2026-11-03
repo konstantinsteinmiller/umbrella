@@ -169,6 +169,8 @@ export interface LevelDef {
   timeLimitJamOnly?: boolean
   /** Open to the sky: no ceiling stops the player, and the camera follows him up above the level's top. */
   openTop?: boolean
+  /** With `openTop`: the camera follows the player up above the level's top. Absent: the screen stays fixed. */
+  followTop?: boolean
   /** Where the top of the player stops against the ceiling (world y; absent: the default, 56). Lower = higher ceiling. */
   ceiling?: number
   /** When the editor last saved this level (ms since epoch). Edits made in several

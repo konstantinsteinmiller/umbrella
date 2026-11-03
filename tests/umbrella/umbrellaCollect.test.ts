@@ -51,7 +51,7 @@ describe('collectibles', () => {
   })
 
   it('an open-top level has no ceiling and the camera follows the player above its top edge', () => {
-    const lv = { ...level(0), openTop: true, winds: [{ x: 0, y: -2000, w: 1280, h: 2720, dir: 'up', speed: 900 }] } as LevelDef
+    const lv = { ...level(0), openTop: true, followTop: true, winds: [{ x: 0, y: -2000, w: 1280, h: 2720, dir: 'up', speed: 900 }] } as LevelDef
     const w = createWorld(lv, undefined, -1)
     w.player.open = true
     w.player.grounded = false
@@ -60,6 +60,10 @@ describe('collectibles', () => {
     expect(w.player.y).toBeLessThan(0)
     const cam = cameraFor(w, 1280, 720, 1 / 60)
     expect(cam.oy).toBeGreaterThan(0)
+    // Without the follow switch the screen stays fixed even though nothing stops him at the top.
+    const fixed = createWorld({ ...lv, followTop: false } as LevelDef, undefined, -1)
+    fixed.player.y = -300
+    expect(cameraFor(fixed, 1280, 720, 1 / 60).oy).toBeLessThanOrEqual(0.001 + (720 - 720) / 2)
     const closed = createWorld({ ...lv, openTop: false } as LevelDef, undefined, -1)
     expect(cameraFor(closed, 1280, 720, 1 / 60).oy).toBeLessThanOrEqual(0.001 + (720 - 720 * Math.min(1280 / 1280, 720 / 720)) / 2)
   })

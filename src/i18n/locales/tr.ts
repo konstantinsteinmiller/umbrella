@@ -270,6 +270,8 @@ export default {
       'angle': "Açı",
       'trigger': "Oyuncu yaklaşınca saldırır",
       'spawnOpen': "Şemsiye açık başla",
+      'openTop': "Gökyüzüne açık (tavansız)",
+      'followTop': "Kamera oyuncuyu yukarı doğru takip eder",
       'gateTo': "Gideceği yer",
       'shape': "Görünüm"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Tüm dünya bir kerede gösterilir (bir ekrandan büyükse uzaklaştırılır).",
     'spawnSelected': "Oyuncu başlangıcı (ayak konumu).",
     'spawnOpenHint': "Oyuncu şemsiyesi zaten açık olarak başlar",
+    'openTopHint': "Üstte oyuncuyu durduran bir tavan yoktur. İkinci seçenekle kamera onun ardından yukarı kayar; olmadan ekran sabit kalır ve oyuncu üstten ekran dışına çıkabilir.",
     'gateHint': "Oyuncu borunun içinde şemsiyeyi açıp seçilen bölüme taşınır. O bölüm meydan okumaya dönüşür: kampanya onu atlar, bölüm seçici ise ulaşılınca açar.",
     'nothingSelected': "Hiçbir şey seçilmedi — tuvalde bir şey seç.",
     'switchedWindHint': "Düğme kanalı açıkken bu akıntı şuna dönüşür:",

@@ -270,6 +270,8 @@ export default {
       'angle': "Angolo",
       'trigger': "Attacca quando il giocatore è vicino",
       'spawnOpen': "Inizia con l'ombrello aperto",
+      'openTop': "Aperto al cielo (senza soffitto)",
+      'followTop': "La telecamera segue il giocatore verso l'alto",
       'gateTo': "Porta a",
       'shape': "Aspetto"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Tutto il mondo è visibile insieme (con zoom indietro se è più grande di uno schermo).",
     'spawnSelected': "Partenza giocatore (posizione dei piedi).",
     'spawnOpenHint': "Il giocatore parte con l'ombrello già aperto",
+    'openTopHint': "Nessun soffitto ferma il giocatore in alto. Con la seconda opzione la telecamera sale con lui; senza, lo schermo resta fisso e lui può uscirne dall'alto.",
     'gateHint': "Il giocatore apre l'ombrello nel tubo e viene portato al livello scelto. Quel livello diventa una sfida: la campagna lo salta e la selezione livelli lo sblocca una volta raggiunto.",
     'nothingSelected': "Nessuna selezione — scegli qualcosa sulla tela.",
     'switchedWindHint': "Quando il suo canale è attivo, questa corrente diventa:",

@@ -273,6 +273,8 @@ export default {
       'angle': "Angle",
       'trigger': "Attacks when the player is near",
       'spawnOpen': "Start with the umbrella open",
+      'openTop': "Open to the sky (no ceiling)",
+      'followTop': "Camera follows the player up",
       'gateTo': "Leads to",
       'shape': "Look"
     },
@@ -281,6 +283,7 @@ export default {
     'wholeHint': "The whole world is shown at once (zoomed out if it is bigger than a screen).",
     'spawnSelected': "Player start (feet position).",
     'spawnOpenHint': "The player starts with the umbrella already open",
+    'openTopHint': "No ceiling stops the player at the top. With the second option the camera scrolls up after him; without it the screen stays fixed and he can leave it at the top.",
     'gateHint': "The player opens the umbrella inside the pipe to be carried to the chosen level. That level becomes a challenge: the campaign skips it and the level selector unlocks it once reached.",
     'nothingSelected': "Nothing selected — pick something on the canvas.",
     'switchedWindHint': "While its button channel is on, this current changes to:",

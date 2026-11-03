@@ -270,6 +270,8 @@ export default {
       'angle': "Winkel",
       'trigger': "Greift an, wenn der Spieler nah ist",
       'spawnOpen': "Mit offenem Schirm starten",
+      'openTop': "Offen zum Himmel (keine Decke)",
+      'followTop': "Kamera folgt dem Spieler nach oben",
       'gateTo': "Führt zu",
       'shape': "Aussehen"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Die ganze Welt wird auf einmal gezeigt (herausgezoomt, wenn sie größer als ein Bildschirm ist).",
     'spawnSelected': "Spielerstart (Fußposition).",
     'spawnOpenHint': "Der Spieler startet mit bereits geöffnetem Schirm",
+    'openTopHint': "Keine Decke hält den Spieler oben auf. Mit der zweiten Option scrollt die Kamera ihm nach; ohne sie bleibt der Bildschirm fest und er kann ihn oben verlassen.",
     'gateHint': "Der Spieler öffnet im Rohr den Schirm und wird zum gewählten Level getragen. Dieses Level wird zur Challenge: die Kampagne überspringt es, die Levelauswahl schaltet es frei, sobald es erreicht wurde.",
     'nothingSelected': "Nichts ausgewählt — wähle etwas auf der Fläche.",
     'switchedWindHint': "Solange sein Knopfkanal an ist, wird diese Strömung zu:",

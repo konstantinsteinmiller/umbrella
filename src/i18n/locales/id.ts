@@ -270,6 +270,8 @@ export default {
       'angle': "Sudut",
       'trigger': "Menyerang saat pemain dekat",
       'spawnOpen': "Mulai dengan payung terbuka",
+      'openTop': "Terbuka ke langit (tanpa langit-langit)",
+      'followTop': "Kamera mengikuti pemain ke atas",
       'gateTo': "Menuju",
       'shape': "Tampilan"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Seluruh dunia ditampilkan sekaligus (diperkecil jika lebih besar dari satu layar).",
     'spawnSelected': "Titik mulai pemain (posisi kaki).",
     'spawnOpenHint': "Pemain mulai dengan payung yang sudah terbuka",
+    'openTopHint': "Tidak ada langit-langit yang menahan pemain di atas. Dengan opsi kedua kamera bergulir ke atas mengikutinya; tanpa itu layar tetap diam dan ia bisa keluar dari atas.",
     'gateHint': "Pemain membuka payung di dalam pipa untuk dibawa ke level yang dipilih. Level itu menjadi tantangan: kampanye melewatinya dan pemilih level membukanya setelah dicapai.",
     'nothingSelected': "Tidak ada yang dipilih — pilih sesuatu di kanvas.",
     'switchedWindHint': "Saat saluran tombolnya aktif, arus ini berubah menjadi:",

@@ -270,6 +270,8 @@ export default {
       'angle': "Kąt",
       'trigger': "Atakuje, gdy gracz jest blisko",
       'spawnOpen': "Zacznij z otwartym parasolem",
+      'openTop': "Otwarty ku niebu (bez sufitu)",
+      'followTop': "Kamera podąża za graczem w górę",
       'gateTo': "Prowadzi do",
       'shape': "Wygląd"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Cały świat jest widoczny naraz (oddalony, jeśli jest większy niż ekran).",
     'spawnSelected': "Start gracza (pozycja stóp).",
     'spawnOpenHint': "Gracz zaczyna z już otwartym parasolem",
+    'openTopHint': "Żaden sufit nie zatrzymuje gracza u góry. Z drugą opcją kamera przewija się za nim w górę; bez niej ekran stoi w miejscu, a gracz może opuścić go górą.",
     'gateHint': "Gracz otwiera parasol w rurze i trafia na wybrany poziom. Ten poziom staje się wyzwaniem: kampania go pomija, a wybór poziomów odblokowuje go po dotarciu.",
     'nothingSelected': "Nic nie zaznaczono — wybierz coś na płótnie.",
     'switchedWindHint': "Gdy kanał przycisku jest włączony, ten prąd zmienia się na:",

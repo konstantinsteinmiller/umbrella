@@ -270,6 +270,8 @@ export default {
       'angle': "Ângulo",
       'trigger': "Ataca quando o jogador está perto",
       'spawnOpen': "Começar com o guarda-chuva aberto",
+      'openTop': "Aberto para o céu (sem teto)",
+      'followTop': "A câmera segue o jogador para cima",
       'gateTo': "Leva a",
       'shape': "Visual"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "O mundo inteiro aparece de uma vez (afastado se for maior que uma tela).",
     'spawnSelected': "Início do jogador (posição dos pés).",
     'spawnOpenHint': "O jogador começa com o guarda-chuva já aberto",
+    'openTopHint': "Nenhum teto para o jogador no alto. Com a segunda opção a câmera sobe atrás dele; sem ela a tela fica fixa e ele pode sair por cima.",
     'gateHint': "O jogador abre o guarda-chuva no tubo e é levado ao nível escolhido. Esse nível vira um desafio: a campanha o pula e a seleção de níveis o libera depois de alcançado.",
     'nothingSelected': "Nada selecionado — escolha algo na tela.",
     'switchedWindHint': "Enquanto o canal do botão estiver ligado, esta corrente muda para:",

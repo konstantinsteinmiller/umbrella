@@ -270,6 +270,8 @@ export default {
       'angle': "角度",
       'trigger': "玩家靠近时攻击",
       'spawnOpen': "以打开的伞开始",
+      'openTop': "向天空开放（无天花板）",
+      'followTop': "镜头跟随玩家向上",
       'gateTo': "通往",
       'shape': "外观"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "一次显示整个世界（比屏幕大时会缩小）。",
     'spawnSelected': "玩家起点（脚的位置）。",
     'spawnOpenHint': "玩家开局时雨伞已经打开",
+    'openTopHint': "顶部没有天花板拦住玩家。开启第二项后镜头会跟着他向上滚动；关闭时画面固定，他可以从顶部离开画面。",
     'gateHint': "玩家在管内打开雨伞，就会被带到所选关卡。该关卡成为挑战关：主线会跳过它，到达后才会在选关界面解锁。",
     'nothingSelected': "未选中任何物体——在画布上选一个。",
     'switchedWindHint': "按钮频道开启时，此气流变为：",

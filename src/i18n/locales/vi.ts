@@ -270,6 +270,8 @@ export default {
       'angle': "Góc",
       'trigger': "Tấn công khi người chơi đến gần",
       'spawnOpen': "Bắt đầu với ô đang mở",
+      'openTop': "Mở lên trời (không có trần)",
+      'followTop': "Camera theo người chơi lên cao",
       'gateTo': "Dẫn tới",
       'shape': "Kiểu dáng"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Hiện toàn bộ thế giới cùng lúc (thu nhỏ nếu lớn hơn màn hình).",
     'spawnSelected': "Điểm xuất phát (vị trí chân).",
     'spawnOpenHint': "Người chơi bắt đầu khi ô đã mở sẵn",
+    'openTopHint': "Không có trần nào chặn người chơi ở phía trên. Với tùy chọn thứ hai, camera cuộn lên theo; nếu tắt, màn hình đứng yên và người chơi có thể ra khỏi màn hình ở phía trên.",
     'gateHint': "Người chơi mở ô trong ống để được đưa tới màn đã chọn. Màn đó trở thành thử thách: chiến dịch bỏ qua nó và bảng chọn màn mở khóa khi đã tới.",
     'nothingSelected': "Chưa chọn gì — hãy chọn một vật trên khung vẽ.",
     'switchedWindHint': "Khi kênh nút bật, luồng gió này đổi thành:",

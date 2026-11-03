@@ -270,6 +270,8 @@ export default {
       'angle': "Burchak",
       'trigger': "O‘yinchi yaqinlashganda hujum qiladi",
       'spawnOpen': "Soyabon ochiq holda boshlash",
+      'openTop': "Osmonga ochiq (shiftsiz)",
+      'followTop': "Kamera o'yinchini yuqoriga kuzatadi",
       'gateTo': "Olib boradi",
       'shape': "Ko'rinish"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Butun dunyo birdaniga ko‘rsatiladi (ekrandan katta bo‘lsa, uzoqlashtiriladi).",
     'spawnSelected': "O‘yinchi starti (oyoq holati).",
     'spawnOpenHint': "O'yinchi soyabon allaqachon ochiq holda boshlaydi",
+    'openTopHint': "Yuqorida o'yinchini hech qanday shift to'xtatmaydi. Ikkinchi variant bilan kamera uning ortidan yuqoriga siljiydi; usiz ekran qo'zg'almaydi va u yuqoridan chiqib ketishi mumkin.",
     'gateHint': "O'yinchi quvur ichida soyabonni ochib, tanlangan bosqichga olib ketiladi. U bosqich sinovga aylanadi: kampaniya uni o'tkazib yuboradi, daraja tanlash esa yetib borilgach ochadi.",
     'nothingSelected': "Hech narsa tanlanmagan — kanvasdan biror narsani tanlang.",
     'switchedWindHint': "Tugma kanali yoqiq ekan, bu oqim quyidagiga o‘zgaradi:",

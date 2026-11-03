@@ -270,6 +270,8 @@ export default {
       'angle': "Ángulo",
       'trigger': "Ataca cuando el jugador está cerca",
       'spawnOpen': "Empezar con el paraguas abierto",
+      'openTop': "Abierto al cielo (sin techo)",
+      'followTop': "La cámara sigue al jugador hacia arriba",
       'gateTo': "Lleva a",
       'shape': "Aspecto"
     },
@@ -278,6 +280,7 @@ export default {
     'wholeHint': "Todo el mundo se ve a la vez (alejado si es mayor que una pantalla).",
     'spawnSelected': "Inicio del jugador (posición de los pies).",
     'spawnOpenHint': "El jugador empieza con el paraguas ya abierto",
+    'openTopHint': "Ningún techo detiene al jugador arriba. Con la segunda opción la cámara sube tras él; sin ella la pantalla queda fija y puede salir por arriba.",
     'gateHint': "El jugador abre el paraguas en el tubo y es llevado al nivel elegido. Ese nivel pasa a ser un desafío: la campaña lo salta y el selector de niveles lo desbloquea al llegar.",
     'nothingSelected': "Nada seleccionado: elige algo en el lienzo.",
     'switchedWindHint': "Mientras su canal de botón esté activo, esta corriente cambia a:",

@@ -97,12 +97,12 @@ export const isPortrait = (cw: number, ch: number): boolean => ch > cw
  */
 /** How much closer than fitting the whole level a wide landscape phone looks (the width fills first). */
 export const LANDSCAPE_ZOOM_MAX = 1.6
-/** Open-top levels: the world slides down once the player climbs within this many world units of its top. */
+/** Open-top levels with a following camera: the world slides down once the player climbs within this many world units of its top. */
 const OPEN_TOP_MARGIN = 170
 const topFollow = new WeakMap<World, number>()
 /** How far above the level's top edge the camera looks (world units): follows the player's height smoothly. */
 const openTopLift = (w: World, dt: number): number => {
-  if (!w.level.openTop) return 0
+  if (!w.level.openTop || !w.level.followTop) return 0
   const target = w.player.y + w.player.h / 2
   let y = topFollow.get(w)
   if (y === undefined) y = target
@@ -217,7 +217,7 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 
   }
   let oy = axis(at.y, vh, wh) * s
   // Open to the sky: above the level's top the view keeps following him up instead of stopping at the edge.
-  if (w.level.openTop && at.y < vh / 2) oy = Math.max(oy, (vh / 2 - at.y) * s)
+  if (w.level.openTop && w.level.followTop && at.y < vh / 2) oy = Math.max(oy, (vh / 2 - at.y) * s)
   return { s, ox: axis(at.x, vw, ww) * s, oy }
 }
 
