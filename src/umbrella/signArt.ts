@@ -94,6 +94,11 @@ const arrowCrack = (ctx: CanvasRenderingContext2D, r: SignBox, color: string): v
   ctx.restore()
 }
 
+/** The lantern build's PAINTED arrow (art-sheets/hint-arrow, painted at the Art Desk), set by art/paint.ts once
+ *  it has loaded. Absent: the lantern look draws the traced outline below. */
+let paintedArrow: { img: CanvasImageSource; w: number; h: number } | null = null
+export const setPaintedDropArrow = (img: CanvasImageSource | null, w = 0, h = 0): void => { paintedArrow = img ? { img, w, h } : null }
+
 /** The drop arrow on its own, filling `r`: the sketch's marker arrow. `lit`: the lantern build's version
  *  (ink-lacquer black with a dry-brush grain and a lit gold rim) instead of the flat skinless one
  *  (marker black with a paper-white rim that keeps it readable on the dark sky). */
@@ -102,6 +107,18 @@ export const drawDropArrow = (ctx: CanvasRenderingContext2D, r: SignBox, lit: bo
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
   const rim = Math.max(1.2, r.w * 0.09)
+  if (lit && paintedArrow) {
+    // The painting, fitted into the box by its own aspect, its glow soft on the sky.
+    const k = Math.min(r.w / paintedArrow.w, r.h / paintedArrow.h)
+    const w = paintedArrow.w * k
+    const h = paintedArrow.h * k
+    ctx.shadowColor = 'rgba(255, 170, 70, 0.55)'
+    ctx.shadowBlur = r.w * 0.25
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(paintedArrow.img, r.x + (r.w - w) / 2, r.y + (r.h - h) / 2, w, h)
+    ctx.restore()
+    return
+  }
   if (lit) {
     ctx.save()
     ctx.shadowColor = 'rgba(255, 170, 70, 0.7)'

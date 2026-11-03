@@ -14,7 +14,8 @@
 import { contactOf, STAR_R, type Hazard, type World } from '../engine'
 import { channelColor, type Camera } from '../renderer'
 import { isClay, isLantern, paintedGame } from '../kite'
-import { drawSignLantern } from '../signArt'
+import { drawSignLantern, setPaintedDropArrow } from '../signArt'
+import hintArrowUrl from '@/assets/umbrella-ui/hint-arrow.webp'
 import { windStyle } from '../windStyle'
 import { liteMode, stillSkyCanvas } from '../liteMode'
 import { spikeAngle } from '../spikeGeometry'
@@ -2575,6 +2576,13 @@ const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Ca
 }
 
 // ─── The slots ──────────────────────────────────────────────────────────────
+
+// The painted hint-board arrow (lantern build only): loaded once, the traced outline draws until it is there.
+if (isLantern && typeof Image !== 'undefined') {
+  const arrow = new Image()
+  arrow.onload = () => setPaintedDropArrow(arrow, arrow.naturalWidth, arrow.naturalHeight)
+  arrow.src = hintArrowUrl
+}
 
 const sign = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number; kind?: 'drop' | 'float' }, time: number): boolean => {
   if (!paintedOn || !isLantern) return false
