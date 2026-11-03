@@ -25,6 +25,7 @@
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { applyLocaleDirection } from '@/i18n'
 import { useRouter } from 'vue-router'
 import { isTurned, spikeAngle, spikeBounds } from '@/umbrella/spikeGeometry'
 import { CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, SIGN_H, SIGN_W, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
@@ -151,7 +152,7 @@ const PHONE = { w: 390, h: 844 }
 const MOTION_KINDS: Motion['kind'][] = ['static', 'line', 'circle', 'swing', 'lunge', 'arrive', 'follow']
 
 const router = useRouter()
-const { t, te } = useI18n()
+const { t, te, locale } = useI18n()
 const tuning: Tuning = { ...DEFAULT_TUNING, ...getState<Partial<Tuning>>('umb_tuning_r4', {}) }
 
 const blankLevel = (): LevelDef => ({
@@ -667,6 +668,22 @@ const DESIGNER_LABELS: Record<string, () => string> = {
 }
 const cmdLabel = (id: string) => DESIGNER_LABELS[id]?.() ?? t(`umbrellaEditor.cmd.${id}`)
 const designer = computed(() => editorUnlocked.value)
+// The designer's editor (the "cmonc" tools) is English whatever the browser or the saved game language is: only
+// English speakers use it. The community editor follows the player's language as before. The game's own language
+// is put back when the designer mode ends or the editor closes (nothing is saved: only the live locale moves).
+let playerLocale: string | null = null
+const restoreLocale = () => {
+  if (playerLocale === null) return
+  locale.value = playerLocale
+  applyLocaleDirection(playerLocale)
+  playerLocale = null
+}
+watch(designer, (on) => {
+  if (!on) return restoreLocale()
+  if (playerLocale === null) playerLocale = locale.value
+  locale.value = 'en'
+  applyLocaleDirection('en')
+}, { immediate: true })
 const menus = computed(() => [
   { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
   { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'deselect'] },
@@ -1697,6 +1714,7 @@ onMounted(() => {
   raf = requestAnimationFrame(paint)
 })
 onUnmounted(() => {
+  restoreLocale()
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
   cancelAnimationFrame(raf)
