@@ -97,6 +97,20 @@ export const isPortrait = (cw: number, ch: number): boolean => ch > cw
  */
 /** How much closer than fitting the whole level a wide landscape phone looks (the width fills first). */
 export const LANDSCAPE_ZOOM_MAX = 1.6
+/** Open-top levels: the world slides down once the player climbs within this many world units of its top. */
+const OPEN_TOP_MARGIN = 170
+const topFollow = new WeakMap<World, number>()
+/** How far above the level's top edge the camera looks (world units): follows the player's height smoothly. */
+const openTopLift = (w: World, dt: number): number => {
+  if (!w.level.openTop) return 0
+  const target = w.player.y + w.player.h / 2
+  let y = topFollow.get(w)
+  if (y === undefined) y = target
+  else if (dt > 0) y += (target - y) * (1 - Math.exp(-dt * 7))
+  topFollow.set(w, y)
+  return Math.max(0, OPEN_TOP_MARGIN - y)
+}
+
 export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 0): Camera => {
   const { w: ww, h: wh } = w.level.world
   const view = w.level.view
@@ -111,7 +125,7 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 
   const landscapeZoom = !portrait && Math.min(cw / (whole ? ww : view!.w), fitWhole * LANDSCAPE_ZOOM_MAX) > fitWhole * 1.001
   if (whole && !portrait && !landscapeZoom) {
     const s = fitWhole
-    return { s, ox: (cw - ww * s) / 2, oy: (fh - wh * s) / 2 }
+    return { s, ox: (cw - ww * s) / 2, oy: (fh - wh * s) / 2 + openTopLift(w, dt) * s }
   }
   const screen = whole ? { w: ww, h: wh } : view!
   const fit = fitWhole
@@ -201,7 +215,10 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 
       }
     }
   }
-  return { s, ox: axis(at.x, vw, ww) * s, oy: axis(at.y, vh, wh) * s }
+  let oy = axis(at.y, vh, wh) * s
+  // Open to the sky: above the level's top the view keeps following him up instead of stopping at the edge.
+  if (w.level.openTop && at.y < vh / 2) oy = Math.max(oy, (vh / 2 - at.y) * s)
+  return { s, ox: axis(at.x, vw, ww) * s, oy }
 }
 
 /** The doc's sketch of a current: wavy lines drifting along the flow. */
@@ -722,7 +739,9 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   // wherever the box did not fill the screen, which read as a rendering bug.
   if (!backdrop && !fullBleed) {
     ctx.fillStyle = BG
-    ctx.fillRect(0, 0, w.level.world.w, w.level.world.h)
+    // An open-top level's sky goes on above the world's top edge.
+    const sky = w.level.openTop ? 4000 : 0
+    ctx.fillRect(0, -sky, w.level.world.w, w.level.world.h + sky)
   }
 
   for (const def of w.level.winds) {

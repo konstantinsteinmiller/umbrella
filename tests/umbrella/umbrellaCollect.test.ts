@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createWorld, itemBox, step, type Input } from '@/umbrella/engine'
+import { cameraFor } from '@/umbrella/renderer'
 import { DEFAULT_TUNING } from '@/umbrella/tuning'
 import type { LevelDef } from '@/umbrella/levels'
 
@@ -47,5 +48,19 @@ describe('collectibles', () => {
     for (let i = 0; i < 240; i++) step(w, none, 1 / 60, DEFAULT_TUNING)
     expect(w.player.y).toBeLessThan(56)
     expect(w.player.y).toBeGreaterThanOrEqual(10)
+  })
+
+  it('an open-top level has no ceiling and the camera follows the player above its top edge', () => {
+    const lv = { ...level(0), openTop: true, winds: [{ x: 0, y: -2000, w: 1280, h: 2720, dir: 'up', speed: 900 }] } as LevelDef
+    const w = createWorld(lv, undefined, -1)
+    w.player.open = true
+    w.player.grounded = false
+    w.player.autoShow = -1
+    for (let i = 0; i < 240; i++) step(w, none, 1 / 60, DEFAULT_TUNING)
+    expect(w.player.y).toBeLessThan(0)
+    const cam = cameraFor(w, 1280, 720, 1 / 60)
+    expect(cam.oy).toBeGreaterThan(0)
+    const closed = createWorld({ ...lv, openTop: false } as LevelDef, undefined, -1)
+    expect(cameraFor(closed, 1280, 720, 1 / 60).oy).toBeLessThanOrEqual(0.001 + (720 - 720 * Math.min(1280 / 1280, 720 / 720)) / 2)
   })
 })

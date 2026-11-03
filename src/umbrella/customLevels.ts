@@ -70,6 +70,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.checkpoints && (!Array.isArray(l.checkpoints) || !l.checkpoints.every((c) => !!c && num(c.x) && num(c.y)))) return null
   if (l.stars && (!Array.isArray(l.stars) || !l.stars.every((s) => !!s && num(s.x) && num(s.y) && (s.shape === undefined || COLLECT_SHAPES.includes(s.shape))))) return null
   if (l.gates && (!Array.isArray(l.gates) || !l.gates.every((g) => isRect(g) && num(g.to)))) return null
+  if (l.openTop !== undefined && typeof l.openTop !== 'boolean') return null
   if (l.ceiling !== undefined && !num(l.ceiling)) return null
   if (l.signs && (!Array.isArray(l.signs) || !l.signs.every((g) => isRect(g) && (g.kind === undefined || g.kind === 'drop' || g.kind === 'float')))) return null
   if (l.platforms.some((p) => p.channel !== undefined && !num(p.channel))) return null
