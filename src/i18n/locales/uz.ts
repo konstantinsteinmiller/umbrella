@@ -161,6 +161,7 @@ export default {
       'star': "Yig'iladigan buyum",
       'gate': "Darvoza",
       'sign': "Maslahat taxtasi",
+      'sign-float': "Suzish taxtasi",
       'wind-up': "Yuqoriga oqim",
       'wind-down': "Pastga oqim",
       'wind-left': "Chapga shamol",
@@ -182,6 +183,7 @@ export default {
       'star': "Yig'iladigan buyum qo'yish uchun bosing — yulduz, oltin soyabon yoki oltin bulut (ko'rinishi xususiyatlarda).",
       'gate': "Platformaning yuqori chetiga bosib, teleport quvuri qo'ying. Ichida soyabonni ochsa, o'yinchini giper oqim sinov bosqichiga olib boradi.",
       'sign': "Maslahat taxtasini qo'yish uchun bosing: ikki fonus ushlab turgan qog'oz, unda SPACE tugmasi va pastga o'q bor. Faqat bezak; o'lchamini o'zgartirish uchun yashil burchakni suring.",
+      'sign-float': "Suzish taxtasini qo'yish uchun bosing: ikki fonus ushlab turgan qog'ozda Pweeg ochiq soyaboni ostida sekin tushmoqda. Faqat bezak; o'lchamini o'zgartirish uchun yashil burchakni suring.",
       'wind-up': "Yuqoriga esadigan oqim uchun ramka torting.",
       'wind-down': "Pastga esadigan oqim uchun ramka torting.",
       'wind-left': "Chapga esadigan oqim uchun ramka torting.",
@@ -207,7 +209,8 @@ export default {
       'checkpoint': "Nazorat nuqtasi",
       'star': "Yig'iladigan buyum",
       'gate': "Darvoza",
-      'sign': "Maslahat taxtasi"
+      'sign': "Maslahat taxtasi",
+      'sign-float': "Suzish taxtasi"
     },
     'shape': {
       'star': "Yulduz",

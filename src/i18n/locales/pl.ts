@@ -161,6 +161,7 @@ export default {
       'star': "Przedmiot do zebrania",
       'gate': "Brama",
       'sign': "Tablica z podpowiedzią",
+      'sign-float': "Tablica szybowania",
       'wind-up': "Prąd wznoszący",
       'wind-down': "Prąd opadający",
       'wind-left': "Wiatr w lewo",
@@ -182,6 +183,7 @@ export default {
       'star': "Kliknij, aby postawić przedmiot do zebrania — gwiazdkę, złoty parasol lub złotą chmurkę (wygląd we właściwościach).",
       'gate': "Kliknij górną krawędź platformy, aby postawić rurę teleportacyjną. Otwarcie w niej parasola zabiera gracza hiperprądem na poziom wyzwania.",
       'sign': "Kliknij, aby postawić tablicę: papier trzymany przez dwie latarnie, z klawiszem SPACE i strzałką w dół. Tylko dekoracja; zielony róg zmienia rozmiar.",
+      'sign-float': "Kliknij, aby postawić tablicę szybowania: papier trzymany przez dwie latarnie, na którym Pweeg opada pod otwartym parasolem. Tylko dekoracja; zielony róg zmienia rozmiar.",
       'wind-up': "Przeciągnij prostokąt prądu wiejącego w górę.",
       'wind-down': "Przeciągnij prostokąt prądu wiejącego w dół.",
       'wind-left': "Przeciągnij prostokąt prądu wiejącego w lewo.",
@@ -207,7 +209,8 @@ export default {
       'checkpoint': "Punkt kontrolny",
       'star': "Przedmiot do zebrania",
       'gate': "Brama",
-      'sign': "Tablica z podpowiedzią"
+      'sign': "Tablica z podpowiedzią",
+      'sign-float': "Tablica szybowania"
     },
     'shape': {
       'star': "Gwiazdka",

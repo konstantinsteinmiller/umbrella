@@ -164,6 +164,7 @@ export default {
       'star': "Collectible",
       'gate': "Gate",
       'sign': "Hint board",
+      'sign-float': "Float board",
       'wind-up': "Updraft",
       'wind-down': "Downdraft",
       'wind-left': "Wind left",
@@ -185,6 +186,7 @@ export default {
       'star': "Click to place a collectible — a star, golden umbrella or golden cloud (pick the look in the properties).",
       'gate': "Click on a platform's top edge for a warp pipe. Opening the umbrella inside it sends the player to a challenge level on a hyper current.",
       'sign': "Click to place a hint board: paper held by two lanterns showing the SPACE key and a down arrow. Decoration only; drag the green corner to resize.",
+      'sign-float': "Click to place a float board: paper held by two lanterns showing Pweeg floating down under his open umbrella. Decoration only; drag the green corner to resize.",
       'wind-up': "Drag a box for a current that blows up.",
       'wind-down': "Drag a box for a current that blows down.",
       'wind-left': "Drag a box for a current that blows left.",
@@ -210,7 +212,8 @@ export default {
       'checkpoint': "Checkpoint",
       'star': "Collectible",
       'gate': "Gate",
-      'sign': "Hint board"
+      'sign': "Hint board",
+      'sign-float': "Float board"
     },
     'shape': {
       'star': "Star",

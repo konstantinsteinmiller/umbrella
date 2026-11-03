@@ -161,6 +161,7 @@ export default {
       'star': "Verzamelobject",
       'gate': "Poort",
       'sign': "Hintbord",
+      'sign-float': "Zweefbord",
       'wind-up': "Opwaartse wind",
       'wind-down': "Neerwaartse wind",
       'wind-left': "Wind naar links",
@@ -182,6 +183,7 @@ export default {
       'star': "Klik om een verzamelobject te plaatsen — ster, gouden paraplu of gouden wolk (het uiterlijk kies je in de eigenschappen).",
       'gate': "Klik op de bovenrand van een platform voor een warpbuis. Opent de speler daarin de paraplu, dan voert een hyperstroom hem naar een uitdagingslevel.",
       'sign': "Klik om een hintbord te plaatsen: papier dat door twee lantaarns wordt gehouden, met de SPACE-toets en een pijl omlaag. Alleen decoratie; sleep de groene hoek om het formaat te wijzigen.",
+      'sign-float': "Klik om een zweefbord te plaatsen: papier dat door twee lantaarns wordt gehouden en Pweeg toont die onder zijn open paraplu omlaag zweeft. Alleen decoratie; sleep de groene hoek om het formaat te wijzigen.",
       'wind-up': "Sleep een vak voor een stroming die omhoog blaast.",
       'wind-down': "Sleep een vak voor een stroming die omlaag blaast.",
       'wind-left': "Sleep een vak voor een stroming die naar links blaast.",
@@ -207,7 +209,8 @@ export default {
       'checkpoint': "Checkpoint",
       'star': "Verzamelobject",
       'gate': "Poort",
-      'sign': "Hintbord"
+      'sign': "Hintbord",
+      'sign-float': "Zweefbord"
     },
     'shape': {
       'star': "Ster",

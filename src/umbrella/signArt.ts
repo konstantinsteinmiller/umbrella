@@ -1,6 +1,8 @@
 // ─── The hint board ("press SPACE to drop") ────────────────────────────────
 //
-// A paper board held up by two lanterns, showing the SPACE key and a big arrow pointing down.
+// A paper board held up by two lanterns. Two boards: 'drop' (the SPACE key, or on touch the umbrella
+// button, and a big arrow pointing down: open / close the umbrella to drop) and 'float' (Pweeg under
+// his open umbrella in a wavy current, a small arrow down: hold it open to float down).
 // Both looks are plain canvas drawing (no sheets, nothing to load): `drawSignVector` is the
 // skinless game's flat marker-on-paper look, `drawSignLantern` the lantern build's festival
 // version (lit washi lanterns with gold caps, washi board, vermilion arrow).
@@ -8,14 +10,17 @@
 // Everything is laid out once in a 120 x 170 design box and scaled uniformly into the sign's
 // rectangle, centred on its width and anchored to its top.
 
+import { drawPweeg, drawUmbrella } from './characters'
+import type { SignKind } from './levels'
+
 export interface SignBox { x: number; y: number; w: number; h: number }
 
 const DW = 120
 const DH = 170
 
 /** Design-box geometry shared by both looks. */
-const L = {
-  lanternX: [22, 98] as const,
+const DROP = {
+  lanternX: [22, 98] as readonly number[],
   lanternW: 26,
   lanternTop: 2,
   lanternH: 34,
@@ -23,9 +28,19 @@ const L = {
   key: { x: 18, y: 66, w: 84, h: 34 },
   arrow: { cx: 60, top: 118, shaftW: 20, headW: 50, shaftH: 20, headH: 30 }
 }
+/** The tall board: Pweeg floating under his umbrella, a small arrow at the foot. */
+const FLOAT: typeof DROP = {
+  ...DROP,
+  lanternX: [34, 86],
+  board: { x: 24, y: 52, w: 72, h: 116 },
+  arrow: { cx: 60, top: 146, shaftW: 7, headW: 22, shaftH: 8, headH: 10 }
+}
+/** The geometry of the board being drawn (set by `enter`). */
+let L = DROP
 
 /** Puts the context into the design box of `b` and returns the scale. */
-const enter = (ctx: CanvasRenderingContext2D, b: SignBox): number => {
+const enter = (ctx: CanvasRenderingContext2D, b: SignBox, kind: SignKind | undefined): number => {
+  L = kind === 'float' ? FLOAT : DROP
   const s = Math.min(b.w / DW, b.h / DH)
   ctx.save()
   ctx.translate(b.x + (b.w - DW * s) / 2, b.y)
@@ -214,14 +229,48 @@ const legend = (ctx: CanvasRenderingContext2D, lit: boolean): void => {
   umbrellaGlyph(ctx, cx, cy, r * 0.62, lit ? '#7a1a0a' : '#111', lit ? '#ff6a3a' : '#e4572e')
 }
 
+/** The float board's picture: a wavy current over Pweeg, who hangs under his open umbrella, in a dark
+ *  window so his white body reads on the paper. */
+const floatScene = (ctx: CanvasRenderingContext2D, time: number, lit: boolean): void => {
+  const bd = L.board
+  const px = bd.x + 5, py = bd.y + 5, pw = bd.w - 10, ph = bd.h - 36
+  const night = ctx.createLinearGradient(0, py, 0, py + ph)
+  night.addColorStop(0, lit ? '#3a2a5e' : '#1b2130')
+  night.addColorStop(1, lit ? '#1b2130' : '#1b2130')
+  ctx.fillStyle = night
+  roundRect(ctx, px, py, pw, ph, 5)
+  ctx.fill()
+  // The current: a wavy line running down to the umbrella.
+  ctx.save()
+  ctx.strokeStyle = lit ? '#ffd48a' : '#9fd3ff'
+  ctx.lineWidth = 2
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  for (let y = py + 5; y <= py + 27; y += 1.5) {
+    const x = 60 + 3.2 * Math.sin(y * 0.55 - time * 5)
+    if (y === py + 5) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.stroke()
+  ctx.restore()
+  // Pweeg under the open umbrella, scaled to fit the window.
+  const k = 0.5
+  ctx.save()
+  ctx.translate(60, py + ph - 5)
+  ctx.scale(k, k)
+  drawPweeg(ctx, 0, 0, { pose: 'hold', facing: 1, w: 24, h: 36, time, open: true })
+  drawUmbrella(ctx, 0, -40, { state: 'open', tilt: 0, time })
+  ctx.restore()
+}
+
 /** Skinless: flat shapes, marker ink on paper. */
-export const drawSignVector = (ctx: CanvasRenderingContext2D, b: SignBox, time: number): void => {
-  enter(ctx, b)
+export const drawSignVector = (ctx: CanvasRenderingContext2D, b: SignBox, time: number, kind?: SignKind): void => {
+  enter(ctx, b, kind)
   const sway = Math.sin(time * 1.6) * 0.03
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
-  lantern(ctx, L.lanternX[0], sway, false)
-  lantern(ctx, L.lanternX[1], -sway, false)
+  lantern(ctx, L.lanternX[0]!, sway, false)
+  lantern(ctx, L.lanternX[1]!, -sway, false)
   const bd = L.board
   ctx.fillStyle = '#f4efe2'
   ctx.strokeStyle = '#111'
@@ -229,7 +278,8 @@ export const drawSignVector = (ctx: CanvasRenderingContext2D, b: SignBox, time: 
   roundRect(ctx, bd.x, bd.y, bd.w, bd.h, 8)
   ctx.fill()
   ctx.stroke()
-  legend(ctx, false)
+  if (kind === 'float') floatScene(ctx, time, false)
+  else legend(ctx, false)
   arrowPath(ctx, Math.sin(time * 4) * 3)
   ctx.fillStyle = '#f4efe2'
   ctx.fill()
@@ -240,13 +290,13 @@ export const drawSignVector = (ctx: CanvasRenderingContext2D, b: SignBox, time: 
 }
 
 /** Lantern build: lit washi lanterns, a washi board with fibres, a gold-edged vermilion arrow. */
-export const drawSignLantern = (ctx: CanvasRenderingContext2D, b: SignBox, time: number): void => {
-  enter(ctx, b)
+export const drawSignLantern = (ctx: CanvasRenderingContext2D, b: SignBox, time: number, kind?: SignKind): void => {
+  enter(ctx, b, kind)
   const sway = Math.sin(time * 1.4) * 0.05
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
-  lantern(ctx, L.lanternX[0], sway, true)
-  lantern(ctx, L.lanternX[1], -sway * 0.8, true)
+  lantern(ctx, L.lanternX[0]!, sway, true)
+  lantern(ctx, L.lanternX[1]!, -sway * 0.8, true)
   const bd = L.board
   // Soft drop shadow, then the paper.
   ctx.save()
@@ -284,7 +334,8 @@ export const drawSignLantern = (ctx: CanvasRenderingContext2D, b: SignBox, time:
   ctx.lineWidth = 0.9
   roundRect(ctx, bd.x + 3, bd.y + 3, bd.w - 6, bd.h - 6, 3)
   ctx.stroke()
-  legend(ctx, true)
+  if (kind === 'float') floatScene(ctx, time, true)
+  else legend(ctx, true)
   // The arrow, bobbing, vermilion with a gold rim.
   const bob = Math.sin(time * 4) * 3
   ctx.save()

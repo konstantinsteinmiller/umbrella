@@ -161,6 +161,7 @@ export default {
       'star': "Toplanabilir",
       'gate': "Geçit",
       'sign': "İpucu panosu",
+      'sign-float': "Süzülme panosu",
       'wind-up': "Yukarı akıntı",
       'wind-down': "Aşağı akıntı",
       'wind-left': "Sola rüzgâr",
@@ -182,6 +183,7 @@ export default {
       'star': "Toplanabilir bir nesne koymak için tıklayın — yıldız, altın şemsiye ya da altın bulut (görünümü özelliklerden seçin).",
       'gate': "Bir platformun üst kenarına tıklayarak ışınlanma borusu koyun. İçinde şemsiyeyi açan oyuncu, hiper akımla bir meydan okuma bölümüne taşınır.",
       'sign': "İpucu panosu koymak için tıklayın: iki fenerin tuttuğu, SPACE tuşu ve aşağı oklu bir kâğıt. Yalnızca dekor; yeşil köşeyi sürükleyerek boyutlandırın.",
+      'sign-float': "Süzülme panosu koymak için tıklayın: iki fenerin tuttuğu kâğıtta Pweeg açık şemsiyesiyle süzülerek iniyor. Yalnızca dekor; yeşil köşeyi sürükleyerek boyutlandırın.",
       'wind-up': "Yukarı esen bir akıntı için kutu sürükle.",
       'wind-down': "Aşağı esen bir akıntı için kutu sürükle.",
       'wind-left': "Sola esen bir akıntı için kutu sürükle.",
@@ -207,7 +209,8 @@ export default {
       'checkpoint': "Kontrol noktası",
       'star': "Toplanabilir",
       'gate': "Geçit",
-      'sign': "İpucu panosu"
+      'sign': "İpucu panosu",
+      'sign-float': "Süzülme panosu"
     },
     'shape': {
       'star': "Yıldız",

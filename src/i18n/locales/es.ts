@@ -161,6 +161,7 @@ export default {
       'star': "Coleccionable",
       'gate': "Portal",
       'sign': "Cartel de pista",
+      'sign-float': "Cartel de planeo",
       'wind-up': "Corriente ascendente",
       'wind-down': "Corriente descendente",
       'wind-left': "Viento a la izquierda",
@@ -182,6 +183,7 @@ export default {
       'star': "Haz clic para colocar un coleccionable: estrella, paraguas dorado o nube dorada (el aspecto se elige en las propiedades).",
       'gate': "Haz clic en el borde superior de una plataforma para un tubo de teletransporte. Abrir el paraguas dentro lleva al jugador por una hipercorriente a un nivel desafío.",
       'sign': "Haz clic para colocar un cartel: papel sostenido por dos farolillos con la tecla SPACE y una flecha hacia abajo. Solo decoración; arrastra la esquina verde para cambiar el tamaño.",
+      'sign-float': "Haz clic para colocar un cartel de planeo: papel sostenido por dos farolillos que muestra a Pweeg descendiendo bajo su paraguas abierto. Solo decoración; arrastra la esquina verde para cambiar el tamaño.",
       'wind-up': "Arrastra un recuadro para una corriente hacia arriba.",
       'wind-down': "Arrastra un recuadro para una corriente hacia abajo.",
       'wind-left': "Arrastra un recuadro para una corriente hacia la izquierda.",
@@ -207,7 +209,8 @@ export default {
       'checkpoint': "Punto de control",
       'star': "Coleccionable",
       'gate': "Portal",
-      'sign': "Cartel de pista"
+      'sign': "Cartel de pista",
+      'sign-float': "Cartel de planeo"
     },
     'shape': {
       'star': "Estrella",

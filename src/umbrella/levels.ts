@@ -90,9 +90,11 @@ export interface GateDef { x: number; y: number; w: number; h: number; to: numbe
 
 /** A hint board: a paper board hung from two lanterns showing the SPACE key and a big arrow pointing
  *  down ("press Space to drop"). Pure decoration: nothing collides with it. */
-export interface SignDef { x: number; y: number; w: number; h: number }
+export type SignKind = 'drop' | 'float'
+export interface SignDef { x: number; y: number; w: number; h: number; /** Absent: 'drop'. 'float': Pweeg under his open umbrella. */ kind?: SignKind }
 export const SIGN_W = 120
 export const SIGN_H = 170
+export const SIGN_KINDS: SignKind[] = ['drop', 'float']
 
 /** How many button channels the editor offers (each has its own colour). */
 export const CHANNELS = 6

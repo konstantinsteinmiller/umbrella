@@ -453,9 +453,9 @@ export const drawGate = (ctx: CanvasRenderingContext2D, g: { x: number; y: numbe
 }
 
 /** The hint board: lantern-held paper with the SPACE key and a down arrow (decoration). */
-export const drawSign = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number }, time: number): void => {
+export const drawSign = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number; kind?: 'drop' | 'float' }, time: number): void => {
   if (artLayer && kiteArt.sign?.(ctx, s, time)) return
-  drawSignVector(ctx, s, time)
+  drawSignVector(ctx, s, time, s.kind)
 }
 
 /** The bobbing umbrella over a painted gate. */

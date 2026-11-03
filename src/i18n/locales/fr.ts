@@ -161,6 +161,7 @@ export default {
       'star': "Objet à ramasser",
       'gate': "Portail",
       'sign': "Panneau d'indice",
+      'sign-float': "Panneau de plané",
       'wind-up': "Courant ascendant",
       'wind-down': "Courant descendant",
       'wind-left': "Vent vers la gauche",
@@ -182,6 +183,7 @@ export default {
       'star': "Cliquez pour placer un objet à ramasser : étoile, parapluie doré ou nuage doré (l'apparence se choisit dans les propriétés).",
       'gate': "Cliquez sur le bord supérieur d'une plateforme pour un tuyau de téléportation. En y ouvrant le parapluie, le joueur est emporté par un hyper-courant vers un niveau défi.",
       'sign': "Cliquer pour poser un panneau : du papier tenu par deux lanternes, avec la touche SPACE et une flèche vers le bas. Simple décor ; le coin vert le redimensionne.",
+      'sign-float': "Cliquer pour poser un panneau de plané : du papier tenu par deux lanternes montrant Pweeg qui descend sous son parapluie ouvert. Simple décor ; le coin vert le redimensionne.",
       'wind-up': "Trace un rectangle pour un courant vers le haut.",
       'wind-down': "Trace un rectangle pour un courant vers le bas.",
       'wind-left': "Trace un rectangle pour un courant vers la gauche.",
@@ -207,7 +209,8 @@ export default {
       'checkpoint': "Point de contrôle",
       'star': "Objet à ramasser",
       'gate': "Portail",
-      'sign': "Panneau d'indice"
+      'sign': "Panneau d'indice",
+      'sign-float': "Panneau de plané"
     },
     'shape': {
       'star': "Étoile",

@@ -161,6 +161,7 @@ export default {
       'star': "Vật phẩm thu thập",
       'gate': "Cổng",
       'sign': "Bảng gợi ý",
+      'sign-float': "Bảng lơ lửng",
       'wind-up': "Gió thổi lên",
       'wind-down': "Gió thổi xuống",
       'wind-left': "Gió sang trái",
@@ -182,6 +183,7 @@ export default {
       'star': "Nhấp để đặt vật phẩm thu thập — ngôi sao, ô vàng hoặc mây vàng (chọn kiểu ở thuộc tính).",
       'gate': "Nhấp vào mép trên của nền để đặt ống dịch chuyển. Mở ô trong ống, người chơi sẽ được dòng siêu gió đưa tới màn thử thách.",
       'sign': "Nhấp để đặt bảng gợi ý: tờ giấy do hai chiếc đèn lồng giữ, có phím SPACE và mũi tên chỉ xuống. Chỉ để trang trí; kéo góc xanh để đổi kích thước.",
+      'sign-float': "Nhấp để đặt bảng lơ lửng: tờ giấy do hai chiếc đèn lồng giữ, vẽ Pweeg bay xuống dưới chiếc ô đang mở. Chỉ để trang trí; kéo góc xanh để đổi kích thước.",
       'wind-up': "Kéo một khung cho luồng gió thổi lên.",
       'wind-down': "Kéo một khung cho luồng gió thổi xuống.",
       'wind-left': "Kéo một khung cho luồng gió thổi sang trái.",
@@ -207,7 +209,8 @@ export default {
       'checkpoint': "Điểm lưu",
       'star': "Vật phẩm thu thập",
       'gate': "Cổng",
-      'sign': "Bảng gợi ý"
+      'sign': "Bảng gợi ý",
+      'sign-float': "Bảng lơ lửng"
     },
     'shape': {
       'star': "Ngôi sao",

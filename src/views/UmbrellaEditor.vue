@@ -79,7 +79,7 @@ import {
 } from '@/umbrella/customLevels'
 
 type Tool =
-  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign'
+  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign' | 'sign-float'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
@@ -112,7 +112,8 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys }[]
     { id: 'checkpoint', icon: '⚑', keys: { key: 'c' } },
     { id: 'star', icon: '★', keys: { key: 't' } },
     { id: 'gate', icon: '⛩', keys: { key: 'g' } },
-    { id: 'sign', icon: '🏮', keys: { key: 'n' } }
+    { id: 'sign', icon: '🏮', keys: { key: 'n' } },
+    { id: 'sign-float', icon: '🎐', keys: { key: 'n', shift: true } }
   ] },
   { id: 'currents', tools: [
     { id: 'wind-up', icon: '↑', keys: { key: '1' } },
@@ -429,10 +430,10 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       sel = { type: 'entity', group: 'gates', i: list.length - 1 }
       break
     }
-    case 'sign': {
+    case 'sign': case 'sign-float': {
       // Centred on the click (its arrow then points at what is below).
       const list = (L.signs ??= [])
-      list.push({ x: snapV(a.x - SIGN_W / 2), y: snapV(a.y - SIGN_H / 2), w: SIGN_W, h: SIGN_H })
+      list.push({ x: snapV(a.x - SIGN_W / 2), y: snapV(a.y - SIGN_H / 2), w: SIGN_W, h: SIGN_H, ...(t === 'sign-float' ? { kind: 'float' as const } : {}) })
       sel = { type: 'entity', group: 'signs', i: list.length - 1 }
       break
     }
@@ -948,7 +949,7 @@ const selectedKind = computed(() => {
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
   if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : 'platform'
-  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? 'sign' : s.group === 'stars' ? 'star' : 'checkpoint'
+  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'stars' ? 'star' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */
 const gateTargets = computed(() => { void campaignOrder.value; return LEVELS.map((l, i) => ({ id: l.id, label: t('umbrella.level', { n: i + 1 }) })) })

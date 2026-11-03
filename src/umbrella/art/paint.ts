@@ -2576,9 +2576,9 @@ const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Ca
 
 // ─── The slots ──────────────────────────────────────────────────────────────
 
-const sign = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number }, time: number): boolean => {
+const sign = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number; kind?: 'drop' | 'float' }, time: number): boolean => {
   if (!paintedOn || !isLantern) return false
-  drawSignLantern(ctx, s, time)
+  drawSignLantern(ctx, s, time, s.kind)
   return true
 }
 

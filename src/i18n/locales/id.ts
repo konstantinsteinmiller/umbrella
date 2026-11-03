@@ -161,6 +161,7 @@ export default {
       'star': "Barang koleksi",
       'gate': "Gerbang",
       'sign': "Papan petunjuk",
+      'sign-float': "Papan melayang",
       'wind-up': "Arus naik",
       'wind-down': "Arus turun",
       'wind-left': "Angin ke kiri",
@@ -182,6 +183,7 @@ export default {
       'star': "Klik untuk menaruh barang koleksi — bintang, payung emas, atau awan emas (pilih tampilan di properti).",
       'gate': "Klik tepi atas platform untuk pipa warp. Membuka payung di dalamnya membawa pemain dengan arus hiper ke level tantangan.",
       'sign': "Klik untuk menaruh papan petunjuk: kertas yang ditahan dua lentera dengan tombol SPACE dan panah ke bawah. Hanya dekorasi; seret sudut hijau untuk mengubah ukuran.",
+      'sign-float': "Klik untuk menaruh papan melayang: kertas yang ditahan dua lentera, menampilkan Pweeg turun melayang di bawah payungnya yang terbuka. Hanya dekorasi; seret sudut hijau untuk mengubah ukuran.",
       'wind-up': "Seret kotak untuk arus yang bertiup ke atas.",
       'wind-down': "Seret kotak untuk arus yang bertiup ke bawah.",
       'wind-left': "Seret kotak untuk arus yang bertiup ke kiri.",
@@ -207,7 +209,8 @@ export default {
       'checkpoint': "Checkpoint",
       'star': "Barang koleksi",
       'gate': "Gerbang",
-      'sign': "Papan petunjuk"
+      'sign': "Papan petunjuk",
+      'sign-float': "Papan melayang"
     },
     'shape': {
       'star': "Bintang",

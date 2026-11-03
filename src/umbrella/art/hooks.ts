@@ -32,7 +32,7 @@ export interface KiteArt {
   /** A warp gate: a torii with a swirling portal between its posts (lantern). */
   gate?: (ctx: CanvasRenderingContext2D, g: Pick<GateDef, 'x' | 'y' | 'w' | 'h'>, time: number) => boolean
   /** The hint board held by two lanterns (lantern build); false: the flat vector board. */
-  sign?: (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number }, time: number) => boolean
+  sign?: (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number; kind?: 'drop' | 'float' }, time: number) => boolean
   /** A painted sky behind the level, in SCREEN space (the lantern build). */
   backdrop?: (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Camera, w: World) => boolean
   /** Weak phones: the sky lives on a still background canvas behind `canvas`, painted only when the
