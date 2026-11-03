@@ -50,8 +50,8 @@ describe('collectibles', () => {
     expect(w.player.y).toBeGreaterThanOrEqual(10)
   })
 
-  it('an open-top level has no ceiling and the camera follows the player above its top edge', () => {
-    const lv = { ...level(0), openTop: true, followTop: true, winds: [{ x: 0, y: -2000, w: 1280, h: 2720, dir: 'up', speed: 900 }] } as LevelDef
+  it('a vertical-camera level has no ceiling and the camera follows the player above its top edge; a fixed screen never moves', () => {
+    const lv = { ...level(0), verticalCamera: true, winds: [{ x: 0, y: -2000, w: 1280, h: 2720, dir: 'up', speed: 900 }] } as LevelDef
     const w = createWorld(lv, undefined, -1)
     w.player.open = true
     w.player.grounded = false
@@ -60,11 +60,17 @@ describe('collectibles', () => {
     expect(w.player.y).toBeLessThan(0)
     const cam = cameraFor(w, 1280, 720, 1 / 60)
     expect(cam.oy).toBeGreaterThan(0)
-    // Without the follow switch the screen stays fixed even though nothing stops him at the top.
-    const fixed = createWorld({ ...lv, followTop: false } as LevelDef, undefined, -1)
-    fixed.player.y = -300
-    expect(cameraFor(fixed, 1280, 720, 1 / 60).oy).toBeLessThanOrEqual(0.001 + (720 - 720) / 2)
-    const closed = createWorld({ ...lv, openTop: false } as LevelDef, undefined, -1)
+    // Fixed screen wins: the camera never moves, in landscape or on a portrait phone, wherever he is.
+    const fixed = createWorld({ ...lv, fixedScreen: true } as LevelDef, undefined, -1)
+    for (const [cw, ch] of [[1280, 720], [400, 800]] as const) {
+      fixed.player.y = 300
+      const a = cameraFor(fixed, cw, ch, 1 / 60)
+      fixed.player.y = -300
+      fixed.player.x = 900
+      const b = cameraFor(fixed, cw, ch, 1 / 60)
+      expect(b).toEqual(a)
+    }
+    const closed = createWorld({ ...lv, verticalCamera: false } as LevelDef, undefined, -1)
     expect(cameraFor(closed, 1280, 720, 1 / 60).oy).toBeLessThanOrEqual(0.001 + (720 - 720 * Math.min(1280 / 1280, 720 / 720)) / 2)
   })
 })

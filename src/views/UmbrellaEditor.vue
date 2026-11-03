@@ -829,7 +829,7 @@ const setFollowMode = (mode: FollowMode) => {
     m.b = { x: c.x, y: c.y + 200 }
   }
 }
-const setLevelFlag = (key: 'openTop' | 'followTop', on: boolean) => {
+const setLevelFlag = (key: 'fixedScreen' | 'verticalCamera', on: boolean) => {
   if (on) level.value[key] = true
   else delete level.value[key]
 }
@@ -1865,9 +1865,9 @@ onUnmounted(() => {
           <label class="row">{{ t('umbrellaEditor.prop.screenH') }} <input v-model.number="level.view.h" class="field num" type="number" min="100" step="10" /></label>
         </div>
         <p class="hint">{{ t(level.view ? 'umbrellaEditor.scrollHint' : 'umbrellaEditor.wholeHint') }}</p>
-        <label class="check" :title="t('umbrellaEditor.openTopHint')"><input type="checkbox" :checked="!!level.openTop" @change="setLevelFlag('openTop', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.openTop') }}</label>
-        <label class="check" :class="{ off: !level.openTop }" :title="t('umbrellaEditor.openTopHint')"><input type="checkbox" :disabled="!level.openTop" :checked="!!level.followTop" @change="setLevelFlag('followTop', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.followTop') }}</label>
-        <p class="hint">{{ t('umbrellaEditor.openTopHint') }}</p>
+        <label class="check" :title="t('umbrellaEditor.fixedScreenHint')"><input type="checkbox" :checked="!!level.fixedScreen" @change="setLevelFlag('fixedScreen', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.fixedScreen') }}</label>
+        <label class="check" :class="{ off: !!level.fixedScreen }" :title="t('umbrellaEditor.fixedScreenHint')"><input type="checkbox" :disabled="!!level.fixedScreen" :checked="!!level.verticalCamera" @change="setLevelFlag('verticalCamera', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.verticalCamera') }}</label>
+        <p class="hint">{{ t('umbrellaEditor.fixedScreenHint') }}</p>
         <label class="row">{{ t('umbrellaEditor.prop.timeLimit') }} <input class="field num" type="number" min="0" :max="MAX_TIME_LIMIT" step="1" :value="level.timeLimit ?? 0" @change="setTimeLimit(+($event.target as HTMLInputElement).value)" /></label>
         <label class="check" :class="{ off: !level.timeLimit }"><input type="checkbox" :disabled="!level.timeLimit" :checked="!!level.timeLimitJamOnly" @change="setTimeLimitJamOnly(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.timeLimitJamOnly') }}</label>
         <p class="hint">{{ t('umbrellaEditor.timeLimitHint') }}</p>

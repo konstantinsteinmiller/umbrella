@@ -167,10 +167,11 @@ export interface LevelDef {
   timeLimit?: number
   /** The time limit applies only in the game-jam build (itch.io, and the editor's jam test). */
   timeLimitJamOnly?: boolean
-  /** Open to the sky: no ceiling stops the player, and the camera follows him up above the level's top. */
-  openTop?: boolean
-  /** With `openTop`: the camera follows the player up above the level's top. Absent: the screen stays fixed. */
-  followTop?: boolean
+  /** Fixed screen: the camera never moves (the whole level is shown, whatever the device), and no ceiling stops the
+   *  player at the top. Wins over `verticalCamera`. */
+  fixedScreen?: boolean
+  /** Vertical camera: no ceiling stops the player at the top, and the camera follows him up above the level's top. */
+  verticalCamera?: boolean
   /** Where the top of the player stops against the ceiling (world y; absent: the default, 56). Lower = higher ceiling. */
   ceiling?: number
   /** When the editor last saved this level (ms since epoch). Edits made in several

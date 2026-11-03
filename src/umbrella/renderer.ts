@@ -101,8 +101,8 @@ export const LANDSCAPE_ZOOM_MAX = 1.6
 const OPEN_TOP_MARGIN = 170
 const topFollow = new WeakMap<World, number>()
 /** How far above the level's top edge the camera looks (world units): follows the player's height smoothly. */
-const openTopLift = (w: World, dt: number): number => {
-  if (!w.level.openTop || !w.level.followTop) return 0
+const verticalLift = (w: World, dt: number): number => {
+  if (!w.level.verticalCamera || w.level.fixedScreen) return 0
   const target = w.player.y + w.player.h / 2
   let y = topFollow.get(w)
   if (y === undefined) y = target
@@ -121,11 +121,16 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 
   // A wide landscape phone (the screen is wider than the level, and its controls' band takes height) would
   // letterbox the level small. It zooms in towards filling the width instead, at most LANDSCAPE_ZOOM_MAX
   // times the fit, and the camera then follows the player up and down.
+  // Fixed screen: the camera never moves. The whole level is fitted and centred, on any device.
+  if (w.level.fixedScreen) {
+    const s = Math.min(cw / ww, fh / wh)
+    return { s, ox: (cw - ww * s) / 2, oy: (fh - wh * s) / 2 }
+  }
   const fitWhole = Math.min(cw / (whole ? ww : view!.w), fh / (whole ? wh : view!.h))
   const landscapeZoom = !portrait && Math.min(cw / (whole ? ww : view!.w), fitWhole * LANDSCAPE_ZOOM_MAX) > fitWhole * 1.001
   if (whole && !portrait && !landscapeZoom) {
     const s = fitWhole
-    return { s, ox: (cw - ww * s) / 2, oy: (fh - wh * s) / 2 + openTopLift(w, dt) * s }
+    return { s, ox: (cw - ww * s) / 2, oy: (fh - wh * s) / 2 + verticalLift(w, dt) * s }
   }
   const screen = whole ? { w: ww, h: wh } : view!
   const fit = fitWhole
@@ -217,7 +222,7 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 
   }
   let oy = axis(at.y, vh, wh) * s
   // Open to the sky: above the level's top the view keeps following him up instead of stopping at the edge.
-  if (w.level.openTop && w.level.followTop && at.y < vh / 2) oy = Math.max(oy, (vh / 2 - at.y) * s)
+  if (w.level.verticalCamera && !w.level.fixedScreen && at.y < vh / 2) oy = Math.max(oy, (vh / 2 - at.y) * s)
   return { s, ox: axis(at.x, vw, ww) * s, oy }
 }
 
@@ -740,7 +745,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   if (!backdrop && !fullBleed) {
     ctx.fillStyle = BG
     // An open-top level's sky goes on above the world's top edge.
-    const sky = w.level.openTop ? 4000 : 0
+    const sky = w.level.fixedScreen || w.level.verticalCamera ? 4000 : 0
     ctx.fillRect(0, -sky, w.level.world.w, w.level.world.h + sky)
   }
 

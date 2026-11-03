@@ -236,7 +236,8 @@ export interface WorldOptions {
 /** The highest the player's top can go (world px): below the top bar, which covers the first ~50 px of the view. */
 export const CEILING_Y = 56
 /** Where the top of the player stops against the ceiling: the level's own `ceiling`, else the default. */
-export const ceilingOf = (level: { ceiling?: number; openTop?: boolean }): number => (level.openTop ? -Infinity : level.ceiling ?? CEILING_Y)
+export const ceilingOf = (level: { ceiling?: number; fixedScreen?: boolean; verticalCamera?: boolean }): number =>
+  (level.fixedScreen || level.verticalCamera ? -Infinity : level.ceiling ?? CEILING_Y)
 export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }, checkpoint = -1, opts: WorldOptions = {}): World => {
   const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0 }))
   for (const p of platforms) placeMover(p, 0)
