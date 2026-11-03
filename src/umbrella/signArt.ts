@@ -26,14 +26,14 @@ const DROP = {
   lanternH: 34,
   board: { x: 6, y: 54, w: 108, h: 58 },
   key: { x: 18, y: 66, w: 84, h: 34 },
-  arrow: { cx: 60, top: 117, shaftW: 32, headW: 68, shaftH: 20, headH: 30 }
+  arrow: { cx: 60, top: 116, w: 44, h: 54 }
 }
 /** The tall board: Pweeg floating under his umbrella, a small arrow at the foot. */
 const FLOAT: typeof DROP = {
   ...DROP,
   lanternX: [34, 86],
   board: { x: 24, y: 52, w: 72, h: 116 },
-  arrow: { cx: 60, top: 143, shaftW: 12, headW: 30, shaftH: 8, headH: 13 }
+  arrow: { cx: 60, top: 142, w: 19, h: 23 }
 }
 /** The geometry of the board being drawn (set by `enter`). */
 let L = DROP
@@ -58,19 +58,102 @@ const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath()
 }
 
-const arrowPath = (ctx: CanvasRenderingContext2D, bob: number): void => {
-  const a = L.arrow
-  const top = a.top + bob
-  const neck = top + a.shaftH
+/** The arrow's outline in a unit box (0..1 each way), traced from the hand-drawn marker arrow of the
+ *  sketch: a tall fat shaft nearly as wide as the head and leaning left, a short broad head whose left
+ *  wing sticks out a little further than the right, a rounded tip, slightly bowed edges. */
+const arrowOutline = (ctx: CanvasRenderingContext2D, r: SignBox): void => {
+  const X = (u: number): number => r.x + u * r.w
+  const Y = (v: number): number => r.y + v * r.h
   ctx.beginPath()
-  ctx.moveTo(a.cx - a.shaftW / 2, top)
-  ctx.lineTo(a.cx + a.shaftW / 2, top)
-  ctx.lineTo(a.cx + a.shaftW / 2, neck)
-  ctx.lineTo(a.cx + a.headW / 2, neck)
-  ctx.lineTo(a.cx, neck + a.headH)
-  ctx.lineTo(a.cx - a.headW / 2, neck)
-  ctx.lineTo(a.cx - a.shaftW / 2, neck)
+  ctx.moveTo(X(0.03), Y(0.07))
+  ctx.quadraticCurveTo(X(0.4), Y(0.0), X(0.85), Y(0.01))
+  ctx.quadraticCurveTo(X(0.84), Y(0.3), X(0.8), Y(0.6))
+  ctx.quadraticCurveTo(X(0.92), Y(0.62), X(1.0), Y(0.67))
+  ctx.quadraticCurveTo(X(0.78), Y(0.85), X(0.5), Y(0.995))
+  ctx.quadraticCurveTo(X(0.47), Y(1.02), X(0.44), Y(0.99))
+  ctx.quadraticCurveTo(X(0.18), Y(0.82), X(0.0), Y(0.62))
+  ctx.quadraticCurveTo(X(0.03), Y(0.6), X(0.07), Y(0.6))
+  ctx.quadraticCurveTo(X(0.01), Y(0.35), X(0.03), Y(0.07))
   ctx.closePath()
+}
+
+/** The marker's unfilled "7" in the shaft (the sketch's pen lifted and left a pale crack). */
+const arrowCrack = (ctx: CanvasRenderingContext2D, r: SignBox, color: string): void => {
+  const X = (u: number): number => r.x + u * r.w
+  const Y = (v: number): number => r.y + v * r.h
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.lineWidth = Math.max(0.8, r.w * 0.04)
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.moveTo(X(0.55), Y(0.14))
+  ctx.lineTo(X(0.69), Y(0.1))
+  ctx.lineTo(X(0.64), Y(0.54))
+  ctx.stroke()
+  ctx.restore()
+}
+
+/** The drop arrow on its own, filling `r`: the sketch's marker arrow. `lit`: the lantern build's version
+ *  (ink-lacquer black with a dry-brush grain and a lit gold rim) instead of the flat skinless one
+ *  (marker black with a paper-white rim that keeps it readable on the dark sky). */
+export const drawDropArrow = (ctx: CanvasRenderingContext2D, r: SignBox, lit: boolean): void => {
+  ctx.save()
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+  const rim = Math.max(1.2, r.w * 0.09)
+  if (lit) {
+    ctx.save()
+    ctx.shadowColor = 'rgba(255, 170, 70, 0.7)'
+    ctx.shadowBlur = r.w * 0.25
+    arrowOutline(ctx, r)
+    ctx.strokeStyle = '#e8b84a'
+    ctx.lineWidth = rim
+    ctx.stroke()
+    ctx.restore()
+    arrowOutline(ctx, r)
+    const g = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h)
+    g.addColorStop(0, '#2a1208')
+    g.addColorStop(1, '#120503')
+    ctx.fillStyle = g
+    ctx.strokeStyle = '#1c0b05'
+    ctx.lineWidth = Math.max(0.8, r.w * 0.04)
+    ctx.fill()
+    ctx.stroke()
+    // Dry-brush streaks running down the stroke.
+    ctx.save()
+    arrowOutline(ctx, r)
+    ctx.clip()
+    ctx.strokeStyle = 'rgba(255, 200, 140, 0.13)'
+    ctx.lineWidth = Math.max(0.5, r.w * 0.012)
+    for (let k = 0; k < 7; k++) {
+      const x = r.x + (0.14 + k * 0.1) * r.w
+      ctx.beginPath()
+      ctx.moveTo(x, r.y + r.h * (0.05 + (k % 3) * 0.04))
+      ctx.lineTo(x + r.w * 0.02, r.y + r.h * (0.55 + (k % 2) * 0.2))
+      ctx.stroke()
+    }
+    ctx.restore()
+    arrowCrack(ctx, r, '#f3e2b4')
+  } else {
+    arrowOutline(ctx, r)
+    ctx.strokeStyle = '#f4efe2'
+    ctx.lineWidth = rim
+    ctx.stroke()
+    ctx.fillStyle = '#111'
+    ctx.strokeStyle = '#111'
+    ctx.lineWidth = Math.max(0.8, r.w * 0.04)
+    ctx.fill()
+    ctx.stroke()
+    arrowCrack(ctx, r, '#f4efe2')
+  }
+  ctx.restore()
+}
+
+/** The board's arrow, bobbing at the foot of the design box. */
+const boardArrow = (ctx: CanvasRenderingContext2D, time: number, lit: boolean): void => {
+  const a = L.arrow
+  drawDropArrow(ctx, { x: a.cx - a.w / 2, y: a.top + Math.sin(time * 4) * 3, w: a.w, h: a.h }, lit)
 }
 
 /** A paper lantern floating at `cx`, no rope above it; the board hangs from its tassel cord. */
@@ -275,16 +358,7 @@ export const drawSignVector = (ctx: CanvasRenderingContext2D, b: SignBox, time: 
   ctx.stroke()
   if (kind === 'float') floatScene(ctx, time, false)
   else legend(ctx, false)
-  // The iconic arrow: a fat solid marker-black block arrow (a paper-white rim keeps it readable on the dark sky).
-  arrowPath(ctx, Math.sin(time * 4) * 3)
-  ctx.strokeStyle = '#f4efe2'
-  ctx.lineWidth = 7
-  ctx.stroke()
-  ctx.fillStyle = '#111'
-  ctx.strokeStyle = '#111'
-  ctx.lineWidth = 3
-  ctx.fill()
-  ctx.stroke()
+  boardArrow(ctx, time, false)
   ctx.restore()
 }
 
@@ -335,21 +409,6 @@ export const drawSignLantern = (ctx: CanvasRenderingContext2D, b: SignBox, time:
   ctx.stroke()
   if (kind === 'float') floatScene(ctx, time, true)
   else legend(ctx, true)
-  // The iconic arrow: a fat solid ink-black block arrow with a lit gold rim, bobbing.
-  const bob = Math.sin(time * 4) * 3
-  ctx.save()
-  ctx.shadowColor = 'rgba(255, 170, 70, 0.7)'
-  ctx.shadowBlur = 10
-  arrowPath(ctx, bob)
-  ctx.strokeStyle = '#e8b84a'
-  ctx.lineWidth = 7
-  ctx.stroke()
-  ctx.restore()
-  arrowPath(ctx, bob)
-  ctx.fillStyle = '#1c0b05'
-  ctx.strokeStyle = '#1c0b05'
-  ctx.lineWidth = 3
-  ctx.fill()
-  ctx.stroke()
+  boardArrow(ctx, time, true)
   ctx.restore()
 }
