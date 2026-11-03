@@ -151,31 +151,67 @@ jobs:
         working-directory: main
         run: cp -r competitors "$GITHUB_WORKSPACE/dist/competitors"
 
-      - name: Build earlier revisions from their tags
+      # Earlier revisions are frozen: their tag never moves, so their build never changes. Each one is built
+      # once into rev-cache/<N>/ (the main build, kite, lantern and clay of that revision) and restored from the
+      # Actions cache afterwards; only a revision that is new to the cache is built. The key follows the set of
+      # frozen tags and their commits, so a newly frozen revision adds one build and nothing else is redone.
+      # Bump CACHE_VERSION to force a rebuild of every old revision (e.g. after changing this recipe).
+      - name: Frozen revisions (cache key)
+        id: frozen
+        working-directory: main
+        env:
+          CACHE_VERSION: v1
+        run: |
+          CUR="${{ steps.rev.outputs.n }}"
+          LIST=$(for TAG in $(git tag --list 'revision-*' | sort); do
+            [ "${TAG#revision-}" = "$CUR" ] && continue
+            echo "$TAG $(git rev-list -n1 "$TAG")"
+          done)
+          echo "$LIST"
+          echo "key=old-revisions-$CACHE_VERSION-$(echo "$LIST" | sha1sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore earlier revisions' builds
+        uses: actions/cache@v4
+        with:
+          path: rev-cache
+          key: ${{ steps.frozen.outputs.key }}
+          restore-keys: |
+            old-revisions-v1-
+
+      - name: Build earlier revisions from their tags (only those not cached)
         working-directory: main
         run: |
           CUR="${{ steps.rev.outputs.n }}"
+          CACHE="$GITHUB_WORKSPACE/rev-cache"
+          mkdir -p "$CACHE"
           for TAG in $(git tag --list 'revision-*'); do
             N="${TAG#revision-}"
             [ "$N" = "$CUR" ] && continue
+            if [ -f "$CACHE/$N/index.html" ]; then
+              echo "revision $N: restored from cache"
+              continue
+            fi
             echo "::group::revision $N ($TAG)"
+            rm -rf "$CACHE/$N"
             git worktree add --detach "../rev-$N" "$TAG"
-            (cd "../rev-$N" && pnpm install --no-frozen-lockfile \
-              && npx vite build --base="/umbrella/$N/" --outDir="$GITHUB_WORKSPACE/dist/$N")
+            (cd "../rev-$N" && pnpm install --no-frozen-lockfile               && npx vite build --base="/umbrella/$N/" --outDir="$CACHE/$N")
             if [ "$N" -ge 11 ]; then
-              (cd "../rev-$N" && VITE_APP_KITE=true \
-                npx vite build --mode kite --base="/umbrella/$N/kite/" --outDir="$GITHUB_WORKSPACE/dist/$N/kite")
+              (cd "../rev-$N" && VITE_APP_KITE=true                 npx vite build --mode kite --base="/umbrella/$N/kite/" --outDir="$CACHE/$N/kite")
             fi
             if [ -f "../rev-$N/src/umbrella/art/lantern.ts" ]; then
-              (cd "../rev-$N" && VITE_APP_LANTERN=true \
-                npx vite build --mode lantern --base="/umbrella/$N/lantern/" --outDir="$GITHUB_WORKSPACE/dist/$N/lantern")
+              (cd "../rev-$N" && VITE_APP_LANTERN=true                 npx vite build --mode lantern --base="/umbrella/$N/lantern/" --outDir="$CACHE/$N/lantern")
             fi
             if [ -f "../rev-$N/src/umbrella/art/clay.ts" ]; then
-              (cd "../rev-$N" && VITE_APP_CLAY=true \
-                npx vite build --mode clay --base="/umbrella/$N/clay/" --outDir="$GITHUB_WORKSPACE/dist/$N/clay")
+              (cd "../rev-$N" && VITE_APP_CLAY=true                 npx vite build --mode clay --base="/umbrella/$N/clay/" --outDir="$CACHE/$N/clay")
             fi
             echo "::endgroup::"
           done
+          # A revision whose tag is gone (or now the current one) must not linger from an older cache.
+          for D in "$CACHE"/*/; do
+            N=$(basename "$D")
+            git rev-parse -q --verify "refs/tags/revision-$N" >/dev/null && [ "$N" != "$CUR" ] || rm -rf "$D"
+          done
+          cp -r "$CACHE"/. "$GITHUB_WORKSPACE/dist/"
 
       - name: Revision index (dist/revisions.json)
         working-directory: main
