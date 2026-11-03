@@ -657,7 +657,11 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   // Stars: touch to collect. Gates: open the umbrella at one and a hyper current takes you through.
   const stars = w.level.stars ?? []
   for (let i = 0; i < stars.length; i++) {
-    if (w.starsGot[i] || !overlaps(pl.x, pl.y, pl.w, pl.h, starBox(stars[i]!))) continue
+    if (w.starsGot[i]) continue
+    // The body picks one up, and so does an open umbrella's canopy above his head.
+    const box = starBox(stars[i]!)
+    const ub = pl.open ? umbrellaBox(pl) : null
+    if (!overlaps(pl.x, pl.y, pl.w, pl.h, box) && !(ub && overlaps(ub.x, ub.y, ub.w, ub.h, box))) continue
     w.starsGot[i] = true
     events.push('star')
   }
