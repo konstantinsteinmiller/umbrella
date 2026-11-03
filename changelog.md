@@ -11,6 +11,7 @@ Umbrella — changelog (newest first)
 - [x] Collectible pickup box: with the umbrella open it is the whole column from the canopy's rim down to his feet (46 wide) instead of just the body; the open canopy still collects as before
 - [x] Third level (id 18) is open to the sky: no invisible ceiling stops the player and the camera follows him up above the level's top (levels have an optional `openTop`; a `ceiling` number still sets a lower stop on other levels)
 - [x] Designer tuning of 3 Nov (22:59): air speed 230 (was 240); the level changes in that export (currents and the Walldorf timings on levels 9, 11, 16, 1004 and others) are in the campaign data. Chad's intro float lands a little nearer the edge when the slower air speed needs it
+- [x] Poki deploy: `--skip-qa-testing` now opens the Inspector on the uploaded version and ticks every QA checklist box without running any test (ported from battlecross); `--skip-qa` still stops before the Inspector
 - [x] Touch umbrella button: with the umbrella shut its symbol fades while the round button and its outline stay clearly visible, so the pressable area shows
 - [x] Level grid: a tile with no rating and no collectible under its number is shorter (5:4 instead of 5:6) and no longer stretched to the height of its row
 - [x] Chapter blend-ins (the "World 1" card at the start and at each chapter's first level) are switched off for now; the card, its lanterns and the code stay behind one switch (CHAPTER_CARDS in UmbrellaScene.vue)
