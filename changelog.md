@@ -1,7 +1,7 @@
 Umbrella — changelog (newest first)
 
 == Revision 15 — 2026-11-03 ==
-- Tools: the Pages workflow caches the builds of earlier revisions (kite, lantern and clay included) in the Actions cache and builds only a revision that is new to it, instead of rebuilding all of them on every push
+- Tools: the Pages workflow caches the builds of earlier revisions (kite, lantern and clay included) in the Actions cache and builds only a revision that is new to it, instead of rebuilding all of them on every push; pushes made while a deploy is running now queue behind it instead of cancelling it
 - [x] An open umbrella's canopy collects the golden collectibles too, not only Pweeg's body
 - [x] A collected collectible disappears: no greyed-out copy stays behind in the level
 - Tools: competitor + market report (wind/umbrella/glider games, what they do better, what to add, audiences, Poki/CrazyGames playtime estimates, how to win Poki, revenue and player-growth scenarios) published at /umbrella/competitors/

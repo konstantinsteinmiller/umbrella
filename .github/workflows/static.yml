@@ -29,7 +29,8 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  # Queue, never cancel: a cancelled run cannot save the old-revisions cache or finish its deploy.
+  cancel-in-progress: false
 
 env:
   VITE_APP_TURN_USERNAME: ${{ secrets.VITE_APP_TURN_USERNAME }}
