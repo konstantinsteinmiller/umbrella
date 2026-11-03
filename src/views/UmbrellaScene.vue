@@ -403,7 +403,11 @@ const pickLevel = (i: number) => {
 const CHAPTER_CARD_MS = 3000
 const chapterCard = ref<{ title: string; subtitle: string; key: number } | null>(null)
 let chapterCardTimer = 0
+/** Chapter blend-ins are switched off for now (no card, no sound, no wait under it). The card, its lanterns and
+ *  the code that places it stay; flip this to bring them back. */
+const CHAPTER_CARDS = false
 const showChapterCard = (i: number, afterIntro = false) => {
+  if (!CHAPTER_CARDS) return
   if (testing || playing.value || challenge.value) return
   if (i === startIndex && !afterIntro) return
   const c = chapterRanges().find((r) => r.from === i && r.to > r.from)
