@@ -731,7 +731,8 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     const at = pl.x < g.x + g.w && pl.x + pl.w > g.x && pl.y < g.y + g.h && pl.y + pl.h > g.y
     drawGate(ctx, g, w.time, at && !pl.open && w.phase === 'play')
   }
-  ;(w.level.stars ?? []).forEach((st, i) => drawStar(ctx, st, !!w.starsGot[i], w.time, i * 1.7))
+  // A picked-up collectible is gone: no greyed-out copy stays behind to distract (the HUD badge counts it).
+  ;(w.level.stars ?? []).forEach((st, i) => { if (!w.starsGot[i]) drawStar(ctx, st, false, w.time, i * 1.7) })
 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
