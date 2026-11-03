@@ -14,8 +14,11 @@
 import { contactOf, STAR_R, type Hazard, type World } from '../engine'
 import { channelColor, type Camera } from '../renderer'
 import { isClay, isLantern, paintedGame } from '../kite'
-import { drawSignLantern, setPaintedDropArrow } from '../signArt'
+import { drawSignLantern, setPaintedSignPart } from '../signArt'
 import hintArrowUrl from '@/assets/umbrella-ui/hint-arrow.webp'
+import hintLanternUrl from '@/assets/umbrella-ui/hint-lantern.webp'
+import hintBoardWideUrl from '@/assets/umbrella-ui/hint-board-wide.webp'
+import hintBoardTallUrl from '@/assets/umbrella-ui/hint-board-tall.webp'
 import { windStyle } from '../windStyle'
 import { liteMode, stillSkyCanvas } from '../liteMode'
 import { spikeAngle } from '../spikeGeometry'
@@ -2577,11 +2580,14 @@ const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Ca
 
 // ─── The slots ──────────────────────────────────────────────────────────────
 
-// The painted hint-board arrow (lantern build only): loaded once, the traced outline draws until it is there.
+// The painted hint-board parts (lantern build only): loaded once; each drawing keeps drawing until its painting is there.
 if (isLantern && typeof Image !== 'undefined') {
-  const arrow = new Image()
-  arrow.onload = () => setPaintedDropArrow(arrow, arrow.naturalWidth, arrow.naturalHeight)
-  arrow.src = hintArrowUrl
+  const parts = { arrow: hintArrowUrl, lantern: hintLanternUrl, boardWide: hintBoardWideUrl, boardTall: hintBoardTallUrl } as const
+  for (const [name, url] of Object.entries(parts) as [keyof typeof parts, string][]) {
+    const img = new Image()
+    img.onload = () => setPaintedSignPart(name, img, img.naturalWidth, img.naturalHeight)
+    img.src = url
+  }
 }
 
 const sign = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number; kind?: 'drop' | 'float' }, time: number): boolean => {

@@ -96,8 +96,14 @@ const arrowCrack = (ctx: CanvasRenderingContext2D, r: SignBox, color: string): v
 
 /** The lantern build's PAINTED arrow (art-sheets/hint-arrow, painted at the Art Desk), set by art/paint.ts once
  *  it has loaded. Absent: the lantern look draws the traced outline below. */
-let paintedArrow: { img: CanvasImageSource; w: number; h: number } | null = null
-export const setPaintedDropArrow = (img: CanvasImageSource | null, w = 0, h = 0): void => { paintedArrow = img ? { img, w, h } : null }
+type Painted = { img: CanvasImageSource; w: number; h: number }
+const painted: Partial<Record<'arrow' | 'lantern' | 'boardWide' | 'boardTall', Painted>> = {}
+/** Hands over a loaded painting (art/paint.ts, lantern build): the arrow, one lantern, the wide and the tall
+ *  paper board, all painted at the Art Desk (art-sheets/hint-arrow). Each falls back to its drawing. */
+export const setPaintedSignPart = (name: keyof typeof painted, img: CanvasImageSource | null, w = 0, h = 0): void => {
+  if (img) painted[name] = { img, w, h }
+  else delete painted[name]
+}
 
 /** The drop arrow on its own, filling `r`: the sketch's marker arrow. `lit`: the lantern build's version
  *  (ink-lacquer black with a dry-brush grain and a lit gold rim) instead of the flat skinless one
@@ -107,15 +113,16 @@ export const drawDropArrow = (ctx: CanvasRenderingContext2D, r: SignBox, lit: bo
   ctx.lineJoin = 'round'
   ctx.lineCap = 'round'
   const rim = Math.max(1.2, r.w * 0.09)
-  if (lit && paintedArrow) {
+  const pa = painted.arrow
+  if (lit && pa) {
     // The painting, fitted into the box by its own aspect, its glow soft on the sky.
-    const k = Math.min(r.w / paintedArrow.w, r.h / paintedArrow.h)
-    const w = paintedArrow.w * k
-    const h = paintedArrow.h * k
+    const k = Math.min(r.w / pa.w, r.h / pa.h)
+    const w = pa.w * k
+    const h = pa.h * k
     ctx.shadowColor = 'rgba(255, 170, 70, 0.55)'
     ctx.shadowBlur = r.w * 0.25
     ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(paintedArrow.img, r.x + (r.w - w) / 2, r.y + (r.h - h) / 2, w, h)
+    ctx.drawImage(pa.img, r.x + (r.w - w) / 2, r.y + (r.h - h) / 2, w, h)
     ctx.restore()
     return
   }
@@ -192,6 +199,22 @@ const lantern = (ctx: CanvasRenderingContext2D, cx: number, tilt: number, lit: b
     // The whole disc, so the light fades out on every side instead of stopping at a box edge.
     const R = w * 1.5
     ctx.fillRect(cx - R, top + h / 2 - R, R * 2, R * 2)
+  }
+  const pl = lit ? painted.lantern : undefined
+  if (pl) {
+    // The painted lantern (body and both caps), then the cord the board hangs from.
+    const ih = h + 2
+    const iw = (pl.w / pl.h) * ih
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(pl.img, cx - iw / 2, top - 1, iw, ih)
+    ctx.strokeStyle = '#e8b84a'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(cx, top + h + 1)
+    ctx.lineTo(cx, L.board.y)
+    ctx.stroke()
+    ctx.restore()
+    return
   }
   // Body.
   const body = ctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0)
@@ -388,42 +411,54 @@ export const drawSignLantern = (ctx: CanvasRenderingContext2D, b: SignBox, time:
   lantern(ctx, L.lanternX[0]!, sway, true)
   lantern(ctx, L.lanternX[1]!, 0, true)
   const bd = L.board
-  // Soft drop shadow, then the paper.
-  ctx.save()
-  ctx.shadowColor = 'rgba(40, 14, 4, 0.5)'
-  ctx.shadowBlur = 8
-  ctx.shadowOffsetY = 3
-  const paper = ctx.createLinearGradient(0, bd.y, 0, bd.y + bd.h)
-  paper.addColorStop(0, '#fbf0d6')
-  paper.addColorStop(1, '#ecd9ab')
-  ctx.fillStyle = paper
-  roundRect(ctx, bd.x, bd.y, bd.w, bd.h, 5)
-  ctx.fill()
-  ctx.restore()
-  // Fibres in the washi (fixed pseudo-random strokes).
-  ctx.save()
-  roundRect(ctx, bd.x, bd.y, bd.w, bd.h, 5)
-  ctx.clip()
-  ctx.strokeStyle = 'rgba(150, 110, 50, 0.22)'
-  ctx.lineWidth = 0.7
-  for (let i = 0; i < 26; i++) {
-    const fx = bd.x + ((i * 53) % 100) / 100 * bd.w
-    const fy = bd.y + ((i * 37) % 100) / 100 * bd.h
-    ctx.beginPath()
-    ctx.moveTo(fx, fy)
-    ctx.lineTo(fx + 6 + (i % 5) * 2, fy + ((i % 3) - 1) * 2)
+  const pb = painted[kind === 'float' ? 'boardTall' : 'boardWide']
+  if (pb) {
+    // The painted paper board, fitted into the board's box.
+    ctx.save()
+    ctx.shadowColor = 'rgba(40, 14, 4, 0.5)'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetY = 3
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(pb.img, bd.x, bd.y, bd.w, bd.h)
+    ctx.restore()
+  } else {
+    // Soft drop shadow, then the paper.
+    ctx.save()
+    ctx.shadowColor = 'rgba(40, 14, 4, 0.5)'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetY = 3
+    const paper = ctx.createLinearGradient(0, bd.y, 0, bd.y + bd.h)
+    paper.addColorStop(0, '#fbf0d6')
+    paper.addColorStop(1, '#ecd9ab')
+    ctx.fillStyle = paper
+    roundRect(ctx, bd.x, bd.y, bd.w, bd.h, 5)
+    ctx.fill()
+    ctx.restore()
+    // Fibres in the washi (fixed pseudo-random strokes).
+    ctx.save()
+    roundRect(ctx, bd.x, bd.y, bd.w, bd.h, 5)
+    ctx.clip()
+    ctx.strokeStyle = 'rgba(150, 110, 50, 0.22)'
+    ctx.lineWidth = 0.7
+    for (let i = 0; i < 26; i++) {
+      const fx = bd.x + ((i * 53) % 100) / 100 * bd.w
+      const fy = bd.y + ((i * 37) % 100) / 100 * bd.h
+      ctx.beginPath()
+      ctx.moveTo(fx, fy)
+      ctx.lineTo(fx + 6 + (i % 5) * 2, fy + ((i % 3) - 1) * 2)
+      ctx.stroke()
+    }
+    ctx.restore()
+    // A gold-brown brushed frame.
+    ctx.strokeStyle = '#8a5a1c'
+    ctx.lineWidth = 2.2
+    roundRect(ctx, bd.x, bd.y, bd.w, bd.h, 5)
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(232, 184, 74, 0.8)'
+    ctx.lineWidth = 0.9
+    roundRect(ctx, bd.x + 3, bd.y + 3, bd.w - 6, bd.h - 6, 3)
     ctx.stroke()
   }
-  ctx.restore()
-  // A gold-brown brushed frame.
-  ctx.strokeStyle = '#8a5a1c'
-  ctx.lineWidth = 2.2
-  roundRect(ctx, bd.x, bd.y, bd.w, bd.h, 5)
-  ctx.stroke()
-  ctx.strokeStyle = 'rgba(232, 184, 74, 0.8)'
-  ctx.lineWidth = 0.9
-  roundRect(ctx, bd.x + 3, bd.y + 3, bd.w - 6, bd.h - 6, 3)
-  ctx.stroke()
   if (kind === 'float') floatScene(ctx, time, true)
   else legend(ctx, true)
   boardArrow(ctx, time, true)
