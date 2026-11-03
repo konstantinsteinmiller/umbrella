@@ -1,6 +1,7 @@
 Umbrella — changelog (newest first)
 
 == Revision 15 — 2026-11-03 ==
+- [x] Level grid: a tile with no rating and no collectible under its number is shorter (5:4 instead of 5:6) and no longer stretched to the height of its row
 - [x] Chapter blend-ins (the "World 1" card at the start and at each chapter's first level) are switched off for now; the card, its lanterns and the code stay behind one switch (CHAPTER_CARDS in UmbrellaScene.vue)
 - [x] Wide landscape phones: the level is no longer fitted small above the controls' band — the view zooms in (up to 1.6× closer) towards filling the screen's width and follows the player up and down
 - Tools: the Pages workflow no longer builds the obsolete kite build (current or old revisions); the old-revisions cache moved to v2 so the kite folders drop out

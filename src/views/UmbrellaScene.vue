@@ -1302,7 +1302,7 @@ onUnmounted(() => {
               :key="LEVELS[i]!.id"
               :style="{ '--i': k }"
               class="level-tile"
-              :class="{ current: i === shownIndex(), cleared: cleared.includes(i), challenge: isChallenge(i) }"
+              :class="{ current: i === shownIndex(), cleared: cleared.includes(i), challenge: isChallenge(i), plain: !activeTimeLimit(LEVELS[i]!) && !LEVELS[i]!.stars?.length }"
               :aria-label="t('umbrella.level', { n: i + 1 }) + (isChallenge(i) ? ' · ' + t('umbrella.challenge') : '')"
               @click="pickLevel(i)"
             >
@@ -1740,6 +1740,8 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   /* A little taller than wide: the number, then (timed) the rating, then (collectibles) the count,
      stacked in one centred column that fits the tile. */
   aspect-ratio: 5 / 6;
+  /* A tile with nothing under its number (no rating, no collectible) is not stretched tall to match its row. */
+  align-self: start;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1752,6 +1754,7 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   font-size: 22px;
   font-weight: 700;
 }
+.level-tile.plain { aspect-ratio: 5 / 4; }
 .level-tile:hover { background: rgba(255, 255, 255, 0.22); }
 .level-tile.current { outline: 2px solid #6fa8ff; }
 .levels-head.mine { margin-top: 18px; font-size: 18px; }
