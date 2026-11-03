@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createWorld, step, type Input } from '@/umbrella/engine'
+import { createWorld, itemBox, step, type Input } from '@/umbrella/engine'
 import { DEFAULT_TUNING } from '@/umbrella/tuning'
 import type { LevelDef } from '@/umbrella/levels'
 
@@ -27,5 +27,25 @@ describe('collectibles', () => {
     step(open, none, 1 / 60, DEFAULT_TUNING)
     expect(open.starsGot[0]).toBe(true)
     expect(closed.starsGot[0]).toBe(false)
+  })
+
+  it('with the umbrella open the item box runs from the canopy rim down to the feet, a little wider than the body', () => {
+    const w = createWorld(level(0), undefined, -1)
+    const pl = w.player
+    pl.open = true
+    expect(itemBox(pl)).toEqual({ x: pl.x + pl.w / 2 - 23, y: pl.y - 26, w: 46, h: pl.h + 26 })
+    pl.open = false
+    expect(itemBox(pl)).toEqual({ x: pl.x, y: pl.y, w: pl.w, h: pl.h })
+  })
+
+  it('a level can raise its ceiling', () => {
+    const lv = { ...level(0), ceiling: 10, winds: [{ x: 0, y: 0, w: 1280, h: 720, dir: 'up', speed: 600 }] } as LevelDef
+    const w = createWorld(lv, undefined, -1)
+    w.player.open = true
+    w.player.grounded = false
+    w.player.autoShow = -1
+    for (let i = 0; i < 240; i++) step(w, none, 1 / 60, DEFAULT_TUNING)
+    expect(w.player.y).toBeLessThan(56)
+    expect(w.player.y).toBeGreaterThanOrEqual(10)
   })
 })

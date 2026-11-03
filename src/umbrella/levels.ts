@@ -167,6 +167,8 @@ export interface LevelDef {
   timeLimit?: number
   /** The time limit applies only in the game-jam build (itch.io, and the editor's jam test). */
   timeLimitJamOnly?: boolean
+  /** Where the top of the player stops against the ceiling (world y; absent: the default, 56). Lower = higher ceiling. */
+  ceiling?: number
   /** When the editor last saved this level (ms since epoch). Edits made in several
    *  places (the levels bucket, a JSON file, the repo) merge by it: the newest wins. */
   editedAt?: number

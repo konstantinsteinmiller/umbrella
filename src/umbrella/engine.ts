@@ -235,6 +235,8 @@ export interface WorldOptions {
 }
 /** The highest the player's top can go (world px): below the top bar, which covers the first ~50 px of the view. */
 export const CEILING_Y = 56
+/** Where the top of the player stops against the ceiling: the level's own `ceiling`, else the default. */
+export const ceilingOf = (level: { ceiling?: number }): number => level.ceiling ?? CEILING_Y
 export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }, checkpoint = -1, opts: WorldOptions = {}): World => {
   const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0 }))
   for (const p of platforms) placeMover(p, 0)
@@ -303,6 +305,14 @@ export const windInfluence = (pl: Player, w: WindDef, edge: number): number => {
 export const UMBRELLA_W = 60
 export const UMBRELLA_TOP = 66
 export const UMBRELLA_BOTTOM = 26
+/** What picks up a collectible: the body, and with the umbrella open the whole column from the canopy's
+ *  rim down to his feet (the shaft and grip too), a little wider than his body. */
+export const ITEM_W = 46
+export const itemBox = (pl: Player) => {
+  if (!pl.open) return { x: pl.x, y: pl.y, w: pl.w, h: pl.h }
+  const w = Math.max(ITEM_W, pl.w)
+  return { x: pl.x + pl.w / 2 - w / 2, y: pl.y - UMBRELLA_BOTTOM, w, h: pl.h + UMBRELLA_BOTTOM }
+}
 export const umbrellaBox = (pl: Player) => ({
   x: pl.x + pl.w / 2 - UMBRELLA_W / 2,
   y: pl.y - UMBRELLA_TOP,
@@ -551,8 +561,9 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   pl.y += pl.vy * dt
   // A current cannot carry him above the top of the level, up under the top bar: he stops at the
   // ceiling and the column's lift is spent there (he floats against it until he leaves the column).
-  if (pl.y < CEILING_Y) {
-    pl.y = CEILING_Y
+  const ceiling = ceilingOf(w.level)
+  if (pl.y < ceiling) {
+    pl.y = ceiling
     if (pl.vy < 0) pl.vy = 0
   }
   pl.grounded = false
@@ -658,10 +669,11 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   const stars = w.level.stars ?? []
   for (let i = 0; i < stars.length; i++) {
     if (w.starsGot[i]) continue
-    // The body picks one up, and so does an open umbrella's canopy above his head.
+    // The item box (body, and with the umbrella open the column up to its rim) picks one up, and so does the open canopy above it.
     const box = starBox(stars[i]!)
+    const ib = itemBox(pl)
     const ub = pl.open ? umbrellaBox(pl) : null
-    if (!overlaps(pl.x, pl.y, pl.w, pl.h, box) && !(ub && overlaps(ub.x, ub.y, ub.w, ub.h, box))) continue
+    if (!overlaps(ib.x, ib.y, ib.w, ib.h, box) && !(ub && overlaps(ub.x, ub.y, ub.w, ub.h, box))) continue
     w.starsGot[i] = true
     events.push('star')
   }
