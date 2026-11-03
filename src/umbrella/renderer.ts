@@ -14,6 +14,7 @@ import { spikeAngle } from './spikeGeometry'
 import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
 import { artLayer, isLantern, paintedGame } from './kite'
 import { kiteArt } from './art/hooks'
+import { drawSignVector } from './signArt'
 
 /** One colour per button channel: a button and everything it switches share it. */
 export const CHANNEL_COLORS = ['#f59e0b', '#22d3ee', '#a78bfa', '#4ade80', '#f472b6', '#f87171']
@@ -451,6 +452,12 @@ export const drawGate = (ctx: CanvasRenderingContext2D, g: { x: number; y: numbe
   ctx.restore()
 }
 
+/** The hint board: lantern-held paper with the SPACE key and a down arrow (decoration). */
+export const drawSign = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number }, time: number): void => {
+  if (artLayer && kiteArt.sign?.(ctx, s, time)) return
+  drawSignVector(ctx, s, time)
+}
+
 /** The bobbing umbrella over a painted gate. */
 const drawGateHint = (ctx: CanvasRenderingContext2D, g: { x: number; y: number; w: number }, time: number): void => {
   ctx.save()
@@ -733,6 +740,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
       ctx.restore()
     }
   }
+  for (const sg of w.level.signs ?? []) drawSign(ctx, sg, w.time)
   for (const c of w.level.checkpoints ?? []) drawCheckpoint(ctx, c, (w.level.checkpoints ?? []).indexOf(c) === w.checkpoint, w.time)
   for (const g of w.level.gates ?? []) {
     const pl = w.player

@@ -88,6 +88,12 @@ export interface StarDef { x: number; y: number; shape?: CollectShape }
  *  open in the level selector. Only the campaign honours gates. */
 export interface GateDef { x: number; y: number; w: number; h: number; to: number }
 
+/** A hint board: a paper board hung from two lanterns showing the SPACE key and a big arrow pointing
+ *  down ("press Space to drop"). Pure decoration: nothing collides with it. */
+export interface SignDef { x: number; y: number; w: number; h: number }
+export const SIGN_W = 120
+export const SIGN_H = 170
+
 /** How many button channels the editor offers (each has its own colour). */
 export const CHANNELS = 6
 
@@ -152,6 +158,8 @@ export interface LevelDef {
   checkpoints?: CheckpointDef[]
   stars?: StarDef[]
   gates?: GateDef[]
+  /** Hint boards (decoration). */
+  signs?: SignDef[]
   /** Seconds to reach the finish, counted from the spawn (timeStars.ts): running out restarts the
    *  level at the spawn, and the time left rates the finish with 1–3 stars. Absent: no limit. */
   timeLimit?: number

@@ -160,6 +160,7 @@ export default {
       'button': "Nút",
       'star': "Vật phẩm thu thập",
       'gate': "Cổng",
+      'sign': "Bảng gợi ý",
       'wind-up': "Gió thổi lên",
       'wind-down': "Gió thổi xuống",
       'wind-left': "Gió sang trái",
@@ -180,6 +181,7 @@ export default {
       'button': "Nhấp lên mép trên của bục. Chạm nút sẽ bật/tắt mọi thứ trên kênh của nó.",
       'star': "Nhấp để đặt vật phẩm thu thập — ngôi sao, ô vàng hoặc mây vàng (chọn kiểu ở thuộc tính).",
       'gate': "Nhấp vào mép trên của nền để đặt ống dịch chuyển. Mở ô trong ống, người chơi sẽ được dòng siêu gió đưa tới màn thử thách.",
+      'sign': "Nhấp để đặt bảng gợi ý: tờ giấy do hai chiếc đèn lồng giữ, có phím SPACE và mũi tên chỉ xuống. Chỉ để trang trí; kéo góc xanh để đổi kích thước.",
       'wind-up': "Kéo một khung cho luồng gió thổi lên.",
       'wind-down': "Kéo một khung cho luồng gió thổi xuống.",
       'wind-left': "Kéo một khung cho luồng gió thổi sang trái.",
@@ -204,7 +206,8 @@ export default {
       'button': "Nút",
       'checkpoint': "Điểm lưu",
       'star': "Vật phẩm thu thập",
-      'gate': "Cổng"
+      'gate': "Cổng",
+      'sign': "Bảng gợi ý"
     },
     'shape': {
       'star': "Ngôi sao",

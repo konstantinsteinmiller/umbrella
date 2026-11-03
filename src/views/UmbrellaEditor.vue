@@ -27,7 +27,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { isTurned, spikeAngle, spikeBounds } from '@/umbrella/spikeGeometry'
-import { CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
+import { CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, SIGN_H, SIGN_W, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
@@ -79,11 +79,11 @@ import {
 } from '@/umbrella/customLevels'
 
 type Tool =
-  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate'
+  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
-type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates'
+type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates' | 'signs'
 type Entity = { group: Group; i: number }
 /** `arm`: a swing's rest point (sets its arc angle and rope); `phase`: a circle's start pin. */
 type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase'
@@ -111,7 +111,8 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys }[]
     { id: 'spawn', icon: '☺', keys: { key: 's' } },
     { id: 'checkpoint', icon: '⚑', keys: { key: 'c' } },
     { id: 'star', icon: '★', keys: { key: 't' } },
-    { id: 'gate', icon: '⛩', keys: { key: 'g' } }
+    { id: 'gate', icon: '⛩', keys: { key: 'g' } },
+    { id: 'sign', icon: '🏮', keys: { key: 'n' } }
   ] },
   { id: 'currents', tools: [
     { id: 'wind-up', icon: '↑', keys: { key: '1' } },
@@ -237,9 +238,9 @@ const redo = () => {
 }
 
 // ── Geometry helpers ──
-const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | GateDef)[] =>
+const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | GateDef | SignDef)[] =>
   g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= [])
-    : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : (L.checkpoints ??= [])
+    : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : g === 'signs' ? (L.signs ??= []) : (L.checkpoints ??= [])
 const listOf = (g: Group) => listIn(level.value, g)
 const hazards = () => (level.value.hazards ??= [])
 const entityOf = (e: Entity) => listOf(e.group)[e.i]
@@ -262,6 +263,7 @@ const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
       : e.group === 'hazards' ? hazardRect(world.hazards[e.i]!)
         : e.group === 'buttons' ? level.value.buttons![e.i]!
           : e.group === 'gates' ? level.value.gates![e.i]!
+            : e.group === 'signs' ? level.value.signs![e.i]!
             : e.group === 'stars' ? starBox(level.value.stars![e.i]!)
               : checkpointBox(level.value.checkpoints![e.i]!)
 
@@ -353,7 +355,7 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
   const sp = level.value.spawn
   if (inside(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, 4)) return { sel: { type: 'spawn' } }
   // Small things first: hazards, then platforms, then (big) winds.
-  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'hazards', 'platforms', 'winds'] as Group[]) {
+  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'hazards', 'platforms', 'winds', 'signs'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) if (inside(p, shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
@@ -425,6 +427,13 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       const to = LEVELS.find((l) => l.id !== L.id)?.id ?? 0
       list.push({ x: snapV(a.x - 30), y: snapV(a.y) - 80, w: 60, h: 80, to })
       sel = { type: 'entity', group: 'gates', i: list.length - 1 }
+      break
+    }
+    case 'sign': {
+      // Centred on the click (its arrow then points at what is below).
+      const list = (L.signs ??= [])
+      list.push({ x: snapV(a.x - SIGN_W / 2), y: snapV(a.y - SIGN_H / 2), w: SIGN_W, h: SIGN_H })
+      sel = { type: 'entity', group: 'signs', i: list.length - 1 }
       break
     }
     case 'checkpoint': {
@@ -939,7 +948,7 @@ const selectedKind = computed(() => {
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
   if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : 'platform'
-  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'stars' ? 'star' : 'checkpoint'
+  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? 'sign' : s.group === 'stars' ? 'star' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */
 const gateTargets = computed(() => { void campaignOrder.value; return LEVELS.map((l, i) => ({ id: l.id, label: t('umbrella.level', { n: i + 1 }) })) })
@@ -1497,7 +1506,7 @@ const paint = (now: number) => {
     ctx.fillText(t('umbrellaEditor.startScreen'), start.x + 6 / s, start.y + 6 / s)
   }
   // Off-world things (a lunge resting off-screen) still need an outline to grab.
-  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'gates'] as Group[]) {
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'gates', 'signs'] as Group[]) {
     listOf(group).forEach((_, i) => {
       const r = shownRect({ group, i })
       const off = r.x < 0 || r.y < 0 || r.x + r.w > L.world.w || r.y + r.h > L.world.h

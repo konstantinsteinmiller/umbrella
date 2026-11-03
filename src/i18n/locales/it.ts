@@ -160,6 +160,7 @@ export default {
       'button': "Pulsante",
       'star': "Oggetto da raccogliere",
       'gate': "Portale",
+      'sign': "Cartello di aiuto",
       'wind-up': "Corrente ascendente",
       'wind-down': "Corrente discendente",
       'wind-left': "Vento a sinistra",
@@ -180,6 +181,7 @@ export default {
       'button': "Clicca sul bordo superiore di una piattaforma. Toccare il pulsante attiva tutto sul suo canale.",
       'star': "Clicca per mettere un oggetto da raccogliere: stella, ombrello d'oro o nuvola d'oro (l'aspetto nelle proprietà).",
       'gate': "Clicca sul bordo superiore di una piattaforma per un tubo di teletrasporto. Aprendo l'ombrello al suo interno, il giocatore viene portato da una corrente iper a un livello sfida.",
+      'sign': "Clicca per collocare un cartello: carta sorretta da due lanterne con il tasto SPACE e una freccia verso il basso. Solo decorazione; trascina l'angolo verde per ridimensionare.",
       'wind-up': "Trascina un riquadro per una corrente che soffia in su.",
       'wind-down': "Trascina un riquadro per una corrente che soffia in giù.",
       'wind-left': "Trascina un riquadro per una corrente che soffia a sinistra.",
@@ -204,7 +206,8 @@ export default {
       'button': "Pulsante",
       'checkpoint': "Checkpoint",
       'star': "Oggetto da raccogliere",
-      'gate': "Portale"
+      'gate': "Portale",
+      'sign': "Cartello di aiuto"
     },
     'shape': {
       'star': "Stella",

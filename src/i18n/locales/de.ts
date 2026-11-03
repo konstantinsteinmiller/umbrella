@@ -160,6 +160,7 @@ export default {
       'button': "Knopf",
       'star': "Sammelobjekt",
       'gate': "Tor",
+      'sign': "Hinweistafel",
       'wind-up': "Aufwind",
       'wind-down': "Abwind",
       'wind-left': "Wind nach links",
@@ -180,6 +181,7 @@ export default {
       'button': "Klicke auf die Oberkante einer Plattform. Der Knopf schaltet alles auf seinem Kanal.",
       'star': "Klicken, um ein Sammelobjekt zu setzen – Stern, goldener Schirm oder goldene Wolke (Aussehen in den Eigenschaften).",
       'gate': "Auf die Oberkante einer Plattform klicken: ein Warp-Rohr. Öffnet der Spieler darin den Schirm, trägt ihn ein Hyperstrom in ein Challenge-Level.",
+      'sign': "Klicken, um eine Hinweistafel zu setzen: Papier, von zwei Laternen gehalten, mit der Taste SPACE und einem Pfeil nach unten. Nur Dekoration; die grüne Ecke ändert die Größe.",
       'wind-up': "Ziehe ein Rechteck für eine Strömung nach oben.",
       'wind-down': "Ziehe ein Rechteck für eine Strömung nach unten.",
       'wind-left': "Ziehe ein Rechteck für eine Strömung nach links.",
@@ -204,7 +206,8 @@ export default {
       'button': "Knopf",
       'checkpoint': "Checkpoint",
       'star': "Sammelobjekt",
-      'gate': "Tor"
+      'gate': "Tor",
+      'sign': "Hinweistafel"
     },
     'shape': {
       'star': "Stern",

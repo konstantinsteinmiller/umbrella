@@ -163,6 +163,7 @@ export default {
       'button': "Button",
       'star': "Collectible",
       'gate': "Gate",
+      'sign': "Hint board",
       'wind-up': "Updraft",
       'wind-down': "Downdraft",
       'wind-left': "Wind left",
@@ -183,6 +184,7 @@ export default {
       'button': "Click on a platform's top edge. Touching the button switches everything on its channel.",
       'star': "Click to place a collectible — a star, golden umbrella or golden cloud (pick the look in the properties).",
       'gate': "Click on a platform's top edge for a warp pipe. Opening the umbrella inside it sends the player to a challenge level on a hyper current.",
+      'sign': "Click to place a hint board: paper held by two lanterns showing the SPACE key and a down arrow. Decoration only; drag the green corner to resize.",
       'wind-up': "Drag a box for a current that blows up.",
       'wind-down': "Drag a box for a current that blows down.",
       'wind-left': "Drag a box for a current that blows left.",
@@ -207,7 +209,8 @@ export default {
       'button': "Button",
       'checkpoint': "Checkpoint",
       'star': "Collectible",
-      'gate': "Gate"
+      'gate': "Gate",
+      'sign': "Hint board"
     },
     'shape': {
       'star': "Star",

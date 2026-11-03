@@ -160,6 +160,7 @@ export default {
       'button': "Tombol",
       'star': "Barang koleksi",
       'gate': "Gerbang",
+      'sign': "Papan petunjuk",
       'wind-up': "Arus naik",
       'wind-down': "Arus turun",
       'wind-left': "Angin ke kiri",
@@ -180,6 +181,7 @@ export default {
       'button': "Klik di tepi atas platform. Menyentuh tombol mengaktifkan semua yang ada di salurannya.",
       'star': "Klik untuk menaruh barang koleksi — bintang, payung emas, atau awan emas (pilih tampilan di properti).",
       'gate': "Klik tepi atas platform untuk pipa warp. Membuka payung di dalamnya membawa pemain dengan arus hiper ke level tantangan.",
+      'sign': "Klik untuk menaruh papan petunjuk: kertas yang ditahan dua lentera dengan tombol SPACE dan panah ke bawah. Hanya dekorasi; seret sudut hijau untuk mengubah ukuran.",
       'wind-up': "Seret kotak untuk arus yang bertiup ke atas.",
       'wind-down': "Seret kotak untuk arus yang bertiup ke bawah.",
       'wind-left': "Seret kotak untuk arus yang bertiup ke kiri.",
@@ -204,7 +206,8 @@ export default {
       'button': "Tombol",
       'checkpoint': "Checkpoint",
       'star': "Barang koleksi",
-      'gate': "Gerbang"
+      'gate': "Gerbang",
+      'sign': "Papan petunjuk"
     },
     'shape': {
       'star': "Bintang",

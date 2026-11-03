@@ -160,6 +160,7 @@ export default {
       'button': "Przycisk",
       'star': "Przedmiot do zebrania",
       'gate': "Brama",
+      'sign': "Tablica z podpowiedzią",
       'wind-up': "Prąd wznoszący",
       'wind-down': "Prąd opadający",
       'wind-left': "Wiatr w lewo",
@@ -180,6 +181,7 @@ export default {
       'button': "Kliknij górną krawędź platformy. Dotknięcie przycisku przełącza wszystko na jego kanale.",
       'star': "Kliknij, aby postawić przedmiot do zebrania — gwiazdkę, złoty parasol lub złotą chmurkę (wygląd we właściwościach).",
       'gate': "Kliknij górną krawędź platformy, aby postawić rurę teleportacyjną. Otwarcie w niej parasola zabiera gracza hiperprądem na poziom wyzwania.",
+      'sign': "Kliknij, aby postawić tablicę: papier trzymany przez dwie latarnie, z klawiszem SPACE i strzałką w dół. Tylko dekoracja; zielony róg zmienia rozmiar.",
       'wind-up': "Przeciągnij prostokąt prądu wiejącego w górę.",
       'wind-down': "Przeciągnij prostokąt prądu wiejącego w dół.",
       'wind-left': "Przeciągnij prostokąt prądu wiejącego w lewo.",
@@ -204,7 +206,8 @@ export default {
       'button': "Przycisk",
       'checkpoint': "Punkt kontrolny",
       'star': "Przedmiot do zebrania",
-      'gate': "Brama"
+      'gate': "Brama",
+      'sign': "Tablica z podpowiedzią"
     },
     'shape': {
       'star': "Gwiazdka",

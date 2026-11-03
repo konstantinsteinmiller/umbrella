@@ -160,6 +160,7 @@ export default {
       'button': "Botão",
       'star': "Colecionável",
       'gate': "Portal",
+      'sign': "Placa de dica",
       'wind-up': "Corrente ascendente",
       'wind-down': "Corrente descendente",
       'wind-left': "Vento para a esquerda",
@@ -180,6 +181,7 @@ export default {
       'button': "Clique na borda de cima de uma plataforma. Tocar o botão aciona tudo no canal dele.",
       'star': "Clique para colocar um colecionável — estrela, guarda-chuva dourado ou nuvem dourada (o visual nas propriedades).",
       'gate': "Clique na borda de cima de uma plataforma para um tubo de teletransporte. Abrir o guarda-chuva dentro dele leva o jogador por uma hipercorrente a um nível desafio.",
+      'sign': "Clique para colocar uma placa: papel segurado por duas lanternas com a tecla SPACE e uma seta para baixo. Apenas decoração; arraste o canto verde para redimensionar.",
       'wind-up': "Arraste uma caixa para uma corrente que sopra para cima.",
       'wind-down': "Arraste uma caixa para uma corrente que sopra para baixo.",
       'wind-left': "Arraste uma caixa para uma corrente que sopra para a esquerda.",
@@ -204,7 +206,8 @@ export default {
       'button': "Botão",
       'checkpoint': "Checkpoint",
       'star': "Colecionável",
-      'gate': "Portal"
+      'gate': "Portal",
+      'sign': "Placa de dica"
     },
     'shape': {
       'star': "Estrela",

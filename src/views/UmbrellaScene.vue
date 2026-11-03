@@ -7,7 +7,7 @@
  * dances, then moves on. Typing "cmonc" opens the hidden feel-tuning panel
  * the GDD asks designers to send numbers from.
  */
-import { computed, onMounted, onUnmounted, provide, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, provide, reactive, ref, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { DEFAULT_COLLECT_SHAPE, LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
@@ -28,6 +28,7 @@ import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import { createIntro, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
 import { previewFinish, render, resetPlayerPose } from '@/umbrella/renderer'
+import { setSignTouch } from '@/umbrella/signArt'
 import { ARRIVE_TIME, drawWarp, startWarp, warpPosition, warpTime, type Warp } from '@/umbrella/warp'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
@@ -963,6 +964,8 @@ const onViewport = () => { phoneViewport.value = isPhoneViewport() }
 /** The last input was a finger (a desktop only: phones and tablets always show the controls). */
 const lastTouch = ref(false)
 const touchUI = computed(() => tapDevice || phoneViewport.value || lastTouch.value)
+// The hint board in a level shows the umbrella button on touch and the SPACE key otherwise.
+watchEffect(() => setSignTouch(touchUI.value))
 const onAnyPointer = (e: PointerEvent) => {
   if (e.pointerType === 'touch') lastTouch.value = true
   else if (e.pointerType === 'mouse') lastTouch.value = false
@@ -1237,7 +1240,7 @@ onUnmounted(() => {
       <button
         ref="umbrellaBtnEl"
         class="umbrella-btn"
-        :class="{ pressed: umbrellaPressed, 'see-through': seeThrough.umbrella, coach: coachUmbrella }"
+        :class="{ pressed: umbrellaPressed, closed: !umbrellaPressed, 'see-through': seeThrough.umbrella, coach: coachUmbrella }"
         :aria-label="t('umbrella.umbrellaButton')"
         @pointerdown.stop="onUmbrellaDown"
         @pointerup="onUmbrellaUp"
@@ -1525,7 +1528,7 @@ onUnmounted(() => {
   width: 92px;
   height: 92px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
   font-size: 44px;
@@ -1533,6 +1536,9 @@ onUnmounted(() => {
   cursor: pointer;
 }
 .umbrella-btn::before { content: ''; position: absolute; inset: -14px; border-radius: 50%; }
+.umbrella-btn { transition: color 0.12s ease, background 0.12s ease, transform 0.12s ease; }
+/* Umbrella shut: the umbrella symbol fades, the round button stays, so the pressable area still shows. */
+.umbrella-btn.closed { color: rgba(255, 255, 255, 0.38); }
 .umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); transform: scale(0.94); }
 /* The control coach (levels 1-2): a pulsing ring, and the stick's knob nudging left and right. */
 .stick.coach, .umbrella-btn.coach { animation: coach-pulse 1.4s ease-in-out infinite; }

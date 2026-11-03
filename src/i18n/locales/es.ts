@@ -160,6 +160,7 @@ export default {
       'button': "Botón",
       'star': "Coleccionable",
       'gate': "Portal",
+      'sign': "Cartel de pista",
       'wind-up': "Corriente ascendente",
       'wind-down': "Corriente descendente",
       'wind-left': "Viento a la izquierda",
@@ -180,6 +181,7 @@ export default {
       'button': "Haz clic en el borde superior de una plataforma. Tocar el botón activa todo lo de su canal.",
       'star': "Haz clic para colocar un coleccionable: estrella, paraguas dorado o nube dorada (el aspecto se elige en las propiedades).",
       'gate': "Haz clic en el borde superior de una plataforma para un tubo de teletransporte. Abrir el paraguas dentro lleva al jugador por una hipercorriente a un nivel desafío.",
+      'sign': "Haz clic para colocar un cartel: papel sostenido por dos farolillos con la tecla SPACE y una flecha hacia abajo. Solo decoración; arrastra la esquina verde para cambiar el tamaño.",
       'wind-up': "Arrastra un recuadro para una corriente hacia arriba.",
       'wind-down': "Arrastra un recuadro para una corriente hacia abajo.",
       'wind-left': "Arrastra un recuadro para una corriente hacia la izquierda.",
@@ -204,7 +206,8 @@ export default {
       'button': "Botón",
       'checkpoint': "Punto de control",
       'star': "Coleccionable",
-      'gate': "Portal"
+      'gate': "Portal",
+      'sign': "Cartel de pista"
     },
     'shape': {
       'star': "Estrella",

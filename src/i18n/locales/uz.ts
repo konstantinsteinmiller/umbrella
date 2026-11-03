@@ -160,6 +160,7 @@ export default {
       'button': "Tugma",
       'star': "Yig'iladigan buyum",
       'gate': "Darvoza",
+      'sign': "Maslahat taxtasi",
       'wind-up': "Yuqoriga oqim",
       'wind-down': "Pastga oqim",
       'wind-left': "Chapga shamol",
@@ -180,6 +181,7 @@ export default {
       'button': "Platformaning yuqori chetini bosing. Tugmaga tegish uning kanalidagi hamma narsani almashtiradi.",
       'star': "Yig'iladigan buyum qo'yish uchun bosing — yulduz, oltin soyabon yoki oltin bulut (ko'rinishi xususiyatlarda).",
       'gate': "Platformaning yuqori chetiga bosib, teleport quvuri qo'ying. Ichida soyabonni ochsa, o'yinchini giper oqim sinov bosqichiga olib boradi.",
+      'sign': "Maslahat taxtasini qo'yish uchun bosing: ikki fonus ushlab turgan qog'oz, unda SPACE tugmasi va pastga o'q bor. Faqat bezak; o'lchamini o'zgartirish uchun yashil burchakni suring.",
       'wind-up': "Yuqoriga esadigan oqim uchun ramka torting.",
       'wind-down': "Pastga esadigan oqim uchun ramka torting.",
       'wind-left': "Chapga esadigan oqim uchun ramka torting.",
@@ -204,7 +206,8 @@ export default {
       'button': "Tugma",
       'checkpoint': "Nazorat nuqtasi",
       'star': "Yig'iladigan buyum",
-      'gate': "Darvoza"
+      'gate': "Darvoza",
+      'sign': "Maslahat taxtasi"
     },
     'shape': {
       'star': "Yulduz",

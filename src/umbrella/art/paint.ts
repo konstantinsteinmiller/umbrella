@@ -14,6 +14,7 @@
 import { contactOf, STAR_R, type Hazard, type World } from '../engine'
 import { channelColor, type Camera } from '../renderer'
 import { isClay, isLantern, paintedGame } from '../kite'
+import { drawSignLantern } from '../signArt'
 import { windStyle } from '../windStyle'
 import { liteMode, stillSkyCanvas } from '../liteMode'
 import { spikeAngle } from '../spikeGeometry'
@@ -2575,7 +2576,14 @@ const backdrop = (ctx: CanvasRenderingContext2D, cw: number, ch: number, cam: Ca
 
 // ─── The slots ──────────────────────────────────────────────────────────────
 
+const sign = (ctx: CanvasRenderingContext2D, s: { x: number; y: number; w: number; h: number }, time: number): boolean => {
+  if (!paintedOn || !isLantern) return false
+  drawSignLantern(ctx, s, time)
+  return true
+}
+
 export const KITE_PAINTERS: Required<KiteArt> = {
+  sign,
   cheerHand: () => cheerHandAt,
   backdrop,
   stillBackdrop,
