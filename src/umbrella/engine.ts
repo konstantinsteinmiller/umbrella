@@ -3,6 +3,7 @@
 // Pure, renderer-free: `step(world, input, dt)` advances one fixed tick and
 // returns the events it produced (for audio / UI). Tests drive it headless.
 
+import { boxHitsSpikes } from './spikeGeometry'
 import type { CheckpointDef, GateDef, HazardDef, LevelDef, Motion, PlatformDef, WalldorfContact, WindDef } from './levels'
 import type { Tuning } from './tuning'
 
@@ -232,6 +233,8 @@ export interface WorldOptions {
   /** Start with the feet here instead of the spawn (coming back out of a gate). */
   at?: { x: number; y: number }
 }
+/** The highest the player's top can go (world px): below the top bar, which covers the first ~50 px of the view. */
+export const CEILING_Y = 56
 export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }, checkpoint = -1, opts: WorldOptions = {}): World => {
   const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0 }))
   for (const p of platforms) placeMover(p, 0)
@@ -345,6 +348,7 @@ const touches = (pl: Player, h: Hazard, inset: number): boolean => {
     const ny = Math.max(py, Math.min(cy, py + ph))
     return (nx - cx) ** 2 + (ny - cy) ** 2 < r * r
   }
+  if (h.kind === 'spikes') return boxHitsSpikes(px, py, pw, ph, h)
   return overlaps(px, py, pw, ph, h)
 }
 
@@ -545,6 +549,12 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   }
 
   pl.y += pl.vy * dt
+  // A current cannot carry him above the top of the level, up under the top bar: he stops at the
+  // ceiling and the column's lift is spent there (he floats against it until he leaves the column).
+  if (pl.y < CEILING_Y) {
+    pl.y = CEILING_Y
+    if (pl.vy < 0) pl.vy = 0
+  }
   pl.grounded = false
   let standing = -1
   for (let i = 0; i < solids.length; i++) {

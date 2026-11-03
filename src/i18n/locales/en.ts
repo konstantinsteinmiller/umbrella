@@ -264,6 +264,7 @@ export default {
       'followMode': "Follows",
       'bounce': "Bounce strength",
       'points': "Points",
+      'angle': "Angle",
       'trigger': "Attacks when the player is near",
       'spawnOpen': "Start with the umbrella open",
       'gateTo': "Leads to",

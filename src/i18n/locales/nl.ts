@@ -261,6 +261,7 @@ export default {
       'followMode': "Volgt",
       'bounce': "Stuiterkracht",
       'points': "Punten",
+      'angle': "Hoek",
       'trigger': "Valt aan als de speler dichtbij is",
       'spawnOpen': "Beginnen met open paraplu",
       'gateTo': "Leidt naar",

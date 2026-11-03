@@ -261,6 +261,7 @@ export default {
       'followMode': "追い方",
       'bounce': "跳ね返す強さ",
       'points': "ポイント",
+      'angle': "角度",
       'trigger': "プレイヤーが近づくと攻撃",
       'spawnOpen': "傘を開いた状態で開始",
       'gateTo': "行き先",

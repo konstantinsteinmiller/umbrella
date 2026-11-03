@@ -26,6 +26,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import { isTurned, spikeAngle, spikeBounds } from '@/umbrella/spikeGeometry'
 import { CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
@@ -252,11 +253,13 @@ const rebuildWorld = () => {
   world = createWorld(level.value, { w: tuning.playerWidth, h: tuning.playerHeight })
   poseMovers(world, previewT, tuning)
 }
+/** A hazard's box as drawn: turned spikes by the box around the turned strip. */
+const hazardRect = (h: HazardDef & { x: number; y: number }) => (h.kind === 'spikes' ? spikeBounds(h) : h)
 /** Where an entity is drawn right now (movers follow their motion). */
 const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
   e.group === 'winds' ? level.value.winds[e.i]!
     : e.group === 'platforms' ? world.platforms[e.i]!
-      : e.group === 'hazards' ? world.hazards[e.i]!
+      : e.group === 'hazards' ? hazardRect(world.hazards[e.i]!)
         : e.group === 'buttons' ? level.value.buttons![e.i]!
           : e.group === 'gates' ? level.value.gates![e.i]!
             : e.group === 'stars' ? starBox(level.value.stars![e.i]!)
@@ -510,7 +513,14 @@ const onPointerMove = (e: PointerEvent) => {
     const nh = Math.max(10, snapV(p.y - shown.y))
     const m = motionOf(drag.target)
     const moving = m && m.kind !== 'static'
-    if ((ent as HazardDef).kind === 'mine' || (ent as HazardDef).kind === 'fan') {
+    if ((ent as HazardDef).kind === 'spikes' && isTurned(ent as HazardDef)) {
+      // Turned spikes: the handle sits on the strip's far end, so it stretches along the strip's own direction.
+      const r = (spikeAngle(ent as HazardDef) * Math.PI) / 180
+      const cx = ent.x + ent.w / 2, cy = ent.y + ent.h / 2
+      const len = Math.max(10, snapV(Math.abs(2 * ((p.x - cx) * Math.cos(r) + (p.y - cy) * Math.sin(r)))))
+      ent.x = cx - len / 2
+      ent.w = len
+    } else if ((ent as HazardDef).kind === 'mine' || (ent as HazardDef).kind === 'fan') {
       const d = Math.max(nw, nh)
       if (!moving) { const cx = ent.x + ent.w / 2, cy = ent.y + ent.h / 2; ent.x = cx - d / 2; ent.y = cy - d / 2 }
       ent.w = ent.h = d
@@ -688,6 +698,14 @@ const selected = computed(() => {
 const selectedPlatform = computed(() => (selected.value?.group === 'platforms' ? (selected.value.ent as PlatformDef) : null))
 const selectedWind = computed(() => (selected.value?.group === 'winds' ? (selected.value.ent as WindDef) : null))
 const selectedHazard = computed(() => (selected.value?.group === 'hazards' ? (selected.value.ent as HazardDef) : null))
+/** Spikes: set the points' direction (degrees, clockwise from up); the older up/down setting gives way to it. */
+const setSpikeAngle = (deg: number) => {
+  const h = selectedHazard.value
+  if (!h || !Number.isFinite(deg)) return
+  h.angle = ((Math.round(deg) % 360) + 360) % 360
+  delete h.facing
+}
+const SPIKE_TURNS = [{ deg: 0, glyph: '↑', dir: 'up' }, { deg: 90, glyph: '→', dir: 'right' }, { deg: 180, glyph: '↓', dir: 'down' }, { deg: 270, glyph: '←', dir: 'left' }] as const
 const selectedMover = computed(() => selectedPlatform.value ?? selectedHazard.value)
 const selectedMotion = computed(() => selectedMover.value?.motion)
 const motionKind = computed(() => selectedMotion.value?.kind ?? 'static')
@@ -1136,7 +1154,7 @@ const onOrderDrop = () => {
 // The game-jam chapter: campaign levels by reference (they stay where they are), saved levels as a snapshot.
 const inJam = (id: number) => jamDraft.value.some((j) => j.id === id && !j.level)
 const addToJam = (e: OrderEntry) => {
-  if (inJam(e.id)) { flash('Already in the Jam chapter'); return }
+  if (inJam(e.id)) { flash('Already in the Playtest Build'); return }
   jamDraft.value.push({ id: e.id })
 }
 const addSavedToJam = (name: string) => {
@@ -1187,7 +1205,7 @@ const onOrderSave = () => {
 }
 /** Plays the jam chapter as the itch.io build will (saving the dialog first). */
 const testJam = () => {
-  if (!jamDraft.value.length) { flash('Add levels to the Jam chapter first'); return }
+  if (!jamDraft.value.length) { flash('Add levels to the Playtest Build first'); return }
   if (orderChanged.value) onOrderSave()
   orderOpen.value = false
   setJamTest(true)
@@ -1937,10 +1955,10 @@ onUnmounted(() => {
               </label>
             </template>
             <label v-if="selectedHazard.kind === 'spikes'" class="row">{{ t('umbrellaEditor.prop.points') }}
-              <select v-model="selectedHazard.facing" class="field">
-                <option value="up">{{ t('umbrellaEditor.dir.up') }}</option>
-                <option value="down">{{ t('umbrellaEditor.dir.down') }}</option>
-              </select>
+              <span class="spike-turn">
+                <button v-for="d in SPIKE_TURNS" :key="d.deg" class="mini" :class="{ on: spikeAngle(selectedHazard) === d.deg }" :title="t(`umbrellaEditor.dir.${d.dir}`)" :aria-label="t(`umbrellaEditor.dir.${d.dir}`)" @click="setSpikeAngle(d.deg)">{{ d.glyph }}</button>
+                <input type="number" class="field" step="1" :aria-label="t('umbrellaEditor.prop.angle')" :value="spikeAngle(selectedHazard)" @change="setSpikeAngle(+($event.target as HTMLInputElement).value)" />°
+              </span>
             </label>
           </template>
 
@@ -2079,7 +2097,7 @@ onUnmounted(() => {
           <div class="kind">Campaign order</div>
           <button class="btn" title="Close (Esc)" @click="closeOrder">✕ <kbd>Esc</kbd></button>
         </div>
-        <p class="hint">Drag a level to its new position (or use ▲ ▼) — past a chapter row it moves into that chapter; ✎ names a level by its mechanic or theme. Chapters: ✎ rename, ▲ ▼ move the whole chapter, 🗑 delete it (its levels join the chapter before it), ☆ Start makes it the chapter a new player begins with. Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again; 🗑 deletes a level (asks first). 🎮 puts a level into the Game Jam chapter, which only the itch.io build plays.</p>
+        <p class="hint">Drag a level to its new position (or use ▲ ▼) — past a chapter row it moves into that chapter; ✎ names a level by its mechanic or theme. Chapters: ✎ rename, ▲ ▼ move the whole chapter, 🗑 delete it (its levels join the chapter before it), ☆ Start makes it the chapter a new player begins with. Drag a saved level from the right into the list to add it to the campaign; ✕ takes it out again; 🗑 deletes a level (asks first). 🎮 puts a level into the Playtest Build (one per round), which only the itch.io build plays.</p>
         <div class="order-cols">
           <ol class="order-list" @dragover.prevent @drop="onOrderDrop">
             <template v-for="(r, i) in orderRows" :key="r.kind === 'chapter' ? `ch:${r.id}` : r.e.id">
@@ -2138,7 +2156,7 @@ onUnmounted(() => {
                   {{ orderLabel(r.e) }}<small v-if="r.e.name" class="order-origin"> · {{ orderOrigin(r.e) }}</small>
                 </span>
                 <button v-if="renaming !== i" class="mini" title="Rename (or double-click the name)" @click="startRename(i)">✎</button>
-                <button class="mini" :class="{ on: inJam(r.e.id) }" :title="inJam(r.e.id) ? 'In the Game Jam chapter' : 'Add to the Game Jam chapter'" @click="addToJam(r.e)">🎮</button>
+                <button class="mini" :class="{ on: inJam(r.e.id) }" :title="inJam(r.e.id) ? 'In the Playtest Build' : 'Add to the Playtest Build'" @click="addToJam(r.e)">🎮</button>
                 <button class="mini" :disabled="i === 1" title="Move up" @click="moveInOrder(i, i - 1)">▲</button>
                 <button class="mini" :disabled="i === orderRows.length - 1" title="Move down" @click="moveInOrder(i, i + 2)">▼</button>
                 <button v-if="r.e.custom" class="mini" title="Take out of the campaign (stays in Saved levels)" @click="removeFromOrder(i)">✕</button>
@@ -2154,15 +2172,15 @@ onUnmounted(() => {
                 v-model="renameDraft"
                 class="field order-rename"
                 :maxlength="renameField === 'subtitle' ? 60 : 40"
-                :placeholder="renameField === 'subtitle' ? 'Subtitle on the chapter card' : 'Game Jam'"
-                :aria-label="renameField === 'subtitle' ? 'Jam chapter subtitle' : 'Jam chapter name'"
+                :placeholder="renameField === 'subtitle' ? 'Subtitle on the chapter card' : 'Playtest Build'"
+                :aria-label="renameField === 'subtitle' ? 'Playtest Build subtitle' : 'Playtest Build name'"
                 @keydown.enter.prevent="commitRename"
                 @keydown.escape.stop.prevent="renaming = null"
                 @blur="commitRename"
                 @vue:mounted="({ el }: { el: HTMLInputElement }) => el.focus()"
               />
-              <span v-else class="order-name" @dblclick="startRename('jam')">🎮 {{ jamNameDraft || 'Game Jam' }} <small class="order-origin">· itch.io build</small></span>
-              <button v-if="renaming !== 'jam'" class="mini" title="Rename the jam chapter" @click="startRename('jam')">✎</button>
+              <span v-else class="order-name" @dblclick="startRename('jam')">🎮 {{ jamNameDraft || 'Playtest Build' }} <small class="order-origin">· this round's itch.io build</small></span>
+              <button v-if="renaming !== 'jam'" class="mini" title="Name this round (e.g. Round 3)" @click="startRename('jam')">✎</button>
               <button v-if="renaming !== 'jam'" class="mini" :class="{ on: !!jamSubtitleDraft }" :title="jamSubtitleDraft ? `Card subtitle: ${jamSubtitleDraft}` : 'Subtitle on the chapter card'" @click="startRename('jam', 'subtitle')">💬</button>
             </div>
             <div
@@ -2177,11 +2195,11 @@ onUnmounted(() => {
                 <span class="order-name" :title="jamLabel(j)">{{ jamLabel(j) }}</span>
                 <button class="mini" :disabled="k === 0" title="Move up" @click="moveJam(k, -1)">▲</button>
                 <button class="mini" :disabled="k === jamDraft.length - 1" title="Move down" @click="moveJam(k, 1)">▼</button>
-                <button class="mini" title="Take out of the Jam chapter" @click="jamDraft.splice(k, 1)">✕</button>
+                <button class="mini" title="Take out of the Playtest Build" @click="jamDraft.splice(k, 1)">✕</button>
               </div>
-              <p v-if="!jamDraft.length" class="hint">Drag campaign or saved levels here (or press 🎮). Only the itch.io build plays this chapter.</p>
+              <p v-if="!jamDraft.length" class="hint">Drag campaign or saved levels here (or press 🎮): the levels the next playtest round ships. Only the itch.io build plays them; name it per round.</p>
             </div>
-            <button class="btn" :disabled="!jamDraft.length" title="Play the Jam chapter as the itch.io build will (saves first)" @click="testJam">▶ Test Jam chapter</button>
+            <button class="btn" :disabled="!jamDraft.length" title="Play the Playtest Build as the itch.io build will (saves first)" @click="testJam">▶ Test Playtest Build</button>
             <div class="head">Saved levels</div>
             <div
               v-for="n in orderPool"
@@ -2193,14 +2211,14 @@ onUnmounted(() => {
             >
               <span class="order-name">★ {{ n }}</span>
               <button class="mini" title="Add at the end of the campaign" @click="addToOrder(n)">+</button>
-              <button class="mini" title="Add to the Game Jam chapter" @click="addSavedToJam(n)">🎮</button>
+              <button class="mini" title="Add to the Playtest Build" @click="addSavedToJam(n)">🎮</button>
               <button class="mini danger" title="Delete this saved level" aria-label="Delete saved level" @click="deleteSaved(n)">🗑</button>
             </div>
             <p v-if="!orderPool.length" class="hint">No saved levels left to add — Save one first.</p>
           </div>
         </div>
         <div class="row">
-          <button class="btn" title="The authored order in one chapter, without added levels (the Jam chapter stays)" @click="onOrderReset">Reset to original</button>
+          <button class="btn" title="The authored order in one chapter, without added levels (the Playtest Build stays)" @click="onOrderReset">Reset to original</button>
           <span class="grow" />
           <button class="btn" @click="closeOrder">Cancel</button>
           <button class="btn green" :disabled="!orderChanged" @click="onOrderSave">Save order</button>

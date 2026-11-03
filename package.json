@@ -1,6 +1,6 @@
 {
   "name": "umbrella",
-  "version": "0.13.3",
+  "version": "0.13.9",
   "private": true,
   "type": "module",
   "scripts": {
@@ -23,9 +23,11 @@
     "build:gamepush": "vite build --mode gamepush --base=./ && node tools/zip-dist.mjs umbrella-gamepush.zip",
     "build:poki": "vite build --mode poki --base=./ && cd dist && tar -a -cf ../umbrella-poki.zip * && cd .. && move umbrella-poki.zip dist\\",
     "deploy:poki": "node tools/poki-deploy/deploy.mjs",
+    "download:recordings": "node tools/poki-deploy/download-recordings.mjs",
     "deploy:poki:lantern": "node tools/poki-deploy/deploy.mjs --art lantern",
     "deploy:poki:clay": "node tools/poki-deploy/deploy.mjs --art clay",
     "build:poki-playtest": "vite build --mode poki-playtest --base=./ && cd dist && tar -a -cf ../umbrella-poki-playtest.zip * && cd .. && move umbrella-poki-playtest.zip dist\\",
+    "deploy:poki-quick-playtest-lantern": "node tools/poki-deploy/deploy.mjs --skip-qa-testing --art lantern --playtest-chapter",
     "build:kite": "vite build --mode kite --base=/umbrella/kite/ --outDir=dist/kite",
     "build:lantern": "vite build --mode lantern --base=/umbrella/lantern/ --outDir=dist/lantern",
     "build:clay": "vite build --mode clay --base=/umbrella/clay/ --outDir=dist/clay",

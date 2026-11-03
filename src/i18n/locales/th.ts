@@ -261,6 +261,7 @@ export default {
       'followMode': "ตามแบบ",
       'bounce': "แรงเด้ง",
       'points': "จุด",
+      'angle': "มุม",
       'trigger': "โจมตีเมื่อผู้เล่นเข้าใกล้",
       'spawnOpen': "เริ่มโดยกางร่มอยู่แล้ว",
       'gateTo': "นำไปสู่",

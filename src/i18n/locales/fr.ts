@@ -261,6 +261,7 @@ export default {
       'followMode': "Suit",
       'bounce': "Force du rebond",
       'points': "Points",
+      'angle': "Angle",
       'trigger': "Attaque quand le joueur est proche",
       'spawnOpen': "Commencer avec le parapluie ouvert",
       'gateTo': "Mène à",

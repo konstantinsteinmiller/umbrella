@@ -261,6 +261,7 @@ export default {
       'followMode': "Mengikuti",
       'bounce': "Kekuatan pantulan",
       'points': "Titik",
+      'angle': "Sudut",
       'trigger': "Menyerang saat pemain dekat",
       'spawnOpen': "Mulai dengan payung terbuka",
       'gateTo': "Menuju",

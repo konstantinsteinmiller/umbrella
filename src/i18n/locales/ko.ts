@@ -261,6 +261,7 @@ export default {
       'followMode': "따라가는 방식",
       'bounce': "튕기는 힘",
       'points': "포인트",
+      'angle': "각도",
       'trigger': "플레이어가 가까이 오면 공격",
       'spawnOpen': "우산을 편 채로 시작",
       'gateTo': "이동 대상",

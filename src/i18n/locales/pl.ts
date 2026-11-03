@@ -261,6 +261,7 @@ export default {
       'followMode': "Podąża",
       'bounce': "Siła odbicia",
       'points': "Punkty",
+      'angle': "Kąt",
       'trigger': "Atakuje, gdy gracz jest blisko",
       'spawnOpen': "Zacznij z otwartym parasolem",
       'gateTo': "Prowadzi do",

@@ -56,6 +56,8 @@
           animation: splash-pulse 1.5s ease-in-out infinite;
           line-height: 1.05;
       }
+      /* Buttons show a focus ring for keyboard focus only, never after a click or tap. */
+      button:focus:not(:focus-visible), [role="button"]:focus:not(:focus-visible) { outline: none; }
       @keyframes splash-pulse {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.85; }
@@ -64,6 +66,7 @@
 </head>
 <body>
 <div id="static-splash">
+  <div class="splash-logo">umbrella</div>
 </div>
 <!-- Load the SDK before your game code -->
 <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>

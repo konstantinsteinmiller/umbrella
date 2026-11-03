@@ -261,6 +261,7 @@ export default {
       'followMode': "跟随方式",
       'bounce': "弹开力度",
       'points': "路径点",
+      'angle': "角度",
       'trigger': "玩家靠近时攻击",
       'spawnOpen': "以打开的伞开始",
       'gateTo': "通往",

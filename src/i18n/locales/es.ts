@@ -261,6 +261,7 @@ export default {
       'followMode': "Sigue",
       'bounce': "Fuerza de rebote",
       'points': "Puntos",
+      'angle': "Ángulo",
       'trigger': "Ataca cuando el jugador está cerca",
       'spawnOpen': "Empezar con el paraguas abierto",
       'gateTo': "Lleva a",

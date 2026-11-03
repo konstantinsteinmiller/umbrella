@@ -261,6 +261,7 @@ export default {
       'followMode': "يتبع",
       'bounce': "قوة الارتداد",
       'points': "النقاط",
+      'angle': "الزاوية",
       'trigger': "يهاجم عندما يقترب اللاعب",
       'spawnOpen': "البدء بمظلة مفتوحة",
       'gateTo': "يؤدي إلى",

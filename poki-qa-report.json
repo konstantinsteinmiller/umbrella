@@ -1,8 +1,8 @@
 {
-  "version": "Umbrella 0.13.3 · Origami Lantern art",
-  "versionId": "56aa0db9-e0b4-4369-95a7-6017d2cf8b27",
-  "when": "2026-10-30T17:22:31.199Z",
-  "inspector": "https://inspector.poki.dev/?game=poki-56aa0db9-e0b4-4369-95a7-6017d2cf8b27",
+  "version": "Umbrella 0.13.9 · Origami Lantern art",
+  "versionId": "52762300-5df7-46e7-a17c-c39d3bb8eaf0",
+  "when": "2026-11-01T16:33:10.778Z",
+  "inspector": "https://inspector.poki.dev/?game=poki-52762300-5df7-46e7-a17c-c39d3bb8eaf0",
   "evidence": {
     "sdkInit": {
       "verdict": "pass",
@@ -311,7 +311,7 @@
   "hosts": [
     [
       "a0e9e4d5-1f73-4b9b-bb6e-edd6905cd867.gdn.poki.com",
-      181
+      171
     ],
     [
       "game-cdn.poki.com",

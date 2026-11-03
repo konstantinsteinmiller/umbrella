@@ -64,6 +64,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (!Array.isArray(l.winds) || !l.winds.every((w) => isRect(w) && num(w.speed) && ['up', 'down', 'left', 'right'].includes(w.dir))) return null
   if (l.hazards && (!Array.isArray(l.hazards) || !l.hazards.every((h) => isRect(h) && ['pillar', 'mine', 'spikes', 'fan'].includes(h.kind) &&
     (h.contact === undefined || ['deadly', 'solid', 'bounce'].includes(h.contact)) &&
+    (h.angle === undefined || num(h.angle)) &&
     (h.bounce === undefined || (num(h.bounce) && h.bounce > 0))))) return null
   if (l.buttons && (!Array.isArray(l.buttons) || !l.buttons.every((b) => isRect(b) && num(b.channel) && (b.duration === undefined || (num(b.duration) && b.duration > 0))))) return null
   if (l.checkpoints && (!Array.isArray(l.checkpoints) || !l.checkpoints.every((c) => !!c && num(c.x) && num(c.y)))) return null
@@ -303,19 +304,23 @@ export const jamEntries = (): OrderEntry[] => (campaignOrder.value?.jam ?? []).m
 // that is still empty). Anywhere else the designer can playtest it from the editor (`setJamTest`),
 // kept for this tab only so a reload stays in it.
 const IS_ITCH = import.meta.env.VITE_APP_ITCH === 'true'
+// Any build made with --playtest-chapter (the Poki quick playtest deploy) plays the Playtest Build chapter
+// alone, exactly as the itch.io build does: that chapter is the set of levels this round tests on fresh players.
+const IS_PLAYTEST_CHAPTER = import.meta.env.VITE_APP_PLAYTEST_CHAPTER === 'true'
+const ALWAYS_JAM = IS_ITCH || IS_PLAYTEST_CHAPTER
 const JAM_TEST_KEY = 'umb_jam_test'
 const readJamTest = (): boolean => {
   try { return sessionStorage.getItem(JAM_TEST_KEY) === '1' } catch { return false }
 }
 /** The jam chapter is what plays (itch.io build, or the designer's jam playtest). */
-export const jamPlay = ref(IS_ITCH || readJamTest())
+export const jamPlay = ref(ALWAYS_JAM || readJamTest())
 /** Itch.io build only: the jam chapter is the game. */
-export const isJamBuild = IS_ITCH
+export const isJamBuild = ALWAYS_JAM
 const playsJam = (): boolean => jamPlay.value && !!campaignOrder.value?.jam?.length
 /** The designer's jam playtest on any build (the itch.io build always plays the jam chapter). */
 export const setJamTest = (on: boolean) => {
   try { if (on) sessionStorage.setItem(JAM_TEST_KEY, '1'); else sessionStorage.removeItem(JAM_TEST_KEY) } catch { /* private mode: this page only */ }
-  jamPlay.value = IS_ITCH || on
+  jamPlay.value = ALWAYS_JAM || on
   rebuildLevels()
 }
 

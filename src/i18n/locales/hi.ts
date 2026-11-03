@@ -261,6 +261,7 @@ export default {
       'followMode': "पीछा",
       'bounce': "उछाल की ताकत",
       'points': "बिंदु",
+      'angle': "कोण",
       'trigger': "खिलाड़ी पास आने पर हमला करता है",
       'spawnOpen': "खुली छतरी के साथ शुरू करें",
       'gateTo': "ले जाता है",

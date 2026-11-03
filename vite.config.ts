@@ -1142,6 +1142,8 @@ export default defineConfig(({ mode, command }) => {
       'import.meta.env.VITE_APP_KITE': JSON.stringify(env.VITE_APP_KITE === 'true' ? 'true' : 'false'),
       // The lantern art build (?art=lantern, /umbrella/lantern/), folded the same way.
       'import.meta.env.VITE_APP_LANTERN': JSON.stringify(env.VITE_APP_LANTERN === 'true' ? 'true' : 'false'),
+      // A build that plays only the Playtest Build chapter (the editor's jam list): `pnpm poki:deploy-quick-playtest`.
+      'import.meta.env.VITE_APP_PLAYTEST_CHAPTER': JSON.stringify(env.VITE_APP_PLAYTEST_CHAPTER === 'true' ? 'true' : 'false'),
       // The clay art build (?art=clay, /umbrella/clay/), likewise.
       'import.meta.env.VITE_APP_CLAY': JSON.stringify(env.VITE_APP_CLAY === 'true' ? 'true' : 'false'),
       // Poki allows no outside references in its package: the editor's share link there is a bare

@@ -261,6 +261,7 @@ export default {
       'followMode': "Đi theo",
       'bounce': "Lực nảy",
       'points': "Điểm",
+      'angle': "Góc",
       'trigger': "Tấn công khi người chơi đến gần",
       'spawnOpen': "Bắt đầu với ô đang mở",
       'gateTo': "Dẫn tới",

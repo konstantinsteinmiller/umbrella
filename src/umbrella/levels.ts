@@ -132,6 +132,8 @@ export interface HazardDef {
   bounce?: number
   /** Spikes only: which way the points face. */
   facing?: 'up' | 'down'
+  /** Spikes only: the points' direction in degrees, clockwise, 0 = up (absent: `facing` decides). */
+  angle?: number
 }
 
 export interface LevelDef {

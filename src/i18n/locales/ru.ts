@@ -261,6 +261,7 @@ export default {
       'followMode': "Следует",
       'bounce': "Сила отскока",
       'points': "Точки",
+      'angle': "Угол",
       'trigger': "Атакует, когда игрок рядом",
       'spawnOpen': "Начинать с открытым зонтом",
       'gateTo': "Ведёт на",

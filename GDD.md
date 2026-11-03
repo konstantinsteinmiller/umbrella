@@ -358,6 +358,16 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 **Poki**
 · Poki builds can be made in one art style (lantern or clay) and run fully offline with the campaign baked in.
 
-## Revision 
-## Revision 
-## Revision 
+## Revision 14
+
+## Revision 15
+**Players**
+· No "Chapter N" is shown in the game: the level selector and the chapter card show only a name or subtitle the designer gave.
+· Touch controls: a bigger stick with a touch area past its drawing and feedback while held; never fully opaque (0.85) and see-through when Pweeg or any level object is behind them; on levels 1-2 they pulse until used 3 times each.
+· Currents cannot lift Pweeg above the top bar; a restart resets his drawn pose; the level grid sits below the HUD; no focus ring after a click; the first load shows the wordmark at once.
+**Level editor**
+· The Game Jam chapter is now the Playtest Build: the levels one playtest round ships. Spikes point any way (angle box + 90 degree helpers).
+**Poki**
+· `pnpm poki:deploy-quick-playtest` builds, uploads and QAs a Poki version that plays only the Playtest Build chapter (--playtest-chapter; --skip-qa-testing skips the Inspector).
+
+## Revision 16

@@ -261,6 +261,7 @@ export default {
       'followMode': "Ergashadi",
       'bounce': "Sakrash kuchi",
       'points': "Nuqtalar",
+      'angle': "Burchak",
       'trigger': "O‘yinchi yaqinlashganda hujum qiladi",
       'spawnOpen': "Soyabon ochiq holda boshlash",
       'gateTo': "Olib boradi",

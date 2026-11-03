@@ -16,6 +16,7 @@ import { channelColor, type Camera } from '../renderer'
 import { isClay, isLantern, paintedGame } from '../kite'
 import { windStyle } from '../windStyle'
 import { liteMode, stillSkyCanvas } from '../liteMode'
+import { spikeAngle } from '../spikeGeometry'
 import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type GateDef, type PlatformDef, type StarDef, type WindDef } from '../levels'
 import { drawPrickbaitPupils, walldorfEyes, type PweegLook, type UmbrellaLook } from '../characters'
 import { boxOf, BUTTON_W, FAN_SIZE, PRICKBAIT_R, sheetById, SPIKE, type AnimDef, type SheetDef } from './manifest'
@@ -964,10 +965,19 @@ const fan = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean => {
 const spikes = (ctx: CanvasRenderingContext2D, h: Hazard): boolean => {
   const img = sheetImage('props')
   if (!img) return false
+  const a = spikeAngle(h)
+  if (a !== 0 && a !== 180) {
+    ctx.save()
+    ctx.translate(h.x + h.w / 2, h.y + h.h / 2)
+    ctx.rotate((a * Math.PI) / 180)
+    const done = spikes(ctx, { ...h, x: -h.w / 2, y: -h.h / 2, angle: 0, facing: 'up' })
+    ctx.restore()
+    return done
+  }
   const s = sheet('props')
   const n = Math.max(1, Math.round(h.w / SPIKE))
   const sw = h.w / n
-  const down = h.facing === 'down'
+  const down = a === 180
   for (let i = 0; i < n; i++) {
     const frame = i % 2 ? s.anims.spikeB!.frames[0]! : s.anims.spikeA!.frames[0]!
     blit(ctx, s, img, frame, h.x + (i + 0.5) * sw, down ? h.y : h.y + h.h, sw / SPIKE, h.h / SPIKE, false, down)

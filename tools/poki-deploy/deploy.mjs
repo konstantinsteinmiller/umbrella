@@ -15,13 +15,16 @@
 //   pnpm deploy:poki --no-bump          reuse the current version number
 //   pnpm deploy:poki --version 4.0.0    set an exact version
 //   pnpm deploy:poki --skip-build       upload the zip that is already there
-//   pnpm deploy:poki --skip-qa          upload, stop before the Inspector
+//   pnpm deploy:poki --skip-qa          upload, stop before the Inspector (--skip-qa-testing is the same)
 //   pnpm deploy:poki --qa-only          QA the newest version already in P4D
 //   pnpm deploy:poki --gates-only       audit the artifact and stop
 //   pnpm deploy:poki --dry-run          everything except the upload itself
 //   pnpm deploy:poki --strict           recommended-size warnings fail the run
 //   pnpm deploy:poki --honest-ticks     tick only what the run proved
 //   pnpm deploy:poki --keep             leave Chrome open at the end
+//   pnpm deploy:poki --playtest-chapter build, upload and QA a Poki version that plays ONLY the Playtest Build
+//                                       chapter (the editor's list: levels 1-10, 11-20, 25-30...) for fresh
+//                                       players: pnpm poki:deploy-quick-playtest
 //   pnpm deploy:poki --art lantern      build the game in one painted art style (lantern | clay):
 //                                       pnpm deploy:poki:lantern / deploy:poki:clay
 //
@@ -29,7 +32,7 @@
 // after that the profile at ~/.poki-deploy/chrome-profile carries the session.
 
 import { execSync } from 'node:child_process'
-import { existsSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -58,7 +61,7 @@ const STRICT = flag('strict')
 const QA_ONLY = flag('qa-only')
 const GATES_ONLY = flag('gates-only')
 const SKIP_BUILD = flag('skip-build') || QA_ONLY
-const SKIP_QA = flag('skip-qa')
+const SKIP_QA = flag('skip-qa') || flag('skip-qa-testing')
 const KEEP = flag('keep')
 // Default: every QA box gets ticked, and the report carries what was actually
 // proven. --honest-ticks leaves the undecidable blank and crosses failures.
@@ -72,9 +75,24 @@ const ART = arg('art', null)
 const ART_FLAGS = { lantern: 'VITE_APP_LANTERN', clay: 'VITE_APP_CLAY' }
 const ART_LABEL = { lantern: 'Origami Lantern', clay: 'Clay' }
 if (ART && !ART_FLAGS[ART]) die(`--art ${ART} is unknown`, `known: ${Object.keys(ART_FLAGS).join(', ')}`)
+// A round's playtest: the build plays the Playtest Build chapter alone (VITE_APP_PLAYTEST_CHAPTER, read by
+// customLevels.ts). Refuses to ship when that chapter is empty, or the build would quietly be the whole campaign.
+const PLAYTEST_CHAPTER = flag('playtest-chapter')
+let playtestLevels = 0
+if (PLAYTEST_CHAPTER) {
+  try {
+    const order = JSON.parse(readFileSync(join(ROOT, 'data', 'campaign-order.json'), 'utf8'))
+    playtestLevels = Array.isArray(order.jam) ? order.jam.length : 0
+    if (!playtestLevels) die('the Playtest Build chapter is empty', "add this round's levels to it in the level editor (🎮), save, then re-run")
+    console.log(dim(`  Playtest Build${order.jamName ? ` "${order.jamName}"` : ''}: ${playtestLevels} level${playtestLevels === 1 ? '' : 's'}`))
+  } catch (e) {
+    if (e?.code === 'ENOENT' || e instanceof SyntaxError) die('cannot read data/campaign-order.json', 'save the Playtest Build in the level editor first')
+    throw e
+  }
+}
 const PROFILE = arg('profile', DEFAULT_PROFILE)
 
-console.log(bold(`\nPoki deploy — ${cfg.gameName}${ART ? ` (${ART_LABEL[ART]} art)` : ''}`))
+console.log(bold(`\nPoki deploy — ${cfg.gameName}${ART ? ` (${ART_LABEL[ART]} art)` : ''}${PLAYTEST_CHAPTER ? ' (playtest chapter only)' : ''}`))
 console.log(dim(`  team ${cfg.team} · game ${cfg.gameId || `"${cfg.gameName}" (looked up by name)`}`))
 if (DRY) console.log(yellow('  --dry-run: nothing will actually be uploaded'))
 
@@ -96,14 +114,14 @@ if (!QA_ONLY && !GATES_ONLY) {
     version = next
   }
 }
-const versionName = cfg.versionName(version) + (ART ? ` · ${ART_LABEL[ART]} art` : '')
+const versionName = cfg.versionName(version) + (ART ? ` · ${ART_LABEL[ART]} art` : '') + (PLAYTEST_CHAPTER ? ' · playtest chapter' : '')
 
 // ── 2. build ────────────────────────────────────────────────────────────────
 if (!SKIP_BUILD && !GATES_ONLY) {
   step(`Build  ${dim(cfg.build)}`)
   try {
     // The art flag rides in the build's environment: vite's loadEnv reads it like an .env entry.
-    execSync(cfg.build, { cwd: ROOT, stdio: 'inherit', env: { ...process.env, ...(ART ? { [ART_FLAGS[ART]]: 'true' } : {}) } })
+    execSync(cfg.build, { cwd: ROOT, stdio: 'inherit', env: { ...process.env, ...(ART ? { [ART_FLAGS[ART]]: 'true' } : {}), ...(PLAYTEST_CHAPTER ? { VITE_APP_PLAYTEST_CHAPTER: 'true' } : {}) } })
   } catch {
     die('the Poki build failed', 'fix the build, then re-run — the version bump above is already written')
   }
@@ -205,7 +223,7 @@ try {
   // ── 6. QA ────────────────────────────────────────────────────────────────
   if (SKIP_QA || !versionId) {
     step('Inspector QA')
-    info('skipped', SKIP_QA ? '--skip-qa' : 'no version id')
+    info('skipped', SKIP_QA ? '--skip-qa / --skip-qa-testing' : 'no version id')
   } else {
     step('Inspector QA')
     info('opening', inspectorUrl(versionId))

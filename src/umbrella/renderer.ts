@@ -10,6 +10,7 @@
 import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, type Hazard, type Platform, type World } from './engine'
 import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, heldAt, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
+import { spikeAngle } from './spikeGeometry'
 import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
 import { artLayer, isLantern, paintedGame } from './kite'
 import { kiteArt } from './art/hooks'
@@ -453,7 +454,18 @@ const drawGateHint = (ctx: CanvasRenderingContext2D, g: { x: number; y: number; 
   ctx.restore()
 }
 
-export const drawSpikes = (ctx: CanvasRenderingContext2D, h: Pick<Hazard, 'x' | 'y' | 'w' | 'h' | 'facing'>) => {
+export const drawSpikes = (ctx: CanvasRenderingContext2D, h: Pick<Hazard, 'x' | 'y' | 'w' | 'h' | 'facing' | 'angle'>) => {
+  const a = spikeAngle(h)
+  if (a !== 0 && a !== 180) {
+    // Turned about the strip's centre, drawn as an upright strip.
+    ctx.save()
+    ctx.translate(h.x + h.w / 2, h.y + h.h / 2)
+    ctx.rotate((a * Math.PI) / 180)
+    drawSpikes(ctx, { x: -h.w / 2, y: -h.h / 2, w: h.w, h: h.h, facing: 'up' })
+    ctx.restore()
+    return
+  }
+  if (a === 180) h = { ...h, facing: 'down' }
   ctx.fillStyle = HAZARD
   const n = Math.max(1, Math.round(h.w / 26))
   const sw = h.w / n
@@ -551,6 +563,12 @@ const drawHazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => {
 let poseAngle = 0
 /** Walk cycle, advanced by distance walked. */
 let stepPhase = 0
+/** A restart starts the figure from scratch: the fall pose and walk cycle of the run before (a splat
+ *  leaves the pose sideways or upside-down) must not ease out on the new start platform. */
+export const resetPlayerPose = (): void => {
+  poseAngle = 0
+  stepPhase = 0
+}
 const fallPoseTarget = (w: World, t: Tuning): number => {
   const pl = w.player
   if (pl.open || pl.grounded || w.phase !== 'play') return 0

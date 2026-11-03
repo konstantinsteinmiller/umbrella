@@ -42,10 +42,27 @@
 - [x] #14 The Poki package does not allow external references, so bake the current levels at build time into the poki game build and remove the fetching from the server at runtime in the poki build, this includes the poki lantern and poki claymotion build.
   *Done:* every Poki build (plain, lantern, clay) bakes the server's current campaign in at build time and makes no request of its own at runtime — only Poki's SDK and its ad partners; the share link carries no outside address there. The Poki release gates pass with no external host; a test guards the Poki env.
 - [x] #15 Create a script "download:recordings" that is able to scan all video recording at https://app.poki.dev/hyperg8/games/a0e9e4d5-1f73-4b9b-bb6e-edd6905cd867/playtests, open each one, download the recording video and save the video with a name like "mobile-landscape_2-36_Umbrella-0-13-3_Oct-30.webm" (device with orientation / time played / version / date) to a https://www.dropbox.com/scl/fo/e1ag994gf9dtlqmddtml3/AIRviWij4UXO0-6EFmGEYGk?rlkey=o7ybiqq514ctwk1p0f7x9yvie&st=7lho8p76&dl=0, where you can create folders and sort the downloaded recordings by played at date. *Done:* `pnpm download:recordings` runs headless: it borrows the Poki session from the deploy profile, lists every recording (archived too) through the P4D API, fetches the public .webm files into Dropbox/X-Else/Poki recordings/<date>/ and keeps an index so reruns only fetch new ones.
-- [ ] #1
+- [x] #16 Add sideways spikes(allowing to rotate spikes freely with a rotation helper in the level editor with a number input and with 90deg helpers, that should avoid having 4+ items for each spike orientation in the blocks list in the level editor).
+  *Done:* spikes take any angle (degrees, clockwise from up); the editor's Points row is now four 90° helper buttons (↑ → ↓ ←) plus a number box, so the block list still has just the two spike tools; selection box and resize follow the turned strip, and the hit test uses the turned strip. Older levels (up/down) play and draw as before.
+  · Add an autoscrolling camera toggle to the level editor.
+  · Refine the camera during horizontal and vertical scrolling.
+  · Single tap to skip the intro cutscene.
+  · Make sure the top bar denoting levels matches the language chosen!
+- [ ] #17
+- [ ] #18
+- [ ] #19
+- [ ] #20
+- [ ] #21
+- [ ] #22
+- [ ] #23
+- [ ] #24
+- [ ] #25
+- [ ] #26
+- [ ] #27
+- [ ] #28
+- [ ] #29
 - [ ] #1 calculate chance of merge golf success on poki and cg and youtube playables. 
-- [ ] #1
-- [ ] #1
+
 
 - [x] #Play-1 The game needs a full level consistency check with headed browser, use 3 Sonnet subagents (low effort). 
   I need 1 to play on desktop, one mobile portrait and one on mobile landscape.
@@ -56,24 +73,25 @@
   In the end I want the subagents to find all issues in the game that would deminish its polished value to a gaming audience.
   Also I want to understand why Poki players quit after 30-50 seconds into the game (sometimes after finishing level 4 or level 5), only very few play for more than 2:30 (the highest recorded playtime was 7 minutes out of ~70 playtests)
   *Done (2026-10-31):* three Sonnet playtesters (desktop, phone portrait, phone landscape) on the lantern build; report: https://claude.ai/artifact/KSHjhVQStm3i67V35E9vUj . Why players leave at 30-50 s: 20-30 s pass before the first real input (loader, tap, an intro that needs a second tap, chapter banner); levels 1-3 are near-automatic; levels 4-5 are a wall (none of the three solved level 5); deaths show no cause and cost ~10 s each; nothing teaches the controls or the goal. Findings to fix (#play-1-4 and #play-1-5 dropped: the testers' screenshot gaps and scripted held keys made them miss the win chime and dance and carry keys into the next level; not game bugs):
-  - [ ] #play-1-1 [blocker] (level 4–5) Levels 4 and 5 are a wall right after three near-automatic levels. Smooth the ramp: move levels 4/5 later or soften them (shorter gaps, a ledge under the dais, gentler wind top), and add 1–2 levels that teach 'close the umbrella to drop' and 'ride the wind's edge' on their own before combining them.
-  - [ ] #play-1-2 [major] (level start) 20–30 s before the first real input. Make the first tap start play (intro skippable by any tap, or shortened to a few seconds / played once later), never return to 'Click to play' after the intro, and show the chapter banner over live play.
-  - [ ] #play-1-3 [major] (level 1) Nothing teaches the controls or the goal. A wordless control coach on level 1–2: a pulsing hand/glyph on the stick and the umbrella button where they are needed, kept until the player has used each a few times (the playbook's 'glyphs earned away by use').
-  - [ ] #play-1-6 [major] (level 3, 4, 27) Wind lifts Pweeg above the top edge, under the top bar. Let the camera follow upward when Pweeg leaves the view; cap how high a column can carry him on one-screen levels.
+  - [x] #play-1-3 [major] (level 1) Nothing teaches the controls or the goal. A wordless control coach on level 1–2: a pulsing hand/glyph on the stick and the umbrella button where they are needed, kept until the player has used each a few times (the playbook's 'glyphs earned away by use').
+    *Done:* on levels 1-2 the touch stick and umbrella button pulse (the knob nudges left and right) until each has been used 3 times; the count is saved, so it never returns. Desktop already shows the key hints on the first three levels.
+  - [x] #play-1-6 [major] (level 3, 4, 27) Wind lifts Pweeg above the top edge, under the top bar. Let the camera follow upward when Pweeg leaves the view; cap how high a column can carry him on one-screen levels.
+    *Done:* a current can no longer carry Pweeg above y=56 (under the top bar): he stops at that ceiling and the lift is spent there; the camera needs no change since he can't leave the view.
   - [x] #play-1-7 [major] (level 5, 17, 27) The umbrella button and the stick cover the action. Reserve a band at the bottom for the controls in landscape (lift the camera's bottom edge above them), or move/shrink the controls when they cover the finish; extend the see-through rule to the finish and to Pweeg during play.
     *Done:* landscape touch play keeps a band at the bottom for the stick and the umbrella button (at most a fifth of the height): the level is fitted above it, and on short landscape phones the controls are a little smaller. A control turns see-through whenever it covers Pweeg or the finish, during play too, not only before the first press.
-  - [ ] #play-1-8 [major] (level 1, 6, 8) Portrait view: tiny characters and empty sky. Step the portrait zoom back (e.g. undo the last 1.4×), place the level lower in the frame, and make sure the start view always contains Pweeg.
   - [ ] #play-1-9 [major] (level all) Walking is slow and drifts after release. Faster walk and much less ground/air drift on release (tuning: friction, air control), a clear open/closed cue on the button.
   - [ ] #play-1-12 [minor] (level all) Pweeg blends in; A thin dark outline or soft shadow on Pweeg.
-  - [ ] #play-1-13 [minor] (level intro) The intro looks unfinished. Paint the intro cloud in the art style (or keep the plank), seat Pweeg on it, and keep the bubble inside the safe area.
-  - [ ] #play-1-14 [minor] (level start) Mixed languages on one screen. Route the top bar's level label through the same locale (check the umbrella.level key in every locale).
-  - [ ] #play-1-15 [minor] (level 29) The jam chapter looks like a different game. Re-skin the jam levels' props in the lantern/clay art and keep the counter clear of the play area.
+  - [x] #play-1-14 [minor] (level start) Mixed languages on one screen. Route the top bar's level label through the same locale (check the umbrella.level key in every locale).
+    *Done:* checked: `umbrella.level` exists (translated) in all 21 locales and the HUD label is routed through `t()`; no hardcoded English left in the player HUD, so no code change was needed. Re-test on a non-English locale if the mix shows again.
   - [ ] #play-1-16 [minor] (level 6, 13, 15) Some props do not say what they do. Telegraph motion (a short wind-up or track line) and make solid props read as solid.
-  - [ ] #play-1-17 [minor] (level 12) 'Level 12' crowds the ‹ button. Narrower font or padding for two digits in portrait.
-  - [ ] #play-1-18 [polish] (level grid) Level grid overlaps the HUD; scrollbar nearly invisible. Push the dialog below the HUD bar, show a visible scroll cue.
-  - [ ] #play-1-19 [polish] (level all) Buttons keep a focus ring after a click. Show the focus ring only for keyboard focus (:focus-visible).
-  - [ ] #play-1-20 [minor] (level start) Black screen for several seconds on first load. Check on the production build: the static splash in index.html should show at once; investigate any second loader.
-  - [ ] #play-1-21 [polish] (level all) Stick small for thumbs; knob gives no feedback. Larger hit area than the drawing, knob follows the thumb.
+  - [x] #play-1-18 [polish] (level grid) Level grid overlaps the HUD; scrollbar nearly invisible. Push the dialog below the HUD bar, show a visible scroll cue.
+    *Done:* the level dialog starts below the HUD bar, and its scrollbar is a thick light thumb on a visible track.
+  - [x] #play-1-19 [polish] (level all) Buttons keep a focus ring after a click. Show the focus ring only for keyboard focus (:focus-visible).
+    *Done:* a click no longer leaves a focus ring on buttons; the ring shows for keyboard focus only (:focus-visible).
+  - [x] #play-1-20 [minor] (level start) Black screen for several seconds on first load. Check on the production build: the static splash in index.html should show at once; investigate any second loader.
+    *Done:* the static splash in index.html now shows the pulsing 'umbrella' wordmark at once instead of an empty dark screen.
+  - [x] #play-1-21 [polish] (level all) Stick small for thumbs; knob gives no feedback. Larger hit area than the drawing, knob follows the thumb.
+    *Done:* the stick is bigger (176x84, knob 66) and its touchable area reaches ~24 px past the drawing (the umbrella button 14 px); the knob follows the thumb across the pad's own width, the pad brightens while held, the knob gets a ring and the pushed direction's arrow lights up.
 
 - [x] #Cover-1 The game needs better ULTRA-HIGH-CTR(20%+) cover images painted with
   Gemini for all the platforms (800x800, 1920x1080, 1080x1920(only jpg), 800x1200(only webp), 1360x850(only with logo, only jpg), 800x450(only with logo, only webp), 400x225(only with logo, only jpg),

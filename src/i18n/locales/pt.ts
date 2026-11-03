@@ -261,6 +261,7 @@ export default {
       'followMode': "Segue",
       'bounce': "Força do impulso",
       'points': "Pontos",
+      'angle': "Ângulo",
       'trigger': "Ataca quando o jogador está perto",
       'spawnOpen': "Começar com o guarda-chuva aberto",
       'gateTo': "Leva a",

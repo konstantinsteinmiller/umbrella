@@ -6,7 +6,9 @@ Open your umbrella, ride the wind and float to the finish! A one-button sky plat
 
 ## Description
 
-Help Pweeg the postman cross the rooftops with nothing but his trusty umbrella. Open it to catch rising winds and drift gently down, close it to drop fast, and time it right to dodge spiky mines and grumpy Walldorf chimney creatures. Collect stars, beat the clock for three-star ratings and conquer 27 handcrafted levels in a cozy, hand-painted world, then build your own levels and play what the community made.
+Help Pweeg beat the infamous Umbrella challenge!
+
+Open it to catch rising winds and drift gently down, close it to drop fast, and time it right to dodge spiky mines and grumpy wall creatures. Beat your personal best times for a perfect three-star rating and conquer 30 levels in a cozy world. Then build your own levels and play what the community made!
 
 ## How to play
 

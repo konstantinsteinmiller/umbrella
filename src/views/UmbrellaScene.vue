@@ -12,10 +12,10 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { DEFAULT_COLLECT_SHAPE, LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
 import {
-  activeTimeLimit, campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, JAM_CHAPTER, jamPlay, keepSharedLevel,
+  activeTimeLimit, campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, jamPlay, keepSharedLevel,
   setEditorUnlocked, setJamTest, startLevelIndex, testLevel, testLevelLabel, type CustomPlay
 } from '@/umbrella/customLevels'
-import { createWorld, gateExit, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
+import { checkpointBox, createWorld, gateExit, starBox, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
 import { isKite, paintedGame } from '@/umbrella/kite'
@@ -27,7 +27,7 @@ import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import { createIntro, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
-import { previewFinish, render } from '@/umbrella/renderer'
+import { previewFinish, render, resetPlayerPose } from '@/umbrella/renderer'
 import { ARRIVE_TIME, drawWarp, startWarp, warpPosition, warpTime, type Warp } from '@/umbrella/warp'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
@@ -365,7 +365,7 @@ const chapterSections = computed(() => {
   void campaignOrder.value // LEVELS and the chapters are rebuilt together when the order changes
   return chapterRanges().map((c) => ({
     ...c,
-    title: c.name || (c.id === JAM_CHAPTER ? t('umbrella.jamChapter') : t('umbrella.chapter', { n: c.n })),
+    title: c.name ?? '',
     levels: Array.from({ length: c.to - c.from }, (_, k) => c.from + k).filter((i) => !isLocked(i))
   })).filter((c) => c.levels.length)
 })
@@ -408,7 +408,9 @@ const showChapterCard = (i: number, afterIntro = false) => {
   if (i === startIndex && !afterIntro) return
   const c = chapterRanges().find((r) => r.from === i && r.to > r.from)
   if (!c) return
-  chapterCard.value = { title: t('umbrella.chapter', { n: c.n }), subtitle: c.subtitle ?? '', key: Date.now() }
+  // The designer's chapter name and subtitle only: "Chapter N" is an editor label, never shown to players.
+  if (!c.name && !c.subtitle) return
+  chapterCard.value = { title: c.name ?? '', subtitle: c.subtitle ?? '', key: Date.now() }
   playSfx('chapter')
   window.clearTimeout(chapterCardTimer)
   chapterCardTimer = window.setTimeout(() => { chapterCard.value = null }, CHAPTER_CARD_MS)
@@ -506,6 +508,18 @@ const checkSeeThrough = (cam: { s: number; ox: number; oy: number }, now: number
   // The finish: its platform and the room above it where Pweeg lands.
   const fin = world.platforms.find((p) => p.finish)
   if (fin) boxes.push({ l: sx(fin.x), r: sx(fin.x + fin.w), t: sy(fin.y - pl.h * 1.5), b: sy(fin.y + fin.h) })
+  // Any other thing of the level: ledges, hazards (where they are now), buttons, gates, flags, collectibles.
+  // The air currents are left out: they fill half the screen and would make the controls always faint.
+  const L = world.level
+  const things: { x: number; y: number; w: number; h: number }[] = [
+    ...world.platforms,
+    ...world.hazards,
+    ...(L.buttons ?? []),
+    ...(L.gates ?? []),
+    ...(L.checkpoints ?? []).map(checkpointBox),
+    ...(L.stars ?? []).map(starBox)
+  ]
+  for (const o of things) boxes.push({ l: sx(o.x), r: sx(o.x + o.w), t: sy(o.y), b: sy(o.y + o.h) })
   const covers = (el: HTMLElement | null) => {
     if (!el) return false
     const e = el.getBoundingClientRect()
@@ -545,6 +559,8 @@ const runClock = (input: Input) => {
 
 const reload = (opts: { at?: { x: number; y: number } } = {}) => {
   world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, -1, opts)
+  resetPlayerPose()
+  mineDeath = false
   startClock()
   gui?.setLevel(world.level)
   brokenFlash.value = false
@@ -949,22 +965,37 @@ const onAnyPointer = (e: PointerEvent) => {
   unlockAudio()
   if (introOn.value && !(e.target as HTMLElement | null)?.closest('.intro-skip')) requestSkip()
 }
-const STICK_RANGE = 44
+let stickRange = 52 // how far the knob travels: set from the pad's own width on touch-down
 const STICK_DEAD = 12
 const stickDir = ref(0)
 const knobX = ref(0)
 let stickId = -1
 let stickOrigin = 0
+// The wordless control coach: on levels 1-2 the stick and the umbrella button pulse until the player has
+// used each COACH_USES times (kept in the save, so it never comes back): glyphs earned away by use.
+const COACH_USES = 3
+const COACH_KEY = 'umb_coach_r1'
+const coachUses = ref(getState<{ stick: number; umbrella: number }>(COACH_KEY, { stick: 0, umbrella: 0 }))
+const coachOn = computed(() => touchUI.value && started.value && !testing && !playing.value && !challenge.value && levelIndex.value < 2)
+const coachStick = computed(() => coachOn.value && coachUses.value.stick < COACH_USES)
+const coachUmbrella = computed(() => coachOn.value && coachUses.value.umbrella < COACH_USES)
+const coachUsed = (k: 'stick' | 'umbrella') => {
+  if (coachUses.value[k] >= COACH_USES) return
+  coachUses.value = { ...coachUses.value, [k]: coachUses.value[k] + 1 }
+  setState(COACH_KEY, coachUses.value)
+}
 const onStickDown = (e: PointerEvent) => {
+  coachUsed('stick')
   stickId = e.pointerId
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
   stickOrigin = r.left + r.width / 2
+  stickRange = Math.max(28, r.width / 2 - 30)
   onStickMove(e)
 }
 const onStickMove = (e: PointerEvent) => {
   if (e.pointerId !== stickId) return
-  const dx = Math.max(-STICK_RANGE, Math.min(STICK_RANGE, e.clientX - stickOrigin))
+  const dx = Math.max(-stickRange, Math.min(stickRange, e.clientX - stickOrigin))
   knobX.value = dx
   stickDir.value = Math.abs(dx) < STICK_DEAD ? 0 : Math.sign(dx)
 }
@@ -976,6 +1007,7 @@ const onStickUp = (e: PointerEvent) => {
 }
 const umbrellaPressed = ref(false)
 const onUmbrellaDown = (e: PointerEvent) => {
+  coachUsed('umbrella')
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   togglePending = true
   umbrellaPressed.value = true
@@ -1183,7 +1215,7 @@ onUnmounted(() => {
       <div
         ref="stickEl"
         class="stick"
-        :class="{ 'see-through': seeThrough.stick }"
+        :class="{ 'see-through': seeThrough.stick, coach: coachStick, held: knobX !== 0, 'dir-l': stickDir < 0, 'dir-r': stickDir > 0 }"
         role="slider"
         :aria-label="t('umbrella.joystick')"
         aria-valuemin="-1"
@@ -1196,12 +1228,12 @@ onUnmounted(() => {
       >
         <span class="stick-arrow left"><UiGlyph name="prev" fallback="‹" /></span>
         <span class="stick-arrow right"><UiGlyph name="next" fallback="›" /></span>
-        <span class="stick-knob" :style="{ transform: `translateX(${knobX}px)` }" />
+        <span class="stick-knob" :class="{ idle: knobX === 0 }" :style="{ transform: `translateX(${knobX}px)` }" />
       </div>
       <button
         ref="umbrellaBtnEl"
         class="umbrella-btn"
-        :class="{ pressed: umbrellaPressed, 'see-through': seeThrough.umbrella }"
+        :class="{ pressed: umbrellaPressed, 'see-through': seeThrough.umbrella, coach: coachUmbrella }"
         :aria-label="t('umbrella.umbrellaButton')"
         @pointerdown.stop="onUmbrellaDown"
         @pointerup="onUmbrellaUp"
@@ -1259,7 +1291,7 @@ onUnmounted(() => {
           <button class="hud-btn u-icon-btn u-close" :aria-label="t('umbrella.close')" @click="showLevels = false"><UiGlyph name="close" fallback="✕" /></button>
         </div>
         <section v-for="ch in chapterSections" :key="ch.id" class="chapter" :aria-label="ch.title">
-          <h3 v-if="chapterSections.length > 1 || ch.id === JAM_CHAPTER || ch.name" class="chapter-title">{{ ch.title }}</h3>
+          <h3 v-if="ch.name" class="chapter-title">{{ ch.title }}</h3>
           <div class="levels-grid">
             <button
               v-for="(i, k) in ch.levels"
@@ -1446,12 +1478,22 @@ onUnmounted(() => {
 }
 .stick {
   left: calc(24px + env(safe-area-inset-left));
-  width: 150px;
-  height: 72px;
-  border-radius: 36px;
+  width: 176px;
+  height: 84px;
+  border-radius: 42px;
   border: 2px solid rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.08);
 }
+/* A thumb lands near the stick, not on it: the touchable area reaches well past the drawing. */
+.stick::before {
+  content: '';
+  position: absolute;
+  inset: -24px -28px -24px -20px;
+}
+/* Feedback: the pad brightens while held, and the arrow of the pushed direction lights up. */
+.stick.held .stick-knob { box-shadow: 0 0 0 5px rgba(255, 231, 166, 0.55); }
+.stick.held { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.6); }
+.stick.dir-l .stick-arrow.left, .stick.dir-r .stick-arrow.right { opacity: 1; }
 .stick-arrow {
   position: absolute;
   top: 50%;
@@ -1466,12 +1508,13 @@ onUnmounted(() => {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 56px;
-  height: 56px;
-  margin: -28px 0 0 -28px;
+  width: 66px;
+  height: 66px;
+  margin: -33px 0 0 -33px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.85);
   pointer-events: none;
+  transition: box-shadow 0.12s ease;
 }
 .umbrella-btn {
   right: calc(24px + env(safe-area-inset-right));
@@ -1485,10 +1528,28 @@ onUnmounted(() => {
   line-height: 1;
   cursor: pointer;
 }
+.umbrella-btn::before { content: ''; position: absolute; inset: -14px; border-radius: 50%; }
 .umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); transform: scale(0.94); }
-/* Covering Pweeg, his ledge or the finish: see-through, so both can be seen. */
-.stick, .umbrella-btn { transition: opacity 0.3s ease; }
-.stick.see-through, .umbrella-btn.see-through { opacity: 0.4; }
+/* The control coach (levels 1-2): a pulsing ring, and the stick's knob nudging left and right. */
+.stick.coach, .umbrella-btn.coach { animation: coach-pulse 1.4s ease-in-out infinite; }
+.stick.coach .stick-knob.idle { animation: coach-nudge 2.2s ease-in-out infinite; }
+@keyframes coach-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 231, 166, 0.7); border-color: rgba(255, 255, 255, 0.5); }
+  50% { box-shadow: 0 0 0 14px rgba(255, 231, 166, 0); border-color: #ffe7a6; }
+}
+@keyframes coach-nudge {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-34px); }
+  70% { transform: translateX(34px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stick.coach, .umbrella-btn.coach, .stick.coach .stick-knob.idle { animation: none; }
+  .stick.coach, .umbrella-btn.coach { border-color: #ffe7a6; }
+}
+/* The controls are never fully opaque (at most 0.85), and fainter still when Pweeg or any part of the level
+   (a ledge, a hazard, the finish...) is behind them, so it can be seen through them. */
+.stick, .umbrella-btn { opacity: 0.85; transition: opacity 0.3s ease; }
+.stick.see-through, .umbrella-btn.see-through { opacity: 0.45; }
 /* Short landscape phones: smaller controls, closer to the edge, so their band at the bottom (kept clear
    of the level, controlsBand) costs the level less height. */
 @media (orientation: landscape) and (max-height: 460px) {
@@ -1628,9 +1689,13 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   display: grid;
   place-items: center;
   background: rgba(0, 0, 0, 0.55);
-  padding: 16px;
+  /* Starts below the HUD bar (top 12px + 40px buttons) so the sheet never overlaps it. */
+  padding: calc(64px + env(safe-area-inset-top, 0px)) 16px 16px;
 }
 .levels {
+  /* A visible scroll cue: a thick light thumb on a dark track (Firefox + WebKit). */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.55) rgba(255, 255, 255, 0.1);
   width: min(560px, 100%);
   max-height: 100%;
   overflow: auto;
@@ -1655,6 +1720,9 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
 @media (max-width: 560px) and (orientation: portrait) {
   .levels-grid { grid-template-columns: repeat(4, 1fr); }
 }
+.levels::-webkit-scrollbar { width: 8px; }
+.levels::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+.levels::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.55); border-radius: 4px; }
 .chapter + .chapter { margin-top: 16px; }
 .chapter-title {
   margin: 0 0 8px;

@@ -261,6 +261,7 @@ export default {
       'followMode': "Folgt",
       'bounce': "Abprallstärke",
       'points': "Punkte",
+      'angle': "Winkel",
       'trigger': "Greift an, wenn der Spieler nah ist",
       'spawnOpen': "Mit offenem Schirm starten",
       'gateTo': "Führt zu",

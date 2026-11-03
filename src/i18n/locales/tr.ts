@@ -261,6 +261,7 @@ export default {
       'followMode': "İzleme",
       'bounce': "Sekme gücü",
       'points': "Noktalar",
+      'angle': "Açı",
       'trigger': "Oyuncu yaklaşınca saldırır",
       'spawnOpen': "Şemsiye açık başla",
       'gateTo': "Gideceği yer",

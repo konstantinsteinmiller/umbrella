@@ -1,5 +1,19 @@
 Umbrella — changelog (newest first)
 
+== Revision 15 — 2026-11-03 ==
+- Tools: `pnpm poki:deploy-quick-playtest` (= `deploy:poki --playtest-chapter`) builds, uploads and QAs a Poki version that plays only the Playtest Build chapter, so a round can test any set of levels (1-10, 11-20, 25-30...) on fresh players; it refuses to ship when that chapter is empty, and the version is named "· playtest chapter"
+- [x] Level editor: spikes point any way — an angle box with 90° helper buttons (up, right, down, left) in the spikes' properties; sideways and slanted spikes draw and hurt along their turned shape. Old levels are unchanged
+- [x] Touch controls are never fully opaque (0.85) and turn see-through whenever Pweeg or any level object (ledges, hazards, buttons, gates, flags, collectibles, the finish) is behind them
+- [x] Touch stick: bigger pad and knob, a touch area reaching past the drawing (also on the umbrella button), and feedback while held (brighter pad, ringed knob, lit direction arrow)
+- [x] Players no longer see "Chapter N" (level selector and chapter card show only a name or subtitle the designer gave; the editor keeps its chapters)
+- [x] Level editor: the "Game Jam" section is now the "Playtest Build" (the levels the next itch.io playtest round ships; name it per round)
+- [x] A restart resets Pweeg's drawn pose: he no longer straightens up from a splat's sideways/upside-down fall pose on the start platform
+- [x] Wind can't lift Pweeg above the top of the level, under the top bar (levels 3, 4, 27)
+- [x] Levels 1-2 on touch: the stick and the umbrella button pulse until used 3 times each (saved)
+- [x] Level grid sits below the HUD bar and its scrollbar is clearly visible
+- [x] Buttons no longer keep a focus ring after a click (keyboard focus still shows it)
+- [x] First load: the static splash shows the pulsing "umbrella" wordmark at once instead of a black screen
+
 == Revision 13 — 2026-10-30 ==
 - [x] Landscape phones: the stick and the umbrella button get their own band at the bottom, so the level sits above them instead of under them (smaller controls on short screens); a control turns see-through whenever it covers Pweeg or the finish, also during play
 - Tools: `pnpm download:recordings` skips recordings with under 20 s of play (`--min <seconds>` to change)
