@@ -29,6 +29,7 @@ import { createIntro, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
 import { previewFinish, render, resetPlayerPose } from '@/umbrella/renderer'
 import { setSignTouch } from '@/umbrella/signArt'
+import { stickAt } from '@/umbrella/stick'
 import { ARRIVE_TIME, drawWarp, startWarp, warpPosition, warpTime, type Warp } from '@/umbrella/warp'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
@@ -973,7 +974,6 @@ const onAnyPointer = (e: PointerEvent) => {
   if (introOn.value && !(e.target as HTMLElement | null)?.closest('.intro-skip')) requestSkip()
 }
 let stickRange = 52 // how far the knob travels: set from the pad's own width on touch-down
-const STICK_DEAD = 12
 const stickDir = ref(0)
 const knobX = ref(0)
 let stickId = -1
@@ -998,17 +998,30 @@ const onStickDown = (e: PointerEvent) => {
   const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
   stickOrigin = r.left + r.width / 2
   stickRange = Math.max(28, r.width / 2 - 30)
+  // The finger is followed on the WINDOW, not on the pad: it may leave the pad's outline (a long drag to
+  // one side) and the stick must still answer it.
+  window.addEventListener('pointermove', onStickMove)
+  window.addEventListener('pointerup', onStickUp)
+  window.addEventListener('pointercancel', onStickUp)
   onStickMove(e)
 }
 const onStickMove = (e: PointerEvent) => {
   if (e.pointerId !== stickId) return
-  const dx = Math.max(-stickRange, Math.min(stickRange, e.clientX - stickOrigin))
-  knobX.value = dx
-  stickDir.value = Math.abs(dx) < STICK_DEAD ? 0 : Math.sign(dx)
+  // Dragged past the end of the pad, its centre follows the finger (see stick.ts): turning back reverses at once.
+  const st = stickAt(stickOrigin, stickRange, e.clientX)
+  stickOrigin = st.origin
+  knobX.value = st.dx
+  stickDir.value = st.dir
+}
+const stopStickListeners = () => {
+  window.removeEventListener('pointermove', onStickMove)
+  window.removeEventListener('pointerup', onStickUp)
+  window.removeEventListener('pointercancel', onStickUp)
 }
 const onStickUp = (e: PointerEvent) => {
   if (e.pointerId !== stickId) return
   stickId = -1
+  stopStickListeners()
   knobX.value = 0
   stickDir.value = 0
 }
@@ -1026,6 +1039,7 @@ const onKeyUp = onKey(false)
 const onBlur = () => {
   held.left = held.right = false
   stickId = -1
+  stopStickListeners()
   knobX.value = 0
   stickDir.value = 0
 }
@@ -1092,6 +1106,7 @@ const onPlay = () => {
   begin()
 }
 onUnmounted(() => {
+  stopStickListeners()
   clockSizer?.disconnect()
   setStillSkyCanvas(null, null)
   window.removeEventListener('keydown', onKeyDown)
@@ -1229,9 +1244,6 @@ onUnmounted(() => {
         aria-valuemax="1"
         :aria-valuenow="stickDir"
         @pointerdown.stop="onStickDown"
-        @pointermove="onStickMove"
-        @pointerup="onStickUp"
-        @pointercancel="onStickUp"
       >
         <span class="stick-arrow left"><UiGlyph name="prev" fallback="‹" /></span>
         <span class="stick-arrow right"><UiGlyph name="next" fallback="›" /></span>
