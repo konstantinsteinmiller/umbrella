@@ -13,7 +13,7 @@ describe('intro cutscene', () => {
   })
   it("Chad's float, simulated with the real engine, gets across Level 1", () => {
     const p = startPlatform(L1)!
-    const frames = simulateChad(L1, { x: p.x + p.w - 40, y: p.y }, DEFAULT_TUNING)
+    const frames = simulateChad(L1, { x: p.x + p.w - 30, y: p.y }, DEFAULT_TUNING)
     expect(frames).not.toBeNull()
     expect(frames!.some((f) => f.airborne)).toBe(true)
     expect(frames!.at(-1)!.x).toBeGreaterThan(p.x + p.w + 150)

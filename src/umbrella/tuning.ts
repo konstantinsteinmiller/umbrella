@@ -117,7 +117,7 @@ export const GAME_TUNING: Tuning = {
   walkSpeed: 260,
   walkAccelTime: 0.09,
   walkDecelTime: 0.09,
-  airSpeed: 240,
+  airSpeed: 230,
   airTurnTime: 0.75,
   airDrag: 280,
   whistleFade: 1.2,

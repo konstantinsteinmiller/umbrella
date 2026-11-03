@@ -73,10 +73,16 @@ export const introCutscene = (level: LevelDef, tuning: Tuning): CutsceneDef => {
   const upperLeft = Math.min(P.x, 0) - 40
 
   // Chad: flips in from off-screen top-left onto the lower cloud near its edge.
-  const land: Vec = { x: Math.max(upperEdge + 30, edge - 40), y: ground }
+  // He lands as far from the edge as lets his float still cross (a slower air speed needs a shorter run-up).
+  let land: Vec = { x: Math.max(upperEdge + 30, edge - 40), y: ground }
+  let sim = simulateChad(level, land, tuning)
+  for (const off of [30, 20, 10]) {
+    if (sim) break
+    land = { x: Math.max(upperEdge + 30, edge - off), y: ground }
+    sim = simulateChad(level, land, tuning)
+  }
   const flipFrom: Vec = { x: -60, y: Math.max(40, ground - 260) }
   const apex = Math.max(20, ground - 330)
-  const sim = simulateChad(level, land, tuning)
   const RATE = 120
   /** Scripted fallback: a gentle rising glide to the right edge when the sim cannot cross. */
   const glide = (k: number): Frame => {
