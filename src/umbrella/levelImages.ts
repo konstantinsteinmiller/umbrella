@@ -97,10 +97,19 @@ export const levelImage = (id: string | undefined): ImageBitmap | null => {
 setPictureImageSource(levelImage)
 
 // ── Taking a file ──
+/** File extensions taken as pictures when the browser gives the file no usable type. */
+export const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif', 'bmp'] as const
+/** What a file picker is told to offer (`image/*` alone hides .webp on some systems). */
+export const IMAGE_ACCEPT = `image/*,${IMAGE_EXTENSIONS.map((e) => `.${e}`).join(',')}`
+/** Looks like a picture: an image type, or (empty / generic type) an image extension. */
+export const looksLikeImage = (f: { name: string; type: string }): boolean =>
+  f.type.startsWith('image/') || ((f.type === '' || f.type === 'application/octet-stream') && (IMAGE_EXTENSIONS as readonly string[]).includes(f.name.split('.').pop()?.toLowerCase() ?? ''))
+
 /** A dropped file, shrunk to at most IMAGE_MAX_SIDE and encoded as WebP (a flat copy: animation is dropped). */
 export const prepareImage = async (file: Blob): Promise<{ blob: Blob; w: number; h: number }> => {
-  if (!/^image\/(png|jpe?g|webp|gif|avif|bmp)$/i.test(file.type)) throw new Error('type')
-  const bmp = await createImageBitmap(file)
+  // No gate on file.type: Windows hands over an empty or odd type for some files (.webp, .avif), so the decoder decides.
+  let bmp: ImageBitmap
+  try { bmp = await createImageBitmap(file) } catch { throw new Error('type') }
   const k = Math.min(1, IMAGE_MAX_SIDE / Math.max(bmp.width, bmp.height))
   const w = Math.max(1, Math.round(bmp.width * k))
   const h = Math.max(1, Math.round(bmp.height * k))

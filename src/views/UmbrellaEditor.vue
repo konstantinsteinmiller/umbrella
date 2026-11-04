@@ -32,7 +32,7 @@ import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, CHANNELS, COLLECT_SHAPES, DEFAULT_COLL
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { arrowBox } from '@/umbrella/pictureArt'
-import { addImage, levelImage, uploadPending } from '@/umbrella/levelImages'
+import { addImage, IMAGE_ACCEPT, levelImage, looksLikeImage, uploadPending } from '@/umbrella/levelImages'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
@@ -794,7 +794,7 @@ const selectedPicture = computed(() => (selected.value?.group === 'pictures' ? (
 const pictureBusy = ref(false)
 const dropHot = ref(false)
 const imagePicker = ref<HTMLInputElement | null>(null)
-const imageFileOf = (dt: DataTransfer | null): File | null => [...(dt?.files ?? [])].find((f) => f.type.startsWith('image/')) ?? null
+const imageFileOf = (dt: DataTransfer | null): File | null => [...(dt?.files ?? [])].find(looksLikeImage) ?? null
 /** Puts a dropped image on picture `i`, or on a new board centred at `at`. */
 const attachImage = async (file: File, to: { i: number } | { at: Vec }) => {
   if (!designer.value || pictureBusy.value) return
@@ -2153,7 +2153,7 @@ onUnmounted(() => {
               <span v-else-if="selectedPicture.image">Drop another image to replace it, or click to choose one</span>
               <span v-else>Drop an image here, or click to choose one</span>
             </div>
-            <input ref="imagePicker" type="file" accept="image/*" hidden @change="onPictureFile" />
+            <input ref="imagePicker" type="file" :accept="IMAGE_ACCEPT" hidden @change="onPictureFile" />
             <label class="check"><input type="checkbox" :checked="selectedPicture.frame !== false" @change="setPictureFrame(($event.target as HTMLInputElement).checked)" /> Paper board around the image</label>
             <div class="pair">
               <button class="mini" :disabled="!selectedPicture.image" @click="fitPicture">Fit board to image</button>

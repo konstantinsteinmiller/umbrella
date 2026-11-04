@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { parseLevel, cloneLevel } from '@/umbrella/customLevels'
 import { LEVELS, isImageId, type LevelDef } from '@/umbrella/levels'
 import { arrowBox, drawArrow, drawPicture, setPictureImageSource } from '@/umbrella/pictureArt'
-import { imageIdsOf } from '@/umbrella/levelImages'
+import { IMAGE_ACCEPT, imageIdsOf, looksLikeImage } from '@/umbrella/levelImages'
 // @ts-expect-error plain .mjs without types
 import { imageIdsIn } from '../../scripts/level-image-ids.mjs'
 
@@ -42,6 +42,14 @@ describe('standalone arrows and picture boards', () => {
     const order = { order: [{ snapshot: { id: 1001, pictures: [{ image: other }, { image: ID }] } }], chapters: [] }
     expect(imageIdsIn(overrides, order).sort()).toEqual([ID, other].sort())
     expect(imageIdsIn({}, null, undefined)).toEqual([])
+  })
+  it('takes a .webp the system gave no type (Windows often does) and refuses what is not a picture', () => {
+    expect(looksLikeImage({ name: 'photo.webp', type: '' })).toBe(true)
+    expect(looksLikeImage({ name: 'PHOTO.WEBP', type: 'application/octet-stream' })).toBe(true)
+    expect(looksLikeImage({ name: 'a.png', type: 'image/png' })).toBe(true)
+    expect(looksLikeImage({ name: 'notes.txt', type: '' })).toBe(false)
+    expect(looksLikeImage({ name: 'clip.webp', type: 'video/webm' })).toBe(false)
+    expect(IMAGE_ACCEPT).toContain('.webp')
   })
   it('selects a turned arrow by a square around its centre', () => {
     expect(arrowBox({ x: 100, y: 50, size: 80, angle: 45 })).toEqual({ x: 60, y: 10, w: 80, h: 80 })
