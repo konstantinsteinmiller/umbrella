@@ -70,9 +70,11 @@ const smooth = (x: number) => x * x * (3 - 2 * x)
 /** Pweeg's height in the window (0 = top, 1 = bottom) through one loop, and how visible he is (he fades where the loop restarts). */
 const pweegAt = (u: number): { y: number; open: boolean; alpha: number } => {
   let y: number
-  if (u < OPEN_FROM) y = 0.18 + 0.46 * smooth(u / OPEN_FROM) // falling, shut
-  else if (u < OPEN_TO) y = 0.64 + 0.07 * ((u - OPEN_FROM) / (OPEN_TO - OPEN_FROM)) // floating, open
-  else y = 0.71 + 0.17 * smooth((u - OPEN_TO) / (1 - OPEN_TO)) // falling again, shut
+  // Shut, he falls like a stone: he starts near the top and speeds up (gravity), so at the tap he is dropping fast; the
+  // open umbrella then catches him and he drifts down slowly. The contrast is the lesson.
+  if (u < OPEN_FROM) y = 0.16 + 0.42 * Math.pow(u / OPEN_FROM, 1.7) // falling, shut
+  else if (u < OPEN_TO) y = 0.58 + 0.06 * ((u - OPEN_FROM) / (OPEN_TO - OPEN_FROM)) // floating, open
+  else y = 0.64 + 0.36 * Math.pow((u - OPEN_TO) / (1 - OPEN_TO), 1.7) // falling again, shut
   const alpha = Math.min(1, u / 0.05, (1 - u) / 0.07)
   return { y, open: u >= OPEN_FROM && u < OPEN_TO, alpha }
 }
@@ -113,11 +115,11 @@ const drawDemo = (now: number) => {
     ctx.globalAlpha = p.alpha
     for (let i = 0; i < 5; i++) {
       const lx = cx + (i - 2) * 15 * k
-      const run = (((time * 2.4 + i * 0.37) % 1) + 1) % 1
-      const ly = (0.9 - run * 0.7) * ch
+      const run = (((time * 5 + i * 0.37) % 1) + 1) % 1
+      const ly = (0.95 - run * 0.85) * ch
       ctx.beginPath()
       ctx.moveTo(lx, ly)
-      ctx.lineTo(lx, ly + 22 * k)
+      ctx.lineTo(lx, ly + 34 * k)
       ctx.stroke()
     }
   }
