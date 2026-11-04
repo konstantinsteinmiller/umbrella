@@ -415,11 +415,11 @@
 
 /* ── Touch controls ─────────────────────────────────────────────────────────── */
 .ui-theme .stick-arrow { display: grid; place-items: center; }
-.ui-theme .stick-arrow .ui-glyph { width: 26px; height: 26px; }
+.ui-theme .stick-arrow .ui-glyph { width: calc(26px * var(--ctl, 1)); height: calc(26px * var(--ctl, 1)); }
 .ui-theme .stick-knob { transition: filter var(--u-t) ease; }
 .ui-theme .stick:active .stick-knob { filter: brightness(1.15); }
 .ui-theme .umbrella-btn { display: grid; place-items: center; background: var(--ub); transition: transform 0.28s var(--u-ease-spring), filter var(--u-t) ease, opacity 0.3s ease; }
-.ui-theme .umbrella-btn .ui-glyph { width: 38px; height: 38px; }
+.ui-theme .umbrella-btn .ui-glyph { width: calc(38px * var(--ctl, 1)); height: calc(38px * var(--ctl, 1)); }
 .ui-theme .umbrella-btn:focus-visible { outline: 3px solid var(--u-focus); outline-offset: 6px; }
 /* Lantern: a night-paper track in gold leaf, a lit paper lantern for a knob, a wagasa for the umbrella. */
 .ui-lantern .stick {
@@ -444,7 +444,7 @@
   color: #7e1a17;
   box-shadow: 0 0 0 2px #2a1d3a, 0 0 0 4.5px #e8b450, 0 0 0 5.5px #2a1d3a, 0 10px 22px rgba(0, 0, 0, 0.45), 0 0 28px rgba(255, 140, 60, 0.4);
 }
-.ui-lantern .umbrella-btn .ui-glyph { width: 32px; height: 32px; filter: none; }
+.ui-lantern .umbrella-btn .ui-glyph { width: calc(32px * var(--ctl, 1)); height: calc(32px * var(--ctl, 1)); filter: none; }
 .ui-lantern .umbrella-btn.pressed { background: var(--ub); transform: scale(0.9) rotate(-22deg); filter: brightness(1.2); }
 /* Clay: a slate groove in a cream clay ring, a mustard thumb-printed ball, a stitched tomato disc. */
 .ui-clay .stick {

@@ -997,7 +997,7 @@ const onStickDown = (e: PointerEvent) => {
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
   stickOrigin = r.left + r.width / 2
-  stickRange = Math.max(28, r.width / 2 - 30)
+  stickRange = Math.max(22, r.width / 2 - 24)
   // The finger is followed on the WINDOW, not on the pad: it may leave the pad's outline (a long drag to
   // one side) and the stick must still answer it.
   window.addEventListener('pointermove', onStickMove)
@@ -1485,10 +1485,16 @@ onUnmounted(() => {
   z-index: 2;
 }
 .open-editor:hover { filter: brightness(1.1); }
+/* The touch controls: drawn 25 % smaller than they were (--ctl), with a touchable area 10 % bigger than the old
+   one (the ::before reaches out by the --tx-* amounts), and kept 4.5 % of the screen away from its borders so a
+   thumb on a real phone or tablet reaches them comfortably. */
 .stick,
 .umbrella-btn {
+  --ctl: 0.75;
+  --pad-x: 4.5vw;
+  --pad-y: 4.5vh;
   position: absolute;
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  bottom: calc(var(--pad-y) + env(safe-area-inset-bottom));
   z-index: 2;
   touch-action: none;
   user-select: none;
@@ -1496,10 +1502,13 @@ onUnmounted(() => {
   -webkit-tap-highlight-color: transparent;
 }
 .stick {
-  left: calc(24px + env(safe-area-inset-left));
-  width: 176px;
-  height: 84px;
-  border-radius: 42px;
+  --tx-l: 47.7px;
+  --tx-r: 66.7px;
+  --tx-y: 41.1px;
+  left: calc(var(--pad-x) + env(safe-area-inset-left));
+  width: calc(176px * var(--ctl));
+  height: calc(84px * var(--ctl));
+  border-radius: calc(42px * var(--ctl));
   border: 2px solid rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.08);
 }
@@ -1507,7 +1516,7 @@ onUnmounted(() => {
 .stick::before {
   content: '';
   position: absolute;
-  inset: -24px -28px -24px -20px;
+  inset: calc(var(--tx-y) * -1) calc(var(--tx-r) * -1) calc(var(--tx-y) * -1) calc(var(--tx-l) * -1);
 }
 /* Feedback: the pad brightens while held, and the arrow of the pushed direction lights up. */
 .stick.held .stick-knob { box-shadow: 0 0 0 5px rgba(255, 231, 166, 0.55); }
@@ -1517,37 +1526,38 @@ onUnmounted(() => {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 30px;
+  font-size: calc(30px * var(--ctl));
   opacity: 0.45;
   pointer-events: none;
 }
-.stick-arrow.left { left: 12px; }
-.stick-arrow.right { right: 12px; }
+.stick-arrow.left { left: calc(12px * var(--ctl)); }
+.stick-arrow.right { right: calc(12px * var(--ctl)); }
 .stick-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 66px;
-  height: 66px;
-  margin: -33px 0 0 -33px;
+  width: calc(66px * var(--ctl));
+  height: calc(66px * var(--ctl));
+  margin: calc(-33px * var(--ctl)) 0 0 calc(-33px * var(--ctl));
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.85);
   pointer-events: none;
   transition: box-shadow 0.12s ease;
 }
 .umbrella-btn {
-  right: calc(24px + env(safe-area-inset-right));
-  width: 92px;
-  height: 92px;
+  --tx-u: 31.5px;
+  right: calc(var(--pad-x) + env(safe-area-inset-right));
+  width: calc(92px * var(--ctl));
+  height: calc(92px * var(--ctl));
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.6);
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
-  font-size: 44px;
+  font-size: calc(44px * var(--ctl));
   line-height: 1;
   cursor: pointer;
 }
-.umbrella-btn::before { content: ''; position: absolute; inset: -14px; border-radius: 50%; }
+.umbrella-btn::before { content: ''; position: absolute; inset: calc(var(--tx-u) * -1); border-radius: 50%; }
 .umbrella-btn { transition: color 0.12s ease, background 0.12s ease, transform 0.12s ease; }
 /* Umbrella shut: the umbrella symbol fades, the round button stays, so the pressable area still shows. */
 .umbrella-btn.closed { color: rgba(255, 255, 255, 0.38); }
@@ -1575,10 +1585,9 @@ onUnmounted(() => {
 /* Short landscape phones: smaller controls, closer to the edge, so their band at the bottom (kept clear
    of the level, controlsBand) costs the level less height. */
 @media (orientation: landscape) and (max-height: 460px) {
-  .stick, .umbrella-btn { bottom: calc(12px + env(safe-area-inset-bottom)); }
-  .stick { left: calc(16px + env(safe-area-inset-left)); width: 124px; height: 60px; border-radius: 30px; }
-  .umbrella-btn { right: calc(16px + env(safe-area-inset-right)); width: 76px; height: 76px; font-size: 36px; }
-  .stick-knob { width: 48px; height: 48px; margin: -24px 0 0 -24px; }
+  .stick { --tx-l: 40.2px; --tx-r: 56px; --tx-y: 36.9px; width: calc(124px * var(--ctl)); height: calc(60px * var(--ctl)); border-radius: calc(30px * var(--ctl)); }
+  .umbrella-btn { --tx-u: 28.7px; width: calc(76px * var(--ctl)); height: calc(76px * var(--ctl)); font-size: calc(36px * var(--ctl)); }
+  .stick-knob { width: calc(48px * var(--ctl)); height: calc(48px * var(--ctl)); margin: calc(-24px * var(--ctl)) 0 0 calc(-24px * var(--ctl)); }
 }
 .hud-btn.wide { width: auto; padding: 0 12px; font-size: 16px; font-weight: 700; }
 /* A phone held upright: the bar would run off both edges, so Community keeps only its globe,
