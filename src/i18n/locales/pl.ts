@@ -20,6 +20,10 @@ export default {
     'rating': "{n} z 3 gwiazdek",
     'clickToPlay': "Kliknij, aby zagrać",
     'tapToPlay': "Dotknij, aby zagrać",
+    'rotate': {
+      'title': "Obróć urządzenie",
+      'hint': "Ustaw poziomo, aby grać"
+    },
     'ctlMove': "Ruch",
     'ctlUmbrella': "Otwórz / zamknij parasol",
     'ctlRestart': "Od nowa",
@@ -162,6 +166,7 @@ export default {
       'gate': "Brama",
       'sign': "Tablica z podpowiedzią",
       'sign-float': "Tablica szybowania",
+      'arrow': "Strzałka",
       'wind-up': "Prąd wznoszący",
       'wind-down': "Prąd opadający",
       'wind-left': "Wiatr w lewo",
@@ -184,6 +189,7 @@ export default {
       'gate': "Kliknij górną krawędź platformy, aby postawić rurę teleportacyjną. Otwarcie w niej parasola zabiera gracza hiperprądem na poziom wyzwania.",
       'sign': "Kliknij, aby postawić tablicę: papier trzymany przez dwie latarnie, z klawiszem SPACE i strzałką w dół. Tylko dekoracja; zielony róg zmienia rozmiar.",
       'sign-float': "Kliknij, aby postawić tablicę szybowania: papier trzymany przez dwie latarnie, na którym Pweeg opada pod otwartym parasolem. Tylko dekoracja; zielony róg zmienia rozmiar.",
+      'arrow': "Kliknij, aby umieścić dużą strzałkę. Przeciągnij niebieską kropkę, by ją obrócić, i zielony róg, by zmienić rozmiar; umieść ich, ile trzeba. Tylko dekoracja.",
       'wind-up': "Przeciągnij prostokąt prądu wiejącego w górę.",
       'wind-down': "Przeciągnij prostokąt prądu wiejącego w dół.",
       'wind-left': "Przeciągnij prostokąt prądu wiejącego w lewo.",
@@ -210,7 +216,8 @@ export default {
       'star': "Przedmiot do zebrania",
       'gate': "Brama",
       'sign': "Tablica z podpowiedzią",
-      'sign-float': "Tablica szybowania"
+      'sign-float': "Tablica szybowania",
+      'arrow': "Strzałka"
     },
     'shape': {
       'star': "Gwiazdka",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Siła odbicia",
       'points': "Punkty",
       'angle': "Kąt",
+      'size': "Rozmiar",
       'trigger': "Atakuje, gdy gracz jest blisko",
       'spawnOpen': "Zacznij z otwartym parasolem",
       'fixedScreen': "Stały ekran",

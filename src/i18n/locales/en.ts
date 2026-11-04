@@ -23,6 +23,10 @@ export default {
     'rating': "{n} of 3 stars",
     'clickToPlay': "Click to play",
     'tapToPlay': "Tap to play",
+    'rotate': {
+      'title': "Turn your phone sideways",
+      'hint': "The game is played in landscape"
+    },
     'ctlMove': "Move",
     'ctlUmbrella': "Open / close umbrella",
     'ctlRestart': "Restart",
@@ -165,6 +169,7 @@ export default {
       'gate': "Gate",
       'sign': "Hint board",
       'sign-float': "Float board",
+      'arrow': "Arrow",
       'wind-up': "Updraft",
       'wind-down': "Downdraft",
       'wind-left': "Wind left",
@@ -187,6 +192,7 @@ export default {
       'gate': "Click on a platform's top edge for a warp pipe. Opening the umbrella inside it sends the player to a challenge level on a hyper current.",
       'sign': "Click to place a hint board: paper held by two lanterns showing the SPACE key and a down arrow. Decoration only; drag the green corner to resize.",
       'sign-float': "Click to place a float board: paper held by two lanterns showing Pweeg floating down under his open umbrella. Decoration only; drag the green corner to resize.",
+      'arrow': "Click to place a big arrow. Drag the blue dot to turn it and the green corner to resize it; place as many as you need. Decoration only.",
       'wind-up': "Drag a box for a current that blows up.",
       'wind-down': "Drag a box for a current that blows down.",
       'wind-left': "Drag a box for a current that blows left.",
@@ -213,7 +219,8 @@ export default {
       'star': "Collectible",
       'gate': "Gate",
       'sign': "Hint board",
-      'sign-float': "Float board"
+      'sign-float': "Float board",
+      'arrow': "Arrow"
     },
     'shape': {
       'star': "Star",
@@ -271,6 +278,7 @@ export default {
       'bounce': "Bounce strength",
       'points': "Points",
       'angle': "Angle",
+      'size': "Size",
       'trigger': "Attacks when the player is near",
       'spawnOpen': "Start with the umbrella open",
       'fixedScreen': "Fixed Screen",

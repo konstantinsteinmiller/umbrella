@@ -20,6 +20,10 @@ export default {
     'rating': "{n} van de 3 sterren",
     'clickToPlay': "Klik om te spelen",
     'tapToPlay': "Tik om te spelen",
+    'rotate': {
+      'title': "Draai je apparaat",
+      'hint': "Houd het horizontaal om te spelen"
+    },
     'ctlMove': "Bewegen",
     'ctlUmbrella': "Paraplu open / dicht",
     'ctlRestart': "Opnieuw",
@@ -162,6 +166,7 @@ export default {
       'gate': "Poort",
       'sign': "Hintbord",
       'sign-float': "Zweefbord",
+      'arrow': "Pijl",
       'wind-up': "Opwaartse wind",
       'wind-down': "Neerwaartse wind",
       'wind-left': "Wind naar links",
@@ -184,6 +189,7 @@ export default {
       'gate': "Klik op de bovenrand van een platform voor een warpbuis. Opent de speler daarin de paraplu, dan voert een hyperstroom hem naar een uitdagingslevel.",
       'sign': "Klik om een hintbord te plaatsen: papier dat door twee lantaarns wordt gehouden, met de SPACE-toets en een pijl omlaag. Alleen decoratie; sleep de groene hoek om het formaat te wijzigen.",
       'sign-float': "Klik om een zweefbord te plaatsen: papier dat door twee lantaarns wordt gehouden en Pweeg toont die onder zijn open paraplu omlaag zweeft. Alleen decoratie; sleep de groene hoek om het formaat te wijzigen.",
+      'arrow': "Klik om een grote pijl te plaatsen. Sleep de blauwe stip om hem te draaien en de groene hoek om het formaat te wijzigen; plaats er zoveel als nodig. Alleen decoratie.",
       'wind-up': "Sleep een vak voor een stroming die omhoog blaast.",
       'wind-down': "Sleep een vak voor een stroming die omlaag blaast.",
       'wind-left': "Sleep een vak voor een stroming die naar links blaast.",
@@ -210,7 +216,8 @@ export default {
       'star': "Verzamelobject",
       'gate': "Poort",
       'sign': "Hintbord",
-      'sign-float': "Zweefbord"
+      'sign-float': "Zweefbord",
+      'arrow': "Pijl"
     },
     'shape': {
       'star': "Ster",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Stuiterkracht",
       'points': "Punten",
       'angle': "Hoek",
+      'size': "Grootte",
       'trigger': "Valt aan als de speler dichtbij is",
       'spawnOpen': "Beginnen met open paraplu",
       'fixedScreen': "Vast scherm",

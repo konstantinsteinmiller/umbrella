@@ -1,0 +1,89 @@
+import { describe, expect, it } from 'vitest'
+import { readdirSync, readFileSync } from 'node:fs'
+import { parseLevel, cloneLevel } from '@/umbrella/customLevels'
+import { LEVELS, isImageId, type LevelDef } from '@/umbrella/levels'
+import { arrowBox, drawArrow, drawPicture, setPictureImageSource } from '@/umbrella/pictureArt'
+import { imageIdsOf } from '@/umbrella/levelImages'
+
+const ID = '0123456789abcdef01234567'
+const base = (extra: Partial<LevelDef>): unknown => ({ ...cloneLevel(LEVELS[0]!), ...extra })
+
+describe('standalone arrows and picture boards', () => {
+  it('keeps a level\'s arrows and pictures through parseLevel', () => {
+    const l = parseLevel(base({
+      arrows: [{ x: 100, y: 200, size: 90, angle: 90 }, { x: 300, y: 200, size: 60 }],
+      pictures: [{ x: 10, y: 10, w: 240, h: 160, image: ID }, { x: 400, y: 10, w: 100, h: 100, frame: false }]
+    }))
+    expect(l?.arrows).toHaveLength(2)
+    expect(l?.pictures?.[0]?.image).toBe(ID)
+    expect(l?.pictures?.[1]?.frame).toBe(false)
+  })
+  it('refuses junk: a bad image name, a flat arrow, a non-boolean frame', () => {
+    expect(parseLevel(base({ pictures: [{ x: 0, y: 0, w: 10, h: 10, image: '../../etc/passwd' }] }))).toBeNull()
+    expect(parseLevel(base({ pictures: [{ x: 0, y: 0, w: 10, h: 10, image: ID.toUpperCase() }] }))).toBeNull()
+    expect(parseLevel(base({ arrows: [{ x: 0, y: 0, size: 0 }] }))).toBeNull()
+    expect(parseLevel(base({ pictures: [{ x: 0, y: 0, w: 10, h: 10, frame: 'no' as unknown as boolean }] }))).toBeNull()
+  })
+  it('names images by 24 hex digits only', () => {
+    expect(isImageId(ID)).toBe(true)
+    expect(isImageId('abc')).toBe(false)
+    expect(isImageId(`${ID}0`)).toBe(false)
+    expect(isImageId(undefined)).toBe(false)
+  })
+  it('lists the image ids a level uses, once each ', () => {
+    const l = { pictures: [{ image: ID }, { image: ID }, {}, { image: 'nope' }] }
+    expect(imageIdsOf(l)).toEqual([ID])
+  })
+  it('selects a turned arrow by a square around its centre', () => {
+    expect(arrowBox({ x: 100, y: 50, size: 80, angle: 45 })).toEqual({ x: 60, y: 10, w: 80, h: 80 })
+  })
+})
+
+/** A recording context: counts the calls that matter and fails on none. */
+const fakeCtx = () => {
+  const calls: string[] = []
+  const grad = { addColorStop: () => undefined }
+  return new Proxy({ calls }, {
+    get: (t, k: string) => {
+      if (k === 'calls') return t.calls
+      if (k === 'createLinearGradient' || k === 'createRadialGradient') return () => grad
+      return (..._a: unknown[]) => { calls.push(k) }
+    },
+    set: () => true
+  }) as unknown as CanvasRenderingContext2D & { calls: string[] }
+}
+
+describe('drawing them', () => {
+  it('draws an arrow at any angle, and a picture empty or filled', () => {
+    for (const angle of [0, 90, 180, 270, 33]) {
+      const c = fakeCtx()
+      drawArrow(c, { x: 10, y: 10, size: 80, angle }, 1.2)
+      expect(c.calls).toContain('rotate')
+    }
+    const empty = fakeCtx()
+    drawPicture(empty, { x: 0, y: 0, w: 200, h: 140 }, 0)
+    expect(empty.calls).not.toContain('drawImage')
+    const img = { naturalWidth: 400, naturalHeight: 200 } as unknown as CanvasImageSource
+    setPictureImageSource(() => img)
+    const filled = fakeCtx()
+    drawPicture(filled, { x: 0, y: 0, w: 200, h: 140, image: ID }, 0)
+    expect(filled.calls).toContain('drawImage')
+    const bare = fakeCtx()
+    drawPicture(bare, { x: 0, y: 0, w: 200, h: 140, image: ID, frame: false }, 0)
+    expect(bare.calls).toContain('drawImage')
+    // No paper board: only the picture and the ropes' knots.
+    expect(bare.calls.filter((c) => c === 'roundRect')).toHaveLength(0)
+    setPictureImageSource(() => null)
+  })
+})
+
+describe('arrow tool copy', () => {
+  it('is in every shipped locale', () => {
+    const dir = 'src/i18n/locales'
+    for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts'))) {
+      const src = readFileSync(`${dir}/${f}`, 'utf8')
+      expect(src.match(/'arrow': ".+"/g)?.length, f).toBe(3)
+      expect(src, f).toMatch(/'size': ".+"/)
+    }
+  })
+})

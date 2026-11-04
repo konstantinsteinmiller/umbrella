@@ -20,6 +20,10 @@ export default {
     'rating': "{n} trên 3 sao",
     'clickToPlay': "Nhấp để chơi",
     'tapToPlay': "Chạm để chơi",
+    'rotate': {
+      'title': "Hãy xoay thiết bị",
+      'hint': "Xoay ngang màn hình để chơi"
+    },
     'ctlMove': "Di chuyển",
     'ctlUmbrella': "Mở / gập ô",
     'ctlRestart': "Chơi lại",
@@ -162,6 +166,7 @@ export default {
       'gate': "Cổng",
       'sign': "Bảng gợi ý",
       'sign-float': "Bảng lơ lửng",
+      'arrow': "Mũi tên",
       'wind-up': "Gió thổi lên",
       'wind-down': "Gió thổi xuống",
       'wind-left': "Gió sang trái",
@@ -184,6 +189,7 @@ export default {
       'gate': "Nhấp vào mép trên của nền để đặt ống dịch chuyển. Mở ô trong ống, người chơi sẽ được dòng siêu gió đưa tới màn thử thách.",
       'sign': "Nhấp để đặt bảng gợi ý: tờ giấy do hai chiếc đèn lồng giữ, có phím SPACE và mũi tên chỉ xuống. Chỉ để trang trí; kéo góc xanh để đổi kích thước.",
       'sign-float': "Nhấp để đặt bảng lơ lửng: tờ giấy do hai chiếc đèn lồng giữ, vẽ Pweeg bay xuống dưới chiếc ô đang mở. Chỉ để trang trí; kéo góc xanh để đổi kích thước.",
+      'arrow': "Nhấp để đặt một mũi tên lớn. Kéo chấm xanh dương để xoay và góc xanh lá để đổi kích thước; đặt bao nhiêu tùy ý. Chỉ để trang trí.",
       'wind-up': "Kéo một khung cho luồng gió thổi lên.",
       'wind-down': "Kéo một khung cho luồng gió thổi xuống.",
       'wind-left': "Kéo một khung cho luồng gió thổi sang trái.",
@@ -210,7 +216,8 @@ export default {
       'star': "Vật phẩm thu thập",
       'gate': "Cổng",
       'sign': "Bảng gợi ý",
-      'sign-float': "Bảng lơ lửng"
+      'sign-float': "Bảng lơ lửng",
+      'arrow': "Mũi tên"
     },
     'shape': {
       'star': "Ngôi sao",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Lực nảy",
       'points': "Điểm",
       'angle': "Góc",
+      'size': "Kích thước",
       'trigger': "Tấn công khi người chơi đến gần",
       'spawnOpen': "Bắt đầu với ô đang mở",
       'fixedScreen': "Màn hình cố định",

@@ -36,6 +36,9 @@ env:
   # The levels bucket (workers/levels-bucket): the Pages editor syncs with it, the
   # Pages game plays its campaign edits, and every build here pulls it first.
   VITE_APP_LEVELS_BUCKET_URL: https://umbrella-levels.playtest-circle.workers.dev
+  # The pre-game intro cutscene (and the "click to play" screen that only served it): off. Set 'true' to bring it back
+  # on the Pages builds (portal builds read VITE_APP_INTRO_ENABLED from the root .env).
+  VITE_APP_INTRO_ENABLED: 'false'
 
 jobs:
   deploy:

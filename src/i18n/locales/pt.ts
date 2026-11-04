@@ -20,6 +20,10 @@ export default {
     'rating': "{n} de 3 estrelas",
     'clickToPlay': "Clique para jogar",
     'tapToPlay': "Toque para jogar",
+    'rotate': {
+      'title': "Gire o dispositivo",
+      'hint': "Deixe na horizontal para jogar"
+    },
     'ctlMove': "Mover",
     'ctlUmbrella': "Abrir / fechar o guarda-chuva",
     'ctlRestart': "Reiniciar",
@@ -162,6 +166,7 @@ export default {
       'gate': "Portal",
       'sign': "Placa de dica",
       'sign-float': "Placa de planar",
+      'arrow': "Seta",
       'wind-up': "Corrente ascendente",
       'wind-down': "Corrente descendente",
       'wind-left': "Vento para a esquerda",
@@ -184,6 +189,7 @@ export default {
       'gate': "Clique na borda de cima de uma plataforma para um tubo de teletransporte. Abrir o guarda-chuva dentro dele leva o jogador por uma hipercorrente a um nível desafio.",
       'sign': "Clique para colocar uma placa: papel segurado por duas lanternas com a tecla SPACE e uma seta para baixo. Apenas decoração; arraste o canto verde para redimensionar.",
       'sign-float': "Clique para colocar uma placa de planar: papel segurado por duas lanternas mostrando Pweeg descendo sob o guarda-chuva aberto. Apenas decoração; arraste o canto verde para redimensionar.",
+      'arrow': "Clique para colocar uma seta grande. Arraste o ponto azul para girá-la e o canto verde para redimensioná-la; coloque quantas precisar. Apenas decoração.",
       'wind-up': "Arraste uma caixa para uma corrente que sopra para cima.",
       'wind-down': "Arraste uma caixa para uma corrente que sopra para baixo.",
       'wind-left': "Arraste uma caixa para uma corrente que sopra para a esquerda.",
@@ -210,7 +216,8 @@ export default {
       'star': "Colecionável",
       'gate': "Portal",
       'sign': "Placa de dica",
-      'sign-float': "Placa de planar"
+      'sign-float': "Placa de planar",
+      'arrow': "Seta"
     },
     'shape': {
       'star': "Estrela",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Força do impulso",
       'points': "Pontos",
       'angle': "Ângulo",
+      'size': "Tamanho",
       'trigger': "Ataca quando o jogador está perto",
       'spawnOpen': "Começar com o guarda-chuva aberto",
       'fixedScreen': "Tela fixa",

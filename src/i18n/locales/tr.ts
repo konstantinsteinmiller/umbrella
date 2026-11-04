@@ -20,6 +20,10 @@ export default {
     'rating': "3 yıldızdan {n}",
     'clickToPlay': "Oynamak için tıkla",
     'tapToPlay': "Oynamak için dokun",
+    'rotate': {
+      'title': "Cihazını döndür",
+      'hint': "Oynamak için yatay konuma getir"
+    },
     'ctlMove': "Hareket",
     'ctlUmbrella': "Şemsiyeyi aç / kapat",
     'ctlRestart': "Yeniden başlat",
@@ -162,6 +166,7 @@ export default {
       'gate': "Geçit",
       'sign': "İpucu panosu",
       'sign-float': "Süzülme panosu",
+      'arrow': "Ok",
       'wind-up': "Yukarı akıntı",
       'wind-down': "Aşağı akıntı",
       'wind-left': "Sola rüzgâr",
@@ -184,6 +189,7 @@ export default {
       'gate': "Bir platformun üst kenarına tıklayarak ışınlanma borusu koyun. İçinde şemsiyeyi açan oyuncu, hiper akımla bir meydan okuma bölümüne taşınır.",
       'sign': "İpucu panosu koymak için tıklayın: iki fenerin tuttuğu, SPACE tuşu ve aşağı oklu bir kâğıt. Yalnızca dekor; yeşil köşeyi sürükleyerek boyutlandırın.",
       'sign-float': "Süzülme panosu koymak için tıklayın: iki fenerin tuttuğu kâğıtta Pweeg açık şemsiyesiyle süzülerek iniyor. Yalnızca dekor; yeşil köşeyi sürükleyerek boyutlandırın.",
+      'arrow': "Büyük bir ok yerleştirmek için tıklayın. Döndürmek için mavi noktayı, boyutlandırmak için yeşil köşeyi sürükleyin; istediğiniz kadar koyabilirsiniz. Yalnızca süs.",
       'wind-up': "Yukarı esen bir akıntı için kutu sürükle.",
       'wind-down': "Aşağı esen bir akıntı için kutu sürükle.",
       'wind-left': "Sola esen bir akıntı için kutu sürükle.",
@@ -210,7 +216,8 @@ export default {
       'star': "Toplanabilir",
       'gate': "Geçit",
       'sign': "İpucu panosu",
-      'sign-float': "Süzülme panosu"
+      'sign-float': "Süzülme panosu",
+      'arrow': "Ok"
     },
     'shape': {
       'star': "Yıldız",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Sekme gücü",
       'points': "Noktalar",
       'angle': "Açı",
+      'size': "Boyut",
       'trigger': "Oyuncu yaklaşınca saldırır",
       'spawnOpen': "Şemsiye açık başla",
       'fixedScreen': "Sabit ekran",

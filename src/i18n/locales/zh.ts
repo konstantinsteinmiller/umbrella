@@ -20,6 +20,10 @@ export default {
     'rating': "3 颗星中的 {n} 颗",
     'clickToPlay': "点击开始游戏",
     'tapToPlay': "点按开始游戏",
+    'rotate': {
+      'title': "请旋转设备",
+      'hint': "请将设备横过来玩"
+    },
     'ctlMove': "移动",
     'ctlUmbrella': "打开 / 收起雨伞",
     'ctlRestart': "重新开始",
@@ -162,6 +166,7 @@ export default {
       'gate': "传送门",
       'sign': "提示牌",
       'sign-float': "飘落提示牌",
+      'arrow': "箭头",
       'wind-up': "上升气流",
       'wind-down': "下沉气流",
       'wind-left': "向左风",
@@ -184,6 +189,7 @@ export default {
       'gate': "点击平台上边缘放置传送管。在管内张开雨伞，玩家会被超级气流送往挑战关卡。",
       'sign': "点击放置提示牌：由两盏灯笼托起的纸牌，上面有 SPACE 键和向下的箭头。仅作装饰；拖动绿色角可调整大小。",
       'sign-float': "点击放置飘落提示牌：由两盏灯笼托起的纸牌，画着 Pweeg 撑开伞缓缓飘落。仅作装饰；拖动绿色角可调整大小。",
+      'arrow': "点击放置一个大箭头。拖动蓝点可旋转，拖动绿色角可调整大小；想放几个都行。仅作装饰。",
       'wind-up': "拖出一个框，放置向上吹的气流。",
       'wind-down': "拖出一个框，放置向下吹的气流。",
       'wind-left': "拖出一个框，放置向左吹的气流。",
@@ -210,7 +216,8 @@ export default {
       'star': "收集物",
       'gate': "传送门",
       'sign': "提示牌",
-      'sign-float': "飘落提示牌"
+      'sign-float': "飘落提示牌",
+      'arrow': "箭头"
     },
     'shape': {
       'star': "星星",
@@ -268,6 +275,7 @@ export default {
       'bounce': "弹开力度",
       'points': "路径点",
       'angle': "角度",
+      'size': "大小",
       'trigger': "玩家靠近时攻击",
       'spawnOpen': "以打开的伞开始",
       'fixedScreen': "固定画面",

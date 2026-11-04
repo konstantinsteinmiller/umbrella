@@ -10,6 +10,12 @@
 // Entry = { editedAt: number, level: object | null }   (a cutscene's script sits in `level` too)
 // Secret: `npx wrangler secret put EDITOR_TOKEN`.
 //
+// ─── Level images (the pictures on a level's picture boards; same KV namespace, keys `img:<id>`) ───
+//   GET  /images/:id   → the WebP (public, cached for a year: the id is a hash of the bytes)
+//   POST /images       body = the WebP bytes (≤ 450 kB); Authorization: Bearer <EDITOR_TOKEN>
+//                      → { id }, id = first 24 hex digits of the SHA-256 of the bytes (the editor computes the
+//                        same, so an upload is confirmed by the name). Re-uploading the same bytes is a no-op.
+//
 // ─── Community levels (D1 binding COMMUNITY, schema in migrations/) ───────
 //   GET  /community/levels?sort=rating|newest|plays&page=1&size=12
 //        → { items: (Meta & { code })[], total, page, pageSize }   (size ≤ 50; code draws the preview)
@@ -80,6 +86,7 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
     try {
       if (url.pathname.startsWith('/community/')) return await community(req, env, url)
+      if (url.pathname === '/images' || url.pathname.startsWith('/images/')) return await images(req, env, url)
       if (url.pathname !== '/levels') return json({ error: 'not found' }, 404)
       return await handle(req, env)
     } catch (e) {
@@ -103,6 +110,36 @@ async function handle(req, env) {
   const changed = mergeSection(bucket.campaign, body.campaign) + mergeSection(bucket.library, body.library) + mergeSection(bucket.cutscenes, body.cutscenes)
   if (changed) await env.LEVELS.put(KEY, JSON.stringify(bucket))
   return json({ ...bucket, changed })
+}
+
+// ─── Level images ────────────────────────────────────────────────────────
+const MAX_IMAGE = 450_000
+const IMAGE_ID_RE = /^[0-9a-f]{24}$/
+
+const hashId = async (bytes) => {
+  const d = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
+  return [...d.slice(0, 12)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+/** RIFF....WEBP */
+const isWebp = (b) => b.length > 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50
+
+async function images(req, env, url) {
+  if (req.method === 'GET') {
+    const id = url.pathname.slice('/images/'.length)
+    if (!IMAGE_ID_RE.test(id)) return json({ error: 'not found' }, 404)
+    const bytes = await env.LEVELS.get(`img:${id}`, 'arrayBuffer')
+    if (!bytes) return json({ error: 'not found' }, 404)
+    return new Response(bytes, { headers: { ...cors, 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable' } })
+  }
+  if (req.method !== 'POST' || url.pathname !== '/images') return json({ error: 'method not allowed' }, 405)
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!env.EDITOR_TOKEN || !sameToken(token, env.EDITOR_TOKEN)) return json({ error: 'wrong editor password' }, 401)
+  const bytes = await req.arrayBuffer()
+  if (bytes.byteLength > MAX_IMAGE) return json({ error: 'too large' }, 413)
+  if (!isWebp(new Uint8Array(bytes))) return json({ error: 'not a webp image' }, 415)
+  const id = await hashId(bytes)
+  if (!(await env.LEVELS.get(`img:${id}`, 'arrayBuffer'))) await env.LEVELS.put(`img:${id}`, bytes)
+  return json({ id })
 }
 
 // ─── Community levels ────────────────────────────────────────────────────

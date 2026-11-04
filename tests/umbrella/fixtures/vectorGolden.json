@@ -1,47 +1,47 @@
 {
   "render:stand": {
     "calls": 974,
-    "hash": "d6d8b8bc5bd2059ced71c646"
+    "hash": "4002d6d9ed475ad74858cae2"
   },
   "render:walk": {
     "calls": 974,
-    "hash": "2c51213183da71295da87a41"
+    "hash": "bef6a36b27dab620b4b77b3b"
   },
   "render:hold": {
     "calls": 1019,
-    "hash": "af7cca39b0e2ca410923e863"
+    "hash": "b40a0c60a3fa58706ad60385"
   },
   "render:flail": {
     "calls": 974,
-    "hash": "3bd4f2f47fa98d0f6027e935"
+    "hash": "0407553a1a7c987bfb1fb704"
   },
   "render:sideways": {
     "calls": 977,
-    "hash": "e1eb96a9d19ac9ab5051e10c"
+    "hash": "45533cf501ad5649b2d50259"
   },
   "render:terminal": {
     "calls": 977,
-    "hash": "e851817a927aaab4c160562e"
+    "hash": "ae3a161a345a3c79a7a70d60"
   },
   "render:broken": {
     "calls": 997,
-    "hash": "98f1c60a41b27be39a95c629"
+    "hash": "4db21ab00cd02a7760f39ddb"
   },
   "render:splat": {
     "calls": 944,
-    "hash": "741e8b4f4244879d4d56e954"
+    "hash": "2c4a2a2c895e4fcdaf19e151"
   },
   "render:hit": {
     "calls": 944,
-    "hash": "5a26470c3973f26c15d54c05"
+    "hash": "0dac6ae303739e1e151a5d7a"
   },
   "render:win": {
     "calls": 978,
-    "hash": "727be05ce44482fc353c2010"
+    "hash": "90875a6a0edcf527b00e27aa"
   },
   "render:squiggles": {
     "calls": 664,
-    "hash": "ab4bcb42b6a6f466d656c4b8"
+    "hash": "90f08821dccd905c32c7957e"
   },
   "pweeg": {
     "calls": 540,

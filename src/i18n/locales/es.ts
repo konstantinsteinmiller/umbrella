@@ -20,6 +20,10 @@ export default {
     'rating': "{n} de 3 estrellas",
     'clickToPlay': "Haz clic para jugar",
     'tapToPlay': "Toca para jugar",
+    'rotate': {
+      'title': "Gira tu dispositivo",
+      'hint': "Ponlo en horizontal para jugar"
+    },
     'ctlMove': "Mover",
     'ctlUmbrella': "Abrir / cerrar el paraguas",
     'ctlRestart': "Reiniciar",
@@ -162,6 +166,7 @@ export default {
       'gate': "Portal",
       'sign': "Cartel de pista",
       'sign-float': "Cartel de planeo",
+      'arrow': "Flecha",
       'wind-up': "Corriente ascendente",
       'wind-down': "Corriente descendente",
       'wind-left': "Viento a la izquierda",
@@ -184,6 +189,7 @@ export default {
       'gate': "Haz clic en el borde superior de una plataforma para un tubo de teletransporte. Abrir el paraguas dentro lleva al jugador por una hipercorriente a un nivel desafío.",
       'sign': "Haz clic para colocar un cartel: papel sostenido por dos farolillos con la tecla SPACE y una flecha hacia abajo. Solo decoración; arrastra la esquina verde para cambiar el tamaño.",
       'sign-float': "Haz clic para colocar un cartel de planeo: papel sostenido por dos farolillos que muestra a Pweeg descendiendo bajo su paraguas abierto. Solo decoración; arrastra la esquina verde para cambiar el tamaño.",
+      'arrow': "Haz clic para colocar una flecha grande. Arrastra el punto azul para girarla y la esquina verde para cambiar su tamaño; pon todas las que necesites. Solo decoración.",
       'wind-up': "Arrastra un recuadro para una corriente hacia arriba.",
       'wind-down': "Arrastra un recuadro para una corriente hacia abajo.",
       'wind-left': "Arrastra un recuadro para una corriente hacia la izquierda.",
@@ -210,7 +216,8 @@ export default {
       'star': "Coleccionable",
       'gate': "Portal",
       'sign': "Cartel de pista",
-      'sign-float': "Cartel de planeo"
+      'sign-float': "Cartel de planeo",
+      'arrow': "Flecha"
     },
     'shape': {
       'star': "Estrella",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Fuerza de rebote",
       'points': "Puntos",
       'angle': "Ángulo",
+      'size': "Tamaño",
       'trigger': "Ataca cuando el jugador está cerca",
       'spawnOpen': "Empezar con el paraguas abierto",
       'fixedScreen': "Pantalla fija",

@@ -18,6 +18,10 @@ import { createCutscene, type Cutscene, type CutsceneDef, type CutsceneSfx, type
 import type { LevelDef, PlatformDef, Vec } from './levels'
 import type { Tuning } from './tuning'
 
+/** The pre-game cutscene is on unless the build says VITE_APP_INTRO_ENABLED=false (root .env): set it to true to bring it back.
+ *  Off, a new player goes straight to Level 1 and the pause menu has no "watch the intro" button. */
+export const INTRO_ENABLED = import.meta.env.VITE_APP_INTRO_ENABLED !== 'false'
+
 export type IntroSfx = CutsceneSfx
 export type Intro = Cutscene
 

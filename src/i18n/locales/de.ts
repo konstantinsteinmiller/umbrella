@@ -20,6 +20,10 @@ export default {
     'rating': "{n} von 3 Sternen",
     'clickToPlay': "Zum Spielen klicken",
     'tapToPlay': "Zum Spielen tippen",
+    'rotate': {
+      'title': "Gerät drehen",
+      'hint': "Halte es quer, um im Querformat zu spielen"
+    },
     'ctlMove': "Laufen",
     'ctlUmbrella': "Schirm öffnen / schließen",
     'ctlRestart': "Neustart",
@@ -162,6 +166,7 @@ export default {
       'gate': "Tor",
       'sign': "Hinweistafel",
       'sign-float': "Schwebetafel",
+      'arrow': "Pfeil",
       'wind-up': "Aufwind",
       'wind-down': "Abwind",
       'wind-left': "Wind nach links",
@@ -184,6 +189,7 @@ export default {
       'gate': "Auf die Oberkante einer Plattform klicken: ein Warp-Rohr. Öffnet der Spieler darin den Schirm, trägt ihn ein Hyperstrom in ein Challenge-Level.",
       'sign': "Klicken, um eine Hinweistafel zu setzen: Papier, von zwei Laternen gehalten, mit der Taste SPACE und einem Pfeil nach unten. Nur Dekoration; die grüne Ecke ändert die Größe.",
       'sign-float': "Klicken, um eine Schwebetafel zu setzen: Papier, von zwei Laternen gehalten, zeigt Pweeg, der unter seinem offenen Schirm herabschwebt. Nur Dekoration; die grüne Ecke ändert die Größe.",
+      'arrow': "Klicken, um einen großen Pfeil zu setzen. Den blauen Punkt ziehen, um ihn zu drehen, die grüne Ecke, um ihn zu skalieren; beliebig viele möglich. Nur Dekoration.",
       'wind-up': "Ziehe ein Rechteck für eine Strömung nach oben.",
       'wind-down': "Ziehe ein Rechteck für eine Strömung nach unten.",
       'wind-left': "Ziehe ein Rechteck für eine Strömung nach links.",
@@ -210,7 +216,8 @@ export default {
       'star': "Sammelobjekt",
       'gate': "Tor",
       'sign': "Hinweistafel",
-      'sign-float': "Schwebetafel"
+      'sign-float': "Schwebetafel",
+      'arrow': "Pfeil"
     },
     'shape': {
       'star': "Stern",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Abprallstärke",
       'points': "Punkte",
       'angle': "Winkel",
+      'size': "Größe",
       'trigger': "Greift an, wenn der Spieler nah ist",
       'spawnOpen': "Mit offenem Schirm starten",
       'fixedScreen': "Fester Bildschirm",

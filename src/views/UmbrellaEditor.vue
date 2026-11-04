@@ -28,9 +28,11 @@ import { useI18n } from 'vue-i18n'
 import { applyLocaleDirection } from '@/i18n'
 import { useRouter } from 'vue-router'
 import { isTurned, spikeAngle, spikeBounds } from '@/umbrella/spikeGeometry'
-import { CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, SIGN_H, SIGN_W, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
+import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type PictureDef, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
+import { arrowBox } from '@/umbrella/pictureArt'
+import { addImage, levelImage, uploadPending } from '@/umbrella/levelImages'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
@@ -80,14 +82,14 @@ import {
 } from '@/umbrella/customLevels'
 
 type Tool =
-  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign' | 'sign-float'
+  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
-type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates' | 'signs'
+type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates' | 'signs' | 'arrows' | 'pictures'
 type Entity = { group: Group; i: number }
 /** `arm`: a swing's rest point (sets its arc angle and rope); `phase`: a circle's start pin. */
-type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase'
+type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase' | 'turn'
 type Selection =
   | ({ type: 'entity' } & Entity)
   | { type: 'spawn' }
@@ -104,7 +106,7 @@ type Drag =
 interface Keys { key: string; mod?: boolean; shift?: boolean; alt?: boolean }
 
 /** The tool palette, grouped by purpose; every tool has a one-key shortcut. */
-const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys }[] }[] = [
+const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys; /** The designer's only (the picture board stores its image on the levels bucket). */ designer?: boolean }[] }[] = [
   { id: 'build', tools: [
     { id: 'select', icon: '⬚', keys: { key: 'v' } },
     { id: 'platform', icon: '▬', keys: { key: 'b' } },
@@ -114,7 +116,9 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys }[]
     { id: 'star', icon: '★', keys: { key: 't' } },
     { id: 'gate', icon: '⛩', keys: { key: 'g' } },
     { id: 'sign', icon: '🏮', keys: { key: 'n' } },
-    { id: 'sign-float', icon: '🎐', keys: { key: 'n', shift: true } }
+    { id: 'sign-float', icon: '🎐', keys: { key: 'n', shift: true } },
+    { id: 'arrow', icon: '⬇', keys: { key: 'a' } },
+    { id: 'picture', icon: '🖼', keys: { key: 'i' }, designer: true }
   ] },
   { id: 'currents', tools: [
     { id: 'wind-up', icon: '↑', keys: { key: '1' } },
@@ -240,9 +244,9 @@ const redo = () => {
 }
 
 // ── Geometry helpers ──
-const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | GateDef | SignDef)[] =>
+const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | GateDef | SignDef | ArrowDef | PictureDef)[] =>
   g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= [])
-    : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : g === 'signs' ? (L.signs ??= []) : (L.checkpoints ??= [])
+    : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : g === 'signs' ? (L.signs ??= []) : g === 'arrows' ? (L.arrows ??= []) : g === 'pictures' ? (L.pictures ??= []) : (L.checkpoints ??= [])
 const listOf = (g: Group) => listIn(level.value, g)
 const hazards = () => (level.value.hazards ??= [])
 const entityOf = (e: Entity) => listOf(e.group)[e.i]
@@ -266,6 +270,8 @@ const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
         : e.group === 'buttons' ? level.value.buttons![e.i]!
           : e.group === 'gates' ? level.value.gates![e.i]!
             : e.group === 'signs' ? level.value.signs![e.i]!
+            : e.group === 'arrows' ? arrowBox(level.value.arrows![e.i]!)
+            : e.group === 'pictures' ? level.value.pictures![e.i]!
             : e.group === 'stars' ? starBox(level.value.stars![e.i]!)
               : checkpointBox(level.value.checkpoints![e.i]!)
 
@@ -345,11 +351,18 @@ const inside = (p: Vec, r: { x: number; y: number; w: number; h: number }, pad =
   p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad
 
 const handleRadius = () => 9 / view.s
+/** Where an arrow's turn handle sits: ahead of its tip, the way it points. */
+const turnHandle = (a: ArrowDef): Vec => {
+  const r = (((a.angle ?? ARROW_DEFAULT_ANGLE) % 360) * Math.PI) / 180
+  const d = a.size / 2 + 24 / view.s
+  return { x: a.x + Math.sin(r) * d, y: a.y - Math.cos(r) * d }
+}
 
 const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean } => {
   const cur = selection.value
   if (cur?.type === 'entity' && entityOf(cur)) {
     const r = shownRect(cur)
+    if (cur.group === 'arrows' && Math.hypot(p.x - turnHandle(level.value.arrows![cur.i]!).x, p.y - turnHandle(level.value.arrows![cur.i]!).y) <= handleRadius() * 1.6) return { sel: cur, handle: 'turn' }
     if (cur.group !== 'checkpoints' && cur.group !== 'stars' && Math.hypot(p.x - (r.x + r.w), p.y - (r.y + r.h)) <= handleRadius() * 1.4) return { sel: cur, resize: true }
     const m = motionOf(cur)
     for (const h of m ? handlesOf(m) : []) if (Math.hypot(p.x - h.v.x, p.y - h.v.y) <= handleRadius() * 1.4) return { sel: cur, handle: h.key }
@@ -357,7 +370,7 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
   const sp = level.value.spawn
   if (inside(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, 4)) return { sel: { type: 'spawn' } }
   // Small things first: hazards, then platforms, then (big) winds.
-  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'hazards', 'platforms', 'winds', 'signs'] as Group[]) {
+  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) if (inside(p, shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
@@ -436,6 +449,21 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       const list = (L.signs ??= [])
       list.push({ x: snapV(a.x - SIGN_W / 2), y: snapV(a.y - SIGN_H / 2), w: SIGN_W, h: SIGN_H, ...(t === 'sign-float' ? { kind: 'float' as const } : {}) })
       sel = { type: 'entity', group: 'signs', i: list.length - 1 }
+      break
+    }
+    case 'arrow': {
+      // Centred on the click, pointing down like the hint board's own.
+      const list = (L.arrows ??= [])
+      list.push({ x: snapV(a.x), y: snapV(a.y), size: ARROW_SIZE, angle: ARROW_DEFAULT_ANGLE })
+      sel = { type: 'entity', group: 'arrows', i: list.length - 1 }
+      break
+    }
+    case 'picture': {
+      // An empty holder, centred on the click: drop an image on it (or into its properties) to fill it.
+      const list = (L.pictures ??= [])
+      list.push({ x: snapV(a.x - PICTURE_W / 2), y: snapV(a.y - PICTURE_H / 2), w: w(PICTURE_W), h: h(PICTURE_H) })
+      if (dragged) { const p = list[list.length - 1]!; p.x = x; p.y = y }
+      sel = { type: 'entity', group: 'pictures', i: list.length - 1 }
       break
     }
     case 'checkpoint': {
@@ -519,6 +547,12 @@ const onPointerMove = (e: PointerEvent) => {
   if (drag.mode === 'resize') {
     if (drag.target.group === 'checkpoints' || drag.target.group === 'stars') return
     const ent = entityOf(drag.target)! as PlatformDef
+    if (drag.target.group === 'arrows') {
+      // An arrow is sized from its centre: the green corner sets half its side.
+      const ar = level.value.arrows![drag.target.i]!
+      ar.size = Math.max(20, snapV(2 * Math.max(p.x - ar.x, p.y - ar.y)))
+      return
+    }
     const shown = shownRect(drag.target)
     const nw = Math.max(10, snapV(p.x - shown.x))
     const nh = Math.max(10, snapV(p.y - shown.y))
@@ -542,6 +576,15 @@ const onPointerMove = (e: PointerEvent) => {
     return
   }
   if (drag.mode === 'handle') {
+    if (drag.key === 'turn') {
+      // The arrow points at the pointer; 15° steps while snapping.
+      const ar = level.value.arrows?.[drag.target.i]
+      if (ar) {
+        const deg = (Math.atan2(p.x - ar.x, -(p.y - ar.y)) * 180) / Math.PI
+        ar.angle = wrapDeg(snap.value ? Math.round(deg / 15) * 15 : Math.round(deg))
+      }
+      return
+    }
     const m = motionOf(drag.target)
     if (m) dragHandle(m, drag.key, p)
   }
@@ -578,7 +621,7 @@ const onKeyDown = (e: KeyboardEvent) => {
     return
   }
   if (e.ctrlKey || e.metaKey || e.altKey) return
-  const picked = TOOLS.find((x) => matches(x.keys, e))
+  const picked = TOOLS.find((x) => matches(x.keys, e) && (!x.designer || designer.value))
   if (picked) { e.preventDefault(); tool.value = picked.id; return }
   // Arrows nudge the selection a pixel (Shift: 10).
   const dirs: Record<string, [number, number]> = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }
@@ -734,6 +777,99 @@ const setSpikeAngle = (deg: number) => {
 }
 const SPIKE_TURNS = [{ deg: 0, glyph: '↑', dir: 'up' }, { deg: 90, glyph: '→', dir: 'right' }, { deg: 180, glyph: '↓', dir: 'down' }, { deg: 270, glyph: '←', dir: 'left' }] as const
 const selectedMover = computed(() => selectedPlatform.value ?? selectedHazard.value)
+
+// ── Standalone arrows ──
+const selectedArrow = computed(() => (selected.value?.group === 'arrows' ? (selected.value.ent as ArrowDef) : null))
+/** Where the arrow points: degrees clockwise from up (180: down, like the hint board's own). */
+const setArrowAngle = (deg: number) => {
+  const a = selectedArrow.value
+  if (a && Number.isFinite(deg)) a.angle = wrapDeg(Math.round(deg))
+}
+
+// ── Picture boards: the designer's image holders (their images live on the levels bucket, levelImages.ts) ──
+// The designer's tools are English, like the rest of the campaign tools.
+const PICTURE_HINT = 'Click to place an empty picture board (or drag a box), then drop an image file onto it — or onto the canvas to make a board from it. The image is saved on the server with the level.'
+const PICTURE_PAD = 14
+const selectedPicture = computed(() => (selected.value?.group === 'pictures' ? (selected.value.ent as PictureDef) : null))
+const pictureBusy = ref(false)
+const dropHot = ref(false)
+const imagePicker = ref<HTMLInputElement | null>(null)
+const imageFileOf = (dt: DataTransfer | null): File | null => [...(dt?.files ?? [])].find((f) => f.type.startsWith('image/')) ?? null
+/** Puts a dropped image on picture `i`, or on a new board centred at `at`. */
+const attachImage = async (file: File, to: { i: number } | { at: Vec }) => {
+  if (!designer.value || pictureBusy.value) return
+  pictureBusy.value = true
+  try {
+    const img = await addImage(file)
+    const list = (level.value.pictures ??= [])
+    let i: number
+    if ('i' in to && list[to.i]) {
+      i = to.i
+      const p = list[i]!
+      p.image = img.id
+      // The same width, the height of the new image's shape.
+      const pad = p.frame === false ? 0 : PICTURE_PAD
+      p.h = Math.max(20, Math.round(((p.w - pad * 2) * img.h) / img.w + pad * 2))
+    } else {
+      const at = 'at' in to ? to.at : { x: level.value.world.w / 2, y: level.value.world.h / 2 }
+      const w = 240
+      const h = Math.min(400, Math.round(((w - PICTURE_PAD * 2) * img.h) / img.w + PICTURE_PAD * 2))
+      list.push({ x: snapV(at.x - w / 2), y: snapV(at.y - h / 2), w, h, image: img.id })
+      i = list.length - 1
+    }
+    selection.value = { type: 'entity', group: 'pictures', i }
+    flash(img.uploaded ? 'Image saved on the server' : 'Image kept in this browser — it uploads on the next sync (needs the editor password)')
+  } catch (e) {
+    const why = (e as Error).message
+    flash(why === 'type' ? 'That file is not a picture' : why === 'size' ? 'That image is still too big after shrinking' : 'Could not read that image')
+  } finally {
+    pictureBusy.value = false
+  }
+}
+const onCanvasDragOver = (e: DragEvent) => {
+  if (designer.value && e.dataTransfer?.types.includes('Files')) e.preventDefault()
+}
+const onCanvasDrop = (e: DragEvent) => {
+  const file = imageFileOf(e.dataTransfer)
+  if (!file || !designer.value) return
+  const p = toWorld(e as unknown as PointerEvent)
+  const hit = hitTest(p).sel
+  void attachImage(file, hit?.type === 'entity' && hit.group === 'pictures' ? { i: hit.i } : { at: p })
+}
+const onZoneDrop = (e: DragEvent) => {
+  dropHot.value = false
+  const file = imageFileOf(e.dataTransfer)
+  const s = selection.value
+  if (file && s?.type === 'entity' && s.group === 'pictures') void attachImage(file, { i: s.i })
+}
+const onPictureFile = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  const s = selection.value
+  if (file && s?.type === 'entity' && s.group === 'pictures') void attachImage(file, { i: s.i })
+}
+const setPictureFrame = (on: boolean) => {
+  const p = selectedPicture.value
+  if (!p) return
+  if (on) delete p.frame
+  else p.frame = false
+}
+const fitPicture = () => {
+  const p = selectedPicture.value
+  const img = levelImage(p?.image)
+  if (!p || !img || !img.naturalWidth) return
+  const pad = p.frame === false ? 0 : PICTURE_PAD
+  p.h = Math.max(20, Math.round(((p.w - pad * 2) * img.naturalHeight) / img.naturalWidth + pad * 2))
+}
+const removePictureImage = () => {
+  const p = selectedPicture.value
+  if (p) delete p.image
+}
+/** The palette: the designer's tools only for the designer. */
+const visibleToolGroups = computed(() => TOOL_GROUPS.map((g) => ({ ...g, tools: g.tools.filter((x) => !x.designer || designer.value) })))
+const toolLabel = (id: Tool) => (id === 'picture' ? 'Picture board' : t(`umbrellaEditor.tool.${id}`))
+const toolHint = computed(() => (tool.value === 'picture' ? PICTURE_HINT : t(`umbrellaEditor.toolHint.${tool.value}`)))
 const selectedMotion = computed(() => selectedMover.value?.motion)
 const motionKind = computed(() => selectedMotion.value?.kind ?? 'static')
 
@@ -963,14 +1099,14 @@ const setShape = (st: StarDef, shape: CollectShape) => {
 }
 const selectedGate = computed(() => (selected.value?.group === 'gates' ? (selected.value.ent as GateDef) : null))
 const selectedCheckpoint = computed(() => (selected.value?.group === 'checkpoints' ? (selected.value.ent as CheckpointDef) : null))
-const rectKeys = computed(() => (selected.value?.group === 'checkpoints' || selected.value?.group === 'stars' ? (['x', 'y'] as const) : (['x', 'y', 'w', 'h'] as const)))
+const rectKeys = computed(() => (selected.value?.group === 'checkpoints' || selected.value?.group === 'stars' || selected.value?.group === 'arrows' ? (['x', 'y'] as const) : (['x', 'y', 'w', 'h'] as const)))
 const selectedKind = computed(() => {
   const s = selected.value
   if (!s) return ''
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
   if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : 'platform'
-  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'stars' ? 'star' : 'checkpoint'
+  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'stars' ? 'star' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */
 const gateTargets = computed(() => { void campaignOrder.value; return LEVELS.map((l, i) => ({ id: l.id, label: t('umbrella.level', { n: i + 1 }) })) })
@@ -1377,8 +1513,10 @@ const syncing = ref(false)
 const onSync = async () => {
   syncing.value = true
   await syncBucket()
+  const up = await uploadPending()
   syncing.value = false
-  if (bucketStatus.value) flash(bucketStatus.value.text)
+  const imgs = up.sent ? ` · ${up.sent} image${up.sent === 1 ? '' : 's'} uploaded` : up.left ? ` · ${up.left} image${up.left === 1 ? '' : 's'} still waiting for the password` : ''
+  if (bucketStatus.value) flash(bucketStatus.value.text + imgs)
 }
 const onPasswordPrompt = () => {
   const pw = window.prompt('Editor password (kept in this browser only):', bucketPassword.value)
@@ -1528,7 +1666,7 @@ const paint = (now: number) => {
     ctx.fillText(t('umbrellaEditor.startScreen'), start.x + 6 / s, start.y + 6 / s)
   }
   // Off-world things (a lunge resting off-screen) still need an outline to grab.
-  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'gates', 'signs'] as Group[]) {
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'gates', 'signs', 'arrows', 'pictures'] as Group[]) {
     listOf(group).forEach((_, i) => {
       const r = shownRect({ group, i })
       const off = r.x < 0 || r.y < 0 || r.x + r.w > L.world.w || r.y + r.h > L.world.h
@@ -1593,6 +1731,16 @@ const paint = (now: number) => {
     ctx.fillStyle = '#4ade80'
     const hs = handleRadius()
     if (sel.group !== 'checkpoints') ctx.fillRect(r.x + r.w - hs, r.y + r.h - hs, hs * 2, hs * 2)
+    if (sel.group === 'arrows') {
+      const ar = L.arrows![sel.i]!
+      const hp = turnHandle(ar)
+      ctx.strokeStyle = '#4ade80'
+      ctx.beginPath()
+      ctx.moveTo(ar.x, ar.y)
+      ctx.lineTo(hp.x, hp.y)
+      ctx.stroke()
+      dot(ctx, hp, handleRadius(), '#7dd3fc')
+    }
   } else if (sel?.type === 'spawn') {
     const sp = L.spawn
     strokeRect(ctx, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, '#4ade80')
@@ -1708,7 +1856,7 @@ const paintPhone = (el: HTMLCanvasElement | null, dt: number) => {
 
 onMounted(() => {
   // The designer's editor always starts from the bucket's newest levels (the game pulled once at boot).
-  if (designer.value) void syncBucket()
+  if (designer.value) { void syncBucket(); void uploadPending() }
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   raf = requestAnimationFrame(paint)
@@ -1782,7 +1930,7 @@ onUnmounted(() => {
     </div>
     <div v-else class="body">
       <aside class="panel tools" :aria-label="t('umbrellaEditor.toolsTitle')">
-        <section v-for="g in TOOL_GROUPS" :key="g.id" class="tool-group">
+        <section v-for="g in visibleToolGroups" :key="g.id" class="tool-group">
           <div class="head">{{ t(`umbrellaEditor.toolGroup.${g.id}`) }}</div>
           <button
             v-for="tl in g.tools"
@@ -1793,11 +1941,11 @@ onUnmounted(() => {
             @click="tool = tl.id"
           >
             <span class="tool-icon">{{ tl.icon }}</span>
-            <span class="tool-label">{{ t(`umbrellaEditor.tool.${tl.id}`) }}</span>
+            <span class="tool-label">{{ toolLabel(tl.id) }}</span>
             <kbd>{{ fmtKeys(tl.keys) }}</kbd>
           </button>
         </section>
-        <p class="hint">{{ t(`umbrellaEditor.toolHint.${tool}`) }}</p>
+        <p class="hint">{{ toolHint }}</p>
         <p class="hint">{{ t('umbrellaEditor.canvasHint') }}</p>
       </aside>
 
@@ -1835,6 +1983,8 @@ onUnmounted(() => {
           @contextmenu.prevent
           @wheel.prevent="onWheel"
           @dblclick="onDoubleClick"
+          @dragover="onCanvasDragOver"
+          @drop.prevent="onCanvasDrop"
         />
         <div class="foot">
           <span v-if="mobileView" class="status">{{ t('umbrellaEditor.mobileHint') }}</span>
@@ -1884,7 +2034,7 @@ onUnmounted(() => {
           </label>
         </template>
         <template v-if="selected">
-          <div class="kind">{{ t(`umbrellaEditor.kind.${selectedKind}`) }}</div>
+          <div class="kind">{{ selectedKind === 'picture' ? 'Picture board' : t(`umbrellaEditor.kind.${selectedKind}`) }}</div>
           <div class="pair">
             <label v-for="k in rectKeys" :key="k" class="row">{{ k }}
               <input class="field num" type="number" :value="Math.round((selected.ent as unknown as Record<string, number>)[k]!)" @change="setRect(k, +($event.target as HTMLInputElement).value)" />
@@ -1972,6 +2122,44 @@ onUnmounted(() => {
 
           <template v-if="selectedCheckpoint">
             <p class="hint">{{ t('umbrellaEditor.checkpointHint') }}</p>
+          </template>
+
+          <template v-if="selectedArrow">
+            <label class="row">{{ t('umbrellaEditor.prop.points') }}
+              <span class="spike-turn">
+                <button v-for="d in SPIKE_TURNS" :key="d.deg" class="mini" :class="{ on: (selectedArrow.angle ?? ARROW_DEFAULT_ANGLE) === d.deg }" :title="t(`umbrellaEditor.dir.${d.dir}`)" :aria-label="t(`umbrellaEditor.dir.${d.dir}`)" @click="setArrowAngle(d.deg)">{{ d.glyph }}</button>
+                <input type="number" class="field" step="1" :aria-label="t('umbrellaEditor.prop.angle')" :value="selectedArrow.angle ?? ARROW_DEFAULT_ANGLE" @change="setArrowAngle(+($event.target as HTMLInputElement).value)" />°
+              </span>
+            </label>
+            <label class="row col">
+              <span>{{ t('umbrellaEditor.prop.size') }}: {{ selectedArrow.size }}</span>
+              <input type="range" min="20" max="400" step="5" :value="selectedArrow.size" @input="selectedArrow.size = +($event.target as HTMLInputElement).value" />
+            </label>
+          </template>
+
+          <template v-if="selectedPicture">
+            <div
+              class="img-drop"
+              :class="{ hot: dropHot, busy: pictureBusy }"
+              role="button"
+              tabindex="0"
+              @dragover.prevent="dropHot = true"
+              @dragleave="dropHot = false"
+              @drop.prevent="onZoneDrop"
+              @click="imagePicker?.click()"
+              @keydown.enter.prevent="imagePicker?.click()"
+            >
+              <span v-if="pictureBusy">Saving the image…</span>
+              <span v-else-if="selectedPicture.image">Drop another image to replace it, or click to choose one</span>
+              <span v-else>Drop an image here, or click to choose one</span>
+            </div>
+            <input ref="imagePicker" type="file" accept="image/*" hidden @change="onPictureFile" />
+            <label class="check"><input type="checkbox" :checked="selectedPicture.frame !== false" @change="setPictureFrame(($event.target as HTMLInputElement).checked)" /> Paper board around the image</label>
+            <div class="pair">
+              <button class="mini" :disabled="!selectedPicture.image" @click="fitPicture">Fit board to image</button>
+              <button class="mini danger" :disabled="!selectedPicture.image" @click="removePictureImage">Remove image</button>
+            </div>
+            <p class="hint">The image is shrunk to a small WebP and stored on the levels bucket; the level keeps only its name. It reaches builds when levels are pulled.</p>
           </template>
 
           <template v-if="selectedHazard">
@@ -2119,7 +2307,7 @@ onUnmounted(() => {
           </section>
           <section>
             <div class="head">{{ t('umbrellaEditor.toolsTitle') }}</div>
-            <div v-for="tl in TOOLS" :key="tl.id" class="key-row"><span>{{ t(`umbrellaEditor.tool.${tl.id}`) }}</span><kbd>{{ fmtKeys(tl.keys) }}</kbd></div>
+            <div v-for="tl in TOOLS.filter((x) => !x.designer || designer)" :key="tl.id" class="key-row"><span>{{ toolLabel(tl.id) }}</span><kbd>{{ fmtKeys(tl.keys) }}</kbd></div>
             <div class="key-row"><span>{{ t('umbrellaEditor.nudge') }}</span><kbd>← ↑ → ↓</kbd></div>
           </section>
         </div>
@@ -2606,6 +2794,23 @@ kbd {
 .chapter-name { font-weight: 700; }
 .chapter-sub { display: block; font-weight: 400; font-style: italic; opacity: 0.7; }
 .mini.start-btn { white-space: nowrap; }
+.img-drop {
+  display: grid;
+  place-items: center;
+  min-height: 74px;
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.35;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.img-drop:hover, .img-drop:focus-visible { border-color: rgba(74, 222, 128, 0.7); }
+.img-drop.hot { border-color: #4ade80; background: rgba(74, 222, 128, 0.14); }
+.img-drop.busy { opacity: 0.6; cursor: progress; }
 .mini.on { background: rgba(234, 179, 8, 0.45); }
 .order-add { list-style: none; padding: 6px 2px 2px; }
 .jam-head { display: flex; align-items: center; gap: 6px; }

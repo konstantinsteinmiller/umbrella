@@ -223,11 +223,12 @@ describe('umbrella engine', () => {
     expect(tall.oy).toBeGreaterThan(0)
   })
 
-  it('portrait screens zoom a one-screen level in until it fills PORTRAIT_FILL of the height and follow the player sideways inside the world; landscape keeps the whole level', () => {
+  it('portrait screens zoom a one-screen level in until it fills PORTRAIT_FILL of the height and follow the player sideways inside the world; landscape frames what is in the level', () => {
     const w = level(1)
     const { w: ww, h: wh } = w.level.world
+    // Landscape: a static view on what is in the level, never smaller than the whole-world fit.
     const wide = cameraFor(w, 1280, 720)
-    expect(wide.s).toBeCloseTo(Math.min(1280 / ww, 720 / wh))
+    expect(wide.s).toBeGreaterThanOrEqual(Math.min(1280 / ww, 720 / wh) - 1e-9)
     const phone = cameraFor(w, 390, 844)
     expect(phone.s).toBeCloseTo(Math.max(Math.min(390 / ww, 844 / wh) * PORTRAIT_ZOOM, (844 * PORTRAIT_FILL) / wh))
     // The level's height fills most of the screen's.

@@ -96,6 +96,20 @@ export const SIGN_W = 120
 export const SIGN_H = 170
 export const SIGN_KINDS: SignKind[] = ['drop', 'float']
 
+/** A standalone arrow: the big black marker arrow of the hint board, placed on its own (as many as the level
+ *  needs). Decoration only. `x`, `y`: its centre; `size`: the side of the box it is drawn in; `angle`: where it
+ *  points, in degrees clockwise (0 = up, 90 = right, 180 = down; absent: down, like the board's own). */
+export interface ArrowDef { x: number; y: number; size: number; angle?: number }
+export const ARROW_SIZE = 90
+export const ARROW_DEFAULT_ANGLE = 180
+/** A picture board: an image holder in the look of the hint board, for the tutorial levels' instruction images.
+ *  `image`: the id of an image in the levels bucket (levelImages.ts); absent: an empty holder. `frame: false`
+ *  draws the picture alone, without the paper board. Decoration only. */
+export interface PictureDef { x: number; y: number; w: number; h: number; image?: string; frame?: boolean }
+export const PICTURE_W = 200
+export const PICTURE_H = 140
+export const isImageId = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{24}$/.test(v)
+
 /** How many button channels the editor offers (each has its own colour). */
 export const CHANNELS = 6
 
@@ -162,6 +176,10 @@ export interface LevelDef {
   gates?: GateDef[]
   /** Hint boards (decoration). */
   signs?: SignDef[]
+  /** Standalone marker arrows (decoration). */
+  arrows?: ArrowDef[]
+  /** Picture boards: image holders for instruction images (decoration). */
+  pictures?: PictureDef[]
   /** Seconds to reach the finish, counted from the spawn (timeStars.ts): running out restarts the
    *  level at the spawn, and the time left rates the finish with 1–3 stars. Absent: no limit. */
   timeLimit?: number

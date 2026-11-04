@@ -20,6 +20,10 @@ export default {
     'rating': "{n} stelle su 3",
     'clickToPlay': "Clicca per giocare",
     'tapToPlay': "Tocca per giocare",
+    'rotate': {
+      'title': "Ruota il dispositivo",
+      'hint': "Mettilo in orizzontale per giocare"
+    },
     'ctlMove': "Muovi",
     'ctlUmbrella': "Apri / chiudi l'ombrello",
     'ctlRestart': "Ricomincia",
@@ -162,6 +166,7 @@ export default {
       'gate': "Portale",
       'sign': "Cartello di aiuto",
       'sign-float': "Cartello di planata",
+      'arrow': "Freccia",
       'wind-up': "Corrente ascendente",
       'wind-down': "Corrente discendente",
       'wind-left': "Vento a sinistra",
@@ -184,6 +189,7 @@ export default {
       'gate': "Clicca sul bordo superiore di una piattaforma per un tubo di teletrasporto. Aprendo l'ombrello al suo interno, il giocatore viene portato da una corrente iper a un livello sfida.",
       'sign': "Clicca per collocare un cartello: carta sorretta da due lanterne con il tasto SPACE e una freccia verso il basso. Solo decorazione; trascina l'angolo verde per ridimensionare.",
       'sign-float': "Clicca per collocare un cartello di planata: carta sorretta da due lanterne che mostra Pweeg che scende sotto l'ombrello aperto. Solo decorazione; trascina l'angolo verde per ridimensionare.",
+      'arrow': "Clicca per posizionare una freccia grande. Trascina il punto blu per ruotarla e l'angolo verde per ridimensionarla; mettine quante ne servono. Solo decorazione.",
       'wind-up': "Trascina un riquadro per una corrente che soffia in su.",
       'wind-down': "Trascina un riquadro per una corrente che soffia in giù.",
       'wind-left': "Trascina un riquadro per una corrente che soffia a sinistra.",
@@ -210,7 +216,8 @@ export default {
       'star': "Oggetto da raccogliere",
       'gate': "Portale",
       'sign': "Cartello di aiuto",
-      'sign-float': "Cartello di planata"
+      'sign-float': "Cartello di planata",
+      'arrow': "Freccia"
     },
     'shape': {
       'star': "Stella",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Forza del rimbalzo",
       'points': "Punti",
       'angle': "Angolo",
+      'size': "Dimensione",
       'trigger': "Attacca quando il giocatore è vicino",
       'spawnOpen': "Inizia con l'ombrello aperto",
       'fixedScreen': "Schermo fisso",

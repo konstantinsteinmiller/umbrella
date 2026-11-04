@@ -15,6 +15,8 @@ import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type Collect
 import { artLayer, isLantern, paintedGame } from './kite'
 import { kiteArt } from './art/hooks'
 import { drawSignVector } from './signArt'
+import { drawArrow, drawPicture } from './pictureArt'
+import { frameFocus } from './cameraFocus'
 
 /** One colour per button channel: a button and everything it switches share it. */
 export const CHANNEL_COLORS = ['#f59e0b', '#22d3ee', '#a78bfa', '#4ade80', '#f472b6', '#f87171']
@@ -126,6 +128,13 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 
     const s = Math.min(cw / ww, fh / wh)
     return { s, ox: (cw - ww * s) / 2, oy: (fh - wh * s) / 2 }
   }
+  // A whole-world level on a landscape screen: a static view zoomed on what is in it (cameraFocus.ts), so the start
+  // and the finish are in view from the first frame, with little empty space at the sides and none below the
+  // out-of-bounds line. (An open-top level keeps its sliding view below.)
+  if (whole && !portrait && !w.level.verticalCamera) {
+    const f = frameFocus(w.level, cw, fh)
+    return { s: f.s, ox: -f.left * f.s, oy: -f.top * f.s }
+  }
   const fitWhole = Math.min(cw / (whole ? ww : view!.w), fh / (whole ? wh : view!.h))
   const landscapeZoom = !portrait && Math.min(cw / (whole ? ww : view!.w), fitWhole * LANDSCAPE_ZOOM_MAX) > fitWhole * 1.001
   if (whole && !portrait && !landscapeZoom) {
@@ -220,7 +229,8 @@ export const cameraFor = (w: World, cw: number, ch: number, dt = 0, padBottom = 
       }
     }
   }
-  let oy = axis(at.y, vh, wh) * s
+  // A landscape view taller than the world sits on the world's bottom: nothing below the out-of-bounds line shows.
+  let oy = (!portrait && vh >= wh ? vh - wh : axis(at.y, vh, wh)) * s
   // Open to the sky: above the level's top the view keeps following him up instead of stopping at the edge.
   if (w.level.verticalCamera && !w.level.fixedScreen && at.y < vh / 2) oy = Math.max(oy, (vh / 2 - at.y) * s)
   return { s, ox: axis(at.x, vw, ww) * s, oy }
@@ -765,6 +775,8 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     }
   }
   for (const sg of w.level.signs ?? []) drawSign(ctx, sg, w.time)
+  for (const pc of w.level.pictures ?? []) drawPicture(ctx, pc, w.time)
+  for (const ar of w.level.arrows ?? []) drawArrow(ctx, ar, w.time)
   for (const c of w.level.checkpoints ?? []) drawCheckpoint(ctx, c, (w.level.checkpoints ?? []).indexOf(c) === w.checkpoint, w.time)
   for (const g of w.level.gates ?? []) {
     const pl = w.player

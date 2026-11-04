@@ -4,7 +4,7 @@
 // file per slot, newest `editedAt` wins (a bucket deletion removes the slot),
 // so the next build ships them. Runs before every vite build (vite.config.ts)
 // and by hand: `pnpm levels:pull`. Unreachable bucket: the file stays as it is.
-import { readFileSync, writeFileSync, existsSync, renameSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, renameSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 
@@ -18,6 +18,36 @@ const looksLikeLevel = (l) =>
   !!l && typeof l === 'object' && !!l.world && isNum(l.world.w) && isNum(l.world.h) &&
   !!l.spawn && isNum(l.spawn.x) && isNum(l.spawn.y) &&
   Array.isArray(l.platforms) && l.platforms.every(isRect) && Array.isArray(l.winds) && l.winds.every(isRect)
+
+export const IMAGES_DIR = resolve(fileURLToPath(new URL('../public/level-images', import.meta.url)))
+
+/** Every image id the campaign's picture boards use (levelImages.ts names them: 24 hex digits). */
+export const imageIdsIn = (overrides) => [...new Set(Object.values(overrides)
+  .flatMap((l) => (Array.isArray(l?.pictures) ? l.pictures : []))
+  .map((p) => p?.image)
+  .filter((id) => typeof id === 'string' && /^[0-9a-f]{24}$/.test(id)))]
+
+/** Bakes the picture boards' images into public/level-images/<id>.webp, so a build ships them (portals forbid
+ *  runtime requests). Only missing files are fetched; an unreachable bucket leaves what is there. Returns the ids fetched. */
+export const pullImages = async (bucketUrl, overrides, dir = IMAGES_DIR) => {
+  const base = (bucketUrl ?? '').trim().replace(/\/+$/, '')
+  const got = []
+  if (!base) return got
+  for (const id of imageIdsIn(overrides)) {
+    const file = resolve(dir, `${id}.webp`)
+    if (existsSync(file)) continue
+    try {
+      const res = await fetch(`${base}/images/${id}`, { signal: AbortSignal.timeout(15_000) })
+      if (!res.ok) continue
+      const bytes = Buffer.from(await res.arrayBuffer())
+      if (bytes.length < 12 || bytes.toString('latin1', 0, 4) !== 'RIFF' || bytes.toString('latin1', 8, 12) !== 'WEBP') continue
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(file, bytes)
+      got.push(id)
+    } catch { /* next build */ }
+  }
+  return got
+}
 
 /** @returns {Promise<{ ok: boolean, changed: number, message: string }>} */
 export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE, orderFile = ORDER_FILE) => {
@@ -58,6 +88,7 @@ export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE, orderFile = O
     changed++
   }
   if (changed) writeFileSync(file, JSON.stringify(disk, null, 2) + '\n', 'utf-8')
+  const images = await pullImages(base, disk)
   // The campaign order (the editor's Reorder dialog) rides in the campaign section as "order".
   const o = bucket.campaign.order
   if (o && Number.isFinite(o.editedAt) && Array.isArray(o.level?.order)) {
@@ -80,7 +111,7 @@ export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE, orderFile = O
       changed++
     }
   }
-  return { ok: true, changed, message: `levels bucket: ${changed} campaign level${changed === 1 ? '' : 's'} updated` }
+  return { ok: true, changed, message: `levels bucket: ${changed} campaign level${changed === 1 ? '' : 's'} updated${images.length ? `, ${images.length} picture${images.length === 1 ? '' : 's'} baked` : ''}` }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -25,7 +25,8 @@ import { editorAllowed } from '@/umbrella/editorAccess'
 import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue'
 import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import PauseMenu from '@/components/umbrella/PauseMenu.vue'
-import { createIntro, type Intro } from '@/umbrella/intro'
+import RotateLock from '@/components/umbrella/RotateLock.vue'
+import { createIntro, INTRO_ENABLED, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
 import { previewFinish, render, resetPlayerPose } from '@/umbrella/renderer'
 import { setSignTouch } from '@/umbrella/signArt'
@@ -68,7 +69,9 @@ const testing = testLevel.value
  *  browser lets the intro's sound and the music start. Coming back from the editor needs none. */
 let startedOnce = false
 const playBtn = ref<HTMLElement | null>(null)
-const started = ref(!!testing || startedOnce)
+// The "click to play" screen only gave the page focus and a first gesture before the intro began on its own:
+// with the intro off (VITE_APP_INTRO_ENABLED=false) the game is live from the first frame. Audio unlocks on the first touch or key.
+const started = ref(!!testing || startedOnce || !INTRO_ENABLED)
 /** A player level (share link or community) played instead of the campaign. */
 const playing = ref<CustomPlay | null>(testing ? null : customPlay.value)
 /** The level under test; ‹ › and a horizontal swipe walk it through the draft, the campaign and the library. */
@@ -124,6 +127,7 @@ const introOn = ref(false)
 const skipShown = ref(false)
 let skipTimer = 0
 const startIntro = () => {
+  if (!INTRO_ENABLED) return
   showPause.value = showLevels.value = showCommunity.value = false
   if (playing.value) { playing.value = null; customPlay.value = null }
   // The intro plays on, and hands over to, the first level of the start chapter.
@@ -1111,7 +1115,7 @@ onMounted(() => {
 const begin = () => {
   if (!testing) void openSharedLink()
   // A new player's first start: the intro, then Level 1 (not when a shared level opens).
-  if (!testing && !playing.value && !levelParam() && levelIndex.value === startIndex && !getState<boolean>(INTRO_SEEN, false)) startIntro()
+  if (INTRO_ENABLED && !testing && !playing.value && !levelParam() && levelIndex.value === startIndex && !getState<boolean>(INTRO_SEEN, false)) startIntro()
 }
 const onPlay = () => {
   unlockAudio()
@@ -1146,6 +1150,8 @@ onUnmounted(() => {
   <div class="umbrella-scene" :class="themeClass" @pointerdown="onAnyPointer" @pointerdown.capture="onSwipeDown" @pointerup="onSwipeUp">
     <canvas ref="bgCanvas" class="umbrella-bg" aria-hidden="true" hidden />
     <canvas ref="canvas" class="umbrella-canvas" />
+    <!-- A phone held upright is asked to turn: the landscape lock covers everything until it does. -->
+    <RotateLock />
 
     <!-- The whole screen is the start button: the first click or tap is what lets the browser play sound. -->
     <div
@@ -1208,7 +1214,7 @@ onUnmounted(() => {
 
     <!-- The themed builds fold / squash the menus away (u-dlg in umbrella-ui.css); the plain UI closes at once. -->
     <Transition name="u-dlg" :css="!!uiTheme">
-      <PauseMenu v-if="showPause" :keys="!tapDevice" @audition="auditioning = $event" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
+      <PauseMenu v-if="showPause" :keys="!tapDevice" :intro="INTRO_ENABLED" @audition="auditioning = $event" @resume="showPause = false" @restart="restartFromPause" @intro="watchIntro" />
     </Transition>
     <Transition name="u-dlg" :css="!!uiTheme">
       <CommunityLevelsModal v-if="showCommunity" @close="showCommunity = false" @play="playCustom" />

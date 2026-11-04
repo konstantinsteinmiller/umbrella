@@ -20,6 +20,10 @@ export default {
     'rating': "{n} dari 3 bintang",
     'clickToPlay': "Klik untuk bermain",
     'tapToPlay': "Ketuk untuk bermain",
+    'rotate': {
+      'title': "Putar perangkatmu",
+      'hint': "Miringkan ke mode lanskap untuk bermain"
+    },
     'ctlMove': "Gerak",
     'ctlUmbrella': "Buka / tutup payung",
     'ctlRestart': "Ulangi",
@@ -162,6 +166,7 @@ export default {
       'gate': "Gerbang",
       'sign': "Papan petunjuk",
       'sign-float': "Papan melayang",
+      'arrow': "Panah",
       'wind-up': "Arus naik",
       'wind-down': "Arus turun",
       'wind-left': "Angin ke kiri",
@@ -184,6 +189,7 @@ export default {
       'gate': "Klik tepi atas platform untuk pipa warp. Membuka payung di dalamnya membawa pemain dengan arus hiper ke level tantangan.",
       'sign': "Klik untuk menaruh papan petunjuk: kertas yang ditahan dua lentera dengan tombol SPACE dan panah ke bawah. Hanya dekorasi; seret sudut hijau untuk mengubah ukuran.",
       'sign-float': "Klik untuk menaruh papan melayang: kertas yang ditahan dua lentera, menampilkan Pweeg turun melayang di bawah payungnya yang terbuka. Hanya dekorasi; seret sudut hijau untuk mengubah ukuran.",
+      'arrow': "Klik untuk menaruh panah besar. Seret titik biru untuk memutarnya dan sudut hijau untuk mengubah ukurannya; taruh sebanyak yang diperlukan. Hanya dekorasi.",
       'wind-up': "Seret kotak untuk arus yang bertiup ke atas.",
       'wind-down': "Seret kotak untuk arus yang bertiup ke bawah.",
       'wind-left': "Seret kotak untuk arus yang bertiup ke kiri.",
@@ -210,7 +216,8 @@ export default {
       'star': "Barang koleksi",
       'gate': "Gerbang",
       'sign': "Papan petunjuk",
-      'sign-float': "Papan melayang"
+      'sign-float': "Papan melayang",
+      'arrow': "Panah"
     },
     'shape': {
       'star': "Bintang",
@@ -268,6 +275,7 @@ export default {
       'bounce': "Kekuatan pantulan",
       'points': "Titik",
       'angle': "Sudut",
+      'size': "Ukuran",
       'trigger': "Menyerang saat pemain dekat",
       'spawnOpen': "Mulai dengan payung terbuka",
       'fixedScreen': "Layar tetap",

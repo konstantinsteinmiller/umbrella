@@ -26,7 +26,7 @@ import { MUSIC_ENABLED, playSfx } from '@/umbrella/audio'
 import { ACTIONS, bindKey, bindingsChanged, isBindable, primaryCode, resetBindings, type Action } from '@/umbrella/keyBindings'
 import { keyboard, keyLabel, LAYOUTS, setAutoLayout, setManualLayout, type Layout } from '@/umbrella/keyLabels'
 
-const props = withDefaults(defineProps<{ keys?: boolean }>(), { keys: false })
+const props = withDefaults(defineProps<{ keys?: boolean; intro?: boolean }>(), { keys: false, intro: true })
 const emit = defineEmits<{ resume: []; restart: []; intro: []; audition: [on: boolean] }>()
 const { t } = useI18n()
 const theme = useUiTheme()
@@ -103,7 +103,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
           <OrnDivider class="pause-divider" />
           <button class="pause-btn primary u-btn u-primary" @click="emit('resume')"><BtnOrnaments /><UiGlyph name="play" fallback="▶" /> {{ t('umbrella.pause.resume') }}</button>
           <button class="pause-btn u-btn" @click="emit('restart')"><BtnOrnaments /><UiGlyph name="restart" fallback="↻" /> {{ t('umbrella.restart') }}</button>
-          <button class="pause-btn u-btn" @click="emit('intro')"><BtnOrnaments /><UiGlyph name="film" fallback="🎬" /> {{ t('umbrella.pause.intro') }}</button>
+          <button v-if="intro" class="pause-btn u-btn" @click="emit('intro')"><BtnOrnaments /><UiGlyph name="film" fallback="🎬" /> {{ t('umbrella.pause.intro') }}</button>
           <button class="pause-btn u-btn" @click="view = 'settings'"><BtnOrnaments /><UiGlyph name="gear" fallback="⚙" /> {{ t('umbrella.pause.settings') }}</button>
         </div>
         <div v-else key="settings" class="pause-view">
