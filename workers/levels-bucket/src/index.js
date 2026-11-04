@@ -11,8 +11,8 @@
 // Secret: `npx wrangler secret put EDITOR_TOKEN`.
 //
 // ─── Level images (the pictures on a level's picture boards; same KV namespace, keys `img:<id>`) ───
-//   GET  /images/:id   → the WebP (public, cached for a year: the id is a hash of the bytes)
-//   POST /images       body = the WebP bytes (≤ 450 kB); Authorization: Bearer <EDITOR_TOKEN>
+//   GET  /images/:id   → the image, with the type it was stored as (public, cached for a year: the id is a hash of the bytes)
+//   POST /images       body = the image bytes: WebP, or PNG / JPEG from a browser that cannot encode WebP (≤ 450 kB); Authorization: Bearer <EDITOR_TOKEN>
 //                      → { id }, id = first 24 hex digits of the SHA-256 of the bytes (the editor computes the
 //                        same, so an upload is confirmed by the name). Re-uploading the same bytes is a no-op.
 //
@@ -120,25 +120,33 @@ const hashId = async (bytes) => {
   const d = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))
   return [...d.slice(0, 12)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
-/** RIFF....WEBP */
-const isWebp = (b) => b.length > 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50
+/** The image type of these bytes by their magic number (WebP: RIFF....WEBP; PNG; JPEG), or null. Safari cannot encode WebP, so the
+ *  editor may send a PNG or a JPEG. */
+const imageType = (b) => {
+  if (b.length > 12 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp'
+  if (b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png'
+  if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg'
+  return null
+}
 
 async function images(req, env, url) {
   if (req.method === 'GET') {
     const id = url.pathname.slice('/images/'.length)
     if (!IMAGE_ID_RE.test(id)) return json({ error: 'not found' }, 404)
-    const bytes = await env.LEVELS.get(`img:${id}`, 'arrayBuffer')
+    const { value: bytes, metadata } = await env.LEVELS.getWithMetadata(`img:${id}`, 'arrayBuffer')
     if (!bytes) return json({ error: 'not found' }, 404)
-    return new Response(bytes, { headers: { ...cors, 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable' } })
+    // Images stored before PNG / JPEG were accepted carry no type: they are WebPs.
+    return new Response(bytes, { headers: { ...cors, 'Content-Type': metadata?.type ?? 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable' } })
   }
   if (req.method !== 'POST' || url.pathname !== '/images') return json({ error: 'method not allowed' }, 405)
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
   if (!env.EDITOR_TOKEN || !sameToken(token, env.EDITOR_TOKEN)) return json({ error: 'wrong editor password' }, 401)
   const bytes = await req.arrayBuffer()
   if (bytes.byteLength > MAX_IMAGE) return json({ error: 'too large' }, 413)
-  if (!isWebp(new Uint8Array(bytes))) return json({ error: 'not a webp image' }, 415)
+  const type = imageType(new Uint8Array(bytes))
+  if (!type) return json({ error: 'not a webp, png or jpeg image' }, 415)
   const id = await hashId(bytes)
-  if (!(await env.LEVELS.get(`img:${id}`, 'arrayBuffer'))) await env.LEVELS.put(`img:${id}`, bytes)
+  if (!(await env.LEVELS.get(`img:${id}`, 'arrayBuffer'))) await env.LEVELS.put(`img:${id}`, bytes, { metadata: { type } })
   return json({ id })
 }
 

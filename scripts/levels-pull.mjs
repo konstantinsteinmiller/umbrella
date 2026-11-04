@@ -24,22 +24,25 @@ const looksLikeLevel = (l) =>
 
 export const IMAGES_DIR = resolve(fileURLToPath(new URL('../public/level-images', import.meta.url)))
 
-/** Bakes the picture boards' images into public/level-images/<id>.webp, so a build ships them (portals forbid
+/** Bakes the picture boards' images into public/level-images/<id>.webp (.png / .jpg for the types Safari sends), so a build ships them (portals forbid
  *  runtime requests). Only missing files are fetched; an unreachable bucket leaves what is there. Returns the ids fetched. */
 export const pullImages = async (bucketUrl, docs, dir = IMAGES_DIR) => {
   const base = (bucketUrl ?? '').trim().replace(/\/+$/, '')
   const got = []
   if (!base) return got
   for (const id of imageIdsIn(...docs)) {
-    const file = resolve(dir, `${id}.webp`)
-    if (existsSync(file)) continue
+    if (['webp', 'png', 'jpg'].some((ext) => existsSync(resolve(dir, `${id}.${ext}`)))) continue
     try {
       const res = await fetch(`${base}/images/${id}`, { signal: AbortSignal.timeout(15_000) })
       if (!res.ok) continue
       const bytes = Buffer.from(await res.arrayBuffer())
-      if (bytes.length < 12 || bytes.toString('latin1', 0, 4) !== 'RIFF' || bytes.toString('latin1', 8, 12) !== 'WEBP') continue
+      // WebP, or the PNG / JPEG a browser that cannot encode WebP (Safari) sent: baked under the extension of its type.
+      const ext = bytes.length >= 12 && bytes.toString('latin1', 0, 4) === 'RIFF' && bytes.toString('latin1', 8, 12) === 'WEBP' ? 'webp'
+        : bytes.length >= 8 && bytes[0] === 0x89 && bytes.toString('latin1', 1, 4) === 'PNG' ? 'png'
+          : bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff ? 'jpg' : null
+      if (!ext) continue
       mkdirSync(dir, { recursive: true })
-      writeFileSync(file, bytes)
+      writeFileSync(resolve(dir, `${id}.${ext}`), bytes)
       got.push(id)
     } catch { /* next build */ }
   }

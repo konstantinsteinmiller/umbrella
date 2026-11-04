@@ -827,7 +827,7 @@ const attachImage = async (file: File, to: { i: number } | { at: Vec }) => {
   }
 }
 const onCanvasDragOver = (e: DragEvent) => {
-  if (designer.value && e.dataTransfer?.types.includes('Files')) e.preventDefault()
+  if (designer.value && Array.from(e.dataTransfer?.types ?? []).includes('Files')) e.preventDefault()
 }
 const onCanvasDrop = (e: DragEvent) => {
   const file = imageFileOf(e.dataTransfer)

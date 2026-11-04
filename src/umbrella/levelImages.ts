@@ -60,10 +60,10 @@ export const imagesVersion = ref(0)
 // which img-src does not govern.
 const loaded = new Map<string, ImageBitmap | 'failed'>()
 const loading = new Set<string>()
-const bakedUrl = (id: string) => `${import.meta.env.BASE_URL}level-images/${id}.webp`
+const bakedUrl = (id: string, ext: string) => `${import.meta.env.BASE_URL}level-images/${id}.${ext}`
 const bucketUrl = (id: string) => `${BUCKET_URL}/images/${id}`
 const fetchBlob = async (url: string): Promise<Blob> => {
-  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+  const res = await fetch(url, { signal: within(15_000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.blob()
 }
@@ -81,7 +81,9 @@ export const levelImage = (id: string | undefined): ImageBitmap | null => {
     ]
     // The copy baked into this build first, and only when the build shipped it (no 404s, and no request outside the
     // game: Poki and the YouTube Playables archive allow none). The bucket only for an image that is not baked yet.
-    if (publicAssetExists(`level-images/${id}.webp`)) sources.push(() => fetchBlob(bakedUrl(id)))
+    for (const ext of Object.values(IMAGE_TYPES)) {
+      if (publicAssetExists(`level-images/${id}.${ext}`)) sources.push(() => fetchBlob(bakedUrl(id, ext)))
+    }
     if (BUCKET_URL) sources.push(() => fetchBlob(bucketUrl(id)))
     for (const get of sources) {
       // A source that answers with something that is not an image (a dev server's index.html) falls through too.
@@ -105,7 +107,7 @@ export const IMAGE_ACCEPT = `image/*,${IMAGE_EXTENSIONS.map((e) => `.${e}`).join
 export const looksLikeImage = (f: { name: string; type: string }): boolean =>
   f.type.startsWith('image/') || ((f.type === '' || f.type === 'application/octet-stream') && (IMAGE_EXTENSIONS as readonly string[]).includes(f.name.split('.').pop()?.toLowerCase() ?? ''))
 
-/** A dropped file, shrunk to at most IMAGE_MAX_SIDE and encoded as WebP (a flat copy: animation is dropped). */
+/** A dropped file, shrunk to at most IMAGE_MAX_SIDE and encoded as a small WebP (PNG / JPEG where the browser cannot: see encodeCanvas). A flat copy: animation is dropped. */
 export const prepareImage = async (file: Blob): Promise<{ blob: Blob; w: number; h: number }> => {
   // No gate on file.type: Windows hands over an empty or odd type for some files (.webp, .avif), so the decoder decides.
   let bmp: ImageBitmap
@@ -120,25 +122,63 @@ export const prepareImage = async (file: Blob): Promise<{ blob: Blob; w: number;
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(bmp, 0, 0, w, h)
   bmp.close()
-  let q = IMAGE_QUALITY
-  let blob: Blob | null = null
-  for (let i = 0; i < 4; i++, q -= 0.15) {
-    blob = await new Promise<Blob | null>((r) => cv.toBlob(r, 'image/webp', q))
-    if (blob && blob.size <= IMAGE_MAX_BYTES) break
-  }
-  if (!blob || blob.type !== 'image/webp') throw new Error('encode')
-  if (blob.size > IMAGE_MAX_BYTES) throw new Error('size')
-  return { blob, w, h }
+  return { blob: await encodeCanvas(cv), w, h }
 }
+
+/** The image types a board's picture is stored as, and the file extension a build bakes each under. */
+export const IMAGE_TYPES = { 'image/webp': 'webp', 'image/png': 'png', 'image/jpeg': 'jpg' } as const
+export type StoredImageType = keyof typeof IMAGE_TYPES
+
+/**
+ * The canvas as a small image: WebP where the browser can encode it. Safari cannot (toBlob answers with a PNG whatever is
+ * asked for), so there the PNG is kept when it is small enough (it keeps transparency), else a JPEG on white. Throws
+ * 'encode' when nothing could be made and 'size' when it is still too big.
+ */
+export const encodeCanvas = async (cv: Pick<HTMLCanvasElement, 'toBlob' | 'width' | 'height' | 'getContext'>): Promise<Blob> => {
+  const toBlob = (type: string, q?: number) => new Promise<Blob | null>((r) => cv.toBlob(r, type, q))
+  let q = IMAGE_QUALITY
+  let tooBig = false
+  for (let i = 0; i < 4; i++, q -= 0.15) {
+    const b = await toBlob('image/webp', q)
+    if (b && b.type === 'image/webp') {
+      if (b.size <= IMAGE_MAX_BYTES) return b
+      tooBig = true
+      continue
+    }
+    // Not a WebP: this browser cannot encode them. Its answer is a PNG (lossless, with alpha): fine when small.
+    if (b && b.type === 'image/png' && b.size <= IMAGE_MAX_BYTES) return b
+    break
+  }
+  if (tooBig) throw new Error('size')
+  // A JPEG, on white (it has no alpha), at falling quality.
+  const ctx = cv.getContext('2d') as CanvasRenderingContext2D | null
+  if (ctx) {
+    ctx.save()
+    ctx.globalCompositeOperation = 'destination-over'
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, cv.width, cv.height)
+    ctx.restore()
+  }
+  q = 0.88
+  for (let i = 0; i < 5; i++, q -= 0.12) {
+    const b = await toBlob('image/jpeg', q)
+    if (!b || b.type !== 'image/jpeg') throw new Error('encode')
+    if (b.size <= IMAGE_MAX_BYTES) return b
+  }
+  throw new Error('size')
+}
+
+/** An abort signal that fires after `ms`; Safari before 16.4 has no AbortSignal.timeout, there the request just has no deadline. */
+const within = (ms: number): AbortSignal | undefined => (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(ms) : undefined)
 
 const upload = async (id: string, blob: Blob): Promise<boolean> => {
   if (!BUCKET_URL || !bucketPassword.value) return false
   try {
     const res = await fetch(`${BUCKET_URL}/images`, {
       method: 'POST',
-      headers: { 'Content-Type': 'image/webp', Authorization: `Bearer ${bucketPassword.value}` },
+      headers: { 'Content-Type': blob.type || 'image/webp', Authorization: `Bearer ${bucketPassword.value}` },
       body: blob,
-      signal: AbortSignal.timeout(20_000)
+      signal: within(20_000)
     })
     if (!res.ok) return false
     const out = (await res.json().catch(() => null)) as { id?: string } | null

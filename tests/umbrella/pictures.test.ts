@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { parseLevel, cloneLevel } from '@/umbrella/customLevels'
 import { LEVELS, isImageId, type LevelDef } from '@/umbrella/levels'
 import { arrowBox, drawArrow, drawPicture, pictureInset, setPictureImageSource } from '@/umbrella/pictureArt'
-import { IMAGE_ACCEPT, imageIdsOf, looksLikeImage } from '@/umbrella/levelImages'
+import { encodeCanvas, IMAGE_ACCEPT, imageIdsOf, looksLikeImage } from '@/umbrella/levelImages'
 // @ts-expect-error plain .mjs without types
 import { imageIdsIn } from '../../scripts/level-image-ids.mjs'
 
@@ -107,6 +107,33 @@ describe('drawing them', () => {
     // No paper board: only the picture and the ropes' knots.
     expect(bare.calls.filter((c) => c === 'roundRect')).toHaveLength(0)
     setPictureImageSource(() => null)
+  })
+})
+
+/** A canvas whose toBlob answers by a rule: what a browser makes of a request for `type`. */
+const fakeCanvas = (answer: (type: string, q?: number) => { type: string; size: number } | null) => ({
+  width: 10, height: 10,
+  getContext: () => ({ save: () => undefined, restore: () => undefined, fillRect: () => undefined, set globalCompositeOperation(_v: string) {}, set fillStyle(_v: string) {} }),
+  toBlob: (cb: (b: Blob | null) => void, type?: string, q?: number) => {
+    const a = answer(type ?? 'image/png', q)
+    cb(a ? ({ type: a.type, size: a.size } as unknown as Blob) : null)
+  }
+}) as unknown as HTMLCanvasElement
+
+describe('encoding the picture (Safari cannot encode WebP)', () => {
+  it('takes a WebP where the browser makes one, lowering the quality until it is small', async () => {
+    const b = await encodeCanvas(fakeCanvas((t, q) => ({ type: t, size: q! > 0.8 ? 900_000 : 200_000 })))
+    expect(b.type).toBe('image/webp')
+  })
+  it('keeps the PNG Safari answers with when it is small (transparency survives)', async () => {
+    const b = await encodeCanvas(fakeCanvas(() => ({ type: 'image/png', size: 120_000 })))
+    expect(b.type).toBe('image/png')
+  })
+  it('falls back to a JPEG when that PNG is too big, and refuses what no encoding makes small enough', async () => {
+    const jpeg = await encodeCanvas(fakeCanvas((t, q) => (t === 'image/jpeg' ? { type: t, size: q! > 0.7 ? 900_000 : 150_000 } : { type: 'image/png', size: 2_000_000 })))
+    expect(jpeg.type).toBe('image/jpeg')
+    await expect(encodeCanvas(fakeCanvas((t) => ({ type: t === 'image/jpeg' ? t : 'image/png', size: 9_000_000 })))).rejects.toThrow('size')
+    await expect(encodeCanvas(fakeCanvas(() => null))).rejects.toThrow('encode')
   })
 })
 
