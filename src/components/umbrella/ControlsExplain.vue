@@ -3,7 +3,7 @@
  * The touch-controls lesson, before a new player's first level (see src/umbrella/controlsExplain.ts). No words: the
  * left half shows a finger sliding along an infinity line (steering is a slide left and right), the right half shows
  * an umbrella button that a tap switches between open and shut, its ring lighting up when it is open, as the real
- * button's does. "Tap to continue" blinks at the bottom like the start screen's label; a tap, Enter or Space goes on.
+ * button's does, and its picture always the NEXT state (the open umbrella while it is shut), as the real button's is. "Tap to continue" blinks at the bottom like the start screen's label; a tap, Enter or Space goes on.
  *
  * While it is up the game is frozen like behind any menu. It wears the build's look (drawn / lantern / clay), moves
  * with transform and opacity only, and holds still under prefers-reduced-motion (the umbrella still alternates).
@@ -341,8 +341,9 @@ onUnmounted(() => {
 .ce-umb .u-canopy { fill: var(--ce-umb); stroke: var(--ce-umb-line); stroke-width: 2.4; stroke-linejoin: round; }
 .ce-umb .u-pole { fill: none; stroke: var(--ce-umb-line); stroke-width: 2.8; stroke-linecap: round; }
 .ce-umb .u-rib { fill: none; stroke: var(--ce-umb-line); stroke-width: 1.5; stroke-linecap: round; opacity: 0.6; }
-.ce-umb-closed { animation: ce-closed 3.6s ease-in-out infinite; }
-.ce-umb-open { animation: ce-open 3.6s ease-in-out infinite; transform-origin: 50% 70%; }
+/* The button shows what the next tap does: the OPEN umbrella while it is shut, the furled one while it is open. */
+.ce-umb-open { animation: ce-closed 3.6s ease-in-out infinite; }
+.ce-umb-closed { animation: ce-open 3.6s ease-in-out infinite; transform-origin: 50% 70%; }
 @keyframes ce-closed {
   0%, 26% { opacity: 1; transform: scale(1); }
   31%, 72% { opacity: 0; transform: scale(0.82); }

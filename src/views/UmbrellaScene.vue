@@ -27,6 +27,7 @@ import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import RotateLock from '@/components/umbrella/RotateLock.vue'
 import ControlsExplain from '@/components/umbrella/ControlsExplain.vue'
+import UmbrellaStateIcon from '@/components/umbrella/UmbrellaStateIcon.vue'
 import { CONTROLS_EXPLAINED_KEY, MOBILE_CONTROLS_EXPLAIN } from '@/umbrella/controlsExplain'
 import { createIntro, INTRO_ENABLED, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
@@ -1352,7 +1353,7 @@ onUnmounted(() => {
         @pointerup="onUmbrellaUp"
         @pointercancel="onUmbrellaUp"
         @contextmenu.prevent
-      ><UiGlyph name="umbrella" fallback="☂" /></button>
+      ><UmbrellaStateIcon :open="!umbrellaOpen" /></button>
     </template>
     <!-- Collectibles: a gold badge in the top right, popping with every pickup. -->
     <div v-if="hudStars.total && started && !introOn" :key="'badge' + hudStars.total" class="collect-badge" :class="{ done: hudStars.got === hudStars.total }" role="status" :aria-label="t('umbrella.stars', hudStars)">
@@ -1654,9 +1655,9 @@ onUnmounted(() => {
 }
 .umbrella-btn::before { content: ''; position: absolute; inset: calc(var(--tx-u) * -1); border-radius: 50%; }
 .umbrella-btn { transition: color 0.12s ease, background 0.12s ease, transform 0.12s ease; }
-/* The button shows the umbrella itself: shut, the symbol and the ring fade (the round button stays, so the pressable
-   area still shows); open, the symbol is bright and the ring and fill light up. A finger on it only squeezes it. */
-.umbrella-btn.closed { color: rgba(255, 255, 255, 0.38); }
+/* The picture is the NEXT state (a shut umbrella shows the open one: a tap opens it); the ring says how it is now: dim while
+   shut, lit and filled while open. A finger on it only squeezes it. */
+.umbrella-btn.closed { color: #fff; }
 .umbrella-btn.open { color: #fff; border-color: #ffe7a6; background: rgba(255, 231, 166, 0.3); box-shadow: 0 0 14px rgba(255, 231, 166, 0.45); }
 .umbrella-btn.pressed { transform: scale(0.94); }
 .umbrella-btn.pressed:not(.open) { background: rgba(255, 255, 255, 0.4); }
