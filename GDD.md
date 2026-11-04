@@ -365,13 +365,15 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · No "Chapter N" is shown in the game: the level selector and the chapter card show only a name or subtitle the designer gave.
 · Touch controls: a bigger stick with a touch area past its drawing and feedback while held; never fully opaque (0.85) and see-through when Pweeg or any level object is behind them; on levels 1-2 they pulse until used 3 times each.
 · Currents cannot lift Pweeg above the top bar; a restart resets his drawn pose; the level grid sits below the HUD; no focus ring after a click; the first load shows the wordmark at once.
-· A phone or tablet held upright shows a "turn your phone sideways" card (drawn / lantern / clay looks) until it is turned; the game is frozen behind it.
-· The pre-game intro cutscene is off (feature flag VITE_APP_INTRO_ENABLED=false in .env; true brings it back).
-· Landscape levels are framed on their main items (start, finish, platforms, hazards...) so both ends are in view from the first frame, with little empty space at the sides and none below the out-of-bounds line.
 **Level editor**
 · The Game Jam chapter is now the Playtest Build: the levels one playtest round ships. Spikes point any way (angle box + 90 degree helpers).
-· Standalone arrows (the hint board's black arrow: any number, any angle, any size) and, for the designer, picture boards with drag-and-drop images stored on the levels bucket with the level; picture boards hang from two ropes above the screen's top edge and sway a little in the wind.
 **Poki**
 · `pnpm poki:deploy-quick-playtest` builds, uploads and QAs a Poki version that plays only the Playtest Build chapter (--playtest-chapter; --skip-qa-testing skips the Inspector).
 
 ## Revision 16
+**Players**
+· A phone or tablet held upright shows a "turn your phone sideways" card (drawn / lantern / clay looks) until it is turned; the game is frozen behind it.
+· The pre-game intro cutscene is off (feature flag VITE_APP_INTRO_ENABLED=false in .env; true brings it back).
+· Landscape levels are framed on their main items (start, finish, platforms, hazards...) so both ends are in view from the first frame, with little empty space at the sides and none below the out-of-bounds line.
+**Level editor**
+· Standalone arrows (the hint board's black arrow: any number, any angle, any size) and, for the designer, picture boards with drag-and-drop images stored on the levels bucket with the level; picture boards hang from two ropes above the screen's top edge and sway a little in the wind.
