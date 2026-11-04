@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- improving bg images">
+    <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- remove timer and mobile portrait zoom out">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/poki-qa-report.json" beforeDir="false" afterPath="$PROJECT_DIR$/poki-qa-report.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/umbrella/ControlsExplain.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/umbrella/ControlsExplain.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/umbrella/UmbrellaStateIcon.vue" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/umbrella/UmbrellaStateIcon.vue" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,7 +42,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "C:/Users/konst/Documents/__p/umbrella/public/audio/music",
+    "last_opened_file_path": "C:/Users/konst/Documents/__p/umbrella",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -52,71 +53,75 @@
     "npm.build:gamemonetize.executor": "Run",
     "npm.build:itch.executor": "Run",
     "npm.build:itch:lantern.executor": "Run",
+    "npm.build:itch:playtest.executor": "Run",
     "npm.build:poki.executor": "Run",
     "npm.build:wavedash.executor": "Run",
+    "npm.deploy:poki-quick-playtest-lantern.executor": "Run",
+    "npm.deploy:poki-quick-playtest.executor": "Run",
     "npm.deploy:poki.executor": "Run",
     "npm.deploy:poki:clay.executor": "Run",
     "npm.deploy:poki:lantern.executor": "Run",
     "npm.dev.executor": "Run",
+    "npm.download:recordings.executor": "Run",
     "ts.external.directory.path": "C:\\Users\\konst\\Documents\\__p\\umbrella\\node_modules\\typescript\\lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\konst\Documents\__p\umbrella" />
       <recent name="C:\Users\konst\Documents\__p\umbrella\public\audio\music" />
       <recent name="C:\Users\konst\Documents\__p\umbrella\public" />
       <recent name="C:\Users\konst\Documents\__p\umbrella\public\fonts" />
-      <recent name="C:\Users\konst\Documents\__p\umbrella" />
       <recent name="C:\Users\konst\Documents\__p\elemental-barrage" />
     </key>
   </component>
-  <component name="RunManager" selected="npm.build:itch:lantern">
-    <configuration name="art:desk" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+  <component name="RunManager" selected="npm.dev">
+    <configuration name="build:itch:playtest" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="art:desk" />
+        <script value="build:itch:playtest" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="art:desk:umbrella" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+    <configuration name="deploy:poki-quick-playtest-lantern" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="art:desk:umbrella" />
+        <script value="deploy:poki-quick-playtest-lantern" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="build:itch:lantern" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+    <configuration name="deploy:poki-quick-playtest" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="build:itch:lantern" />
+        <script value="deploy:poki-quick-playtest" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="deploy:poki:clay" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+    <configuration name="dev" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="deploy:poki:clay" />
+        <script value="dev" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
       <method v="2" />
     </configuration>
-    <configuration name="deploy:poki:lantern" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+    <configuration name="download:recordings" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
-        <script value="deploy:poki:lantern" />
+        <script value="download:recordings" />
       </scripts>
       <node-interpreter value="project" />
       <envs />
@@ -124,11 +129,11 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="npm.build:itch:lantern" />
-        <item itemvalue="npm.deploy:poki:lantern" />
-        <item itemvalue="npm.deploy:poki:clay" />
-        <item itemvalue="npm.art:desk:umbrella" />
-        <item itemvalue="npm.art:desk" />
+        <item itemvalue="npm.dev" />
+        <item itemvalue="npm.download:recordings" />
+        <item itemvalue="npm.build:itch:playtest" />
+        <item itemvalue="npm.deploy:poki-quick-playtest" />
+        <item itemvalue="npm.deploy:poki-quick-playtest-lantern" />
       </list>
     </recent_temporary>
   </component>
@@ -156,6 +161,9 @@
       <workItem from="1792597988049" duration="11108000" />
       <workItem from="1792663620306" duration="49199000" />
       <workItem from="1792955229884" duration="2322000" />
+      <workItem from="1793658129588" duration="2865000" />
+      <workItem from="1793727284183" duration="7103000" />
+      <workItem from="1793736842845" duration="24378000" />
     </task>
     <task id="LOCAL-00001" summary="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
       <option name="closed" value="true" />
@@ -285,7 +293,15 @@
       <option name="project" value="LOCAL" />
       <updated>1793380886204</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="- remove timer and mobile portrait zoom out">
+      <option name="closed" value="true" />
+      <created>1793391183206</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1793391183206</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -319,6 +335,7 @@
     <MESSAGE value="- performance pass" />
     <MESSAGE value="- new wind, music" />
     <MESSAGE value="- improving bg images" />
-    <option name="LAST_COMMIT_MESSAGE" value="- improving bg images" />
+    <MESSAGE value="- remove timer and mobile portrait zoom out" />
+    <option name="LAST_COMMIT_MESSAGE" value="- remove timer and mobile portrait zoom out" />
   </component>
 </project>
