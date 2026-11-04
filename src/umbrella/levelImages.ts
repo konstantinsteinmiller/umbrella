@@ -7,7 +7,7 @@
 //   · kept in this browser and uploaded on the next sync (`uploadPending`).
 // The game shows an image from, in order: this browser's own copy, the copy baked into the build
 // (public/level-images/<id>.webp, written by scripts/levels-pull.mjs: portals forbid runtime requests), then the
-// bucket. The picture board draws an empty holder until an image has loaded.
+// bucket (fetched and decoded, never an <img>: see "Showing an image"). The picture board draws an empty holder until an image has loaded.
 
 import { ref } from 'vue'
 import { BUCKET_URL, bucketPassword } from './customLevels'
@@ -42,38 +42,49 @@ const blobToDataUrl = (b: Blob): Promise<string> => new Promise((res, rej) => {
   r.onerror = () => rej(r.error)
   r.readAsDataURL(b)
 })
-const dataUrlToBlob = async (u: string): Promise<Blob> => (await fetch(u)).blob()
+/** A data: URL as a Blob, decoded by hand (a fetch of a data: URL is a connect-src request, which a CSP may refuse). */
+const dataUrlToBlob = (u: string): Blob => {
+  const i = u.indexOf(',')
+  const bin = atob(u.slice(i + 1))
+  const bytes = new Uint8Array(bin.length)
+  for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k)
+  return new Blob([bytes], { type: /^data:([^;,]+)/.exec(u)?.[1] ?? 'image/webp' })
+}
 /** Bumped whenever an image's availability changes, so a view can redraw. */
 export const imagesVersion = ref(0)
 
 // ── Showing an image ──
-const loaded = new Map<string, HTMLImageElement | 'failed'>()
+// Never through an <img>: the Pages build's CSP has no blob: or bucket host in img-src, so an <img> would be refused.
+// The bytes come by fetch (connect-src covers this origin and the bucket) and are decoded with createImageBitmap,
+// which img-src does not govern.
+const loaded = new Map<string, ImageBitmap | 'failed'>()
 const loading = new Set<string>()
 const bakedUrl = (id: string) => `${import.meta.env.BASE_URL}level-images/${id}.webp`
 const bucketUrl = (id: string) => `${BUCKET_URL}/images/${id}`
-const tryLoad = (src: string): Promise<HTMLImageElement> => new Promise((res, rej) => {
-  const img = new Image()
-  img.decoding = 'async'
-  img.onload = () => res(img)
-  img.onerror = () => rej(new Error('load'))
-  img.src = src
-})
+const fetchBlob = async (url: string): Promise<Blob> => {
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.blob()
+}
 /** The loaded image, or null while it loads (this starts the load) or when it cannot be had. */
-export const levelImage = (id: string | undefined): HTMLImageElement | null => {
+export const levelImage = (id: string | undefined): ImageBitmap | null => {
   if (!id || !isImageId(id)) return null
   const have = loaded.get(id)
   if (have) return have === 'failed' ? null : have
   if (loading.has(id)) return null
   loading.add(id)
   void (async () => {
-    const sources: (() => Promise<string>)[] = [
-      async () => { const b = blobs.get(id); if (!b) throw new Error('none'); return URL.createObjectURL(b) },
-      async () => { const p = readPending()[id]; if (!p) throw new Error('none'); return p },
-      async () => bakedUrl(id)
+    const sources: (() => Promise<Blob>)[] = [
+      async () => { const b = blobs.get(id); if (!b) throw new Error('none'); return b },
+      async () => { const p = readPending()[id]; if (!p) throw new Error('none'); return dataUrlToBlob(p) },
     ]
-    if (BUCKET_URL) sources.push(async () => bucketUrl(id))
+    // The bucket first where there is one (it always has the newest; the baked copy only exists once a build has pulled
+    // the level, and a missing file is a console 404); builds without a bucket have only the baked copy.
+    if (BUCKET_URL) sources.push(() => fetchBlob(bucketUrl(id)))
+    sources.push(() => fetchBlob(bakedUrl(id)))
     for (const get of sources) {
-      try { loaded.set(id, await tryLoad(await get())); break } catch { /* next source */ }
+      // A source that answers with something that is not an image (a dev server's index.html) falls through too.
+      try { loaded.set(id, await createImageBitmap(await get())); break } catch { /* next source */ }
     }
     if (!loaded.has(id)) loaded.set(id, 'failed')
     loading.delete(id)
@@ -148,7 +159,7 @@ export const uploadPending = async (): Promise<{ sent: number; left: number }> =
   let sent = 0
   for (const id of Object.keys(m)) {
     try {
-      const blob = blobs.get(id) ?? (await dataUrlToBlob(m[id]!))
+      const blob = blobs.get(id) ?? dataUrlToBlob(m[id]!)
       if (await upload(id, blob)) { delete m[id]; sent++ }
     } catch { /* kept for the next sync */ }
   }

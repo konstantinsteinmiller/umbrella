@@ -858,9 +858,9 @@ const setPictureFrame = (on: boolean) => {
 const fitPicture = () => {
   const p = selectedPicture.value
   const img = levelImage(p?.image)
-  if (!p || !img || !img.naturalWidth) return
+  if (!p || !img || !img.width) return
   const pad = p.frame === false ? 0 : PICTURE_PAD
-  p.h = Math.max(20, Math.round(((p.w - pad * 2) * img.naturalHeight) / img.naturalWidth + pad * 2))
+  p.h = Math.max(20, Math.round(((p.w - pad * 2) * img.height) / img.width + pad * 2))
 }
 const removePictureImage = () => {
   const p = selectedPicture.value
