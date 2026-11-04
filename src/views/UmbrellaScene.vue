@@ -794,6 +794,7 @@ const tick = () => {
   // Run out, the clock holds at 00:00 and the level plays on (timeStars.ts).
   runClock(input)
   const events = step(world, input, DT, tuning)
+  if (umbrellaOpen.value !== world.player.open) umbrellaOpen.value = world.player.open
   onEvents(events, vyBefore)
   if (events.includes('star')) syncStars()
   enemyCues(events)
@@ -965,7 +966,10 @@ const tapDevice = (() => {
 const PHONE_VIEWPORT_MAX = 600
 const isPhoneViewport = () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth && window.innerWidth <= PHONE_VIEWPORT_MAX
 const phoneViewport = ref(isPhoneViewport())
-const onViewport = () => { phoneViewport.value = isPhoneViewport() }
+/** Wider than tall: the touch controls then own the two halves of the screen (the left one steers, the right one works the umbrella). */
+const isLandscape = () => typeof window !== 'undefined' && window.innerWidth > window.innerHeight
+const landscapeView = ref(isLandscape())
+const onViewport = () => { phoneViewport.value = isPhoneViewport(); landscapeView.value = isLandscape() }
 /** The last input was a finger (a desktop only: phones and tablets always show the controls). */
 const lastTouch = ref(false)
 const touchUI = computed(() => tapDevice || phoneViewport.value || lastTouch.value)
@@ -1040,8 +1044,11 @@ const onStickUp = (e: PointerEvent) => {
   knobPos.value = { x: 0, y: 0 }
   knobDragging.value = false
   stickDir.value = 0
+  padShift.value = { x: 0, y: 0 }
 }
 const umbrellaPressed = ref(false)
+/** Pweeg's umbrella as it is now (what the button shows), not whether a finger is on it. */
+const umbrellaOpen = ref(false)
 const onUmbrellaDown = (e: PointerEvent) => {
   coachUsed('umbrella')
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
@@ -1049,6 +1056,46 @@ const onUmbrellaDown = (e: PointerEvent) => {
   umbrellaPressed.value = true
 }
 const onUmbrellaUp = () => { umbrellaPressed.value = false }
+
+// ── Landscape touch: the whole left half of the screen steers, the whole right half opens and closes the umbrella ──
+// (the pad and the button are only where they are drawn: a thumb that lands beside them, or slides off the button,
+// would miss). A finger on the left half puts the pad under itself and steers from there; a tap on the right half is a
+// press of the umbrella button. Touch only: a mouse has the keyboard.
+const padShift = ref({ x: 0, y: 0 })
+const onZoneStickDown = (e: PointerEvent) => {
+  if (e.pointerType === 'mouse' || stickId !== -1) return
+  const pad = stickEl.value
+  if (!pad) return
+  coachUsed('stick')
+  const r = pad.getBoundingClientRect()
+  const homeX = r.left + r.width / 2 - padShift.value.x
+  const homeY = r.top + r.height / 2 - padShift.value.y
+  // The pad is centred on the finger, kept inside the left half of the screen and clear of its edges.
+  const halfW = r.width / 2
+  const halfH = r.height / 2
+  const margin = 8
+  const cx = Math.max(halfW + margin, Math.min(window.innerWidth / 2 - halfW - margin, e.clientX))
+  const cy = Math.max(halfH + margin, Math.min(window.innerHeight - halfH - margin, e.clientY))
+  padShift.value = { x: cx - homeX, y: cy - homeY }
+  stickId = e.pointerId
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  stickOrigin = cx
+  padCx = cx
+  padCy = cy
+  knobDragging.value = true
+  stickRange = Math.max(22, r.width / 2 - 24)
+  window.addEventListener('pointermove', onStickMove)
+  window.addEventListener('pointerup', onStickUp)
+  window.addEventListener('pointercancel', onStickUp)
+  onStickMove(e)
+}
+const onZoneUmbrellaDown = (e: PointerEvent) => {
+  if (e.pointerType === 'mouse') return
+  coachUsed('umbrella')
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  togglePending = true
+  umbrellaPressed.value = true
+}
 
 const onKeyDown = onKey(true)
 const onKeyUp = onKey(false)
@@ -1060,6 +1107,7 @@ const onBlur = () => {
   knobPos.value = { x: 0, y: 0 }
   knobDragging.value = false
   stickDir.value = 0
+  padShift.value = { x: 0, y: 0 }
 }
 
 // Every reason the game must be silent: ads, hidden tab, platform pause, and
@@ -1152,6 +1200,12 @@ onUnmounted(() => {
     <canvas ref="canvas" class="umbrella-canvas" />
     <!-- A phone held upright is asked to turn: the landscape lock covers everything until it does. -->
     <RotateLock />
+    <!-- Landscape touch: the left half of the screen steers, the right half opens and closes the umbrella. They sit under
+         the HUD and every menu in the page order, over the level. -->
+    <template v-if="touchUI && landscapeView && started && !introOn">
+      <div class="touch-zone left" aria-hidden="true" @pointerdown="onZoneStickDown" />
+      <div class="touch-zone right" aria-hidden="true" @pointerdown="onZoneUmbrellaDown" @pointerup="onUmbrellaUp" @pointercancel="onUmbrellaUp" @contextmenu.prevent />
+    </template>
 
     <!-- The whole screen is the start button: the first click or tap is what lets the browser play sound. -->
     <div
@@ -1257,7 +1311,8 @@ onUnmounted(() => {
       <div
         ref="stickEl"
         class="stick"
-        :class="{ 'see-through': seeThrough.stick, coach: coachStick, held: knobX !== 0, 'dir-l': stickDir < 0, 'dir-r': stickDir > 0 }"
+        :class="{ 'see-through': seeThrough.stick, coach: coachStick, held: knobX !== 0, floating: knobDragging, 'dir-l': stickDir < 0, 'dir-r': stickDir > 0 }"
+        :style="{ '--sx': `${padShift.x}px`, '--sy': `${padShift.y}px` }"
         role="slider"
         :aria-label="t('umbrella.joystick')"
         aria-valuemin="-1"
@@ -1276,7 +1331,7 @@ onUnmounted(() => {
       <button
         ref="umbrellaBtnEl"
         class="umbrella-btn"
-        :class="{ pressed: umbrellaPressed, closed: !umbrellaPressed, 'see-through': seeThrough.umbrella, coach: coachUmbrella }"
+        :class="{ pressed: umbrellaPressed, open: umbrellaOpen, closed: !umbrellaOpen, 'see-through': seeThrough.umbrella, coach: coachUmbrella }" :aria-pressed="umbrellaOpen"
         :aria-label="t('umbrella.umbrellaButton')"
         @pointerdown.stop="onUmbrellaDown"
         @pointerup="onUmbrellaUp"
@@ -1516,7 +1571,8 @@ onUnmounted(() => {
 .umbrella-btn {
   --ctl: 0.75;
   --pad-x: 4.5vw;
-  --pad-y: 7.5vh;
+  /* As far from the bottom as from the side (a thumb rests lower than it reaches), and never less than 9 % of the height. */
+  --pad-y: max(9vh, var(--pad-x));
   position: absolute;
   bottom: calc(var(--pad-y) + env(safe-area-inset-bottom));
   z-index: 2;
@@ -1583,9 +1639,12 @@ onUnmounted(() => {
 }
 .umbrella-btn::before { content: ''; position: absolute; inset: calc(var(--tx-u) * -1); border-radius: 50%; }
 .umbrella-btn { transition: color 0.12s ease, background 0.12s ease, transform 0.12s ease; }
-/* Umbrella shut: the umbrella symbol fades, the round button stays, so the pressable area still shows. */
+/* The button shows the umbrella itself: shut, the symbol and the ring fade (the round button stays, so the pressable
+   area still shows); open, the symbol is bright and the ring and fill light up. A finger on it only squeezes it. */
 .umbrella-btn.closed { color: rgba(255, 255, 255, 0.38); }
-.umbrella-btn.pressed { background: rgba(255, 255, 255, 0.4); transform: scale(0.94); }
+.umbrella-btn.open { color: #fff; border-color: #ffe7a6; background: rgba(255, 231, 166, 0.3); box-shadow: 0 0 14px rgba(255, 231, 166, 0.45); }
+.umbrella-btn.pressed { transform: scale(0.94); }
+.umbrella-btn.pressed:not(.open) { background: rgba(255, 255, 255, 0.4); }
 /* The control coach (levels 1-2): a pulsing ring, and the stick's knob nudging left and right. */
 .stick.coach, .umbrella-btn.coach { animation: coach-pulse 1.4s ease-in-out infinite; }
 .stick.coach .stick-knob.idle { animation: coach-nudge 2.2s ease-in-out infinite; }
@@ -1605,6 +1664,13 @@ onUnmounted(() => {
 /* The controls are never fully opaque (at most 0.85), and fainter still when Pweeg or any part of the level
    (a ledge, a hazard, the finish...) is behind them, so it can be seen through them. */
 .stick, .umbrella-btn { opacity: 0.85; transition: opacity 0.3s ease; }
+/* The pad moves to the finger that steers it (--sx / --sy), and glides home when it lets go. */
+.stick { translate: var(--sx, 0px) var(--sy, 0px); transition: opacity 0.3s ease, translate 0.18s ease-out; }
+.stick.floating { transition: opacity 0.3s ease; }
+/* The two halves of the screen in landscape touch play. */
+.touch-zone { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.touch-zone.left { left: 0; }
+.touch-zone.right { right: 0; }
 .stick.see-through, .umbrella-btn.see-through { opacity: 0.45; }
 /* Short landscape phones: smaller controls, closer to the edge, so their band at the bottom (kept clear
    of the level, controlsBand) costs the level less height. */
