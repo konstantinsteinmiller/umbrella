@@ -26,6 +26,8 @@ import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue
 import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import RotateLock from '@/components/umbrella/RotateLock.vue'
+import ControlsExplain from '@/components/umbrella/ControlsExplain.vue'
+import { CONTROLS_EXPLAINED_KEY, MOBILE_CONTROLS_EXPLAIN } from '@/umbrella/controlsExplain'
 import { createIntro, INTRO_ENABLED, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
 import { previewFinish, render, resetPlayerPose } from '@/umbrella/renderer'
@@ -156,6 +158,7 @@ const endIntro = () => {
   // The start level begins from the pose the intro ended on: Pweeg at the spawn.
   loadLevel(startIndex)
   showChapterCard(startIndex, true)
+  maybeExplainControls()
 }
 const requestSkip = () => {
   // Pweeg is looking at the player: the first key, tap or stick move is taking control.
@@ -1164,6 +1167,17 @@ const begin = () => {
   if (!testing) void openSharedLink()
   // A new player's first start: the intro, then Level 1 (not when a shared level opens).
   if (INTRO_ENABLED && !testing && !playing.value && !levelParam() && levelIndex.value === startIndex && !getState<boolean>(INTRO_SEEN, false)) startIntro()
+  else maybeExplainControls()
+}
+// ── The touch-controls lesson (controlsExplain.ts): once, before a new touch player's first level, behind a flag ──
+const explainOn = ref(false)
+const maybeExplainControls = () => {
+  if (MOBILE_CONTROLS_EXPLAIN && tapDevice && !testing && !playing.value && !levelParam() && levelIndex.value === startIndex && !getState<boolean>(CONTROLS_EXPLAINED_KEY, false)) explainOn.value = true
+}
+const dismissExplain = () => {
+  explainOn.value = false
+  setState(CONTROLS_EXPLAINED_KEY, true)
+  unlockAudio() // the tap that ends it is the first one: sound may start from here
 }
 const onPlay = () => {
   unlockAudio()
@@ -1202,6 +1216,7 @@ onUnmounted(() => {
     <RotateLock />
     <!-- Landscape touch: the left half of the screen steers, the right half opens and closes the umbrella. They sit under
          the HUD and every menu in the page order, over the level. -->
+    <ControlsExplain v-if="explainOn && landscapeView && !introOn" @done="dismissExplain" />
     <template v-if="touchUI && landscapeView && started && !introOn">
       <div class="touch-zone left" aria-hidden="true" @pointerdown="onZoneStickDown" />
       <div class="touch-zone right" aria-hidden="true" @pointerdown="onZoneUmbrellaDown" @pointerup="onUmbrellaUp" @pointercancel="onUmbrellaUp" @contextmenu.prevent />
