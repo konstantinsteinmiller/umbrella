@@ -43,7 +43,7 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1793748060463,
+    "editedAt": 1793811350330,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -62,7 +62,8 @@
         "h": 290,
         "kind": "float"
       }
-    ]
+    ],
+    "fixedScreen": true
   },
   "2": {
     "id": 2,
@@ -696,7 +697,7 @@
         }
       }
     ],
-    "editedAt": 1793739757621,
+    "editedAt": 1793811406855,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -706,7 +707,9 @@
         "shape": "umbrella"
       }
     ],
-    "gates": []
+    "gates": [],
+    "signs": [],
+    "fixedScreen": true
   },
   "10": {
     "id": 10,
@@ -829,7 +832,7 @@
         }
       }
     ],
-    "editedAt": 1793743023591,
+    "editedAt": 1793811400732,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -839,7 +842,9 @@
         "shape": "umbrella"
       }
     ],
-    "gates": []
+    "gates": [],
+    "signs": [],
+    "fixedScreen": true
   },
   "12": {
     "id": 12,
@@ -1056,7 +1061,7 @@
         "bounce": 280
       }
     ],
-    "editedAt": 1793738994660,
+    "editedAt": 1793811426303,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -1066,7 +1071,9 @@
         "shape": "umbrella"
       }
     ],
-    "gates": []
+    "gates": [],
+    "signs": [],
+    "fixedScreen": true
   },
   "14": {
     "id": 14,
@@ -1126,7 +1133,7 @@
         "bounce": 280
       }
     ],
-    "editedAt": 1793745495312,
+    "editedAt": 1793811433084,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -1136,7 +1143,9 @@
         "shape": "umbrella"
       }
     ],
-    "gates": []
+    "gates": [],
+    "signs": [],
+    "fixedScreen": true
   },
   "15": {
     "id": 15,
@@ -1200,7 +1209,7 @@
         "bounce": 210
       }
     ],
-    "editedAt": 1793739970105,
+    "editedAt": 1793811440046,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -1210,7 +1219,9 @@
         "shape": "umbrella"
       }
     ],
-    "gates": []
+    "gates": [],
+    "signs": [],
+    "fixedScreen": true
   },
   "16": {
     "id": 16,
@@ -1319,7 +1330,7 @@
         }
       }
     ],
-    "editedAt": 1793739921124,
+    "editedAt": 1793811419600,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -1329,7 +1340,9 @@
         "shape": "umbrella"
       }
     ],
-    "gates": []
+    "gates": [],
+    "signs": [],
+    "fixedScreen": true
   },
   "17": {
     "id": 17,
@@ -1461,7 +1474,6 @@
   },
   "18": {
     "id": 18,
-    "fixedScreen": true,
     "world": {
       "w": 1280,
       "h": 720
@@ -1478,7 +1490,7 @@
         "h": 20
       },
       {
-        "x": 990,
+        "x": 940,
         "y": 360,
         "w": 140,
         "h": 20,
@@ -1495,7 +1507,7 @@
         "speed": 240
       },
       {
-        "x": 750,
+        "x": 690,
         "y": 150,
         "w": 240,
         "h": 230,
@@ -1504,7 +1516,7 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1793748104020,
+    "editedAt": 1793815604890,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -1515,7 +1527,8 @@
       }
     ],
     "gates": [],
-    "signs": []
+    "signs": [],
+    "fixedScreen": true
   },
   "19": {
     "id": 19,
@@ -3104,7 +3117,7 @@
         "h": 70
       }
     ],
-    "editedAt": 1793746043361,
+    "editedAt": 1793811449289,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -3114,7 +3127,9 @@
         "shape": "umbrella"
       }
     ],
-    "gates": []
+    "gates": [],
+    "signs": [],
+    "fixedScreen": true
   },
   "1002": {
     "id": 1002,
@@ -3279,7 +3294,7 @@
         }
       }
     ],
-    "editedAt": 1793742998638,
+    "editedAt": 1793811413044,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -3289,7 +3304,9 @@
         "shape": "umbrella"
       }
     ],
-    "gates": []
+    "gates": [],
+    "signs": [],
+    "fixedScreen": true
   },
   "1005": {
     "id": 1005,
@@ -4400,7 +4417,7 @@
       }
     ],
     "hazards": [],
-    "editedAt": 1793747960402,
+    "editedAt": 1793811356603,
     "buttons": [],
     "checkpoints": [],
     "stars": [
@@ -4418,7 +4435,8 @@
         "w": 120,
         "h": 170
       }
-    ]
+    ],
+    "fixedScreen": true
   },
   "1011": {
     "id": 1011,

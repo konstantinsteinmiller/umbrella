@@ -119,12 +119,20 @@ const drawGlyph = (ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.restore()
 }
 
+/** The space between the board's edge and its image, in world units: 0 without the paper board or with "no padding", else
+ *  the board's own setting, else the default (14, less on a small board). */
+export const pictureInset = (p: PictureDef): number => {
+  if (p.frame === false) return 0
+  const cap = Math.min(p.w, p.h) * 0.4
+  return p.pad !== undefined ? Math.max(0, Math.min(p.pad, cap)) : Math.min(14, Math.min(p.w, p.h) * 0.1)
+}
+
 /** The board and its picture, drawn where they are (the caller has already moved the board). */
 const drawBoard = (ctx: CanvasRenderingContext2D, p: PictureDef): void => {
   const lit = paintedGame
   const framed = p.frame !== false
   if (framed) drawPaper(ctx, p, lit)
-  const pad = framed ? Math.min(14, Math.min(p.w, p.h) * 0.1) : 0
+  const pad = pictureInset(p)
   const bx = p.x + pad
   const by = p.y + pad
   const bw = p.w - pad * 2
@@ -138,9 +146,23 @@ const drawBoard = (ctx: CanvasRenderingContext2D, p: PictureDef): void => {
     const w = iw * k
     const h = ih * k
     ctx.save()
+    // With no padding the image runs to the board's edge: clipped to its rounded corners, its outline drawn over it.
+    const edge = framed && pad === 0
+    if (edge) {
+      roundRect(ctx, p.x, p.y, p.w, p.h, Math.min(10, Math.min(p.w, p.h) * 0.08))
+      ctx.clip()
+    }
     ctx.imageSmoothingQuality = 'high'
     ctx.drawImage(img, bx + (bw - w) / 2, by + (bh - h) / 2, w, h)
     ctx.restore()
+    if (edge) {
+      ctx.save()
+      ctx.strokeStyle = lit ? '#8a5a1c' : '#111'
+      ctx.lineWidth = lit ? 2.6 : 3
+      roundRect(ctx, p.x, p.y, p.w, p.h, Math.min(10, Math.min(p.w, p.h) * 0.08))
+      ctx.stroke()
+      ctx.restore()
+    }
   } else {
     drawGlyph(ctx, bx, by, bw, bh, lit)
   }

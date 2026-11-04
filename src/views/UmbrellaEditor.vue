@@ -28,10 +28,10 @@ import { useI18n } from 'vue-i18n'
 import { applyLocaleDirection } from '@/i18n'
 import { useRouter } from 'vue-router'
 import { isTurned, spikeAngle, spikeBounds } from '@/umbrella/spikeGeometry'
-import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type PictureDef, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
+import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, PICTURE_PAD_MAX, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type PictureDef, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
-import { arrowBox } from '@/umbrella/pictureArt'
+import { arrowBox, pictureInset } from '@/umbrella/pictureArt'
 import { addImage, IMAGE_ACCEPT, levelImage, looksLikeImage, uploadPending } from '@/umbrella/levelImages'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
@@ -808,7 +808,7 @@ const attachImage = async (file: File, to: { i: number } | { at: Vec }) => {
       const p = list[i]!
       p.image = img.id
       // The same width, the height of the new image's shape.
-      const pad = p.frame === false ? 0 : PICTURE_PAD
+      const pad = pictureInset(p)
       p.h = Math.max(20, Math.round(((p.w - pad * 2) * img.h) / img.w + pad * 2))
     } else {
       const at = 'at' in to ? to.at : { x: level.value.world.w / 2, y: level.value.world.h / 2 }
@@ -859,8 +859,23 @@ const fitPicture = () => {
   const p = selectedPicture.value
   const img = levelImage(p?.image)
   if (!p || !img || !img.width) return
-  const pad = p.frame === false ? 0 : PICTURE_PAD
+  const pad = pictureInset(p)
   p.h = Math.max(20, Math.round(((p.w - pad * 2) * img.height) / img.width + pad * 2))
+}
+/** "No padding": the image fills the whole board (the board takes the image's shape at its width). Off: the default padding. */
+const setNoPadding = (on: boolean) => {
+  const p = selectedPicture.value
+  if (!p) return
+  if (on) p.pad = 0
+  else delete p.pad
+  fitPicture()
+}
+/** The padding size, kept inside what the board can hold; the board keeps the image's shape. */
+const setPadding = (v: number) => {
+  const p = selectedPicture.value
+  if (!p || !Number.isFinite(v)) return
+  p.pad = Math.max(1, Math.min(PICTURE_PAD_MAX, Math.round(v)))
+  fitPicture()
 }
 const removePictureImage = () => {
   const p = selectedPicture.value
@@ -2155,6 +2170,13 @@ onUnmounted(() => {
             </div>
             <input ref="imagePicker" type="file" :accept="IMAGE_ACCEPT" hidden @change="onPictureFile" />
             <label class="check"><input type="checkbox" :checked="selectedPicture.frame !== false" @change="setPictureFrame(($event.target as HTMLInputElement).checked)" /> Paper board around the image</label>
+            <template v-if="selectedPicture.frame !== false">
+              <label class="check"><input type="checkbox" :checked="selectedPicture.pad === 0" @change="setNoPadding(($event.target as HTMLInputElement).checked)" /> No padding: the image fills the board</label>
+              <label v-if="selectedPicture.pad !== 0" class="row col">
+                <span>Padding: {{ Math.round(pictureInset(selectedPicture)) }}</span>
+                <input type="range" min="1" :max="PICTURE_PAD_MAX" step="1" :value="pictureInset(selectedPicture)" @input="setPadding(+($event.target as HTMLInputElement).value)" />
+              </label>
+            </template>
             <div class="pair">
               <button class="mini" :disabled="!selectedPicture.image" @click="fitPicture">Fit board to image</button>
               <button class="mini danger" :disabled="!selectedPicture.image" @click="removePictureImage">Remove image</button>

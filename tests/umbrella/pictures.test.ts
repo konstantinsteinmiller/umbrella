@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { parseLevel, cloneLevel } from '@/umbrella/customLevels'
 import { LEVELS, isImageId, type LevelDef } from '@/umbrella/levels'
-import { arrowBox, drawArrow, drawPicture, setPictureImageSource } from '@/umbrella/pictureArt'
+import { arrowBox, drawArrow, drawPicture, pictureInset, setPictureImageSource } from '@/umbrella/pictureArt'
 import { IMAGE_ACCEPT, imageIdsOf, looksLikeImage } from '@/umbrella/levelImages'
 // @ts-expect-error plain .mjs without types
 import { imageIdsIn } from '../../scripts/level-image-ids.mjs'
@@ -51,6 +51,17 @@ describe('standalone arrows and picture boards', () => {
     expect(looksLikeImage({ name: 'clip.webp', type: 'video/webm' })).toBe(false)
     expect(IMAGE_ACCEPT).toContain('.webp')
   })
+  it('pads a board by its own setting: default, none (the image fills it), or a size; never on a bare picture', () => {
+    const b = { x: 0, y: 0, w: 240, h: 160 }
+    expect(pictureInset(b)).toBe(14)
+    expect(pictureInset({ ...b, pad: 0 })).toBe(0)
+    expect(pictureInset({ ...b, pad: 30 })).toBe(30)
+    expect(pictureInset({ ...b, pad: 500 })).toBe(64) // at most 40 % of the short side
+    expect(pictureInset({ ...b, pad: 30, frame: false })).toBe(0)
+    expect(parseLevel(base({ pictures: [{ ...b, pad: 0 }, { ...b, pad: 20 }] }))?.pictures?.[1]?.pad).toBe(20)
+    expect(parseLevel(base({ pictures: [{ ...b, pad: -1 }] }))).toBeNull()
+    expect(parseLevel(base({ pictures: [{ ...b, pad: 'x' as unknown as number }] }))).toBeNull()
+  })
   it('selects a turned arrow by a square around its centre', () => {
     expect(arrowBox({ x: 100, y: 50, size: 80, angle: 45 })).toEqual({ x: 60, y: 10, w: 80, h: 80 })
   })
@@ -85,6 +96,11 @@ describe('drawing them', () => {
     const filled = fakeCtx()
     drawPicture(filled, { x: 0, y: 0, w: 200, h: 140, image: ID }, 0)
     expect(filled.calls).toContain('drawImage')
+    // No padding: the picture runs to the board's edge, clipped to its corners.
+    const edge = fakeCtx()
+    drawPicture(edge, { x: 0, y: 0, w: 200, h: 140, image: ID, pad: 0 }, 0)
+    expect(edge.calls).toContain('clip')
+    expect(edge.calls).toContain('drawImage')
     const bare = fakeCtx()
     drawPicture(bare, { x: 0, y: 0, w: 200, h: 140, image: ID, frame: false }, 0)
     expect(bare.calls).toContain('drawImage')

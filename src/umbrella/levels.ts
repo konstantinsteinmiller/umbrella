@@ -105,7 +105,13 @@ export const ARROW_DEFAULT_ANGLE = 180
 /** A picture board: an image holder in the look of the hint board, for the tutorial levels' instruction images.
  *  `image`: the id of an image in the levels bucket (levelImages.ts); absent: an empty holder. `frame: false`
  *  draws the picture alone, without the paper board. Decoration only. */
-export interface PictureDef { x: number; y: number; w: number; h: number; image?: string; frame?: boolean }
+export interface PictureDef {
+  x: number; y: number; w: number; h: number; image?: string; frame?: boolean
+  /** The space between the board's edge and the image, in world units. Absent: the default (14, less on a small board);
+   *  0: no padding, the image fills the whole board. Not used without the paper board (`frame: false`). */
+  pad?: number
+}
+export const PICTURE_PAD_MAX = 60
 export const PICTURE_W = 200
 export const PICTURE_H = 140
 export const isImageId = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{24}$/.test(v)

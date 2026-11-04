@@ -75,7 +75,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.ceiling !== undefined && !num(l.ceiling)) return null
   if (l.signs && (!Array.isArray(l.signs) || !l.signs.every((g) => isRect(g) && (g.kind === undefined || g.kind === 'drop' || g.kind === 'float')))) return null
   if (l.arrows && (!Array.isArray(l.arrows) || !l.arrows.every((a) => !!a && num(a.x) && num(a.y) && num(a.size) && a.size > 0 && (a.angle === undefined || num(a.angle))))) return null
-  if (l.pictures && (!Array.isArray(l.pictures) || !l.pictures.every((p) => isRect(p) && (p.image === undefined || isImageId(p.image)) && (p.frame === undefined || typeof p.frame === 'boolean')))) return null
+  if (l.pictures && (!Array.isArray(l.pictures) || !l.pictures.every((p) => isRect(p) && (p.image === undefined || isImageId(p.image)) && (p.frame === undefined || typeof p.frame === 'boolean') && (p.pad === undefined || (num(p.pad) && p.pad >= 0 && p.pad <= 200))))) return null
   if (l.platforms.some((p) => p.channel !== undefined && !num(p.channel))) return null
   if (l.winds.some((w) => w.switched !== undefined && (typeof w.switched !== 'object' || !w.switched ||
     (w.switched.speed !== undefined && (!num(w.switched.speed) || w.switched.speed < 0)) ||

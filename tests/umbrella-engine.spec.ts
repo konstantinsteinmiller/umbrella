@@ -101,7 +101,8 @@ describe('umbrella engine', () => {
     w.player.x = 900
     w.player.y = 240
     w.player.open = false
-    run(w, 0.4)
+    // The current resists a closed umbrella more since the designer tuning of 4 Nov (closedWindResistance 0.62): it takes a little longer.
+    run(w, 0.7)
     expect(w.player.y).toBeGreaterThan(300)
   })
 

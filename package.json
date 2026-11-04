@@ -1,6 +1,6 @@
 {
   "name": "umbrella",
-  "version": "0.13.9",
+  "version": "0.16.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,6 +14,7 @@
     "build:itch": "vite build --mode itch --base=./ && cd dist && tar -a -cf ../umbrella-itch.zip * && cd .. && move umbrella-itch.zip dist\\",
     "build:itch:lantern": "node tools/build-art.mjs itch lantern",
     "build:itch:clay": "node tools/build-art.mjs itch clay",
+    "build:itch:playtest": "node tools/build-art.mjs itch",
     "build:glitch": "vite build --mode glitch --base=./ && cd dist && tar -a -cf ../umbrella-glitch.zip * && cd .. && move umbrella-glitch.zip dist\\",
     "build:game-distribution": "vite build --mode game-distribution --base=./",
     "build:playgama": "vite build --mode playgama --base=./ && cd dist && tar -a -cf ../umbrella-playgama.zip * && cd .. && move umbrella-playgama.zip dist\\",
@@ -27,6 +28,7 @@
     "deploy:poki:lantern": "node tools/poki-deploy/deploy.mjs --art lantern",
     "deploy:poki:clay": "node tools/poki-deploy/deploy.mjs --art clay",
     "build:poki-playtest": "vite build --mode poki-playtest --base=./ && cd dist && tar -a -cf ../umbrella-poki-playtest.zip * && cd .. && move umbrella-poki-playtest.zip dist\\",
+    "deploy:poki-quick-playtest": "node tools/poki-deploy/deploy.mjs --skip-qa-testing --playtest-chapter",
     "deploy:poki-quick-playtest-lantern": "node tools/poki-deploy/deploy.mjs --skip-qa-testing --art lantern --playtest-chapter",
     "build:kite": "vite build --mode kite --base=/umbrella/kite/ --outDir=dist/kite",
     "build:lantern": "vite build --mode lantern --base=/umbrella/lantern/ --outDir=dist/lantern",

@@ -103,15 +103,15 @@ export const GAME_TUNING: Tuning = {
   breakFraction: 0.95,
   splatFraction: 1,
   floatSpeed: 95,
-  brakingSnap: 0.1,
+  brakingSnap: 0.09,
   floatEaseTime: 0.11,
-  windTurnTime: 0.5,
+  windTurnTime: 0.55,
   windEdge: 15,
   bobDamping: 0.2,
   windScale: 1.7,
   superStreamScale: 2.5,
   superStreamBuildTime: 1.2,
-  closedWindResistance: 0.4,
+  closedWindResistance: 0.62,
   superClosedResistance: 0.75,
   wallSplatSpeed: 870,
   walkSpeed: 260,
@@ -146,8 +146,8 @@ export const GAME_TUNING: Tuning = {
 }
 
 /** The feel the 100 kite levels were solved and proven beatable under (tests/umbrella/kite-solutions.json): the
- *  game's own walk and air speeds moved on (designer tuning of 3 Nov), the kite build keeps these. */
-export const KITE_FEEL: Partial<Tuning> = { walkSpeed: 240, airSpeed: 200, airDrag: 240 }
+ *  game's own walk, air and wind feel moved on (designer tuning of 3 and 4 Nov), the kite build keeps these. */
+export const KITE_FEEL: Partial<Tuning> = { walkSpeed: 240, airSpeed: 200, airDrag: 240, brakingSnap: 0.1, windTurnTime: 0.5, closedWindResistance: 0.4 }
 export const KITE_TUNING: Tuning = { ...GAME_TUNING, ...KITE_FEEL }
 /** What every build plays with: the game's tuning, or the kite build's. */
 export const DEFAULT_TUNING: Tuning = isKite ? KITE_TUNING : GAME_TUNING
