@@ -16,6 +16,7 @@ Umbrella — changelog (newest first)
 - [x] Touch joystick: the finger is followed anywhere on the screen, not only over the pad's outline, and when it is dragged past either end of the pad the pad's centre follows it, so turning back reverses after a short move (about 70 px) instead of needing the whole way back across the pad
 - [x] Touch controls: drawn 25 % smaller, touchable area 10 % bigger than before (so it is easier to hit without taking more screen), and kept 4.5 % of the screen width from the sides and 7.5 % of its height from the bottom instead of 12-24 px, so a thumb reaches them comfortably on real phones and tablets (one `--ctl` scale and `--pad-x` / `--pad-y` set it for both the stick and the umbrella button)
 - [x] Touch joystick: the knob follows the finger freely, leaving the pad until it is let go (then it eases back); the direction is still read along the pad
+- [x] Touch umbrella button: the tappable area is another 30 % bigger (about 172 px across on a phone, 69 px drawn); the drawing is unchanged
 - [x] Touch umbrella button: with the umbrella shut its symbol fades while the round button and its outline stay clearly visible, so the pressable area shows
 - [x] Level grid: a tile with no rating and no collectible under its number is shorter (5:4 instead of 5:6) and no longer stretched to the height of its row
 - [x] Chapter blend-ins (the "World 1" card at the start and at each chapter's first level) are switched off for now; the card, its lanterns and the code stay behind one switch (CHAPTER_CARDS in UmbrellaScene.vue)

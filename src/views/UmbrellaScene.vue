@@ -1563,7 +1563,7 @@ onUnmounted(() => {
   transition: box-shadow 0.12s ease;
 }
 .umbrella-btn {
-  --tx-u: 31.5px;
+  --tx-u: 51.3px;
   right: calc(var(--pad-x) + env(safe-area-inset-right));
   width: calc(92px * var(--ctl));
   height: calc(92px * var(--ctl));
@@ -1604,7 +1604,7 @@ onUnmounted(() => {
    of the level, controlsBand) costs the level less height. */
 @media (orientation: landscape) and (max-height: 460px) {
   .stick { --tx-l: 40.2px; --tx-r: 56px; --tx-y: 36.9px; width: calc(124px * var(--ctl)); height: calc(60px * var(--ctl)); border-radius: calc(30px * var(--ctl)); }
-  .umbrella-btn { --tx-u: 28.7px; width: calc(76px * var(--ctl)); height: calc(76px * var(--ctl)); font-size: calc(36px * var(--ctl)); }
+  .umbrella-btn { --tx-u: 45.9px; width: calc(76px * var(--ctl)); height: calc(76px * var(--ctl)); font-size: calc(36px * var(--ctl)); }
   .stick-knob { width: calc(48px * var(--ctl)); height: calc(48px * var(--ctl)); margin: calc(-24px * var(--ctl)) 0 0 calc(-24px * var(--ctl)); }
 }
 .hud-btn.wide { width: auto; padding: 0 12px; font-size: 16px; font-weight: 700; }
