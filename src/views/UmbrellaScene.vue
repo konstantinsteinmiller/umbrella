@@ -1510,7 +1510,7 @@ onUnmounted(() => {
 .umbrella-btn {
   --ctl: 0.75;
   --pad-x: 4.5vw;
-  --pad-y: 4.5vh;
+  --pad-y: 7.5vh;
   position: absolute;
   bottom: calc(var(--pad-y) + env(safe-area-inset-bottom));
   z-index: 2;
