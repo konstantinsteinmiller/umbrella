@@ -976,6 +976,12 @@ const onAnyPointer = (e: PointerEvent) => {
 let stickRange = 52 // how far the knob travels: set from the pad's own width on touch-down
 const stickDir = ref(0)
 const knobX = ref(0)
+// The knob itself follows the finger anywhere (offset from the pad's centre, in px) and leaves the pad until it is
+// let go; `knobX` is only the pad's own reading (how far it is pushed along the pad, which sets the direction).
+const knobPos = ref({ x: 0, y: 0 })
+const knobDragging = ref(false)
+let padCx = 0
+let padCy = 0
 let stickId = -1
 let stickOrigin = 0
 // The wordless control coach: on levels 1-2 the stick and the umbrella button pulse until the player has
@@ -997,6 +1003,9 @@ const onStickDown = (e: PointerEvent) => {
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
   stickOrigin = r.left + r.width / 2
+  padCx = stickOrigin
+  padCy = r.top + r.height / 2
+  knobDragging.value = true
   stickRange = Math.max(22, r.width / 2 - 24)
   // The finger is followed on the WINDOW, not on the pad: it may leave the pad's outline (a long drag to
   // one side) and the stick must still answer it.
@@ -1011,6 +1020,7 @@ const onStickMove = (e: PointerEvent) => {
   const st = stickAt(stickOrigin, stickRange, e.clientX)
   stickOrigin = st.origin
   knobX.value = st.dx
+  knobPos.value = { x: e.clientX - padCx, y: e.clientY - padCy }
   stickDir.value = st.dir
 }
 const stopStickListeners = () => {
@@ -1023,6 +1033,8 @@ const onStickUp = (e: PointerEvent) => {
   stickId = -1
   stopStickListeners()
   knobX.value = 0
+  knobPos.value = { x: 0, y: 0 }
+  knobDragging.value = false
   stickDir.value = 0
 }
 const umbrellaPressed = ref(false)
@@ -1041,6 +1053,8 @@ const onBlur = () => {
   stickId = -1
   stopStickListeners()
   knobX.value = 0
+  knobPos.value = { x: 0, y: 0 }
+  knobDragging.value = false
   stickDir.value = 0
 }
 
@@ -1247,7 +1261,11 @@ onUnmounted(() => {
       >
         <span class="stick-arrow left"><UiGlyph name="prev" fallback="‹" /></span>
         <span class="stick-arrow right"><UiGlyph name="next" fallback="›" /></span>
-        <span class="stick-knob" :class="{ idle: knobX === 0 }" :style="{ transform: `translateX(${knobX}px)` }" />
+        <span
+          class="stick-knob"
+          :class="{ idle: !knobDragging }"
+          :style="{ transform: `translate(${knobPos.x}px, ${knobPos.y}px)`, transition: knobDragging ? 'box-shadow 0.12s ease' : 'transform 0.16s ease-out, box-shadow 0.12s ease, filter 0.15s ease' }"
+        />
       </div>
       <button
         ref="umbrellaBtnEl"
