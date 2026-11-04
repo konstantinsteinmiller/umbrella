@@ -7,6 +7,9 @@
 import { readFileSync, writeFileSync, existsSync, renameSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
+import { imageIdsIn } from './level-image-ids.mjs'
+
+export { imageIdsIn }
 
 export const OVERRIDES_FILE = resolve(fileURLToPath(new URL('../data/campaign-overrides.json', import.meta.url)))
 export const ORDER_FILE = resolve(fileURLToPath(new URL('../data/campaign-order.json', import.meta.url)))
@@ -21,19 +24,13 @@ const looksLikeLevel = (l) =>
 
 export const IMAGES_DIR = resolve(fileURLToPath(new URL('../public/level-images', import.meta.url)))
 
-/** Every image id the campaign's picture boards use (levelImages.ts names them: 24 hex digits). */
-export const imageIdsIn = (overrides) => [...new Set(Object.values(overrides)
-  .flatMap((l) => (Array.isArray(l?.pictures) ? l.pictures : []))
-  .map((p) => p?.image)
-  .filter((id) => typeof id === 'string' && /^[0-9a-f]{24}$/.test(id)))]
-
 /** Bakes the picture boards' images into public/level-images/<id>.webp, so a build ships them (portals forbid
  *  runtime requests). Only missing files are fetched; an unreachable bucket leaves what is there. Returns the ids fetched. */
-export const pullImages = async (bucketUrl, overrides, dir = IMAGES_DIR) => {
+export const pullImages = async (bucketUrl, docs, dir = IMAGES_DIR) => {
   const base = (bucketUrl ?? '').trim().replace(/\/+$/, '')
   const got = []
   if (!base) return got
-  for (const id of imageIdsIn(overrides)) {
+  for (const id of imageIdsIn(...docs)) {
     const file = resolve(dir, `${id}.webp`)
     if (existsSync(file)) continue
     try {
@@ -88,7 +85,6 @@ export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE, orderFile = O
     changed++
   }
   if (changed) writeFileSync(file, JSON.stringify(disk, null, 2) + '\n', 'utf-8')
-  const images = await pullImages(base, disk)
   // The campaign order (the editor's Reorder dialog) rides in the campaign section as "order".
   const o = bucket.campaign.order
   if (o && Number.isFinite(o.editedAt) && Array.isArray(o.level?.order)) {
@@ -111,6 +107,10 @@ export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE, orderFile = O
       changed++
     }
   }
+  // The campaign's images, from the overrides and from the levels the order carries as snapshots.
+  let order = {}
+  try { order = existsSync(orderFile) ? JSON.parse(readFileSync(orderFile, 'utf-8')) : {} } catch { /* none */ }
+  const images = await pullImages(base, [disk, order])
   return { ok: true, changed, message: `levels bucket: ${changed} campaign level${changed === 1 ? '' : 's'} updated${images.length ? `, ${images.length} picture${images.length === 1 ? '' : 's'} baked` : ''}` }
 }
 

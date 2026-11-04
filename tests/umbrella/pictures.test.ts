@@ -4,6 +4,8 @@ import { parseLevel, cloneLevel } from '@/umbrella/customLevels'
 import { LEVELS, isImageId, type LevelDef } from '@/umbrella/levels'
 import { arrowBox, drawArrow, drawPicture, setPictureImageSource } from '@/umbrella/pictureArt'
 import { imageIdsOf } from '@/umbrella/levelImages'
+// @ts-expect-error plain .mjs without types
+import { imageIdsIn } from '../../scripts/level-image-ids.mjs'
 
 const ID = '0123456789abcdef01234567'
 const base = (extra: Partial<LevelDef>): unknown => ({ ...cloneLevel(LEVELS[0]!), ...extra })
@@ -33,6 +35,13 @@ describe('standalone arrows and picture boards', () => {
   it('lists the image ids a level uses, once each ', () => {
     const l = { pictures: [{ image: ID }, { image: ID }, {}, { image: 'nope' }] }
     expect(imageIdsOf(l)).toEqual([ID])
+  })
+  it('finds the ids to bake for Poki / Playgama in the overrides and in levels the order carries as snapshots', () => {
+    const other = 'fedcba9876543210fedcba98'
+    const overrides = { 1: { pictures: [{ image: ID }] }, 2: { pictures: [{}, { image: 'nope' }] } }
+    const order = { order: [{ snapshot: { id: 1001, pictures: [{ image: other }, { image: ID }] } }], chapters: [] }
+    expect(imageIdsIn(overrides, order).sort()).toEqual([ID, other].sort())
+    expect(imageIdsIn({}, null, undefined)).toEqual([])
   })
   it('selects a turned arrow by a square around its centre', () => {
     expect(arrowBox({ x: 100, y: 50, size: 80, angle: 45 })).toEqual({ x: 60, y: 10, w: 80, h: 80 })

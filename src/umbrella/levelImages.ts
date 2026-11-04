@@ -13,6 +13,7 @@ import { ref } from 'vue'
 import { BUCKET_URL, bucketPassword } from './customLevels'
 import { isImageId } from './levels'
 import { setPictureImageSource } from './pictureArt'
+import { publicAssetExists } from '@/use/usePublicManifest'
 
 export { isImageId }
 
@@ -76,12 +77,12 @@ export const levelImage = (id: string | undefined): ImageBitmap | null => {
   void (async () => {
     const sources: (() => Promise<Blob>)[] = [
       async () => { const b = blobs.get(id); if (!b) throw new Error('none'); return b },
-      async () => { const p = readPending()[id]; if (!p) throw new Error('none'); return dataUrlToBlob(p) },
+      async () => { const p = readPending()[id]; if (!p) throw new Error('none'); return dataUrlToBlob(p) }
     ]
-    // The bucket first where there is one (it always has the newest; the baked copy only exists once a build has pulled
-    // the level, and a missing file is a console 404); builds without a bucket have only the baked copy.
+    // The copy baked into this build first, and only when the build shipped it (no 404s, and no request outside the
+    // game: Poki and the YouTube Playables archive allow none). The bucket only for an image that is not baked yet.
+    if (publicAssetExists(`level-images/${id}.webp`)) sources.push(() => fetchBlob(bakedUrl(id)))
     if (BUCKET_URL) sources.push(() => fetchBlob(bucketUrl(id)))
-    sources.push(() => fetchBlob(bakedUrl(id)))
     for (const get of sources) {
       // A source that answers with something that is not an image (a dev server's index.html) falls through too.
       try { loaded.set(id, await createImageBitmap(await get())); break } catch { /* next source */ }
