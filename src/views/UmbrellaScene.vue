@@ -1049,6 +1049,7 @@ const onStickUp = (e: PointerEvent) => {
   knobDragging.value = false
   stickDir.value = 0
   padShift.value = { x: 0, y: 0 }
+  stickBare.value = false
 }
 const umbrellaPressed = ref(false)
 /** Pweeg's umbrella as it is now (what the button shows), not whether a finger is on it. */
@@ -1066,6 +1067,8 @@ const onUmbrellaUp = () => { umbrellaPressed.value = false }
 // would miss). A finger on the left half puts the pad under itself and steers from there; a tap on the right half is a
 // press of the umbrella button. Touch only: a mouse has the keyboard.
 const padShift = ref({ x: 0, y: 0 })
+/** The steering finger came down on the left half rather than on the drawn pad: only the knob shows, under the finger. */
+const stickBare = ref(false)
 const onZoneStickDown = (e: PointerEvent) => {
   if (e.pointerType === 'mouse' || stickId !== -1) return
   const pad = stickEl.value
@@ -1074,13 +1077,12 @@ const onZoneStickDown = (e: PointerEvent) => {
   const r = pad.getBoundingClientRect()
   const homeX = r.left + r.width / 2 - padShift.value.x
   const homeY = r.top + r.height / 2 - padShift.value.y
-  // The pad is centred on the finger, kept inside the left half of the screen and clear of its edges.
-  const halfW = r.width / 2
-  const halfH = r.height / 2
-  const margin = 8
-  const cx = Math.max(halfW + margin, Math.min(window.innerWidth / 2 - halfW - margin, e.clientX))
-  const cy = Math.max(halfH + margin, Math.min(window.innerHeight - halfH - margin, e.clientY))
+  // The stick starts where the finger came down (its neutral point), wherever that is: its drawn pad is hidden, only the
+  // knob is seen, so nothing needs to stay inside the screen or the half.
+  const cx = e.clientX
+  const cy = e.clientY
   padShift.value = { x: cx - homeX, y: cy - homeY }
+  stickBare.value = true
   stickId = e.pointerId
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
   stickOrigin = cx
@@ -1112,6 +1114,7 @@ const onBlur = () => {
   knobDragging.value = false
   stickDir.value = 0
   padShift.value = { x: 0, y: 0 }
+  stickBare.value = false
 }
 
 // Every reason the game must be silent: ads, hidden tab, platform pause, and
@@ -1327,7 +1330,7 @@ onUnmounted(() => {
       <div
         ref="stickEl"
         class="stick"
-        :class="{ 'see-through': seeThrough.stick, coach: coachStick, held: knobX !== 0, floating: knobDragging, 'dir-l': stickDir < 0, 'dir-r': stickDir > 0 }"
+        :class="{ 'see-through': seeThrough.stick, coach: coachStick, held: knobX !== 0, floating: knobDragging, bare: stickBare, 'dir-l': stickDir < 0, 'dir-r': stickDir > 0 }"
         :style="{ '--sx': `${padShift.x}px`, '--sy': `${padShift.y}px` }"
         role="slider"
         :aria-label="t('umbrella.joystick')"
@@ -1652,6 +1655,10 @@ onUnmounted(() => {
   font-size: calc(44px * var(--ctl));
   line-height: 1;
   cursor: pointer;
+  /* The picture sits in the middle of the ring (a bare <button> would leave a block child at its left). */
+  display: grid;
+  place-items: center;
+  padding: 0;
 }
 .umbrella-btn::before { content: ''; position: absolute; inset: calc(var(--tx-u) * -1); border-radius: 50%; }
 .umbrella-btn { transition: color 0.12s ease, background 0.12s ease, transform 0.12s ease; }
@@ -1683,6 +1690,9 @@ onUnmounted(() => {
 /* The pad moves to the finger that steers it (--sx / --sy), and glides home when it lets go. */
 .stick { translate: var(--sx, 0px) var(--sy, 0px); transition: opacity 0.3s ease, translate 0.18s ease-out; }
 .stick.floating { transition: opacity 0.3s ease; }
+/* Steering from the left half: no pad behind the knob (its outline, fill, glow and arrows go), the knob alone follows the finger. */
+.stick.bare, .ui-lantern .stick.bare, .ui-clay .stick.bare { background: none !important; border-color: transparent !important; box-shadow: none !important; }
+.stick.bare .stick-arrow { opacity: 0 !important; }
 /* The two halves of the screen in landscape touch play. */
 .touch-zone { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .touch-zone.left { left: 0; }

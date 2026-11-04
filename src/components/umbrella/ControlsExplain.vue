@@ -207,14 +207,18 @@ onUnmounted(() => {
         <div class="ce-btn">
           <span class="ce-ripple" />
           <svg class="ce-umb ce-umb-closed" viewBox="0 0 48 64" focusable="false">
+            <g transform="translate(1.95 0.4)">
             <path class="u-canopy" d="M24 3 C28 11 29 24 26.5 40 L21.5 40 C19 24 20 11 24 3Z" />
             <path class="u-pole" d="M24 40 V54 a4.2 4.2 0 0 1 -8.4 0" />
             <path class="u-rib" d="M24 6 C25.5 16 25.5 28 24.4 38" />
+            </g>
           </svg>
           <svg class="ce-umb ce-umb-open" viewBox="0 0 48 64" focusable="false">
+            <g transform="translate(0 -0.6)">
             <path class="u-canopy" d="M3 30 A21 21 0 0 1 45 30 Q39.5 25 34.5 30 Q29.2 25 24 30 Q18.8 25 13.5 30 Q8.5 25 3 30Z" />
             <path class="u-pole" d="M24 30 V52 a4.2 4.2 0 0 1 -8.4 0" />
             <path class="u-rib" d="M24 10 V29 M13 17 L18 29 M35 17 L30 29" />
+            </g>
           </svg>
           <svg class="ce-tap" viewBox="0 0 40 48" focusable="false">
             <path d="M13.2 1.5c-1.9 0-3.4 1.5-3.4 3.4v17.6l-2.2-2.1c-1.2-1.1-3.1-1.1-4.2.1-1 1.1-1 2.8 0 3.9l7.4 8.4c1.6 1.9 3.8 3 6.3 3h8.1c3.7 0 6.7-3 6.7-6.7v-9.2c0-1.5-1.2-2.7-2.7-2.7-.5 0-.9.1-1.3.3-.4-1.2-1.5-2.1-2.8-2.1-.6 0-1.2.2-1.7.5-.5-1.1-1.5-1.8-2.7-1.8-.4 0-.8.1-1.1.2V4.9c0-1.9-1.5-3.4-3.4-3.4z" />
