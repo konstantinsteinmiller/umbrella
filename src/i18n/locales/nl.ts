@@ -265,6 +265,7 @@ export default {
       'effectPresence': "of het vast is",
       'effectMotion': "of het beweegt",
       'platformMoves': "Beweegt",
+      'once': "Slechts eenmaal",
       'same': "ongewijzigd",
       'mode': "Modus",
       'toggle': "Wisselen (aan / uit)",

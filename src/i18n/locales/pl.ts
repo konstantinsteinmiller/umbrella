@@ -265,6 +265,7 @@ export default {
       'effectPresence': "czy jest solidna",
       'effectMotion': "czy się porusza",
       'platformMoves': "Porusza się",
+      'once': "Tylko raz",
       'same': "bez zmian",
       'mode': "Tryb",
       'toggle': "Przełącz (wł. / wył.)",

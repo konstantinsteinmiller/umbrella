@@ -265,6 +265,7 @@ export default {
       'effectPresence': "क्या वह ठोस है",
       'effectMotion': "क्या वह चलता है",
       'platformMoves': "चलता है",
+      'once': "केवल एक बार",
       'same': "अपरिवर्तित",
       'mode': "मोड",
       'toggle': "टॉगल (चालू / बंद)",

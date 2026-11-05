@@ -265,6 +265,7 @@ export default {
       'effectPresence': "có đặc hay không",
       'effectMotion': "có di chuyển hay không",
       'platformMoves': "Di chuyển",
+      'once': "Chỉ một lần",
       'same': "không đổi",
       'mode': "Chế độ",
       'toggle': "Bật / tắt",

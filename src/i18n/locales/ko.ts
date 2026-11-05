@@ -265,6 +265,7 @@ export default {
       'effectPresence': "단단한지 여부",
       'effectMotion': "움직이는지 여부",
       'platformMoves': "움직임",
+      'once': "한 번만",
       'same': "변경 없음",
       'mode': "모드",
       'toggle': "토글 (켜기 / 끄기)",

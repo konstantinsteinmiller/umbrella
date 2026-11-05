@@ -265,6 +265,7 @@ export default {
       'effectPresence': "чи вона тверда",
       'effectMotion': "чи вона рухається",
       'platformMoves': "Рухається",
+      'once': "Лише один раз",
       'same': "без змін",
       'mode': "Режим",
       'toggle': "Перемикач (увімк. / вимк.)",

@@ -265,6 +265,7 @@ export default {
       'effectPresence': "твёрдая ли она",
       'effectMotion': "движется ли она",
       'platformMoves': "Движется",
+      'once': "Только один раз",
       'same': "без изменений",
       'mode': "Режим",
       'toggle': "Переключатель (вкл / выкл)",

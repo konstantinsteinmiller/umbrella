@@ -73,6 +73,8 @@ export interface ButtonDef {
   h: number
   channel: number
   duration?: number
+  /** One-time only: it works the first time it is pressed and never again (a toggle stays as that press left it). */
+  once?: boolean
 }
 
 /** A checkpoint flag standing on (x, y): touch it and a death respawns you there. */

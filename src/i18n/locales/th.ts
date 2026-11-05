@@ -265,6 +265,7 @@ export default {
       'effectPresence': "ว่าแข็งหรือไม่",
       'effectMotion': "ว่าเคลื่อนที่หรือไม่",
       'platformMoves': "เคลื่อนที่",
+      'once': "ครั้งเดียวเท่านั้น",
       'same': "ไม่เปลี่ยน",
       'mode': "โหมด",
       'toggle': "สลับ (เปิด / ปิด)",

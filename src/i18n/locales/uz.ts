@@ -265,6 +265,7 @@ export default {
       'effectPresence': "qattiq bo'lishini",
       'effectMotion': "harakatlanishini",
       'platformMoves': "Harakatlanadi",
+      'once': "Faqat bir marta",
       'same': "o‘zgarishsiz",
       'mode': "Rejim",
       'toggle': "Almashtirish (yoq / o‘chir)",

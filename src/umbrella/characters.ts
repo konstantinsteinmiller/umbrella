@@ -335,15 +335,17 @@ export interface WalldorfLook {
   facing: 1 | -1
   /** A Walldorf that can charge looks angry. */
   angry: boolean
+  /** Drawn in the hostile red whatever its contact says (the skinless look: one that moves or bumps can push him into a wall). */
+  hostile?: boolean
 }
 
 /** One colour per touch behaviour, so players read a Walldorf at a glance (editor uses them too). */
 export const WALLDORF_COLORS = { deadly: '#ff5a5f', solid: '#c3cde0', bounce: '#ffb020' }
 
 /** The body: the pillar, in its touch colour (a bouncy one with its springy rim). */
-const walldorfBody = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, contact: WalldorfLook['contact']): void => {
+const walldorfBody = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, contact: WalldorfLook['contact'], hostile = false): void => {
   const radius = Math.min(b.w / 2, 14)
-  ctx.fillStyle = WALLDORF_COLORS[contact]
+  ctx.fillStyle = hostile ? WALLDORF_COLORS.deadly : WALLDORF_COLORS[contact]
   ctx.beginPath()
   ctx.roundRect(b.x, b.y, b.w, b.h, radius)
   ctx.fill()
@@ -409,7 +411,7 @@ const walldorfFace = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; 
 /** A tall rounded pillar with two stacked eyes on its facing side. */
 export const drawWalldorf = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; w: number; h: number }, look: WalldorfLook): void => {
   ctx.save()
-  walldorfBody(ctx, b, look.contact)
+  walldorfBody(ctx, b, look.contact, look.hostile)
   walldorfFace(ctx, b, look)
   ctx.restore()
 }

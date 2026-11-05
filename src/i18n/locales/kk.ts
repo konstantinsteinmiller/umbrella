@@ -265,6 +265,7 @@ export default {
       'effectPresence': "оның қатты болуын",
       'effectMotion': "оның қозғалуын",
       'platformMoves': "Қозғалады",
+      'once': "Тек бір рет",
       'same': "өзгеріссіз",
       'mode': "Режим",
       'toggle': "Ауыстыру (қосу / өшіру)",

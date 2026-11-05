@@ -265,6 +265,7 @@ export default {
       'effectPresence': "se è solida",
       'effectMotion': "se si muove",
       'platformMoves': "In movimento",
+      'once': "Solo una volta",
       'same': "invariato",
       'mode': "Modalità",
       'toggle': "Alterna (on / off)",

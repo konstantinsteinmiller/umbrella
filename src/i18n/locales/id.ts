@@ -265,6 +265,7 @@ export default {
       'effectPresence': "apakah padat",
       'effectMotion': "apakah bergerak",
       'platformMoves': "Bergerak",
+      'once': "Hanya sekali",
       'same': "tidak berubah",
       'mode': "Mode",
       'toggle': "Alih (nyala / mati)",

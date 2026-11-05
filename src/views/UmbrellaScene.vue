@@ -18,7 +18,7 @@ import {
 import { checkpointBox, createWorld, gateExit, starBox, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
-import { isKite, paintedGame } from '@/umbrella/kite'
+import { artLayer, isKite, paintedGame } from '@/umbrella/kite'
 import { setStillSkyCanvas, watchFrame } from '@/umbrella/liteMode'
 import { ART_MODES, artModeUrl, currentArtMode, switchArtMode, type ArtMode } from '@/umbrella/artMode'
 import { editorAllowed } from '@/umbrella/editorAccess'
@@ -32,7 +32,7 @@ import TimeFreeze from '@/components/umbrella/TimeFreeze.vue'
 // never opens the editor, draws every picture board as its empty placeholder.
 import '@/umbrella/levelImages'
 import { FREEZE_LESSONS, isLastChanceInCurrent } from '@/umbrella/timeFreeze'
-import { CONTROLS_EXPLAIN, CONTROLS_EXPLAINED_KEY } from '@/umbrella/controlsExplain'
+import { CONTROLS_EXPLAIN, CONTROLS_EXPLAINED_KEY, MOBILE_THUMB_DISABLED } from '@/umbrella/controlsExplain'
 import UmbrellaStateIcon from '@/components/umbrella/UmbrellaStateIcon.vue'
 import { createIntro, INTRO_ENABLED, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
@@ -643,7 +643,7 @@ const touchedHazard = () => {
   }
   return best?.kind
 }
-/** The lantern build's mines blow up on contact: the death holds until the blast and Pweeg's
+/** The lantern, clay and skinless builds' mines blow up on contact: the death holds until the blast and Pweeg's
  *  destroyed poof (16 frames at 24 fps) have played, instead of the usual quick reset. */
 const MINE_DEATH_HOLD = 0.85
 let mineDeath = false
@@ -679,7 +679,7 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         playSfx('win', { pan: pan * 0.5 })
         break
       case 'splat': mineDeath = false; playSfx('splat', { intensity: 1, pan }); break
-      case 'hit': mineDeath = paintedGame && touchedHazard() === 'mine'; playSfx('hit', { hazard: (touchedHazard() === 'fan' ? 'mine' : touchedHazard()) as 'pillar' | 'mine' | 'spikes' | undefined, pan }); break
+      case 'hit': mineDeath = (paintedGame || !artLayer) && touchedHazard() === 'mine'; playSfx('hit', { hazard: (touchedHazard() === 'fan' ? 'mine' : touchedHazard()) as 'pillar' | 'mine' | 'spikes' | undefined, pan }); break
       case 'out': playSfx('whistle', { fade: tuning.whistleFade, pan }); break
       case 'break':
         playSfx('break', { pan })
@@ -1045,7 +1045,7 @@ const COACH_USES = 3
 const COACH_KEY = 'umb_coach_r1'
 const coachUses = ref(getState<{ stick: number; umbrella: number }>(COACH_KEY, { stick: 0, umbrella: 0 }))
 const coachOn = computed(() => touchUI.value && started.value && !testing && !playing.value && !challenge.value && levelIndex.value < 2)
-const coachStick = computed(() => coachOn.value && coachUses.value.stick < COACH_USES)
+const coachStick = computed(() => !MOBILE_THUMB_DISABLED && coachOn.value && coachUses.value.stick < COACH_USES)
 const coachUmbrella = computed(() => coachOn.value && coachUses.value.umbrella < COACH_USES)
 const coachUsed = (k: 'stick' | 'umbrella') => {
   if (coachUses.value[k] >= COACH_USES) return
@@ -1265,7 +1265,7 @@ onUnmounted(() => {
          the HUD and every menu in the page order, over the level. -->
     <ControlsExplain v-if="explainOn && (!tapDevice || landscapeView) && !introOn" @done="dismissExplain" />
     <TimeFreeze v-if="timeFrozen && !menuOpen && !introOn" :target="freezeTarget" :round="touchUI" @press="pressUmbrella" />
-    <template v-if="touchUI && landscapeView && started && !introOn">
+    <template v-if="touchUI && (landscapeView || MOBILE_THUMB_DISABLED) && started && !introOn">
       <div class="touch-zone left" aria-hidden="true" @pointerdown="onZoneStickDown" />
       <div class="touch-zone right" aria-hidden="true" @pointerdown="onZoneUmbrellaDown" @pointerup="onUmbrellaUp" @pointercancel="onUmbrellaUp" @contextmenu.prevent />
     </template>
@@ -1374,7 +1374,7 @@ onUnmounted(() => {
       <div
         ref="stickEl"
         class="stick"
-        :class="{ 'see-through': seeThrough.stick, coach: coachStick, held: knobX !== 0, floating: knobDragging, bare: stickBare, 'dir-l': stickDir < 0, 'dir-r': stickDir > 0 }"
+        :class="{ 'no-thumb': MOBILE_THUMB_DISABLED, 'see-through': seeThrough.stick, coach: coachStick, held: knobX !== 0, floating: knobDragging, bare: stickBare, 'dir-l': stickDir < 0, 'dir-r': stickDir > 0 }"
         :style="{ '--sx': `${padShift.x}px`, '--sy': `${padShift.y}px` }"
         role="slider"
         :aria-label="t('umbrella.joystick')"
@@ -1737,6 +1737,8 @@ onUnmounted(() => {
 /* Steering from the left half: no pad behind the knob (its outline, fill, glow and arrows go), the knob alone follows the finger. */
 .stick.bare, .ui-lantern .stick.bare, .ui-clay .stick.bare { background: none !important; border-color: transparent !important; box-shadow: none !important; }
 .stick.bare .stick-arrow { opacity: 0 !important; }
+/* No thumb stick (VITE_APP_MOBILE_THUMB_DISABLED): nothing of it is drawn or touched; it keeps its place, the left half steers. */
+.stick.no-thumb { visibility: hidden; pointer-events: none; }
 /* The two halves of the screen in landscape touch play. */
 .touch-zone { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .touch-zone.left { left: 0; }

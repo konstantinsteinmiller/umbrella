@@ -41,6 +41,8 @@ env:
   VITE_APP_INTRO_ENABLED: 'false'
   # The controls page (three animated lessons) before a new player's first level (src/umbrella/controlsExplain.ts).
   VITE_APP_CONTROLS_EXPLAIN: 'true'
+  # No drawn thumb stick on touch: the left side of the screen steers (controlsExplain.ts).
+  VITE_APP_MOBILE_THUMB_DISABLED: 'true'
 
 jobs:
   deploy:

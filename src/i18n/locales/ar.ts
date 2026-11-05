@@ -265,6 +265,7 @@ export default {
       'effectPresence': "كونها صلبة",
       'effectMotion': "حركتها",
       'platformMoves': "تتحرك",
+      'once': "مرة واحدة فقط",
       'same': "بلا تغيير",
       'mode': "الوضع",
       'toggle': "تبديل (تشغيل / إيقاف)",

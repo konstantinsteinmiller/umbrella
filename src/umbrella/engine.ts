@@ -100,6 +100,8 @@ export interface World {
   channels: Record<number, number>
   /** Buttons the player touched last tick: a press is the first touch. */
   buttonsDown: boolean[]
+  /** Per button: a one-time button has been pressed already (later presses do nothing). */
+  buttonsUsed?: boolean[]
   /** The last checkpoint touched (index into level.checkpoints), or -1. */
   checkpoint: number
   /** Which of level.stars are collected. */
@@ -259,6 +261,7 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
   return {
     channels: {},
     buttonsDown: (level.buttons ?? []).map(() => false),
+    buttonsUsed: (level.buttons ?? []).map(() => false),
     checkpoint: cp ? checkpoint : -1,
     starsGot: (level.stars ?? []).map((_, i) => !!opts.starsGot?.[i]),
     gateInside: (level.gates ?? []).map(() => open),
@@ -661,7 +664,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   for (let i = 0; i < buttons.length; i++) {
     const b = buttons[i]!
     const down = overlaps(pl.x, pl.y, pl.w, pl.h, b)
-    if (down && !w.buttonsDown[i]) {
+    if (down && !w.buttonsDown[i] && !(b.once && w.buttonsUsed?.[i])) {
+      ;(w.buttonsUsed ??= [])[i] = true
       if (b.duration) w.channels[b.channel] = w.time + b.duration
       else w.channels[b.channel] = channelOn(w, b.channel) ? 0 : Infinity
       events.push('button')

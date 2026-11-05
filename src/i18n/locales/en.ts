@@ -268,6 +268,7 @@ export default {
       'effectPresence': "whether it is solid",
       'effectMotion': "whether it moves",
       'platformMoves': "Moving",
+      'once': "One-time only",
       'same': "unchanged",
       'mode': "Mode",
       'toggle': "Toggle (on / off)",

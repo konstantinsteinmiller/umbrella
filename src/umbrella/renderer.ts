@@ -321,7 +321,7 @@ export const drawButton = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: bool
   ctx.beginPath()
   ctx.roundRect(b.x, b.y + b.h - capH - 2, b.w, capH, 4)
   ctx.fill()
-  if (on && b.duration && Number.isFinite(left)) {
+  if (on && b.duration && Number.isFinite(left) && left > 0) {
     ctx.fillStyle = col
     ctx.font = '700 14px system-ui, sans-serif'
     ctx.textAlign = 'center'
@@ -589,6 +589,117 @@ const drawFan = (ctx: CanvasRenderingContext2D, h: Hazard, time: number) => {
   fanHub(ctx, h)
 }
 
+/** Where each mine Pweeg ran into went off (pinned there for the rest of the death, even if the mine keeps drifting). */
+const ripBlasts = new WeakMap<Hazard, { x: number; y: number }>()
+const ripOf = (h: Hazard, w: World): { x: number; y: number } | undefined => {
+  if (w.phase !== 'splat') {
+    ripBlasts.delete(h)
+    return undefined
+  }
+  const pl = w.player
+  if (!ripBlasts.has(h) && pl.x < h.x + h.w + 2 && pl.x + pl.w > h.x - 2 && pl.y < h.y + h.h + 2 && pl.y + pl.h > h.y - 2) {
+    ripBlasts.set(h, { x: h.x + h.w / 2, y: h.y + h.h / 2 })
+  }
+  return ripBlasts.get(h)
+}
+/** The skinless mine's blast, on the marker-on-paper look: a flash, a torn-paper starburst with ragged edges and a heavy marker
+ *  outline, ripped scraps flung out spinning and falling, comic action lines and a shock ring. `t` is seconds since the hit
+ *  (the whole thing is over by MINE_DEATH_HOLD). Flat white and ink only, like everything else in this look. */
+const drawMineRip = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, seed: number): void => {
+  const rnd = (n: number) => { const s = Math.sin((n + seed * 97) * 12.9898) * 43758.5453; return s - Math.floor(s) }
+  const ease = (u: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3)
+  const ink = (w: number) => { ctx.strokeStyle = BG; ctx.lineWidth = Math.max(1.5, w); ctx.lineJoin = 'round'; ctx.lineCap = 'round' }
+  ctx.save()
+  ctx.translate(x, y)
+  // The flash.
+  if (t < 0.1) {
+    ctx.globalAlpha = 1 - t / 0.1
+    ctx.fillStyle = FG
+    ctx.beginPath()
+    ctx.arc(0, 0, r * (1.3 + 3 * t), 0, Math.PI * 2)
+    ctx.fill()
+  }
+  // The torn starburst: a big ragged sheet over a smaller one, bursting out and folding away.
+  const grow = ease(t / 0.16)
+  const fold = Math.max(0, 1 - Math.max(0, t - 0.2) / 0.3)
+  if (fold > 0) {
+    ;[[2.0, FG], [1.15, '#d9dde8']].forEach(([k, col], layer) => {
+      const R = r * (k as number) * grow * fold
+      const n = 11
+      ctx.globalAlpha = 1
+      ctx.fillStyle = col as string
+      ink(r * 0.1)
+      ctx.beginPath()
+      for (let i = 0; i < n * 2; i++) {
+        const a = (i / (n * 2)) * Math.PI * 2 + layer * 0.37 + seed
+        const rr = i % 2 ? R * (0.42 + 0.14 * rnd(i + layer * 31)) : R * (0.8 + 0.4 * rnd(i * 3 + layer * 17))
+        // A torn edge is never straight: each tip gets a little kink before it.
+        const kink = i % 2 ? 0 : (rnd(i + 5) - 0.5) * R * 0.1
+        const px = Math.cos(a) * rr + Math.cos(a + Math.PI / 2) * kink
+        const py = Math.sin(a) * rr + Math.sin(a + Math.PI / 2) * kink
+        if (i) ctx.lineTo(px, py)
+        else ctx.moveTo(px, py)
+      }
+      ctx.closePath()
+      ctx.fill()
+      ctx.stroke()
+    })
+  }
+  // The shock ring.
+  if (t < 0.36) {
+    const u = t / 0.36
+    ctx.globalAlpha = 0.9 * (1 - u)
+    ctx.strokeStyle = FG
+    ctx.lineWidth = Math.max(1.5, r * 0.2 * (1 - u))
+    ctx.beginPath()
+    ctx.arc(0, 0, r * (1 + 2.6 * ease(u)), 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  // Ripped scraps: ragged paper bits flung out, spinning, falling, with a marker outline.
+  for (let i = 0; i < 14; i++) {
+    const u = t / 0.8
+    if (u >= 1) break
+    const a = (i / 14) * Math.PI * 2 + rnd(i) * 0.5
+    const v = r * (3.2 + 2.4 * rnd(i * 5 + 1))
+    const size = r * (0.22 + 0.2 * rnd(i * 7 + 2))
+    ctx.save()
+    ctx.translate(Math.cos(a) * v * t, Math.sin(a) * v * t + r * 5 * t * t)
+    ctx.rotate(a + t * (6 + 6 * rnd(i + 3)) * (rnd(i) < 0.5 ? -1 : 1))
+    ctx.globalAlpha = Math.min(1, (1 - u) * 1.8)
+    ctx.fillStyle = i % 3 ? FG : '#d9dde8'
+    ink(r * 0.07)
+    ctx.beginPath()
+    const pts = 5 + (i % 2)
+    for (let j = 0; j < pts; j++) {
+      const b = (j / pts) * Math.PI * 2
+      const rr = size * (0.55 + 0.6 * rnd(i * 11 + j))
+      if (j) ctx.lineTo(Math.cos(b) * rr, Math.sin(b) * rr)
+      else ctx.moveTo(Math.cos(b) * rr, Math.sin(b) * rr)
+    }
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.restore()
+  }
+  // Action lines: short marker dashes racing out.
+  if (t < 0.34) {
+    const u = t / 0.34
+    ctx.globalAlpha = 1 - u
+    ctx.strokeStyle = FG
+    ctx.lineWidth = Math.max(1.5, r * 0.09)
+    ctx.lineCap = 'round'
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + rnd(i + 40) * 0.4
+      const d = r * (1.3 + 3.6 * ease(u))
+      ctx.beginPath()
+      ctx.moveTo(Math.cos(a) * d, Math.sin(a) * d)
+      ctx.lineTo(Math.cos(a) * (d + r * 0.7 * (1 - u)), Math.sin(a) * (d + r * 0.7 * (1 - u)))
+      ctx.stroke()
+    }
+  }
+  ctx.restore()
+}
+
 const drawHazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => {
   const pl = w.player
   const px = pl.x + pl.w / 2
@@ -596,13 +707,21 @@ const drawHazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => {
   if (artLayer && kiteArt.hazard?.(ctx, h, w)) return
   if (h.kind === 'spikes') drawSpikes(ctx, h)
   else if (h.kind === 'fan') drawFan(ctx, h, w.time)
-  else if (h.kind === 'mine') drawPrickbait(ctx, h.x + h.w / 2, h.y + h.h / 2, h.w / 2, px, py, w.time)
+  else if (h.kind === 'mine') {
+    // Touched, the skinless mine goes off: it is gone and only its torn-paper blast is left (the painted looks have their own).
+    const rip = ripOf(h, w)
+    if (rip) drawMineRip(ctx, rip.x, rip.y, h.w / 2, w.phaseTime, (rip.x * 0.013 + rip.y * 0.007) % 1)
+    else drawPrickbait(ctx, h.x + h.w / 2, h.y + h.h / 2, h.w / 2, px, py, w.time)
+  }
   else {
     // A charging Walldorf faces its charge and looks angry; a calm one watches Pweeg.
     const m = h.motion
     const charge = m?.kind === 'lunge' ? Math.sign(m.b.x - m.a.x) : 0
     const facing = (charge || Math.sign(px - (h.x + h.w / 2)) || 1) as 1 | -1
-    drawWalldorf(ctx, h, { contact: contactOf(h), facing, angry: m?.kind === 'lunge' })
+    // Skinless: red tells him it is hostile — anything that bumps him, and anything that moves (even a harmless-looking one
+    // can push him into a wall). Only a still, harmless one keeps its calm grey.
+    const hostile = contactOf(h) === 'bounce' || (!!m && m.kind !== 'static')
+    drawWalldorf(ctx, h, { contact: contactOf(h), facing, angry: m?.kind === 'lunge', hostile })
   }
 }
 
@@ -702,7 +821,7 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
 const drawButtonMarks = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: boolean, left: number) => {
   const col = channelColor(b.channel)
   const capH = on ? b.h * 0.35 : b.h
-  if (on && b.duration && Number.isFinite(left)) {
+  if (on && b.duration && Number.isFinite(left) && left > 0) {
     ctx.fillStyle = col
     ctx.font = '700 14px system-ui, sans-serif'
     ctx.textAlign = 'center'
@@ -839,11 +958,17 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   // the player goes over it (the lantern dais is wider than its platform and was overlapped).
   for (const p of w.platforms) if (!p.finish) drawPlatform(p)
 
-  for (const b of w.level.buttons ?? []) {
-    const on = channelOn(w, b.channel)
+  const buttons = w.level.buttons ?? []
+  for (let i = 0; i < buttons.length; i++) {
+    const b = buttons[i]!
+    // A spent one-time button stays pressed flat and dimmed: it has done its job.
+    const spent = !!b.once && !!w.buttonsUsed?.[i]
+    const on = channelOn(w, b.channel) || spent
     const left = (w.channels[b.channel] ?? 0) - w.time
+    if (spent) ctx.globalAlpha = 0.5
     if (artLayer && kiteArt.button?.(ctx, b, on, channelColor(b.channel))) drawButtonMarks(ctx, b, on, left)
     else drawButton(ctx, b, on, left)
+    ctx.globalAlpha = 1
   }
   for (const h of w.hazards) drawHazard(ctx, h, w)
   for (const p of w.platforms) if (p.finish) drawPlatform(p)

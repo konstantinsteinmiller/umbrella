@@ -265,6 +265,7 @@ export default {
       'effectPresence': "si elle est solide",
       'effectMotion': "si elle bouge",
       'platformMoves': "En mouvement",
+      'once': "Une seule fois",
       'same': "inchangé",
       'mode': "Mode",
       'toggle': "Bascule (marche / arrêt)",

@@ -33,6 +33,7 @@ const fork = (w: World): World => ({
   ...w,
   channels: { ...w.channels },
   buttonsDown: [...w.buttonsDown],
+  buttonsUsed: w.buttonsUsed && [...w.buttonsUsed],
   starsGot: [...w.starsGot],
   gateInside: [...w.gateInside],
   platforms: w.platforms.map((p) => ({ ...p })),

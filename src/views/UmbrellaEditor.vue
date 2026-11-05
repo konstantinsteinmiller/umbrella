@@ -32,7 +32,7 @@ import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, LESSON_H, LESSON_KINDS, LESSON_W, PICT
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { arrowBox, pictureInset } from '@/umbrella/pictureArt'
-import { addImage, IMAGE_ACCEPT, levelImage, looksLikeImage, uploadPending } from '@/umbrella/levelImages'
+import { addImage, IMAGE_ACCEPT, imageIdsOf, levelImage, looksLikeImage, uploadPending } from '@/umbrella/levelImages'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
@@ -1105,7 +1105,7 @@ const setContact = (h: HazardDef, c: WalldorfContact) => {
   else if (c === 'bounce') h.contact = 'bounce'
   if (c !== 'bounce') delete h.bounce
 }
-const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion', on: boolean) => {
+const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once', on: boolean) => {
   const o = ent as Record<string, unknown>
   if (on) o[key] = true
   else delete o[key]
@@ -1452,8 +1452,18 @@ const stepCampaign = (d: number) => {
   onPickLevel(`c:${LEVELS[i]!.id}`)
 }
 const onNew = () => { currentPick.value = ''; loadIntoEditor(blankLevel(), t('umbrellaEditor.untitled')); overwriteSlot.value = ''; flash(t('umbrellaEditor.msg.newLevel')) }
+/** Asks before a save or overwrite takes a picture board's image out of the level: the stored version has images this one
+ *  no longer uses (a removed image, a deleted board), and the save would push that loss to everyone. Designer tools are English. */
+const confirmDroppedImages = (previous: LevelDef | undefined, what: string): boolean => {
+  if (!previous) return true
+  const keep = new Set(imageIdsOf(level.value))
+  const lost = imageIdsOf(previous).filter((id) => !keep.has(id))
+  if (!lost.length) return true
+  return window.confirm(`${what} would drop ${lost.length} picture board image${lost.length === 1 ? '' : 's'} that the stored version has (a removed image or a deleted board). Save anyway?`)
+}
 const onSave = () => {
   const name = levelName.value.trim() || t('umbrellaEditor.untitled')
+  if (!confirmDroppedImages(customLevels.value[name], `Saving "${name}"`)) return
   levelName.value = name
   saveCustomLevel(name, level.value)
   flash(t('umbrellaEditor.msg.saved', { name }))
@@ -1486,6 +1496,7 @@ const onOverwrite = () => {
   if (id === '') return
   const n = slotNumber(id)
   if (!window.confirm(`Replace campaign level ${n} with this edit? (Revert restores the original.)`)) return
+  if (!confirmDroppedImages(LEVELS.find((x) => x.id === id), `Replacing campaign level ${n}`)) return
   saveCampaignOverride(id, level.value)
   flash(`Campaign level ${n} replaced`)
 }
@@ -2166,6 +2177,7 @@ onUnmounted(() => {
             <label v-if="selectedButton.duration" class="row">{{ t('umbrellaEditor.prop.seconds') }}
               <input v-model.number="selectedButton.duration" class="field num" type="number" min="0.5" step="0.5" />
             </label>
+            <label class="check"><input type="checkbox" :checked="!!selectedButton.once" @change="setFlag(selectedButton, 'once', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.once') }}</label>
             <p class="hint">{{ t(selectedButton.duration ? 'umbrellaEditor.timedHint' : 'umbrellaEditor.toggleHint', { s: selectedButton.duration ?? 0 }) }}</p>
           </template>
 

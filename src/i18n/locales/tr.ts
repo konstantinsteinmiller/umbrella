@@ -265,6 +265,7 @@ export default {
       'effectPresence': "katı olup olmadığını",
       'effectMotion': "hareket edip etmediğini",
       'platformMoves': "Hareket eder",
+      'once': "Yalnızca bir kez",
       'same': "değişmez",
       'mode': "Mod",
       'toggle': "Aç / kapat",

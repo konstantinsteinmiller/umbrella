@@ -265,6 +265,7 @@ export default {
       'effectPresence': "実体になるか",
       'effectMotion': "動くか",
       'platformMoves': "動く",
+      'once': "1回だけ",
       'same': "変化なし",
       'mode': "モード",
       'toggle': "切り替え（オン / オフ）",

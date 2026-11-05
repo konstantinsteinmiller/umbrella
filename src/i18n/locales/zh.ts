@@ -265,6 +265,7 @@ export default {
       'effectPresence': "是否实体",
       'effectMotion': "是否移动",
       'platformMoves': "移动",
+      'once': "仅一次",
       'same': "不变",
       'mode': "模式",
       'toggle': "切换（开 / 关）",
