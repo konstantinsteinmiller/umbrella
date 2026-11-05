@@ -332,5 +332,5 @@ export const drawLessonCard = (ctx: CanvasRenderingContext2D, p: LessonDef, time
 
 /** A controls board: the card, hung from two ropes that sway in the wind. */
 export const drawLesson = (ctx: CanvasRenderingContext2D, p: LessonDef, time: number): void => {
-  drawHung(ctx, p, time, () => drawLessonCard(ctx, p, time))
+  drawHung(ctx, p, time, () => drawLessonCard(ctx, p, time), p.ropes === true)
 }

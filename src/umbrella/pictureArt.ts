@@ -212,11 +212,13 @@ const drawRope = (ctx: CanvasRenderingContext2D, ax: number, ay: number, kx: num
   ctx.restore()
 }
 
-export const drawPicture = (ctx: CanvasRenderingContext2D, p: PictureDef, time: number): void => drawHung(ctx, p, time, () => drawBoard(ctx, p))
+export const drawPicture = (ctx: CanvasRenderingContext2D, p: PictureDef, time: number): void => drawHung(ctx, p, time, () => drawBoard(ctx, p), p.ropes === true)
 
 /** Any board hung from two ropes above the screen's top edge, swaying a little in the wind: `body` draws the board itself where
  *  it is (it is moved and turned for the sway; the ropes and knots are drawn here). */
-export const drawHung = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number }, time: number, body: () => void): void => {
+export const drawHung = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number }, time: number, body: () => void, ropes = true): void => {
+  // Without ropes (the default for a board the designer places) it simply stands where it is.
+  if (!ropes) { body(); return }
   const lit = paintedGame
   const seed = p.x * 0.013 + p.y * 0.007
   const g = reducedMotion() ? 0 : wind(seed, time)

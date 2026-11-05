@@ -870,6 +870,13 @@ const onPictureFile = (e: Event) => {
   const s = selection.value
   if (file && s?.type === 'entity' && s.group === 'pictures') void attachImage(file, { i: s.i })
 }
+/** Hang a board from two ropes (they sway in the wind) or let it stand; off is the default and is not stored. */
+const setRopes = (on: boolean) => {
+  const b = selectedPicture.value ?? selectedLesson.value
+  if (!b) return
+  if (on) b.ropes = true
+  else delete b.ropes
+}
 const setPictureFrame = (on: boolean) => {
   const p = selectedPicture.value
   if (!p) return
@@ -2179,7 +2186,8 @@ onUnmounted(() => {
                 <option v-for="k in LESSON_KINDS" :key="k" :value="k">{{ LESSON_NAMES[k] }}</option>
               </select>
             </label>
-            <p class="hint">An animated lesson hung from two ropes. Touch players see the finger on the infinity line and the umbrella button; keyboard players see their own keys (arrows and letters, the umbrella key). Place the three in a row in level 1: move, then auto-open, then open / close.</p>
+            <label class="check"><input type="checkbox" :checked="selectedLesson.ropes === true" @change="setRopes(($event.target as HTMLInputElement).checked)" /> Hang from ropes (sways in the wind)</label>
+            <p class="hint">An animated lesson, standing or (with the switch above) hung from two ropes. Touch players see the finger on the infinity line and the umbrella button; keyboard players see their own keys (arrows and letters, the umbrella key). Place the three in a row in level 1: move, then auto-open, then open / close.</p>
           </template>
 
           <template v-if="selectedPicture">
@@ -2199,6 +2207,7 @@ onUnmounted(() => {
               <span v-else>Drop an image here, or click to choose one</span>
             </div>
             <input ref="imagePicker" type="file" :accept="IMAGE_ACCEPT" hidden @change="onPictureFile" />
+            <label class="check"><input type="checkbox" :checked="selectedPicture.ropes === true" @change="setRopes(($event.target as HTMLInputElement).checked)" /> Hang from ropes (sways in the wind)</label>
             <label class="check"><input type="checkbox" :checked="selectedPicture.frame !== false" @change="setPictureFrame(($event.target as HTMLInputElement).checked)" /> Paper board around the image</label>
             <template v-if="selectedPicture.frame !== false">
               <label class="check"><input type="checkbox" :checked="selectedPicture.pad === 0" @change="setNoPadding(($event.target as HTMLInputElement).checked)" /> No padding: the image fills the board</label>

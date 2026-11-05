@@ -107,6 +107,8 @@ export const ARROW_DEFAULT_ANGLE = 180
  *  draws the picture alone, without the paper board. Decoration only. */
 export interface PictureDef {
   x: number; y: number; w: number; h: number; image?: string; frame?: boolean
+  /** Hang from two ropes above the screen's top edge and sway in the wind. Absent / false: the board stands still, no ropes. */
+  ropes?: boolean
   /** The space between the board's edge and the image, in world units. Absent: the default (14, less on a small board);
    *  0: no padding, the image fills the whole board. Not used without the paper board (`frame: false`). */
   pad?: number
@@ -119,7 +121,11 @@ export const PICTURE_PAD_MAX = 60
  *  opens and shuts it. Decoration only. */
 export type LessonKind = 'move' | 'auto' | 'toggle'
 export const LESSON_KINDS: LessonKind[] = ['move', 'auto', 'toggle']
-export interface LessonDef { x: number; y: number; w: number; h: number; kind: LessonKind }
+export interface LessonDef {
+  x: number; y: number; w: number; h: number; kind: LessonKind
+  /** Hang from two ropes above the screen's top edge and sway in the wind. Absent / false: the board stands still, no ropes. */
+  ropes?: boolean
+}
 export const LESSON_W = 280
 export const LESSON_H = 180
 export const PICTURE_W = 200

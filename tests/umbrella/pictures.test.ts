@@ -139,6 +139,34 @@ describe('encoding the picture (Safari cannot encode WebP)', () => {
   })
 })
 
+describe('board ropes are optional (off by default)', () => {
+  it('draws the ropes and knots only on a board that has them switched on', () => {
+    const img = { naturalWidth: 400, naturalHeight: 200 } as unknown as CanvasImageSource
+    setPictureImageSource(() => img)
+    const board = { x: 0, y: 200, w: 240, h: 160, image: '0123456789abcdef01234567' }
+    const off = fakeCtx()
+    drawPicture(off, board, 1)
+    expect(off.calls).not.toContain('lineTo') // no rope
+    expect(off.calls).not.toContain('rotate') // no sway
+    const on = fakeCtx()
+    drawPicture(on, { ...board, ropes: true }, 1)
+    expect(on.calls).toContain('lineTo')
+    expect(on.calls).toContain('rotate')
+    const lessonOff = fakeCtx()
+    drawLesson(lessonOff, { x: 0, y: 200, w: 280, h: 180, kind: 'move' }, 1)
+    const lessonOn = fakeCtx()
+    drawLesson(lessonOn, { x: 0, y: 200, w: 280, h: 180, kind: 'move', ropes: true }, 1)
+    expect(lessonOn.calls.length).toBeGreaterThan(lessonOff.calls.length) // the ropes and knots are extra drawing
+    setPictureImageSource(() => null)
+  })
+  it('keeps the setting through parseLevel and refuses a non-boolean', () => {
+    const b = { x: 0, y: 0, w: 10, h: 10 }
+    expect(parseLevel(base({ pictures: [{ ...b, ropes: true }] }))?.pictures?.[0]?.ropes).toBe(true)
+    expect(parseLevel(base({ pictures: [{ ...b, ropes: 'yes' as never }] }))).toBeNull()
+    expect(parseLevel(base({ lessons: [{ ...b, kind: 'move', ropes: 1 as never }] as never }))).toBeNull()
+  })
+})
+
 describe('controls boards', () => {
   const lesson = (kind: string) => ({ x: 10, y: 120, w: 280, h: 180, kind })
   it('keeps the level controls boards through parseLevel and refuses an unknown lesson', () => {
