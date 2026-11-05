@@ -308,22 +308,29 @@ const drawToggle = (ctx: CanvasRenderingContext2D, ix: number, iy: number, iw: n
   }
 }
 
-/** A controls board: the paper, the lesson's window, and its animation, hung from two ropes that sway in the wind. */
-export const drawLesson = (ctx: CanvasRenderingContext2D, p: LessonDef, time: number): void => {
+/** A lesson's window (night panel and animation) in the box `x, y, w, h`, clipped to its rounded corners. */
+export const drawLessonWindow = (ctx: CanvasRenderingContext2D, kind: LessonDef['kind'], ix: number, iy: number, iw: number, ih: number, time: number): void => {
   const L = look(paintedGame)
-  drawHung(ctx, p, time, () => {
-    drawPaper(ctx, p, L.lit)
-    const pad = Math.min(12, Math.min(p.w, p.h) * 0.08)
-    const ix = p.x + pad, iy = p.y + pad, iw = p.w - pad * 2, ih = p.h - pad * 2
-    ctx.save()
-    rr(ctx, ix, iy, iw, ih, 6)
-    ctx.clip()
-    panel(ctx, ix, iy, iw, ih, L)
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
-    if (p.kind === 'move') drawMove(ctx, ix, iy, iw, ih, time, L)
-    else if (p.kind === 'auto') drawAuto(ctx, ix, iy, iw, ih, time, L)
-    else drawToggle(ctx, ix, iy, iw, ih, time, L)
-    ctx.restore()
-  })
+  ctx.save()
+  rr(ctx, ix, iy, iw, ih, 6)
+  ctx.clip()
+  panel(ctx, ix, iy, iw, ih, L)
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  if (kind === 'move') drawMove(ctx, ix, iy, iw, ih, time, L)
+  else if (kind === 'auto') drawAuto(ctx, ix, iy, iw, ih, time, L)
+  else drawToggle(ctx, ix, iy, iw, ih, time, L)
+  ctx.restore()
+}
+
+/** A paper card with a lesson in it, where it is (no ropes: the controls page lays three of them in a row). */
+export const drawLessonCard = (ctx: CanvasRenderingContext2D, p: LessonDef, time: number): void => {
+  drawPaper(ctx, p, paintedGame)
+  const pad = Math.min(12, Math.min(p.w, p.h) * 0.08)
+  drawLessonWindow(ctx, p.kind, p.x + pad, p.y + pad, p.w - pad * 2, p.h - pad * 2, time)
+}
+
+/** A controls board: the card, hung from two ropes that sway in the wind. */
+export const drawLesson = (ctx: CanvasRenderingContext2D, p: LessonDef, time: number): void => {
+  drawHung(ctx, p, time, () => drawLessonCard(ctx, p, time))
 }
