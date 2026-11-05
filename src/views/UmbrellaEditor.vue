@@ -1105,7 +1105,7 @@ const setContact = (h: HazardDef, c: WalldorfContact) => {
   else if (c === 'bounce') h.contact = 'bounce'
   if (c !== 'bounce') delete h.bounce
 }
-const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff', on: boolean) => {
+const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion', on: boolean) => {
   const o = ent as Record<string, unknown>
   if (on) o[key] = true
   else delete o[key]
@@ -1113,7 +1113,7 @@ const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff', on: boolean
 
 // ── Switches: platforms and currents on a button channel ──
 const setChannel = (ent: PlatformDef | WindDef, v: string) => {
-  if (v === '') { delete ent.channel; delete (ent as PlatformDef).whenOff; delete (ent as WindDef).switched; return }
+  if (v === '') { delete ent.channel; delete (ent as PlatformDef).whenOff; delete (ent as PlatformDef).switchMotion; delete (ent as WindDef).switched; return }
   ent.channel = Number(v)
   if ('dir' in ent) ent.switched ??= { speed: 0 }
 }
@@ -2108,7 +2108,13 @@ onUnmounted(() => {
               </select>
             </label>
             <template v-if="selectedPlatform && selectedPlatform.channel !== undefined">
-              <label class="row">{{ t('umbrellaEditor.prop.platformShows') }}
+              <label class="row">{{ t('umbrellaEditor.prop.switchEffect') }}
+                <select class="field" :value="selectedPlatform.switchMotion ? 'motion' : 'presence'" @change="setFlag(selectedPlatform, 'switchMotion', ($event.target as HTMLSelectElement).value === 'motion')">
+                  <option value="presence">{{ t('umbrellaEditor.prop.effectPresence') }}</option>
+                  <option value="motion">{{ t('umbrellaEditor.prop.effectMotion') }}</option>
+                </select>
+              </label>
+              <label class="row">{{ t(selectedPlatform.switchMotion ? 'umbrellaEditor.prop.platformMoves' : 'umbrellaEditor.prop.platformShows') }}
                 <select class="field" :value="selectedPlatform.whenOff ? 'off' : 'on'" @change="setFlag(selectedPlatform, 'whenOff', ($event.target as HTMLSelectElement).value === 'off')">
                   <option value="on">{{ t('umbrellaEditor.prop.whileOn') }}</option>
                   <option value="off">{{ t('umbrellaEditor.prop.whileOff') }}</option>

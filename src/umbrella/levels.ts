@@ -59,6 +59,9 @@ export interface PlatformDef {
    *  (or only while it is off, with `whenOff`). Absent: always there. */
   channel?: number
   whenOff?: boolean
+  /** With a `channel`: the channel switches the platform's MOTION, not its presence. It is always there and solid, glides
+   *  while the channel is on (or off, with `whenOff`) and stands still otherwise, taking up again where it stopped. */
+  switchMotion?: boolean
 }
 
 /** A floor button: touching it switches its channel. Without `duration` each press

@@ -24,6 +24,8 @@ export interface Platform extends PlatformDef {
   /** Movement this tick, carried onto a player standing on it. */
   dx: number
   dy: number
+  /** A motion-switched platform's own movement clock: it only runs while the platform moves. */
+  mt?: number
 }
 
 export interface Hazard extends HazardDef {
@@ -119,7 +121,11 @@ export const channelOn = (w: World, channel: number | undefined): boolean =>
 
 /** A switched platform is solid (and drawn) only while its channel says so. */
 export const platformActive = (w: World, p: PlatformDef): boolean =>
-  p.channel === undefined || channelOn(w, p.channel) !== !!p.whenOff
+  p.channel === undefined || !!p.switchMotion || channelOn(w, p.channel) !== !!p.whenOff
+
+/** Is this platform moving right now? Only a motion-switched one ever stands still (its channel decides). */
+export const platformMoving = (w: World, p: PlatformDef): boolean =>
+  p.channel === undefined || !p.switchMotion || channelOn(w, p.channel) !== !!p.whenOff
 
 /** The current as it blows right now: a switched one takes its other direction / speed. */
 export const liveWind = (w: World, wind: WindDef): WindDef =>
@@ -386,7 +392,11 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   for (const p of w.platforms) {
     const ox = p.x
     const oy = p.y
-    placeMover(p, w.platformTime)
+    if (p.switchMotion && p.channel !== undefined) {
+      // Its own clock, stopped while the switch says stand still: it holds its place and carries on from there.
+      if (platformMoving(w, p)) p.mt = (p.mt ?? 0) + dt * t.platformSpeedScale
+      placeMover(p, p.mt ?? 0)
+    } else placeMover(p, w.platformTime)
     p.dx = p.x - ox
     p.dy = p.y - oy
   }

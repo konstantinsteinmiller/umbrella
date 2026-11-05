@@ -27,6 +27,11 @@ import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import RotateLock from '@/components/umbrella/RotateLock.vue'
 import ControlsExplain from '@/components/umbrella/ControlsExplain.vue'
+import TimeFreeze from '@/components/umbrella/TimeFreeze.vue'
+// Registers the picture boards' image loader with the renderer (a side effect of the module): without it the game, which
+// never opens the editor, draws every picture board as its empty placeholder.
+import '@/umbrella/levelImages'
+import { FREEZE_LESSONS, isLastChanceInCurrent } from '@/umbrella/timeFreeze'
 import { CONTROLS_EXPLAIN, CONTROLS_EXPLAINED_KEY } from '@/umbrella/controlsExplain'
 import UmbrellaStateIcon from '@/components/umbrella/UmbrellaStateIcon.vue'
 import { createIntro, INTRO_ENABLED, type Intro } from '@/umbrella/intro'
@@ -576,6 +581,7 @@ const reload = (opts: { at?: { x: number; y: number } } = {}) => {
   world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, -1, opts)
   resetPlayerPose()
   mineDeath = false
+  timeFrozen.value = false
   startClock()
   gui?.setLevel(world.level)
   brokenFlash.value = false
@@ -776,8 +782,37 @@ const die = () => {
   })
 }
 
+// ── Time freeze (umbrella/timeFreeze.ts): on levels 1-2, at the last moment opening the umbrella inside a current still
+//    saves a player who would die in it, the game holds still and the umbrella control is lit until he presses it ──
+const FREEZE_KEY = 'umb_freeze_lessons'
+/** How many times the lesson was taken (the click made); at FREEZE_LESSONS it never comes back. */
+const freezeTaken = ref(getState<number>(FREEZE_KEY, 0))
+const timeFrozen = ref(false)
+const freezeTarget = ref<HTMLElement | null>(null)
+const controlsEl = ref<HTMLElement | null>(null)
+const freezeEligible = () => started.value && !testing && !playing.value && !challenge.value && levelIndex.value < 2 && freezeTaken.value < FREEZE_LESSONS
+let freezeCheck = 0
+const beginFreeze = () => {
+  held.left = held.right = false
+  freezeTarget.value = touchUI.value ? umbrellaBtnEl.value : (controlsEl.value?.lastElementChild?.querySelector('.keys') as HTMLElement | null) ?? null
+  timeFrozen.value = true
+}
+/** The umbrella control was pressed (button, right half, key): it ends a freeze and is the toggle the freeze asked for. */
+const pressUmbrella = () => {
+  if (timeFrozen.value) {
+    timeFrozen.value = false
+    freezeTaken.value += 1
+    setState(FREEZE_KEY, freezeTaken.value)
+  }
+  togglePending = true
+}
+
 const tick = () => {
-  if (deathAdHold) return
+  if (deathAdHold || timeFrozen.value) return
+  if (!warp && world.phase === 'play' && freezeEligible() && ++freezeCheck % 3 === 0 && isLastChanceInCurrent(world, tuning)) {
+    beginFreeze()
+    return
+  }
   if (warp) {
     // The current carries him: no physics, just the ride up the column.
     warp.t += DT
@@ -841,7 +876,7 @@ const frame = (now: number) => {
     if (intro.done) endIntro()
   }
   // The level waits under a chapter card.
-  if (!intro && !chapterCard.value && started.value && !isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
+  if (!intro && !chapterCard.value && !timeFrozen.value && started.value && !isGamePaused.value && !showLevels.value && !showCommunity.value && !showRate.value && !showPause.value) {
     acc += dtReal
     // Weak phones: a slow median frame switches the painted styles to their light look (liteMode.ts).
     if (paintedGame) watchFrame(dtReal * 1000)
@@ -853,15 +888,15 @@ const frame = (now: number) => {
   ambienceClock += dtReal
   if (ambienceClock >= 1 / 30) {
     ambienceClock = 0
-    updateAmbience(isGamePaused.value || intro ? AMBIENCE_IDLE : ambience())
-    const frozen = isGamePaused.value || !!intro || showLevels.value || showCommunity.value || showRate.value || showPause.value
+    updateAmbience(isGamePaused.value || intro || timeFrozen.value ? AMBIENCE_IDLE : ambience())
+    const frozen = isGamePaused.value || !!intro || timeFrozen.value || showLevels.value || showCommunity.value || showRate.value || showPause.value
     updateEnemyBed(frozen ? ENEMY_BED_IDLE : enemyCueTracker.bed(world, tuning, DT))
   }
   resize(el)
   const ctx = el.getContext('2d')
   if (ctx && intro) intro.draw(ctx, { finish: t('umbrella.finish') }, dtReal)
   else if (ctx) {
-    const cam = render(ctx, world, { finish: t('umbrella.finish') }, tuning, dtReal, undefined, { padBottom: controlsBand(el) })
+    const cam = render(ctx, world, { finish: t('umbrella.finish') }, tuning, timeFrozen.value ? 0 : dtReal, undefined, { padBottom: controlsBand(el) })
     if (rating.value) placeRating(cam)
     checkSeeThrough(cam, now)
     if (warp) drawWarp(ctx, cam, warp)
@@ -925,8 +960,9 @@ const onKey = (down: boolean) => (e: KeyboardEvent) => {
   if (action === 'left') held.left = down
   else if (action === 'right') held.right = down
   else if (action === 'umbrella') {
-    if (down && !e.repeat) togglePending = true
-  } else if (down && action === 'restart') restart()
+    if (down && !e.repeat) pressUmbrella()
+  } else if (timeFrozen.value) return
+  else if (down && action === 'restart') restart()
   else return
   e.preventDefault()
   if (down) unlockAudio()
@@ -1064,7 +1100,7 @@ const umbrellaOpen = ref(false)
 const onUmbrellaDown = (e: PointerEvent) => {
   coachUsed('umbrella')
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  togglePending = true
+  pressUmbrella()
   umbrellaPressed.value = true
 }
 const onUmbrellaUp = () => { umbrellaPressed.value = false }
@@ -1106,7 +1142,7 @@ const onZoneUmbrellaDown = (e: PointerEvent) => {
   if (e.pointerType === 'mouse') return
   coachUsed('umbrella')
   ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  togglePending = true
+  pressUmbrella()
   umbrellaPressed.value = true
 }
 
@@ -1228,6 +1264,7 @@ onUnmounted(() => {
     <!-- Landscape touch: the left half of the screen steers, the right half opens and closes the umbrella. They sit under
          the HUD and every menu in the page order, over the level. -->
     <ControlsExplain v-if="explainOn && (!tapDevice || landscapeView) && !introOn" @done="dismissExplain" />
+    <TimeFreeze v-if="timeFrozen && !menuOpen && !introOn" :target="freezeTarget" :round="touchUI" @press="pressUmbrella" />
     <template v-if="touchUI && landscapeView && started && !introOn">
       <div class="touch-zone left" aria-hidden="true" @pointerdown="onZoneStickDown" />
       <div class="touch-zone right" aria-hidden="true" @pointerdown="onZoneUmbrellaDown" @pointerup="onUmbrellaUp" @pointercancel="onUmbrellaUp" @contextmenu.prevent />
@@ -1320,7 +1357,7 @@ onUnmounted(() => {
       </label>
     </div>
     <!-- The controls, in the bottom right, for the first three campaign levels. -->
-    <ul v-if="showControls" class="controls" :aria-label="t('umbrella.controls')">
+    <ul v-if="showControls" ref="controlsEl" class="controls" :aria-label="t('umbrella.controls')">
       <li v-for="row in hintRows" :key="row.what">
         <span class="keys">
           <template v-for="(group, gi) in row.groups" :key="gi">

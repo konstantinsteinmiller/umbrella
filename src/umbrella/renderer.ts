@@ -7,7 +7,7 @@
 // every such line folds away
 // (tests/umbrella/vectorGolden.test.ts pins the vector path call for call).
 
-import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, type Hazard, type Platform, type World } from './engine'
+import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, platformMoving, type Hazard, type Platform, type World } from './engine'
 import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, heldAt, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
 import { spikeAngle } from './spikeGeometry'
@@ -804,6 +804,8 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
       ctx.strokeStyle = channelColor(p.channel)
       ctx.fillStyle = channelColor(p.channel)
       if (on) {
+        // A motion-switched platform is always there; it dims while it stands still.
+        if (!platformMoving(w, p)) ctx.globalAlpha = 0.6
         ctx.fillRect(p.x, p.y, p.w, p.h)
       } else {
         // Switched off: a dashed ghost of where it will appear.
