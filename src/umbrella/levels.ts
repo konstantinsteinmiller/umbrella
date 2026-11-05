@@ -112,6 +112,16 @@ export interface PictureDef {
   pad?: number
 }
 export const PICTURE_PAD_MAX = 60
+
+/** A controls board: an animated how-to-play lesson hung like a picture board, for the first levels. Which controls it shows
+ *  (a finger and an infinity line, or the arrow / letter keys; the SPACE key or the umbrella button) follows the device the
+ *  player has. `move`: steering; `auto`: stepping off a ledge opens the umbrella by itself; `toggle`: the umbrella button / key
+ *  opens and shuts it. Decoration only. */
+export type LessonKind = 'move' | 'auto' | 'toggle'
+export const LESSON_KINDS: LessonKind[] = ['move', 'auto', 'toggle']
+export interface LessonDef { x: number; y: number; w: number; h: number; kind: LessonKind }
+export const LESSON_W = 280
+export const LESSON_H = 180
 export const PICTURE_W = 200
 export const PICTURE_H = 140
 export const isImageId = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{24}$/.test(v)
@@ -186,6 +196,8 @@ export interface LevelDef {
   arrows?: ArrowDef[]
   /** Picture boards: image holders for instruction images (decoration). */
   pictures?: PictureDef[]
+  /** Controls boards: animated how-to-play lessons (decoration). */
+  lessons?: LessonDef[]
   /** Seconds to reach the finish, counted from the spawn (timeStars.ts): running out restarts the
    *  level at the spawn, and the time left rates the finish with 1–3 stars. Absent: no limit. */
   timeLimit?: number

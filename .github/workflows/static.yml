@@ -39,8 +39,6 @@ env:
   # The pre-game intro cutscene (and the "click to play" screen that only served it): off. Set 'true' to bring it back
   # on the Pages builds (portal builds read VITE_APP_INTRO_ENABLED from the root .env).
   VITE_APP_INTRO_ENABLED: 'false'
-  # The touch-controls lesson before a new touch player's first level (src/umbrella/controlsExplain.ts).
-  VITE_APP_MOBILE_CONTROLS_EXPLAIN: 'true'
 
 jobs:
   deploy:

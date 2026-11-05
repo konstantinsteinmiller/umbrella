@@ -304,6 +304,8 @@ const legendKey = (ctx: CanvasRenderingContext2D, lit: boolean): void => {
 /** Phones and tablets: the board shows the round umbrella button instead of the SPACE key. Set by the scene. */
 let touchLegend = false
 export const setSignTouch = (on: boolean): void => { touchLegend = on }
+/** Whether the boards show the touch controls (a phone or tablet) rather than the keyboard's. */
+export const signTouch = (): boolean => touchLegend
 
 /** A small open umbrella (canopy, scalloped rim, hooked handle) centred on (cx, cy), `r` wide each side. */
 const umbrellaGlyph = (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, ink: string, fill: string): void => {

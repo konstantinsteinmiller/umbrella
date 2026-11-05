@@ -28,7 +28,7 @@ import { useI18n } from 'vue-i18n'
 import { applyLocaleDirection } from '@/i18n'
 import { useRouter } from 'vue-router'
 import { isTurned, spikeAngle, spikeBounds } from '@/umbrella/spikeGeometry'
-import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, PICTURE_PAD_MAX, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type PictureDef, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
+import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, LESSON_H, LESSON_KINDS, LESSON_W, PICTURE_PAD_MAX, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type LessonDef, type LessonKind, type PictureDef, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { arrowBox, pictureInset } from '@/umbrella/pictureArt'
@@ -82,11 +82,11 @@ import {
 } from '@/umbrella/customLevels'
 
 type Tool =
-  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture'
+  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
-type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates' | 'signs' | 'arrows' | 'pictures'
+type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates' | 'signs' | 'arrows' | 'pictures' | 'lessons'
 type Entity = { group: Group; i: number }
 /** `arm`: a swing's rest point (sets its arc angle and rope); `phase`: a circle's start pin. */
 type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase' | 'turn'
@@ -118,7 +118,8 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys; /*
     { id: 'sign', icon: '🏮', keys: { key: 'n' } },
     { id: 'sign-float', icon: '🎐', keys: { key: 'n', shift: true } },
     { id: 'arrow', icon: '⬇', keys: { key: 'a' } },
-    { id: 'picture', icon: '🖼', keys: { key: 'i' }, designer: true }
+    { id: 'picture', icon: '🖼', keys: { key: 'i' }, designer: true },
+    { id: 'lesson', icon: '⌨', keys: { key: 'k' }, designer: true }
   ] },
   { id: 'currents', tools: [
     { id: 'wind-up', icon: '↑', keys: { key: '1' } },
@@ -244,9 +245,9 @@ const redo = () => {
 }
 
 // ── Geometry helpers ──
-const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | GateDef | SignDef | ArrowDef | PictureDef)[] =>
+const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | GateDef | SignDef | ArrowDef | PictureDef | LessonDef)[] =>
   g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= [])
-    : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : g === 'signs' ? (L.signs ??= []) : g === 'arrows' ? (L.arrows ??= []) : g === 'pictures' ? (L.pictures ??= []) : (L.checkpoints ??= [])
+    : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : g === 'signs' ? (L.signs ??= []) : g === 'arrows' ? (L.arrows ??= []) : g === 'pictures' ? (L.pictures ??= []) : g === 'lessons' ? (L.lessons ??= []) : (L.checkpoints ??= [])
 const listOf = (g: Group) => listIn(level.value, g)
 const hazards = () => (level.value.hazards ??= [])
 const entityOf = (e: Entity) => listOf(e.group)[e.i]
@@ -272,6 +273,7 @@ const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
             : e.group === 'signs' ? level.value.signs![e.i]!
             : e.group === 'arrows' ? arrowBox(level.value.arrows![e.i]!)
             : e.group === 'pictures' ? level.value.pictures![e.i]!
+            : e.group === 'lessons' ? level.value.lessons![e.i]!
             : e.group === 'stars' ? starBox(level.value.stars![e.i]!)
               : checkpointBox(level.value.checkpoints![e.i]!)
 
@@ -370,7 +372,7 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
   const sp = level.value.spawn
   if (inside(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, 4)) return { sel: { type: 'spawn' } }
   // Small things first: hazards, then platforms, then (big) winds.
-  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures'] as Group[]) {
+  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures', 'lessons'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) if (inside(p, shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
@@ -464,6 +466,14 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       list.push({ x: snapV(a.x - PICTURE_W / 2), y: snapV(a.y - PICTURE_H / 2), w: w(PICTURE_W), h: h(PICTURE_H) })
       if (dragged) { const p = list[list.length - 1]!; p.x = x; p.y = y }
       sel = { type: 'entity', group: 'pictures', i: list.length - 1 }
+      break
+    }
+    case 'lesson': {
+      // A controls board, centred on the click (or the box dragged): which lesson it shows is in its properties.
+      const list = (L.lessons ??= [])
+      list.push({ x: snapV(a.x - LESSON_W / 2), y: snapV(a.y - LESSON_H / 2), w: w(LESSON_W), h: h(LESSON_H), kind: lessonKind.value })
+      if (dragged) { const p = list[list.length - 1]!; p.x = x; p.y = y }
+      sel = { type: 'entity', group: 'lessons', i: list.length - 1 }
       break
     }
     case 'checkpoint': {
@@ -790,6 +800,17 @@ const setArrowAngle = (deg: number) => {
 // The designer's tools are English, like the rest of the campaign tools.
 const PICTURE_HINT = 'Click to place an empty picture board (or drag a box), then drop an image file onto it — or onto the canvas to make a board from it. The image is saved on the server with the level.'
 const PICTURE_PAD = 14
+// ── Controls boards: the animated how-to-play lessons (lessonArt.ts); designer only, English like the picture board ──
+const LESSON_HINT = 'Click to place a controls board (or drag a box), then pick its lesson: steering, the umbrella opening by itself when the player steps off, or the open / close control. Touch players see the finger and the button, keyboard players the keys in their own letters.'
+const LESSON_NAMES: Record<LessonKind, string> = { move: 'Move (steering)', auto: 'Auto-open when stepping off', toggle: 'Open / close the umbrella' }
+const lessonKind = ref<LessonKind>('move')
+const selectedLesson = computed(() => (selected.value?.group === 'lessons' ? (selected.value.ent as LessonDef) : null))
+const setLessonKind = (k: LessonKind) => {
+  const l = selectedLesson.value
+  if (!l) return
+  l.kind = k
+  lessonKind.value = k
+}
 const selectedPicture = computed(() => (selected.value?.group === 'pictures' ? (selected.value.ent as PictureDef) : null))
 const pictureBusy = ref(false)
 const dropHot = ref(false)
@@ -883,8 +904,8 @@ const removePictureImage = () => {
 }
 /** The palette: the designer's tools only for the designer. */
 const visibleToolGroups = computed(() => TOOL_GROUPS.map((g) => ({ ...g, tools: g.tools.filter((x) => !x.designer || designer.value) })))
-const toolLabel = (id: Tool) => (id === 'picture' ? 'Picture board' : t(`umbrellaEditor.tool.${id}`))
-const toolHint = computed(() => (tool.value === 'picture' ? PICTURE_HINT : t(`umbrellaEditor.toolHint.${tool.value}`)))
+const toolLabel = (id: Tool) => (id === 'picture' ? 'Picture board' : id === 'lesson' ? 'Controls board' : t(`umbrellaEditor.tool.${id}`))
+const toolHint = computed(() => (tool.value === 'picture' ? PICTURE_HINT : tool.value === 'lesson' ? LESSON_HINT : t(`umbrellaEditor.toolHint.${tool.value}`)))
 const selectedMotion = computed(() => selectedMover.value?.motion)
 const motionKind = computed(() => selectedMotion.value?.kind ?? 'static')
 
@@ -1121,7 +1142,7 @@ const selectedKind = computed(() => {
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
   if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : 'platform'
-  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'stars' ? 'star' : 'checkpoint'
+  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'lessons' ? 'lesson' : s.group === 'stars' ? 'star' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */
 const gateTargets = computed(() => { void campaignOrder.value; return LEVELS.map((l, i) => ({ id: l.id, label: t('umbrella.level', { n: i + 1 }) })) })
@@ -1681,7 +1702,7 @@ const paint = (now: number) => {
     ctx.fillText(t('umbrellaEditor.startScreen'), start.x + 6 / s, start.y + 6 / s)
   }
   // Off-world things (a lunge resting off-screen) still need an outline to grab.
-  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'gates', 'signs', 'arrows', 'pictures'] as Group[]) {
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'gates', 'signs', 'arrows', 'pictures', 'lessons'] as Group[]) {
     listOf(group).forEach((_, i) => {
       const r = shownRect({ group, i })
       const off = r.x < 0 || r.y < 0 || r.x + r.w > L.world.w || r.y + r.h > L.world.h
@@ -2049,7 +2070,7 @@ onUnmounted(() => {
           </label>
         </template>
         <template v-if="selected">
-          <div class="kind">{{ selectedKind === 'picture' ? 'Picture board' : t(`umbrellaEditor.kind.${selectedKind}`) }}</div>
+          <div class="kind">{{ selectedKind === 'picture' ? 'Picture board' : selectedKind === 'lesson' ? 'Controls board' : t(`umbrellaEditor.kind.${selectedKind}`) }}</div>
           <div class="pair">
             <label v-for="k in rectKeys" :key="k" class="row">{{ k }}
               <input class="field num" type="number" :value="Math.round((selected.ent as unknown as Record<string, number>)[k]!)" @change="setRect(k, +($event.target as HTMLInputElement).value)" />
@@ -2150,6 +2171,15 @@ onUnmounted(() => {
               <span>{{ t('umbrellaEditor.prop.size') }}: {{ selectedArrow.size }}</span>
               <input type="range" min="20" max="400" step="5" :value="selectedArrow.size" @input="selectedArrow.size = +($event.target as HTMLInputElement).value" />
             </label>
+          </template>
+
+          <template v-if="selectedLesson">
+            <label class="row col">Lesson
+              <select class="field" :value="selectedLesson.kind" @change="setLessonKind(($event.target as HTMLSelectElement).value as LessonKind)">
+                <option v-for="k in LESSON_KINDS" :key="k" :value="k">{{ LESSON_NAMES[k] }}</option>
+              </select>
+            </label>
+            <p class="hint">An animated lesson hung from two ropes. Touch players see the finger on the infinity line and the umbrella button; keyboard players see their own keys (arrows and letters, the umbrella key). Place the three in a row in level 1: move, then auto-open, then open / close.</p>
           </template>
 
           <template v-if="selectedPicture">

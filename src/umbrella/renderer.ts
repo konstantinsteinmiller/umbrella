@@ -16,6 +16,7 @@ import { artLayer, isLantern, paintedGame } from './kite'
 import { kiteArt } from './art/hooks'
 import { drawSignVector } from './signArt'
 import { drawArrow, drawPicture } from './pictureArt'
+import { drawLesson } from './lessonArt'
 import { frameFocus } from './cameraFocus'
 
 /** One colour per button channel: a button and everything it switches share it. */
@@ -776,6 +777,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   }
   for (const sg of w.level.signs ?? []) drawSign(ctx, sg, w.time)
   for (const pc of w.level.pictures ?? []) drawPicture(ctx, pc, w.time)
+  for (const ls of w.level.lessons ?? []) drawLesson(ctx, ls, w.time)
   for (const ar of w.level.arrows ?? []) drawArrow(ctx, ar, w.time)
   for (const c of w.level.checkpoints ?? []) drawCheckpoint(ctx, c, (w.level.checkpoints ?? []).indexOf(c) === w.checkpoint, w.time)
   for (const g of w.level.gates ?? []) {

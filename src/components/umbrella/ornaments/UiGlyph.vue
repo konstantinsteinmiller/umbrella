@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * A menu / HUD glyph. The themed builds (lantern, clay) draw it as a crafted SVG icon in the
- * button's colour, with a soft cut-paper / clay-relief shadow; the plain UI keeps its text glyph
- * (`fallback`) exactly as before.
+ * A menu / HUD glyph, always drawn here as an SVG icon in the button's colour (with a soft cut-paper / clay-relief
+ * shadow in the themed builds) — never as a text character or emoji, whose look is whatever the player's system has
+ * (a coloured speaker on one phone, a grey one on another). `fallback` is kept only so existing call sites compile.
  */
 import { useUiTheme } from '@/umbrella/ui/theme'
 
@@ -25,7 +25,7 @@ const GEAR = (() => {
 </script>
 
 <template>
-  <svg v-if="theme" class="ui-glyph" :class="`g-${name}`" viewBox="0 0 24 24" aria-hidden="true">
+  <svg class="ui-glyph" :class="`g-${name}`" viewBox="0 0 24 24" aria-hidden="true">
     <g class="ui-glyph-art">
       <path v-if="name === 'prev'" d="M14.5 5.5 8 12l6.5 6.5" />
       <path v-else-if="name === 'next'" d="M9.5 5.5 16 12l-6.5 6.5" />
@@ -91,7 +91,6 @@ const GEAR = (() => {
       </template>
     </g>
   </svg>
-  <template v-else>{{ fallback }}</template>
 </template>
 
 <style scoped>

@@ -3,6 +3,8 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { parseLevel, cloneLevel } from '@/umbrella/customLevels'
 import { LEVELS, isImageId, type LevelDef } from '@/umbrella/levels'
 import { arrowBox, drawArrow, drawPicture, pictureInset, setPictureImageSource } from '@/umbrella/pictureArt'
+import { drawLesson, setLessonKeys } from '@/umbrella/lessonArt'
+import { setSignTouch } from '@/umbrella/signArt'
 import { encodeCanvas, IMAGE_ACCEPT, imageIdsOf, looksLikeImage } from '@/umbrella/levelImages'
 // @ts-expect-error plain .mjs without types
 import { imageIdsIn } from '../../scripts/level-image-ids.mjs'
@@ -134,6 +136,29 @@ describe('encoding the picture (Safari cannot encode WebP)', () => {
     expect(jpeg.type).toBe('image/jpeg')
     await expect(encodeCanvas(fakeCanvas((t) => ({ type: t === 'image/jpeg' ? t : 'image/png', size: 9_000_000 })))).rejects.toThrow('size')
     await expect(encodeCanvas(fakeCanvas(() => null))).rejects.toThrow('encode')
+  })
+})
+
+describe('controls boards', () => {
+  const lesson = (kind: string) => ({ x: 10, y: 120, w: 280, h: 180, kind })
+  it('keeps the level controls boards through parseLevel and refuses an unknown lesson', () => {
+    const l = parseLevel(base({ lessons: [lesson('move'), lesson('auto'), lesson('toggle')] as never }))
+    expect(l?.lessons?.map((x) => x.kind)).toEqual(['move', 'auto', 'toggle'])
+    expect(parseLevel(base({ lessons: [lesson('fly')] as never }))).toBeNull()
+  })
+  it('draws every lesson, for touch and for keyboard players, at any moment of its loop', () => {
+    setLessonKeys({ left: ['←', 'Q'], right: ['→', 'D'], umbrella: 'Espace' })
+    for (const touch of [true, false]) {
+      setSignTouch(touch)
+      for (const kind of ['move', 'auto', 'toggle'] as const) {
+        for (const time of [0, 0.7, 1.4, 2.1, 2.8, 3.5, 4.2, 4.9]) {
+          const c = fakeCtx()
+          expect(() => drawLesson(c, lesson(kind) as never, time), `${kind} ${touch ? 'touch' : 'keys'} t=${time}`).not.toThrow()
+          expect(c.calls).toContain('roundRect')
+        }
+      }
+    }
+    setSignTouch(false)
   })
 })
 

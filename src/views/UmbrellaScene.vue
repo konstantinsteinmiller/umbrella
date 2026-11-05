@@ -26,9 +26,7 @@ import CommunityLevelsModal from '@/components/umbrella/CommunityLevelsModal.vue
 import RateLevelCard from '@/components/umbrella/RateLevelCard.vue'
 import PauseMenu from '@/components/umbrella/PauseMenu.vue'
 import RotateLock from '@/components/umbrella/RotateLock.vue'
-import ControlsExplain from '@/components/umbrella/ControlsExplain.vue'
 import UmbrellaStateIcon from '@/components/umbrella/UmbrellaStateIcon.vue'
-import { CONTROLS_EXPLAINED_KEY, MOBILE_CONTROLS_EXPLAIN } from '@/umbrella/controlsExplain'
 import { createIntro, INTRO_ENABLED, type Intro } from '@/umbrella/intro'
 import { splashGone } from '@/use/useSplash'
 import { previewFinish, render, resetPlayerPose } from '@/umbrella/renderer'
@@ -59,6 +57,7 @@ import CollectIcon from '@/components/umbrella/CollectIcon.vue'
 import OrnDivider from '@/components/umbrella/ornaments/OrnDivider.vue'
 import { actionForCode, codesFor } from '@/umbrella/keyBindings'
 import { keyLabel, loadKeyboardLayout, observeKey } from '@/umbrella/keyLabels'
+import { setLessonKeys } from '@/umbrella/lessonArt'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -159,7 +158,6 @@ const endIntro = () => {
   // The start level begins from the pose the intro ended on: Pweeg at the spawn.
   loadLevel(startIndex)
   showChapterCard(startIndex, true)
-  maybeExplainControls()
 }
 const requestSkip = () => {
   // Pweeg is looking at the player: the first key, tap or stick move is taking control.
@@ -952,6 +950,12 @@ const hintRows = computed(() => {
     { what: 'umbrella.ctlUmbrella', groups: umbrella }
   ]
 })
+// The controls boards (lessonArt.ts) show this keyboard's letters, as the player bound them: arrows first, then letters.
+watchEffect(() => {
+  const side = (a: 'left' | 'right', arrow: string) => codesFor(a).map((c) => keyLabel(c, t)).sort((x, y) => Number(x !== arrow) - Number(y !== arrow))
+  const umb = codesFor('umbrella').filter((c) => c !== 'NumpadEnter').map((c) => keyLabel(c, t))
+  setLessonKeys({ left: side('left', '←'), right: side('right', '→'), umbrella: umb[0] ?? 'SPACE' })
+})
 /** The desktop key hints: a teaching aid, so only for the first three campaign levels and never beside the touch controls. */
 const showControls = computed(() => !touchUI.value && !introOn.value && !testing && !playing.value && !challenge.value && levelIndex.value < 3)
 // The touch controls are how a phone plays, not hints: on a phone or tablet they show on every level, whatever the
@@ -1171,17 +1175,6 @@ const begin = () => {
   if (!testing) void openSharedLink()
   // A new player's first start: the intro, then Level 1 (not when a shared level opens).
   if (INTRO_ENABLED && !testing && !playing.value && !levelParam() && levelIndex.value === startIndex && !getState<boolean>(INTRO_SEEN, false)) startIntro()
-  else maybeExplainControls()
-}
-// ── The touch-controls lesson (controlsExplain.ts): once, before a new touch player's first level, behind a flag ──
-const explainOn = ref(false)
-const maybeExplainControls = () => {
-  if (MOBILE_CONTROLS_EXPLAIN && tapDevice && !testing && !playing.value && !levelParam() && levelIndex.value === startIndex && !getState<boolean>(CONTROLS_EXPLAINED_KEY, false)) explainOn.value = true
-}
-const dismissExplain = () => {
-  explainOn.value = false
-  setState(CONTROLS_EXPLAINED_KEY, true)
-  unlockAudio() // the tap that ends it is the first one: sound may start from here
 }
 const onPlay = () => {
   unlockAudio()
@@ -1220,7 +1213,6 @@ onUnmounted(() => {
     <RotateLock />
     <!-- Landscape touch: the left half of the screen steers, the right half opens and closes the umbrella. They sit under
          the HUD and every menu in the page order, over the level. -->
-    <ControlsExplain v-if="explainOn && landscapeView && !introOn" @done="dismissExplain" />
     <template v-if="touchUI && landscapeView && started && !introOn">
       <div class="touch-zone left" aria-hidden="true" @pointerdown="onZoneStickDown" />
       <div class="touch-zone right" aria-hidden="true" @pointerdown="onZoneUmbrellaDown" @pointerup="onUmbrellaUp" @pointercancel="onUmbrellaUp" @contextmenu.prevent />
