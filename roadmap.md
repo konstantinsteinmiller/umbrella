@@ -61,8 +61,14 @@
 - [ ] #27
 - [ ] #28
 - [ ] #29
-- [ ] #1 calculate chance of merge golf success on poki and cg and youtube playables. 
-
+- [ ] #30 calculate chance of merge golf success on poki and cg and youtube playables. 
+- [ ] #3
+- [ ] #3
+- [ ] #3
+- [ ] #3
+- [ ] #3
+- [ ] #3
+- [ ] #3
 
 - [x] #Play-1 The game needs a full level consistency check with headed browser, use 3 Sonnet subagents (low effort). 
   I need 1 to play on desktop, one mobile portrait and one on mobile landscape.

@@ -113,6 +113,7 @@ export default {
     'submitShort': "提交",
     'toolsTitle': "工具",
     'levelTitle': "关卡",
+    'properties': "属性",
     'selectionTitle': "选中项",
     'switchTitle': "开关",
     'motionTitle': "运动",
@@ -140,6 +141,7 @@ export default {
       'fit': "适应窗口",
       'zoomIn': "放大",
       'zoomOut': "缩小",
+      'fullscreen': "全屏绘制",
       'snap': "吸附到 10 px 网格",
       'animate': "播放移动物体动画",
       'mobile': "手机预览",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "沿天花板拖动，放置朝下的尖刺。"
     },
     'canvasHint': "滚轮缩放，中键拖动或 Alt 拖动平移，双击空白处适应窗口。右键删除。",
+    'fingerHint': "双指捏合可缩放和平移。点按物体选中后拖动；拖动圆形和方形手柄可改变其形状。拖动空白处可移动视图。",
     'kind': {
       'platform': "平台",
       'finish': "终点平台",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "固定画面",
       'verticalCamera': "垂直镜头",
       'gateTo': "通往",
+      'gateLinkN': "传送门 {n}",
       'shape': "外观"
     },
     'scrollHint': "镜头显示一个屏幕并跟随玩家。",

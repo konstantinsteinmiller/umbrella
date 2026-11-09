@@ -31,6 +31,15 @@ export interface Platform extends PlatformDef {
 export interface Hazard extends HazardDef {
   dx: number
   dy: number
+  /** A mine that blew up against another mine (world time, and where): gone for the rest of the run, only its blast shows. */
+  /** A mine a Walldorf shoved: how far it has been moved off its path (kx, ky), and the knock still carrying it (kvx, kvy, px/s). */
+  kx?: number
+  ky?: number
+  kvx?: number
+  kvy?: number
+  blownAt?: number
+  blastX?: number
+  blastY?: number
   /** Proximity-triggered lunge: enemy time of the current attack. */
   lungeAt?: number
   /** A bouncy Walldorf touched the player last tick (one bump sound per touch). */
@@ -115,7 +124,7 @@ export interface World {
   moved: boolean
 }
 
-export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint' | 'bump' | 'charge-bump' | 'star' | 'gate'
+export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint' | 'bump' | 'charge-bump' | 'star' | 'gate' | 'mine-clash'
 
 /** Is this button channel on right now? */
 export const channelOn = (w: World, channel: number | undefined): boolean =>
@@ -354,6 +363,67 @@ const pointInfluence = (cx: number, cy: number, w: WindDef, edge: number): numbe
   }
 }
 
+/** Does this mine move (or lunge) on its own, or is a shove still carrying it? */
+const mineMoves = (h: Hazard) => (!!h.motion && h.motion.kind !== 'static') || Math.abs(h.kvx ?? 0) + Math.abs(h.kvy ?? 0) > 1
+/** A shoved mine's knock fades at this rate (1/s), and a Walldorf's shove starts at this speed (px/s) before its own charge adds in. */
+const MINE_KNOCK_DECAY = 3.2
+const MINE_KNOCK_SPEED = 170
+/** Walldorfs push mines out of themselves, whatever they do to Pweeg: the mine leaves by the side it hit and is thrown off it
+ *  (harder when the Walldorf or the mine was coming at the other), so a mine cannot sit inside or drive through one. */
+export const bumpMines = (w: World, dt: number): void => {
+  for (const m of w.hazards) {
+    if (m.kind !== 'mine' || m.blownAt !== undefined) continue
+    const r = m.w / 2
+    const cx = m.x + r, cy = m.y + r
+    for (const p of w.hazards) {
+      if (p.kind !== 'pillar') continue
+      const nx0 = Math.max(p.x, Math.min(cx, p.x + p.w))
+      const ny0 = Math.max(p.y, Math.min(cy, p.y + p.h))
+      let dx = cx - nx0, dy = cy - ny0
+      let d = Math.hypot(dx, dy)
+      if (d >= r) continue
+      let depth = r - d
+      if (d < 1e-6) {
+        // The centre is inside the box: leave by the nearest side.
+        const l = cx - p.x, rt = p.x + p.w - cx, u = cy - p.y, dn = p.y + p.h - cy
+        const min = Math.min(l, rt, u, dn)
+        ;[dx, dy] = min === l ? [-1, 0] : min === rt ? [1, 0] : min === u ? [0, -1] : [0, 1]
+        d = 1
+        depth = min + r
+      }
+      const nx = dx / d, ny = dy / d
+      const own = m.motion?.kind !== 'follow'
+      if (own) { m.kx = (m.kx ?? 0) + nx * depth; m.ky = (m.ky ?? 0) + ny * depth }
+      m.x += nx * depth
+      m.y += ny * depth
+      // Closing speed: how fast the Walldorf and the mine were coming together along that line.
+      const closing = (((p.dx - m.dx) * nx + (p.dy - m.dy) * ny) / Math.max(dt, 1e-4))
+      const speed = MINE_KNOCK_SPEED + Math.max(0, closing) * 0.8
+      if ((m.kvx ?? 0) * nx + (m.kvy ?? 0) * ny < speed) { m.kvx = nx * speed; m.kvy = ny * speed }
+    }
+  }
+}
+/** Pairs of live mines that overlap with at least one of them moving blow up together. True when any did. */
+export const clashMines = (w: World): boolean => {
+  let any = false
+  const hz = w.hazards
+  for (let i = 0; i < hz.length; i++) {
+    const a = hz[i]!
+    if (a.kind !== 'mine' || a.blownAt !== undefined) continue
+    for (let j = i + 1; j < hz.length; j++) {
+      const b = hz[j]!
+      if (b.kind !== 'mine' || b.blownAt !== undefined || (!mineMoves(a) && !mineMoves(b))) continue
+      const ra = a.w / 2, rb = b.w / 2
+      const dx = a.x + ra - (b.x + rb), dy = a.y + ra - (b.y + rb)
+      if (dx * dx + dy * dy >= (ra + rb) ** 2) continue
+      for (const m of [a, b]) { m.blownAt = w.time; m.blastX = m.x + m.w / 2; m.blastY = m.y + m.h / 2 }
+      any = true
+      break
+    }
+  }
+  return any
+}
+
 /** Player box touches a hazard (slightly forgiving: 3 px inset). */
 const touches = (pl: Player, h: Hazard, inset: number): boolean => {
   const px = pl.x + inset
@@ -407,6 +477,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     const ox = h.x
     const oy = h.y
     const m = h.motion
+    // A mine that blew up stays where it went off.
+    if (h.blownAt !== undefined) { h.dx = h.dy = 0; continue }
     if (m?.kind === 'lunge' && m.trigger) {
       // Thwomp: wait at rest; an airborne player in range sets off one attack.
       const attack = m.period * (1 - lunge.rest)
@@ -418,9 +490,27 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
       // It waits for the player's first move (the clock's start), then gives chase.
       if (w.phase === 'play' && w.moved) follow(h, m, w.player, m.speed * t.enemySpeedScale * dt)
     } else placeMover(h, w.enemyTime, lunge)
+    if (h.kind === 'mine') {
+      // A knocked mine slides on the shove it got and keeps the ground it was pushed over. A scripted path is placed
+      // from the clock every tick, so its shift is carried as an offset; a chasing mine just moves from where it is.
+      const own = m?.kind !== 'follow'
+      const sx = (h.kvx ?? 0) * dt, sy = (h.kvy ?? 0) * dt
+      if (sx || sy) {
+        if (own) { h.kx = (h.kx ?? 0) + sx; h.ky = (h.ky ?? 0) + sy } else { h.x += sx; h.y += sy }
+        const f = Math.exp(-MINE_KNOCK_DECAY * dt)
+        h.kvx = (h.kvx ?? 0) * f
+        h.kvy = (h.kvy ?? 0) * f
+        if (Math.hypot(h.kvx, h.kvy) < 4) h.kvx = h.kvy = 0
+      }
+      if (own) { h.x += h.kx ?? 0; h.y += h.ky ?? 0 }
+    }
     h.dx = h.x - ox
     h.dy = h.y - oy
   }
+  // Mines are not safe from each other: a moving one that runs into another mine sets both off, so a mine
+  // hidden for a jump scare can be taken out by one that sweeps past it.
+  if (w.phase === 'play') bumpMines(w, dt)
+  if (w.phase === 'play' && clashMines(w)) events.push('mine-clash')
   // Timed channels run out.
   for (const [c, until] of Object.entries(w.channels)) if (until <= w.time && until > 0) w.channels[Number(c)] = 0
   // Harmless enemies are solid: you bump into and stand on them like platforms.
@@ -653,7 +743,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     h.bumping = true
   }
   for (const h of w.hazards) {
-    if (contactOf(h) !== 'deadly' || !touches(pl, h, t.hitboxInset)) continue
+    if (contactOf(h) !== 'deadly' || h.blownAt !== undefined || !touches(pl, h, t.hitboxInset)) continue
     setPhase(w, 'splat')
     events.push('hit')
     return events

@@ -113,6 +113,7 @@ export default {
     'submitShort': "Proposer",
     'toolsTitle': "Outils",
     'levelTitle': "Niveau",
+    'properties': "Propriétés",
     'selectionTitle': "Sélection",
     'switchTitle': "Interrupteur",
     'motionTitle': "Mouvement",
@@ -140,6 +141,7 @@ export default {
       'fit': "Ajuster à la fenêtre",
       'zoomIn': "Zoom avant",
       'zoomOut': "Zoom arrière",
+      'fullscreen': "Dessin plein écran",
       'snap': "Aimanter à la grille de 10 px",
       'animate': "Animer les objets mobiles",
       'mobile': "Aperçu mobile",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Fais glisser le long d'un plafond pour des pics vers le bas."
     },
     'canvasHint': "La molette zoome, clic du milieu ou Alt + glisser déplace la vue, double-clic dans le vide ajuste. Clic droit supprime.",
+    'fingerHint': "Pincez avec deux doigts pour zoomer et déplacer. Touchez un objet pour le sélectionner, puis faites-le glisser ; tirez sur les poignées rondes et la carrée pour le modifier. Glissez sur le vide pour déplacer la vue.",
     'kind': {
       'platform': "Plateforme",
       'finish': "Plateforme d'arrivée",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Écran fixe",
       'verticalCamera': "Caméra verticale",
       'gateTo': "Mène à",
+      'gateLinkN': "Portail {n}",
       'shape': "Apparence"
     },
     'scrollHint': "La caméra montre un écran et suit le joueur.",

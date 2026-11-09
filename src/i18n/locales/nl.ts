@@ -113,6 +113,7 @@ export default {
     'submitShort': "Insturen",
     'toolsTitle': "Gereedschap",
     'levelTitle': "Level",
+    'properties': "Eigenschappen",
     'selectionTitle': "Selectie",
     'switchTitle': "Schakelaar",
     'motionTitle': "Beweging",
@@ -140,6 +141,7 @@ export default {
       'fit': "Passend in venster",
       'zoomIn': "Inzoomen",
       'zoomOut': "Uitzoomen",
+      'fullscreen': "Tekenen op volledig scherm",
       'snap': "Uitlijnen op raster van 10 px",
       'animate': "Bewegende dingen animeren",
       'mobile': "Telefoonvoorbeeld",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Sleep langs een plafond voor stekels omlaag."
     },
     'canvasHint': "Muiswiel zoomt, met middelste knop of Alt slepen verschuift, dubbelklik op lege ruimte past in. Rechtsklik verwijdert.",
+    'fingerHint': "Knijp met twee vingers om te zoomen en te verschuiven. Tik op een object om het te selecteren en sleep het; sleep de ronde grepen en de vierkante om het aan te passen. Sleep over lege ruimte om de weergave te verschuiven.",
     'kind': {
       'platform': "Platform",
       'finish': "Finishplatform",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Vast scherm",
       'verticalCamera': "Verticale camera",
       'gateTo': "Leidt naar",
+      'gateLinkN': "Poort {n}",
       'shape': "Uiterlijk"
     },
     'scrollHint': "De camera toont één scherm en volgt de speler.",

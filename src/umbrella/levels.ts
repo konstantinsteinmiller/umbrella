@@ -91,7 +91,12 @@ export interface StarDef { x: number; y: number; shape?: CollectShape }
 /** A warp pipe (like Mario's green tubes): touch it to drop into the campaign level `to` (a level id),
  *  a challenge level. Winning there brings the player back out of the pipe; the challenge is then
  *  open in the level selector. Only the campaign honours gates. */
-export interface GateDef { x: number; y: number; w: number; h: number; to: number }
+export interface GateDef {
+  x: number; y: number; w: number; h: number; to: number
+  /** Index of another gate in the same level: opening the umbrella here carries the player out of that
+   *  one instead of into the challenge `to` (works in every mode, nothing is reloaded). */
+  link?: number
+}
 
 /** A hint board: a paper board hung from two lanterns showing the SPACE key and a big arrow pointing
  *  down ("press Space to drop"). Pure decoration: nothing collides with it. */

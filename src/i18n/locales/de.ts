@@ -113,6 +113,7 @@ export default {
     'submitShort': "Einreichen",
     'toolsTitle': "Werkzeuge",
     'levelTitle': "Level",
+    'properties': "Eigenschaften",
     'selectionTitle': "Auswahl",
     'switchTitle': "Schalter",
     'motionTitle': "Bewegung",
@@ -140,6 +141,7 @@ export default {
       'fit': "An Fenster anpassen",
       'zoomIn': "Vergrößern",
       'zoomOut': "Verkleinern",
+      'fullscreen': "Vollbild-Zeichnen",
       'snap': "Am 10-px-Raster ausrichten",
       'animate': "Bewegliche Objekte animieren",
       'mobile': "Handy-Vorschau",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Ziehe entlang einer Decke für Stacheln nach unten."
     },
     'canvasHint': "Mausrad zoomt, mittlere Maustaste oder Alt + Ziehen verschiebt, Doppelklick ins Leere passt an. Rechtsklick löscht.",
+    'fingerHint': "Mit zwei Fingern zoomen und verschieben. Ein Objekt antippen, um es auszuwählen, dann ziehen; an den runden Griffen und dem quadratischen Griff ziehen, um es zu verändern. Auf leerem Grund ziehen verschiebt die Ansicht.",
     'kind': {
       'platform': "Plattform",
       'finish': "Zielplattform",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Fester Bildschirm",
       'verticalCamera': "Vertikale Kamera",
       'gateTo': "Führt zu",
+      'gateLinkN': "Tor {n}",
       'shape': "Aussehen"
     },
     'scrollHint': "Die Kamera zeigt einen Bildschirm und folgt dem Spieler.",

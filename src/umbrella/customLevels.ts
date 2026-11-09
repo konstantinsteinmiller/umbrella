@@ -69,7 +69,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.buttons && (!Array.isArray(l.buttons) || !l.buttons.every((b) => isRect(b) && num(b.channel) && (b.duration === undefined || (num(b.duration) && b.duration > 0))))) return null
   if (l.checkpoints && (!Array.isArray(l.checkpoints) || !l.checkpoints.every((c) => !!c && num(c.x) && num(c.y)))) return null
   if (l.stars && (!Array.isArray(l.stars) || !l.stars.every((s) => !!s && num(s.x) && num(s.y) && (s.shape === undefined || COLLECT_SHAPES.includes(s.shape))))) return null
-  if (l.gates && (!Array.isArray(l.gates) || !l.gates.every((g) => isRect(g) && num(g.to)))) return null
+  if (l.gates && (!Array.isArray(l.gates) || !l.gates.every((g) => isRect(g) && num(g.to) && (g.link === undefined || num(g.link))))) return null
   if (l.fixedScreen !== undefined && typeof l.fixedScreen !== 'boolean') return null
   if (l.verticalCamera !== undefined && typeof l.verticalCamera !== 'boolean') return null
   if (l.ceiling !== undefined && !num(l.ceiling)) return null

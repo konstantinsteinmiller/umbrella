@@ -116,6 +116,7 @@ export default {
     'submitShort': "Submit",
     'toolsTitle': "Tools",
     'levelTitle': "Level",
+    'properties': "Properties",
     'selectionTitle': "Selection",
     'switchTitle': "Switch",
     'motionTitle': "Motion",
@@ -143,6 +144,7 @@ export default {
       'fit': "Fit to window",
       'zoomIn': "Zoom in",
       'zoomOut': "Zoom out",
+      'fullscreen': "Full-screen drawing",
       'snap': "Snap to 10 px grid",
       'animate': "Animate moving things",
       'mobile': "Phone preview",
@@ -205,6 +207,7 @@ export default {
       'spikes-down': "Drag along a ceiling for spikes pointing down."
     },
     'canvasHint': "Mouse wheel zooms, middle-drag or Alt-drag pans, double-click empty space to fit. Right-click deletes.",
+    'fingerHint': "Pinch with two fingers to zoom and pan. Tap a thing to select it, then drag it; drag the round knobs and the square one to reshape it. Drag empty ground to move the view.",
     'kind': {
       'platform': "Platform",
       'finish': "Finish platform",
@@ -289,6 +292,7 @@ export default {
       'fixedScreen': "Fixed Screen",
       'verticalCamera': "Vertical Camera",
       'gateTo': "Leads to",
+      'gateLinkN': "Gate {n}",
       'shape': "Look"
     },
     'scrollHint': "The camera shows one screen and follows the player.",

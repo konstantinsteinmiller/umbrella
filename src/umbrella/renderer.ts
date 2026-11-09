@@ -589,6 +589,8 @@ const drawFan = (ctx: CanvasRenderingContext2D, h: Hazard, time: number) => {
   fanHub(ctx, h)
 }
 
+/** How long a mine's blast plays (s). */
+export const MINE_BLAST_TIME = 0.85
 /** Where each mine Pweeg ran into went off (pinned there for the rest of the death, even if the mine keeps drifting). */
 const ripBlasts = new WeakMap<Hazard, { x: number; y: number }>()
 const ripOf = (h: Hazard, w: World): { x: number; y: number } | undefined => {
@@ -705,6 +707,13 @@ const drawHazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World) => {
   const px = pl.x + pl.w / 2
   const py = pl.y + pl.h / 2
   if (artLayer && kiteArt.hazard?.(ctx, h, w)) return
+  // A mine that blew up against another mine: its blast plays where it was, then nothing is left.
+  if (h.kind === 'mine' && h.blownAt !== undefined) {
+    const t = w.time - h.blownAt
+    const bx = h.blastX ?? h.x + h.w / 2, by = h.blastY ?? h.y + h.h / 2
+    if (t < MINE_BLAST_TIME) drawMineRip(ctx, bx, by, h.w / 2, t, (bx * 0.013 + by * 0.007) % 1)
+    return
+  }
   if (h.kind === 'spikes') drawSpikes(ctx, h)
   else if (h.kind === 'fan') drawFan(ctx, h, w.time)
   else if (h.kind === 'mine') {
@@ -749,7 +758,7 @@ const fallPoseTarget = (w: World, t: Tuning): number => {
  *  The kite art pops Pweeg into a puff for the first, flattens him for the second. */
 const hitByEnemy = (w: World): boolean => {
   const pl = w.player
-  return w.hazards.some((h) => contactOf(h) === 'deadly'
+  return w.hazards.some((h) => contactOf(h) === 'deadly' && h.blownAt === undefined
     && pl.x < h.x + h.w + 2 && pl.x + pl.w > h.x - 2 && pl.y < h.y + h.h + 2 && pl.y + pl.h > h.y - 2)
 }
 

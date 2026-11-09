@@ -113,6 +113,7 @@ export default {
     'submitShort': "Wyślij",
     'toolsTitle': "Narzędzia",
     'levelTitle': "Poziom",
+    'properties': "Właściwości",
     'selectionTitle': "Zaznaczenie",
     'switchTitle': "Przełącznik",
     'motionTitle': "Ruch",
@@ -140,6 +141,7 @@ export default {
       'fit': "Dopasuj do okna",
       'zoomIn': "Przybliż",
       'zoomOut': "Oddal",
+      'fullscreen': "Rysowanie na pełnym ekranie",
       'snap': "Przyciągaj do siatki 10 px",
       'animate': "Animuj ruchome obiekty",
       'mobile': "Podgląd na telefonie",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Przeciągnij wzdłuż sufitu, aby dodać kolce w dół."
     },
     'canvasHint': "Kółko myszy przybliża, środkowy przycisk lub Alt z przeciąganiem przesuwa widok, dwuklik w pustym miejscu dopasowuje. Prawy przycisk usuwa.",
+    'fingerHint': "Ściągnij dwoma palcami, aby przybliżać i przesuwać. Dotknij obiektu, aby go zaznaczyć, i przeciągnij; przeciągaj okrągłe uchwyty i kwadratowy, aby zmienić jego kształt. Przeciągnięcie po pustym miejscu przesuwa widok.",
     'kind': {
       'platform': "Platforma",
       'finish': "Platforma mety",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Stały ekran",
       'verticalCamera': "Kamera pionowa",
       'gateTo': "Prowadzi do",
+      'gateLinkN': "Brama {n}",
       'shape': "Wygląd"
     },
     'scrollHint': "Kamera pokazuje jeden ekran i podąża za graczem.",

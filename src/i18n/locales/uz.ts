@@ -113,6 +113,7 @@ export default {
     'submitShort': "Yuborish",
     'toolsTitle': "Asboblar",
     'levelTitle': "Daraja",
+    'properties': "Xossalar",
     'selectionTitle': "Tanlangan",
     'switchTitle': "Kalit",
     'motionTitle': "Harakat",
@@ -140,6 +141,7 @@ export default {
       'fit': "Oynaga moslash",
       'zoomIn': "Kattalashtirish",
       'zoomOut': "Kichraytirish",
+      'fullscreen': "To‘liq ekranda chizish",
       'snap': "10 px to‘rga yopishtirish",
       'animate': "Harakatlanuvchi narsalarni jonlantirish",
       'mobile': "Telefonda ko‘rish",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Pastga qaragan tikanlar uchun shift bo‘ylab torting."
     },
     'canvasHint': "Sichqoncha g‘ildiragi — masshtab, o‘rta tugma yoki Alt bilan tortish — surish, bo‘sh joyni ikki marta bosish — moslash. O‘ng tugma o‘chiradi.",
+    'fingerHint': "Kattalashtirish va siljitish uchun ikki barmoq bilan chimchilang. Tanlash uchun narsaga tegib, so‘ng sudrang; shaklini o‘zgartirish uchun yumaloq va to‘rtburchak tutqichlarni sudrang. Ko‘rinishni siljitish uchun bo‘sh joyni sudrang.",
     'kind': {
       'platform': "Platforma",
       'finish': "Marra platformasi",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Qotirilgan ekran",
       'verticalCamera': "Vertikal kamera",
       'gateTo': "Olib boradi",
+      'gateLinkN': "Darvoza {n}",
       'shape': "Ko'rinish"
     },
     'scrollHint': "Kamera bitta ekranni ko‘rsatadi va o‘yinchini kuzatadi.",

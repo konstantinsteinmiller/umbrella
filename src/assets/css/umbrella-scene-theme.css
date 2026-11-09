@@ -315,6 +315,13 @@
 .ui-theme .my-levels { gap: 8px; }
 .ui-theme .my-level { min-height: 44px; padding: 10px 16px; font-size: 16px; text-align: start; }
 .ui-theme .my-level .ui-glyph { margin-right: 0.3em; }
+/* A name in a list stays readable when picked: no wobble, hop, squash or tilt on hover or press, only a
+   gentle brightening (the theme's button motion is too strong for a full-width row). */
+.ui-theme.ui-theme .my-level.u-btn.u-btn,
+.ui-theme.ui-theme .my-level.u-btn.u-btn:hover:not(:disabled),
+.ui-theme.ui-theme .my-level.u-btn.u-btn:active:not(:disabled) { transform: none; animation: none; }
+.ui-theme.ui-theme .my-level.u-btn.u-btn:active:not(:disabled) { filter: brightness(1.18); }
+.ui-theme.ui-theme .my-level.u-btn.u-btn::after { display: none; }
 .ui-theme .my-level.current { outline: 2.5px solid var(--u-focus); outline-offset: 2px; }
 .ui-theme .my-empty { font-size: 15px; opacity: 1; color: var(--u-ink-soft); }
 @media (max-width: 560px) {

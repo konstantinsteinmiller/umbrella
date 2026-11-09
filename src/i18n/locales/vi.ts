@@ -113,6 +113,7 @@ export default {
     'submitShort': "Gửi",
     'toolsTitle': "Công cụ",
     'levelTitle': "Màn",
+    'properties': "Thuộc tính",
     'selectionTitle': "Đang chọn",
     'switchTitle': "Công tắc",
     'motionTitle': "Chuyển động",
@@ -140,6 +141,7 @@ export default {
       'fit': "Vừa cửa sổ",
       'zoomIn': "Phóng to",
       'zoomOut': "Thu nhỏ",
+      'fullscreen': "Vẽ toàn màn hình",
       'snap': "Bám lưới 10 px",
       'animate': "Chạy vật chuyển động",
       'mobile': "Xem trên điện thoại",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Kéo dọc trần để đặt gai hướng xuống."
     },
     'canvasHint': "Lăn chuột để thu phóng, kéo chuột giữa hoặc Alt-kéo để di chuyển, nhấp đúp chỗ trống để vừa khung. Chuột phải để xóa.",
+    'fingerHint': "Chụm hai ngón tay để phóng to và di chuyển. Chạm vào một vật để chọn rồi kéo; kéo các núm tròn và núm vuông để đổi hình dạng. Kéo trên nền trống để dịch chuyển khung nhìn.",
     'kind': {
       'platform': "Bục",
       'finish': "Bục đích",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Màn hình cố định",
       'verticalCamera': "Camera dọc",
       'gateTo': "Dẫn tới",
+      'gateLinkN': "Cổng {n}",
       'shape': "Kiểu dáng"
     },
     'scrollHint': "Camera hiện một màn hình và theo người chơi.",

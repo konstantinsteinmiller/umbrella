@@ -113,6 +113,7 @@ export default {
     'submitShort': "제출",
     'toolsTitle': "도구",
     'levelTitle': "레벨",
+    'properties': "속성",
     'selectionTitle': "선택",
     'switchTitle': "스위치",
     'motionTitle': "움직임",
@@ -140,6 +141,7 @@ export default {
       'fit': "창에 맞추기",
       'zoomIn': "확대",
       'zoomOut': "축소",
+      'fullscreen': "전체 화면으로 그리기",
       'snap': "10 px 격자에 맞추기",
       'animate': "움직이는 오브젝트 애니메이션",
       'mobile': "휴대폰 미리보기",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "천장을 따라 드래그하면 아래쪽 가시."
     },
     'canvasHint': "마우스 휠로 확대/축소, 가운데 버튼 또는 Alt 드래그로 이동, 빈 곳 더블클릭으로 맞추기. 우클릭으로 삭제.",
+    'fingerHint': "두 손가락으로 모으거나 벌려 확대하고 이동하세요. 물체를 탭해 선택한 뒤 끌어 옮기고, 둥근 핸들과 네모 핸들을 끌어 모양을 바꿉니다. 빈 곳을 끌면 화면이 이동합니다.",
     'kind': {
       'platform': "발판",
       'finish': "도착 발판",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "고정 화면",
       'verticalCamera': "수직 카메라",
       'gateTo': "이동 대상",
+      'gateLinkN': "게이트 {n}",
       'shape': "모양"
     },
     'scrollHint': "카메라가 한 화면을 보여 주며 플레이어를 따라가요.",

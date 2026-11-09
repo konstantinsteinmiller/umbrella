@@ -330,19 +330,20 @@ let view: Camera = { s: 1, ox: 0, oy: 0 }
 let zoom = 1
 let pan = { x: 0, y: 0 }
 const fitView = () => { zoom = 1; pan = { x: 0, y: 0 } }
-const onWheel = (e: WheelEvent) => {
+/** Zooms to `next`, keeping the canvas point (client px) under the cursor / fingers in place. */
+const zoomAt = (clientX: number, clientY: number, next: number) => {
   const el = canvasRef.value!
   const r = el.getBoundingClientRect()
   const dpr = el.width / r.width
-  const mx = (e.clientX - r.left) * dpr
-  const my = (e.clientY - r.top) * dpr
-  const next = Math.min(8, Math.max(0.5, zoom * Math.exp(-e.deltaY * 0.0015)))
+  const mx = (clientX - r.left) * dpr
+  const my = (clientY - r.top) * dpr
+  next = Math.min(8, Math.max(0.5, next))
   const k = next / zoom
-  // Keep the point under the cursor in place.
   const cx = el.width / 2, cy = el.height / 2
   pan = { x: (mx - cx) - ((mx - cx) - pan.x) * k, y: (my - cy) - ((my - cy) - pan.y) * k }
   zoom = next
 }
+const onWheel = (e: WheelEvent) => zoomAt(e.clientX, e.clientY, zoom * Math.exp(-e.deltaY * 0.0015))
 const toWorld = (e: PointerEvent): Vec => {
   const el = canvasRef.value!
   const r = el.getBoundingClientRect()
@@ -352,11 +353,21 @@ const toWorld = (e: PointerEvent): Vec => {
 const inside = (p: Vec, r: { x: number; y: number; w: number; h: number }, pad = 0) =>
   p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad
 
-const handleRadius = () => 9 / view.s
+/** Finger input (touch / pen, or a touch-first device): knobs are drawn and grabbed at thumb size. */
+const coarse = ref(typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches)
+/** CSS px to world units (the view scale is in device px, so the device ratio comes in). */
+let viewDpr = 1
+const cssPx = (n: number) => (n * viewDpr) / view.s
+/** Drawn knob radius and grab radius, in CSS px. */
+const handleRadius = () => cssPx(coarse.value ? 15 : 9)
+const grabRadius = () => cssPx(coarse.value ? 30 : 12.6)
+/** The resize knob: on the corner with a mouse; on a finger it sits just outside it, so the element's own body stays grabbable. */
+const resizeOffset = () => (coarse.value ? cssPx(16) : 0)
+const resizeKnob = (r: { x: number; y: number; w: number; h: number }): Vec => ({ x: r.x + r.w + resizeOffset(), y: r.y + r.h + resizeOffset() })
 /** Where an arrow's turn handle sits: ahead of its tip, the way it points. */
 const turnHandle = (a: ArrowDef): Vec => {
   const r = (((a.angle ?? ARROW_DEFAULT_ANGLE) % 360) * Math.PI) / 180
-  const d = a.size / 2 + 24 / view.s
+  const d = a.size / 2 + cssPx(coarse.value ? 44 : 24)
   return { x: a.x + Math.sin(r) * d, y: a.y - Math.cos(r) * d }
 }
 
@@ -364,19 +375,48 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
   const cur = selection.value
   if (cur?.type === 'entity' && entityOf(cur)) {
     const r = shownRect(cur)
-    if (cur.group === 'arrows' && Math.hypot(p.x - turnHandle(level.value.arrows![cur.i]!).x, p.y - turnHandle(level.value.arrows![cur.i]!).y) <= handleRadius() * 1.6) return { sel: cur, handle: 'turn' }
-    if (cur.group !== 'checkpoints' && cur.group !== 'stars' && Math.hypot(p.x - (r.x + r.w), p.y - (r.y + r.h)) <= handleRadius() * 1.4) return { sel: cur, resize: true }
+    const gr = grabRadius()
+    if (cur.group === 'arrows' && Math.hypot(p.x - turnHandle(level.value.arrows![cur.i]!).x, p.y - turnHandle(level.value.arrows![cur.i]!).y) <= gr * 1.15) return { sel: cur, handle: 'turn' }
+    if (cur.group !== 'checkpoints' && cur.group !== 'stars') {
+      const k = resizeKnob(r)
+      if (Math.hypot(p.x - k.x, p.y - k.y) <= gr) return { sel: cur, resize: true }
+    }
     const m = motionOf(cur)
-    for (const h of m ? handlesOf(m) : []) if (Math.hypot(p.x - h.v.x, p.y - h.v.y) <= handleRadius() * 1.4) return { sel: cur, handle: h.key }
+    for (const h of m ? handlesOf(m) : []) if (Math.hypot(p.x - h.v.x, p.y - h.v.y) <= gr) return { sel: cur, handle: h.key }
   }
   const sp = level.value.spawn
   if (inside(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, 4)) return { sel: { type: 'spawn' } }
-  // Small things first: hazards, then platforms, then (big) winds.
+  // Small things first: hazards, then platforms, then (big) winds. A finger tries the small ones with reach before the big ones.
+  if (coarse.value) {
+    const near = nearSmall(p)
+    if (near) return { sel: near }
+  }
   for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures', 'lessons'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) if (inside(p, shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
   return { sel: null }
+}
+/** Distance from `p` to a rect (0 inside). */
+const distToRect = (p: Vec, r: { x: number; y: number; w: number; h: number }) =>
+  Math.hypot(Math.max(r.x - p.x, 0, p.x - (r.x + r.w)), Math.max(r.y - p.y, 0, p.y - (r.y + r.h)))
+/** A finger misses small things by a few px: when nothing was hit exactly (or only a big background piece), the nearest small
+ *  item within a thumb's reach (the player, a mine, a star, a thin platform...) wins. */
+const nearSmall = (p: Vec): Selection => {
+  const reach = cssPx(22)
+  let best: Selection = null
+  let bestD = reach
+  const sp = level.value.spawn
+  const dSpawn = distToRect(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight })
+  if (dSpawn <= bestD) { best = { type: 'spawn' }; bestD = dSpawn }
+  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms'] as Group[]) {
+    const list = listOf(group)
+    for (let i = list.length - 1; i >= 0; i--) {
+      const d = distToRect(p, shownRect({ group, i }))
+      if (d < bestD) { best = { type: 'entity', group, i }; bestD = d }
+    }
+  }
+  return best
 }
 
 // ── Placing ──
@@ -494,13 +534,47 @@ const removeSelection = () => {
   const s = selection.value
   if (s?.type !== 'entity') return
   listOf(s.group).splice(s.i, 1)
+  if (s.group === 'gates') {
+    // Links are positions in the list: drop the ones to the removed gate, shift the later ones down.
+    for (const g of level.value.gates ?? []) {
+      if (g.link === undefined) continue
+      if (g.link === s.i) delete g.link
+      else if (g.link > s.i) g.link--
+    }
+  }
   selection.value = null
 }
 
 // ── Pointer ──
+/** Fingers on the canvas: two of them pinch-zoom and pan, whatever the tool. */
+const fingers = new Map<number, { x: number; y: number }>()
+let pinch: { dist: number; mx: number; my: number } | null = null
+const pinchState = () => {
+  const [a, b] = [...fingers.values()]
+  return { dist: Math.max(1, Math.hypot(a!.x - b!.x, a!.y - b!.y)), mx: (a!.x + b!.x) / 2, my: (a!.y + b!.y) / 2 }
+}
+/** Drops the drag in progress; a half-made move goes back to where it started (the pinch was meant, not the drag). */
+const cancelDrag = () => {
+  if (drag?.mode === 'move') {
+    const back = JSON.stringify(drag.snapshot)
+    if (back !== JSON.stringify(level.value)) {
+      // Drag steps were coalesced into the undo stack: take the pre-drag step back off instead of leaving a no-op.
+      if (undoStack.value[undoStack.value.length - 1] === back) undoStack.value = undoStack.value.slice(0, -1)
+      restoring = true
+      level.value = JSON.parse(back) as LevelDef
+    }
+  }
+  drag = null
+}
 const onPointerDown = (e: PointerEvent) => {
-  const p = toWorld(e)
+  coarse.value = e.pointerType !== 'mouse'
   canvasRef.value?.setPointerCapture(e.pointerId)
+  if (e.pointerType !== 'mouse') {
+    fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (fingers.size === 2) { cancelDrag(); pinch = pinchState(); return }
+    if (fingers.size > 2) return
+  }
+  const p = toWorld(e)
   if (e.button === 1 || (e.button === 0 && e.altKey)) {
     e.preventDefault()
     drag = { mode: 'pan', x: e.clientX, y: e.clientY }
@@ -520,9 +594,24 @@ const onPointerDown = (e: PointerEvent) => {
   if (hit.sel?.type === 'entity' && hit.resize) drag = { mode: 'resize', target: hit.sel }
   else if (hit.sel?.type === 'entity' && hit.handle) drag = { mode: 'handle', target: hit.sel, key: hit.handle }
   else if (hit.sel) drag = { mode: 'move', start: p, snapshot: cloneLevel(level.value), target: hit.sel }
+  // A finger on empty ground drags the view (a mouse has the wheel and the middle button for that).
+  else if (e.pointerType !== 'mouse') drag = { mode: 'pan', x: e.clientX, y: e.clientY }
 }
 
 const onPointerMove = (e: PointerEvent) => {
+  if (fingers.has(e.pointerId)) {
+    fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (pinch && fingers.size >= 2) {
+      const now = pinchState()
+      const el = canvasRef.value!
+      const dpr = el.width / el.getBoundingClientRect().width
+      // Zoom about the fingers' midpoint, then follow the midpoint's own travel.
+      zoomAt(now.mx, now.my, zoom * (now.dist / pinch.dist))
+      pan = { x: pan.x + (now.mx - pinch.mx) * dpr, y: pan.y + (now.my - pinch.my) * dpr }
+      pinch = now
+      return
+    }
+  }
   if (!drag) return
   if (drag.mode === 'pan') {
     const el = canvasRef.value!
@@ -560,19 +649,19 @@ const onPointerMove = (e: PointerEvent) => {
     if (drag.target.group === 'arrows') {
       // An arrow is sized from its centre: the green corner sets half its side.
       const ar = level.value.arrows![drag.target.i]!
-      ar.size = Math.max(20, snapV(2 * Math.max(p.x - ar.x, p.y - ar.y)))
+      ar.size = Math.max(20, snapV(2 * Math.max(p.x - ar.x - resizeOffset(), p.y - ar.y - resizeOffset())))
       return
     }
     const shown = shownRect(drag.target)
-    const nw = Math.max(10, snapV(p.x - shown.x))
-    const nh = Math.max(10, snapV(p.y - shown.y))
+    const nw = Math.max(10, snapV(p.x - resizeOffset() - shown.x))
+    const nh = Math.max(10, snapV(p.y - resizeOffset() - shown.y))
     const m = motionOf(drag.target)
     const moving = m && m.kind !== 'static'
     if ((ent as HazardDef).kind === 'spikes' && isTurned(ent as HazardDef)) {
       // Turned spikes: the handle sits on the strip's far end, so it stretches along the strip's own direction.
       const r = (spikeAngle(ent as HazardDef) * Math.PI) / 180
       const cx = ent.x + ent.w / 2, cy = ent.y + ent.h / 2
-      const len = Math.max(10, snapV(Math.abs(2 * ((p.x - cx) * Math.cos(r) + (p.y - cy) * Math.sin(r)))))
+      const len = Math.max(10, snapV(Math.abs(2 * ((p.x - resizeOffset() - cx) * Math.cos(r) + (p.y - resizeOffset() - cy) * Math.sin(r)))))
       ent.x = cx - len / 2
       ent.w = len
     } else if ((ent as HazardDef).kind === 'mine' || (ent as HazardDef).kind === 'fan') {
@@ -600,8 +689,13 @@ const onPointerMove = (e: PointerEvent) => {
   }
 }
 
-const onPointerUp = () => {
-  if (drag?.mode === 'create') place(drag.tool, drag.start, drag.now)
+const onPointerUp = (e?: PointerEvent) => {
+  const wasPinch = pinch !== null
+  if (e) fingers.delete(e.pointerId)
+  if (fingers.size < 2) pinch = null
+  // The fingers of a pinch placed nothing: the one still down must lift and press again to act.
+  if (wasPinch) { drag = null; return }
+  if (drag?.mode === 'create' && e?.type !== 'pointercancel') place(drag.tool, drag.start, drag.now)
   drag = null
 }
 
@@ -691,6 +785,7 @@ const commands: Record<string, Command> = {
   snap: { keys: [{ key: 'g' }], run: () => { snap.value = !snap.value }, checked: () => snap.value },
   animate: { keys: [{ key: 'a', shift: true }], run: () => { animate.value = !animate.value }, checked: () => animate.value },
   mobile: { keys: [{ key: 'm', shift: true }], run: () => toggleMobileView(), checked: () => mobileView.value },
+  fullscreen: { keys: [{ key: 'f', shift: true }], run: () => setFullscreen(!fs.value, true), checked: () => fs.value },
   // Lantern build: draw the currents as folded paper strips with arrows instead of gust streaks (this browser only).
   paperWind: { run: () => setWindStyle(windStyle.value === 'paper' ? 'gusts' : 'paper'), checked: () => windStyle.value === 'paper' },
   test: { keys: [{ key: 'enter' }], run: () => onTest() },
@@ -740,7 +835,7 @@ watch(designer, (on) => {
 const menus = computed(() => [
   { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
   { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'deselect'] },
-  { id: 'view', items: ['fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern || isClay ? ['-', 'paperWind'] : [])] },
+  { id: 'view', items: ['fullscreen', 'fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern || isClay ? ['-', 'paperWind'] : [])] },
   { id: 'level', items: ['test', 'prevLevel', 'nextLevel', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
   ...(designer.value ? [{ id: 'campaign', items: ['campaignOverwrite', 'campaignReplace', 'campaignRevert', 'reorder', '-', 'sync', 'password', '-', 'exportLibrary', 'importLibrary'] }] : []),
   { id: 'help', items: ['shortcuts'] }
@@ -754,6 +849,37 @@ const runCmd = (id: string) => {
   openMenu.value = null
   if (cmdEnabled(id)) commands[id]?.run()
 }
+// ── Full-screen drawing: just the level, with big quick buttons for a finger ──
+const fs = ref(false)
+const propsOpen = ref(false)
+/** True while the browser's own fullscreen is ours: leaving it by Esc then also leaves this mode. */
+let apiFullscreen = false
+const setFullscreen = (on: boolean, userGesture = false) => {
+  fs.value = on
+  propsOpen.value = false
+  openMenu.value = null
+  if (on && mobileView.value) toggleMobileView()
+  try {
+    if (on && userGesture && document.fullscreenEnabled && !document.fullscreenElement) {
+      apiFullscreen = true
+      document.documentElement.requestFullscreen().catch(() => { apiFullscreen = false })
+    } else if (!on && document.fullscreenElement) {
+      apiFullscreen = false
+      void document.exitFullscreen()
+    }
+  } catch { apiFullscreen = false }
+}
+const onFullscreenChange = () => {
+  if (!document.fullscreenElement && apiFullscreen) { apiFullscreen = false; fs.value = false; propsOpen.value = false }
+}
+/** Select mode in one tap; tapping it again lets go of the selection. */
+const quickSelect = () => {
+  if (tool.value !== 'select') tool.value = 'select'
+  else selection.value = null
+}
+const fsTools = computed(() => visibleToolGroups.value.flatMap((g) => g.tools))
+const fsHint = computed(() => status.value || problems.value[0] || toolHint.value)
+
 const openMenu = ref<string | null>(null)
 const toggleMenu = (id: string) => { openMenu.value = openMenu.value === id ? null : id }
 /** Once a menu is open, pointing at another opens that one (like a desktop menu bar). */
@@ -1152,6 +1278,15 @@ const selectedKind = computed(() => {
   return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'lessons' ? 'lesson' : s.group === 'stars' ? 'star' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */
+/** The other gates of this level a selected gate can lead out of. */
+const gateLinkOptions = computed(() => (level.value.gates ?? []).map((g, i) => ({ g, i })).filter((o) => o.g !== selectedGate.value))
+/** The "Leads to" choice: `g<N>` = gate N of this level, `l<id>` = a campaign level. */
+const setGateTarget = (v: string) => {
+  const g = selectedGate.value
+  if (!g) return
+  if (v.startsWith('g')) g.link = Number(v.slice(1))
+  else { delete g.link; g.to = Number(v.slice(1)) }
+}
 const gateTargets = computed(() => { void campaignOrder.value; return LEVELS.map((l, i) => ({ id: l.id, label: t('umbrella.level', { n: i + 1 }) })) })
 
 // ── Checks shown under the canvas, so a broken level is visible before testing ──
@@ -1693,6 +1828,7 @@ const paint = (now: number) => {
   if (!ctx || cw === 0 || ch === 0) return
 
   rebuildWorld()
+  viewDpr = dpr
   const L = level.value
   // Fit the world plus a margin, then the wheel zoom and the pan on top.
   const s = Math.min(cw / (L.world.w * (1 + 2 * MARGIN)), ch / (L.world.h * (1 + 2 * MARGIN))) * zoom
@@ -1784,7 +1920,19 @@ const paint = (now: number) => {
     strokeRect(ctx, r, '#4ade80')
     ctx.fillStyle = '#4ade80'
     const hs = handleRadius()
-    if (sel.group !== 'checkpoints') ctx.fillRect(r.x + r.w - hs, r.y + r.h - hs, hs * 2, hs * 2)
+    if (sel.group !== 'checkpoints') {
+      const k = resizeKnob(r)
+      if (coarse.value) {
+        // On a finger the knob stands off the corner on a short stalk.
+        ctx.strokeStyle = '#4ade80'
+        ctx.beginPath()
+        ctx.moveTo(r.x + r.w, r.y + r.h)
+        ctx.lineTo(k.x, k.y)
+        ctx.stroke()
+      }
+      ctx.fillRect(k.x - hs, k.y - hs, hs * 2, hs * 2)
+      if (coarse.value) { ctx.strokeStyle = '#000'; ctx.strokeRect(k.x - hs, k.y - hs, hs * 2, hs * 2) }
+    }
     if (sel.group === 'arrows') {
       const ar = L.arrows![sel.i]!
       const hp = turnHandle(ar)
@@ -1913,18 +2061,23 @@ onMounted(() => {
   if (designer.value) { void syncBucket(); void uploadPending() }
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
+  document.addEventListener('fullscreenchange', onFullscreenChange)
+  // Phones and small tablets start in the full-screen view: the panels leave no room for the level there.
+  if (coarse.value && window.innerWidth < 1100) setFullscreen(true)
   raf = requestAnimationFrame(paint)
 })
 onUnmounted(() => {
   restoreLocale()
   window.removeEventListener('keydown', onKeyDown)
   window.removeEventListener('keyup', onKeyUp)
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
+  if (document.fullscreenElement && apiFullscreen) void document.exitFullscreen()
   cancelAnimationFrame(raf)
 })
 </script>
 
 <template>
-  <div class="editor" @pointerdown.capture="onDocPointer">
+  <div class="editor" :class="{ fs, touch: coarse, 'props-open': propsOpen }" @pointerdown.capture="onDocPointer">
     <header class="topbar">
       <div class="brand">☂ <span>{{ t('umbrellaEditor.title') }}</span><em v-if="designer" class="badge">designer</em></div>
       <nav class="menus" role="menubar">
@@ -1971,6 +2124,7 @@ onUnmounted(() => {
         <button class="btn blue" @click="runCmd('share')">🔗 {{ t('umbrellaEditor.share') }} <kbd>{{ cmdKeys('share') }}</kbd></button>
         <button v-if="communityEnabled" class="btn indigo" @click="runCmd('submit')">🌐 {{ t('umbrellaEditor.submitShort') }} <kbd>{{ cmdKeys('submit') }}</kbd></button>
         <button class="btn yellow" @click="runCmd('test')">▶ {{ t('umbrellaEditor.cmd.test') }} <kbd>{{ cmdKeys('test') }}</kbd></button>
+        <button class="btn" @click="runCmd('fullscreen')">⛶ {{ cmdLabel('fullscreen') }}</button>
       </div>
       <span class="grow" />
       <span v-if="designer && BUCKET_URL && bucketStatus" class="sync" :class="{ bad: !bucketStatus.ok }" role="status">{{ bucketStatus.ok ? '✓' : '⚠' }} {{ bucketStatus.text }}</span>
@@ -2000,10 +2154,44 @@ onUnmounted(() => {
           </button>
         </section>
         <p class="hint">{{ toolHint }}</p>
-        <p class="hint">{{ t('umbrellaEditor.canvasHint') }}</p>
+        <p class="hint">{{ coarse ? t('umbrellaEditor.fingerHint') : t('umbrellaEditor.canvasHint') }}</p>
       </aside>
 
       <main class="stage">
+        <template v-if="fs && !mobileView">
+          <div class="fs-top">
+            <button class="fs-btn" :aria-label="cmdLabel('fullscreen')" :title="cmdLabel('fullscreen')" @click="runCmd('fullscreen')">⤡</button>
+            <button class="fs-btn green" :aria-label="cmdLabel('save')" :title="cmdLabel('save')" @click="runCmd('save')">💾</button>
+            <button class="fs-btn yellow" :aria-label="cmdLabel('test')" :title="cmdLabel('test')" @click="runCmd('test')">▶</button>
+          </div>
+          <div class="fs-left">
+            <button class="fs-btn" :class="{ on: tool === 'select' }" :aria-pressed="tool === 'select'" :aria-label="toolLabel('select')" :title="toolLabel('select')" @click="quickSelect">⬚</button>
+            <button class="fs-btn" :disabled="!cmdEnabled('undo')" :aria-label="cmdLabel('undo')" :title="cmdLabel('undo')" @click="runCmd('undo')">↶</button>
+            <button class="fs-btn" :disabled="!cmdEnabled('redo')" :aria-label="cmdLabel('redo')" :title="cmdLabel('redo')" @click="runCmd('redo')">↷</button>
+            <button class="fs-btn red" :disabled="!cmdEnabled('delete')" :aria-label="cmdLabel('delete')" :title="cmdLabel('delete')" @click="runCmd('delete')">🗑</button>
+          </div>
+          <div class="fs-right">
+            <button class="fs-btn" :aria-label="cmdLabel('zoomIn')" :title="cmdLabel('zoomIn')" @click="runCmd('zoomIn')">＋</button>
+            <button class="fs-btn" :aria-label="cmdLabel('zoomOut')" :title="cmdLabel('zoomOut')" @click="runCmd('zoomOut')">−</button>
+            <button class="fs-btn" :aria-label="cmdLabel('fit')" :title="cmdLabel('fit')" @click="runCmd('fit')">⌖</button>
+            <button class="fs-btn" :class="{ on: propsOpen }" :aria-pressed="propsOpen" :aria-label="t('umbrellaEditor.properties')" :title="t('umbrellaEditor.properties')" @click="propsOpen = !propsOpen">⚙</button>
+          </div>
+          <div class="fs-bottom">
+            <p class="fs-hint">{{ fsHint }}</p>
+            <div class="fs-tools" role="toolbar" :aria-label="t('umbrellaEditor.toolsTitle')">
+              <button
+                v-for="tl in fsTools"
+                :key="tl.id"
+                class="fs-tool"
+                :class="{ on: tool === tl.id }"
+                :aria-pressed="tool === tl.id"
+                :aria-label="toolLabel(tl.id)"
+                :title="toolLabel(tl.id)"
+                @click="tool = tl.id"
+              >{{ tl.icon }}</button>
+            </div>
+          </div>
+        </template>
         <div v-if="mobileView" class="phones">
           <div class="phone portrait" :style="{ aspectRatio: `${PHONE.w} / ${PHONE.h}` }">
             <canvas ref="portraitRef" class="phone-canvas" @pointerdown="onPhoneTap" />
@@ -2048,6 +2236,7 @@ onUnmounted(() => {
       </main>
 
       <aside class="panel props">
+        <button v-if="fs" class="btn drawer-close" @click="propsOpen = false">✕ {{ t('umbrellaEditor.properties') }}</button>
         <div class="head">{{ t('umbrellaEditor.levelTitle') }}</div>
         <label class="row col">{{ t('umbrellaEditor.prop.world') }}
           <select class="field" :value="presetIndex" @change="setWorldPreset(+($event.target as HTMLSelectElement).value)">
@@ -2156,8 +2345,9 @@ onUnmounted(() => {
           </template>
           <template v-if="selectedGate">
             <label class="row">{{ t('umbrellaEditor.prop.gateTo') }}
-              <select v-model.number="selectedGate.to" class="field">
-                <option v-for="g in gateTargets" :key="g.id" :value="g.id">{{ g.label }}</option>
+              <select :value="selectedGate.link !== undefined ? `g${selectedGate.link}` : `l${selectedGate.to}`" class="field" @change="setGateTarget(($event.target as HTMLSelectElement).value)">
+                <option v-for="o in gateLinkOptions" :key="`g${o.i}`" :value="`g${o.i}`">{{ t('umbrellaEditor.prop.gateLinkN', { n: o.i + 1 }) }}</option>
+                <option v-for="g in gateTargets" :key="`l${g.id}`" :value="`l${g.id}`">{{ g.label }}</option>
               </select>
             </label>
             <p class="hint">{{ t('umbrellaEditor.gateHint') }}</p>
@@ -2917,6 +3107,113 @@ kbd {
   .tools { width: 170px; }
   .props { width: 210px; }
   .tool-label { font-size: 12px; }
+}
+
+/* ── Finger-sized controls: every button, field and menu row gets a 44px target on a touch device ── */
+.drawer-close { display: none; }
+.editor.touch .btn,
+.editor.touch .menu-btn { min-height: 44px; padding: 8px 14px; }
+.editor.touch .menu-item { min-height: 46px; padding: 10px 12px; }
+.editor.touch .tool { min-height: 46px; padding: 8px 10px; }
+.editor.touch .field { min-height: 42px; font-size: 16px; padding: 6px 10px; }
+.editor.touch .field.num { width: 84px; }
+.editor.touch .mini { min-width: 40px; min-height: 40px; font-size: 15px; }
+.editor.touch .check { min-height: 40px; gap: 10px; }
+.editor.touch .check input { width: 22px; height: 22px; }
+.editor.touch kbd { display: none; }
+.editor.touch .tools { width: 220px; }
+.editor.touch .props { width: 280px; }
+.editor.touch .hint { font-size: 12px; }
+.editor.touch .stage, .editor.touch .canvas { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+
+/* ── Full-screen drawing: the level fills the screen; quick buttons float on top ── */
+.stage { position: relative; }
+.body { position: relative; }
+.editor.fs .topbar,
+.editor.fs .tools,
+.editor.fs .foot,
+.editor.fs .props { display: none; }
+.editor.fs.props-open .props {
+  display: flex;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  width: min(92vw, 340px);
+  padding-right: max(10px, env(safe-area-inset-right));
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.55);
+  -webkit-overflow-scrolling: touch;
+}
+.editor.fs.props-open .drawer-close { display: block; flex: none; }
+.fs-top, .fs-left, .fs-right, .fs-bottom { position: absolute; z-index: 10; display: flex; gap: 8px; pointer-events: none; }
+.fs-top > *, .fs-left > *, .fs-right > *, .fs-bottom > * { pointer-events: auto; }
+.fs-top { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); }
+.fs-left { top: calc(max(8px, env(safe-area-inset-top)) + 64px); left: max(8px, env(safe-area-inset-left)); flex-direction: column; }
+.fs-right { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); flex-direction: column; }
+.fs-bottom {
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.fs-btn, .fs-tool {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  background: rgba(20, 26, 38, 0.86);
+  color: var(--ink);
+  font-size: 26px;
+  line-height: 1;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.fs-btn:active:not(:disabled), .fs-tool:active { filter: brightness(1.4); }
+.fs-btn:disabled { opacity: 0.35; }
+.fs-btn.on, .fs-tool.on { background: rgba(52, 211, 153, 0.9); border-color: #34d399; color: #04130c; }
+.fs-btn.green { background: rgba(5, 150, 105, 0.92); }
+.fs-btn.yellow { background: rgba(234, 179, 8, 0.95); color: #000; }
+.fs-btn.red { background: rgba(185, 28, 28, 0.9); }
+.fs-btn.red:disabled { background: rgba(20, 26, 38, 0.86); }
+.fs-hint {
+  margin: 0;
+  max-width: 100%;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: rgba(20, 26, 38, 0.8);
+  color: var(--ink);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.fs-tools {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  padding: 2px 2px 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.fs-tools::-webkit-scrollbar { display: none; }
+.fs-tool { width: 54px; height: 54px; }
+/* A short landscape phone: smaller keys so four columns of them still fit. */
+@media (max-height: 480px) {
+  .fs-btn { width: 48px; height: 48px; font-size: 22px; }
+  .fs-tool { width: 46px; height: 46px; font-size: 22px; }
+  .fs-left { top: calc(max(8px, env(safe-area-inset-top)) + 56px); gap: 6px; }
+  .fs-right { gap: 6px; }
 }
 </style>
 

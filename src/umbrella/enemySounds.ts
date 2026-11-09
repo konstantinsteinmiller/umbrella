@@ -695,6 +695,11 @@ export const createEnemyCues = (): EnemyCueTracker => {
           const base = Math.max(1, t.walldorfBounce)
           if (e === 'bump') cues.push({ name: 'walldorf-bump', params: { intensity: clamp01(speed / (base * 1.6)), pan: stagePan } })
           else cues.push({ name: 'walldorf-slam', params: { intensity: clamp01((speed - base) / (base * 1.5)), pan: stagePan } })
+        } else if (e === 'mine-clash') {
+          // Heard where it went off, and a touch quieter than the one that ends a run.
+          const b = w.hazards.find((h) => h.blownAt === w.time)
+          const pan = b ? Math.max(-0.8, Math.min(0.8, ((b.blastX ?? b.x) - cx) / 500)) : stagePan
+          cues.push({ name: 'prickbait-sting', params: { pan, intensity: 0.7 } })
         } else if (e === 'hit') {
           let best: (typeof w.hazards)[number] | undefined
           let bestD = Infinity

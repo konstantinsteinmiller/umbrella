@@ -113,6 +113,7 @@ export default {
     'submitShort': "Kirim",
     'toolsTitle': "Alat",
     'levelTitle': "Level",
+    'properties': "Properti",
     'selectionTitle': "Pilihan",
     'switchTitle': "Saklar",
     'motionTitle': "Gerakan",
@@ -140,6 +141,7 @@ export default {
       'fit': "Sesuaikan jendela",
       'zoomIn': "Perbesar",
       'zoomOut': "Perkecil",
+      'fullscreen': "Menggambar layar penuh",
       'snap': "Tempel ke grid 10 px",
       'animate': "Animasikan benda bergerak",
       'mobile': "Pratinjau ponsel",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Seret di sepanjang langit-langit untuk duri yang mengarah ke bawah."
     },
     'canvasHint': "Roda mouse untuk zoom, seret tombol tengah atau Alt untuk menggeser, klik ganda di area kosong untuk menyesuaikan. Klik kanan menghapus.",
+    'fingerHint': "Cubit dengan dua jari untuk zoom dan menggeser. Ketuk objek untuk memilihnya, lalu seret; seret gagang bulat dan gagang persegi untuk mengubah bentuknya. Seret di area kosong untuk menggeser tampilan.",
     'kind': {
       'platform': "Platform",
       'finish': "Platform finis",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Layar tetap",
       'verticalCamera': "Kamera vertikal",
       'gateTo': "Menuju",
+      'gateLinkN': "Gerbang {n}",
       'shape': "Tampilan"
     },
     'scrollHint': "Kamera menampilkan satu layar dan mengikuti pemain.",

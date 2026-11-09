@@ -113,6 +113,7 @@ export default {
     'submitShort': "Enviar",
     'toolsTitle': "Herramientas",
     'levelTitle': "Nivel",
+    'properties': "Propiedades",
     'selectionTitle': "Selección",
     'switchTitle': "Interruptor",
     'motionTitle': "Movimiento",
@@ -140,6 +141,7 @@ export default {
       'fit': "Ajustar a la ventana",
       'zoomIn': "Acercar",
       'zoomOut': "Alejar",
+      'fullscreen': "Dibujo a pantalla completa",
       'snap': "Ajustar a cuadrícula de 10 px",
       'animate': "Animar objetos móviles",
       'mobile': "Vista de móvil",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Arrastra por un techo para pinchos hacia abajo."
     },
     'canvasHint': "La rueda del ratón hace zoom, arrastrar con el botón central o Alt desplaza, doble clic en vacío ajusta. Clic derecho elimina.",
+    'fingerHint': "Pellizca con dos dedos para hacer zoom y desplazar. Toca un objeto para seleccionarlo y arrástralo; arrastra los tiradores redondos y el cuadrado para cambiarlo. Arrastra en el vacío para mover la vista.",
     'kind': {
       'platform': "Plataforma",
       'finish': "Plataforma de meta",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Pantalla fija",
       'verticalCamera': "Cámara vertical",
       'gateTo': "Lleva a",
+      'gateLinkN': "Portal {n}",
       'shape': "Aspecto"
     },
     'scrollHint': "La cámara muestra una pantalla y sigue al jugador.",

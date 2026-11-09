@@ -108,7 +108,9 @@ const onSwipeUp = (e: PointerEvent) => {
   swipeX = 0
   if (Math.abs(dx) > 90) stepTest(dx < 0 ? 1 : -1)
 }
-const levelDef = () => testDef ?? playing.value?.level ?? LEVELS[shownIndex()]!
+/** A player level's gate: the campaign challenge it leads to is played, and winning it returns to the gate. */
+let customReturn: { gate: GateDef; idx: number } | null = null
+const levelDef = () => testDef ?? (customReturn ? LEVELS[customReturn.idx] : undefined) ?? playing.value?.level ?? LEVELS[shownIndex()]!
 const backToEditor = () => {
   testLevel.value = null
   void router.push('/editor')
@@ -138,6 +140,7 @@ let skipTimer = 0
 const startIntro = () => {
   if (!INTRO_ENABLED) return
   showPause.value = showLevels.value = showCommunity.value = false
+  customReturn = null
   if (playing.value) { playing.value = null; customPlay.value = null }
   // The intro plays on, and hands over to, the first level of the start chapter.
   levelIndex.value = startIndex
@@ -193,6 +196,7 @@ const flashNotice = (msg: string) => {
   window.setTimeout(() => { if (notice.value === msg) notice.value = '' }, 3500)
 }
 const playCustom = (p: CustomPlay) => {
+  customReturn = null
   playing.value = p
   customPlay.value = p
   canRate.value = showRate.value = rated.value = false
@@ -202,6 +206,7 @@ const playCustom = (p: CustomPlay) => {
 }
 const leaveCustom = () => {
   const fromCommunity = !!playing.value?.communityId
+  customReturn = null
   playing.value = null
   customPlay.value = null
   showRate.value = false
@@ -316,11 +321,39 @@ const beginWarp = (kind: 'in' | 'out', mouth: GateDef, done: () => void) => {
   togglePending = false
   playSfx('arrive', { hazard: 'mine', duration: kind === 'in' ? 1.4 : 0.9 })
 }
+/** The gate a linked one leads out of (another gate of the same level), if it has one. */
+const linkedGate = (gate: GateDef): GateDef | undefined => {
+  if (gate.link === undefined) return undefined
+  const dest = world.level.gates?.[gate.link]
+  return dest && dest !== gate ? dest : undefined
+}
+/** Through the current to the other gate of this level; the level itself (stars, buttons, clock) carries on. */
+const warpToGate = (gate: GateDef, dest: GateDef) => {
+  beginWarp('in', gate, () => {
+    const pl = world.player
+    const at = gateExit(dest)
+    pl.x = at.x - pl.w / 2
+    pl.y = at.y - pl.h
+    pl.vx = pl.vy = 0
+    pl.open = false
+    pl.grounded = false
+    pl.standing = -1
+    pl.fallTime = 0
+    world.gate = -1
+    world.gateInside = world.gateInside.map(() => false)
+    arrive = ARRIVE_TIME
+  })
+}
 const enterGate = (gate: GateDef) => {
+  const dest = linkedGate(gate)
+  if (dest) { warpToGate(gate, dest); return }
   const to = LEVELS.findIndex((l) => l.id === gate.to)
   if (to < 0) return
   beginWarp('in', gate, () => {
-    if (testing && testDef) {
+    if (playing.value) {
+      // A player level: the challenge is played, nothing in the campaign's progress changes.
+      customReturn = { gate, idx: to }
+    } else if (testing && testDef) {
       // The designer's test: the challenge opens as the level under test, progress untouched.
       testReturn = { def: testDef, gate }
       testDef = LEVELS[to]!
@@ -341,6 +374,18 @@ const leaveTestChallenge = () => {
   beginWarp('out', mouth, () => {
     testReturn = null
     testDef = back.def
+    reload({ at: gateExit(back.gate) })
+    arrive = ARRIVE_TIME
+  })
+}
+/** Winning a challenge reached from a player level: out through the current, back to that level's gate. */
+const leaveCustomChallenge = () => {
+  const back = customReturn
+  if (!back) return
+  const pl = world.player
+  const mouth: GateDef = { x: pl.x + pl.w / 2 - 30, y: pl.y + pl.h - 22, w: 60, h: 22, to: LEVELS[back.idx]!.id }
+  beginWarp('out', mouth, () => {
+    customReturn = null
     reload({ at: gateExit(back.gate) })
     arrive = ARRIVE_TIME
   })
@@ -402,6 +447,7 @@ const playMine = (name: string) => {
 const pickLevel = (i: number) => {
   showLevels.value = false
   if (isLocked(i)) return
+  customReturn = null
   if (playing.value) { playing.value = null; customPlay.value = null }
   loadLevel(i)
   // An unlocked challenge opens as a challenge: winning it moves on in the campaign.
@@ -689,8 +735,9 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
       case 'checkpoint': playSfx('open', { intensity: 0.5, pan }); break
       case 'star': playSfx('open', { intensity: 0.9, quick: true, pan }); playSfx('step', { intensity: 0.3, pan }); break
       case 'gate':
-        // Only the campaign (and the editor's test of it) has somewhere to go; a player level lets the gate be.
-        if (!playing.value && !challenge.value?.ret && !testReturn) enterGate(world.level.gates![world.gate]!)
+        // Not again from inside the challenge it led to (the way back is the win).
+        // A linked gate (to another gate of this level) works anywhere.
+        if (linkedGate(world.level.gates![world.gate]!) || (!challenge.value?.ret && !testReturn && !customReturn)) enterGate(world.level.gates![world.gate]!)
         break
       // 'bump' / 'charge-bump' and the mine's sting: the enemy cues below.
     }
@@ -843,6 +890,7 @@ const tick = () => {
   else if (world.phase === 'splat' && world.phaseTime >= (mineDeath ? Math.max(tuning.splatReset, MINE_DEATH_HOLD) : tuning.splatReset)) die()
   else if (world.phase === 'win' && world.phaseTime >= (timeLimit.value ? Math.max(tuning.winHold, RATING_HOLD) : tuning.winHold)) {
     if (testing) { if (testReturn) leaveTestChallenge(); else restart() }
+    else if (customReturn) leaveCustomChallenge()
     else if (challenge.value) leaveChallenge()
     else if (playing.value) {
       // A player level loops; a community one asks for stars after the first win.
@@ -1929,8 +1977,7 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   /* A little taller than wide: the number, then (timed) the rating, then (collectibles) the count,
      stacked in one centred column that fits the tile. */
   aspect-ratio: 5 / 6;
-  /* A tile with nothing under its number (no rating, no collectible) is not stretched tall to match its row. */
-  align-self: start;
+  /* Every tile is the same height, whatever sits under its number. */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1943,7 +1990,6 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   font-size: 22px;
   font-weight: 700;
 }
-.level-tile.plain { aspect-ratio: 5 / 4; }
 .level-tile:hover { background: rgba(255, 255, 255, 0.22); }
 .level-tile.current { outline: 2px solid #6fa8ff; }
 .levels-head.mine { margin-top: 18px; font-size: 18px; }

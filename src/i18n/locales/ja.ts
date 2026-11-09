@@ -113,6 +113,7 @@ export default {
     'submitShort': "投稿",
     'toolsTitle': "ツール",
     'levelTitle': "レベル",
+    'properties': "プロパティ",
     'selectionTitle': "選択中",
     'switchTitle': "スイッチ",
     'motionTitle': "動き",
@@ -140,6 +141,7 @@ export default {
       'fit': "ウィンドウに合わせる",
       'zoomIn': "拡大",
       'zoomOut': "縮小",
+      'fullscreen': "全画面で描く",
       'snap': "10 px グリッドにスナップ",
       'animate': "動くものをアニメーション",
       'mobile': "スマホプレビュー",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "天井に沿ってドラッグで下向きのトゲ。"
     },
     'canvasHint': "ホイールでズーム、中ボタンか Alt を押しながらドラッグで移動、空白をダブルクリックで全体表示。右クリックで削除。",
+    'fingerHint': "2本指のピンチで拡大・移動。物をタップして選び、ドラッグで動かします。丸いハンドルと四角いハンドルをドラッグすると形を変えられます。空いた場所をドラッグすると表示が動きます。",
     'kind': {
       'platform': "足場",
       'finish': "ゴールの足場",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "固定画面",
       'verticalCamera': "縦カメラ",
       'gateTo': "行き先",
+      'gateLinkN': "ゲート {n}",
       'shape': "見た目"
     },
     'scrollHint': "カメラは 1 画面を映し、プレイヤーを追います。",

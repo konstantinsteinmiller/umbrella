@@ -113,6 +113,7 @@ export default {
     'submitShort': "Invia",
     'toolsTitle': "Strumenti",
     'levelTitle': "Livello",
+    'properties': "Proprietà",
     'selectionTitle': "Selezione",
     'switchTitle': "Interruttore",
     'motionTitle': "Movimento",
@@ -140,6 +141,7 @@ export default {
       'fit': "Adatta alla finestra",
       'zoomIn': "Ingrandisci",
       'zoomOut': "Riduci",
+      'fullscreen': "Disegno a schermo intero",
       'snap': "Aggancia alla griglia di 10 px",
       'animate': "Anima gli oggetti in movimento",
       'mobile': "Anteprima telefono",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Trascina lungo un soffitto per spuntoni verso il basso."
     },
     'canvasHint': "La rotella zooma, trascina col tasto centrale o con Alt per spostare, doppio clic sul vuoto per adattare. Il tasto destro elimina.",
+    'fingerHint': "Pizzica con due dita per zoomare e spostare. Tocca un oggetto per selezionarlo, poi trascinalo; trascina le maniglie rotonde e quella quadrata per modificarlo. Trascina sul vuoto per spostare la vista.",
     'kind': {
       'platform': "Piattaforma",
       'finish': "Piattaforma d'arrivo",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Schermo fisso",
       'verticalCamera': "Telecamera verticale",
       'gateTo': "Porta a",
+      'gateLinkN': "Portale {n}",
       'shape': "Aspetto"
     },
     'scrollHint': "La telecamera mostra uno schermo e segue il giocatore.",

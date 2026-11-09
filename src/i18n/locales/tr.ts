@@ -113,6 +113,7 @@ export default {
     'submitShort': "Gönder",
     'toolsTitle': "Araçlar",
     'levelTitle': "Seviye",
+    'properties': "Özellikler",
     'selectionTitle': "Seçim",
     'switchTitle': "Anahtar",
     'motionTitle': "Hareket",
@@ -140,6 +141,7 @@ export default {
       'fit': "Pencereye sığdır",
       'zoomIn': "Yakınlaştır",
       'zoomOut': "Uzaklaştır",
+      'fullscreen': "Tam ekran çizim",
       'snap': "10 px ızgaraya hizala",
       'animate': "Hareketli nesneleri canlandır",
       'mobile': "Telefon önizlemesi",
@@ -202,6 +204,7 @@ export default {
       'spikes-down': "Aşağı bakan dikenler için tavan boyunca sürükle."
     },
     'canvasHint': "Fare tekerleği yakınlaştırır, orta tuşla veya Alt ile sürüklemek kaydırır, boş alana çift tıklamak sığdırır. Sağ tık siler.",
+    'fingerHint': "Yakınlaştırmak ve kaydırmak için iki parmakla sıkıştırın. Seçmek için bir nesneye dokunun, sonra sürükleyin; şeklini değiştirmek için yuvarlak tutamaçları ve kare tutamacı sürükleyin. Boş zemini sürüklemek görünümü kaydırır.",
     'kind': {
       'platform': "Platform",
       'finish': "Bitiş platformu",
@@ -286,6 +289,7 @@ export default {
       'fixedScreen': "Sabit ekran",
       'verticalCamera': "Dikey kamera",
       'gateTo': "Gideceği yer",
+      'gateLinkN': "Geçit {n}",
       'shape': "Görünüm"
     },
     'scrollHint': "Kamera tek ekran gösterir ve oyuncuyu takip eder.",

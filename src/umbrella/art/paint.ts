@@ -993,6 +993,14 @@ const spikes = (ctx: CanvasRenderingContext2D, h: Hazard): boolean => {
 const hazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean => {
   if (!paintedOn) return false
   if (h.kind === 'pillar') return walldorf(ctx, h, w)
+  if (h.kind === 'mine' && h.blownAt !== undefined) {
+    // Blown up by another mine: the lantern / clay blast where it was; the kite look falls back to the flat torn-paper one.
+    if (!paintedGame) return false
+    const t = w.time - h.blownAt
+    const bx = h.blastX ?? h.x + h.w / 2, by = h.blastY ?? h.y + h.h / 2
+    if (t < 0.85) (isClay ? clayBlast : mineBlast)(ctx, bx, by, h.w / 2, t, (bx * 0.013 + by * 0.007) % 1)
+    return true
+  }
   if (h.kind === 'mine') return prickbait(ctx, h, w)
   if (h.kind === 'fan') return fan(ctx, h, w)
   if (h.kind === 'spikes') return spikes(ctx, h)
