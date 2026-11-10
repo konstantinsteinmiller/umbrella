@@ -362,8 +362,12 @@ const walldorfBody = (ctx: CanvasRenderingContext2D, b: { x: number; y: number; 
 /** Where the two stacked eyes sit on a Walldorf of box `b`: their centre (the
  *  middle of the pair) and the eye radius. The kite face sprite uses it too. */
 export const walldorfEyes = (b: { x: number; y: number; w: number; h: number }, facing: 1 | -1) => {
-  const er = Math.min(b.w * 0.2, 9)
-  return { er, ex: b.x + b.w / 2 + facing * b.w * 0.18, top: b.y + Math.min(b.h * 0.3, 70) }
+  // The stacked pair is 4.1 eye radii tall: the eyes shrink with a short body and the pair
+  // stays inside it, so a small Walldorf never wears eyes that spill out over its edge.
+  const er = Math.min(b.w * 0.2, 9, b.h * 0.19)
+  const half = er * 2.05
+  const top = Math.max(half, Math.min(Math.min(b.h * 0.3, 70), b.h - half))
+  return { er, ex: b.x + b.w / 2 + facing * b.w * 0.18, top: b.y + top }
 }
 
 /** The face: two stacked eyes looking `facing`, brows when angry. `lid` (0..1,

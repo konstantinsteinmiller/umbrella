@@ -1,6 +1,8 @@
 Umbrella — changelog (newest first)
 
 == Revision 16 — 2026-11-04 ==
+- [x] Small Walldorfs: the two eyes now scale to the body's height as well as its width and sit fully inside it, so a small or low Walldorf no longer has its eyes spilling over the top edge. Full-size Walldorfs look exactly as before
+- [x] Gentle updrafts lift: opening the umbrella on the ground inside a weak current (chapter 1 level 29's full-screen speed-80 updraft) used to sink back onto the ground and shut on "landing", because the float pull out-pulled the lift. The float pull now steps aside while a weak (non-super) updraft carries the player; stronger currents and every recorded run are unchanged (tested)
 - [x] A gate can lead to another gate in the same level: a gate's "Leads to" list now also offers "Gate N" of this level (`link` in the level) next to the campaign levels. Opening the umbrella at it sends Pweeg through the current and out of the other gate, with stars, buttons, checkpoints and the clock carrying on (nothing reloads). Works in the campaign, the editor's test, and player levels. Deleting a gate fixes the links of the others. New strings in all 21 languages
 - [x] Gates work in player levels (My levels, shared links, community): opening the umbrella at a gate carries Pweeg through the hyper current to the challenge level it points to, and winning it brings him back out at the gate in the same player level. The campaign's progress, stars and unlocks are untouched; leaving the player level drops the trip
 - [x] Level selector, "My levels" rows: picking one no longer tilts, mirrors or squashes the row (the label was unreadable); the row stays put and only brightens a little, with no sheen sweep

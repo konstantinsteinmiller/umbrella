@@ -311,6 +311,17 @@ const overlaps = (ax: number, ay: number, aw: number, ah: number, b: { x: number
 /** Wind strength 0..1 at the player: fades in over the top `edge` px of an
  *  updraft (and the matching leading edge of the others), so an open umbrella
  *  settles and bobs gently at the boundary instead of snapping. */
+/** An updraft whose lift is slower than the float pull (a designer's gentle current): the pull
+ *  must not fight it, or the opened umbrella never leaves the ground and shuts on "landing". */
+const inWeakUpdraft = (w: World, pl: Player, t: Tuning): boolean =>
+  liveWinds(w).some(
+    (x) =>
+      x.dir === 'up' &&
+      !x.super &&
+      (x.speed * t.windScale) / (t.windTurnTime / 2) < t.floatSpeed / t.floatEaseTime &&
+      windInfluence(pl, x, t.windEdge) > 0
+  )
+
 export const windInfluence = (pl: Player, w: WindDef, edge: number): number => {
   const body = pointInfluence(pl.x + pl.w / 2, pl.y + pl.h / 2, w, edge)
   if (!pl.open) return body
@@ -588,7 +599,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
       // Braking snap: any fall faster than float speed is caught within brakingSnap.
       if (pl.vy > t.floatSpeed) {
         pl.vy = approach(pl.vy, t.floatSpeed, (t.terminalVelocity / t.brakingSnap) * dt)
-      } else {
+      } else if (!inWeakUpdraft(w, pl, t)) {
         pl.vy = approach(pl.vy, t.floatSpeed, (t.floatSpeed / t.floatEaseTime) * dt)
       }
     } else {
