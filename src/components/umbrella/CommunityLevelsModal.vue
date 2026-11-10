@@ -5,7 +5,7 @@
  * list. Each level's preview is drawn from its share code (LevelThumb). "Create a level" jumps to the editor,
  * where levels are submitted (5 per week). Only shown where the build may talk
  * to the level server (not Poki / YouTube Playables — see community.ts).
- * In the lantern / clay builds it wears the scene's theme (umbrella/ui/theme.ts).
+ * In the lantern build it wears the scene's theme (umbrella/ui/theme.ts).
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -274,7 +274,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 /* The plain UI has no frame box: the sheet sits straight in the backdrop. */
 .cl-frame { display: contents; }
 
-/* ── Themed (lantern / clay): sheet, buttons, tabs and motion come from umbrella-ui.css ── */
+/* ── Themed (lantern): sheet, buttons, tabs and motion come from umbrella-ui.css ── */
 .ui-theme .cl-back { padding: 50px 16px 30px; }
 .ui-theme .cl-frame { position: relative; display: flex; flex-direction: column; width: min(800px, 100%); max-height: 100%; }
 .ui-theme .cl { width: 100%; flex: 1 1 auto; min-height: 0; max-height: none; padding: 36px 24px 24px; gap: 14px; overscroll-behavior: contain; }
@@ -287,8 +287,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .ui-theme .cl-btn { min-height: 44px; padding: 9px 18px; font-size: 16px; }
 .ui-theme .cl-btn.yellow,
 .ui-theme .cl-btn.green { padding: 9px 38px; }
-.ui-clay .cl-btn.yellow,
-.ui-clay .cl-btn.green { padding-inline: 22px; }
+
 .ui-theme .cl-tab { min-height: 40px; padding: 7px 16px; font-size: 15px; }
 .ui-theme .cl-layout { width: 44px; height: 40px; font-size: 18px; display: grid; place-items: center; }
 .ui-theme .cl-list.grid { gap: 14px; }
@@ -314,11 +313,5 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 .ui-lantern .cl-thumb { box-shadow: 0 0 0 1px #e8b450, 0 0 0 2.5px #2a1d3a; border-radius: 3px; }
 .ui-lantern .cl-meta { color: rgba(251, 241, 220, 0.78); }
 .ui-lantern .cl-stars { color: #ffd23f; }
-/* Clay: a mustard recess for "create"; each level a little cream slab with a lip. */
-.ui-clay .cl-create { border: 0; border-radius: 18px; background: #f6dfa0; box-shadow: inset 0 3px 6px rgba(140, 100, 20, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.8); }
-.ui-clay .cl-create p { color: #5a4512; }
-.ui-clay .cl-row { border-radius: 18px; color: #2b2f3a; background: radial-gradient(130% 120% at 30% 0%, #fffdf6, #efe4cc); box-shadow: inset 0 2px 0 #fff, inset 0 -3px 6px rgba(130, 100, 55, 0.18), 0 5px 0 #c9b893, 0 10px 16px rgba(20, 25, 45, 0.2); }
-.ui-clay .cl-thumb { border-radius: 12px; box-shadow: 0 0 0 3px #2f5fa8, 0 3px 0 3px #173464; }
-.ui-clay .cl-meta { color: #66615a; }
-.ui-clay .cl-stars { color: #e09a10; }
+
 </style>

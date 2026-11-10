@@ -37,7 +37,7 @@ import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { getState } from '@/use/useEpicState'
-import { isLantern, isClay } from '@/umbrella/kite'
+import { isLantern } from '@/umbrella/kite'
 import { setWindStyle, windStyle } from '@/umbrella/windStyle'
 import { MAX_TIME_LIMIT, parseTimeLimit } from '@/umbrella/timeStars'
 import { encodeLevel, shareLink } from '@/umbrella/levelCode'
@@ -82,7 +82,7 @@ import {
 } from '@/umbrella/customLevels'
 
 type Tool =
-  | 'select' | 'platform' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
+  | 'select' | 'platform' | 'cloud' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
@@ -110,6 +110,7 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys; /*
   { id: 'build', tools: [
     { id: 'select', icon: '⬚', keys: { key: 'v' } },
     { id: 'platform', icon: '▬', keys: { key: 'b' } },
+    { id: 'cloud', icon: '☁', keys: { key: 'o' } },
     { id: 'finish', icon: '🏁', keys: { key: 'f' } },
     { id: 'spawn', icon: '☺', keys: { key: 's' } },
     { id: 'checkpoint', icon: '⚑', keys: { key: 'c' } },
@@ -430,10 +431,11 @@ const place = (t: Tool, a: Vec, b: Vec) => {
   let sel: Selection = null
   switch (t) {
     case 'platform':
+    case 'cloud':
     case 'finish': {
       // One finish per level: placing a new one demotes the old.
       if (t === 'finish') L.platforms.forEach((p) => { delete p.finish })
-      L.platforms.push({ x, y, w: w(200), h: h(20), ...(t === 'finish' ? { finish: true } : {}) })
+      L.platforms.push({ x, y, w: w(200), h: h(t === 'cloud' ? 40 : 20), ...(t === 'finish' ? { finish: true } : {}), ...(t === 'cloud' ? { cloud: true } : {}) })
       sel = { type: 'entity', group: 'platforms', i: L.platforms.length - 1 }
       break
     }
@@ -835,14 +837,14 @@ watch(designer, (on) => {
 const menus = computed(() => [
   { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
   { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'deselect'] },
-  { id: 'view', items: ['fullscreen', 'fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern || isClay ? ['-', 'paperWind'] : [])] },
+  { id: 'view', items: ['fullscreen', 'fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern ? ['-', 'paperWind'] : [])] },
   { id: 'level', items: ['test', 'prevLevel', 'nextLevel', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
   ...(designer.value ? [{ id: 'campaign', items: ['campaignOverwrite', 'campaignReplace', 'campaignRevert', 'reorder', '-', 'sync', 'password', '-', 'exportLibrary', 'importLibrary'] }] : []),
   { id: 'help', items: ['shortcuts'] }
 ])
 /** Commands reachable now: the designer's only after "cmonc", Submit only where the community exists. */
 const visibleCommands = computed(() => Object.keys(commands).filter((id) =>
-  (!commands[id]!.designer || designer.value) && (id !== 'submit' || communityEnabled) && (id !== 'paperWind' || isLantern || isClay)))
+  (!commands[id]!.designer || designer.value) && (id !== 'submit' || communityEnabled) && (id !== 'paperWind' || isLantern)))
 const cmdKeys = (id: string) => (commands[id]?.keys?.[0] ? fmtKeys(commands[id]!.keys![0]!) : '')
 const cmdEnabled = (id: string) => commands[id]?.enabled?.() ?? true
 const runCmd = (id: string) => {
@@ -1231,7 +1233,7 @@ const setContact = (h: HazardDef, c: WalldorfContact) => {
   else if (c === 'bounce') h.contact = 'bounce'
   if (c !== 'bounce') delete h.bounce
 }
-const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once', on: boolean) => {
+const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once' | 'cloud', on: boolean) => {
   const o = ent as Record<string, unknown>
   if (on) o[key] = true
   else delete o[key]
@@ -1274,7 +1276,7 @@ const selectedKind = computed(() => {
   if (!s) return ''
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
-  if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : 'platform'
+  if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : (s.ent as PlatformDef).cloud ? 'cloud' : 'platform'
   return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'lessons' ? 'lesson' : s.group === 'stars' ? 'star' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */
@@ -2286,6 +2288,7 @@ onUnmounted(() => {
 
           <template v-if="selectedPlatform">
             <label class="check"><input type="checkbox" :checked="!!selectedPlatform.finish" @change="setFinish(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.finish') }}</label>
+            <label v-if="!selectedPlatform.finish" class="check"><input type="checkbox" :checked="!!selectedPlatform.cloud" @change="setFlag(selectedPlatform, 'cloud', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.tool.cloud') }}</label>
           </template>
 
           <template v-if="selectedWind">

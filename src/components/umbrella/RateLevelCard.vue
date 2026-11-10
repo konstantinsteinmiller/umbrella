@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** 0–5 stars for a community level, asked after the player won or failed it. Themed in the lantern / clay builds. */
+/** 0–5 stars for a community level, asked after the player won or failed it. Themed in the lantern build. */
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { rateLevel } from '@/umbrella/community'
@@ -77,7 +77,7 @@ const send = async () => {
 .rate-btn.green { background: #059669; }
 .rate-btn:disabled { opacity: 0.45; }
 
-/* ── Themed (lantern / clay) ── */
+/* ── Themed (lantern) ── */
 .ui-theme .rate-back { padding: 52px 16px 44px; }
 .ui-theme .rate { width: min(440px, 100%); padding: 42px 22px 26px; gap: 16px; }
 .ui-theme .rate > :not(.lpo, .cpo) { position: relative; z-index: 4; }
@@ -104,15 +104,10 @@ const send = async () => {
 .ui-theme .rate { width: min(480px, 100%); }
 .ui-theme .rate-actions { width: 100%; flex-wrap: wrap; gap: 12px; }
 .ui-theme .rate-btn { flex: 1 1 auto; min-height: 50px; padding: 10px 34px; font-size: 17px; white-space: nowrap; }
-.ui-clay .rate-btn { padding-inline: 22px; }
+
 .ui-lantern .rate-star { border-radius: 7px; background: linear-gradient(180deg, #342c6e, #1b163f); color: rgba(251, 241, 220, 0.3); box-shadow: 0 0 0 1.5px #2a1d3a, inset 0 0 0 3px #1b163f, inset 0 0 0 4px rgba(232, 180, 80, 0.55), 0 3px 0 1px #110d2a; }
 .ui-lantern .rate-star.on { color: #ffd23f; }
 .ui-lantern .rate-star.picked { box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3.5px #ffe7a6, inset 0 0 0 3px #1b163f, inset 0 0 0 4px #e8b450, 0 0 18px rgba(255, 170, 70, 0.7); }
 .ui-lantern .rate-star.zero { color: #fbf1dc; }
-.ui-clay .rate-star { border-radius: 14px; background: #e6dac0; color: #b9ab90; box-shadow: inset 0 3px 5px rgba(110, 85, 45, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.9); }
-.ui-clay .rate-star.on { color: #f1b72f; }
-.ui-clay .rate-star.on .ui-glyph { filter: drop-shadow(0 1.5px 0 #a9760a) drop-shadow(0 0 4px rgba(255, 200, 60, 0.5)); }
-.ui-clay .rate-star.picked { background: radial-gradient(130% 150% at 30% 12%, #8fb1e6, #2f5fa8 50%, #1d3f78); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 3px 0 #173464; }
-.ui-clay .rate-star.zero { color: #66615a; }
-.ui-clay .rate-star.zero.picked { color: #fffaf0; }
+
 </style>

@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Tanlash / surish",
       'platform': "Platforma",
+      'cloud': "Bulut",
       'finish': "Marra",
       'spawn': "O‘yinchi starti",
       'checkpoint': "Nazorat nuqtasi",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Tanlash uchun bosing, surish uchun torting. Yashil burchak o‘lchamni o‘zgartiradi; sariq nuqtalar yo‘lni suradi.",
       'platform': "Platforma chizish uchun ramka torting.",
+      'cloud': "Bulut platformasini chizish uchun to'rtburchakni suring. U platforma kabi ishlaydi, lekin bulut shaklida chiziladi.",
       'finish': "Marra uchun ramka torting — unga qo‘nish darajani yutadi.",
       'spawn': "O‘yinchi boshlaydigan joyni bosing.",
       'checkpoint': "Platformani bosing: bayroqqa tegilgach, yiqilish o‘yinchini shu yerga qaytaradi.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Kattalashtirish va siljitish uchun ikki barmoq bilan chimchilang. Tanlash uchun narsaga tegib, so‘ng sudrang; shaklini o‘zgartirish uchun yumaloq va to‘rtburchak tutqichlarni sudrang. Ko‘rinishni siljitish uchun bo‘sh joyni sudrang.",
     'kind': {
       'platform': "Platforma",
+      'cloud': "Bulut",
       'finish': "Marra platformasi",
       'wind': "Oqim",
       'super': "Super oqim",

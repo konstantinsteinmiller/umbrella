@@ -13,7 +13,8 @@
 // follows Pweeg) is one painted part moved by code (ANIMATE.md).
 import { contactOf, STAR_R, type Hazard, type World } from '../engine'
 import { channelColor, type Camera } from '../renderer'
-import { isClay, isLantern, paintedGame } from '../kite'
+import { isLantern, paintedGame } from '../kite'
+import { cloudPath } from '../cloudShape'
 import { drawSignLantern, setPaintedSignPart } from '../signArt'
 import hintArrowUrl from '@/assets/umbrella-ui/hint-arrow.webp'
 import hintLanternUrl from '@/assets/umbrella-ui/hint-lantern.webp'
@@ -29,7 +30,6 @@ import { hasSheet, setReady, sharpImage, sheetImage } from './sheets'
 import type { KiteArt } from './hooks'
 import { drawFinishDressing } from './kiteFinish'
 import walldorfFaceEyes from './walldorfFaceEyes.json'
-import walldorfFaceEyesClay from './walldorfFaceEyes-clay.json'
 
 // ─── The switch ─────────────────────────────────────────────────────────────
 
@@ -406,7 +406,7 @@ const ANGRY_TINT = '#ff8a78'
 // place on the pillar. The game draws the pupils: they turn to the player, re-aimed every third frame,
 // so the eyes hold still and only the gaze follows — the feeling of being watched.
 interface FaceEye { x: number; y: number; rx: number; ry: number; pupil: number }
-const FACE_EYES = ((isClay ? walldorfFaceEyesClay : walldorfFaceEyes) as { frames: FaceEye[][] }).frames
+const FACE_EYES = (walldorfFaceEyes as { frames: FaceEye[][] }).frames
 /** Re-aim the pupils every this many frames. */
 const GAZE_EVERY = 3
 const gazes = new WeakMap<Hazard, { n: number; ux: number; uy: number }>()
@@ -551,116 +551,6 @@ const prickMoving = new WeakMap<Hazard, boolean>()
 // gravity, gold sparks, and cream smoke puffs drifting up. Every piece is placed from the mine's
 // seed, so the same mine always blows up the same way. About 0.8 s long (MINE_DEATH_HOLD).
 const BLAST_INK = '#2a1d3a'
-/** The clay mine's blast: no flash of paper, a squashy claymation POOF — a puff of soft clay balls
- *  swelling out and shrinking away, the mine's crimson clay lumps and rounded spike cones flung out
- *  under gravity, and little clay dust balls drifting up. Every ball has the clay look's soft light
- *  side, shadow side and dark outline. Same timing as the paper blast (MINE_DEATH_HOLD). */
-const CLAY_INK = '#2a2630'
-const clayBall = (ctx: CanvasRenderingContext2D, x: number, y: number, rad: number, base: string, shade: string, light: string): void => {
-  ctx.fillStyle = base
-  ctx.strokeStyle = CLAY_INK
-  ctx.lineWidth = Math.max(1, rad * 0.12)
-  ctx.beginPath()
-  ctx.arc(x, y, rad, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.save()
-  ctx.clip()
-  ctx.fillStyle = shade
-  ctx.beginPath()
-  ctx.arc(x + rad * 0.35, y + rad * 0.45, rad * 0.95, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillStyle = base
-  ctx.beginPath()
-  ctx.arc(x - rad * 0.12, y - rad * 0.12, rad * 0.82, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillStyle = light
-  ctx.beginPath()
-  ctx.ellipse(x - rad * 0.38, y - rad * 0.42, rad * 0.26, rad * 0.16, -0.6, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.restore()
-  ctx.beginPath()
-  ctx.arc(x, y, rad, 0, Math.PI * 2)
-  ctx.stroke()
-}
-
-const clayBlast = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, seed: number): void => {
-  const ease = (u: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3)
-  ctx.save()
-  ctx.translate(x, y)
-  // A soft warm glow for the first instant (clay does not flash white).
-  if (t < 0.12) {
-    ctx.globalAlpha = 0.6 * (1 - t / 0.12)
-    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 2.2)
-    glow.addColorStop(0, 'rgba(255, 214, 160, 1)')
-    glow.addColorStop(1, 'rgba(255, 170, 110, 0)')
-    ctx.fillStyle = glow
-    ctx.beginPath()
-    ctx.arc(0, 0, r * 2.2, 0, Math.PI * 2)
-    ctx.fill()
-  }
-  // The puff: a ring of clay balls round a big middle one, swelling out (squash-and-stretch) then
-  // shrinking away.
-  const grow = ease(t / 0.18)
-  const fade = Math.max(0, 1 - Math.max(0, t - 0.3) / 0.45)
-  if (fade > 0) {
-    ctx.globalAlpha = Math.min(1, fade * 1.4)
-    const k = grow * fade
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2 + seed * 3
-      const d = r * (0.75 + 0.35 * rnd(seed + i)) * (0.6 + 0.6 * grow)
-      const rad = r * (0.42 + 0.18 * rnd(seed + i + 9)) * k
-      if (rad > 0.5) clayBall(ctx, Math.cos(a) * d, Math.sin(a) * d - r * 0.3 * t, rad, '#efe9df', '#c6bcae', '#ffffff')
-    }
-    const mid = r * 0.75 * k
-    if (mid > 0.5) clayBall(ctx, 0, -r * 0.3 * t, mid, '#f4efe6', '#cdc3b4', '#ffffff')
-  }
-  // The mine's own clay: rounded crimson lumps and spike cones, flung out, tumbling, falling.
-  for (let i = 0; i < 10; i++) {
-    const u = t / 0.8
-    if (u >= 1) break
-    const cone = i < 6
-    const a = cone ? (i / 6) * Math.PI * 2 - Math.PI / 2 : rnd(seed + i * 3) * Math.PI * 2
-    const v = r * (cone ? 3.8 : 2.8 + 1.8 * rnd(seed + i * 5))
-    const px = Math.cos(a) * v * t
-    const py = Math.sin(a) * v * t + r * 5 * t * t
-    const size = r * (cone ? 0.36 : 0.22 + 0.12 * rnd(seed + i * 7))
-    ctx.globalAlpha = Math.min(1, (1 - u) * 1.8)
-    if (cone) {
-      ctx.save()
-      ctx.translate(px, py)
-      ctx.rotate(a + Math.PI / 2 + t * 4 * (rnd(seed + i) < 0.5 ? -1 : 1))
-      ctx.fillStyle = '#8e2234'
-      ctx.strokeStyle = CLAY_INK
-      ctx.lineWidth = Math.max(1, size * 0.14)
-      ctx.lineJoin = 'round'
-      ctx.beginPath()
-      ctx.moveTo(0, -size)
-      ctx.quadraticCurveTo(size * 0.5, size * 0.1, size * 0.42, size * 0.45)
-      ctx.quadraticCurveTo(0, size * 0.62, -size * 0.42, size * 0.45)
-      ctx.quadraticCurveTo(-size * 0.5, size * 0.1, 0, -size)
-      ctx.fill()
-      ctx.stroke()
-      ctx.fillStyle = 'rgba(255, 190, 196, 0.55)'
-      ctx.beginPath()
-      ctx.ellipse(-size * 0.14, -size * 0.2, size * 0.08, size * 0.28, 0.2, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.restore()
-    } else {
-      clayBall(ctx, px, py, size, '#a92b3e', '#76202e', '#e07a86')
-    }
-  }
-  // Dust: little clay balls drifting up and fading.
-  for (let i = 0; i < 6; i++) {
-    const u = (t - 0.15 - i * 0.03) / 0.6
-    if (u <= 0 || u >= 1) continue
-    const a = -Math.PI / 2 + (rnd(seed + i * 13) - 0.5) * 2.2
-    const d = r * (1 + 1.6 * ease(u))
-    ctx.globalAlpha = 1 - u
-    clayBall(ctx, Math.cos(a) * d, Math.sin(a) * d - r * u, r * 0.12 * (1 - u * 0.5), '#e2dbcf', '#b8ad9e', '#ffffff')
-  }
-  ctx.restore()
-}
-
 const mineBlast = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number, t: number, seed: number): void => {
   const ease = (u: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3)
   ctx.save()
@@ -803,7 +693,7 @@ const fuseTipOf = (img: HTMLImageElement, s: SheetDef, frame: number): { x: numb
           for (let k = 0; k < d.length; k += 4) {
             if (d[k + 3]! > 120 && d[k]! > 200 && d[k + 1]! > 150 && d[k + 2]! < 130) pts.push([(k / 4) % fw, Math.floor(k / 4 / fw)])
           }
-          // Too few gold pixels: no painted fuse in this frame (the clay mine has none at all).
+          // Too few gold pixels: no painted fuse in this frame.
           if (pts.length < 12) { tips.push(null); continue }
           // Start at the topmost gold (the spark, not a gold glint lower on the body), then walk to
           // the middle of the gold within a spark's reach a few times.
@@ -909,7 +799,7 @@ const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean 
   // The lantern mine is a firecracker: touched, it goes off — the mine is gone, only its blast is left.
   const blast = paintedGame ? blastOf(h, w) : undefined
   if (blast) {
-    ;(isClay ? clayBlast : mineBlast)(ctx, blast.x, blast.y, r, w.phaseTime, (blast.x * 0.013 + blast.y * 0.007) % 1)
+    ;mineBlast(ctx, blast.x, blast.y, r, w.phaseTime, (blast.x * 0.013 + blast.y * 0.007) % 1)
     return true
   }
   // Moving / idle with a margin each way, so a slow mine does not flip between the two looks every frame.
@@ -925,7 +815,7 @@ const prickbait = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean 
   if (Math.abs(h.dx) > 0.5) prickHeading.set(h, h.dx > 0 ? 1 : -1)
   const flip = moving && prickHeading.get(h) === 1
   blit(ctx, s, img, frame, x, y, r / PRICKBAIT_R, r / PRICKBAIT_R, flip)
-  // A painted fuse burns (the lantern firecracker); the clay mine has none.
+  // A painted fuse burns (the lantern firecracker).
   const tip = paintedGame ? fuseTipOf(img as HTMLImageElement, s, frame) : null
   if (tip) fuseSpark(ctx, x + (flip ? -1 : 1) * r * tip.x, y + r * tip.y, r, w.time + h.x * 0.013, tip.s)
   const pl = w.player
@@ -994,11 +884,11 @@ const hazard = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean => 
   if (!paintedOn) return false
   if (h.kind === 'pillar') return walldorf(ctx, h, w)
   if (h.kind === 'mine' && h.blownAt !== undefined) {
-    // Blown up by another mine: the lantern / clay blast where it was; the kite look falls back to the flat torn-paper one.
+    // Blown up by another mine: the lantern blast where it was; the kite look falls back to the flat torn-paper one.
     if (!paintedGame) return false
     const t = w.time - h.blownAt
     const bx = h.blastX ?? h.x + h.w / 2, by = h.blastY ?? h.y + h.h / 2
-    if (t < 0.85) (isClay ? clayBlast : mineBlast)(ctx, bx, by, h.w / 2, t, (bx * 0.013 + by * 0.007) % 1)
+    if (t < 0.85) mineBlast(ctx, bx, by, h.w / 2, t, (bx * 0.013 + by * 0.007) % 1)
     return true
   }
   if (h.kind === 'mine') return prickbait(ctx, h, w)
@@ -1026,99 +916,63 @@ const nine = (ctx: CanvasRenderingContext2D, s: SheetDef, img: HTMLImageElement 
   }
 }
 
-// ─── Clay ledges: brickwork at one scale, never stretched ───────────────────
-//
-// A nine-slice stretches its middle to any size, which smears the clay sheet's bricks into streaks on
-// long or thin ledges. The clay ledge instead fills its rectangle with the painted brickwork as a
-// repeating texture at ONE fixed size (anchored to the world, so neighbouring ledges line up), lays
-// the painted coping stones along its top at their own size, and finishes it with a soft rounded
-// clay edge: a dark outline, a light top lip and a shadow along the bottom.
-const CLAY_BRICK_TILE = 60
-const CLAY_SHEET = { coping: [8, 108] as const, bricks: [140, 600] as const }
-const clayPatterns = new WeakMap<HTMLImageElement | HTMLCanvasElement, { bricks: CanvasPattern; coping: HTMLCanvasElement } | null>()
-const clayLedgeArt = (ctx: CanvasRenderingContext2D, img: HTMLImageElement | HTMLCanvasElement) => {
-  if (clayPatterns.has(img)) return clayPatterns.get(img)!
-  let out: { bricks: CanvasPattern; coping: HTMLCanvasElement } | null = null
-  try {
-    const k = img.width / 768
-    // A square of brickwork from the middle of the sheet, scaled to the tile.
-    const b = document.createElement('canvas')
-    b.width = b.height = 128
-    const bg = b.getContext('2d')!
-    const [b0, b1] = CLAY_SHEET.bricks
-    bg.drawImage(img, 256 * k, b0 * k, (b1 - b0) * k, (b1 - b0) * k, 0, 0, 128, 128)
-    const pat = ctx.createPattern(b, 'repeat')
-    // A strip of coping stones from the middle of the top edge.
-    const c = document.createElement('canvas')
-    const [c0, c1] = CLAY_SHEET.coping
-    c.width = Math.round(256 * k)
-    c.height = Math.round((c1 - c0) * k)
-    c.getContext('2d')!.drawImage(img, 256 * k, c0 * k, 256 * k, (c1 - c0) * k, 0, 0, c.width, c.height)
-    if (pat) out = { bricks: pat, coping: c }
-  } catch { /* the nine-slice instead */ }
-  clayPatterns.set(img, out)
-  return out
-}
-
-const clayLedge = (ctx: CanvasRenderingContext2D, img: HTMLImageElement | HTMLCanvasElement, x: number, y: number, w: number, h: number): boolean => {
-  const art = clayLedgeArt(ctx, img)
-  if (!art) return false
-  const r = Math.min(7, h / 2.5, w / 2.5)
-  const round = () => {
-    ctx.beginPath()
-    ctx.roundRect(x, y, w, h, r)
-  }
+/** The lantern build's cloud platform: a cut-paper cloud in cream washi with a gold-leaf edge and a gold
+ *  scroll in each puff. It fits the platform's box (a square cloud when the box is square) and its top
+ *  puffs touch the walkable line. No sheet: it is drawn, so any size is crisp. */
+const lanternCloud = (ctx: CanvasRenderingContext2D, p: PlatformDef, color: string | null): boolean => {
+  const { x, y, w, h } = p
   ctx.save()
-  // A soft shadow under the ledge, onto the scene.
-  ctx.fillStyle = 'rgba(20, 24, 36, 0.22)'
-  ctx.beginPath()
-  ctx.roundRect(x + 2, y + 3, w, h, r)
+  // A soft paper shadow below.
+  ctx.fillStyle = 'rgba(20, 14, 40, 0.28)'
+  cloudPath(ctx, x + 1.5, y + 3, w, h)
   ctx.fill()
-  round()
-  ctx.clip()
-  // Brickwork, one fixed size, anchored to the world.
-  const m = new DOMMatrix().translateSelf(0, 0).scaleSelf(CLAY_BRICK_TILE / 128, CLAY_BRICK_TILE / 128)
-  art.bricks.setTransform(m)
-  ctx.fillStyle = art.bricks
-  ctx.fillRect(x, y, w, h)
-  // Coping stones along the top, at their own proportions, tiled.
-  const ch = Math.max(5, Math.min(13, h * 0.42))
-  const cw = (art.coping.width * ch) / art.coping.height
-  const start = Math.floor(x / cw) * cw
-  for (let cx = start; cx < x + w; cx += cw) ctx.drawImage(art.coping, cx, y, cw, ch)
-  // Clay shading: a light lip along the top, darker toward the bottom.
-  const shade = ctx.createLinearGradient(0, y, 0, y + h)
-  shade.addColorStop(0, 'rgba(255, 255, 255, 0.22)')
-  shade.addColorStop(Math.min(0.5, 3 / h), 'rgba(255, 255, 255, 0)')
-  shade.addColorStop(0.7, 'rgba(20, 22, 34, 0)')
-  shade.addColorStop(1, 'rgba(20, 22, 34, 0.3)')
-  ctx.fillStyle = shade
-  ctx.fillRect(x, y, w, h)
-  ctx.restore()
-  // The soft dark clay outline.
-  ctx.save()
-  ctx.strokeStyle = 'rgba(42, 38, 48, 0.9)'
-  ctx.lineWidth = 1.5
-  ctx.beginPath()
-  ctx.roundRect(x + 0.75, y + 0.75, w - 1.5, h - 1.5, Math.max(0, r - 0.75))
+  const paper = ctx.createLinearGradient(0, y, 0, y + h)
+  paper.addColorStop(0, '#fff6e0')
+  paper.addColorStop(0.6, '#f6e3bd')
+  paper.addColorStop(1, '#e2c58f')
+  ctx.fillStyle = paper
+  cloudPath(ctx, x, y, w, h)
+  ctx.fill()
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = Math.max(1.5, Math.min(3, h / 12))
+  ctx.strokeStyle = color ?? '#c8932f'
   ctx.stroke()
+  // Gold scrolls: one swirl per puff, kept inside the paper.
+  if (h >= 22) {
+    const r = Math.max(1, Math.min(h / 2, w / 2))
+    const span = Math.max(0, w - 2 * r)
+    const n = Math.max(1, Math.round(span / Math.max(14, h * 1.1)))
+    const d = span / n
+    const s = Math.min(d, h) * 0.22
+    ctx.strokeStyle = 'rgba(200, 147, 47, 0.85)'
+    ctx.lineWidth = Math.max(1, s * 0.22)
+    ctx.lineCap = 'round'
+    for (let i = 0; i < n; i++) {
+      const cx = x + r + i * d + d / 2
+      const cy = y + h / 2
+      ctx.beginPath()
+      ctx.arc(cx, cy, s, Math.PI * 0.15, Math.PI * 1.85)
+      ctx.arc(cx + s * 0.25, cy, s * 0.5, Math.PI * 1.7, Math.PI * 0.3, true)
+      ctx.stroke()
+    }
+  }
   ctx.restore()
   return true
 }
 
 const platform = (ctx: CanvasRenderingContext2D, p: PlatformDef, on: boolean, color: string | null): boolean | 'dressed' => {
+  if (isLantern && paintedOn && p.cloud && !p.finish && (color === null || on)) return lanternCloud(ctx, p, color)
   if (!paintedOn || !ready(['platform'], PLATFORMS)) return false
   // A switched-off platform stays the dashed ghost the vector path draws.
   if (color !== null && !on) return false
   // The lantern finish is the concept's festival dais, dressed as the goal it is (no FINISH word).
-  if (p.finish && paintedGame && (isClay ? finishPost : finishDais)(ctx, p, performance.now() / 1000)) return 'dressed'
+  if (p.finish && paintedGame && finishDais(ctx, p, performance.now() / 1000)) return 'dressed'
   const id = p.finish ? 'platform-finish' : color !== null ? 'platform-switch' : 'platform'
   if (!hasSheet(id)) return false
   const s = sheet(id)
   const raw = sheetImage(id)!
   const img = color !== null && !p.finish ? tintOf(id, raw, color) : null
-  // Clay ledges keep their brickwork at one size (a stretched nine-slice smears it); the rest nine-slice.
-  if (!(isClay && id === 'platform' && clayLedge(ctx, raw, p.x, p.y, p.w, p.h))) nine(ctx, s, img ?? raw, p.x, p.y, p.w, p.h)
+  nine(ctx, s, img ?? raw, p.x, p.y, p.w, p.h)
   // The kite build's flags and bunting; the lantern pad is its own goal (and keeps its label).
   if (p.finish && !paintedGame) drawFinishDressing(ctx, p, performance.now() / 1000)
   return true
@@ -1219,13 +1073,7 @@ const softRect = (ctx: CanvasRenderingContext2D, tex: HTMLCanvasElement, x: numb
 const NORMAL_RGB = '140,200,255'
 // The designer's Super Stream is a deeper swirling blue wave; the lantern
 // build's is a fierce orange firework ribbon (the vector game's orange arrows).
-const SUPER_RGB = isLantern ? '255,138,42' : isClay ? '232,128,58' : '70,150,215'
-/** Clay's folded strips' box: a deep navy (a dark amber for a Super Stream), so it reads against the
- *  misty town (lantern keeps its light field: the night sky is dark). */
-const PAPER_FIELD_RGB = '20,28,62'
-const PAPER_FIELD_SUPER_RGB = '72,38,8'
-/** The clay field is a paler, milkier blue than the drawn one. */
-const CLAY_RGB = '170,200,228'
+const SUPER_RGB = isLantern ? '255,138,42' : '70,150,215'
 const hexRgb = (hex: string): string => {
   const v = Number.parseInt(hex.slice(1), 16)
   return `${(v >> 16) & 255},${(v >> 8) & 255},${v & 255}`
@@ -1346,9 +1194,8 @@ const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w
   g.rotate(angle)
   g.lineCap = 'round'
   g.lineJoin = 'round'
-  // Lantern: pale paper streamers and fiery gold; clay: soft rolled ribbons of pale blue clay and
-  // autumn orange, a little thicker.
-  const ink = isClay ? (sup ? 'rgb(240, 150, 72)' : 'rgb(214, 228, 242)') : sup ? 'rgb(255, 196, 120)' : 'rgb(236, 242, 255)'
+  // Lantern: pale paper streamers and fiery gold.
+  const ink = sup ? 'rgb(255, 196, 120)' : 'rgb(236, 242, 255)'
   g.strokeStyle = ink
   for (let l = 0; l < lanes; l++) {
     const seedL = l * 3.7 + live.x * 0.011 + live.y * 0.017
@@ -1366,7 +1213,7 @@ const windGusts = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w
     for (let k = 0; k < per; k++) {
       const seed = seedL * 5 + k * 13
       const len = Math.min(240, along * (0.32 + rnd(seed + 3) * 0.38))
-      const width = (sup ? 3.4 : 2.8) * (isClay ? 1.35 : 1) * (0.7 + rnd(seed + 7) * 0.6)
+      const width = (sup ? 3.4 : 2.8) * (0.7 + rnd(seed + 7) * 0.6)
       // The bow and the curl stay inside the lane: they fit its width, minus the stroke.
       const room = Math.max(1, inner - width)
       const r = Math.max(1.5, Math.min(room / 2, 5 + rnd(seed + 4) * 5))
@@ -1688,276 +1535,31 @@ const paperStrips = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef,
   ctx.restore()
 }
 
-// ─── Clay wind: rolled-clay arrows, ribbons and leaves ──────────────────────
-//
-// The concept art's currents, made consistent: a soft pale-blue clay field; rows of small rolled-clay
-// arrows on an even grid, all one size; a few painted rolled-clay swooshes (tapered, curling at their
-// head) gliding along; and a few autumn leaves tumbling with the flow.
-// Everything travels downstream at the current's own pace (travelOf) and fades in and out at the
-// box's two ends. A Super Stream is the same in warm orange clay.
-const clayArrow = (g: CanvasRenderingContext2D, x: number, y: number, size: number, cols: [string, string]): void => {
-  // A short rolled shaft and a chunky head, the clay's light side on top.
-  g.lineCap = 'round'
-  g.lineJoin = 'round'
-  for (const [dy, col, wk] of [[size * 0.08, cols[0], 1], [0, cols[1], 1]] as const) {
-    g.strokeStyle = col
-    g.fillStyle = col
-    g.lineWidth = size * 0.26 * wk
-    g.beginPath()
-    g.moveTo(x - size * 0.55, y + dy)
-    g.lineTo(x + size * 0.05, y + dy)
-    g.stroke()
-    g.lineWidth = size * 0.12
-    g.beginPath()
-    g.moveTo(x + size * 0.55, y + dy)
-    g.lineTo(x - size * 0.02, y - size * 0.4 + dy)
-    g.lineTo(x - size * 0.02, y + size * 0.4 + dy)
-    g.closePath()
-    g.fill()
-    g.stroke()
-  }
-}
-
-const clayLeaf = (g: CanvasRenderingContext2D, x: number, y: number, size: number, turn: number, col: string): void => {
-  g.save()
-  g.translate(x, y)
-  g.rotate(turn)
-  g.fillStyle = col
-  g.beginPath()
-  g.moveTo(-size, 0)
-  g.quadraticCurveTo(0, -size * 0.75, size, 0)
-  g.quadraticCurveTo(0, size * 0.75, -size, 0)
-  g.fill()
-  g.strokeStyle = 'rgba(90, 40, 12, 0.6)'
-  g.lineWidth = Math.max(1, size * 0.12)
-  g.beginPath()
-  g.moveTo(-size * 0.8, 0)
-  g.lineTo(size * 0.8, 0)
-  g.stroke()
-  g.restore()
-}
-
-/** One tile of the clay arrow grid: `step` wide and two rows tall, an arrow at the start of the first
- *  row (and again at its end, so the tile wraps without a seam) and one half a step on in the second.
- *  Drawn at the screen's device-px scale rounded UP to an eighth, so the pattern is never softer
- *  than drawing the arrows live. */
-const arrowTiles = new Map<string, HTMLCanvasElement>()
-const clayArrowTile = (size: number, rowGap: number, step: number, scale: number, sup: boolean, cols: [string, string]): HTMLCanvasElement | null => {
-  if (typeof document === 'undefined' || !(scale > 0)) return null
-  const k = Math.ceil(scale * 8) / 8
-  const key = `${size.toFixed(2)}|${rowGap.toFixed(2)}|${step}|${k}|${sup}`
-  const have = arrowTiles.get(key)
-  if (have) return have
-  const c = document.createElement('canvas')
-  c.width = Math.max(1, Math.round(step * k))
-  c.height = Math.max(1, Math.round(2 * rowGap * k))
-  const g = c.getContext('2d')
-  if (!g) return null
-  g.scale(c.width / step, c.height / (2 * rowGap))
-  for (const x of [0, step]) clayArrow(g, x, rowGap * 0.5, size, cols)
-  clayArrow(g, step / 2, rowGap * 1.5, size, cols)
-  if (arrowTiles.size > 32) arrowTiles.clear()
-  arrowTiles.set(key, c)
-  return c
-}
-
-const clayWind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World): void => {
-  const sup = !!live.super
-  const vertical = live.dir === 'up' || live.dir === 'down'
-  const along = vertical ? live.h : live.w
-  const across = vertical ? live.w : live.h
-  const angle = live.dir === 'right' ? 0 : live.dir === 'left' ? Math.PI : live.dir === 'down' ? Math.PI / 2 : -Math.PI / 2
-  const travel = travelOf(def, live, w.time)
-  const m = ctx.getTransform()
-  const layerAlpha = sup ? 0.95 : 0.9
-  const fadeLen = Math.min(along * 0.18, 56)
-  // Weak phones (liteMode.ts): everything goes straight onto the scene, each piece faded by where it
-  // is, instead of through a wind layer the size of the current (cleared, filled, faded and laid
-  // down again every frame: two more fills of the whole current).
-  const direct = liteMode.value
-  /** A piece's share of its alpha at x along the current: faded in and out over the two ends. */
-  const endFade = (x: number): number => {
-    if (!direct) return 1
-    const u = Math.min(x + along / 2, along / 2 - x) / Math.max(1, fadeLen)
-    return u <= 0 ? 0 : Math.min(1, u) * layerAlpha
-  }
-  if (direct) {
-    ctx.save()
-    ctx.translate(live.x + live.w / 2, live.y + live.h / 2)
-    ctx.rotate(angle)
-    ctx.beginPath()
-    ctx.rect(-along / 2, -across / 2, along, across)
-    ctx.clip()
-    clayWindPieces(ctx, live, def, w, along, across, travel, m, endFade, direct)
-    ctx.restore()
-    return
-  }
-  const g = windLayerFor(ctx.canvas)
-  if (!g) return
-  const corners = [[live.x, live.y], [live.x + live.w, live.y], [live.x, live.y + live.h], [live.x + live.w, live.y + live.h]].map(([x, y]) => m.transformPoint({ x, y }))
-  const bx = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.x))) - 2)
-  const by = Math.max(0, Math.floor(Math.min(...corners.map((p) => p.y))) - 2)
-  const bw = Math.min(g.canvas.width, Math.ceil(Math.max(...corners.map((p) => p.x))) + 2) - bx
-  const bh = Math.min(g.canvas.height, Math.ceil(Math.max(...corners.map((p) => p.y))) + 2) - by
-  if (bw <= 0 || bh <= 0) return
-  g.setTransform(1, 0, 0, 1, 0, 0)
-  g.clearRect(bx, by, bw, bh)
-  g.setTransform(m)
-  g.save()
-  g.translate(live.x + live.w / 2, live.y + live.h / 2)
-  g.rotate(angle)
-  g.beginPath()
-  g.rect(-along / 2, -across / 2, along, across)
-  g.clip()
-  clayWindPieces(g, live, def, w, along, across, travel, m, endFade, direct)
-  // Fade in at the upstream end and out at the downstream end.
-  g.globalCompositeOperation = 'destination-out'
-  const inFade = g.createLinearGradient(-along / 2, 0, -along / 2 + fadeLen, 0)
-  inFade.addColorStop(0, 'rgba(0, 0, 0, 1)')
-  inFade.addColorStop(1, 'rgba(0, 0, 0, 0)')
-  g.fillStyle = inFade
-  g.fillRect(-along / 2 - 8, -across / 2 - 8, fadeLen + 8, across + 16)
-  const outFade = g.createLinearGradient(along / 2 - fadeLen, 0, along / 2, 0)
-  outFade.addColorStop(0, 'rgba(0, 0, 0, 0)')
-  outFade.addColorStop(1, 'rgba(0, 0, 0, 1)')
-  g.fillStyle = outFade
-  g.fillRect(along / 2 - fadeLen, -across / 2 - 8, fadeLen + 8, across + 16)
-  g.globalCompositeOperation = 'source-over'
-  g.restore()
-  ctx.save()
-  ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.globalAlpha = layerAlpha
-  ctx.drawImage(g.canvas, bx, by, bw, bh, bx, by, bw, bh)
-  ctx.restore()
-}
-
-/** The clay current's moving pieces, in its own frame (along x, across y): the arrow grid, the
- *  painted gusts and the leaves. `direct`: drawn onto the scene with `endFade` per piece (the arrow
- *  grid in a few bands at each end); else into the wind layer, which the caller fades and lays down. */
-const clayWindPieces = (
-  g: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World, along: number, across: number,
-  travel: number, m: DOMMatrix, endFade: (x: number) => number, direct: boolean
-): void => {
-  const sup = !!live.super
-  const fadeLen = Math.min(along * 0.18, 56)
-  const ribbonCols: [string, string, string] = sup ? ['#b4561e', '#e8803a', '#ffc28a'] : ['#7e9fbe', '#bcd4e8', '#eef5fb']
-  const arrowCols: [string, string] = sup ? ['#7a3510', '#c45a1c'] : ['#3c5a78', '#5f86ab']
-  // The arrow grid: rows 44 px apart, an arrow every 58 px, every other row half a step on.
-  const rows = Math.max(1, Math.round(across / 44))
-  const rowGap = across / rows
-  const step = 58
-  const size = Math.min(16, rowGap * 0.42)
-  const shift = ((travel % step) + step) % step
-  const tile = clayArrowTile(size, rowGap, step, Math.hypot(m.a, m.b), sup, arrowCols)
-  const pat = tile ? g.createPattern(tile, 'repeat') : null
-  g.globalAlpha = 0.8
-  if (tile && pat) {
-    // The grid is one tile (two rows, the second half a step on) repeated and slid along: drawing a
-    // hundred-odd arrows one by one in every current, every frame, cost a phone most of its frame.
-    pat.setTransform(new DOMMatrix().translateSelf(-along / 2 + shift, -across / 2).scaleSelf(step / tile.width, (2 * rowGap) / tile.height))
-    g.fillStyle = pat
-    if (!direct) {
-      g.fillRect(-along / 2, -across / 2, along, across)
-    } else {
-      // The middle at full strength, each end in FADE_BANDS steps (the arrows are small and far
-      // apart: the steps do not show).
-      const FADE_BANDS = 5
-      const band = fadeLen / FADE_BANDS
-      g.globalAlpha = 0.8 * endFade(0)
-      g.fillRect(-along / 2 + fadeLen, -across / 2, along - 2 * fadeLen, across)
-      for (let k = 0; k < FADE_BANDS; k++) {
-        g.globalAlpha = 0.8 * endFade(-along / 2 + band * (k + 0.5))
-        g.fillRect(-along / 2 + band * k, -across / 2, band, across)
-        g.fillRect(along / 2 - band * (k + 1), -across / 2, band, across)
-      }
-    }
-  } else {
-    for (let r = 0; r < rows; r++) {
-      const c = -across / 2 + rowGap * (r + 0.5)
-      const rs = (((travel + (r % 2) * step * 0.5) % step) + step) % step
-      for (let x = -along / 2 - step + rs; x < along / 2 + step; x += step) clayArrow(g, x, c, size, arrowCols)
-    }
-  }
-  g.globalAlpha = 1
-  // The gusts: the painted clay gusts (clay-wind sheet: a twisted rope and three curls), one per
-  // ~120 px across, gliding along at the current's pace, the two by turns. No sheet yet: arrows and
-  // leaves alone.
-  const cw = sheetImage('clay-wind') as HTMLImageElement | null
-  if (cw) {
-    const cs = sheet('clay-wind')
-    const boxes = boxesOf(cw, cs)
-    const ribbons = Math.max(1, Math.round(across / 120))
-    const lane = across / ribbons
-    for (let i = 0; i < ribbons; i++) {
-      const r = boxes[cs.anims[(sup ? 'orange' : 'blue') + (i % 2 ? 'B' : 'A')]!.frames[0]!]!
-      // Drawn at the painting's own proportions, never stretched along the flow: as tall as most
-      // of its lane allows (64 at most), its length following from that, and both shrunk together
-      // when that would run past three fifths of the current.
-      const aspect = (r.x1 - r.x0) / Math.max(1, r.y1 - r.y0)
-      let h = Math.min(lane * 0.8, 64)
-      let len = h * aspect
-      if (len > along * 0.6) {
-        len = along * 0.6
-        h = len / aspect
-      }
-      const period = along + len + 40
-      const head = ((((travel + rnd(i * 7.3 + def.x * 0.01) * period) % period) + period) % period) - along / 2
-      const c = -across / 2 + lane * (i + 0.5)
-      const fade = endFade(head - len / 2)
-      if (fade <= 0) continue
-      g.globalAlpha = fade
-      g.drawImage(cw, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, head - len, c - h / 2, len, h)
-    }
-  }
-  // Leaves: one per ~90 px of the current's length, tumbling a little as they go.
-  const leaves = Math.max(1, Math.round(along / 90))
-  for (let i = 0; i < leaves; i++) {
-    const period = along + 40
-    const x = ((((travel * 1.05 + (i * period) / leaves) % period) + period) % period) - along / 2 - 20
-    const c = -across / 2 + across * (0.15 + 0.7 * rnd(i * 3.1 + def.y * 0.01))
-    const bob = Math.sin(w.time * 2.4 + i * 1.7) * 4
-    const fade = endFade(x)
-    if (fade <= 0) continue
-    g.globalAlpha = fade
-    clayLeaf(g, x, c + bob, sup ? 11 : 10, Math.sin(w.time * 1.8 + i) * 0.9 + i, sup ? '#f2a03a' : '#d9822b')
-  }
-  g.globalAlpha = 1
-}
-
 const wind = (ctx: CanvasRenderingContext2D, live: WindDef, def: WindDef, w: World): boolean => {
   // The soft field rides with the painted wisps: no wisps sheet, the vector current. The painted game
-  // (lantern, clay) draws its own gust streaks and needs no sheet.
+  // (lantern) draws its own gust streaks and needs no sheet.
   const img = paintedOn ? sheetImage('wind-wisps') : null
   if (!img && !(paintedOn && paintedGame)) return false
   const sup = !!live.super
   const f = Math.max(10, Math.min(56, live.w / 2, live.h / 2))
   if (live.speed > 0 && paintedGame) {
-    const tex = feather(sup ? SUPER_RGB : isClay ? CLAY_RGB : NORMAL_RGB, false)
+    const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
     if (!tex) return false
     // A clearly readable current: a denser fill with a short feather, so its edge (where the push
     // ends) reads at a glance without a drawn border.
     // The paper strips carry their own colour: under them the field stays faint.
-    // The folded strips: lantern's washi, and clay's default wind once its clay slabs have shipped
-    // (the clay gusts and arrow grid are the other look, and the fallback until then).
-    const paper = windStyle.value === 'paper' && (isLantern || (isClay && hasSheet('wind-paper')))
+    // The folded strips: lantern's washi.
+    const paper = windStyle.value === 'paper' && isLantern
     ctx.save()
-    // The clay current is a soft pale-blue (or orange) clay field of its own; the paper strips carry
-    // their own colour, so under them the field stays faint.
-    ctx.globalAlpha = isClay ? (sup ? 0.34 : 0.3) : paper ? (sup ? 0.14 : 0.1) : sup ? 0.3 : 0.22
+    // The paper strips carry their own colour, so under them the field stays faint.
+    ctx.globalAlpha = paper ? (sup ? 0.14 : 0.1) : sup ? 0.3 : 0.22
     // The paper strips carry their field in their cache (one fill of the current a frame, not two).
     if (!paper) softRect(ctx, tex, live.x, live.y, live.w, live.h, Math.min(f, 10))
     ctx.restore()
-    if (paper && isClay) {
-      // Clay: the current's box dark and with a short soft edge, so the light clay strips stand out on
-      // it against the misty town and a player reads at a glance where the wind starts.
-      const box = feather(sup ? PAPER_FIELD_SUPER_RGB : PAPER_FIELD_RGB, false)
-      if (!box) return false
-      paperStrips(ctx, live, def, w, { tex: box, alpha: sup ? 0.44 : 0.4, f: Math.min(f, 5) })
-    } else if (paper) {
+    if (paper) {
       // Lantern: the light blue (or gold) field reads best on the dark night sky.
       paperStrips(ctx, live, def, w, { tex, alpha: sup ? 0.14 : 0.1, f: Math.min(f, 10) })
     }
-    else if (isClay) clayWind(ctx, live, def, w)
     else windGusts(ctx, live, def, w)
   } else if (live.speed > 0 && img) {
     const tex = feather(sup ? SUPER_RGB : NORMAL_RGB, false)
@@ -2083,7 +1685,7 @@ const collect = (ctx: CanvasRenderingContext2D, st: Pick<StarDef, 'x' | 'y' | 's
     ctx.beginPath()
     ctx.arc(st.x, cy, STAR_R * 1.55, 0, Math.PI * 2)
     ctx.fill()
-    if (paintedGame) collectRing(ctx, st.x, cy, time, phase, !isClay)
+    if (paintedGame) collectRing(ctx, st.x, cy, time, phase, true)
     blit(ctx, s, img, frame, st.x, cy)
     const sweep = (time * 0.6 + phase) % 3
     if (sweep < 1) {
@@ -2221,23 +1823,6 @@ const gate = (ctx: CanvasRenderingContext2D, g: Pick<GateDef, 'x' | 'y' | 'w' | 
   // Beams / posts / feet: the beams keep their shape, the posts stretch, the feet stay short.
   const rimH = Math.min(g.w / 3, g.h * 0.45)
   const baseH = Math.min(rimH * 0.6, Math.max(0, g.h - rimH))
-  if (isClay) {
-    // The clay warp pipe: rim, stretched tube, base; a slow swirl of light turning in its mouth.
-    cell(ctx, s, img, 0, 1, g.x, g.y + rimH - 0.5, g.w, g.h - rimH - baseH + 1, 1)
-    if (baseH > 0) cell(ctx, s, img, 0, 2, g.x, g.y + g.h - baseH, g.w, baseH)
-    cell(ctx, s, img, 0, 0, g.x, g.y, g.w, rimH)
-    ctx.save()
-    ctx.lineCap = 'round'
-    for (let k = 0; k < 2; k++) {
-      ctx.strokeStyle = `rgba(200, 255, 220, ${0.35 + 0.2 * Math.sin(time * 3 + k * 2)})`
-      ctx.lineWidth = Math.max(1.5, g.w * 0.03)
-      ctx.beginPath()
-      ctx.ellipse(g.x + g.w / 2, g.y + rimH * 0.42, Math.max(2, g.w * (0.28 - k * 0.1)), Math.max(1.5, rimH * (0.2 - k * 0.07)), 0, time * 3 + k * Math.PI, time * 3 + k * Math.PI + Math.PI * 1.3)
-      ctx.stroke()
-    }
-    ctx.restore()
-    return true
-  }
   // The portal first, between the posts and under the lower beam, so the gate frames it.
   const [l, r] = gateOpening(img as HTMLImageElement)
   portal(ctx, g.x + g.w * l, g.y + rimH * 0.8, g.w * (r - l), g.h - rimH * 0.8 - baseH * 0.4, time)
@@ -2256,86 +1841,6 @@ const DAIS_TOP = 0.3
 const RIM_END = 0.72
 const RIM_MID = 0.97
 const HANGERS = ['tassel', 'pennantRed', 'tassel', 'pennantBlue'] as const
-
-/** The clay finish: the post office's doorstep laid across the platform, a red postbox standing on
- *  its right end, a little flag on its left, and a row of bunting swaying under its front edge. */
-const finishPost = (ctx: CanvasRenderingContext2D, p: PlatformDef, time: number): boolean => {
-  if (!hasSheet('finish-dais')) return false
-  const img = sheetImage('finish-dais') as HTMLImageElement | null
-  if (!img) return false
-  const s = sheet('finish-dais')
-  const boxes = boxesOf(img, s)
-  // By panel: the game reads the lantern manifest's names for this sheet, the clay set paints its
-  // own pieces in the same four panels (doorstep, postbox, flag, bunting).
-  const PANEL_OF: Record<string, number> = { dais: 0, postbox: 1, flag: 2, bunting: 3 }
-  const at = (k: string) => boxes[PANEL_OF[k]!]!
-  const d = at('dais')
-  const x = p.x - 6
-  const w = p.w + 12
-  const dh = Math.max(24, Math.min(64, (w * (d.y1 - d.y0)) / (d.x1 - d.x0)))
-  const y = p.y - dh * DAIS_TOP
-  ctx.drawImage(img, d.x0, d.y0, d.x1 - d.x0, d.y1 - d.y0, x, y, w, dh)
-  // The bunting wraps round the oval's front rim, in front of the slab: each pennant hangs from a
-  // point on the slab's own edge (evenly round the lower half of the ellipse), so the strip follows
-  // the curve up toward the round ends; a string sagging a little between the points ties them.
-  const b = at('bunting')
-  const n = Math.max(4, Math.round(w / 24))
-  const bh = Math.max(10, Math.min(20, dh * 0.45))
-  const bw = (bh * (b.x1 - b.x0)) / (b.y1 - b.y0)
-  const ex = x + w / 2
-  const ey = y + dh / 2
-  const tie = (i: number): [number, number] => {
-    const th = Math.PI * (0.1 + (0.8 * i) / (n - 1))
-    return [ex + Math.cos(th) * (w / 2) * 0.97, ey + Math.sin(th) * (dh / 2) * 0.93]
-  }
-  ctx.save()
-  ctx.strokeStyle = '#8a6a3a'
-  ctx.lineWidth = Math.max(1, bh * 0.08)
-  ctx.beginPath()
-  for (let i = 0; i < n; i++) {
-    const [tx, ty] = tie(i)
-    if (i === 0) { ctx.moveTo(tx, ty); continue }
-    const [px, py] = tie(i - 1)
-    ctx.quadraticCurveTo((px + tx) / 2, (py + ty) / 2 + bh * 0.22, tx, ty)
-  }
-  ctx.stroke()
-  ctx.restore()
-  // The painted pennant without its own bit of string: its top fifth is cut off.
-  const top = b.y0 + (b.y1 - b.y0) * 0.18
-  for (let i = 0; i < n; i++) {
-    const [tx, ty] = tie(i)
-    ctx.save()
-    ctx.translate(tx, ty)
-    ctx.rotate(Math.sin(time * 1.8 + i * 0.8) * 0.1)
-    const pw = bw * 0.7
-    ctx.drawImage(img, b.x0 + (b.x1 - b.x0) * 0.15, top, (b.x1 - b.x0) * 0.7, b.y1 - top, -pw / 2, 0, pw, bh * 0.82)
-    ctx.restore()
-  }
-  // The postbox and the flag stand on the doorstep's top, at its two ends.
-  // The doorstep is an oval slab seen from above: the postbox and the flag stand ON it, set in from its
-  // round ends to where the slab is deep enough (u = ±0.7 of its half-width), each with a soft contact
-  // shadow, at the same depth — not perched on the curved rim.
-  const cxs = x + w / 2
-  const cys = y + dh / 2
-  const stand = (k: string, h: number, u: number, sway = 0) => {
-    const r = at(k)
-    const ww = (h * (r.x1 - r.x0)) / (r.y1 - r.y0)
-    const sx = cxs + (u * w) / 2
-    const sy = cys - dh * 0.06
-    ctx.save()
-    ctx.fillStyle = 'rgba(40, 30, 20, 0.28)'
-    ctx.beginPath()
-    ctx.ellipse(sx + ww * 0.08, sy, ww * 0.55, Math.max(1.5, dh * 0.07), 0, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.translate(sx, sy)
-    ctx.rotate(sway)
-    ctx.drawImage(img, r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, -ww / 2, -h, ww, h)
-    ctx.restore()
-  }
-  stand('flag', Math.min(40, dh * 1.1), -0.7, Math.sin(time * 1.3) * 0.03)
-  stand('postbox', Math.min(46, dh * 1.25), 0.7)
-  return true
-}
 
 const finishDais = (ctx: CanvasRenderingContext2D, p: PlatformDef, time: number): boolean => {
   if (!hasSheet('finish-dais')) return false
@@ -2514,7 +2019,7 @@ const cloudBank = (ctx: CanvasRenderingContext2D, x0: number, x1: number, top: n
  *  repainting only when the screen size or a layer changes. */
 const stillBackdrop = (canvas: HTMLCanvasElement, fullBleed: boolean): boolean => {
   const t = stillSkyCanvas
-  // Lantern: the parallax layers merged; clay: its one painting, centred.
+  // The parallax layers merged (or one single painting, centred).
   const far = sheetImage('backdrop-far')
   const single = far ? null : sheetImage('backdrop')
   const on = !!t && t.main === canvas && liteMode.value && paintedOn && !!(far || single)

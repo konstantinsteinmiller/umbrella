@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Auswählen / verschieben",
       'platform': "Plattform",
+      'cloud': "Wolke",
       'finish': "Ziel",
       'spawn': "Spielerstart",
       'checkpoint': "Checkpoint",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Klicken zum Auswählen, ziehen zum Verschieben. Die grüne Ecke ändert die Größe, gelbe Punkte verschieben einen Pfad.",
       'platform': "Ziehe ein Rechteck, um eine Plattform zu zeichnen.",
+      'cloud': "Ziehe ein Rechteck, um eine Wolkenplattform zu zeichnen. Sie funktioniert wie eine Plattform, sieht aber wie eine Wolke aus.",
       'finish': "Ziehe ein Rechteck für das Ziel — wer darauf landet, gewinnt das Level.",
       'spawn': "Klicke, wo der Spieler startet.",
       'checkpoint': "Klicke auf eine Plattform: Nach dem Berühren der Flagge bringt ein Sturz den Spieler hierher zurück.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Mit zwei Fingern zoomen und verschieben. Ein Objekt antippen, um es auszuwählen, dann ziehen; an den runden Griffen und dem quadratischen Griff ziehen, um es zu verändern. Auf leerem Grund ziehen verschiebt die Ansicht.",
     'kind': {
       'platform': "Plattform",
+      'cloud': "Wolke",
       'finish': "Zielplattform",
       'wind': "Strömung",
       'super': "Super Stream",

@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Seç / taşı",
       'platform': "Platform",
+      'cloud': "Bulut",
       'finish': "Bitiş",
       'spawn': "Oyuncu başlangıcı",
       'checkpoint': "Kontrol noktası",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Seçmek için tıkla, taşımak için sürükle. Yeşil köşe boyutlandırır; sarı noktalar yolu taşır.",
       'platform': "Platform çizmek için bir kutu sürükle.",
+      'cloud': "Bulut platformu çizmek için bir kutu sürükleyin. Platform gibi çalışır ama bulut olarak çizilir.",
       'finish': "Bitiş için bir kutu sürükle — üstüne inmek seviyeyi kazandırır.",
       'spawn': "Oyuncunun başlayacağı yere tıkla.",
       'checkpoint': "Bir platforma tıkla: bayrağa dokunduktan sonra düşen oyuncu buraya döner.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Yakınlaştırmak ve kaydırmak için iki parmakla sıkıştırın. Seçmek için bir nesneye dokunun, sonra sürükleyin; şeklini değiştirmek için yuvarlak tutamaçları ve kare tutamacı sürükleyin. Boş zemini sürüklemek görünümü kaydırır.",
     'kind': {
       'platform': "Platform",
+      'cloud': "Bulut",
       'finish': "Bitiş platformu",
       'wind': "Akıntı",
       'super': "Super Stream",

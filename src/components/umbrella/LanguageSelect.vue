@@ -4,8 +4,8 @@
  * by its own name, so each one is findable whatever is on screen. A pick is the
  * player's explicit choice: stored through useUser (and so beats the portal's
  * locale on the next visit) and applied at once through setI18nLocale.
- * In the game's lantern / clay builds it wears the scene's theme: a lacquer or
- * clay field with a themed knob (the native popup stays, for accessibility).
+ * In the game's lantern build it wears the scene's theme: a lacquer
+ * field with a themed knob (the native popup stays, for accessibility).
  */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -60,7 +60,7 @@ const choose = async (code: string) => {
 .lang.compact .lang-select { padding: 4px 6px; border-radius: 6px; }
 .lang-select option { background: #1a1f2e; color: #fff; }
 
-/* ── Themed (lantern / clay): the knob (SelectOrnaments) sits over the field's end ── */
+/* ── Themed (lantern): the knob (SelectOrnaments) sits over the field's end ── */
 .ui-theme .lang { position: relative; gap: 14px; }
 .ui-theme .lang-label { font-weight: 800; font-size: 18px; }
 .ui-theme .lang-select {
@@ -93,17 +93,5 @@ const choose = async (code: string) => {
 .ui-lantern .lang-select:dir(rtl) { background-position: right 9px center, 0 0; }
 .ui-lantern .lang-select:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 6px; }
 .ui-lantern .lang-select option { background: #1b163f; color: #fbf1dc; }
-/* A soft raised postal-blue clay pill: bevel, slim rim into its lip, a glossy highlight along the top. */
-.ui-clay .lang-select {
-  padding-inline: 18px 44px;
-  border-radius: 999px;
-  color: #fffaf0;
-  text-shadow: 0 1px 0 rgba(15, 30, 60, 0.55);
-  background:
-    radial-gradient(46% 40% at 38% 8%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 75%),
-    radial-gradient(140% 120% at 50% 0%, #86aae4 0%, #4373bd 36%, #2f5fa8 62%, #24508f 100%);
-  box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.42), inset 0 -4px 3px rgba(10, 20, 50, 0.26), 0 0 0 1.5px #163463, 0 5px 0 0.5px #163463, 0 11px 16px rgba(15, 20, 40, 0.3);
-}
-.ui-clay .lang-select:focus-visible { outline: 3px solid var(--u-focus); outline-offset: 3px; }
-.ui-clay .lang-select option { background: #fffaf0; color: #2b2f3a; }
+
 </style>

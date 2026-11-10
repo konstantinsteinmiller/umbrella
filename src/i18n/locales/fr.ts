@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Sélectionner / déplacer",
       'platform': "Plateforme",
+      'cloud': "Nuage",
       'finish': "Arrivée",
       'spawn': "Départ du joueur",
       'checkpoint': "Point de contrôle",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Clique pour sélectionner, fais glisser pour déplacer. Le coin vert redimensionne ; les points jaunes déplacent un trajet.",
       'platform': "Trace un rectangle pour dessiner une plateforme.",
+      'cloud': "Faites glisser un cadre pour dessiner une plateforme nuage. Elle se joue comme une plateforme, mais se dessine en nuage.",
       'finish': "Trace un rectangle pour l'arrivée — y atterrir gagne le niveau.",
       'spawn': "Clique là où le joueur commence.",
       'checkpoint': "Clique sur une plateforme : après avoir touché le drapeau, une chute ramène le joueur ici.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Pincez avec deux doigts pour zoomer et déplacer. Touchez un objet pour le sélectionner, puis faites-le glisser ; tirez sur les poignées rondes et la carrée pour le modifier. Glissez sur le vide pour déplacer la vue.",
     'kind': {
       'platform': "Plateforme",
+      'cloud': "Nuage",
       'finish': "Plateforme d'arrivée",
       'wind': "Courant",
       'super': "Super Stream",

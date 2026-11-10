@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Pilih / pindah",
       'platform': "Platform",
+      'cloud': "Awan",
       'finish': "Finis",
       'spawn': "Titik mulai pemain",
       'checkpoint': "Checkpoint",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Klik untuk memilih, seret untuk memindah. Sudut hijau mengubah ukuran; titik kuning memindah lintasan.",
       'platform': "Seret kotak untuk menggambar platform.",
+      'cloud': "Seret kotak untuk menggambar platform awan. Berfungsi seperti platform, tetapi digambar sebagai awan.",
       'finish': "Seret kotak untuk finis — mendarat di atasnya memenangkan level.",
       'spawn': "Klik tempat pemain mulai.",
       'checkpoint': "Klik pada platform: setelah menyentuh bendera, jatuh membawa pemain kembali ke sini.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Cubit dengan dua jari untuk zoom dan menggeser. Ketuk objek untuk memilihnya, lalu seret; seret gagang bulat dan gagang persegi untuk mengubah bentuknya. Seret di area kosong untuk menggeser tampilan.",
     'kind': {
       'platform': "Platform",
+      'cloud': "Awan",
       'finish': "Platform finis",
       'wind': "Arus",
       'super': "Super Stream",

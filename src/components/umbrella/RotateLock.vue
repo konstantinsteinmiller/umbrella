@@ -6,7 +6,7 @@
  * upright again. While it is up the game is frozen like behind any menu (gameplayStop included).
  *
  * It wears the build's look: plain flat vector for the drawn game, lit washi, lacquer and hanging
- * lanterns for the lantern build, plasticine and rain for the clay build. Motion is transform /
+ * lanterns for the lantern build. Motion is transform /
  * opacity only; prefers-reduced-motion keeps the phone turned and fades instead.
  */
 import { onMounted, onUnmounted, ref, watch } from 'vue'
@@ -47,8 +47,7 @@ onUnmounted(() => {
   release = null
 })
 
-// Rain streaks of the clay build and stars of the lantern night: fixed spots, only the motion is random-looking.
-const drops = Array.from({ length: 14 }, (_, k) => ({ left: `${(k * 37 + 11) % 100}%`, delay: `${-((k * 53) % 17) / 10}s`, dur: `${0.9 + ((k * 29) % 7) / 10}s` }))
+// Stars of the lantern night: fixed spots, only the motion is random-looking.
 const stars = Array.from({ length: 22 }, (_, k) => ({ left: `${(k * 41 + 7) % 100}%`, top: `${(k * 23 + 5) % 62}%`, delay: `${-((k * 47) % 30) / 10}s`, size: 2 + (k % 3) }))
 </script>
 
@@ -67,9 +66,6 @@ const stars = Array.from({ length: 22 }, (_, k) => ({ left: `${(k * 41 + 7) % 10
         <template v-if="theme === 'lantern'">
           <i v-for="(s, k) in stars" :key="k" class="rl-star" :style="{ left: s.left, top: s.top, width: `${s.size}px`, height: `${s.size}px`, animationDelay: s.delay }" />
           <i class="rl-moon" />
-        </template>
-        <template v-else-if="theme === 'clay'">
-          <i v-for="(d, k) in drops" :key="k" class="rl-drop" :style="{ left: d.left, animationDelay: d.delay, animationDuration: d.dur }" />
         </template>
         <template v-else>
           <i class="rl-blob a" /><i class="rl-blob b" />
@@ -330,51 +326,13 @@ const stars = Array.from({ length: 22 }, (_, k) => ({ left: `${(k * 41 + 7) % 10
 .rl-hang.r { right: 6%; }
 .rl-hang.r :deep(.hl) { animation-delay: -1.9s; }
 
-/* ═══ Clay: soft raised postal-blue plasticine under the rain ═══ */
-.rl-clay {
-  --rl-ink: #fffaf0;
-  --rl-accent: #f1b72f;
-  --rl-shadow: rgba(5, 10, 30, 0.55);
-  --rl-body: radial-gradient(140% 120% at 30% 0%, #86aae4 0%, #4373bd 36%, #2f5fa8 62%, #24508f 100%);
-  --rl-body-shadow: inset 0 3px 2px rgba(255, 255, 255, 0.42), inset 0 -5px 3px rgba(10, 20, 50, 0.3), 0 0 0 2px #163463, 0 8px 0 1px #163463, 0 18px 24px rgba(5, 10, 30, 0.45);
-  --rl-notch: #163463;
-  --rl-screen-rim: #163463;
-  --rl-sky: #163463;
-  --rl-world-sky: linear-gradient(#7d8fae, #a9b6cb);
-  --rl-cloud: #f3ead8;
-  --rl-hill: #8b5a2b;
-  --rl-hill-top: #a97440;
-  --rl-umb: #e0533d;
-  --rl-umb-line: #7a2014;
-  --rl-pole: #5b6573;
-  --rl-flag: #f1b72f;
-  background: linear-gradient(180deg, #5d6b86 0%, #3f4c68 100%);
-}
-.rl-clay .rl-title { color: #2f5fa8; text-shadow: none; padding: 12px 22px 14px; letter-spacing: 0.02em; font-weight: 400; font-size: clamp(24px, 7vw, 36px); }
-.rl-clay .rl-card::before {
-  content: '';
-  position: absolute;
-  inset: -2px -10px auto;
-  height: 64px;
-  border-radius: 20px;
-  background:
-    radial-gradient(closest-side, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0)) center top 1px / 86% 60% no-repeat,
-    radial-gradient(140% 120% at 50% 0%, #fffdf6 0%, #f3ead8 55%, #e2d4b6 100%);
-  box-shadow: inset 0 -3px 2px rgba(120, 95, 55, 0.22), 0 0 0 2px #b9a27a, 0 5px 0 1px #b9a27a, 0 12px 18px rgba(5, 10, 30, 0.4);
-}
-.rl-clay .rl-title, .rl-clay .rl-hint { position: relative; }
-.rl-clay .rl-hint { margin-top: 22px; color: #fffaf0; text-shadow: 0 2px 0 rgba(15, 30, 60, 0.6); }
-.rl-clay .rl-arc, .rl-clay .rl-head { stroke-width: 11; filter: drop-shadow(0 4px 0 #7d5806); }
-.rl-drop { position: absolute; top: -40px; width: 2.5px; height: 30px; border-radius: 3px; background: linear-gradient(rgba(220, 235, 255, 0), rgba(220, 235, 255, 0.7)); animation: rl-rain linear infinite; }
-@keyframes rl-rain { to { transform: translateY(115vh); } }
 
 /* ═══ Reduced motion: the phone stays turned, the arrow stays drawn, nothing sweeps or falls ═══ */
 @media (prefers-reduced-motion: reduce) {
   .rl-phone { animation: none; transform: rotate(-90deg); }
   .rl-arc { animation: none; stroke-dashoffset: 0; }
   .rl-head { animation: none; opacity: 1; }
-  .rl-umb, .rl-cloud, .rl-finish::after, .rl-shadow, .rl-blob, .rl-star, .rl-drop { animation: none; }
-  .rl-shadow { transform: scale(1.25, 1); }
+  .rl-umb, .rl-cloud, .rl-finish::after, .rl-shadow, .rl-blob, .rl-star,   .rl-shadow { transform: scale(1.25, 1); }
   .rl-enter-active .rl-stage, .rl-enter-active .rl-card { animation: none; }
   .rl-leave-active .rl-stage, .rl-leave-active .rl-card { transform: none; }
 }

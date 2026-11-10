@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ─── Umbrella store covers (roadmap #Cover-1) ───────────────────────────────
 //
-//   node scripts/art/umbrella-covers.mjs jobs <scenes|masters|logos> [--style lantern|clay]
+//   node scripts/art/umbrella-covers.mjs jobs <scenes|masters|logos> [--style lantern]
 //       writes art-sheets/promotion-umbrella/jobs-<kind>.json for the Gemini runner
 //   node scripts/art/umbrella-covers.mjs cut
 //       cuts every deliverable from the chosen masters into src/assets/promotion/<style>/
@@ -35,18 +35,6 @@ const STYLES = {
     finishPlace: 'a round golden festival dais with tassels and pennants',
     wind: 'rising currents drawn as folded blue washi paper strips printed with arrows'
   },
-  clay: {
-    sheets: join(ROOT, 'art-sheets', 'umbrella-clay'),
-    concept: 'style/clay-key.png',
-    finish: 'a stop-motion CLAYMATION set: everything modelled from soft plasticine with thumbprint texture and a soft satin sheen, a cosy rainy evening over clay rooftops, chimneys and lit windows',
-    pweeg: 'Pweeg, a little white clay POSTMAN (a soft rounded body, two black bead eyes, a blue postman cap, a brown satchel across his chest, stubby clay arms and legs) — copy him exactly from the attached figure',
-    chad: 'Chad, Pweeg\'s cool friend: the same white clay postman wearing black clay sunglasses — copy him from the attached figure',
-    umbrella: 'a red-and-white striped clay umbrella with a wooden crook handle',
-    mine: 'an angry spiky crimson clay mine ball with little pointed clay teeth',
-    walldorf: 'Walldorf, a tall chimney-stack creature of brick-red clay with two stacked white googly eyes',
-    finishPlace: 'a sandstone clay doorstep with a red pillar postbox and yellow bunting',
-    wind: 'rising currents of rolled pale-blue clay swooshes and clay arrows with autumn leaves'
-  }
 }
 
 /** The four scenes, from the CTR evidence: one big expressive face, the game's own action, few
@@ -80,9 +68,7 @@ const coverPrompt = (style, scene, aspect) => {
 
 const logoPrompt = (style) => {
   const s = STYLES[style]
-  const look = style === 'clay'
-    ? 'the letters are modelled from soft plasticine: chunky, rounded, a little squashed and playful, cream-white clay with a thick postal-blue clay outline and a soft blue clay drop shadow, a small red-and-white striped clay umbrella standing in for the dot or hooked over the first letter'
-    : 'the letters are cut and folded from washi paper: bold rounded letters in warm glowing cream-gold paper with a lacquer-red cut-paper outline and a thin gold rim, a small red wagasa paper parasol tucked against the first letter, a soft lantern glow kept INSIDE the paper'
+  const look = 'the letters are cut and folded from washi paper: bold rounded letters in warm glowing cream-gold paper with a lacquer-red cut-paper outline and a thin gold rim, a small red wagasa paper parasol tucked against the first letter, a soft lantern glow kept INSIDE the paper'
   return [
     'WHAT COMES BACK IS ONE GAME LOGO WORDMARK, ALONE, CENTRED ON A FLAT MAGENTA (#FF00FF) BACKGROUND.',
     'The word is exactly: UMBRELLA — eight letters, spelled U-M-B-R-E-L-L-A, nothing else written anywhere.',

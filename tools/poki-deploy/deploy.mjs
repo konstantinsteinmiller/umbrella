@@ -26,8 +26,8 @@
 //   pnpm deploy:poki --playtest-chapter build, upload and QA a Poki version that plays ONLY the Playtest Build
 //                                       chapter (the editor's list: levels 1-10, 11-20, 25-30...) for fresh
 //                                       players: pnpm poki:deploy-quick-playtest
-//   pnpm deploy:poki --art lantern      build the game in one painted art style (lantern | clay):
-//                                       pnpm deploy:poki:lantern / deploy:poki:clay
+//   pnpm deploy:poki --art lantern      build the game in one painted art style (lantern):
+//                                       pnpm deploy:poki:lantern
 //
 // The first run opens a real Chrome window and waits for a Google sign-in;
 // after that the profile at ~/.poki-deploy/chrome-profile carries the session.
@@ -71,12 +71,12 @@ const KEEP = flag('keep')
 const HONEST = flag('honest-ticks')
 const PORT = Number(arg('port', 9333))
 // The painted art style the Poki build is drawn in, instead of the vector drawing. It is a build
-// flag (VITE_APP_LANTERN / VITE_APP_CLAY, folded by vite.config.ts): the build carries that one set
+// flag (VITE_APP_LANTERN, folded by vite.config.ts): the build carries that one set
 // of sheets and nothing else, and has no art switch (the cheat-mode dropdown only offers one where
 // sibling builds exist, on GitHub Pages).
 const ART = arg('art', null)
-const ART_FLAGS = { lantern: 'VITE_APP_LANTERN', clay: 'VITE_APP_CLAY' }
-const ART_LABEL = { lantern: 'Origami Lantern', clay: 'Clay' }
+const ART_FLAGS = { lantern: 'VITE_APP_LANTERN' }
+const ART_LABEL = { lantern: 'Origami Lantern' }
 if (ART && !ART_FLAGS[ART]) die(`--art ${ART} is unknown`, `known: ${Object.keys(ART_FLAGS).join(', ')}`)
 // A round's playtest: the build plays the Playtest Build chapter alone (VITE_APP_PLAYTEST_CHAPTER, read by
 // customLevels.ts). Refuses to ship when that chapter is empty, or the build would quietly be the whole campaign.

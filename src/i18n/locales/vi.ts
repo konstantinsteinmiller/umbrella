@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Chọn / di chuyển",
       'platform': "Bục",
+      'cloud': "Đám mây",
       'finish': "Đích",
       'spawn': "Điểm xuất phát",
       'checkpoint': "Điểm lưu",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Nhấp để chọn, kéo để di chuyển. Góc xanh lá đổi kích thước; chấm vàng di chuyển đường đi.",
       'platform': "Kéo một khung để vẽ bục.",
+      'cloud': "Kéo một khung để vẽ nền tảng đám mây. Nó hoạt động như nền tảng, nhưng được vẽ thành đám mây.",
       'finish': "Kéo một khung làm đích — đáp xuống đó là thắng màn.",
       'spawn': "Nhấp vào nơi người chơi bắt đầu.",
       'checkpoint': "Nhấp lên bục: sau khi chạm cờ, nếu rơi người chơi sẽ quay lại đây.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Chụm hai ngón tay để phóng to và di chuyển. Chạm vào một vật để chọn rồi kéo; kéo các núm tròn và núm vuông để đổi hình dạng. Kéo trên nền trống để dịch chuyển khung nhìn.",
     'kind': {
       'platform': "Bục",
+      'cloud': "Đám mây",
       'finish': "Bục đích",
       'wind': "Luồng gió",
       'super': "Siêu luồng",

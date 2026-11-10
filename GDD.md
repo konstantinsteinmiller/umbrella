@@ -348,7 +348,6 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 
 ## Revision 13
 **Art styles**
-· ?art=clay opens the "Rainy Day Post" claymation look: a clay postman Pweeg on rainy rooftops, chimney Walldorfs, a spiky clay mine, clay currents with rolled-clay arrows, ribbons and leaves. The level editor's cheat mode switches between the drawn game, lantern and clay.
 · Lantern currents are folded washi paper strips: blue for a regular current, golden with bold arrows for a Super Stream.
 · The finish is a festival dais (lantern); enemies and props follow the concept art; mines blow up on touch.
 **Phones**
@@ -356,7 +355,7 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 **Level editor**
 · Swing arcs can be angled, and every repeating motion has a start position.
 **Poki**
-· Poki builds can be made in one art style (lantern or clay) and run fully offline with the campaign baked in.
+· Poki builds can be made in one art style (lantern) and run fully offline with the campaign baked in.
 
 ## Revision 14
 
@@ -372,7 +371,7 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 
 ## Revision 16
 **Players**
-· A phone or tablet held upright shows a "turn your phone sideways" card (drawn / lantern / clay looks) until it is turned; the game is frozen behind it.
+· A phone or tablet held upright shows a "turn your phone sideways" card (drawn / lantern looks) until it is turned; the game is frozen behind it.
 · The pre-game intro cutscene is off (feature flag VITE_APP_INTRO_ENABLED=false in .env; true brings it back).
 · Landscape levels are framed on their main items (start, finish, platforms, hazards...) so both ends are in view from the first frame, with little empty space at the sides and none below the out-of-bounds line.
 **Level editor**

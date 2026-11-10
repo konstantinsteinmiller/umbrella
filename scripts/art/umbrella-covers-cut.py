@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DIR = ROOT / 'art-sheets' / 'promotion-umbrella'
 LOGOS = ROOT / 'public' / 'images' / 'logo'
 OUT = ROOT / 'src' / 'assets' / 'promotion'
-STYLES = ('lantern', 'clay')
+STYLES = ('lantern',)
 
 # (w, h, formats, variants) — the roadmap's list; no restriction means jpg + webp, both variants.
 BOTH = ('plain', 'logo')

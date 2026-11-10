@@ -6,7 +6,7 @@
  * plays its tuned mix). While the Audio tab is open the scene lets the music be
  * heard, and letting go of the effects slider plays one sample, so the player
  * hears what they set. The scene stops the simulation
- * while this is open. In the lantern / clay builds it wears the scene's theme
+ * while this is open. In the lantern build it wears the scene's theme
  * (umbrella/ui/theme.ts): an ornamented sheet, themed buttons and icons, and a
  * slide between the menu and the settings. On a desktop (`keys`) a Controls tab
  * holds the keyboard layout (detected, or picked) and the key rebinding: keys
@@ -220,11 +220,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 .bind-key.waiting { background: #fbbf24; color: #1a1f2e; animation: key-wait 0.9s ease-in-out infinite; }
 @keyframes key-wait { 50% { transform: scale(1.08); } }
 .ui-lantern .bind-key { color: #2a1d3a; background: linear-gradient(180deg, #fffaf0, #e8d6b0); border-color: #2a1d3a; }
-.ui-clay .bind-key { color: #fffaf0; background: radial-gradient(130% 150% at 30% 12%, #8fb1e6, #2f5fa8 50%, #1d3f78); border: 0; box-shadow: 0 2px 0 #173464; }
-.ui-lantern .bind-key.waiting, .ui-clay .bind-key.waiting { background: #fbbf24; color: #1a1f2e; }
-.ui-clay .vol input { accent-color: #2f5fa8; }
 
-/* ── Themed (lantern / clay) ── */
+.ui-lantern .bind-key.waiting { background: #fbbf24; color: #1a1f2e; }
+
+/* ── Themed (lantern) ── */
 .ui-theme .pause-back { padding: 52px 16px 44px; }
 .ui-theme .pause { width: min(400px, 100%); padding: 40px 26px 28px; gap: 0; }
 .ui-theme .pause-view { display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 4; }
@@ -239,13 +238,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 .ui-theme .tabs { gap: 6px; padding-top: 4px; }
 .ui-theme .tab { min-height: 40px; padding: 8px 18px; }
 .ui-theme .tab-body { padding: 14px 2px 4px; font-size: 17px; }
-/* Clay pills carry no end ornaments: their labels get the room. Narrow phones tighten both. */
-.ui-clay .pause-btn { padding-inline: 22px; }
+
 @media (max-width: 400px) {
   .ui-theme .pause { padding-inline: 20px; }
   .ui-lantern .pause-btn { padding-inline: 32px; font-size: 17px; }
-  .ui-clay .pause-btn { padding-inline: 14px; font-size: 17px; }
+  
 }
 .ui-lantern .pause-title { color: #7e1a17; }
-.ui-clay .pause-title { color: #2f5fa8; }
+
 </style>

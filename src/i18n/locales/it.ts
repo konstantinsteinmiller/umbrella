@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Seleziona / sposta",
       'platform': "Piattaforma",
+      'cloud': "Nuvola",
       'finish': "Arrivo",
       'spawn': "Partenza giocatore",
       'checkpoint': "Checkpoint",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Clicca per selezionare, trascina per spostare. L'angolo verde ridimensiona; i punti gialli spostano un percorso.",
       'platform': "Trascina un riquadro per disegnare una piattaforma.",
+      'cloud': "Trascina un riquadro per disegnare una piattaforma nuvola. Si gioca come una piattaforma, ma è disegnata come una nuvola.",
       'finish': "Trascina un riquadro per l'arrivo — atterrarci sopra vince il livello.",
       'spawn': "Clicca dove parte il giocatore.",
       'checkpoint': "Clicca su una piattaforma: dopo aver toccato la bandiera, una caduta riporta qui il giocatore.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Pizzica con due dita per zoomare e spostare. Tocca un oggetto per selezionarlo, poi trascinalo; trascina le maniglie rotonde e quella quadrata per modificarlo. Trascina sul vuoto per spostare la vista.",
     'kind': {
       'platform': "Piattaforma",
+      'cloud': "Nuvola",
       'finish': "Piattaforma d'arrivo",
       'wind': "Corrente",
       'super': "Super Stream",

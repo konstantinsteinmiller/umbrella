@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A menu button's inset ornaments in the lantern theme: gold-leaf kumo curls at both ends, unrolling
- * toward the label (they open a little on hover). The clay buttons need none: a smooth squashy pill with its gloss is the detail there. Nothing in the
+ * toward the label (they open a little on hover). Nothing in the
  * plain UI. The button must be `position: relative` (`.u-btn` is).
  */
 import { useId } from 'vue'

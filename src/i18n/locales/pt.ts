@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Selecionar / mover",
       'platform': "Plataforma",
+      'cloud': "Nuvem",
       'finish': "Chegada",
       'spawn': "Início do jogador",
       'checkpoint': "Checkpoint",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Clique para selecionar, arraste para mover. O canto verde redimensiona; os pontos amarelos movem um trajeto.",
       'platform': "Arraste uma caixa para desenhar uma plataforma.",
+      'cloud': "Arraste uma caixa para desenhar uma plataforma de nuvem. Funciona como uma plataforma, mas é desenhada como uma nuvem.",
       'finish': "Arraste uma caixa para a chegada — pousar nela vence o nível.",
       'spawn': "Clique onde o jogador começa.",
       'checkpoint': "Clique numa plataforma: depois de tocar a bandeira, uma queda traz o jogador de volta aqui.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Faça o gesto de pinça com dois dedos para ampliar e mover. Toque num objeto para selecioná-lo e arraste-o; arraste as alças redondas e a quadrada para alterá-lo. Arraste no vazio para mover a vista.",
     'kind': {
       'platform': "Plataforma",
+      'cloud': "Nuvem",
       'finish': "Plataforma de chegada",
       'wind': "Corrente",
       'super': "Super Stream",

@@ -68,7 +68,7 @@ import { setLessonKeys } from '@/umbrella/lessonArt'
 
 const { t } = useI18n()
 const router = useRouter()
-// The lantern / clay builds dress the menus, HUD and touch controls in their art (umbrella/ui/theme.ts).
+// The lantern build dresses the menus, HUD and touch controls in its art (umbrella/ui/theme.ts).
 provide(UI_THEME, uiTheme)
 const themeClass = uiThemeClass(uiTheme)
 
@@ -268,7 +268,8 @@ const challenge = ref<Challenge | null>(null)
 const unlocked = ref<number[]>(getState<number[]>('umb_unlocked', []))
 const challengeIds = computed(() => new Set(LEVELS.flatMap((l) => (l.gates ?? []).map((g) => g.to))))
 const isChallenge = (i: number) => challengeIds.value.has(LEVELS[i]?.id ?? -1)
-const isLocked = (i: number) => isChallenge(i) && !unlocked.value.includes(LEVELS[i]!.id)
+// The level a new player begins on is always open, even when some gate also leads to it.
+const isLocked = (i: number) => isChallenge(i) && i !== startIndex && !unlocked.value.includes(LEVELS[i]!.id)
 const shownIndex = () => challenge.value?.idx ?? levelIndex.value
 /** The next campaign level in a direction, walking past challenge levels. */
 const walkIndex = (from: number, d: 1 | -1) => {
@@ -689,7 +690,7 @@ const touchedHazard = () => {
   }
   return best?.kind
 }
-/** The lantern, clay and skinless builds' mines blow up on contact: the death holds until the blast and Pweeg's
+/** The lantern and skinless builds' mines blow up on contact: the death holds until the blast and Pweeg's
  *  destroyed poof (16 frames at 24 fps) have played, instead of the usual quick reset. */
 const MINE_DEATH_HOLD = 0.85
 let mineDeath = false
@@ -1335,7 +1336,6 @@ onUnmounted(() => {
         <HangingLantern class="start-lantern r" />
         <HangingLantern class="start-lantern s" />
       </template>
-      <span v-else-if="uiTheme === 'clay'" class="start-badge" aria-hidden="true"><UiGlyph name="umbrella" fallback="☂" /></span>
       <span class="start-label">{{ t(tapDevice ? 'umbrella.tapToPlay' : 'umbrella.clickToPlay') }}</span>
       <OrnDivider class="start-divider" />
     </div>
@@ -1783,7 +1783,8 @@ onUnmounted(() => {
 .stick { translate: var(--sx, 0px) var(--sy, 0px); transition: opacity 0.3s ease, translate 0.18s ease-out; }
 .stick.floating { transition: opacity 0.3s ease; }
 /* Steering from the left half: no pad behind the knob (its outline, fill, glow and arrows go), the knob alone follows the finger. */
-.stick.bare, .ui-lantern .stick.bare, .ui-clay .stick.bare { background: none !important; border-color: transparent !important; box-shadow: none !important; }
+.stick.bare,
+.ui-lantern .stick.bare { background: none !important; border-color: transparent !important; box-shadow: none !important; }
 .stick.bare .stick-arrow { opacity: 0 !important; }
 /* No thumb stick (VITE_APP_MOBILE_THUMB_DISABLED): nothing of it is drawn or touched; it keeps its place, the left half steers. */
 .stick.no-thumb { visibility: hidden; pointer-events: none; }

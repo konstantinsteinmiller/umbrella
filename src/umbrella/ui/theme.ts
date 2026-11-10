@@ -1,10 +1,8 @@
 // ─── The player UI's theme: which look the menus, HUD and touch controls wear ──
 //
-// The drawn (vector) game keeps its plain UI; the two painted builds dress it to match their art:
+// The drawn (vector) game keeps its plain UI; the painted lantern build dresses it to match its art:
 //   · 'lantern' — "Paper Moon": lit washi paper in a lacquer frame, gold-leaf cloud scrolls,
 //     vermilion lacquer buttons, a lantern-festival night behind it.
-//   · 'clay'    — "Rainy Day Post": plasticine slabs, rolled postal-blue clay rope, sewing-button
-//     rivets, postage-stamp perforations and raindrops.
 // The kite build keeps its own look (no theme). The flags are folded per build (kite.ts), so a
 // drawn build carries the theme's CSS but never its class: nothing of it applies there.
 //
@@ -12,13 +10,13 @@
 // read it with `useUiTheme()` (so the level editor, which shares LanguageSelect and ConfirmModal,
 // stays plain) and theme their own scoped styles under that root class.
 import { inject, type InjectionKey } from 'vue'
-import { isClay, isKite, isLantern } from '@/umbrella/kite'
+import { isKite, isLantern } from '@/umbrella/kite'
 import '@/assets/css/umbrella-ui.css'
 
-export type UiTheme = 'lantern' | 'clay'
+export type UiTheme = 'lantern'
 
 /** This build's UI theme, or null for the plain UI (the drawn and kite builds). */
-export const uiTheme: UiTheme | null = isKite ? null : isLantern ? 'lantern' : isClay ? 'clay' : null
+export const uiTheme: UiTheme | null = isKite ? null : isLantern ? 'lantern' : null
 
 export const UI_THEME: InjectionKey<UiTheme | null> = Symbol('umbrella-ui-theme')
 

@@ -3,7 +3,7 @@
  * A confirmation card in the game's own look, for the things the browser's confirm() is too
  * blunt for: an icon medallion, a title, a message, an optional fact list, and two buttons.
  * Esc and a click outside cancel; the safe button is focused first. Inside the game scene of the
- * lantern / clay builds it wears the scene's theme (teleported, so it carries the theme class itself).
+ * lantern build it wears the scene's theme (teleported, so it carries the theme class itself).
  */
 import { onMounted, onUnmounted, ref } from 'vue'
 import { uiThemeClass, useUiTheme } from '@/umbrella/ui/theme'
@@ -168,7 +168,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
   .cm, .cm-back, .cm-medal { animation: none; }
 }
 
-/* ── Themed (lantern / clay): the sheet, buttons and motion come from umbrella-ui.css ── */
+/* ── Themed (lantern): the sheet, buttons and motion come from umbrella-ui.css ── */
 .ui-theme .cm-back { backdrop-filter: none; }
 .ui-theme .cm { width: min(460px, 100%); padding: 58px 26px 26px; gap: 12px; }
 .ui-theme .cm::before { display: none; }
@@ -180,7 +180,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 .ui-theme .cm-fact dt { color: var(--u-ink-soft); }
 .ui-theme .cm-actions { gap: 12px; margin-top: 8px; }
 .ui-theme .cm-btn { min-height: 50px; padding: 10px 34px; font-size: 17px; }
-.ui-clay .cm-btn { padding-inline: 20px; }
+
 /* A lacquer roundel ringed in gold leaf. */
 .ui-lantern .cm-medal,
 .ui-lantern .cm.danger .cm-medal {
@@ -192,16 +192,5 @@ onUnmounted(() => window.removeEventListener('keydown', onKey, true))
 .ui-lantern .cm.danger .cm-medal span { color: #fff4dc; text-shadow: 0 1px 0 #4e0e0d; }
 .ui-lantern .cm-facts { background: rgba(126, 26, 23, 0.06); border: 1px solid rgba(160, 106, 30, 0.45); border-radius: 4px; box-shadow: inset 0 0 0 3px rgba(255, 250, 235, 0.5); }
 .ui-lantern .cm-fact dd { color: #7e1a17; }
-/* A tomato clay seal pressed onto the slab. */
-.ui-clay .cm-medal,
-.ui-clay .cm.danger .cm-medal {
-  border: 0;
-  border-radius: 46% 54% 50% 50% / 52% 48% 52% 48%;
-  background: radial-gradient(circle at 34% 28%, #ffab95 0%, #e0533d 48%, #9c2d1d 100%);
-  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.4), inset 0 -4px 6px rgba(0, 0, 0, 0.2), 0 5px 0 #7a2014, 0 10px 18px rgba(20, 25, 45, 0.4);
-}
-.ui-clay .cm-medal span,
-.ui-clay .cm.danger .cm-medal span { color: #fffaf0; text-shadow: 0 2px 0 rgba(90, 20, 10, 0.5); }
-.ui-clay .cm-facts { background: #e8ddc5; border: 0; border-radius: 14px; box-shadow: inset 0 3px 6px rgba(110, 85, 45, 0.3), inset 0 -1px 0 rgba(255, 255, 255, 0.85); }
-.ui-clay .cm-fact dd { color: #2f5fa8; }
+
 </style>

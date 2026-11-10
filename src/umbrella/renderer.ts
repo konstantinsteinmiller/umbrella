@@ -18,6 +18,7 @@ import { drawSignVector } from './signArt'
 import { drawArrow, drawPicture } from './pictureArt'
 import { drawLesson } from './lessonArt'
 import { frameFocus } from './cameraFocus'
+import { cloudPath } from './cloudShape'
 
 /** One colour per button channel: a button and everything it switches share it. */
 export const CHANNEL_COLORS = ['#f59e0b', '#22d3ee', '#a78bfa', '#4ade80', '#f472b6', '#f87171']
@@ -934,19 +935,19 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
       if (on) {
         // A motion-switched platform is always there; it dims while it stands still.
         if (!platformMoving(w, p)) ctx.globalAlpha = 0.6
-        ctx.fillRect(p.x, p.y, p.w, p.h)
+        if (p.cloud && !p.finish) { cloudPath(ctx, p.x, p.y, p.w, p.h); ctx.fill() } else ctx.fillRect(p.x, p.y, p.w, p.h)
       } else {
         // Switched off: a dashed ghost of where it will appear.
         ctx.globalAlpha = 0.55
         ctx.lineWidth = 2
         ctx.setLineDash([8, 6])
-        ctx.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2)
+        if (p.cloud && !p.finish) { cloudPath(ctx, p.x + 1, p.y + 1, p.w - 2, p.h - 2); ctx.stroke() } else ctx.strokeRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2)
       }
       ctx.restore()
       if (!on || !p.finish) return
     } else {
       ctx.fillStyle = FG
-      ctx.fillRect(p.x, p.y, p.w, p.h)
+      if (p.cloud && !p.finish) { cloudPath(ctx, p.x, p.y, p.w, p.h); ctx.fill() } else ctx.fillRect(p.x, p.y, p.w, p.h)
     }
     if (p.finish) {
       ctx.textAlign = 'center'

@@ -163,6 +163,7 @@ export default {
     'tool': {
       'select': "Select / move",
       'platform': "Platform",
+      'cloud': "Cloud",
       'finish': "Finish",
       'spawn': "Player start",
       'checkpoint': "Checkpoint",
@@ -186,6 +187,7 @@ export default {
     'toolHint': {
       'select': "Click to select, drag to move. The green corner resizes; yellow dots move a path.",
       'platform': "Drag a box to draw a platform.",
+      'cloud': "Drag a box to draw a cloud platform. It plays like a platform, but is drawn as a cloud.",
       'finish': "Drag a box for the finish — landing on it wins the level.",
       'spawn': "Click where the player starts.",
       'checkpoint': "Click on a platform: after touching the flag, a fall brings the player back here.",
@@ -210,6 +212,7 @@ export default {
     'fingerHint': "Pinch with two fingers to zoom and pan. Tap a thing to select it, then drag it; drag the round knobs and the square one to reshape it. Drag empty ground to move the view.",
     'kind': {
       'platform': "Platform",
+      'cloud': "Cloud",
       'finish': "Finish platform",
       'wind': "Current",
       'super': "Super Stream",

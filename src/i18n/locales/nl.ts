@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Selecteren / verplaatsen",
       'platform': "Platform",
+      'cloud': "Wolk",
       'finish': "Finish",
       'spawn': "Startpunt speler",
       'checkpoint': "Checkpoint",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Klik om te selecteren, sleep om te verplaatsen. De groene hoek wijzigt de grootte; gele stippen verplaatsen een pad.",
       'platform': "Sleep een vak om een platform te tekenen.",
+      'cloud': "Sleep een kader om een wolkenplatform te tekenen. Het speelt als een platform, maar wordt als wolk getekend.",
       'finish': "Sleep een vak voor de finish — wie erop landt, wint het level.",
       'spawn': "Klik waar de speler begint.",
       'checkpoint': "Klik op een platform: na het aanraken van de vlag brengt een val de speler hier terug.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Knijp met twee vingers om te zoomen en te verschuiven. Tik op een object om het te selecteren en sleep het; sleep de ronde grepen en de vierkante om het aan te passen. Sleep over lege ruimte om de weergave te verschuiven.",
     'kind': {
       'platform': "Platform",
+      'cloud': "Wolk",
       'finish': "Finishplatform",
       'wind': "Stroming",
       'super': "Super Stream",

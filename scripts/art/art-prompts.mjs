@@ -34,10 +34,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 // index from the kite index (same lattice, same measured fits).
 const SET_AT = process.argv.indexOf('--set')
 const SET = SET_AT > 1 ? process.argv[SET_AT + 1] ?? null : null
-// `--set umbrella-clay`: the clay build's art (src/umbrella/art/clay.ts → art-sheets/umbrella-clay/), the same way.
 const PAINTED_SETS = {
   'umbrella-lantern': { file: 'lantern.ts', sheets: 'LANTERN_SHEETS', dir: 'LANTERN_DIR', index: 'buildLanternIndex', doc: ['PROMPTS-LANTERN.md', 'lanternPromptDoc'], cmd: 'pnpm art:prompts:lantern' },
-  'umbrella-clay': { file: 'clay.ts', sheets: 'CLAY_SHEETS', dir: 'CLAY_DIR', index: 'buildClayIndex', doc: ['PROMPTS-CLAY.md', 'clayPromptDoc'], cmd: 'pnpm art:prompts:clay' }
 }
 if (SET && SET !== 'umbrella' && !PAINTED_SETS[SET]) { console.error(`--set ${SET} is unknown (known: umbrella, ${Object.keys(PAINTED_SETS).join(', ')})`); process.exit(1) }
 const OUT = SET ? join(ROOT, 'art-sheets', SET) : join(ROOT, 'art-sheets')

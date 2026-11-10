@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * A menu / HUD glyph, always drawn here as an SVG icon in the button's colour (with a soft cut-paper / clay-relief
+ * A menu / HUD glyph, always drawn here as an SVG icon in the button's colour (with a soft cut-paper
  * shadow in the themed builds) — never as a text character or emoji, whose look is whatever the player's system has
  * (a coloured speaker on one phone, a grey one on another). `fallback` is kept only so existing call sites compile.
  */
@@ -100,7 +100,7 @@ const GEAR = (() => {
   height: 1em;
   vertical-align: -0.14em;
   overflow: visible;
-  /* A relief edge under the stroke: a cut-paper shadow on the lantern, pressed clay on the clay. */
+  /* A relief edge under the stroke: a cut-paper shadow on the lantern. */
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
 }
 .ui-glyph-art {

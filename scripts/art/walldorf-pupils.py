@@ -2,7 +2,6 @@
 track the player while the eyes stay put.
 
     python scripts/art/walldorf-pupils.py              # after `pnpm art:slice:lantern`
-    python scripts/art/walldorf-pupils.py --set clay   # after `pnpm art:slice:clay`
 
 Per 4 x 4 panel of src/assets/umbrella-art-lantern/walldorf-face.webp:
   - finds each eye white (a big light component),
@@ -20,9 +19,8 @@ from PIL import Image
 from scipy import ndimage as ndi
 
 ROOT = Path(__file__).resolve().parents[2]
-CLAY = '--set' in sys.argv and sys.argv[sys.argv.index('--set') + 1:][:1] == ['clay']
-SHEET = ROOT / 'src' / 'assets' / ('umbrella-art-clay' if CLAY else 'umbrella-art-lantern') / 'walldorf-face.webp'
-OUT = ROOT / 'src' / 'umbrella' / 'art' / ('walldorfFaceEyes-clay.json' if CLAY else 'walldorfFaceEyes.json')
+SHEET = ROOT / 'src' / 'assets' / 'umbrella-art-lantern' / 'walldorf-face.webp'
+OUT = ROOT / 'src' / 'umbrella' / 'art' / 'walldorfFaceEyes.json'
 GRID = 4
 
 

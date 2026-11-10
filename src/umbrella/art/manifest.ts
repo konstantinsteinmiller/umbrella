@@ -36,7 +36,7 @@ export interface SpriteBox {
 export interface AnimDef { frames: number[]; fps: number; loop?: boolean }
 
 export type SheetGroup = 'pweeg' | 'chad' | 'kite' | 'chad-kite' | 'umbrella' | 'enemy' | 'world' | 'fx'
-export type PromptDoc = 'PROMPTS-KITE.md' | 'PROMPTS-CHARACTERS.md' | 'PROMPTS-ENEMIES.md' | 'PROMPTS-WORLD.md' | 'PROMPTS-LANTERN.md' | 'PROMPTS-CLAY.md'
+export type PromptDoc = 'PROMPTS-KITE.md' | 'PROMPTS-CHARACTERS.md' | 'PROMPTS-ENEMIES.md' | 'PROMPTS-WORLD.md' | 'PROMPTS-LANTERN.md'
 
 /**
  * How the renderer uses the sheet:
@@ -546,15 +546,6 @@ export const EXTRA_SHEETS: SheetDef[] = [
     view: 'flat front-on, square on, no perspective.', one: 'the gate',
     note: 'The game CUTS this gate into three: the beams on top, a stretch of the two posts in the middle (stretched to any height), and the two black feet at the bottom.',
     check: ['· ONE vermilion torii, front-on, filling the image width at its top beam.', '· Black top beam with its ends sweeping up; black feet; plain straight posts in the middle; NOTHING painted between the posts.']
-  },
-  {
-    id: 'clay-wind', group: 'world', doc: 'PROMPTS-CLAY.md', title: 'Clay wind — twisted-rope and three-curl gusts', use: 'sprite',
-    cols: 2, rows: 2, box: { size: 64, ax: 0.5, ay: 0.5 }, tier: 0, fit: 'none', fresh: true, gridCheck: 'nominal',
-    anims: { blueA: { frames: [0], fps: 0 }, blueB: { frames: [1], fps: 0 }, orangeA: { frames: [2], fps: 0 }, orangeB: { frames: [3], fps: 0 } },
-    blurb: 'the wind of the clay town, as a SET of four separate gusts of rolled plasticine, one per panel: panels 1 and 3 a TWISTED-ROPE GUST (one fat rolled-clay stroke rising from a thin tail into a big round spiral curl, with a smaller curl tucked beside it); panels 2 and 4 THREE CURLS (three fat rolled-clay spirals side by side, each a short stroke rolling up into a round curl at its right end, the left one smallest and the right one biggest); panels 1-2 in soft dusty-blue clay, panels 3-4 the same two in warm orange clay. Each gust alone, blowing from left to right, nothing else in its panel',
-    colour: 'panels 1-2 a soft dusty-blue clay (#6f96bd) with a lighter top edge (#a9c6e2) and a deeper shadow underneath (#4c6f93); panels 3-4 a warm orange clay (#e8873a) with a light apricot top edge (#ffbf86) and a burnt-orange shadow (#b45a1f)',
-    view: 'flat front-on, no perspective, lit softly from the upper left.', one: 'the clay gust',
-    note: 'Each gust sits in the MIDDLE of its panel and spans about four fifths of the panel\'s width, leaving magenta all round it: no leaves, no arrows, no background, no shadow cast on the ground.'
   },
   {
     id: 'wind-paper', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Wind paper — blue and gold washi, chevron, arrow', use: 'sprite',

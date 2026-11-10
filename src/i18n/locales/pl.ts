@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Zaznacz / przesuń",
       'platform': "Platforma",
+      'cloud': "Chmura",
       'finish': "Meta",
       'spawn': "Start gracza",
       'checkpoint': "Punkt kontrolny",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Kliknij, aby zaznaczyć, przeciągnij, aby przesunąć. Zielony róg zmienia rozmiar; żółte kropki przesuwają ścieżkę.",
       'platform': "Przeciągnij prostokąt, aby narysować platformę.",
+      'cloud': "Przeciągnij prostokąt, aby narysować platformę-chmurę. Działa jak platforma, ale wygląda jak chmura.",
       'finish': "Przeciągnij prostokąt mety — lądowanie na niej wygrywa poziom.",
       'spawn': "Kliknij miejsce startu gracza.",
       'checkpoint': "Kliknij na platformie: po dotknięciu flagi upadek przenosi gracza tutaj.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Ściągnij dwoma palcami, aby przybliżać i przesuwać. Dotknij obiektu, aby go zaznaczyć, i przeciągnij; przeciągaj okrągłe uchwyty i kwadratowy, aby zmienić jego kształt. Przeciągnięcie po pustym miejscu przesuwa widok.",
     'kind': {
       'platform': "Platforma",
+      'cloud': "Chmura",
       'finish': "Platforma mety",
       'wind': "Prąd",
       'super': "Super Stream",

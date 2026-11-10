@@ -5,27 +5,26 @@ handcrafted levels, a level editor and community levels. Store texts, how to pla
 categories: [description.md](description.md).
 
 Play: [drawn](https://konstantinsteinmiller.github.io/umbrella/) ·
-[Paper Moon (lantern papercraft)](https://konstantinsteinmiller.github.io/umbrella/lantern/) ·
-[Rainy Day Post (claymation)](https://konstantinsteinmiller.github.io/umbrella/clay/)
+[Paper Moon (lantern papercraft)](https://konstantinsteinmiller.github.io/umbrella/lantern/)
 
 ```sh
 pnpm install
-pnpm dev            # http://localhost:5173  (?art=lantern / ?art=clay for the painted styles)
+pnpm dev            # http://localhost:5173  (?art=lantern for the painted style)
 pnpm test
 ```
 
 ## Art styles
 
-One game, three looks. The drawn game is vector; the lantern and clay builds draw painted sheets
-(`src/assets/umbrella-art-lantern/`, `src/assets/umbrella-art-clay/`) made with the art pipeline
+One game, two looks. The drawn game is vector; the lantern build draws painted sheets
+(`src/assets/umbrella-art-lantern/`) made with the art pipeline
 in `scripts/art/` (`pnpm art:prompts:<set>`, `pnpm art:slice:<set>`). The art style is fixed per
-build (`VITE_APP_LANTERN` / `VITE_APP_CLAY`); `?art=` switches it on a dev server only.
+build (`VITE_APP_LANTERN`); `?art=` switches it on a dev server only.
 
 ## Builds and deploys
 
-- **GitHub Pages:** pushing `main` builds `/umbrella/<revision>/`, `/lantern/` and `/clay/`. The
+- **GitHub Pages:** pushing `main` builds `/umbrella/<revision>/` and `/lantern/`. The
   revision is the highest non-empty `## Revision N` in `GDD.md`.
-- **Poki:** `pnpm deploy:poki`, `pnpm deploy:poki:lantern`, `pnpm deploy:poki:clay` (build,
+- **Poki:** `pnpm deploy:poki`, `pnpm deploy:poki:lantern` (build,
   audit, upload and QA in Poki for Developers).
 - **Other portals:** `pnpm build:<portal>` (crazy-web, playgama, gamepix, gamemonetize, yandex,
   gamepush, itch, glitch, wavedash, game-distribution).

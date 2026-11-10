@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "Seleccionar / mover",
       'platform': "Plataforma",
+      'cloud': "Nube",
       'finish': "Meta",
       'spawn': "Inicio del jugador",
       'checkpoint': "Punto de control",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "Haz clic para seleccionar y arrastra para mover. La esquina verde cambia el tamaño; los puntos amarillos mueven una ruta.",
       'platform': "Arrastra un recuadro para dibujar una plataforma.",
+      'cloud': "Arrastra un recuadro para dibujar una plataforma de nube. Funciona como una plataforma, pero se dibuja como una nube.",
       'finish': "Arrastra un recuadro para la meta: aterrizar en ella gana el nivel.",
       'spawn': "Haz clic donde empieza el jugador.",
       'checkpoint': "Haz clic en una plataforma: tras tocar la bandera, una caída devuelve al jugador aquí.",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "Pellizca con dos dedos para hacer zoom y desplazar. Toca un objeto para seleccionarlo y arrástralo; arrastra los tiradores redondos y el cuadrado para cambiarlo. Arrastra en el vacío para mover la vista.",
     'kind': {
       'platform': "Plataforma",
+      'cloud': "Nube",
       'finish': "Plataforma de meta",
       'wind': "Corriente",
       'super': "Super Stream",

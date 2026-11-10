@@ -133,11 +133,5 @@ onUnmounted(() => {
   --ce-label-shadow: 0 2px 0 #7e1a17, 0 4px 0 rgba(20, 8, 30, 0.6), 0 0 22px rgba(255, 170, 70, 0.85), 0 0 52px rgba(255, 140, 60, 0.5);
 }
 .ce-lantern .ce-label { font-weight: 800; }
-.ce-clay {
-  --ce-label: #fffaf0;
-  --ce-back: rgba(63, 76, 104, 0.93);
-  --ce-label-shadow: 0 2px 0 #2f5fa8, 0 4px 0 #24508f, 0 6px 0 #1d3f78, 0 8px 0 #173464, 0 14px 22px rgba(0, 0, 0, 0.5);
-}
-.ce-clay .ce-label { font-weight: 400; letter-spacing: 0.05em; }
 @media (prefers-reduced-motion: reduce) { .ce, .ce-label { animation: none; } }
 </style>

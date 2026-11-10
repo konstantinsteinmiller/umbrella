@@ -160,6 +160,7 @@ export default {
     'tool': {
       'select': "选择 / 移动",
       'platform': "平台",
+      'cloud': "云朵",
       'finish': "终点",
       'spawn': "玩家起点",
       'checkpoint': "检查点",
@@ -183,6 +184,7 @@ export default {
     'toolHint': {
       'select': "点击选择，拖动移动。绿色角调整大小；黄色圆点移动路径。",
       'platform': "拖出一个框来绘制平台。",
+      'cloud': "拖出一个方框来绘制云朵平台。它的玩法与普通平台相同，只是外观是云朵。",
       'finish': "拖出一个框作为终点——落在上面即可过关。",
       'spawn': "点击玩家的起始位置。",
       'checkpoint': "点击平台：碰到旗子后，坠落会让玩家回到这里。",
@@ -207,6 +209,7 @@ export default {
     'fingerHint': "双指捏合可缩放和平移。点按物体选中后拖动；拖动圆形和方形手柄可改变其形状。拖动空白处可移动视图。",
     'kind': {
       'platform': "平台",
+      'cloud': "云朵",
       'finish': "终点平台",
       'wind': "气流",
       'super': "超级气流",

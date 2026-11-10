@@ -1,6 +1,6 @@
-/* ─── UmbrellaScene, themed (lantern / clay) — loaded as the scene's second <style scoped> ─────
+/* ─── UmbrellaScene, themed (lantern) — loaded as the scene's second <style scoped> ─────
  *
- * Every rule here sits under the scene root's `.ui-theme` / `.ui-lantern` / `.ui-clay` class
+ * Every rule here sits under the scene root's `.ui-theme` / `.ui-lantern` class
  * (src/umbrella/ui/theme.ts), so the drawn build's UI is untouched. Panels, buttons, tabs and the
  * modal motion are shared (umbrella-ui.css); this file dresses what only the scene has: the HUD,
  * the start screen, the level tiles, the chapter card, the rating, the clock and the touch controls.
@@ -62,63 +62,14 @@
     linear-gradient(#b8862e, #b8862e) left 0 bottom 4px / 100% 1px no-repeat,
     radial-gradient(120% 140% at 50% 40%, #fffaf0 0%, #f3e4c4 60%, #dcc69a 100%);
 }
-/* Clay: soft raised postal-blue plasticine — a light top bevel and darker underside, a slim rim that
-   runs on into the lip it stands on, a glossy crescent, a soft shadow onto the scene. Pressed, it
-   squashes down into its base. */
-.ui-clay .hud-btn {
-  --ub: radial-gradient(140% 120% at 50% 0%, #86aae4 0%, #4373bd 36%, #2f5fa8 62%, #24508f 100%);
-  --uc: #fffaf0;
-  --ulip: #163463;
-  border-radius: 13px;
-  text-shadow: 0 1px 0 rgba(15, 30, 60, 0.5);
-  box-shadow:
-    inset 0 2px 1px rgba(255, 255, 255, 0.42),
-    inset 0 -3px 2px rgba(10, 20, 50, 0.28),
-    0 0 0 1.5px var(--ulip),
-    0 4px 0 0.5px var(--ulip),
-    0 9px 14px rgba(5, 10, 30, 0.42);
-}
-/* The gloss where the light catches the clay: a feathered ellipse, fading out on every side. */
-.ui-clay .hud-btn::before {
-  content: '';
-  position: absolute;
-  inset: 1px 3px auto;
-  height: 56%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.22) 55%, rgba(255, 255, 255, 0) 100%);
-  pointer-events: none;
-}
-.ui-clay .hud-btn > * { position: relative; }
-.ui-clay .hud-btn .ui-glyph { filter: drop-shadow(0 1.5px 0 rgba(15, 30, 60, 0.55)); }
-.ui-clay .hud-btn:hover { animation: u-c-wobble 0.45s var(--u-ease-out); }
-.ui-clay .hud-btn:active {
-  transform: translateY(3px) scale(1.06, 0.9);
-  box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.32), inset 0 -2px 2px rgba(10, 20, 50, 0.24), 0 0 0 1.5px var(--ulip), 0 1px 0 0.5px var(--ulip), 0 3px 5px rgba(5, 10, 30, 0.4);
-  animation: none;
-}
-.ui-clay .hud-btn:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 4px; }
-.ui-clay .hud-btn[aria-pressed='true'] { --ub: radial-gradient(140% 120% at 50% 0%, #ff9f88 0%, #ee6a50 36%, #e0533d 62%, #b93a27 100%); --ulip: #7a2014; }
-.ui-clay .hud-btn.jam-test { --ub: radial-gradient(140% 120% at 50% 0%, #ffe9a8, #f1b72f 60%, #c98f12); --uc: #3d2a02; --ulip: #7d5806; }
-/* The level label on a soft cream clay plaque: bevel, a slim rim into its lip, a feathered gloss. */
-.ui-clay .hud-level { color: #2f5fa8; font-weight: 400; }
-.ui-clay .hud-level::before {
-  content: '';
-  position: absolute;
-  inset: -2px -6px;
-  z-index: -1;
-  border-radius: 14px;
-  background:
-    radial-gradient(closest-side, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0)) center top 1px / 86% 60% no-repeat,
-    radial-gradient(140% 120% at 50% 0%, #fffdf6 0%, #f3ead8 55%, #e2d4b6 100%);
-  box-shadow: inset 0 -3px 2px rgba(120, 95, 55, 0.22), 0 0 0 1.5px #b9a27a, 0 4px 0 0.5px #b9a27a, 0 9px 14px rgba(5, 10, 30, 0.4);
-}
+
 /* A player level's name is clipped with an ellipsis: its banner stays inside the box, the text padded clear of it. */
 .ui-theme .hud-level.custom { padding-inline: 14px; }
 .ui-theme .hud-level.custom::before { inset-inline: 0; }
 @media (max-width: 560px) {
   .ui-theme .hud-btn.wide { gap: 0; }
   .ui-lantern .hud-level::before { inset: -2px -4px; clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 50%, 100% 100%, 0 100%, 6px 50%); }
-  .ui-clay .hud-level::before { inset: -3px -5px; }
+  
   .ui-theme .hud-level.custom::before { inset-inline: 0; }
 }
 
@@ -147,39 +98,16 @@
   .ui-lantern .start-lantern.r { right: 9%; }
   .ui-lantern .start-lantern.s { right: 30%; top: calc(46px + env(safe-area-inset-top, 0px)); }
 }
-.ui-clay .start-label {
-  color: #fffaf0;
-  font-weight: 400;
-  letter-spacing: 0.05em;
-  text-shadow: 0 2px 0 #2f5fa8, 0 4px 0 #24508f, 0 6px 0 #1d3f78, 0 8px 0 #173464, 0 14px 22px rgba(0, 0, 0, 0.5);
-  animation: start-squish 2.6s var(--u-ease-out) infinite;
-}
+
 @keyframes start-squish {
   0%, 62%, 100% { transform: none; }
   70% { transform: translateY(3px) scale(1.06, 0.92); }
   80% { transform: translateY(-6px) scale(0.97, 1.05); }
   90% { transform: scale(1.01, 0.99); }
 }
-/* A mustard clay coin with the umbrella pressed into it, bobbing over the call to play. */
-.ui-clay .start-badge {
-  display: grid;
-  place-items: center;
-  width: clamp(76px, 12vw, 104px);
-  aspect-ratio: 1;
-  border-radius: 48% 52% 50% 50% / 52% 48% 52% 48%;
-  font-size: clamp(42px, 6.6vw, 58px);
-  color: #e0533d;
-  background: radial-gradient(circle at 34% 28%, #ffe7a0 0%, #f1b72f 50%, #a9760a 100%);
-  background:
-    radial-gradient(56% 34% at 50% 16%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%),
-    radial-gradient(circle at 34% 28%, #ffe7a0 0%, #f1b72f 50%, #a9760a 100%);
-  box-shadow: inset 0 3px 2px rgba(255, 255, 255, 0.45), inset 0 -6px 8px rgba(120, 80, 0, 0.35), 0 0 0 2px #7d5806, 0 6px 0 1px #7d5806, 0 16px 24px rgba(0, 0, 0, 0.45);
-  animation: u-bob 2.6s ease-in-out infinite;
-}
-.ui-clay .start-badge .ui-glyph { filter: drop-shadow(0 2px 0 #7a2014); }
+
 @media (prefers-reduced-motion: reduce) {
-  .ui-theme .start-label,
-  .ui-clay .start-badge { animation: none; }
+  .ui-theme .start-label { animation: none; }
 }
 
 /* ── Chapter card ───────────────────────────────────────────────────────────── */
@@ -190,9 +118,6 @@
 .ui-lantern .chapter-card-title { color: #fff3d6; text-shadow: 0 3px 0 #7e1a17, 0 5px 0 rgba(20, 8, 30, 0.5), 0 0 26px rgba(255, 170, 70, 0.8), 0 0 60px rgba(255, 140, 60, 0.45); }
 .ui-lantern .chapter-card-sub { color: #ffe7a6; }
 .ui-lantern .cc-lantern { width: clamp(30px, 5vw, 52px); align-self: flex-start; margin-top: -10px; }
-.ui-clay .chapter-card { background: radial-gradient(ellipse at center, rgba(29, 40, 70, 0.6) 0%, rgba(29, 40, 70, 0.32) 55%, transparent 80%); }
-.ui-clay .chapter-card-title { color: #fffaf0; font-weight: 400; text-shadow: 0 3px 0 #2f5fa8, 0 6px 0 #1d3f78, 0 9px 0 #173464, 0 16px 26px rgba(0, 0, 0, 0.5); }
-.ui-clay .chapter-card-sub { color: #ffe49a; font-style: normal; font-weight: 800; }
 
 /* ── Level select ───────────────────────────────────────────────────────────── */
 /* Over the HUD badges and the touch controls, like the other menus. */
@@ -218,15 +143,6 @@
     linear-gradient(-45deg, transparent 45%, #d6452c 46% 54%, transparent 55%) center / 6px 6px no-repeat,
     linear-gradient(#c09040, #c09040) center / 100% 1px no-repeat,
     linear-gradient(rgba(192, 144, 64, 0.5), rgba(192, 144, 64, 0.5)) center bottom / 100% 1px no-repeat;
-}
-.ui-clay .chapter-title { color: #2f5fa8; font-family: var(--u-display); font-weight: 400; }
-/* A little rolled clay coil either side of the chapter name. */
-.ui-clay .chapter-title::before,
-.ui-clay .chapter-title::after {
-  height: 7px;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #8fb1e6 0%, #4373bd 35%, #2f5fa8 60%, #1d3f78 100%);
-  box-shadow: 0 2px 0 rgba(23, 52, 100, 0.35);
 }
 
 /* Tiles cascade in (fill `backwards` only, so the entrance never pins `transform` and the hover and
@@ -276,41 +192,6 @@
   box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 4px #d6452c, 0 0 0 5.5px #ffe7a6, 0 0 0 6.5px #2a1d3a, 0 0 20px rgba(255, 150, 60, 0.7), inset 0 0 0 3px #2a2360, inset 0 0 0 4px rgba(255, 231, 166, 0.8);
 }
 .ui-lantern .level-tile.current:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 8px; }
-/* Clay: postal-blue plasticine squares with a lip; the current one ringed in mustard with a tomato rivet. */
-/* The same soft raised clay as the buttons: bevel, slim rim into the lip, a glossy crescent. */
-.ui-clay .level-tile {
-  --ub: radial-gradient(140% 120% at 50% 0%, #86aae4 0%, #4373bd 36%, #2f5fa8 62%, #24508f 100%);
-  --uc: #fffaf0;
-  --ulip: #163463;
-  border-radius: 15px;
-  font-weight: 400;
-  box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.4), inset 0 -4px 3px rgba(10, 20, 50, 0.26), 0 0 0 1.5px var(--ulip), 0 4px 0 0.5px var(--ulip), 0 9px 12px rgba(20, 25, 45, 0.28);
-}
-.ui-clay .level-tile::before {
-  content: '';
-  position: absolute;
-  inset: 1px 4px auto;
-  height: 40%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.14) 60%, rgba(255, 255, 255, 0) 100%);
-  pointer-events: none;
-}
-.ui-clay .level-tile:hover { filter: brightness(1.08); }
-.ui-clay .level-tile:active { box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.3), inset 0 -2px 2px rgba(10, 20, 50, 0.24), 0 0 0 1.5px var(--ulip), 0 1px 0 0.5px var(--ulip), 0 3px 5px rgba(20, 25, 45, 0.28); }
-.ui-clay .level-tile.challenge { --ub: radial-gradient(140% 120% at 50% 0%, #d29d6b 0%, #a06c38 40%, #8b5a2b 64%, #6a421d 100%); --ulip: #4d2f13; }
-.ui-clay .level-tile.current { outline: none; box-shadow: inset 0 2px 1px rgba(255, 255, 255, 0.4), inset 0 -4px 3px rgba(10, 20, 50, 0.26), 0 0 0 1.5px var(--ulip), 0 0 0 5px #f1b72f, 0 4px 0 5px #b07d0c, 0 10px 14px rgba(20, 25, 45, 0.35); }
-.ui-clay .level-tile.current::after {
-  content: '';
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffab95, #e0533d 55%, #9c2d1d);
-  box-shadow: 0 2px 0 #7a2014;
-}
-.ui-clay .level-tile.current:focus-visible { outline: 2.5px solid var(--u-focus); outline-offset: 8px; }
 
 .ui-theme .my-levels { gap: 8px; }
 .ui-theme .my-level { min-height: 44px; padding: 10px 16px; font-size: 16px; text-align: start; }
@@ -339,21 +220,16 @@
 @keyframes toast-in { from { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.9); } }
 .ui-lantern .toast { color: #fff4dc; background: linear-gradient(180deg, #e2573a, #a92a1a); border-radius: 4px; box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3px #e8b450, 0 0 0 4px #2a1d3a, 0 8px 18px rgba(0, 0, 0, 0.45); }
 .ui-lantern .toast.info { color: #fbf1dc; background: linear-gradient(180deg, #3a3178, #1b163f); }
-.ui-clay .toast { color: #fffaf0; background: radial-gradient(130% 150% at 30% 12%, #ff9b84, #e0533d 48%, #a3301f); border-radius: 999px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 #7a2014, 0 9px 14px rgba(0, 0, 0, 0.35); }
-.ui-clay .toast.info { background: radial-gradient(130% 150% at 30% 12%, #8fb1e6, #2f5fa8 48%, #1d3f78); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 #173464, 0 9px 14px rgba(0, 0, 0, 0.35); }
+
 @media (prefers-reduced-motion: reduce) { .ui-theme .toast { animation: none; } }
 
 /* ── The desktop key hints ──────────────────────────────────────────────────── */
 .ui-lantern .controls { background: rgba(26, 22, 56, 0.78); border: 0; border-radius: 6px; box-shadow: 0 0 0 1px #2a1d3a, inset 0 0 0 3px rgba(26, 22, 56, 0.9), inset 0 0 0 4px rgba(232, 180, 80, 0.45); color: #fbf1dc; }
 .ui-lantern .controls kbd { color: #2a1d3a; background: linear-gradient(180deg, #fffaf0, #e8d6b0); border: 1px solid #2a1d3a; border-bottom-width: 3px; }
-.ui-clay .controls { background: rgba(243, 234, 216, 0.9); border: 0; border-radius: 16px; color: #2b2f3a; box-shadow: inset 0 2px 0 #fff, 0 4px 0 #b9a888, 0 8px 14px rgba(0, 0, 0, 0.3); }
-.ui-clay .controls kbd { color: #fffaf0; background: radial-gradient(130% 150% at 30% 12%, #8fb1e6, #2f5fa8 50%, #1d3f78); border: 0; border-radius: 8px; box-shadow: 0 2px 0 #173464; }
 
 /* ── The collectible badge and the clock ────────────────────────────────────── */
 .ui-lantern .collect-badge { box-shadow: 0 0 0 2px #2a1d3a, 0 0 0 4px #7e1a17, 0 0 0 5px #2a1d3a, 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 22px rgba(255, 170, 70, 0.5); }
 .ui-lantern .collect-glyph { background: radial-gradient(circle at 35% 30%, #3a3180, #15112e); }
-.ui-clay .collect-badge { border-color: #fff3c4; box-shadow: inset 0 -3px 0 rgba(120, 80, 0, 0.25), 0 4px 0 #8a5a00, 0 8px 14px rgba(0, 0, 0, 0.4); }
-.ui-clay .collect-glyph { background: radial-gradient(circle at 35% 30%, #4f7fc8, #1d3f78); box-shadow: inset 0 0 0 2px #fff3a8; }
 
 /* The clock, in each style's own hand: the face, hand, digits and bar too, not just the plate. */
 .ui-theme .clock-time { font-family: var(--u-font); font-weight: 800; }
@@ -381,30 +257,8 @@
   from { box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3.5px #ff6b4a, 0 0 0 4.5px #2a1d3a, inset 0 0 0 3px #1b163f, 0 0 28px rgba(255, 90, 60, 0.9); }
   to { box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3.5px #e8b450, 0 0 0 4.5px #2a1d3a, inset 0 0 0 3px #1b163f, 0 6px 16px rgba(0, 0, 0, 0.45); }
 }
-/* Clay: a cream clay slab (like the key hints and the rating card), a blue clay dial ring with a
- * red clay hand, ink digits, a yellow clay roll in a blue groove. */
-.ui-clay .clock {
-  color: #2b2f3a;
-  background: radial-gradient(130% 100% at 30% 0%, #fffdf6, #f3ead8 50%, #e4d6ba);
-  border: 0;
-  border-radius: 20px;
-  box-shadow: inset 0 2px 0 #fff, inset 0 -3px 0 rgba(150, 120, 70, 0.25), 0 4px 0 #b9a888, 0 9px 14px rgba(0, 0, 0, 0.35);
-}
-.ui-clay .clock-face { background: radial-gradient(circle at 35% 30%, #fffdf6, #efe4cc); box-shadow: inset 0 -2px 0 rgba(150, 120, 70, 0.3), 0 0 0 3px #2f5fa8, 0 2px 0 3px #173464; }
-.ui-clay .clock-face::before { top: -7px; width: 10px; height: 6px; margin-left: -5px; border-radius: 5px 5px 2px 2px; background: #2f5fa8; box-shadow: 0 1px 0 #173464; }
-.ui-clay .clock-face i { width: 4px; margin-left: -2px; border-radius: 3px; background: #e0533d; box-shadow: 0 1px 0 #7a2014; }
-.ui-clay .clock-bar { background: #2f5fa8; box-shadow: inset 0 2px 1px rgba(10, 20, 50, 0.5); }
-.ui-clay .clock-bar i { border-radius: 3px; background: radial-gradient(120% 140% at 50% 10%, #ffe49a, #f1b72f 60%, #b07d0c); }
-.ui-clay .clock.blink { animation: clay-clock-squash 0.5s ease-in-out infinite; }
-.ui-clay .clock.blink .clock-time, .ui-clay .clock.over .clock-time { color: #e0533d; }
-.ui-clay .clock.blink .clock-bar i { background: radial-gradient(120% 140% at 50% 10%, #ffab95, #e0533d 60%, #9c2d1d); }
-@keyframes clay-clock-squash {
-  0%, 100% { scale: 1 1; rotate: 0deg; box-shadow: inset 0 2px 0 #fff, 0 4px 0 #b9a888, 0 9px 14px rgba(0, 0, 0, 0.35); }
-  25% { rotate: -2deg; }
-  50% { scale: 1.06 0.94; box-shadow: inset 0 2px 0 #fff, 0 0 0 4px #e0533d, 0 4px 0 4px #9c2d1d, 0 9px 14px rgba(0, 0, 0, 0.35); }
-  75% { rotate: 2deg; }
-}
-@media (prefers-reduced-motion: reduce) { .ui-clay .clock.blink, .ui-lantern .clock.blink { animation: none; } }
+
+@media (prefers-reduced-motion: reduce) { .ui-lantern .clock.blink { animation: none; } }
 
 /* ── The timed level's rating over the player ───────────────────────────────── */
 .ui-lantern .rating-stars {
@@ -413,12 +267,6 @@
   box-shadow: 0 0 0 2px #2a1d3a, inset 0 0 0 4px #1b163f, inset 0 0 0 5px rgba(232, 180, 80, 0.6), 0 0 0 5px #e8b450, 0 0 0 6.5px #2a1d3a, 0 10px 26px rgba(0, 0, 0, 0.5), 0 0 44px rgba(255, 160, 70, 0.5);
 }
 .ui-lantern .rating-time { color: #fff4dc; background: linear-gradient(180deg, #f27a53, #a92a1a); box-shadow: 0 0 0 1.5px #2a1d3a, 0 0 0 3px #e8b450, 0 0 0 4px #2a1d3a; border-radius: 4px; }
-.ui-clay .rating-stars {
-  border-radius: 26px;
-  background: radial-gradient(130% 100% at 30% 0%, #fffdf6, #f3ead8 50%, #e4d6ba);
-  box-shadow: inset 0 3px 0 #fff, 0 0 0 5px #2f5fa8, 0 3px 0 5px #173464, 0 14px 26px rgba(0, 0, 0, 0.45);
-}
-.ui-clay .rating-time { color: #3d2a02; background: radial-gradient(130% 150% at 30% 12%, #ffe49a, #f1b72f 50%, #b07d0c); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), 0 3px 0 #7d5806; }
 
 /* ── Touch controls ─────────────────────────────────────────────────────────── */
 .ui-theme .stick-arrow { display: grid; place-items: center; }
@@ -455,33 +303,9 @@
 .ui-lantern .umbrella-btn .ui-glyph { width: calc(32px * var(--ctl, 1)); height: calc(32px * var(--ctl, 1)); filter: none; }
 .ui-lantern .umbrella-btn .umb-icon { width: calc(32px * var(--ctl, 1)); height: calc(32px * var(--ctl, 1)); }
 .ui-lantern .umbrella-btn.pressed { background: var(--ub); transform: scale(0.9) rotate(-22deg); filter: brightness(1.2); }
-/* Clay: a slate groove in a cream clay ring, a mustard thumb-printed ball, a stitched tomato disc. */
-.ui-clay .stick {
-  border: 0;
-  background: linear-gradient(180deg, #4b5462, #606b7b);
-  box-shadow: inset 0 5px 9px rgba(0, 0, 0, 0.45), inset 0 -2px 0 rgba(255, 255, 255, 0.2), 0 0 0 6px #efe4cc, 0 4px 0 6px #b9a888, 0 12px 18px 6px rgba(0, 0, 0, 0.3);
-}
-.ui-clay .stick-arrow { color: #f3ead8; opacity: 0.75; }
-.ui-clay .stick-knob {
-  background:
-    repeating-radial-gradient(ellipse at 56% 62%, rgba(125, 88, 6, 0.14) 0 1px, transparent 1.4px 4px),
-    radial-gradient(circle at 36% 30%, #ffe7a0 0%, #f1b72f 50%, #a9760a 100%);
-  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.45), inset 0 -4px 6px rgba(0, 0, 0, 0.2), 0 4px 0 #7d5806, 0 9px 12px rgba(0, 0, 0, 0.4);
-}
-.ui-clay .umbrella-btn {
-  --ub:
-    radial-gradient(54% 32% at 50% 15%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 72%),
-    radial-gradient(circle at 50% 30%, #ff9f88 0%, #ee6a50 34%, #e0533d 58%, #a9321f 100%);
-  border: 0;
-  color: #fffaf0;
-  box-shadow: inset 0 3px 2px rgba(255, 255, 255, 0.4), inset 0 -7px 9px rgba(80, 10, 0, 0.3), 0 0 0 2px #7a2014, 0 6px 0 1px #7a2014, 0 16px 22px rgba(0, 0, 0, 0.42);
-}
-.ui-clay .umbrella-btn .ui-glyph, .ui-clay .umbrella-btn .umb-icon { filter: drop-shadow(0 2px 0 #7a2014); }
-.ui-clay .umbrella-btn.pressed { background: var(--ub); transform: translateY(5px) scale(1.07, 0.9); box-shadow: inset 0 3px 2px rgba(255, 255, 255, 0.32), inset 0 -4px 6px rgba(80, 10, 0, 0.28), 0 0 0 2px #7a2014, 0 1px 0 1px #7a2014, 0 4px 8px rgba(0, 0, 0, 0.4); }
-.ui-clay .umbrella-btn:focus-visible { outline: 3px solid var(--u-focus); outline-offset: 6px; }
 
 @media (prefers-reduced-motion: reduce) {
   .ui-theme .level-tile:active { transform: none; }
-  .ui-clay .hud-btn:hover { animation: none; }
+  
   .ui-theme .umbrella-btn.pressed { transform: scale(0.94); }
 }
