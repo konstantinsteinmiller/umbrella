@@ -48,7 +48,7 @@
   · Refine the camera during horizontal and vertical scrolling.
   · Single tap to skip the intro cutscene.
   · Make sure the top bar denoting levels matches the language chosen!
-- [ ] #17
+- [ ] #17 
 - [ ] #18
 - [ ] #19
 - [ ] #20

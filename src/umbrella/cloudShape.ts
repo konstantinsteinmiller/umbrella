@@ -2,13 +2,13 @@
 //
 // A cloud platform plays exactly like a plain one (its collision box is the rectangle); only the
 // drawing differs. The top edge is dead flat along the whole box (that is the line the player walks
-// on, so it must read as ground); the puffs hang below it as scallops whose tips touch the bottom
+// on, so it must read as ground); the puffs hang below it as round lobes whose tips touch the bottom
 // edge, with rounded ends. Shared by the skinless renderer and the lantern paint.
 
 type PathCtx = Pick<CanvasRenderingContext2D, 'beginPath' | 'moveTo' | 'lineTo' | 'quadraticCurveTo' | 'ellipse' | 'closePath'>
 
 /** How far the puffs hang below the slab: a thin ledge gets small ripples, a big square cloud proper puffs. */
-export const cloudDip = (h: number): number => Math.min(h * 0.3, 14)
+export const cloudDip = (h: number): number => Math.min(h * 0.4, 20)
 
 export const cloudPath = (ctx: PathCtx, x: number, y: number, w: number, h: number): void => {
   const dip = Math.min(cloudDip(h), h / 2)
@@ -22,7 +22,8 @@ export const cloudPath = (ctx: PathCtx, x: number, y: number, w: number, h: numb
   ctx.moveTo(x + r, y)
   ctx.lineTo(x + w - r, y)
   ctx.ellipse(x + w - r, y + ry, r, ry, 0, -Math.PI / 2, Math.PI / 2)
-  for (let i = n - 1; i >= 0; i--) ctx.quadraticCurveTo(x + r + i * d + d / 2, y + slab + dip * 2, x + r + i * d, y + slab)
+  // Round lobes along the bottom (half-ellipses, tips on the box's bottom edge), right to left.
+  for (let i = n - 1; i >= 0; i--) ctx.ellipse(x + r + i * d + d / 2, y + slab, d / 2, dip, 0, 0, Math.PI)
   ctx.ellipse(x + r, y + ry, r, ry, 0, Math.PI / 2, (Math.PI * 3) / 2)
   ctx.closePath()
 }
