@@ -5,11 +5,13 @@ import { cloudPath } from '@/umbrella/cloudShape'
 const trace = (x: number, y: number, w: number, h: number) => {
   const xs: number[] = []
   const ys: number[] = []
+  const tops: number[] = []
   let at = 0
   const ctx = {
     beginPath() {},
     closePath() {},
     moveTo(px: number, py: number) { at = py; xs.push(px); ys.push(py) },
+    lineTo(px: number, py: number) { tops.push(py); xs.push(px); ys.push(py) },
     quadraticCurveTo(_cx: number, cy: number, px: number, py: number) {
       // The curve's extreme sits halfway between its chord (both ends at this height) and its control point.
       xs.push(px); ys.push(py, (at + cy) / 2)
@@ -18,7 +20,7 @@ const trace = (x: number, y: number, w: number, h: number) => {
     ellipse(cx: number, cy: number, rx: number, ry: number) { xs.push(cx - rx, cx + rx); ys.push(cy - ry, cy + ry); at = cy }
   }
   cloudPath(ctx, x, y, w, h)
-  return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys), x, y, w, h }
+  return { tops, minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys), x, y, w, h }
 }
 
 describe('cloud platform outline', () => {
@@ -34,5 +36,8 @@ describe('cloud platform outline', () => {
     // Its top puffs touch the walkable line, never rise above it.
     expect(t.minY).toBeGreaterThanOrEqual(y - 0.01)
     expect(t.maxY).toBeLessThanOrEqual(y + h + 0.01)
+    // The walkable top is one flat line along the box's top edge.
+    expect(t.tops).toEqual([y])
+    expect(t.minY).toBeCloseTo(y, 5)
   })
 })

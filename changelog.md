@@ -1,6 +1,7 @@
 Umbrella — changelog (newest first)
 
 == Revision 16 — 2026-11-04 ==
+- [x] Cloud platforms have a flat top: the walkable edge is now one straight line along the whole cloud, with the puffs hanging below and rounded ends, so walking on a cloud reads as ground (skinless and lantern; the lantern's gold scrolls sit in the flat body)
 - [x] Small Walldorfs: the two eyes now scale to the body's height as well as its width and sit fully inside it, so a small or low Walldorf no longer has its eyes spilling over the top edge. Full-size Walldorfs look exactly as before
 - [x] Gentle updrafts lift: opening the umbrella on the ground inside a weak current (chapter 1 level 29's full-screen speed-80 updraft) used to sink back onto the ground and shut on "landing", because the float pull out-pulled the lift. The float pull now steps aside while a weak (non-super) updraft carries the player; stronger currents and every recorded run are unchanged (tested)
 - [x] Cloud platforms in the level editor: a new Cloud tool (O) and a "Cloud" checkbox in a platform's properties (`cloud` in the level). A cloud plays exactly like a platform (same box, same collision, same switches and motion), but is drawn as a cloud: a simple scalloped cloud outline on the skinless build, and a cut-paper washi cloud with a gold-leaf edge and gold scrolls in the lantern build (it fits a square box as a square cloud). Translated into every shipped language.
