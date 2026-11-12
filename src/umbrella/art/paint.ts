@@ -14,7 +14,7 @@
 import { contactOf, STAR_R, type Hazard, type World } from '../engine'
 import { channelColor, type Camera } from '../renderer'
 import { isLantern, paintedGame } from '../kite'
-import { cloudDip, cloudPath } from '../cloudShape'
+import { cloudPath, cloudPuffs } from '../cloudShape'
 import { drawSignLantern, setPaintedSignPart } from '../signArt'
 import hintArrowUrl from '@/assets/umbrella-ui/hint-arrow.webp'
 import hintLanternUrl from '@/assets/umbrella-ui/hint-lantern.webp'
@@ -917,8 +917,8 @@ const nine = (ctx: CanvasRenderingContext2D, s: SheetDef, img: HTMLImageElement 
 }
 
 /** The lantern build's cloud platform: a cut-paper cloud in cream washi with a gold-leaf edge and a gold
- *  scroll in each puff. It fits the platform's box (a square cloud when the box is square) and its flat top is
- *  the walkable line. No sheet: it is drawn, so any size is crisp. */
+ *  scroll in each puff. It fits the platform's box (a square cloud when the box is square) and its puffs stick
+ *  out past the box (the box's top edge is the walkable line). No sheet: it is drawn, so any size is crisp. */
 const lanternCloud = (ctx: CanvasRenderingContext2D, p: PlatformDef, color: string | null): boolean => {
   const { x, y, w, h } = p
   ctx.save()
@@ -939,18 +939,14 @@ const lanternCloud = (ctx: CanvasRenderingContext2D, p: PlatformDef, color: stri
   ctx.stroke()
   // Gold scrolls: one swirl per puff, kept inside the paper.
   if (h >= 22) {
-    const slab = h - Math.min(cloudDip(h), h / 2)
-    const r = Math.max(1, Math.min(slab / 2, w / 2))
-    const span = Math.max(0, w - 2 * r)
-    const n = Math.max(1, Math.round(span / Math.max(14, h * 1.1)))
-    const d = span / n
-    const s = Math.min(d, slab) * 0.22
+    const { r, n, d } = cloudPuffs(w, h)
+    const s = Math.min(d, h) * 0.22
     ctx.strokeStyle = 'rgba(200, 147, 47, 0.85)'
     ctx.lineWidth = Math.max(1, s * 0.22)
     ctx.lineCap = 'round'
     for (let i = 0; i < n; i++) {
       const cx = x + r + i * d + d / 2
-      const cy = y + slab / 2
+      const cy = y + h / 2
       ctx.beginPath()
       ctx.arc(cx, cy, s, Math.PI * 0.15, Math.PI * 1.85)
       ctx.arc(cx + s * 0.25, cy, s * 0.5, Math.PI * 1.7, Math.PI * 0.3, true)

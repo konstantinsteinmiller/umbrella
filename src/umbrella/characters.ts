@@ -20,6 +20,7 @@ const BODY = '#ffffff'
 const INK = '#0d1018'
 const RED = '#e5484d'
 const LINE = '#1b2130'
+const OUTLINE = '#000000'
 
 // ── Pweeg ──
 
@@ -47,6 +48,8 @@ export interface PweegLook {
   open?: boolean
   /** Looking straight at the camera (eyes centred), e.g. the intro's hand-over. */
   front?: boolean
+  /** No black outline: the art bench's reference frames (the painted art is made from them). */
+  plain?: boolean
 }
 
 /** Pweeg with his feet centred on (x, y). */
@@ -59,8 +62,12 @@ export const drawPweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, l
   ctx.save()
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  ctx.strokeStyle = BODY
-  ctx.lineWidth = Math.max(2.4, W * 0.13)
+  // A thin black outline: the whole body (limbs and head) is drawn twice, first in black grown by
+  // `o` on every side, then in white on top, so only the rim shows.
+  const o = Math.max(1, W * 0.055)
+  let col = OUTLINE
+  let grow = o * 2
+  const armW = Math.max(2.4, W * 0.13)
 
   /** Legs as in the sketches: two thick rounded tubes from under the head.
    *  stand = curled under him, feet meeting in the middle (the seated look);
@@ -69,7 +76,6 @@ export const drawPweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, l
   const legW = Math.max(4, W * 0.24)
   const legs = (kind: 'stand' | 'dangle' | 'hook' | 'long', swing = 0) => {
     ctx.save()
-    ctx.lineWidth = legW
     const hipY = neckY - legW * 0.2
     const foot = y - legW / 2
     for (const s of [-1, 1]) {
@@ -93,8 +99,8 @@ export const drawPweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, l
       } else {
         ctx.quadraticCurveTo(x + s * W * 0.34, hipY + H * 0.45, x + s * (W * 0.24 + sw), y + H * 0.42)
       }
-      ctx.lineWidth = legW
-      ctx.strokeStyle = BODY
+      ctx.lineWidth = legW + grow
+      ctx.strokeStyle = col
       ctx.stroke()
     }
     ctx.restore()
@@ -103,6 +109,8 @@ export const drawPweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, l
   /** Standing arms: the hand on his facing side holds the furled umbrella's grip
    *  (where the scene draws it), the other hangs and swings with the walk. */
   const arms = (swing: number) => {
+    ctx.strokeStyle = col
+    ctx.lineWidth = armW + grow
     ctx.beginPath()
     ctx.moveTo(x + facing * r * 0.55, neckY)
     ctx.quadraticCurveTo(x + facing * W * 0.85, neckY + H * 0.05, x + facing * W * 0.8, y - H * 0.35)
@@ -111,6 +119,11 @@ export const drawPweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, l
     ctx.stroke()
   }
 
+  for (const pass of look.plain ? [1] : [0, 1]) {
+  col = pass ? BODY : OUTLINE
+  grow = pass ? 0 : o * 2
+  ctx.strokeStyle = col
+  ctx.lineWidth = armW + grow
   switch (pose) {
     case 'stand':
       arms(0)
@@ -160,10 +173,11 @@ export const drawPweeg = (ctx: CanvasRenderingContext2D, x: number, y: number, l
   }
 
   // Head.
-  ctx.fillStyle = BODY
+  ctx.fillStyle = col
   ctx.beginPath()
-  ctx.arc(x, headY, r, 0, Math.PI * 2)
+  ctx.arc(x, headY, r + grow / 2, 0, Math.PI * 2)
   ctx.fill()
+  }
 
   // Eyes look the way he faces; at terminal velocity they are big goggles.
   const look2 = (look.front ? 0 : facing) * r * 0.25

@@ -34,7 +34,7 @@ const scaled = (ctx: CanvasRenderingContext2D, sx: number, sy: number, fn: () =>
 /** A breath: the body sinks a hair at mid-loop. */
 const breath = (i: number, n: number): number => 1 - 0.03 * (1 - Math.cos((TAU * i) / n)) / 2
 
-const figure = (ctx: CanvasRenderingContext2D, l: PweegLook, sx = 1, sy = 1): void => scaled(ctx, sx, sy, () => drawPweeg(ctx, 0, 0, l))
+const figure = (ctx: CanvasRenderingContext2D, l: PweegLook, sx = 1, sy = 1): void => scaled(ctx, sx, sy, () => drawPweeg(ctx, 0, 0, { ...l, plain: true }))
 
 const pweegPanel = (ctx: CanvasRenderingContext2D, id: string, i: number, shades: boolean, puffOnly = false): boolean => {
   const sh = shades ? { shades: true } : {}

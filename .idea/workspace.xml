@@ -6,8 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="f70e7de0-3f84-4f5f-9e72-a2a65847ea2d" name="Changes" comment="- cloud">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/campaign-overrides.json" beforeDir="false" afterPath="$PROJECT_DIR$/data/campaign-overrides.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/roadmap.md" beforeDir="false" afterPath="$PROJECT_DIR$/roadmap.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,7 +162,7 @@
       <workItem from="1793658129588" duration="2865000" />
       <workItem from="1793727284183" duration="7103000" />
       <workItem from="1793736842845" duration="40574000" />
-      <workItem from="1793903682128" duration="25935000" />
+      <workItem from="1793903682128" duration="26767000" />
     </task>
     <task id="LOCAL-00001" summary="- background images&#10;- lessons&#10;- button progression&#10;- 4 more enemies">
       <option name="closed" value="true" />
@@ -326,7 +324,15 @@
       <option name="project" value="LOCAL" />
       <updated>1794421124380</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="- cloud">
+      <option name="closed" value="true" />
+      <created>1794431720916</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1794431720916</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

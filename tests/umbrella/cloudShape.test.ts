@@ -1,26 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { cloudPath } from '@/umbrella/cloudShape'
+import { cloudDip, cloudPath, cloudRise } from '@/umbrella/cloudShape'
 
-/** Records every point and ellipse extent the outline touches. */
+/** Records every ellipse extent the outline touches. */
 const trace = (x: number, y: number, w: number, h: number) => {
   const xs: number[] = []
   const ys: number[] = []
-  const tops: number[] = []
-  let at = 0
   const ctx = {
     beginPath() {},
     closePath() {},
-    moveTo(px: number, py: number) { at = py; xs.push(px); ys.push(py) },
-    lineTo(px: number, py: number) { tops.push(py); xs.push(px); ys.push(py) },
-    quadraticCurveTo(_cx: number, cy: number, px: number, py: number) {
-      // The curve's extreme sits halfway between its chord (both ends at this height) and its control point.
-      xs.push(px); ys.push(py, (at + cy) / 2)
-      at = py
-    },
-    ellipse(cx: number, cy: number, rx: number, ry: number) { xs.push(cx - rx, cx + rx); ys.push(cy - ry, cy + ry); at = cy }
+    ellipse(cx: number, cy: number, rx: number, ry: number) { xs.push(cx - rx, cx + rx); ys.push(cy - ry, cy + ry) }
   }
   cloudPath(ctx, x, y, w, h)
-  return { tops, minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys), x, y, w, h }
+  return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) }
 }
 
 describe('cloud platform outline', () => {
@@ -29,15 +20,12 @@ describe('cloud platform outline', () => {
     [100, 300, 90, 90],
     [40, 40, 520, 60],
     [0, 0, 30, 30]
-  ])('stays inside its collision box (%d, %d, %d x %d)', (x, y, w, h) => {
+  ])('sticks out above and below the collision box, never past its sides (%d, %d, %d x %d)', (x, y, w, h) => {
     const t = trace(x, y, w, h)
     expect(t.minX).toBeGreaterThanOrEqual(x - 0.01)
     expect(t.maxX).toBeLessThanOrEqual(x + w + 0.01)
-    // Its top puffs touch the walkable line, never rise above it.
-    expect(t.minY).toBeGreaterThanOrEqual(y - 0.01)
-    expect(t.maxY).toBeLessThanOrEqual(y + h + 0.01)
-    // The walkable top is one flat line along the box's top edge.
-    expect(t.tops).toEqual([y])
-    expect(t.minY).toBeCloseTo(y, 5)
+    // The puffs rise above the walking line and hang below the bottom edge.
+    expect(t.minY).toBeCloseTo(y - cloudRise(h), 5)
+    expect(t.maxY).toBeCloseTo(y + h + cloudDip(h), 5)
   })
 })
