@@ -273,6 +273,8 @@ export default {
       'platformMoves': "Bergerak",
       'once': "Hanya sekali",
       'cloudOutline': "Garis tepi",
+      'rotation': "Rotasi",
+      'rotationReset': "Luruskan (0°)",
       'same': "tidak berubah",
       'mode': "Mode",
       'toggle': "Alih (nyala / mati)",

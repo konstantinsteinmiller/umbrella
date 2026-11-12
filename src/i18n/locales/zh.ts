@@ -273,6 +273,8 @@ export default {
       'platformMoves': "移动",
       'once': "仅一次",
       'cloudOutline': "轮廓线",
+      'rotation': "旋转",
+      'rotationReset': "摆正 (0°)",
       'same': "不变",
       'mode': "模式",
       'toggle': "切换（开 / 关）",

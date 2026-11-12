@@ -89,7 +89,7 @@ type Tool =
 type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates' | 'signs' | 'arrows' | 'pictures' | 'lessons'
 type Entity = { group: Group; i: number }
 /** `arm`: a swing's rest point (sets its arc angle and rope); `phase`: a circle's start pin. */
-type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase' | 'turn'
+type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase' | 'turn' | 'rotate'
 type Selection =
   | ({ type: 'entity' } & Entity)
   | { type: 'spawn' }
@@ -372,6 +372,28 @@ const turnHandle = (a: ArrowDef): Vec => {
   return { x: a.x + Math.sin(r) * d, y: a.y - Math.cos(r) * d }
 }
 
+// ── Turned platforms: a platform or cloud can be turned about its centre (`angle`, degrees, clockwise) ──
+/** The platform's turn in radians (0 for everything that does not turn). */
+const turnOf = (e: Entity): number => (e.group === 'platforms' ? (((level.value.platforms[e.i]?.angle ?? 0) % 360) * Math.PI) / 180 : 0)
+const centerOf = (r: { x: number; y: number; w: number; h: number }): Vec => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 })
+const turnAbout = (p: Vec, c: Vec, a: number): Vec => ({ x: c.x + (p.x - c.x) * Math.cos(a) - (p.y - c.y) * Math.sin(a), y: c.y + (p.x - c.x) * Math.sin(a) + (p.y - c.y) * Math.cos(a) })
+/** A world point in the entity's own upright frame (the identity for anything not turned). */
+const localOf = (p: Vec, e: Entity): Vec => { const a = turnOf(e); return a ? turnAbout(p, centerOf(shownRect(e)), -a) : p }
+/** Only platforms turn, and not the finish pad. */
+const canTurn = (e: Entity): boolean => e.group === 'platforms' && !level.value.platforms[e.i]?.finish
+/** The turn handle: above the middle of the top edge, turned with the platform. */
+const rotateHandle = (e: Entity): Vec => {
+  const r = shownRect(e)
+  return turnAbout({ x: r.x + r.w / 2, y: r.y - cssPx(coarse.value ? 46 : 28) }, centerOf(r), turnOf(e))
+}
+/** The resize knob of an entity: its bottom-right corner, turned with it. */
+const knobOf = (e: Entity): Vec => {
+  const r = shownRect(e)
+  const k = resizeKnob(r)
+  const a = turnOf(e)
+  return a ? turnAbout(k, centerOf(r), a) : k
+}
+
 const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean } => {
   const cur = selection.value
   if (cur?.type === 'entity' && entityOf(cur)) {
@@ -379,8 +401,12 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
     const gr = grabRadius()
     if (cur.group === 'arrows' && Math.hypot(p.x - turnHandle(level.value.arrows![cur.i]!).x, p.y - turnHandle(level.value.arrows![cur.i]!).y) <= gr * 1.15) return { sel: cur, handle: 'turn' }
     if (cur.group !== 'checkpoints' && cur.group !== 'stars') {
-      const k = resizeKnob(r)
+      const k = knobOf(cur)
       if (Math.hypot(p.x - k.x, p.y - k.y) <= gr) return { sel: cur, resize: true }
+    }
+    if (canTurn(cur)) {
+      const rh = rotateHandle(cur)
+      if (Math.hypot(p.x - rh.x, p.y - rh.y) <= gr * 1.15) return { sel: cur, handle: 'rotate' }
     }
     const m = motionOf(cur)
     for (const h of m ? handlesOf(m) : []) if (Math.hypot(p.x - h.v.x, p.y - h.v.y) <= gr) return { sel: cur, handle: h.key }
@@ -394,7 +420,7 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
   }
   for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures', 'lessons'] as Group[]) {
     const list = listOf(group)
-    for (let i = list.length - 1; i >= 0; i--) if (inside(p, shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
+    for (let i = list.length - 1; i >= 0; i--) if (inside(localOf(p, { group, i }), shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
   return { sel: null }
 }
@@ -413,7 +439,7 @@ const nearSmall = (p: Vec): Selection => {
   for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) {
-      const d = distToRect(p, shownRect({ group, i }))
+      const d = distToRect(localOf(p, { group, i }), shownRect({ group, i }))
       if (d < bestD) { best = { type: 'entity', group, i }; bestD = d }
     }
   }
@@ -655,8 +681,10 @@ const onPointerMove = (e: PointerEvent) => {
       return
     }
     const shown = shownRect(drag.target)
-    const nw = Math.max(10, snapV(p.x - resizeOffset() - shown.x))
-    const nh = Math.max(10, snapV(p.y - resizeOffset() - shown.y))
+    // A turned platform is sized in its own frame: the pointer is turned back first.
+    const lp = localOf(p, drag.target)
+    const nw = Math.max(10, snapV(lp.x - resizeOffset() - shown.x))
+    const nh = Math.max(10, snapV(lp.y - resizeOffset() - shown.y))
     const m = motionOf(drag.target)
     const moving = m && m.kind !== 'static'
     if ((ent as HazardDef).kind === 'spikes' && isTurned(ent as HazardDef)) {
@@ -670,6 +698,16 @@ const onPointerMove = (e: PointerEvent) => {
       const d = Math.max(nw, nh)
       if (!moving) { const cx = ent.x + ent.w / 2, cy = ent.y + ent.h / 2; ent.x = cx - d / 2; ent.y = cy - d / 2 }
       ent.w = ent.h = d
+    } else if (turnOf(drag.target)) {
+      // The corner opposite the knob stays where it is on screen: the centre moves as the box grows.
+      const a = turnOf(drag.target)
+      const c0 = { x: ent.x + ent.w / 2, y: ent.y + ent.h / 2 }
+      const fixed = turnAbout({ x: ent.x, y: ent.y }, c0, a)
+      ent.w = nw
+      ent.h = nh
+      const half = turnAbout({ x: -nw / 2, y: -nh / 2 }, { x: 0, y: 0 }, a)
+      ent.x = fixed.x - half.x - nw / 2
+      ent.y = fixed.y - half.y - nh / 2
     } else {
       ent.w = nw
       ent.h = (ent as HazardDef).kind === 'spikes' ? ent.h : nh
@@ -683,6 +721,16 @@ const onPointerMove = (e: PointerEvent) => {
       if (ar) {
         const deg = (Math.atan2(p.x - ar.x, -(p.y - ar.y)) * 180) / Math.PI
         ar.angle = wrapDeg(snap.value ? Math.round(deg / 15) * 15 : Math.round(deg))
+      }
+      return
+    }
+    if (drag.key === 'rotate') {
+      // The platform turns to face the pointer (straight up = 0°); 15° steps while snapping.
+      const pf = level.value.platforms[drag.target.i]
+      if (pf) {
+        const c = centerOf(shownRect(drag.target))
+        const deg = (Math.atan2(p.x - c.x, -(p.y - c.y)) * 180) / Math.PI
+        setAngle(pf, snap.value ? Math.round(deg / 15) * 15 : Math.round(deg))
       }
       return
     }
@@ -1232,6 +1280,12 @@ const setContact = (h: HazardDef, c: WalldorfContact) => {
   if (c === 'solid') h.harmless = true
   else if (c === 'bounce') h.contact = 'bounce'
   if (c !== 'bounce') delete h.bounce
+}
+/** Turn a platform to `deg` (-180..180, clockwise); 0 removes the field. */
+const setAngle = (pf: PlatformDef, deg: number) => {
+  const d = Math.round(wrapDeg(Number.isFinite(deg) ? deg : 0, -180) * 10) / 10
+  if (Math.abs(d) < 0.05 || Math.abs(Math.abs(d) - 360) < 0.05) delete pf.angle
+  else pf.angle = d
 }
 const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once' | 'cloud' | 'outline', on: boolean) => {
   const o = ent as Record<string, unknown>
@@ -1919,16 +1973,50 @@ const paint = (now: number) => {
 
   if (sel?.type === 'entity' && entityOf(sel)) {
     const r = shownRect(sel)
-    strokeRect(ctx, r, '#4ade80')
+    const turn = turnOf(sel)
+    if (turn) {
+      // A turned platform: its outline is turned about the centre with it.
+      const c = centerOf(r)
+      ctx.save()
+      ctx.translate(c.x, c.y)
+      ctx.rotate(turn)
+      strokeRect(ctx, { x: -r.w / 2, y: -r.h / 2, w: r.w, h: r.h }, '#4ade80')
+      ctx.restore()
+    } else strokeRect(ctx, r, '#4ade80')
     ctx.fillStyle = '#4ade80'
     const hs = handleRadius()
+    if (canTurn(sel)) {
+      // The rotation gizmo: a stalk up from the middle of the top edge to a ring, and the angle beside it.
+      const rh = rotateHandle(sel)
+      const top = turnAbout({ x: r.x + r.w / 2, y: r.y }, centerOf(r), turn)
+      ctx.strokeStyle = '#7dd3fc'
+      ctx.beginPath()
+      ctx.moveTo(top.x, top.y)
+      ctx.lineTo(rh.x, rh.y)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(rh.x, rh.y, hs, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(125,211,252,0.25)'
+      ctx.fill()
+      ctx.lineWidth = Math.max(1, cssPx(2))
+      ctx.stroke()
+      ctx.lineWidth = 1
+      const deg = Math.round(((level.value.platforms[sel.i]?.angle ?? 0) + Number.EPSILON) * 10) / 10
+      ctx.fillStyle = '#e8f6ff'
+      ctx.font = `600 ${cssPx(12)}px system-ui, sans-serif`
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(`${deg}°`, rh.x + hs + cssPx(6), rh.y)
+      ctx.fillStyle = '#4ade80'
+    }
     if (sel.group !== 'checkpoints') {
-      const k = resizeKnob(r)
+      const k = knobOf(sel)
       if (coarse.value) {
         // On a finger the knob stands off the corner on a short stalk.
         ctx.strokeStyle = '#4ade80'
         ctx.beginPath()
-        ctx.moveTo(r.x + r.w, r.y + r.h)
+        const corner = turn ? turnAbout({ x: r.x + r.w, y: r.y + r.h }, centerOf(r), turn) : { x: r.x + r.w, y: r.y + r.h }
+        ctx.moveTo(corner.x, corner.y)
         ctx.lineTo(k.x, k.y)
         ctx.stroke()
       }
@@ -2289,6 +2377,12 @@ onUnmounted(() => {
           <template v-if="selectedPlatform">
             <label class="check"><input type="checkbox" :checked="!!selectedPlatform.finish" @change="setFinish(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.finish') }}</label>
             <label v-if="!selectedPlatform.finish" class="check"><input type="checkbox" :checked="!!selectedPlatform.cloud" @change="setFlag(selectedPlatform, 'cloud', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.tool.cloud') }}</label>
+            <div v-if="!selectedPlatform.finish" class="row rot">
+              <span>{{ t('umbrellaEditor.prop.rotation') }}</span>
+              <input class="rot-slider" type="range" min="-180" max="180" step="1" :value="selectedPlatform.angle ?? 0" @input="setAngle(selectedPlatform, +($event.target as HTMLInputElement).value)" />
+              <input class="field num" type="number" min="-180" max="180" step="1" :value="selectedPlatform.angle ?? 0" @change="setAngle(selectedPlatform, +($event.target as HTMLInputElement).value)" />
+              <button type="button" class="rot-reset" :aria-label="t('umbrellaEditor.prop.rotationReset')" :title="t('umbrellaEditor.prop.rotationReset')" @click="setAngle(selectedPlatform, 0)">0°</button>
+            </div>
             <label v-if="selectedPlatform.cloud && !selectedPlatform.finish" class="check"><input type="checkbox" :checked="!!selectedPlatform.outline" @change="setFlag(selectedPlatform, 'outline', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.cloudOutline') }}</label>
           </template>
 
@@ -2849,6 +2943,10 @@ onUnmounted(() => {
 .pair .row { min-width: 0; }
 .pair .field.num { width: 100%; min-width: 0; }
 .check { display: flex; align-items: center; gap: 6px; }
+.rot { gap: 6px; }
+.rot-slider { flex: 1; min-width: 60px; }
+.rot .field.num { width: 56px; }
+.rot-reset { padding: 2px 6px; cursor: pointer; }
 .check.off { opacity: 0.45; }
 .sync { font-size: 12px; color: #6ee7b7; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sync.bad { color: #fbbf24; }

@@ -58,6 +58,9 @@ export interface PlatformDef {
   cloud?: boolean
   /** A cloud drawn with a thin black outline (absent: no outline, the default). */
   outline?: boolean
+  /** Turned by this many degrees (clockwise, about its centre); absent or 0: upright. A turned platform
+   *  is solid along its slanted faces; a finish pad is never turned. */
+  angle?: number
   motion?: Motion
   /** Switched by the buttons of this channel: solid only while the channel is on
    *  (or only while it is off, with `whenOff`). Absent: always there. */

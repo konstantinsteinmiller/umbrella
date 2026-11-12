@@ -273,6 +273,8 @@ export default {
       'platformMoves': "เคลื่อนที่",
       'once': "ครั้งเดียวเท่านั้น",
       'cloudOutline': "เส้นขอบ",
+      'rotation': "การหมุน",
+      'rotationReset': "ทำให้ตรง (0°)",
       'same': "ไม่เปลี่ยน",
       'mode': "โหมด",
       'toggle': "สลับ (เปิด / ปิด)",

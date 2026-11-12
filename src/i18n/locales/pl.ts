@@ -273,6 +273,8 @@ export default {
       'platformMoves': "Porusza się",
       'once': "Tylko raz",
       'cloudOutline': "Obrys",
+      'rotation': "Obrót",
+      'rotationReset': "Wyprostuj (0°)",
       'same': "bez zmian",
       'mode': "Tryb",
       'toggle': "Przełącz (wł. / wył.)",

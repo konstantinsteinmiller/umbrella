@@ -273,6 +273,8 @@ export default {
       'platformMoves': "In movimento",
       'once': "Solo una volta",
       'cloudOutline': "Contorno",
+      'rotation': "Rotazione",
+      'rotationReset': "Raddrizza (0°)",
       'same': "invariato",
       'mode': "Modalità",
       'toggle': "Alterna (on / off)",

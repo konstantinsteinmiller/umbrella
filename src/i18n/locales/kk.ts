@@ -273,6 +273,8 @@ export default {
       'platformMoves': "Қозғалады",
       'once': "Тек бір рет",
       'cloudOutline': "Контур",
+      'rotation': "Бұру",
+      'rotationReset': "Түзету (0°)",
       'same': "өзгеріссіз",
       'mode': "Режим",
       'toggle': "Ауыстыру (қосу / өшіру)",

@@ -273,6 +273,8 @@ export default {
       'platformMoves': "चलता है",
       'once': "केवल एक बार",
       'cloudOutline': "रूपरेखा",
+      'rotation': "घुमाव",
+      'rotationReset': "सीधा करें (0°)",
       'same': "अपरिवर्तित",
       'mode': "मोड",
       'toggle': "टॉगल (चालू / बंद)",

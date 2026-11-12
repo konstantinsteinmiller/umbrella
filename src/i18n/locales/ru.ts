@@ -273,6 +273,8 @@ export default {
       'platformMoves': "Движется",
       'once': "Только один раз",
       'cloudOutline': "Контур",
+      'rotation': "Поворот",
+      'rotationReset': "Выпрямить (0°)",
       'same': "без изменений",
       'mode': "Режим",
       'toggle': "Переключатель (вкл / выкл)",

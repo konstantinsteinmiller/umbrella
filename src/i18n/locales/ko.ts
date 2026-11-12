@@ -273,6 +273,8 @@ export default {
       'platformMoves': "움직임",
       'once': "한 번만",
       'cloudOutline': "윤곽선",
+      'rotation': "회전",
+      'rotationReset': "똑바로 (0°)",
       'same': "변경 없음",
       'mode': "모드",
       'toggle': "토글 (켜기 / 끄기)",

@@ -78,6 +78,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.pictures && (!Array.isArray(l.pictures) || !l.pictures.every((p) => isRect(p) && (p.image === undefined || isImageId(p.image)) && (p.frame === undefined || typeof p.frame === 'boolean') && (p.ropes === undefined || typeof p.ropes === 'boolean') && (p.pad === undefined || (num(p.pad) && p.pad >= 0 && p.pad <= 200))))) return null
   if (l.lessons && (!Array.isArray(l.lessons) || !l.lessons.every((p) => isRect(p) && LESSON_KINDS.includes(p.kind) && (p.ropes === undefined || typeof p.ropes === 'boolean')))) return null
   if (l.platforms.some((p) => p.channel !== undefined && !num(p.channel))) return null
+  if (l.platforms.some((p) => p.angle !== undefined && !num(p.angle))) return null
   if (l.winds.some((w) => w.switched !== undefined && (typeof w.switched !== 'object' || !w.switched ||
     (w.switched.speed !== undefined && (!num(w.switched.speed) || w.switched.speed < 0)) ||
     (w.switched.dir !== undefined && !['up', 'down', 'left', 'right'].includes(w.switched.dir))))) return null

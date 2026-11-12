@@ -273,6 +273,8 @@ export default {
       'platformMoves': "Beweegt",
       'once': "Slechts eenmaal",
       'cloudOutline': "Omlijning",
+      'rotation': "Rotatie",
+      'rotationReset': "Rechtzetten (0°)",
       'same': "ongewijzigd",
       'mode': "Modus",
       'toggle': "Wisselen (aan / uit)",

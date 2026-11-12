@@ -273,6 +273,8 @@ export default {
       'platformMoves': "تتحرك",
       'once': "مرة واحدة فقط",
       'cloudOutline': "إطار",
+      'rotation': "الدوران",
+      'rotationReset': "تسوية (0°)",
       'same': "بلا تغيير",
       'mode': "الوضع",
       'toggle': "تبديل (تشغيل / إيقاف)",

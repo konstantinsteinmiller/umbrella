@@ -276,6 +276,8 @@ export default {
       'platformMoves': "Moving",
       'once': "One-time only",
       'cloudOutline': "Outline",
+      'rotation': "Rotation",
+      'rotationReset': "Straighten (0°)",
       'same': "unchanged",
       'mode': "Mode",
       'toggle': "Toggle (on / off)",

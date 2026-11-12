@@ -273,6 +273,8 @@ export default {
       'platformMoves': "動く",
       'once': "1回だけ",
       'cloudOutline': "輪郭線",
+      'rotation': "回転",
+      'rotationReset': "まっすぐに戻す (0°)",
       'same': "変化なし",
       'mode': "モード",
       'toggle': "切り替え（オン / オフ）",

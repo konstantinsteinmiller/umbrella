@@ -7,6 +7,7 @@ import { boxHitsSpikes } from './spikeGeometry'
 import type { CheckpointDef, GateDef, HazardDef, LevelDef, Motion, PlatformDef, WalldorfContact, WindDef } from './levels'
 import { cloudSide } from './cloudShape'
 import type { Tuning } from './tuning'
+import { boxHitsPlatform, isTurned, pushOutOfTurned } from './turnedBox'
 
 /** Default hitbox; the live size comes from Tuning (player.w / player.h). */
 export const PLAYER_W = 24
@@ -306,6 +307,11 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
 const approach = (v: number, target: number, maxDelta: number): number =>
   v < target ? Math.min(target, v + maxDelta) : Math.max(target, v - maxDelta)
 
+/** The steepest floor he can stand on: its normal's up-component (cos 60°). */
+const SLOPE_WALKABLE = 0.5
+/** How far down he follows a slope's surface when it falls away under his feet (px). */
+const SLOPE_SNAP = 10
+
 const overlaps = (ax: number, ay: number, aw: number, ah: number, b: { x: number; y: number; w: number; h: number }) =>
   ax < b.x + b.w && ax + aw > b.x && ay < b.y + b.h && ay + ah > b.y
 
@@ -547,6 +553,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   // A switched-off platform stays in the list (indices stay stable) but is skipped.
   const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => contactOf(h) === 'solid')]
   const solid = (i: number) => i >= w.platforms.length || platformActive(w, w.platforms[i]!)
+  // Turned platforms collide by their slanted faces (below), not as the upright box the loops use.
+  const flat = (i: number) => solid(i) && !(i < w.platforms.length && isTurned(w.platforms[i]!))
 
   const pl = w.player
   // Live hitbox resize from the tuning panel: keep the feet and centre in place.
@@ -661,7 +669,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   pl.x += pl.vx * dt
   for (let i = 0; i < solids.length; i++) {
     const p = solids[i]!
-    if (!solid(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
+    if (!flat(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
     // Already in the platform's columns last tick: it met us from above or
     // below (a rising finish under a lander) — the vertical pass resolves it.
     if (prevX + pl.w > p.x - p.dx && prevX < p.x - p.dx + p.w) continue
@@ -676,7 +684,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   // either frame and would pass straight through: sweep it, and carry the player ahead of it.
   for (let i = 0; i < solids.length; i++) {
     const p = solids[i]!
-    if (!solid(i) || Math.abs(p.dx) < 1) continue
+    if (!flat(i) || Math.abs(p.dx) < 1) continue
     if (pl.y + pl.h <= p.y || pl.y >= p.y + p.h) continue
     const from = p.x - p.dx
     const lo = Math.min(p.x, from)
@@ -704,7 +712,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   let standing = -1
   for (let i = 0; i < solids.length; i++) {
     const p = solids[i]!
-    if (!solid(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
+    if (!flat(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
     const fromAbove = pl.y + pl.h - p.y <= Math.max(8, pl.vy * dt + Math.abs(p.dy) + 2)
     if (fromAbove) {
       pl.y = p.y - pl.h
@@ -718,7 +726,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     }
   }
   // Still standing on a platform that moved down/away this tick? Snap onto it.
-  if (!pl.grounded && wasGrounded && pl.vy >= 0 && pl.standing >= 0 && solid(pl.standing)) {
+  if (!pl.grounded && wasGrounded && pl.vy >= 0 && pl.standing >= 0 && flat(pl.standing)) {
     const p = solids[pl.standing]!
     const onTop = pl.x + pl.w > p.x && pl.x < p.x + p.w && Math.abs(pl.y + pl.h - p.y) <= Math.abs(p.dy) + 4
     if (onTop) {
@@ -728,7 +736,39 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
       standing = pl.standing
     }
   }
-  pl.standing = standing
+    // ── Turned platforms: pushed out along their slanted faces; a walkable slope is stood on ──
+  for (let i = 0; i < w.platforms.length; i++) {
+    const p = w.platforms[i]!
+    if (!isTurned(p) || !solid(i) || p.finish) continue
+    let push = pushOutOfTurned(pl, p)
+    // Walking down a slope (or resting on one): the surface fell away from his feet this tick, so follow it.
+    if (!push && wasGrounded && pl.standing === i && pl.vy >= 0) {
+      const probe = pushOutOfTurned({ x: pl.x, y: pl.y + SLOPE_SNAP, w: pl.w, h: pl.h }, p)
+      if (probe && probe.ny < -SLOPE_WALKABLE) {
+        pl.y += SLOPE_SNAP
+        push = probe
+      }
+    }
+    if (!push) continue
+    if (push.ny < -SLOPE_WALKABLE) {
+      // A floor he can stand on: lift him straight up out of it (not along the face), so standing still never creeps downhill.
+      pl.y -= push.depth / -push.ny
+      if (pl.vy > 0) pl.vy = 0
+      pl.grounded = true
+      standing = i
+    } else {
+      // A steep face, a wall or a ceiling: out along its normal, and the speed into it is lost.
+      pl.x += push.nx * push.depth
+      pl.y += push.ny * push.depth
+      const into = pl.vx * push.nx + pl.vy * push.ny
+      if (into < 0) {
+        if (-into >= t.wallSplatSpeed) slam = true
+        pl.vx -= into * push.nx
+        pl.vy -= into * push.ny
+      }
+    }
+  }
+pl.standing = standing
 
   // A cloud platform is soft to the eye, so the open canopy never clips into it: the canopy stops
   // against a cloud's underside (or side) like the body does. Airborne only, and clouds only —
@@ -737,6 +777,18 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     for (let i = 0; i < w.platforms.length; i++) {
       const p = w.platforms[i]!
       if (!p.cloud || p.finish || !solid(i)) continue
+      if (isTurned(p)) {
+        // A turned cloud: each canopy strip is pushed out along the cloud's own faces.
+        for (let k = 0; k < UMBRELLA_STRIPS; k++) {
+          const push = pushOutOfTurned(umbrellaStrips(pl)[k]!, p)
+          if (!push) continue
+          pl.x += push.nx * push.depth
+          pl.y += push.ny * push.depth
+          const into = pl.vx * push.nx + pl.vy * push.ny
+          if (into < 0) { pl.vx -= into * push.nx; pl.vy -= into * push.ny }
+        }
+        continue
+      }
       // The drawn cloud's ends overhang its box and curve in: the canopy is held at half that overhang,
       // so it touches the drawn cloud instead of stopping short of its rounded ends.
       const side = cloudSide(p.h) * 0.5
@@ -792,7 +844,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     const [px, py, pw, ph] = nx
       ? [pl.x + nx * probe, pl.y + probe, pl.w, pl.h - probe * 2]
       : [pl.x + probe, pl.y + ny * probe, pl.w - probe * 2, pl.h]
-    if (w.platforms.some((p) => platformActive(w, p) && overlaps(px, py, pw, ph, p))) {
+    if (w.platforms.some((p) => platformActive(w, p) && boxHitsPlatform({ x: px, y: py, w: pw, h: ph }, p))) {
       setPhase(w, 'splat')
       events.push('splat')
       return events

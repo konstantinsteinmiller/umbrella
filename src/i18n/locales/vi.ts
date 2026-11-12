@@ -273,6 +273,8 @@ export default {
       'platformMoves': "Di chuyển",
       'once': "Chỉ một lần",
       'cloudOutline': "Viền",
+      'rotation': "Xoay",
+      'rotationReset': "Làm thẳng (0°)",
       'same': "không đổi",
       'mode': "Chế độ",
       'toggle': "Bật / tắt",

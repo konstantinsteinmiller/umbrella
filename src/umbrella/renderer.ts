@@ -19,6 +19,7 @@ import { drawArrow, drawPicture } from './pictureArt'
 import { drawLesson } from './lessonArt'
 import { frameFocus } from './cameraFocus'
 import { cloudPath } from './cloudShape'
+import { isTurned } from './turnedBox'
 
 /** One colour per button channel: a button and everything it switches share it. */
 export const CHANNEL_COLORS = ['#f59e0b', '#22d3ee', '#a78bfa', '#4ade80', '#f472b6', '#f87171']
@@ -988,7 +989,16 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   }
   // The finish is drawn last of the level, in front of every other platform, enemy and prop — only
   // the player goes over it (the lantern dais is wider than its platform and was overlapped).
-  for (const p of w.platforms) if (!p.finish) drawPlatform(p)
+  // A turned platform is drawn upright about its own centre under a turn of the canvas.
+  const drawTurnedPlatform = (p: Platform): void => {
+    if (!isTurned(p) || p.finish) return drawPlatform(p)
+    ctx.save()
+    ctx.translate(p.x + p.w / 2, p.y + p.h / 2)
+    ctx.rotate(((p.angle ?? 0) * Math.PI) / 180)
+    drawPlatform({ ...p, x: -p.w / 2, y: -p.h / 2 })
+    ctx.restore()
+  }
+  for (const p of w.platforms) if (!p.finish) drawTurnedPlatform(p)
 
   const buttons = w.level.buttons ?? []
   for (let i = 0; i < buttons.length; i++) {

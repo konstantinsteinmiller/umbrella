@@ -273,6 +273,8 @@ export default {
       'platformMoves': "Hareket eder",
       'once': "Yalnızca bir kez",
       'cloudOutline': "Kontur",
+      'rotation': "Döndürme",
+      'rotationReset': "Düzelt (0°)",
       'same': "değişmez",
       'mode': "Mod",
       'toggle': "Aç / kapat",
