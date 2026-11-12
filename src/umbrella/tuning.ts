@@ -148,7 +148,14 @@ export const GAME_TUNING: Tuning = {
 /** The feel the 100 kite levels were solved and proven beatable under (tests/umbrella/kite-solutions.json): the
  *  game's own walk, air and wind feel moved on (designer tuning of 3 and 4 Nov), the kite build keeps these. */
 export const KITE_FEEL: Partial<Tuning> = { walkSpeed: 240, airSpeed: 200, airDrag: 240, brakingSnap: 0.1, windTurnTime: 0.5, closedWindResistance: 0.4 }
-export const KITE_TUNING: Tuning = { ...GAME_TUNING, ...KITE_FEEL }
+/** The game's feel as it was before the designer's tuning of 12 Nov (Pweeg 24 x 36, gravity 1550...): the kite levels were solved and
+ *  proven beatable under it, so the kite build keeps it whatever the game's own tuning becomes. */
+const KITE_BASE: Partial<Tuning> = {
+  playerWidth: 24, playerHeight: 36, gravity: 1550, terminalVelocity: 1900, floatSpeed: 95, brakingSnap: 0.09, floatEaseTime: 0.11,
+  windTurnTime: 0.55, windEdge: 15, windScale: 1.7, closedWindResistance: 0.62, walkSpeed: 260, walkAccelTime: 0.09, walkDecelTime: 0.09,
+  airSpeed: 230, airTurnTime: 0.75, airDrag: 280, walldorfBounce: 520, walldorfChargeKnock: 0.6
+}
+export const KITE_TUNING: Tuning = { ...GAME_TUNING, ...KITE_BASE, ...KITE_FEEL }
 /** What every build plays with: the game's tuning, or the kite build's. */
 export const DEFAULT_TUNING: Tuning = isKite ? KITE_TUNING : GAME_TUNING
 

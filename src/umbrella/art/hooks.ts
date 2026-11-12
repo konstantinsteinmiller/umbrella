@@ -26,6 +26,8 @@ export interface KiteArt {
   checkpoint?: (ctx: CanvasRenderingContext2D, c: CheckpointDef, reached: boolean, time: number) => boolean
   /** A collectible (star, parasol, cloud), bobbing; `got` leaves a faint ghost (lantern). */
   collect?: (ctx: CanvasRenderingContext2D, s: Pick<StarDef, 'x' | 'y' | 'shape'>, got: boolean, time: number, phase: number) => boolean
+  /** The level's medallion coin (lantern: painted on the 'medallions' sheet); false: the vector coin. */
+  medallion?: (ctx: CanvasRenderingContext2D, m: { x: number; y: number; color: string }, got: boolean, time: number) => boolean
   /** Where the last cheer drawn holds its raised hand (lantern), in the space it was drawn in: the
    *  furled umbrella's grip goes there. Null when there is none. */
   cheerHand?: () => { x: number; y: number } | null

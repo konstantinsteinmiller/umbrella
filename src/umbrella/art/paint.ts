@@ -1695,6 +1695,28 @@ const collect = (ctx: CanvasRenderingContext2D, st: Pick<StarDef, 'x' | 'y' | 's
   return true
 }
 
+/** The level's medallion: the painted coin of its colour from the 'medallions' sheet (false until that sheet ships). */
+const medallion = (ctx: CanvasRenderingContext2D, m: { x: number; y: number; color: string }, got: boolean, time: number): boolean => {
+  if (!paintedOn) return false
+  const img = sheetImage('medallions')
+  if (!img) return false
+  const s = sheet('medallions')
+  const anim = s.anims[m.color]
+  if (!anim) return false
+  const cy = m.y + (got ? 0 : Math.sin(time * 3) * 3)
+  ctx.save()
+  if (got) ctx.globalAlpha = 0.3
+  else {
+    ctx.fillStyle = `rgba(250, 204, 21, ${0.14 + 0.08 * Math.sin(time * 4)})`
+    ctx.beginPath()
+    ctx.arc(m.x, cy, STAR_R * 1.55, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  blit(ctx, s, img, anim.frames[0]!, m.x, cy)
+  ctx.restore()
+  return true
+}
+
 // ─── Panel outlines ─────────────────────────────────────────────────────────
 
 /** Where the painting in each panel actually lies (sheet pixels), measured once from the decoded
@@ -2113,6 +2135,7 @@ export const KITE_PAINTERS: Required<KiteArt> = {
   stillBackdrop,
   cloudBank,
   collect,
+  medallion,
   gate,
   pweeg,
   umbrella,

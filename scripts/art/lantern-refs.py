@@ -58,6 +58,26 @@ def collect() -> None:
     im.save(SHEETS / 'collect.png')
 
 
+MEDALLIONS = [((224, 69, 58), (255, 154, 134)), ((63, 127, 224), (156, 196, 255)), ((63, 183, 104), (162, 240, 184)),
+              ((140, 82, 214), (207, 168, 255)), ((238, 111, 174), (255, 192, 221)), ((240, 138, 42), (255, 200, 138))]
+
+
+def medallions() -> None:
+    """Six round coins (red, blue, green, purple, pink, orange), 3 x 2 on the slicer's panel: notation for the paint."""
+    im = Image.new('RGB', (PANEL * 3, PANEL * 2), MAGENTA)
+    d = ImageDraw.Draw(im)
+    r = PANEL * 16 / 48
+    for i, (face, lit) in enumerate(MEDALLIONS):
+        cx = (i % 3) * PANEL + PANEL / 2
+        cy = (i // 3) * PANEL + PANEL / 2
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=lit, outline=INK, width=4)
+        d.ellipse([cx - r * 0.76, cy - r * 0.76, cx + r * 0.76, cy + r * 0.76], fill=face)
+        pts = [(cx + math.cos(-math.pi / 2 + k * math.pi / 5) * (r * 0.38 if k % 2 == 0 else r * 0.17),
+                cy + math.sin(-math.pi / 2 + k * math.pi / 5) * (r * 0.38 if k % 2 == 0 else r * 0.17)) for k in range(10)]
+        d.polygon(pts, fill=(255, 250, 235))
+    im.save(SHEETS / 'medallions.png')
+
+
 def gate() -> None:
     n = PANEL * 3
     im = Image.new('RGB', (n, n), MAGENTA)
@@ -266,6 +286,9 @@ if __name__ == '__main__':
         cards()
     elif '--clean-wisps' in sys.argv:
         clean_wisps()
+    elif '--medallions' in sys.argv:
+        medallions()
+        print('medallions.png')
     elif '--cut' in sys.argv:
         cut()
     else:

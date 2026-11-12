@@ -7,11 +7,11 @@
 // every such line folds away
 // (tests/umbrella/vectorGolden.test.ts pins the vector path call for call).
 
-import { channelOn, checkpointBox, contactOf, liveWind, STAR_R, platformActive, platformMoving, type Hazard, type Platform, type World } from './engine'
+import { channelOn, checkpointBox, contactOf, isVanishCloud, liveWind, STAR_R, platformActive, platformMoving, type Hazard, type Platform, type World } from './engine'
 import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, heldAt, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
 import { spikeAngle } from './spikeGeometry'
-import { DEFAULT_COLLECT_SHAPE, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
+import { DEFAULT_COLLECT_SHAPE, MEDALLION_PAINT, type MedallionColor, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
 import { artLayer, isLantern, paintedGame } from './kite'
 import { kiteArt } from './art/hooks'
 import { drawSignVector } from './signArt'
@@ -19,6 +19,7 @@ import { drawArrow, drawPicture } from './pictureArt'
 import { drawLesson } from './lessonArt'
 import { frameFocus } from './cameraFocus'
 import { cloudPath } from './cloudShape'
+import { PUFF_FADE, puffLayout, puffRand, type Puff } from './puffs'
 import { isTurned } from './turnedBox'
 
 /** One colour per button channel: a button and everything it switches share it. */
@@ -353,6 +354,192 @@ export const drawCheckpoint = (ctx: CanvasRenderingContext2D, c: CheckpointDef, 
   ctx.lineTo(poleX + 2, box.y + 24)
   ctx.closePath()
   ctx.fill()
+}
+
+/** One touched puff dispersing like cloud vapour (u: 0 just touched … 1 gone): it swells and thins out while a few smaller wisps
+ *  break off and drift away, rising a little, each fading softly. `body` false draws only the wisps (the camouflaged cloud's own
+ *  body is erased in the scratch canvas instead). */
+const drawDispersal = (ctx: CanvasRenderingContext2D, pf: Puff, ox: number, oy: number, u: number, k: number, tint: string, shade: string, body: boolean) => {
+  const fade = 1 - u
+  const cx = ox + pf.cx
+  const cy = oy + pf.cy
+  ctx.save()
+  if (body) {
+    const r = pf.r * (1 + 0.3 * u)
+    ctx.globalAlpha = fade * fade
+    const g = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.4 - u * 6, r * 0.1, cx, cy - u * 6, r)
+    g.addColorStop(0, tint)
+    g.addColorStop(0.55, tint)
+    g.addColorStop(1, shade)
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(cx, cy - u * 6, r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.fillStyle = tint
+  for (let i = 0; i < 3; i++) {
+    const ang = puffRand(k + 3, i + 11) * Math.PI * 2
+    const dist = u * pf.r * (0.9 + puffRand(k, i + 5) * 1.1)
+    const rad = pf.r * (0.55 - i * 0.1) * (1 - u * 0.45)
+    ctx.globalAlpha = Math.pow(fade, 1.4) * 0.9
+    ctx.beginPath()
+    ctx.arc(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist * 0.7 - u * (10 + i * 6), Math.max(0.5, rad), 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+/** A removable cloud: a lumpy mass of round, softly shaded puffs. A touched puff shrinks and drifts away (PUFF_FADE s);
+ *  a gone one is not drawn, so the cloud is carved out round where the player went through. */
+export const drawPuffCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number; outline?: boolean }, clocks: number[] | undefined, time: number, tint = '#ffffff', shade = '#cfdcea') => {
+  const layout = puffLayout(p.w, p.h)
+  const live: { cx: number; cy: number; r: number; a: number }[] = []
+  const going: { pf: Puff; u: number; k: number }[] = []
+  for (let k = 0; k < layout.length; k++) {
+    const pf = layout[k]!
+    const el = time - (clocks?.[k] ?? Infinity)
+    if (el >= PUFF_FADE) continue
+    if (el > 0) { going.push({ pf, u: el / PUFF_FADE, k }); continue }
+    live.push({ cx: p.x + pf.cx, cy: p.y + pf.cy, r: pf.r, a: 1 })
+  }
+  ctx.save()
+  if (p.outline) {
+    ctx.fillStyle = '#000'
+    for (const q of live) { ctx.globalAlpha = q.a; ctx.beginPath(); ctx.arc(q.cx, q.cy, q.r + 1.1, 0, Math.PI * 2); ctx.fill() }
+  }
+  for (const q of live) {
+    ctx.globalAlpha = q.a
+    const g = ctx.createRadialGradient(q.cx - q.r * 0.3, q.cy - q.r * 0.4, q.r * 0.1, q.cx, q.cy, q.r)
+    g.addColorStop(0, tint)
+    g.addColorStop(0.62, tint)
+    g.addColorStop(1, shade)
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(q.cx, q.cy, q.r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+  for (const d of going) drawDispersal(ctx, d.pf, p.x, p.y, d.u, d.k, tint, shade, true)
+}
+
+let scratch: HTMLCanvasElement | null = null
+/** A removable cloud that looks exactly like a normal one. It is drawn by `body` (the normal cloud's own drawing) into a scratch
+ *  canvas, then every touched puff's spot is erased with a hole that opens over PUFF_FADE s (the cloud's overhang at the
+ *  edges goes with its edge cells), so the touched part melts away and the rest stays as it was. Untouched: drawn directly. */
+export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number }, clocks: number[] | undefined, time: number, body: (c: CanvasRenderingContext2D) => void) => {
+  const layout = puffLayout(p.w, p.h)
+  const touched = layout.some((_, k) => (clocks?.[k] ?? Infinity) !== Infinity)
+  if (!touched || typeof document === 'undefined') { body(ctx); return }
+  const wisps: { pf: Puff; u: number; k: number }[] = []
+  const holes: { cx: number; cy: number; r: number; e: number; edge: { l: boolean; r: boolean; t: boolean; b: boolean } }[] = []
+  for (let k = 0; k < layout.length; k++) {
+    const pf = layout[k]!
+    const el = time - (clocks?.[k] ?? Infinity)
+    if (el === -Infinity || el >= 0 && el >= PUFF_FADE) { holes.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1, edge: { l: pf.x < 1, r: pf.x + pf.w > p.w - 1, t: pf.y < 1, b: pf.y + pf.h > p.h - 1 } }); continue }
+    if (el <= 0) continue
+    const u = el / PUFF_FADE
+    wisps.push({ pf, u, k })
+    holes.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1 - (1 - u) * (1 - u) * (1 - u), edge: { l: pf.x < 1, r: pf.x + pf.w > p.w - 1, t: pf.y < 1, b: pf.y + pf.h > p.h - 1 } })
+  }
+  if (holes.length === layout.length && holes.every((h) => h.e >= 1)) return // all gone
+  const PAD = 40
+  const m = ctx.getTransform()
+  const sc = Math.max(0.5, Math.hypot(m.a, m.b))
+  const cw = Math.ceil((p.w + PAD * 2) * sc)
+  const ch = Math.ceil((p.h + PAD * 2) * sc)
+  scratch ??= document.createElement('canvas')
+  if (scratch.width < cw || scratch.height < ch) { scratch.width = Math.max(scratch.width, cw); scratch.height = Math.max(scratch.height, ch) }
+  const g = scratch.getContext('2d')
+  if (!g) { body(ctx); return }
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.clearRect(0, 0, scratch.width, scratch.height)
+  g.setTransform(sc, 0, 0, sc, (PAD - p.x) * sc, (PAD - p.y) * sc)
+  body(g)
+  g.globalCompositeOperation = 'destination-out'
+  for (const h of holes) {
+    const x = p.x + h.cx
+    const y = p.y + h.cy
+    // A soft-edged hole, so the cloud thins out into vapour instead of being cut.
+    const R = h.r * 1.35 * h.e
+    if (R > 0.5) {
+      const eraser = g.createRadialGradient(x, y, 0, x, y, R)
+      eraser.addColorStop(0, 'rgba(0,0,0,1)')
+      eraser.addColorStop(0.55, 'rgba(0,0,0,1)')
+      eraser.addColorStop(1, 'rgba(0,0,0,0)')
+      g.fillStyle = eraser
+      g.beginPath()
+      g.arc(x, y, R, 0, Math.PI * 2)
+      g.fill()
+    }
+    // The overhang beyond an edge cell fades out only late, so no hard stripe shows mid-animation.
+    g.fillStyle = `rgba(0,0,0,${Math.max(0, Math.min(1, (h.e - 0.55) / 0.45))})`
+    // An edge cell also takes the cloud's overhang beyond the box with it.
+    const out = PAD * h.e
+    const cell = h.r * 0.9
+    if (h.edge.t) g.fillRect(x - cell, p.y - out, cell * 2, out + h.cy)
+    if (h.edge.b) g.fillRect(x - cell, y, cell * 2, p.y + p.h - y + out)
+    if (h.edge.l) g.fillRect(p.x - out, y - cell, out + h.cx, cell * 2)
+    if (h.edge.r) g.fillRect(x, y - cell, p.x + p.w - x + out, cell * 2)
+  }
+  g.globalCompositeOperation = 'source-over'
+  ctx.drawImage(scratch, 0, 0, cw, ch, p.x - PAD, p.y - PAD, cw / sc, ch / sc)
+  for (const d of wisps) drawDispersal(ctx, d.pf, p.x, p.y, d.u, d.k, FG, '#dfe8f0', false)
+}
+
+/** The level's medallion coin: a rimmed disc in its colour with a lit facet and a little star, bobbing and glinting.
+ *  A collected one is not drawn in play; `got` draws the dim inset ghost the editor keeps. */
+export const drawMedallion = (ctx: CanvasRenderingContext2D, m: { x: number; y: number; color: MedallionColor }, got: boolean, time: number) => {
+  if (artLayer && kiteArt.medallion?.(ctx, m, got, time)) return
+  const pal = MEDALLION_PAINT[m.color] ?? MEDALLION_PAINT.orange
+  const r = STAR_R
+  const cx = m.x
+  const cy = m.y + (got ? 0 : Math.sin(time * 3) * 3)
+  ctx.save()
+  if (got) ctx.globalAlpha = 0.3
+  else {
+    ctx.fillStyle = `${pal.lit}${'44'}`
+    ctx.beginPath()
+    ctx.arc(cx, cy, r * 1.5 + Math.sin(time * 4) * 1.5, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  const rim = ctx.createLinearGradient(cx, cy - r, cx, cy + r)
+  rim.addColorStop(0, pal.lit)
+  rim.addColorStop(1, pal.deep)
+  ctx.fillStyle = rim
+  ctx.strokeStyle = '#1c1228'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.arc(cx, cy, r, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.stroke()
+  const face = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.35, r * 0.1, cx, cy, r * 0.78)
+  face.addColorStop(0, pal.lit)
+  face.addColorStop(0.45, pal.face)
+  face.addColorStop(1, pal.deep)
+  ctx.fillStyle = face
+  ctx.beginPath()
+  ctx.arc(cx, cy, r * 0.76, 0, Math.PI * 2)
+  ctx.fill()
+  // The embossed star in the middle.
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+  ctx.beginPath()
+  for (let k = 0; k < 10; k++) {
+    const a = -Math.PI / 2 + (k * Math.PI) / 5
+    const rr = k % 2 ? r * 0.17 : r * 0.38
+    ctx[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr)
+  }
+  ctx.closePath()
+  ctx.fill()
+  // A glint sweeping over it now and then.
+  const sweep = (time * 0.6) % 3
+  if (!got && sweep < 1) {
+    ctx.globalAlpha = Math.sin(sweep * Math.PI) * 0.8
+    ctx.fillStyle = '#fff'
+    ctx.beginPath()
+    ctx.ellipse(cx - r * 0.45 + sweep * r * 0.9, cy - r * 0.35 + sweep * r * 0.3, r * 0.1, r * 0.3, 0.6, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
 }
 
 /** A collectible in gold: a star, an umbrella or a cloud. It bobs and glints; a collected one leaves a faint outline. */
@@ -927,6 +1114,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   }
   // A picked-up collectible is gone: no greyed-out copy stays behind to distract (the HUD badge counts it).
   ;(w.level.stars ?? []).forEach((st, i) => { if (!w.starsGot[i]) drawStar(ctx, st, false, w.time, i * 1.7) })
+  if (w.level.medallion && !w.medallionGot) drawMedallion(ctx, w.level.medallion, false, w.time)
 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
@@ -943,6 +1131,25 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     ctx.restore()
   }
   const drawPlatform = (p: Platform): void => {
+    // A removable cloud is always the puffs (the painted platform sheets never draw it).
+    if (isVanishCloud(p) && p.camouflage) {
+      // Looks like the normal cloud, painted build included; only touching it shows it melts.
+      drawCamouflagedCloud(ctx, p, w.puffs[w.platforms.indexOf(p)], w.time, (c) => {
+        if (artLayer && kiteArt.platform?.(c, p, true, null)) return
+        c.fillStyle = FG
+        c.strokeStyle = '#000'
+        c.lineJoin = 'round'
+        cloudPath(c, p.x, p.y, p.w, p.h)
+        c.fill()
+        if (p.outline) { c.lineWidth = 1; c.stroke() }
+      })
+      return
+    }
+    if (isVanishCloud(p)) {
+      const i = w.platforms.indexOf(p)
+      drawPuffCloud(ctx, p, w.puffs[i], w.time, paintedGame ? '#fff8e8' : '#ffffff', paintedGame ? '#e8d9b8' : '#cfdcea')
+      return
+    }
     const drawn = artLayer ? kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel)) : false
     const painted = !!drawn
     // The kite build dresses its painted finish instead of labelling it, and so does the lantern
@@ -991,7 +1198,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   // the player goes over it (the lantern dais is wider than its platform and was overlapped).
   // A turned platform is drawn upright about its own centre under a turn of the canvas.
   const drawTurnedPlatform = (p: Platform): void => {
-    if (!isTurned(p) || p.finish) return drawPlatform(p)
+    if (!isTurned(p) || p.finish || isVanishCloud(p)) return drawPlatform(p)
     ctx.save()
     ctx.translate(p.x + p.w / 2, p.y + p.h / 2)
     ctx.rotate(((p.angle ?? 0) * Math.PI) / 180)

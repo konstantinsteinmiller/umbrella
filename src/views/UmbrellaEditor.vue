@@ -28,7 +28,7 @@ import { useI18n } from 'vue-i18n'
 import { applyLocaleDirection } from '@/i18n'
 import { useRouter } from 'vue-router'
 import { isTurned, spikeAngle, spikeBounds } from '@/umbrella/spikeGeometry'
-import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, LESSON_H, LESSON_KINDS, LESSON_W, PICTURE_PAD_MAX, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type LessonDef, type LessonKind, type PictureDef, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
+import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, LESSON_H, LESSON_KINDS, LESSON_W, PICTURE_PAD_MAX, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, MEDALLION_COLORS, type MedallionColor, type MedallionDef, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type LessonDef, type LessonKind, type PictureDef, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { arrowBox, pictureInset } from '@/umbrella/pictureArt'
@@ -82,11 +82,11 @@ import {
 } from '@/umbrella/customLevels'
 
 type Tool =
-  | 'select' | 'platform' | 'cloud' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
+  | 'select' | 'platform' | 'cloud' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'medallion' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
-type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'gates' | 'signs' | 'arrows' | 'pictures' | 'lessons'
+type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'medallions' | 'gates' | 'signs' | 'arrows' | 'pictures' | 'lessons'
 type Entity = { group: Group; i: number }
 /** `arm`: a swing's rest point (sets its arc angle and rope); `phase`: a circle's start pin. */
 type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase' | 'turn' | 'rotate'
@@ -98,6 +98,8 @@ type Drag =
   | { mode: 'move'; start: Vec; snapshot: LevelDef; target: Selection }
   | { mode: 'resize'; target: Entity }
   | { mode: 'handle'; target: Entity; key: HandleKey }
+  | { mode: 'moveMany'; start: Vec; snapshot: LevelDef; targets: Selection[] }
+  | { mode: 'marquee'; start: Vec; now: Vec; base: Selection[] }
   | { mode: 'create'; tool: Tool; start: Vec; now: Vec }
   | { mode: 'pan'; x: number; y: number }
   | null
@@ -115,6 +117,7 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys; /*
     { id: 'spawn', icon: '☺', keys: { key: 's' } },
     { id: 'checkpoint', icon: '⚑', keys: { key: 'c' } },
     { id: 'star', icon: '★', keys: { key: 't' } },
+    { id: 'medallion', icon: '🪙', keys: { key: 'u' } },
     { id: 'gate', icon: '⛩', keys: { key: 'g' } },
     { id: 'sign', icon: '🏮', keys: { key: 'n' } },
     { id: 'sign-float', icon: '🎐', keys: { key: 'n', shift: true } },
@@ -174,6 +177,20 @@ const level = ref<LevelDef>(editorDraft.value ? cloneLevel(editorDraft.value.lev
 const levelName = ref(editorDraft.value?.name ?? t('umbrellaEditor.untitled'))
 const tool = ref<Tool>('select')
 const selection = ref<Selection>(null)
+/** Several things selected at once (two or more). While it is in use `selection` is empty, so no single-item handles or properties show. */
+const multi = ref<Selection[]>([])
+// A replaced level (open, new, undo) makes the group's positions meaningless.
+watch(() => level.value, () => { multi.value = [] })
+/** Touch has no Shift key: with this on, a tap adds to the selection and an empty drag draws the selection box. */
+const multiMode = ref(false)
+const sameSel = (a: Selection, b: Selection): boolean => !!a && !!b && a.type === b.type && (a.type === 'spawn' || (b.type === 'entity' && a.group === b.group && a.i === b.i))
+/** Everything selected now, one thing or several. */
+const currentSet = (): Selection[] => (multi.value.length > 1 ? [...multi.value] : selection.value ? [selection.value] : [])
+/** Make `set` the selection: two or more become a group, one a normal selection. */
+const setSelectionSet = (set: Selection[]) => {
+  const uniq = set.filter((s, i) => !!s && set.findIndex((o) => sameSel(o, s)) === i)
+  if (uniq.length >= 2) { multi.value = uniq; selection.value = null } else { multi.value = []; selection.value = uniq[0] ?? null }
+}
 const status = ref('')
 const snap = ref(true)
 const animate = ref(false)
@@ -246,9 +263,9 @@ const redo = () => {
 }
 
 // ── Geometry helpers ──
-const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | GateDef | SignDef | ArrowDef | PictureDef | LessonDef)[] =>
+const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | MedallionDef | GateDef | SignDef | ArrowDef | PictureDef | LessonDef)[] =>
   g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= [])
-    : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : g === 'signs' ? (L.signs ??= []) : g === 'arrows' ? (L.arrows ??= []) : g === 'pictures' ? (L.pictures ??= []) : g === 'lessons' ? (L.lessons ??= []) : (L.checkpoints ??= [])
+    : g === 'medallions' ? (L.medallion ? [L.medallion] : []) : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : g === 'signs' ? (L.signs ??= []) : g === 'arrows' ? (L.arrows ??= []) : g === 'pictures' ? (L.pictures ??= []) : g === 'lessons' ? (L.lessons ??= []) : (L.checkpoints ??= [])
 const listOf = (g: Group) => listIn(level.value, g)
 const hazards = () => (level.value.hazards ??= [])
 const entityOf = (e: Entity) => listOf(e.group)[e.i]
@@ -276,6 +293,7 @@ const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
             : e.group === 'pictures' ? level.value.pictures![e.i]!
             : e.group === 'lessons' ? level.value.lessons![e.i]!
             : e.group === 'stars' ? starBox(level.value.stars![e.i]!)
+            : e.group === 'medallions' ? starBox(level.value.medallion!)
               : checkpointBox(level.value.checkpoints![e.i]!)
 
 const translateMotion = (m: Motion, dx: number, dy: number) => {
@@ -380,7 +398,7 @@ const turnAbout = (p: Vec, c: Vec, a: number): Vec => ({ x: c.x + (p.x - c.x) * 
 /** A world point in the entity's own upright frame (the identity for anything not turned). */
 const localOf = (p: Vec, e: Entity): Vec => { const a = turnOf(e); return a ? turnAbout(p, centerOf(shownRect(e)), -a) : p }
 /** Only platforms turn, and not the finish pad. */
-const canTurn = (e: Entity): boolean => e.group === 'platforms' && !level.value.platforms[e.i]?.finish
+const canTurn = (e: Entity): boolean => e.group === 'platforms' && !level.value.platforms[e.i]?.finish && !level.value.platforms[e.i]?.vanish
 /** The turn handle: above the middle of the top edge, turned with the platform. */
 const rotateHandle = (e: Entity): Vec => {
   const r = shownRect(e)
@@ -400,7 +418,7 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
     const r = shownRect(cur)
     const gr = grabRadius()
     if (cur.group === 'arrows' && Math.hypot(p.x - turnHandle(level.value.arrows![cur.i]!).x, p.y - turnHandle(level.value.arrows![cur.i]!).y) <= gr * 1.15) return { sel: cur, handle: 'turn' }
-    if (cur.group !== 'checkpoints' && cur.group !== 'stars') {
+    if (cur.group !== 'checkpoints' && cur.group !== 'stars' && cur.group !== 'medallions') {
       const k = knobOf(cur)
       if (Math.hypot(p.x - k.x, p.y - k.y) <= gr) return { sel: cur, resize: true }
     }
@@ -418,7 +436,7 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
     const near = nearSmall(p)
     if (near) return { sel: near }
   }
-  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures', 'lessons'] as Group[]) {
+  for (const group of ['medallions', 'stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures', 'lessons'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) if (inside(localOf(p, { group, i }), shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
@@ -436,7 +454,7 @@ const nearSmall = (p: Vec): Selection => {
   const sp = level.value.spawn
   const dSpawn = distToRect(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight })
   if (dSpawn <= bestD) { best = { type: 'spawn' }; bestD = dSpawn }
-  for (const group of ['stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms'] as Group[]) {
+  for (const group of ['medallions', 'stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) {
       const d = distToRect(localOf(p, { group, i }), shownRect({ group, i }))
@@ -506,6 +524,12 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       sel = { type: 'entity', group: 'stars', i: list.length - 1 }
       break
     }
+    case 'medallion': {
+      // One per level: placing again moves it (keeping its colour).
+      L.medallion = { x: snapV(a.x), y: snapV(a.y), color: L.medallion?.color ?? medallionColor.value }
+      sel = { type: 'entity', group: 'medallions', i: 0 }
+      break
+    }
     case 'gate': {
       // Its bottom on the click: drop it onto a platform's top edge, like a Mario pipe.
       const list = (L.gates ??= [])
@@ -559,9 +583,21 @@ const place = (t: Tool, a: Vec, b: Vec) => {
 }
 
 const removeSelection = () => {
+  if (multi.value.length > 1) {
+    // Last index first, so the ones still to go keep their places (and a gate's links shift one by one).
+    const doomed = multi.value.filter((s): s is Extract<Selection, { type: 'entity' }> => s?.type === 'entity').sort((a, b) => (a.group === b.group ? b.i - a.i : a.group < b.group ? -1 : 1))
+    for (const s of doomed) removeOne(s)
+    multi.value = []
+    return
+  }
   const s = selection.value
   if (s?.type !== 'entity') return
-  listOf(s.group).splice(s.i, 1)
+  removeOne(s)
+  selection.value = null
+}
+const removeOne = (s: Entity) => {
+  if (s.group === 'medallions') delete level.value.medallion
+  else listOf(s.group).splice(s.i, 1)
   if (s.group === 'gates') {
     // Links are positions in the list: drop the ones to the removed gate, shift the later ones down.
     for (const g of level.value.gates ?? []) {
@@ -570,7 +606,6 @@ const removeSelection = () => {
       else if (g.link > s.i) g.link--
     }
   }
-  selection.value = null
 }
 
 // ── Pointer ──
@@ -583,7 +618,7 @@ const pinchState = () => {
 }
 /** Drops the drag in progress; a half-made move goes back to where it started (the pinch was meant, not the drag). */
 const cancelDrag = () => {
-  if (drag?.mode === 'move') {
+  if (drag?.mode === 'move' || drag?.mode === 'moveMany') {
     const back = JSON.stringify(drag.snapshot)
     if (back !== JSON.stringify(level.value)) {
       // Drag steps were coalesced into the undo stack: take the pre-drag step back off instead of leaving a no-op.
@@ -618,6 +653,25 @@ const onPointerDown = (e: PointerEvent) => {
     return
   }
   const hit = hitTest(p)
+  // Shift / Ctrl / Cmd (or the multi-select mode on a touch screen) adds to the selection or takes from it.
+  if (e.shiftKey || e.ctrlKey || e.metaKey || multiMode.value) {
+    if (hit.sel) {
+      const set = currentSet()
+      const at = set.findIndex((o) => sameSel(o, hit.sel!))
+      if (at >= 0) set.splice(at, 1)
+      else set.push(hit.sel)
+      setSelectionSet(set)
+    } else drag = { mode: 'marquee', start: p, now: p, base: currentSet() }
+    return
+  }
+  // A press on something already in the group keeps the group and drags all of it.
+  if (multi.value.length > 1 && hit.sel && multi.value.some((o) => sameSel(o, hit.sel!))) {
+    drag = { mode: 'moveMany', start: p, snapshot: cloneLevel(level.value), targets: [...multi.value] }
+    return
+  }
+  multi.value = []
+  // A mouse drag on empty ground draws a selection box (a finger there pans the view).
+  if (!hit.sel && e.pointerType === 'mouse') { selection.value = null; drag = { mode: 'marquee', start: p, now: p, base: [] }; return }
   selection.value = hit.sel
   if (hit.sel?.type === 'entity' && hit.resize) drag = { mode: 'resize', target: hit.sel }
   else if (hit.sel?.type === 'entity' && hit.handle) drag = { mode: 'handle', target: hit.sel, key: hit.handle }
@@ -626,6 +680,36 @@ const onPointerDown = (e: PointerEvent) => {
   else if (e.pointerType !== 'mouse') drag = { mode: 'pan', x: e.clientX, y: e.clientY }
 }
 
+/** Puts one selected thing at its place in `snapshot` plus (dx, dy), a mover's whole path with it. */
+const moveTarget = (t: Selection, snapshot: LevelDef, dx: number, dy: number) => {
+  if (t?.type === 'spawn') {
+    level.value.spawn = { x: snapshot.spawn.x + dx, y: snapshot.spawn.y + dy }
+  } else if (t?.type === 'entity') {
+    const orig = listIn(snapshot, t.group)[t.i]!
+    const ent = entityOf(t)!
+    ent.x = orig.x + dx
+    ent.y = orig.y + dy
+    const om = (orig as PlatformDef).motion
+    if (om && om.kind !== 'static') {
+      const m = JSON.parse(JSON.stringify(om)) as Motion
+      translateMotion(m, dx, dy)
+      ;(ent as PlatformDef).motion = m
+    }
+  }
+}
+/** Everything whose middle lies inside the box (a big current behind it is not swept up by touching it). */
+const selectionBoxHits = (box: { x: number; y: number; w: number; h: number }): Selection[] => {
+  const out: Selection[] = []
+  const sp = level.value.spawn
+  if (inside({ x: sp.x, y: sp.y - tuning.playerHeight / 2 }, box)) out.push({ type: 'spawn' })
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'medallions', 'gates', 'signs', 'arrows', 'pictures', 'lessons'] as Group[]) {
+    listOf(group).forEach((_, i) => {
+      const r = shownRect({ group, i })
+      if (inside({ x: r.x + r.w / 2, y: r.y + r.h / 2 }, box)) out.push({ type: 'entity', group, i })
+    })
+  }
+  return out
+}
 const onPointerMove = (e: PointerEvent) => {
   if (fingers.has(e.pointerId)) {
     fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
@@ -650,29 +734,21 @@ const onPointerMove = (e: PointerEvent) => {
     return
   }
   const p = toWorld(e)
-  if (drag.mode === 'create') { drag.now = p; return }
+  if (drag.mode === 'create' || drag.mode === 'marquee') { drag.now = p; return }
+  if (drag.mode === 'moveMany') {
+    const dx = snapV(p.x - drag.start.x)
+    const dy = snapV(p.y - drag.start.y)
+    for (const t of drag.targets) moveTarget(t, drag.snapshot, dx, dy)
+    return
+  }
   if (drag.mode === 'move') {
     const dx = snapV(p.x - drag.start.x)
     const dy = snapV(p.y - drag.start.y)
-    const t = drag.target
-    if (t?.type === 'spawn') {
-      level.value.spawn = { x: drag.snapshot.spawn.x + dx, y: drag.snapshot.spawn.y + dy }
-    } else if (t?.type === 'entity') {
-      const orig = listIn(drag.snapshot, t.group)[t.i]!
-      const ent = entityOf(t)!
-      ent.x = orig.x + dx
-      ent.y = orig.y + dy
-      const om = (orig as PlatformDef).motion
-      if (om && om.kind !== 'static') {
-        const m = JSON.parse(JSON.stringify(om)) as Motion
-        translateMotion(m, dx, dy)
-        ;(ent as PlatformDef).motion = m
-      }
-    }
+    moveTarget(drag.target, drag.snapshot, dx, dy)
     return
   }
   if (drag.mode === 'resize') {
-    if (drag.target.group === 'checkpoints' || drag.target.group === 'stars') return
+    if (drag.target.group === 'checkpoints' || drag.target.group === 'stars' || drag.target.group === 'medallions') return
     const ent = entityOf(drag.target)! as PlatformDef
     if (drag.target.group === 'arrows') {
       // An arrow is sized from its centre: the green corner sets half its side.
@@ -746,6 +822,13 @@ const onPointerUp = (e?: PointerEvent) => {
   // The fingers of a pinch placed nothing: the one still down must lift and press again to act.
   if (wasPinch) { drag = null; return }
   if (drag?.mode === 'create' && e?.type !== 'pointercancel') place(drag.tool, drag.start, drag.now)
+  if (drag?.mode === 'marquee' && e?.type !== 'pointercancel') {
+    const a = drag.start, b = drag.now
+    // A press that hardly moved just clicked empty ground: nothing to add.
+    if (Math.hypot(b.x - a.x, b.y - a.y) > cssPx(4)) {
+      setSelectionSet([...drag.base, ...selectionBoxHits({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) })])
+    }
+  }
   drag = null
 }
 
@@ -780,7 +863,7 @@ const onKeyDown = (e: KeyboardEvent) => {
   // Arrows nudge the selection a pixel (Shift: 10).
   const dirs: Record<string, [number, number]> = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] }
   const d = dirs[e.key.toLowerCase()]
-  if (d && selection.value) {
+  if (d && (selection.value || multi.value.length > 1)) {
     e.preventDefault()
     const k = e.shiftKey ? 10 : 1
     moveSelection(d[0] * k, d[1] * k)
@@ -789,7 +872,9 @@ const onKeyDown = (e: KeyboardEvent) => {
 
 /** Moves the selection (and a mover's whole path) by dx, dy. */
 const moveSelection = (dx: number, dy: number) => {
-  const s = selection.value
+  for (const s of currentSet()) moveOne(s, dx, dy)
+}
+const moveOne = (s: Selection, dx: number, dy: number) => {
   if (s?.type === 'spawn') { level.value.spawn.x += dx; level.value.spawn.y += dy; return }
   if (s?.type !== 'entity') return
   const ent = entityOf(s)
@@ -801,21 +886,25 @@ const moveSelection = (dx: number, dy: number) => {
 }
 /** A copy of the selection, a little down and to the right. */
 const duplicateSelection = () => {
-  const s = selection.value
-  if (s?.type !== 'entity') return
-  const ent = entityOf(s)
-  if (!ent) return
-  const copy = JSON.parse(JSON.stringify(ent)) as PlatformDef
-  delete copy.finish
-  const list = listOf(s.group) as unknown[]
-  list.push(copy)
-  selection.value = { type: 'entity', group: s.group, i: list.length - 1 }
-  moveSelection(20, 20)
+  const made: Selection[] = []
+  for (const s of currentSet()) {
+    if (s?.type !== 'entity') continue
+    const ent = entityOf(s)
+    if (!ent || s.group === 'medallions') continue
+    const copy = JSON.parse(JSON.stringify(ent)) as PlatformDef
+    delete copy.finish
+    const list = listOf(s.group) as unknown[]
+    list.push(copy)
+    made.push({ type: 'entity', group: s.group, i: list.length - 1 })
+  }
+  // The copies become the selection, a little down and to the right.
+  setSelectionSet(made)
+  for (const s of made) moveOne(s, 20, 20)
 }
 
 // ── Commands: one list drives the menus, the shortcuts and their hints ──
 interface Command { keys?: Keys[]; run: () => void; enabled?: () => boolean; checked?: () => boolean; designer?: boolean }
-const hasEntity = () => selection.value?.type === 'entity'
+const hasEntity = () => selection.value?.type === 'entity' || multi.value.length > 1
 const zoomBy = (k: number) => { zoom = Math.min(8, Math.max(0.5, zoom * k)) }
 const commands: Record<string, Command> = {
   new: { keys: [{ key: 'n', alt: true }], run: () => onNew() },
@@ -828,7 +917,8 @@ const commands: Record<string, Command> = {
   redo: { keys: [{ key: 'y', mod: true }, { key: 'z', mod: true, shift: true }], run: () => redo(), enabled: () => redoStack.value.length > 0 },
   duplicate: { keys: [{ key: 'd', mod: true }], run: () => duplicateSelection(), enabled: hasEntity },
   delete: { keys: [{ key: 'delete' }, { key: 'backspace' }], run: () => removeSelection(), enabled: hasEntity },
-  deselect: { keys: [{ key: 'escape' }], run: () => { selection.value = null; tool.value = 'select' } },
+  deselect: { keys: [{ key: 'escape' }], run: () => { selection.value = null; multi.value = []; tool.value = 'select' } },
+  multiSelect: { run: () => { multiMode.value = !multiMode.value }, checked: () => multiMode.value },
   fit: { keys: [{ key: '0' }], run: () => fitView() },
   zoomIn: { keys: [{ key: '+' }, { key: '=' }], run: () => zoomBy(1.25) },
   zoomOut: { keys: [{ key: '-' }], run: () => zoomBy(0.8) },
@@ -884,7 +974,7 @@ watch(designer, (on) => {
 }, { immediate: true })
 const menus = computed(() => [
   { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
-  { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'deselect'] },
+  { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'multiSelect', 'deselect'] },
   { id: 'view', items: ['fullscreen', 'fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern ? ['-', 'paperWind'] : [])] },
   { id: 'level', items: ['test', 'prevLevel', 'nextLevel', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
   ...(designer.value ? [{ id: 'campaign', items: ['campaignOverwrite', 'campaignReplace', 'campaignRevert', 'reorder', '-', 'sync', 'password', '-', 'exportLibrary', 'importLibrary'] }] : []),
@@ -1298,7 +1388,7 @@ const setAngle = (pf: PlatformDef, deg: number) => {
   if (Math.abs(d) < 0.05 || Math.abs(Math.abs(d) - 360) < 0.05) delete pf.angle
   else pf.angle = d
 }
-const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once' | 'cloud' | 'outline', on: boolean) => {
+const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once' | 'cloud' | 'outline' | 'vanish' | 'camouflage', on: boolean) => {
   const o = ent as Record<string, unknown>
   if (on) o[key] = true
   else delete o[key]
@@ -1333,16 +1423,30 @@ const setShape = (st: StarDef, shape: CollectShape) => {
   st.shape = shape
   collectShape.value = shape
 }
+/** The colour of the next medallion placed; picking one for the placed medallion also makes it the default. */
+const medallionColor = ref<MedallionColor>('red')
+const selectedMedallion = computed(() => (selected.value?.group === 'medallions' ? (selected.value.ent as MedallionDef) : null))
+const setMedallionColor = (m: MedallionDef, color: MedallionColor) => {
+  m.color = color
+  medallionColor.value = color
+}
+/** A removable cloud blocks nothing and is never turned. */
+const setVanish = (p: PlatformDef, on: boolean) => {
+  setFlag(p, 'vanish', on)
+  if (on) delete p.angle
+  else delete p.camouflage
+  rebuildWorld()
+}
 const selectedGate = computed(() => (selected.value?.group === 'gates' ? (selected.value.ent as GateDef) : null))
 const selectedCheckpoint = computed(() => (selected.value?.group === 'checkpoints' ? (selected.value.ent as CheckpointDef) : null))
-const rectKeys = computed(() => (selected.value?.group === 'checkpoints' || selected.value?.group === 'stars' || selected.value?.group === 'arrows' ? (['x', 'y'] as const) : (['x', 'y', 'w', 'h'] as const)))
+const rectKeys = computed(() => (selected.value?.group === 'checkpoints' || selected.value?.group === 'stars' || selected.value?.group === 'medallions' || selected.value?.group === 'arrows' ? (['x', 'y'] as const) : (['x', 'y', 'w', 'h'] as const)))
 const selectedKind = computed(() => {
   const s = selected.value
   if (!s) return ''
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
   if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : (s.ent as PlatformDef).cloud ? 'cloud' : 'platform'
-  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'lessons' ? 'lesson' : s.group === 'stars' ? 'star' : 'checkpoint'
+  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'lessons' ? 'lesson' : s.group === 'stars' ? 'star' : s.group === 'medallions' ? 'medallion' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */
 /** The other gates of this level a selected gate can lead out of. */
@@ -1922,8 +2026,10 @@ const paint = (now: number) => {
     ctx.textAlign = 'left'
     ctx.fillText(t('umbrellaEditor.startScreen'), start.x + 6 / s, start.y + 6 / s)
   }
+  // A camouflaged removable cloud looks like any cloud: the editor marks it with a dashed outline so it is not lost.
+  for (const p of world.platforms) if (p.vanish && p.camouflage) strokeRect(ctx, p, 'rgba(255,170,60,0.85)', [5 / s, 4 / s])
   // Off-world things (a lunge resting off-screen) still need an outline to grab.
-  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'gates', 'signs', 'arrows', 'pictures', 'lessons'] as Group[]) {
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'medallions', 'gates', 'signs', 'arrows', 'pictures', 'lessons'] as Group[]) {
     listOf(group).forEach((_, i) => {
       const r = shownRect({ group, i })
       const off = r.x < 0 || r.y < 0 || r.x + r.w > L.world.w || r.y + r.h > L.world.h
@@ -1980,6 +2086,22 @@ const paint = (now: number) => {
       }
       if (isSel) for (const h of handlesOf(m)) dot(ctx, h.v, handleRadius(), h.key === 'b' || h.key === 'arm' ? '#ffb347' : h.key === 'phase' ? '#7dd3fc' : '#ffe066')
     })
+  }
+
+  // A group: every member outlined (no single-item handles while there are several).
+  for (const m of multi.value) {
+    if (m?.type === 'entity' && entityOf(m)) {
+      const r = shownRect(m)
+      const c = centerOf(r)
+      ctx.save()
+      ctx.translate(c.x, c.y)
+      ctx.rotate(turnOf(m))
+      strokeRect(ctx, { x: -r.w / 2, y: -r.h / 2, w: r.w, h: r.h }, '#4ade80')
+      ctx.restore()
+    } else if (m?.type === 'spawn') {
+      const sp = L.spawn
+      strokeRect(ctx, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, '#4ade80')
+    }
   }
 
   if (sel?.type === 'entity' && entityOf(sel)) {
@@ -2059,6 +2181,12 @@ const paint = (now: number) => {
     strokeRect(ctx, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight }, '#4ade80')
   }
 
+  if (drag?.mode === 'marquee') {
+    const a = drag.start, b = drag.now
+    ctx.fillStyle = 'rgba(96,165,250,0.12)'
+    ctx.fillRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y))
+    strokeRect(ctx, { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) }, '#60a5fa', [6 / s, 4 / s])
+  }
   if (drag?.mode === 'create') {
     const a = drag.start, b = drag.now
     strokeRect(ctx, { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) }, '#60a5fa', [6 / s, 4 / s])
@@ -2277,6 +2405,7 @@ onUnmounted(() => {
           </div>
           <div class="fs-left">
             <button class="fs-btn" :class="{ on: tool === 'select' }" :aria-pressed="tool === 'select'" :aria-label="toolLabel('select')" :title="toolLabel('select')" @click="quickSelect">⬚</button>
+            <button class="fs-btn" :class="{ on: multiMode }" :aria-pressed="multiMode" :aria-label="cmdLabel('multiSelect')" :title="cmdLabel('multiSelect')" @click="runCmd('multiSelect')">▣</button>
             <button class="fs-btn" :disabled="!cmdEnabled('undo')" :aria-label="cmdLabel('undo')" :title="cmdLabel('undo')" @click="runCmd('undo')">↶</button>
             <button class="fs-btn" :disabled="!cmdEnabled('redo')" :aria-label="cmdLabel('redo')" :title="cmdLabel('redo')" @click="runCmd('redo')">↷</button>
             <button class="fs-btn red" :disabled="!cmdEnabled('delete')" :aria-label="cmdLabel('delete')" :title="cmdLabel('delete')" @click="runCmd('delete')">🗑</button>
@@ -2377,7 +2506,15 @@ onUnmounted(() => {
         <p class="hint">{{ t('umbrellaEditor.timeLimitHint') }}</p>
 
         <div class="head">{{ t('umbrellaEditor.selectionTitle') }}</div>
-        <p v-if="!selected" class="hint">{{ t(selection?.type === 'spawn' ? 'umbrellaEditor.spawnSelected' : 'umbrellaEditor.nothingSelected') }}</p>
+        <template v-if="multi.length > 1">
+          <div class="kind">{{ t('umbrellaEditor.multiSelected', { n: multi.length }) }}</div>
+          <p class="hint">{{ t('umbrellaEditor.multiHint') }}</p>
+          <div class="row actions">
+            <button class="btn" @click="runCmd('duplicate')">⧉ {{ t('umbrellaEditor.cmd.duplicate') }} <kbd>{{ cmdKeys('duplicate') }}</kbd></button>
+            <button class="btn red" @click="runCmd('delete')">🗑 {{ t('umbrellaEditor.cmd.delete') }} <kbd>{{ cmdKeys('delete') }}</kbd></button>
+          </div>
+        </template>
+        <p v-else-if="!selected" class="hint">{{ t(selection?.type === 'spawn' ? 'umbrellaEditor.spawnSelected' : 'umbrellaEditor.nothingSelected') }}</p>
         <template v-if="selection?.type === 'spawn'">
           <div class="pair">
             <label class="row">x <input v-model.number="level.spawn.x" class="field num" type="number" /></label>
@@ -2404,7 +2541,10 @@ onUnmounted(() => {
           <template v-if="selectedPlatform">
             <label class="check"><input type="checkbox" :checked="!!selectedPlatform.finish" @change="setFinish(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.finish') }}</label>
             <label v-if="!selectedPlatform.finish" class="check"><input type="checkbox" :checked="!!selectedPlatform.cloud" @change="setFlag(selectedPlatform, 'cloud', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.tool.cloud') }}</label>
-            <div v-if="!selectedPlatform.finish" class="row rot">
+            <label v-if="selectedPlatform.cloud && !selectedPlatform.finish" class="check" :title="t('umbrellaEditor.prop.vanishHint')"><input type="checkbox" :checked="!!selectedPlatform.vanish" @change="setVanish(selectedPlatform, ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.vanish') }}</label>
+            <label v-if="selectedPlatform.vanish" class="check"><input type="checkbox" :checked="!!selectedPlatform.camouflage" @change="setFlag(selectedPlatform, 'camouflage', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.camouflage') }}</label>
+            <p v-if="selectedPlatform.vanish" class="hint">{{ t('umbrellaEditor.prop.vanishHint') }}</p>
+            <div v-if="!selectedPlatform.finish && !selectedPlatform.vanish" class="row rot">
               <span>{{ t('umbrellaEditor.prop.rotation') }}</span>
               <input class="rot-slider" type="range" min="-180" max="180" step="1" :value="selectedPlatform.angle ?? 0" @input="setAngle(selectedPlatform, +($event.target as HTMLInputElement).value)" />
               <input class="field num" type="number" min="-180" max="180" step="1" :value="selectedPlatform.angle ?? 0" @change="setAngle(selectedPlatform, +($event.target as HTMLInputElement).value)" />
@@ -2465,6 +2605,13 @@ onUnmounted(() => {
             <label class="row">{{ t('umbrellaEditor.prop.shape') }}
               <select class="field" :value="selectedStar.shape ?? DEFAULT_COLLECT_SHAPE" @change="setShape(selectedStar, ($event.target as HTMLSelectElement).value as CollectShape)">
                 <option v-for="sh in COLLECT_SHAPES" :key="sh" :value="sh">{{ t(`umbrellaEditor.shape.${sh}`) }}</option>
+              </select>
+            </label>
+          </template>
+          <template v-if="selectedMedallion">
+            <label class="row">{{ t('umbrellaEditor.prop.medallionColor') }}
+              <select class="field" :value="selectedMedallion.color" @change="setMedallionColor(selectedMedallion, ($event.target as HTMLSelectElement).value as MedallionColor)">
+                <option v-for="c in MEDALLION_COLORS" :key="c" :value="c">{{ t(`umbrella.medallion.${c}`) }}</option>
               </select>
             </label>
           </template>

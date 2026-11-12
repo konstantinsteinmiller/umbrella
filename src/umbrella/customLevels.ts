@@ -29,7 +29,7 @@ import { getState, setState } from '@/use/useEpicState'
 import overridesFromDisk from 'virtual:campaign-overrides'
 import orderFromDisk from 'virtual:campaign-order'
 import { isKite } from './kite'
-import { COLLECT_SHAPES, LEVELS, LESSON_KINDS, isImageId, type LevelDef } from './levels'
+import { COLLECT_SHAPES, MEDALLION_COLORS, LEVELS, LESSON_KINDS, isImageId, type LevelDef } from './levels'
 import { parseTimeLimit } from './timeStars'
 
 const LIBRARY_KEY = 'umb_custom_levels_v1'
@@ -69,6 +69,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.buttons && (!Array.isArray(l.buttons) || !l.buttons.every((b) => isRect(b) && num(b.channel) && (b.duration === undefined || (num(b.duration) && b.duration > 0))))) return null
   if (l.checkpoints && (!Array.isArray(l.checkpoints) || !l.checkpoints.every((c) => !!c && num(c.x) && num(c.y)))) return null
   if (l.stars && (!Array.isArray(l.stars) || !l.stars.every((s) => !!s && num(s.x) && num(s.y) && (s.shape === undefined || COLLECT_SHAPES.includes(s.shape))))) return null
+  if (l.medallion !== undefined && (!l.medallion || !num(l.medallion.x) || !num(l.medallion.y) || !MEDALLION_COLORS.includes(l.medallion.color))) return null
   if (l.gates && (!Array.isArray(l.gates) || !l.gates.every((g) => isRect(g) && num(g.to) && (g.link === undefined || num(g.link))))) return null
   if (l.fixedScreen !== undefined && typeof l.fixedScreen !== 'boolean') return null
   if (l.verticalCamera !== undefined && typeof l.verticalCamera !== 'boolean') return null

@@ -10,7 +10,7 @@
 import { computed, onMounted, onUnmounted, provide, reactive, ref, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { DEFAULT_COLLECT_SHAPE, LEVELS, type GateDef, type LevelDef } from '@/umbrella/levels'
+import { DEFAULT_COLLECT_SHAPE, LEVELS, type GateDef, type LevelDef, type MedallionColor } from '@/umbrella/levels'
 import {
   activeTimeLimit, campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, jamPlay, keepSharedLevel,
   setEditorUnlocked, setJamTest, startLevelIndex, testLevel, testLevelLabel, type CustomPlay
@@ -61,6 +61,7 @@ import UiGlyph from '@/components/umbrella/ornaments/UiGlyph.vue'
 import PanelOrnaments from '@/components/umbrella/ornaments/PanelOrnaments.vue'
 import HangingLantern from '@/components/umbrella/ornaments/HangingLantern.vue'
 import CollectIcon from '@/components/umbrella/CollectIcon.vue'
+import MedallionIcon from '@/components/umbrella/MedallionIcon.vue'
 import OrnDivider from '@/components/umbrella/ornaments/OrnDivider.vue'
 import { actionForCode, codesFor } from '@/umbrella/keyBindings'
 import { keyLabel, loadKeyboardLayout, observeKey } from '@/umbrella/keyLabels'
@@ -291,7 +292,18 @@ const starBest = ref<Record<number, number>>(getState<Record<number, number>>('u
 const hudStars = ref<{ got: number; total: number; shape: string }>({ got: 0, total: 0, shape: 'umbrella' })
 /** Bumped on each pickup so the badge pops. */
 const badgePop = ref(0)
+/** Levels whose medallion was collected (kept for good, by level id) and the fastest finish of each timed level, in seconds. */
+const medallionsGot = ref<Record<number, boolean>>(getState<Record<number, boolean>>('umb_medallions', {}))
+const bestTimes = ref<Record<number, number>>(getState<Record<number, number>>('umb_best_times', {}))
+/** The HUD's view of this level's medallion (null: the level has none). */
+const hudMedal = ref<{ color: MedallionColor; got: boolean } | null>(null)
 const syncStars = () => {
+  const md = world.level.medallion
+  const nextMedal = md ? { color: md.color, got: world.medallionGot } : null
+  if (hudMedal.value?.color !== nextMedal?.color || hudMedal.value?.got !== nextMedal?.got) {
+    if (nextMedal?.got && !hudMedal.value?.got) badgePop.value++
+    hudMedal.value = nextMedal
+  }
   const total = world.level.stars?.length ?? 0
   const got = world.starsGot.filter(Boolean).length
   const shape = world.level.stars?.[0]?.shape ?? 'umbrella'
@@ -303,7 +315,12 @@ const syncStars = () => {
 const recordStars = () => {
   const got = world.starsGot.filter(Boolean).length
   const id = LEVELS[shownIndex()]?.id
-  if (testing || playing.value || id === undefined || got <= (starBest.value[id] ?? 0)) return
+  if (testing || playing.value || id === undefined) return
+  if (world.medallionGot && !medallionsGot.value[id]) {
+    medallionsGot.value = { ...medallionsGot.value, [id]: true }
+    setState('umb_medallions', medallionsGot.value)
+  }
+  if (got <= (starBest.value[id] ?? 0)) return
   starBest.value = { ...starBest.value, [id]: got }
   setState('umb_stars', starBest.value)
 }
@@ -532,6 +549,12 @@ const showRating = (stars: number) => {
   // One sound per star, in time with its pop (the CSS delays below).
   ratingTimers = [0, 1, 2].map((i) => window.setTimeout(() => playSfx('rate', { intensity: i / 2, quick: i >= stars }), RATING_FIRST_MS + i * RATING_STAR_GAP_MS))
   const id = world.level.id
+  // The fastest finish of a timed level: the time spent, when the clock had not run out.
+  const spent = timeLimit.value - timeLeft.value
+  if (!testing && !playing.value && timeLeft.value > 0 && spent > 0 && spent < (bestTimes.value[id] ?? Infinity)) {
+    bestTimes.value = { ...bestTimes.value, [id]: Math.round(spent * 10) / 10 }
+    setState('umb_best_times', bestTimes.value)
+  }
   if (!testing && !playing.value && stars > (timeStarBest.value[id] ?? 0)) {
     timeStarBest.value = { ...timeStarBest.value, [id]: stars }
     setState('umb_time_stars', timeStarBest.value)
@@ -625,7 +648,9 @@ const runClock = (input: Input) => {
 }
 
 const reload = (opts: { at?: { x: number; y: number } } = {}) => {
-  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, -1, opts)
+  // Puffs wiped from a removable cloud stay gone, and a medallion picked up stays picked up, when the same level starts over.
+  const same = world.level.id === levelDef().id ? { puffs: world.puffs, medallionGot: world.medallionGot } : {}
+  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, -1, { ...same, ...opts })
   resetPlayerPose()
   mineDeath = false
   timeFrozen.value = false
@@ -660,7 +685,7 @@ const fail = () => {
   if (playing.value) canRate.value = true
   const cp = world.checkpoint
   if (cp < 0) { restart(); return }
-  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, cp, { starsGot: world.starsGot })
+  world = createWorld(levelDef(), { w: tuning.playerWidth, h: tuning.playerHeight }, cp, { starsGot: world.starsGot, medallionGot: world.medallionGot, puffs: world.puffs })
   brokenFlash.value = false
   hideRevive()
   showRevive.value = true
@@ -734,6 +759,8 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
         break
       case 'button': playSfx('step', { intensity: 1, pan }); break
       case 'checkpoint': playSfx('open', { intensity: 0.5, pan }); break
+      case 'puff': playSfx('step', { intensity: 0.15, quick: true, pan }); break
+      case 'medallion': playSfx('open', { intensity: 1, quick: true, pan }); playSfx('step', { intensity: 0.4, pan }); break
       case 'star': playSfx('open', { intensity: 0.9, quick: true, pan }); playSfx('step', { intensity: 0.3, pan }); break
       case 'gate':
         // Not again from inside the challenge it led to (the way back is the win).
@@ -884,7 +911,7 @@ const tick = () => {
   const events = step(world, input, DT, tuning)
   if (umbrellaOpen.value !== world.player.open) umbrellaOpen.value = world.player.open
   onEvents(events, vyBefore)
-  if (events.includes('star')) syncStars()
+  if (events.includes('star') || events.includes('medallion')) syncStars()
   enemyCues(events)
   // Failure resets the level at the spawn point, or revives at the last checkpoint.
   if (world.phase === 'out') die()
@@ -1451,18 +1478,21 @@ onUnmounted(() => {
       ><UmbrellaStateIcon :open="!umbrellaOpen" /></button>
     </template>
     <!-- Collectibles: a gold badge in the top right, popping with every pickup. -->
-    <div v-if="hudStars.total && started && !introOn" :key="'badge' + hudStars.total" class="collect-badge" :class="{ done: hudStars.got === hudStars.total }" role="status" :aria-label="t('umbrella.stars', hudStars)">
-      <span :key="badgePop" class="collect-glyph">
-        <CollectIcon :shape="hudStars.shape" :size="20" />
-      </span>
-      <span class="collect-count"><b>{{ hudStars.got }}</b><i>/</i>{{ hudStars.total }}</span>
+    <div v-if="(hudStars.total || hudMedal) && started && !introOn" :key="'badge' + hudStars.total + (hudMedal ? 'm' : '')" class="collect-badge" :class="{ done: hudStars.got === hudStars.total && (!hudMedal || hudMedal.got) }" role="status" :aria-label="t('umbrella.stars', hudStars)">
+      <template v-if="hudStars.total">
+        <span :key="badgePop" class="collect-glyph">
+          <CollectIcon :shape="hudStars.shape" :size="20" />
+        </span>
+        <span class="collect-count"><b>{{ hudStars.got }}</b><i>/</i>{{ hudStars.total }}</span>
+      </template>
+      <span v-if="hudMedal" :key="'m' + badgePop" class="collect-medal" :aria-label="t('umbrella.medallion.' + hudMedal.color)"><MedallionIcon :color="hudMedal.color" :got="hudMedal.got" :size="22" /></span>
     </div>
     <!-- A timed level's clock (timeStars.ts), under the collectible badge; it blinks near the end. -->
     <div
       v-if="timeLimit && started && !introOn"
       ref="clockEl"
       class="clock"
-      :class="{ blink: clockBlink, over: clockOver, below: !!hudStars.total }"
+      :class="{ blink: clockBlink, over: clockOver, below: !!hudStars.total || !!hudMedal }"
       role="timer"
       :aria-label="t('umbrella.timeLeft', { t: clockText })"
     >
@@ -1507,14 +1537,19 @@ onUnmounted(() => {
               :key="LEVELS[i]!.id"
               :style="{ '--i': k }"
               class="level-tile"
-              :class="{ current: i === shownIndex(), cleared: cleared.includes(i), challenge: isChallenge(i), plain: !activeTimeLimit(LEVELS[i]!) && !LEVELS[i]!.stars?.length }"
+              :class="{ current: i === shownIndex(), cleared: cleared.includes(i), challenge: isChallenge(i), plain: !activeTimeLimit(LEVELS[i]!) && !LEVELS[i]!.stars?.length && !LEVELS[i]!.medallion }"
               :aria-label="t('umbrella.level', { n: i + 1 }) + (isChallenge(i) ? ' · ' + t('umbrella.challenge') : '')"
               @click="pickLevel(i)"
             >
               <span class="level-num" :class="{ timed: !!activeTimeLimit(LEVELS[i]!) }">{{ i + 1 }}</span>
               <StarRating v-if="activeTimeLimit(LEVELS[i]!)" class="tile-stars" :stars="timeStarBest[LEVELS[i]!.id] ?? 0" :label="t('umbrella.rating', { n: timeStarBest[LEVELS[i]!.id] ?? 0 })" />
-              <!-- The level's own collectible (its golden umbrella, star or cloud), under the rating. -->
-              <span v-if="LEVELS[i]!.stars?.length" class="level-stars"><CollectIcon :shape="LEVELS[i]!.stars![0]!.shape ?? DEFAULT_COLLECT_SHAPE" :size="11" />{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
+              <!-- A timed level: the fastest finish, right under the rating. -->
+              <span v-if="activeTimeLimit(LEVELS[i]!) && bestTimes[LEVELS[i]!.id]" class="level-best" :aria-label="t('umbrella.bestTime', { t: formatClock(bestTimes[LEVELS[i]!.id]!) })">{{ formatClock(bestTimes[LEVELS[i]!.id]!) }}</span>
+              <!-- The level's own collectible (its golden umbrella, star or cloud), then its medallion's facet to the right (grey until found). -->
+              <span v-if="LEVELS[i]!.stars?.length || LEVELS[i]!.medallion" class="level-collect">
+                <span v-if="LEVELS[i]!.stars?.length" class="level-stars"><CollectIcon :shape="LEVELS[i]!.stars![0]!.shape ?? DEFAULT_COLLECT_SHAPE" :size="11" />{{ starBest[LEVELS[i]!.id] ?? 0 }}/{{ LEVELS[i]!.stars!.length }}</span>
+                <MedallionIcon v-if="LEVELS[i]!.medallion" class="level-medal" :color="LEVELS[i]!.medallion!.color" :got="!!medallionsGot[LEVELS[i]!.id]" :size="16" :title="t('umbrella.medallion.' + LEVELS[i]!.medallion!.color)" />
+              </span>
             </button>
           </div>
         </section>
@@ -1577,6 +1612,7 @@ onUnmounted(() => {
   font-size: 20px;
   min-width: 110px;
   text-align: center;
+  text-shadow: 0 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 2px 3px rgba(0, 0, 0, 0.7);
   /* Tapped twenty times in a row it requests a rewarded ad (umbrella/ads.ts): no text selection, no double-tap zoom. */
   user-select: none;
   touch-action: manipulation;
@@ -1585,14 +1621,20 @@ onUnmounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
+  /* Readable over anything the level draws (white clouds, dark sky): a solid dark plate, a light rim, white text with a dark shadow. */
+  background: rgba(18, 28, 48, 0.88);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  color: #fff;
+  text-shadow: 0 1px 0 #000, 0 0 4px rgba(0, 0, 0, 0.9), 0 2px 3px rgba(0, 0, 0, 0.7);
   font-size: 20px;
   line-height: 1;
 }
-.hud-btn:hover { background: rgba(255, 255, 255, 0.22); }
+.hud-btn > * { filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.9)); }
+.hud-btn:hover { background: rgba(40, 58, 92, 0.95); }
 /* The level selector: a 3 × 3 grid of little cards. */
 .grid-ico { display: block; width: 18px; height: 18px; margin: auto; fill: currentColor; }
-.hud-btn.jam-test { background: rgba(234, 179, 8, 0.35); }
+.hud-btn.jam-test { background: rgba(150, 105, 0, 0.92); }
 .controls {
   position: absolute;
   right: calc(16px + env(safe-area-inset-right, 0px));
@@ -1978,7 +2020,7 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   /* A little taller than wide: the number, then (timed) the rating, then (collectibles) the count,
      stacked in one centred column that fits the tile. */
   aspect-ratio: 5 / 6;
-  /* Every tile is the same height, whatever sits under its number. */
+  /* At least that tall, and taller when the rating, best time and collectibles need the room (tiles in a row share a height). */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2020,6 +2062,17 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   color: #facc15;
   text-align: center;
 }
+.level-collect { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.level-medal { width: max(14px, 17cqw); height: max(14px, 17cqw); }
+.level-best {
+  font-size: max(10px, 12cqw);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #cfe3ff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.collect-medal { position: relative; display: inline-flex; margin-left: 6px; animation: collect-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.collect-medal:first-child { margin-left: 0; }
 .level-stars .collect-icon { flex: none; fill: currentColor; width: 1em; height: 1em; }
 /* The collectible badge: a gilded pill in the top right corner. */
 .collect-badge {

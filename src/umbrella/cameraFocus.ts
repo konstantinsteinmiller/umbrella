@@ -50,6 +50,7 @@ export const levelFocus = (l: LevelDef): Box => {
   for (const p of l.platforms) addMover(p)
   for (const h of l.hazards ?? []) addMover(h)
   for (const s of l.stars ?? []) add(s.x - STAR_R, s.y - STAR_R, STAR_R * 2, STAR_R * 2)
+  if (l.medallion) add(l.medallion.x - STAR_R, l.medallion.y - STAR_R, STAR_R * 2, STAR_R * 2)
   for (const c of l.checkpoints ?? []) add(c.x - 20, c.y - 50, 40, 50)
   for (const x of [...(l.buttons ?? []), ...(l.gates ?? []), ...(l.pictures ?? [])]) add(x.x, x.y, x.w, x.h)
   for (const s of l.signs ?? []) add(s.x, s.y, s.w || SIGN_W, s.h || SIGN_H)

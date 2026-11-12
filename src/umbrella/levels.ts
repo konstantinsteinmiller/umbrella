@@ -60,6 +60,12 @@ export interface PlatformDef {
   cloud?: boolean
   /** A cloud drawn with a thin black outline (absent: no outline, the default). */
   outline?: boolean
+  /** A removable cloud (a `cloud` only): a bank of puffs that blocks nothing. Whatever the player (or his open umbrella)
+   *  touches vanishes for good, so a secret can hide behind it and be found by walking or flying through. Never turned. */
+  vanish?: boolean
+  /** With `vanish`: drawn exactly like a normal cloud (not as puffs), so it can hide a path. Whatever is touched
+   *  melts away in a round hole; the rest of the cloud stays. */
+  camouflage?: boolean
   /** Turned by this many degrees (clockwise, about its centre); absent or 0: upright. A turned platform
    *  is solid along its slanted faces; a finish pad is never turned. */
   angle?: number
@@ -98,6 +104,21 @@ export const DEFAULT_COLLECT_SHAPE: CollectShape = 'umbrella'
 /** A collectible (a star, golden umbrella or golden cloud) centred on (x, y): touch it to collect it;
  *  a level remembers the best count. */
 export interface StarDef { x: number; y: number; shape?: CollectShape }
+
+/** The six medallions: one may hide in a level, to be set into a secret door's facet later. */
+export type MedallionColor = 'red' | 'blue' | 'green' | 'purple' | 'pink' | 'orange'
+export const MEDALLION_COLORS: MedallionColor[] = ['red', 'blue', 'green', 'purple', 'pink', 'orange']
+/** The medallion's own colours: its face, a lit rim and a deep rim shade. */
+export const MEDALLION_PAINT: Record<MedallionColor, { face: string; lit: string; deep: string }> = {
+  red: { face: '#e0453a', lit: '#ff9a86', deep: '#8f1f1c' },
+  blue: { face: '#3f7fe0', lit: '#9cc4ff', deep: '#1b3f8f' },
+  green: { face: '#3fb768', lit: '#a2f0b8', deep: '#1a6a3a' },
+  purple: { face: '#8c52d6', lit: '#cfa8ff', deep: '#47228f' },
+  pink: { face: '#ee6fae', lit: '#ffc0dd', deep: '#9c2d68' },
+  orange: { face: '#f08a2a', lit: '#ffc88a', deep: '#9a4a0a' }
+}
+/** A medallion coin centred on (x, y): touch it to collect it (at most one per level; finishing the level keeps it). */
+export interface MedallionDef { x: number; y: number; color: MedallionColor }
 
 /** A warp pipe (like Mario's green tubes): touch it to drop into the campaign level `to` (a level id),
  *  a challenge level. Winning there brings the player back out of the pipe; the challenge is then
@@ -222,6 +243,8 @@ export interface LevelDef {
   buttons?: ButtonDef[]
   checkpoints?: CheckpointDef[]
   stars?: StarDef[]
+  /** The level's one medallion coin (absent: none). */
+  medallion?: MedallionDef
   gates?: GateDef[]
   /** Hint boards (decoration). */
   signs?: SignDef[]

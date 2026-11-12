@@ -532,6 +532,14 @@ export const EXTRA_SHEETS: SheetDef[] = [
     view: 'flat front-on, no perspective.'
   },
   {
+    id: 'medallions', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Medallions — six coloured coins', use: 'sprite',
+    cols: 3, rows: 2, box: COLLECT, tier: 2, fit: 'none', fresh: true,
+    anims: { red: { frames: [0], fps: 0 }, blue: { frames: [1], fps: 0 }, green: { frames: [2], fps: 0 }, purple: { frames: [3], fps: 0 }, pink: { frames: [4], fps: 0 }, orange: { frames: [5], fps: 0 } },
+    blurb: 'a SET of six round MEDALLION coins, one per panel, centred, each on its own with NO ring, halo or frame round it: the same coin six times, only its colour changes — a thick raised outer rim of polished lacquered metal with a ring of tiny dots pressed into it, a smooth lacquered enamel face inside the rim, and in the middle of the face one embossed folded-paper five-pointed star with a small lit facet. Panel 1 RED, panel 2 BLUE, panel 3 GREEN, panel 4 PURPLE, panel 5 PINK, panel 6 ORANGE. Each coin is meant to be set later into a round socket of a secret door, so it is a perfect flat circle seen straight on',
+    colour: 'panel 1 a ruby red enamel (#e0453a) with a lit rim (#ff9a86) and a deep rim shade (#8f1f1c); panel 2 a sapphire blue (#3f7fe0, rim #9cc4ff, shade #1b3f8f); panel 3 an emerald green (#3fb768, rim #a2f0b8, shade #1a6a3a); panel 4 an amethyst purple (#8c52d6, rim #cfa8ff, shade #47228f); panel 5 a rose pink (#ee6fae, rim #ffc0dd, shade #9c2d68); panel 6 an amber orange (#f08a2a, rim #ffc88a, shade #9a4a0a); the star in each a soft warm white',
+    view: 'flat front-on, a perfect circle, no perspective.', one: 'the medallion'
+  },
+  {
     id: 'gate', group: 'world', doc: 'PROMPTS-LANTERN.md', title: 'Warp gate — a vermilion torii', use: 'sprite',
     cols: 1, rows: 3, tier: 0, fit: 'none', fresh: true, anims: {},
     shape: [

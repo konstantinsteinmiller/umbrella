@@ -6,6 +6,7 @@
 import { boxHitsSpikes } from './spikeGeometry'
 import type { CheckpointDef, GateDef, HazardDef, LevelDef, Motion, PlatformDef, WalldorfContact, WindDef } from './levels'
 import { cloudSide } from './cloudShape'
+import { puffLayout, puffTouched } from './puffs'
 import type { Tuning } from './tuning'
 import { boxHitsPlatform, isTurned, pushOutOfTurned } from './turnedBox'
 
@@ -117,6 +118,11 @@ export interface World {
   checkpoint: number
   /** Which of level.stars are collected. */
   starsGot: boolean[]
+  /** The level's medallion has been picked up this run. */
+  medallionGot: boolean
+  /** Removable clouds: per platform index, the world time each puff was touched (Infinity: still there, -Infinity: gone
+   *  before this world began). A puff never comes back. */
+  puffs: Record<number, number[]>
   /** Per gate: the player is inside it with the umbrella open (the warp fires on becoming true, not while it stays true). */
   gateInside: boolean[]
   /** The gate entered this run (index into level.gates), or -1. */
@@ -126,15 +132,18 @@ export interface World {
   moved: boolean
 }
 
-export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint' | 'bump' | 'charge-bump' | 'star' | 'gate' | 'mine-clash'
+export type GameEvent = 'open' | 'close' | 'break' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'button' | 'checkpoint' | 'bump' | 'charge-bump' | 'star' | 'medallion' | 'puff' | 'gate' | 'mine-clash'
 
 /** Is this button channel on right now? */
 export const channelOn = (w: World, channel: number | undefined): boolean =>
   channel !== undefined && (w.channels[channel] ?? 0) > w.time
 
+/** A removable cloud blocks nothing: it is only puffs the player wipes away. */
+export const isVanishCloud = (p: PlatformDef): boolean => !!p.vanish && !!p.cloud && !p.finish
+
 /** A switched platform is solid (and drawn) only while its channel says so. */
 export const platformActive = (w: World, p: PlatformDef): boolean =>
-  p.channel === undefined || !!p.switchMotion || channelOn(w, p.channel) !== !!p.whenOff
+  !isVanishCloud(p) && (p.channel === undefined || !!p.switchMotion || channelOn(w, p.channel) !== !!p.whenOff)
 
 /** Is this platform moving right now? Only a motion-switched one ever stands still (its channel decides). */
 export const platformMoving = (w: World, p: PlatformDef): boolean =>
@@ -249,6 +258,9 @@ export const poseMovers = (w: World, t: number, tuning?: Tuning): void => {
 export interface WorldOptions {
   /** Stars already collected (kept across a checkpoint revive). */
   starsGot?: boolean[]
+  /** Medallion already collected / puffs already gone (kept across a revive or restart of the same level). */
+  medallionGot?: boolean
+  puffs?: Record<number, number[]>
   /** Start with the feet here instead of the spawn (coming back out of a gate). */
   at?: { x: number; y: number }
 }
@@ -257,6 +269,16 @@ export const CEILING_Y = 56
 /** Where the top of the player stops against the ceiling: the level's own `ceiling`, else the default. */
 export const ceilingOf = (level: { ceiling?: number; fixedScreen?: boolean; verticalCamera?: boolean }): number =>
   (level.fixedScreen || level.verticalCamera ? -Infinity : level.ceiling ?? CEILING_Y)
+/** The puff clocks of every removable cloud; puffs that were gone in an earlier world of this level stay gone. */
+const freshPuffs = (level: LevelDef, kept?: Record<number, number[]>): Record<number, number[]> => {
+  const out: Record<number, number[]> = {}
+  level.platforms.forEach((p, i) => {
+    if (!isVanishCloud(p)) return
+    const n = puffLayout(p.w, p.h).length
+    out[i] = Array.from({ length: n }, (_, k) => (kept?.[i]?.[k] !== undefined && kept[i]![k] !== Infinity ? -Infinity : Infinity))
+  })
+  return out
+}
 export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }, checkpoint = -1, opts: WorldOptions = {}): World => {
   const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0 }))
   for (const p of platforms) placeMover(p, 0)
@@ -275,6 +297,8 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
     buttonsUsed: (level.buttons ?? []).map(() => false),
     checkpoint: cp ? checkpoint : -1,
     starsGot: (level.stars ?? []).map((_, i) => !!opts.starsGot?.[i]),
+    medallionGot: !!opts.medallionGot,
+    puffs: freshPuffs(level, opts.puffs),
     gateInside: (level.gates ?? []).map(() => open),
     gate: -1,
     moved: false,
@@ -905,6 +929,36 @@ pl.standing = standing
     if (!overlaps(ib.x, ib.y, ib.w, ib.h, box) && !(ub && overlaps(ub.x, ub.y, ub.w, ub.h, box))) continue
     w.starsGot[i] = true
     events.push('star')
+  }
+  // The medallion: one coin per level, taken like a star.
+  const md = w.level.medallion
+  if (md && !w.medallionGot) {
+    const box = starBox(md)
+    const ib = itemBox(pl)
+    const ub = pl.open ? umbrellaBox(pl) : null
+    if (overlaps(ib.x, ib.y, ib.w, ib.h, box) || (ub && overlaps(ub.x, ub.y, ub.w, ub.h, box))) {
+      w.medallionGot = true
+      events.push('medallion')
+    }
+  }
+  // Removable clouds: every puff the body or the open canopy touches is wiped away for good (nothing is blocked).
+  {
+    const ib = itemBox(pl)
+    const ub = pl.open ? umbrellaBox(pl) : null
+    let wiped = false
+    for (const [key, clocks] of Object.entries(w.puffs)) {
+      const p = w.platforms[Number(key)]
+      if (!p) continue
+      const layout = puffLayout(p.w, p.h)
+      for (let k = 0; k < layout.length; k++) {
+        if (clocks[k] !== Infinity) continue
+        if (puffTouched(layout[k]!, p.x, p.y, ib) || (ub && puffTouched(layout[k]!, p.x, p.y, ub))) {
+          clocks[k] = w.time
+          wiped = true
+        }
+      }
+    }
+    if (wiped) events.push('puff')
   }
   const gates = w.level.gates ?? []
   for (let i = 0; i < gates.length; i++) {
