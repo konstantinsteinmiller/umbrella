@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "輪郭線",
       'rotation': "回転",
       'rotationReset': "まっすぐに戻す (0°)",
+      'inset': "当たり判定の縮小",
+      'insetHint': "当たり判定の枠を見た目より全方向に縮めます(px)。負の値で見た目より大きくなります。",
       'same': "変化なし",
       'mode': "モード",
       'toggle': "切り替え（オン / オフ）",

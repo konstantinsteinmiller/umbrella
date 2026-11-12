@@ -147,7 +147,7 @@ export const liveWind = (w: World, wind: WindDef): WindDef =>
     : wind
 
 /** Every current that blows right now (a switched-off one, speed 0, is left out). */
-export const liveWinds = (w: World): WindDef[] => w.level.winds.map((x) => liveWind(w, x)).filter((x) => x.speed > 0)
+export const liveWinds = (w: World): WindDef[] => w.level.winds.map((x) => colOf(liveWind(w, x))).filter((x) => x.speed > 0)
 
 /** A checkpoint flag's touch box, standing on its point. */
 export const CHECKPOINT_W = 30
@@ -306,6 +306,13 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
 
 const approach = (v: number, target: number, maxDelta: number): number =>
   v < target ? Math.min(target, v + maxDelta) : Math.max(target, v - maxDelta)
+
+/** An item's collision box: its drawn box pulled in by its `inset` on every side (negative: pushed out).
+ *  An item without an inset is its own box, so nothing is copied for it. */
+const colOf = <T extends { x: number; y: number; w: number; h: number; inset?: number }>(e: T): T => {
+  const k = e.inset
+  return k ? { ...e, x: e.x + k, y: e.y + k, w: Math.max(2, e.w - 2 * k), h: Math.max(2, e.h - 2 * k) } : e
+}
 
 /** The steepest floor he can stand on: its normal's up-component (cos 60°). */
 const SLOPE_WALKABLE = 0.5
@@ -551,7 +558,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   for (const [c, until] of Object.entries(w.channels)) if (until <= w.time && until > 0) w.channels[Number(c)] = 0
   // Harmless enemies are solid: you bump into and stand on them like platforms.
   // A switched-off platform stays in the list (indices stay stable) but is skipped.
-  const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => contactOf(h) === 'solid')]
+  const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => contactOf(h) === 'solid')].map(colOf)
   const solid = (i: number) => i >= w.platforms.length || platformActive(w, w.platforms[i]!)
   // Turned platforms collide by their slanted faces (below), not as the upright box the loops use.
   const flat = (i: number) => solid(i) && !(i < w.platforms.length && isTurned(w.platforms[i]!))
@@ -738,7 +745,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   }
     // ── Turned platforms: pushed out along their slanted faces; a walkable slope is stood on ──
   for (let i = 0; i < w.platforms.length; i++) {
-    const p = w.platforms[i]!
+    const p = solids[i] as Platform
     if (!isTurned(p) || !solid(i) || p.finish) continue
     let push = pushOutOfTurned(pl, p)
     // Walking down a slope (or resting on one): the surface fell away from his feet this tick, so follow it.
@@ -775,7 +782,7 @@ pl.standing = standing
   // every other platform still ignores the canopy.
   if (pl.open && !pl.grounded) {
     for (let i = 0; i < w.platforms.length; i++) {
-      const p = w.platforms[i]!
+      const p = solids[i] as Platform
       if (!p.cloud || p.finish || !solid(i)) continue
       if (isTurned(p)) {
         // A turned cloud: each canopy strip is pushed out along the cloud's own faces.
@@ -826,12 +833,13 @@ pl.standing = standing
   // side he touched; a charging one hits harder (its own speed toward him adds in).
   for (let i = 0; i < w.hazards.length; i++) {
     const h = w.hazards[i]!
-    if (contactOf(h) !== 'bounce' || !overlaps(pl.x, pl.y, pl.w, pl.h, h)) { h.bumping = false; continue }
+    const hb = colOf(h)
+    if (contactOf(h) !== 'bounce' || !overlaps(pl.x, pl.y, pl.w, pl.h, hb)) { h.bumping = false; continue }
     // Shallowest way out: that side is the one he touched.
-    const outL = pl.x + pl.w - h.x
-    const outR = h.x + h.w - pl.x
-    const outU = pl.y + pl.h - h.y
-    const outD = h.y + h.h - pl.y
+    const outL = pl.x + pl.w - hb.x
+    const outR = hb.x + hb.w - pl.x
+    const outU = pl.y + pl.h - hb.y
+    const outD = hb.y + hb.h - pl.y
     const m = Math.min(outL, outR, outU, outD)
     const [nx, ny] = m === outU ? [0, -1] : m === outD ? [0, 1] : m === outL ? [-1, 0] : [1, 0]
     pl.x += nx * (nx < 0 ? outL : outR) * Math.abs(nx)
@@ -844,7 +852,7 @@ pl.standing = standing
     const [px, py, pw, ph] = nx
       ? [pl.x + nx * probe, pl.y + probe, pl.w, pl.h - probe * 2]
       : [pl.x + probe, pl.y + ny * probe, pl.w - probe * 2, pl.h]
-    if (w.platforms.some((p) => platformActive(w, p) && boxHitsPlatform({ x: px, y: py, w: pw, h: ph }, p))) {
+    if (w.platforms.some((p) => platformActive(w, p) && boxHitsPlatform({ x: px, y: py, w: pw, h: ph }, colOf(p)))) {
       setPhase(w, 'splat')
       events.push('splat')
       return events
@@ -859,7 +867,7 @@ pl.standing = standing
     h.bumping = true
   }
   for (const h of w.hazards) {
-    if (contactOf(h) !== 'deadly' || h.blownAt !== undefined || !touches(pl, h, t.hitboxInset)) continue
+    if (contactOf(h) !== 'deadly' || h.blownAt !== undefined || !touches(pl, colOf(h), t.hitboxInset)) continue
     setPhase(w, 'splat')
     events.push('hit')
     return events
@@ -869,7 +877,7 @@ pl.standing = standing
   const buttons = w.level.buttons ?? []
   for (let i = 0; i < buttons.length; i++) {
     const b = buttons[i]!
-    const down = overlaps(pl.x, pl.y, pl.w, pl.h, b)
+    const down = overlaps(pl.x, pl.y, pl.w, pl.h, colOf(b))
     if (down && !w.buttonsDown[i] && !(b.once && w.buttonsUsed?.[i])) {
       ;(w.buttonsUsed ??= [])[i] = true
       if (b.duration) w.channels[b.channel] = w.time + b.duration
@@ -900,7 +908,7 @@ pl.standing = standing
   }
   const gates = w.level.gates ?? []
   for (let i = 0; i < gates.length; i++) {
-    const inside = pl.open && overlaps(pl.x, pl.y, pl.w, pl.h, gates[i]!)
+    const inside = pl.open && overlaps(pl.x, pl.y, pl.w, pl.h, colOf(gates[i]!))
     if (inside && !w.gateInside[i] && w.gate < 0) {
       w.gate = i
       events.push('gate')

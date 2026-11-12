@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Umriss",
       'rotation': "Drehung",
       'rotationReset': "Geraderichten (0°)",
+      'inset': "Kollisionsrand",
+      'insetHint': "Zieht die Kollisionsbox auf allen Seiten von der Zeichnung nach innen (px). Negative Werte machen sie größer als die Zeichnung.",
       'same': "unverändert",
       'mode': "Modus",
       'toggle': "Umschalten (an / aus)",

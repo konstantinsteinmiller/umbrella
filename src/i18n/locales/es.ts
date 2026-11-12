@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Contorno",
       'rotation': "Rotación",
       'rotationReset': "Enderezar (0°)",
+      'inset': "Margen de colisión",
+      'insetHint': "Reduce la caja de colisión respecto al dibujo por todos los lados (px). Los valores negativos la hacen mayor que el dibujo.",
       'same': "sin cambios",
       'mode': "Modo",
       'toggle': "Alternar (sí / no)",

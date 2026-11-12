@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Kontur",
       'rotation': "Burish",
       'rotationReset': "Tekislash (0°)",
+      'inset': "To‘qnashuv chekinishi",
+      'insetHint': "To‘qnashuv qutisini rasmdan har tomonga qisqartiradi (px). Manfiy qiymatlar uni rasmdan kattaroq qiladi.",
       'same': "o‘zgarishsiz",
       'mode': "Rejim",
       'toggle': "Almashtirish (yoq / o‘chir)",

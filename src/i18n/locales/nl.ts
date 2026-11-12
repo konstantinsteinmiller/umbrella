@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Omlijning",
       'rotation': "Rotatie",
       'rotationReset': "Rechtzetten (0°)",
+      'inset': "Botsingsinsprong",
+      'insetHint': "Trekt de botsingsbox aan alle kanten van de tekening naar binnen (px). Negatieve waarden maken hem groter dan de tekening.",
       'same': "ongewijzigd",
       'mode': "Modus",
       'toggle': "Wisselen (aan / uit)",

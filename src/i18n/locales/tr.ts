@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Kontur",
       'rotation': "Döndürme",
       'rotationReset': "Düzelt (0°)",
+      'inset': "Çarpışma içeri çekme",
+      'insetHint': "Çarpışma kutusunu çizimden her yönde içeri çeker (px). Negatif değerler kutuyu çizimden büyük yapar.",
       'same': "değişmez",
       'mode': "Mod",
       'toggle': "Aç / kapat",

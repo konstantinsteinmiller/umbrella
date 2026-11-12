@@ -79,6 +79,8 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.lessons && (!Array.isArray(l.lessons) || !l.lessons.every((p) => isRect(p) && LESSON_KINDS.includes(p.kind) && (p.ropes === undefined || typeof p.ropes === 'boolean')))) return null
   if (l.platforms.some((p) => p.channel !== undefined && !num(p.channel))) return null
   if (l.platforms.some((p) => p.angle !== undefined && !num(p.angle))) return null
+  const badInset = (list: { inset?: number }[] | undefined) => !!list && list.some((e) => e.inset !== undefined && !num(e.inset))
+  if (badInset(l.platforms) || badInset(l.winds) || badInset(l.hazards) || badInset(l.buttons) || badInset(l.gates)) return null
   if (l.winds.some((w) => w.switched !== undefined && (typeof w.switched !== 'object' || !w.switched ||
     (w.switched.speed !== undefined && (!num(w.switched.speed) || w.switched.speed < 0)) ||
     (w.switched.dir !== undefined && !['up', 'down', 'left', 'right'].includes(w.switched.dir))))) return null

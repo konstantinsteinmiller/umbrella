@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "윤곽선",
       'rotation': "회전",
       'rotationReset': "똑바로 (0°)",
+      'inset': "충돌 영역 줄이기",
+      'insetHint': "충돌 상자를 그림보다 사방으로 줄입니다(px). 음수 값은 그림보다 크게 만듭니다.",
       'same': "변경 없음",
       'mode': "모드",
       'toggle': "토글 (켜기 / 끄기)",

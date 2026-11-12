@@ -278,6 +278,8 @@ export default {
       'cloudOutline': "Outline",
       'rotation': "Rotation",
       'rotationReset': "Straighten (0°)",
+      'inset': "Hitbox inset",
+      'insetHint': "Pulls the collision box in from the drawing on every side (px). Negative values make the hitbox bigger than the drawing.",
       'same': "unchanged",
       'mode': "Mode",
       'toggle': "Toggle (on / off)",

@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Contorno",
       'rotation': "Rotazione",
       'rotationReset': "Raddrizza (0°)",
+      'inset': "Rientro collisione",
+      'insetHint': "Restringe il riquadro di collisione rispetto al disegno su tutti i lati (px). I valori negativi lo rendono più grande del disegno.",
       'same': "invariato",
       'mode': "Modalità",
       'toggle': "Alterna (on / off)",

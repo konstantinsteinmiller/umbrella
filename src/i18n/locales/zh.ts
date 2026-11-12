@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "轮廓线",
       'rotation': "旋转",
       'rotationReset': "摆正 (0°)",
+      'inset': "碰撞框内缩",
+      'insetHint': "将碰撞框相对画面向内缩小(px)。负值会使其大于画面。",
       'same': "不变",
       'mode': "模式",
       'toggle': "切换（开 / 关）",

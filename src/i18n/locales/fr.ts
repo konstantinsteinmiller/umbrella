@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Contour",
       'rotation': "Rotation",
       'rotationReset': "Remettre droit (0°)",
+      'inset': "Retrait de collision",
+      'insetHint': "Rétrécit la boîte de collision par rapport au dessin sur tous les côtés (px). Une valeur négative la rend plus grande que le dessin.",
       'same': "inchangé",
       'mode': "Mode",
       'toggle': "Bascule (marche / arrêt)",

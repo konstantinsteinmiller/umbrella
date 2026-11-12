@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Obrys",
       'rotation': "Obrót",
       'rotationReset': "Wyprostuj (0°)",
+      'inset': "Wcięcie kolizji",
+      'insetHint': "Zmniejsza ramkę kolizji względem rysunku ze wszystkich stron (px). Wartości ujemne czynią ją większą od rysunku.",
       'same': "bez zmian",
       'mode': "Tryb",
       'toggle': "Przełącz (wł. / wył.)",

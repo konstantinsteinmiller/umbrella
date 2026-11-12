@@ -49,6 +49,8 @@ export type Motion =
   | { kind: 'follow'; speed: number; a?: Vec; b?: Vec; axis?: 'x' | 'y' }
 
 export interface PlatformDef {
+  /** Collision inset in px: the hitbox is this much smaller than the drawing on every side (negative: bigger). Absent: the drawing. */
+  inset?: number
   x: number
   y: number
   w: number
@@ -74,6 +76,8 @@ export interface PlatformDef {
 /** A floor button: touching it switches its channel. Without `duration` each press
  *  toggles the channel; with it the channel turns on for `duration` s, then off. */
 export interface ButtonDef {
+  /** Collision inset in px: the hitbox is this much smaller than the drawing on every side (negative: bigger). Absent: the drawing. */
+  inset?: number
   x: number
   y: number
   w: number
@@ -99,6 +103,8 @@ export interface StarDef { x: number; y: number; shape?: CollectShape }
  *  a challenge level. Winning there brings the player back out of the pipe; the challenge is then
  *  open in the level selector. Only the campaign honours gates. */
 export interface GateDef {
+  /** Collision inset in px: the hitbox is this much smaller than the drawing on every side (negative: bigger). Absent: the drawing. */
+  inset?: number
   x: number; y: number; w: number; h: number; to: number
   /** Index of another gate in the same level: opening the umbrella here carries the player out of that
    *  one instead of into the challenge `to` (works in every mode, nothing is reloaded). */
@@ -155,6 +161,8 @@ export const CHANNELS = 6
 export type WindDir = 'up' | 'down' | 'left' | 'right'
 
 export interface WindDef {
+  /** Collision inset in px: the hitbox is this much smaller than the drawing on every side (negative: bigger). Absent: the drawing. */
+  inset?: number
   x: number
   y: number
   w: number
@@ -178,6 +186,8 @@ export type HazardKind = 'pillar' | 'mine' | 'spikes' | 'fan'
 export type WalldorfContact = 'deadly' | 'solid' | 'bounce'
 
 export interface HazardDef {
+  /** Collision inset in px: the hitbox is this much smaller than the drawing on every side (negative: bigger). Absent: the drawing. */
+  inset?: number
   kind: HazardKind
   x: number
   y: number

@@ -951,6 +951,17 @@ const selected = computed(() => {
   const ent = entityOf(s)
   return ent ? { ...s, ent } : null
 })
+/** Things with a hitbox rectangle the designer can pull in or push out (`inset`). */
+const INSET_GROUPS: Group[] = ['platforms', 'winds', 'hazards', 'buttons', 'gates']
+const selectedInset = computed(() => (selected.value && INSET_GROUPS.includes(selected.value.group) ? (selected.value.ent as unknown as { inset?: number }) : null))
+/** Set the collision inset (px, negative allowed: a hitbox bigger than the drawing); 0 removes it. */
+const setInset = (v: number) => {
+  const e = selectedInset.value
+  if (!e) return
+  const k = Math.max(-200, Math.min(200, Math.round(Number.isFinite(v) ? v : 0)))
+  if (k) e.inset = k
+  else delete e.inset
+}
 const selectedPlatform = computed(() => (selected.value?.group === 'platforms' ? (selected.value.ent as PlatformDef) : null))
 const selectedWind = computed(() => (selected.value?.group === 'winds' ? (selected.value.ent as WindDef) : null))
 const selectedHazard = computed(() => (selected.value?.group === 'hazards' ? (selected.value.ent as HazardDef) : null))
@@ -1983,6 +1994,16 @@ const paint = (now: number) => {
       strokeRect(ctx, { x: -r.w / 2, y: -r.h / 2, w: r.w, h: r.h }, '#4ade80')
       ctx.restore()
     } else strokeRect(ctx, r, '#4ade80')
+    // The hitbox when it is not the drawing: a dashed outline, pulled in (or pushed out) by the inset.
+    const inset = (selectedInset.value?.inset ?? 0)
+    if (inset && INSET_GROUPS.includes(sel.group)) {
+      const c = centerOf(r)
+      ctx.save()
+      ctx.translate(c.x, c.y)
+      ctx.rotate(turn)
+      strokeRect(ctx, { x: -r.w / 2 + inset, y: -r.h / 2 + inset, w: Math.max(2, r.w - 2 * inset), h: Math.max(2, r.h - 2 * inset) }, '#38bdf8', [5 / s, 4 / s])
+      ctx.restore()
+    }
     ctx.fillStyle = '#4ade80'
     const hs = handleRadius()
     if (canTurn(sel)) {
@@ -2372,6 +2393,12 @@ onUnmounted(() => {
             <label v-for="k in rectKeys" :key="k" class="row">{{ k }}
               <input class="field num" type="number" :value="Math.round((selected.ent as unknown as Record<string, number>)[k]!)" @change="setRect(k, +($event.target as HTMLInputElement).value)" />
             </label>
+          </div>
+
+          <div v-if="selectedInset" class="row rot" :title="t('umbrellaEditor.prop.insetHint')">
+            <span>{{ t('umbrellaEditor.prop.inset') }}</span>
+            <input class="rot-slider" type="range" min="-60" max="60" step="1" :value="selectedInset.inset ?? 0" @input="setInset(+($event.target as HTMLInputElement).value)" />
+            <input class="field num" type="number" min="-200" max="200" step="1" :aria-label="t('umbrellaEditor.prop.inset')" :value="selectedInset.inset ?? 0" @change="setInset(+($event.target as HTMLInputElement).value)" />
           </div>
 
           <template v-if="selectedPlatform">

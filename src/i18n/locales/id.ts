@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Garis tepi",
       'rotation': "Rotasi",
       'rotationReset': "Luruskan (0°)",
+      'inset': "Inset tabrakan",
+      'insetHint': "Memperkecil kotak tabrakan dari gambar di semua sisi (px). Nilai negatif membuatnya lebih besar dari gambar.",
       'same': "tidak berubah",
       'mode': "Mode",
       'toggle': "Alih (nyala / mati)",

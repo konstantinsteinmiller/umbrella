@@ -275,6 +275,8 @@ export default {
       'cloudOutline': "Viền",
       'rotation': "Xoay",
       'rotationReset': "Làm thẳng (0°)",
+      'inset': "Thu hộp va chạm",
+      'insetHint': "Thu nhỏ hộp va chạm so với hình vẽ ở mọi phía (px). Giá trị âm làm nó lớn hơn hình vẽ.",
       'same': "không đổi",
       'mode': "Chế độ",
       'toggle': "Bật / tắt",
