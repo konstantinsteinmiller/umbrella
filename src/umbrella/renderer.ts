@@ -929,11 +929,11 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
-  /** A cloud: its fill, then a very thin black outline unless `noOutline` (the style's stroke colour and width are put back). */
+  /** A cloud: its fill, then a very thin black outline when `outline` is set (the style's stroke colour and width are put back). */
   const fillCloud = (p: Platform): void => {
     cloudPath(ctx, p.x, p.y, p.w, p.h)
     ctx.fill()
-    if (p.noOutline) return
+    if (!p.outline) return
     ctx.save()
     ctx.strokeStyle = '#000'
     ctx.lineWidth = 1
