@@ -272,6 +272,7 @@ export default {
       'effectMotion': "ob sie sich bewegt",
       'platformMoves': "Bewegt sich",
       'once': "Nur einmalig",
+      'cloudOutline': "Umriss",
       'same': "unverändert",
       'mode': "Modus",
       'toggle': "Umschalten (an / aus)",

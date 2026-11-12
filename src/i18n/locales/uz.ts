@@ -272,6 +272,7 @@ export default {
       'effectMotion': "harakatlanishini",
       'platformMoves': "Harakatlanadi",
       'once': "Faqat bir marta",
+      'cloudOutline': "Kontur",
       'same': "o‘zgarishsiz",
       'mode': "Rejim",
       'toggle': "Almashtirish (yoq / o‘chir)",

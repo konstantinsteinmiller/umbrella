@@ -272,6 +272,7 @@ export default {
       'effectMotion': "si se mueve",
       'platformMoves': "En movimiento",
       'once': "Solo una vez",
+      'cloudOutline': "Contorno",
       'same': "sin cambios",
       'mode': "Modo",
       'toggle': "Alternar (sí / no)",

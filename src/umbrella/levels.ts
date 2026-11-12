@@ -56,6 +56,8 @@ export interface PlatformDef {
   finish?: boolean
   /** Drawn as a cloud (a simple cloud outline, a paper cloud in the lantern build). It plays like any platform. */
   cloud?: boolean
+  /** A cloud drawn without its thin black outline (absent: outlined, the default). */
+  noOutline?: boolean
   motion?: Motion
   /** Switched by the buttons of this channel: solid only while the channel is on
    *  (or only while it is off, with `whenOff`). Absent: always there. */

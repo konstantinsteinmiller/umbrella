@@ -5,6 +5,7 @@
 
 import { boxHitsSpikes } from './spikeGeometry'
 import type { CheckpointDef, GateDef, HazardDef, LevelDef, Motion, PlatformDef, WalldorfContact, WindDef } from './levels'
+import { cloudSide } from './cloudShape'
 import type { Tuning } from './tuning'
 
 /** Default hitbox; the live size comes from Tuning (player.w / player.h). */
@@ -335,6 +336,24 @@ export const windInfluence = (pl: Player, w: WindDef, edge: number): number => {
 export const UMBRELLA_W = 60
 export const UMBRELLA_TOP = 66
 export const UMBRELLA_BOTTOM = 26
+/** The canopy as a row of narrow boxes that follow the dome (round in the middle, low at the rim),
+ *  so it fills the drawn canopy far better than the one rectangle does. Used where the exact shape
+ *  matters (clouds); air currents and pickups keep the generous `umbrellaBox`. */
+export const UMBRELLA_STRIPS = 10
+export const umbrellaStrips = (pl: Player): { x: number; y: number; w: number; h: number }[] => {
+  const half = UMBRELLA_W / 2
+  const sw = UMBRELLA_W / UMBRELLA_STRIPS
+  const dome = UMBRELLA_TOP - UMBRELLA_BOTTOM
+  const out: { x: number; y: number; w: number; h: number }[] = []
+  for (let i = 0; i < UMBRELLA_STRIPS; i++) {
+    const dx = -half + sw * (i + 0.5)
+    // An ellipse dome: full height on the centre line, none at the rim's very edge.
+    const rise = dome * Math.sqrt(Math.max(0, 1 - (dx / half) ** 2))
+    const h = Math.max(3, rise)
+    out.push({ x: pl.x + pl.w / 2 + dx - sw / 2, y: pl.y - UMBRELLA_BOTTOM - h, w: sw, h })
+  }
+  return out
+}
 /** What picks up a collectible: the body, and with the umbrella open the whole column from the canopy's
  *  rim down to his feet (the shaft and grip too), a little wider than his body. */
 export const ITEM_W = 46
@@ -710,6 +729,40 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     }
   }
   pl.standing = standing
+
+  // A cloud platform is soft to the eye, so the open canopy never clips into it: the canopy stops
+  // against a cloud's underside (or side) like the body does. Airborne only, and clouds only —
+  // every other platform still ignores the canopy.
+  if (pl.open && !pl.grounded) {
+    for (let i = 0; i < w.platforms.length; i++) {
+      const p = w.platforms[i]!
+      if (!p.cloud || p.finish || !solid(i)) continue
+      // The drawn cloud's ends overhang its box and curve in: the canopy is held at half that overhang,
+      // so it touches the drawn cloud instead of stopping short of its rounded ends.
+      const side = cloudSide(p.h) * 0.5
+      const cx = p.x - side
+      const cw = p.w + 2 * side
+      const cloud = { x: cx, y: p.y, w: cw, h: p.h }
+      for (let k = 0; k < UMBRELLA_STRIPS; k++) {
+        // Each strip is measured from where the player is NOW (an earlier strip may have pushed him).
+        const ub = umbrellaStrips(pl)[k]!
+        if (!overlaps(ub.x, ub.y, ub.w, ub.h, cloud)) continue
+        const down = p.y + p.h - ub.y
+        const left = ub.x + ub.w - cx
+        const right = cx + cw - ub.x
+        if (down <= Math.min(left, right)) {
+          pl.y += down
+          if (pl.vy < 0) pl.vy = 0
+        } else if (left < right) {
+          pl.x -= left
+          if (pl.vx > 0) pl.vx = 0
+        } else {
+          pl.x += right
+          if (pl.vx < 0) pl.vx = 0
+        }
+      }
+    }
+  }
 
   // Blown into a ceiling or wall too fast (Super Stream): splat.
   if (slam) {

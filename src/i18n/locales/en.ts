@@ -275,6 +275,7 @@ export default {
       'effectMotion': "whether it moves",
       'platformMoves': "Moving",
       'once': "One-time only",
+      'cloudOutline': "Outline",
       'same': "unchanged",
       'mode': "Mode",
       'toggle': "Toggle (on / off)",

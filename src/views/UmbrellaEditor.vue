@@ -1233,7 +1233,7 @@ const setContact = (h: HazardDef, c: WalldorfContact) => {
   else if (c === 'bounce') h.contact = 'bounce'
   if (c !== 'bounce') delete h.bounce
 }
-const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once' | 'cloud', on: boolean) => {
+const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once' | 'cloud' | 'noOutline', on: boolean) => {
   const o = ent as Record<string, unknown>
   if (on) o[key] = true
   else delete o[key]
@@ -2289,6 +2289,7 @@ onUnmounted(() => {
           <template v-if="selectedPlatform">
             <label class="check"><input type="checkbox" :checked="!!selectedPlatform.finish" @change="setFinish(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.finish') }}</label>
             <label v-if="!selectedPlatform.finish" class="check"><input type="checkbox" :checked="!!selectedPlatform.cloud" @change="setFlag(selectedPlatform, 'cloud', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.tool.cloud') }}</label>
+            <label v-if="selectedPlatform.cloud && !selectedPlatform.finish" class="check"><input type="checkbox" :checked="!selectedPlatform.noOutline" @change="setFlag(selectedPlatform, 'noOutline', !($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.cloudOutline') }}</label>
           </template>
 
           <template v-if="selectedWind">

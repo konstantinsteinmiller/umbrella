@@ -229,6 +229,8 @@ export interface UmbrellaLook {
   /** Lean (radians, + = clockwise), e.g. into the direction of drift. */
   tilt: number
   time: number
+  /** No black outline on the stick: the art bench's reference frames. */
+  plain?: boolean
 }
 
 /** Canopy size: matches the wind hitbox (engine `umbrellaBox`): rim 22 above the
@@ -252,13 +254,16 @@ export const drawUmbrella = (ctx: CanvasRenderingContext2D, x: number, y: number
   ctx.lineJoin = 'round'
 
   // J-handle and shaft.
-  ctx.strokeStyle = BODY
-  ctx.lineWidth = 3
-  ctx.beginPath()
-  ctx.arc(-3.5, 0, 3.5, 0, Math.PI)
-  ctx.moveTo(0, 0)
-  ctx.lineTo(0, -RIM - (look.state === 'open' ? 2 : 0))
-  ctx.stroke()
+  // Drawn twice: black a hair wider first, then white on top, so a thin black rim shows.
+  for (const [col, width] of look.plain ? ([[BODY, 3]] as const) : ([[OUTLINE, 5], [BODY, 3]] as const)) {
+    ctx.strokeStyle = col
+    ctx.lineWidth = width
+    ctx.beginPath()
+    ctx.arc(-3.5, 0, 3.5, 0, Math.PI)
+    ctx.moveTo(0, 0)
+    ctx.lineTo(0, -RIM - (look.state === 'open' ? 2 : 0))
+    ctx.stroke()
+  }
 
   if (look.state === 'open') {
     const apexY = -RIM - DOME

@@ -272,6 +272,7 @@ export default {
       'effectMotion': "si elle bouge",
       'platformMoves': "En mouvement",
       'once': "Une seule fois",
+      'cloudOutline': "Contour",
       'same': "inchangé",
       'mode': "Mode",
       'toggle': "Bascule (marche / arrêt)",

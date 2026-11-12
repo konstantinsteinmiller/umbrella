@@ -272,6 +272,7 @@ export default {
       'effectMotion': "czy się porusza",
       'platformMoves': "Porusza się",
       'once': "Tylko raz",
+      'cloudOutline': "Obrys",
       'same': "bez zmian",
       'mode': "Tryb",
       'toggle': "Przełącz (wł. / wył.)",

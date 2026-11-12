@@ -272,6 +272,7 @@ export default {
       'effectMotion': "動くか",
       'platformMoves': "動く",
       'once': "1回だけ",
+      'cloudOutline': "輪郭線",
       'same': "変化なし",
       'mode': "モード",
       'toggle': "切り替え（オン / オフ）",

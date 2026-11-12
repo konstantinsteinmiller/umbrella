@@ -272,6 +272,7 @@ export default {
       'effectMotion': "apakah bergerak",
       'platformMoves': "Bergerak",
       'once': "Hanya sekali",
+      'cloudOutline': "Garis tepi",
       'same': "tidak berubah",
       'mode': "Mode",
       'toggle': "Alih (nyala / mati)",

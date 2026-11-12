@@ -190,13 +190,13 @@ export const bakePanel = (ctx: CanvasRenderingContext2D, s: SheetDef, i: number)
     case 'umbrella': {
       if (i <= 2) {
         // The canopy breathes a little flatter, about the grip.
-        scaled(ctx, 1 + 0.02 * i, 1 - 0.035 * i, () => drawUmbrella(ctx, 0, 0, { state: 'open', tilt: 0, time: 0 }))
+        scaled(ctx, 1 + 0.02 * i, 1 - 0.035 * i, () => drawUmbrella(ctx, 0, 0, { state: 'open', tilt: 0, time: 0, plain: true }))
       } else if (i <= 5) {
-        drawUmbrella(ctx, 0, 0, { state: 'furled', tilt: 0, time: 0 })
+        drawUmbrella(ctx, 0, 0, { state: 'furled', tilt: 0, time: 0, plain: true })
       } else {
         // sin(22 t) = -1, 0, +1: the torn panels flap down, level, up.
         const t = [(3 * Math.PI) / 2 / 22, 0, Math.PI / 2 / 22][i - 6]!
-        drawUmbrella(ctx, 0, 0, { state: 'broken', tilt: 0, time: t })
+        drawUmbrella(ctx, 0, 0, { state: 'broken', tilt: 0, time: t, plain: true })
       }
       return true
     }

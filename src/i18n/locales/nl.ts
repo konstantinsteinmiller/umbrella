@@ -272,6 +272,7 @@ export default {
       'effectMotion': "of het beweegt",
       'platformMoves': "Beweegt",
       'once': "Slechts eenmaal",
+      'cloudOutline': "Omlijning",
       'same': "ongewijzigd",
       'mode': "Modus",
       'toggle': "Wisselen (aan / uit)",

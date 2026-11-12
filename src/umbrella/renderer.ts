@@ -808,9 +808,9 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
     ctx.translate(-fx, -(pl.y + pl.h / 2))
   }
   const pose: PweegPose = pl.grounded ? (Math.abs(pl.vx) > 20 ? 'walk' : 'stand') : shownOpen ? 'hold' : poseAngle > 2.4 ? 'terminal' : 'flail'
-  drawPweeg(ctx, fx, fy, look(pose))
   // Open: held overhead (the canopy is the wind hitbox, engine umbrellaBox), leaning
   // into the drift. Otherwise carried furled (or broken) in one hand.
+  const drawHeldUmbrella = (): void => {
   if (pose === 'hold') {
     drawUmbrella(ctx, fx, pl.y - 4, { state: umbrellaState, tilt: Math.max(-1, Math.min(1, pl.vx / t.airSpeed)) * 0.28, time: w.time })
   } else if (pose === 'flail') {
@@ -822,6 +822,16 @@ const drawPlayer = (ctx: CanvasRenderingContext2D, w: World, t: Tuning, dt: numb
   } else {
     const at = heldAt(fx + pl.facing * pl.w * 0.8, fy - pl.h * 0.35)
     drawUmbrella(ctx, at.x, at.y, { state: umbrellaState, tilt: pl.facing * 0.22, time: w.time })
+  }
+  }
+  // The drawn Pweeg's hands wrap the grip, so the umbrella goes BEHIND him. The painted builds read
+  // the fist's spot from the figure just drawn (heldAt), so they draw the figure first.
+  if (artLayer) {
+    drawPweeg(ctx, fx, fy, look(pose))
+    drawHeldUmbrella()
+  } else {
+    drawHeldUmbrella()
+    drawPweeg(ctx, fx, fy, look(pose))
   }
   ctx.restore()
 }
@@ -919,6 +929,18 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
 
   // Zoomed-out levels scale the labels back up so they stay readable.
   const zoomOut = (w.level.view?.w ?? w.level.world.w) / 1280
+  /** A cloud: its fill, then a very thin black outline unless `noOutline` (the style's stroke colour and width are put back). */
+  const fillCloud = (p: Platform): void => {
+    cloudPath(ctx, p.x, p.y, p.w, p.h)
+    ctx.fill()
+    if (p.noOutline) return
+    ctx.save()
+    ctx.strokeStyle = '#000'
+    ctx.lineWidth = 1
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    ctx.restore()
+  }
   const drawPlatform = (p: Platform): void => {
     const drawn = artLayer ? kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel)) : false
     const painted = !!drawn
@@ -935,7 +957,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
       if (on) {
         // A motion-switched platform is always there; it dims while it stands still.
         if (!platformMoving(w, p)) ctx.globalAlpha = 0.6
-        if (p.cloud && !p.finish) { cloudPath(ctx, p.x, p.y, p.w, p.h); ctx.fill() } else ctx.fillRect(p.x, p.y, p.w, p.h)
+        if (p.cloud && !p.finish) fillCloud(p); else ctx.fillRect(p.x, p.y, p.w, p.h)
       } else {
         // Switched off: a dashed ghost of where it will appear.
         ctx.globalAlpha = 0.55
@@ -947,7 +969,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
       if (!on || !p.finish) return
     } else {
       ctx.fillStyle = FG
-      if (p.cloud && !p.finish) { cloudPath(ctx, p.x, p.y, p.w, p.h); ctx.fill() } else ctx.fillRect(p.x, p.y, p.w, p.h)
+      if (p.cloud && !p.finish) fillCloud(p); else ctx.fillRect(p.x, p.y, p.w, p.h)
     }
     if (p.finish) {
       ctx.textAlign = 'center'

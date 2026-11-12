@@ -272,6 +272,7 @@ export default {
       'effectMotion': "حركتها",
       'platformMoves': "تتحرك",
       'once': "مرة واحدة فقط",
+      'cloudOutline': "إطار",
       'same': "بلا تغيير",
       'mode': "الوضع",
       'toggle': "تبديل (تشغيل / إيقاف)",

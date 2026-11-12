@@ -272,6 +272,7 @@ export default {
       'effectMotion': "оның қозғалуын",
       'platformMoves': "Қозғалады",
       'once': "Тек бір рет",
+      'cloudOutline': "Контур",
       'same': "өзгеріссіз",
       'mode': "Режим",
       'toggle': "Ауыстыру (қосу / өшіру)",

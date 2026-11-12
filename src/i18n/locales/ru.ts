@@ -272,6 +272,7 @@ export default {
       'effectMotion': "движется ли она",
       'platformMoves': "Движется",
       'once': "Только один раз",
+      'cloudOutline': "Контур",
       'same': "без изменений",
       'mode': "Режим",
       'toggle': "Переключатель (вкл / выкл)",

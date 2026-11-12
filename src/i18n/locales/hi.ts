@@ -272,6 +272,7 @@ export default {
       'effectMotion': "क्या वह चलता है",
       'platformMoves': "चलता है",
       'once': "केवल एक बार",
+      'cloudOutline': "रूपरेखा",
       'same': "अपरिवर्तित",
       'mode': "मोड",
       'toggle': "टॉगल (चालू / बंद)",

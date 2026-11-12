@@ -272,6 +272,7 @@ export default {
       'effectMotion': "hareket edip etmediğini",
       'platformMoves': "Hareket eder",
       'once': "Yalnızca bir kez",
+      'cloudOutline': "Kontur",
       'same': "değişmez",
       'mode': "Mod",
       'toggle': "Aç / kapat",
