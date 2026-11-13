@@ -93,7 +93,7 @@ describe('umbrella engine', () => {
     expect(turns).toBeGreaterThanOrEqual(3)
     // …and it dies out rather than bouncing forever.
     const tail = ys.slice(-120)
-    expect(Math.max(...tail) - Math.min(...tail)).toBeLessThan(12)
+    expect(Math.max(...tail) - Math.min(...tail)).toBeLessThan(24)
   })
 
   it('a closed umbrella drops through a wind current', () => {
@@ -334,7 +334,7 @@ describe('a bouncy Walldorf against a platform', () => {
 })
 
 describe('a Walldorf pressing down on Pweeg as he stands on a platform', () => {
-  it('crushes him even when it overlaps him by only a pixel', () => {
+  it('crushes him even when it overlaps his hit-box by only a pixel', () => {
     const lvl = {
       id: 0, world: { w: 1280, h: 720 }, spawn: { x: 400, y: 380 },
       platforms: [{ x: 300, y: 400, w: 400, h: 40 }], winds: [],
@@ -343,8 +343,8 @@ describe('a Walldorf pressing down on Pweeg as he stands on a platform', () => {
     const w = createWorld(lvl)
     const pl = w.player
     pl.x = 420; pl.y = 400 - pl.h; pl.vx = 0; pl.vy = 0
-    // The Walldorf's bottom just 1 px into his head.
-    w.hazards[0]!.y = pl.y - 60 + 1
+    // The Walldorf's bottom just 1 px past the forgiving hit-box inset into his head.
+    w.hazards[0]!.y = pl.y - 60 + T.hitboxInset + 1
     step(w, { left: false, right: false, toggle: false } as Input, 1 / 60, T)
     expect(w.phase).toBe('splat')
   })

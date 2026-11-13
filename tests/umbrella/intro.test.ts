@@ -35,8 +35,10 @@ describe('intro cutscene', () => {
   })
   it('falls back to a scripted glide when the float cannot cross', () => {
     // No current at all: Chad would just drop. The intro still completes.
-    const flat = { ...L1, winds: [] }
-    expect(simulateChad(flat, { x: 240, y: 440 }, DEFAULT_TUNING)).toBeNull()
+    // A wide world with nothing on the far side: a plain fall can no longer drift across it.
+    const flat = { ...L1, winds: [], platforms: L1.platforms.filter((p) => !p.finish), world: { ...L1.world, w: 4000 } }
+    const edge = startPlatform(flat)!
+    expect(simulateChad(flat, { x: edge.x + edge.w - 30, y: edge.y }, DEFAULT_TUNING)).toBeNull()
     const intro = createIntro(flat, DEFAULT_TUNING, () => {})
     for (let i = 0; i < 60 * 30 && !intro.done; i++) { intro.update(1 / 60); if (intro.waiting) intro.release() }
     expect(intro.done).toBe(true)
