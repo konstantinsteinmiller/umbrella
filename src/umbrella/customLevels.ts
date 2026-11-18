@@ -31,6 +31,7 @@ import orderFromDisk from 'virtual:campaign-order'
 import { isKite } from './kite'
 import { COLLECT_SHAPES, MEDALLION_COLORS, LEVELS, LESSON_KINDS, isImageId, type LevelDef } from './levels'
 import { parseTimeLimit } from './timeStars'
+import { historyKey, recordSave, recordVersion, type HistoryVersion, type SaveVersion } from './levelHistory'
 
 const LIBRARY_KEY = 'umb_custom_levels_v1'
 const OVERRIDES_KEY = 'umb_level_overrides_v1'
@@ -116,7 +117,13 @@ const stamp = (level: LevelDef, at: number): LevelDef => ({ ...cloneLevel(level)
 
 // ── Named library ──
 export const customLevels = ref<Record<string, LevelDef>>(getState<Record<string, LevelDef>>(LIBRARY_KEY, {}))
+/** One version per level per day (levelHistory.ts): the copy being replaced and the one arriving are both kept. */
+const keepVersions = (hKey: string, prev: LevelDef | undefined, next: LevelDef | null) => {
+  if (prev?.editedAt) { recordVersion(hKey, prev, prev.editedAt); recordSave(hKey, prev, prev.editedAt) }
+  if (next?.editedAt) { recordVersion(hKey, next, next.editedAt); recordSave(hKey, next, next.editedAt) }
+}
 const putLibrary = (name: string, level: LevelDef | null) => {
+  keepVersions(historyKey('library', name), customLevels.value[name], level)
   const next = { ...customLevels.value }
   if (level) next[name] = cloneLevel(level)
   else delete next[name]
@@ -425,6 +432,7 @@ const dropPanelEdits = (id: number) =>
   setState(TUNING_LEVELS_KEY, getState<{ id: number }[]>(TUNING_LEVELS_KEY, []).filter((l) => l?.id !== id))
 
 const putOverride = (id: number, level: LevelDef | null) => {
+  keepVersions(historyKey('campaign', id), campaignOverrides.value[id], level)
   dropPanelEdits(id)
   const next = { ...campaignOverrides.value }
   if (level) next[id] = { ...cloneLevel(level), id }
@@ -560,7 +568,8 @@ const send = async (body: Partial<Bucket>): Promise<boolean> => {
     const res = await fetchWithin(`${BUCKET_URL}/levels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${bucketPassword.value}` },
-      body: JSON.stringify(body)
+      // `tz`: the server's level history keeps one version per day of THIS time zone.
+      body: JSON.stringify({ ...body, tz: new Date().getTimezoneOffset() })
     })
     if (res.status === 401) { report(false, 'Wrong editor password — nothing uploaded (your edits are kept in this browser)'); return false }
     if (!res.ok) { report(false, `Levels bucket: upload failed (${res.status})`); return false }
@@ -629,6 +638,43 @@ const runSync = async (): Promise<boolean> => {
     scheduleRetry()
     return false
   }
+}
+
+// ── Level history on the server (the bucket keeps one version per level per day) ──
+const historyUrl = (hKey: string, extra: Record<string, string> = {}): string => {
+  const section = hKey.startsWith('c:') ? 'campaign' : 'library'
+  const q = new URLSearchParams({ section, key: hKey.slice(2), ...extra })
+  return `${BUCKET_URL}/levels/history?${q}`
+}
+const historyGet = async (url: string): Promise<unknown> => {
+  if (!BUCKET_URL) throw new Error('No levels bucket in this build')
+  if (!bucketPassword.value) throw new Error('Enter the editor password to read the server history')
+  const res = await fetchWithin(url, { cache: 'no-store', headers: { Authorization: `Bearer ${bucketPassword.value}` } })
+  if (res.status === 401) throw new Error('Wrong editor password')
+  if (!res.ok) throw new Error(`Levels bucket answered ${res.status}`)
+  return res.json()
+}
+/** The server's versions of one level (`c:<slot id>` / `l:<name>`), newest day first. Throws a readable message when it cannot. */
+export const fetchServerVersions = async (hKey: string): Promise<HistoryVersion[]> => {
+  const body = await historyGet(historyUrl(hKey)) as { versions?: { day?: unknown; editedAt?: unknown }[] }
+  return (body.versions ?? [])
+    .filter((v): v is { day: string; editedAt: number } => typeof v.day === 'string' && num(v.editedAt))
+    .map((v): HistoryVersion => ({ day: v.day, editedAt: v.editedAt, source: 'server' }))
+}
+/** One server version's level (validated like any import), or null when it is gone or broken. */
+export const fetchServerVersion = async (hKey: string, day: string): Promise<LevelDef | null> => {
+  const body = await historyGet(historyUrl(hKey, { day })) as { level?: unknown }
+  return parseLevel(body.level)
+}
+
+/** The server's last 50 saves of one level, newest first. */
+export const fetchServerSaves = async (hKey: string): Promise<SaveVersion[]> => {
+  const body = await historyGet(historyUrl(hKey, { saves: '1' })) as { versions?: { editedAt?: unknown }[] }
+  return (body.versions ?? []).filter((v): v is { editedAt: number } => num(v.editedAt)).map((v): SaveVersion => ({ editedAt: v.editedAt, source: 'server' }))
+}
+export const fetchServerSave = async (hKey: string, editedAt: number): Promise<LevelDef | null> => {
+  const body = await historyGet(historyUrl(hKey, { saves: '1', at: String(editedAt) })) as { level?: unknown }
+  return parseLevel(body.level)
 }
 
 /** The game on GitHub Pages plays the bucket's campaign edits live; portal builds

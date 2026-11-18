@@ -376,3 +376,7 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · Landscape levels are framed on their main items (start, finish, platforms, hazards...) so both ends are in view from the first frame, with little empty space at the sides and none below the out-of-bounds line.
 **Level editor**
 · Standalone arrows (the hint board's black arrow: any number, any angle, any size) and, for the designer, picture boards with drag-and-drop images stored on the levels bucket with the level; picture boards hang from two ropes above the screen's top edge and sway a little in the wind.
+
+## Revision 18
+**Level editor**
+· History for every edited level (designer, File > History): one version per day (the latest edit of the day) and the last 50 saves, kept on the levels server and in the browser; loading one opens it in the editor, nothing is replaced until it is saved.

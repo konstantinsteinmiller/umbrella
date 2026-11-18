@@ -60,6 +60,10 @@ import {
   saveCampaignOrder,
   type OrderEntry,
   clearCampaignOverride,
+  fetchServerSave,
+  fetchServerSaves,
+  fetchServerVersion,
+  fetchServerVersions,
   cloneLevel,
   customLevels,
   deleteCustomLevel,
@@ -80,6 +84,7 @@ import {
   testLevel,
   testLevelLabel
 } from '@/umbrella/customLevels'
+import { historyKey, localSave, localSaves, localVersion, localVersions, mergeSaves, mergeVersions, SAVE_LIMIT, type HistoryVersion, type SaveVersion } from '@/umbrella/levelHistory'
 
 type Tool =
   | 'select' | 'platform' | 'cloud' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'medallion' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
@@ -938,6 +943,7 @@ const commands: Record<string, Command> = {
   campaignOverwrite: { run: () => onOverwrite(), enabled: () => overwriteSlot.value !== '', designer: true },
   campaignReplace: { run: () => onReplaceSlot(), designer: true },
   campaignRevert: { run: () => onRevert(), enabled: () => overwriteSlot.value !== '' && !!campaignOverrides.value[overwriteSlot.value], designer: true },
+  history: { run: () => void openHistory(), enabled: () => historyKeyNow() !== '', designer: true },
   reorder: { run: () => openOrder(), designer: true },
   sync: { run: () => void onSync(), enabled: () => !!BUCKET_URL && !syncing.value, designer: true },
   password: { run: () => onPasswordPrompt(), enabled: () => !!BUCKET_URL, designer: true },
@@ -949,6 +955,7 @@ const DESIGNER_LABELS: Record<string, () => string> = {
   campaignReplace: () => 'Replace another campaign level…',
   campaignRevert: () => 'Revert to the original',
   reorder: () => 'Reorder campaign…',
+  history: () => 'History…',
   sync: () => '⇅ Sync levels bucket',
   password: () => 'Editor password…',
   exportLibrary: () => 'Export library (all levels)',
@@ -973,7 +980,7 @@ watch(designer, (on) => {
   applyLocaleDirection('en')
 }, { immediate: true })
 const menus = computed(() => [
-  { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
+  { id: 'file', items: ['new', 'open', 'save', ...(designer.value ? ['history'] : []), '-', 'importLevel', 'exportLevel', '-', 'back'] },
   { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'multiSelect', 'deselect'] },
   { id: 'view', items: ['fullscreen', 'fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern ? ['-', 'paperWind'] : [])] },
   { id: 'level', items: ['test', 'prevLevel', 'nextLevel', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
@@ -1029,9 +1036,9 @@ const onDocPointer = (e: PointerEvent) => {
 }
 
 // ── Dialogs ──
-const dialog = ref<null | 'open' | 'share' | 'submit' | 'keys'>(null)
+const dialog = ref<null | 'open' | 'share' | 'submit' | 'keys' | 'history'>(null)
 const openTab = ref<'mine' | 'campaign'>('mine')
-const openDialog = (d: 'open' | 'share' | 'submit' | 'keys') => { openMenu.value = null; dialog.value = d }
+const openDialog = (d: 'open' | 'share' | 'submit' | 'keys' | 'history') => { openMenu.value = null; dialog.value = d }
 
 // ── Properties panel ──
 const selected = computed(() => {
@@ -1813,6 +1820,69 @@ const onReplaceSlot = () => {
   overwriteSlot.value = l.id
   onOverwrite()
 }
+// ── History: one version per level per day (this browser's copy + the server's), the designer's way back from an overwrite ──
+/** The history key of the level on the canvas: the campaign slot it overwrites, else the saved level of its name; '' when it has none. */
+const historyKeyNow = (): string => {
+  if (overwriteSlot.value !== '') return historyKey('campaign', overwriteSlot.value)
+  const name = levelName.value.trim()
+  return name && customLevels.value[name] ? historyKey('library', name) : ''
+}
+const historyOf = ref('')
+const historyRows = ref<HistoryVersion[]>([])
+/** The last 50 saves (every save), beside the one-per-day list. */
+const saveRows = ref<SaveVersion[]>([])
+const historyTab = ref<'days' | 'saves'>('days')
+const historyBusy = ref(false)
+const historyNote = ref('')
+const historyLabel = computed(() => (historyOf.value.startsWith('c:') ? `Campaign level ${slotNumber(Number(historyOf.value.slice(2)))}` : `"${historyOf.value.slice(2)}"`))
+const openHistory = async () => {
+  const key = historyKeyNow()
+  if (!key) return
+  historyOf.value = key
+  historyRows.value = localVersions(key)
+  saveRows.value = localSaves(key)
+  historyTab.value = 'days'
+  historyNote.value = ''
+  openDialog('history')
+  if (!BUCKET_URL) return
+  historyBusy.value = true
+  try {
+    const [days, saves] = await Promise.all([fetchServerVersions(key), fetchServerSaves(key)])
+    if (historyOf.value === key) {
+      historyRows.value = mergeVersions(days, localVersions(key))
+      saveRows.value = mergeSaves(saves, localSaves(key))
+    }
+  } catch (e) {
+    historyNote.value = `Server history not read: ${(e as Error).message}. Showing this browser's versions.`
+  } finally {
+    historyBusy.value = false
+  }
+}
+const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const historyWhen = (v: HistoryVersion) => `${v.day} · ${clock(v.editedAt)}`
+const saveWhen = (v: SaveVersion) => `${new Date(v.editedAt).toLocaleDateString()} · ${clock(v.editedAt)}`
+/** Loads a kept version into the editor as an unsaved edit (Ctrl+Z goes back): Overwrite / Save keeps it. */
+const loadKept = async (what: string, fromServer: () => Promise<LevelDef | null>, fromHere: () => LevelDef | null, server: boolean) => {
+  const key = historyOf.value
+  if (historyBusy.value || key !== historyKeyNow()) return
+  historyBusy.value = true
+  let l: LevelDef | null = null
+  try {
+    l = server ? await fromServer() : fromHere()
+  } catch (e) {
+    historyNote.value = `Could not read the server's version: ${(e as Error).message}`
+  }
+  l ??= fromHere() // offline or gone from the server: this browser's copy
+  historyBusy.value = false
+  if (!l) { historyNote.value ||= 'That version could not be read.'; return }
+  loadIntoEditor(l, levelName.value)
+  dialog.value = null
+  flash(`Loaded the version of ${what} — ${overwriteSlot.value !== '' ? 'Overwrite' : 'Save'} keeps it, Ctrl+Z undoes`)
+}
+const loadVersion = (v: HistoryVersion) =>
+  loadKept(historyWhen(v), () => fetchServerVersion(historyOf.value, v.day), () => localVersion(historyOf.value, v.day), v.source === 'server')
+const loadSave = (v: SaveVersion) =>
+  loadKept(saveWhen(v), () => fetchServerSave(historyOf.value, v.editedAt), () => localSave(historyOf.value, v.editedAt), v.source === 'server')
 const onRevert = () => {
   const id = overwriteSlot.value
   if (id === '' || !campaignOverrides.value[id]) return
@@ -2783,6 +2853,35 @@ onUnmounted(() => {
           </li>
         </ul>
         <p v-if="openTab === 'campaign' && !designer" class="hint">{{ t('umbrellaEditor.campaignCopyHint') }}</p>
+      </div>
+    </div>
+
+    <!-- History: the versions kept of the open level, one per day (designer tools are English). -->
+    <div v-if="dialog === 'history'" class="modal-back" @pointerdown.self="dialog = null">
+      <div class="modal narrow" role="dialog" aria-modal="true" aria-label="History">
+        <div class="row"><b>History · {{ historyLabel }}</b><button class="btn" :aria-label="t('umbrella.close')" @click="dialog = null">✕ <kbd>Esc</kbd></button></div>
+        <div class="tabs" role="tablist">
+          <button role="tab" class="tab" :class="{ on: historyTab === 'days' }" :aria-selected="historyTab === 'days'" @click="historyTab = 'days'">One per day</button>
+          <button role="tab" class="tab" :class="{ on: historyTab === 'saves' }" :aria-selected="historyTab === 'saves'" @click="historyTab = 'saves'">Last {{ SAVE_LIMIT }} saves</button>
+        </div>
+        <p class="hint">{{ historyTab === 'days' ? 'One version per day, the latest edit of that day.' : `Every save, the last ${SAVE_LIMIT} of this level.` }} Loading one opens it in the editor; nothing is replaced until you save or overwrite.</p>
+        <p v-if="historyNote" class="warn">⚠ {{ historyNote }}</p>
+        <ul v-if="historyTab === 'days'" class="pick-list">
+          <li v-for="v in historyRows" :key="v.day" class="pick-row">
+            <span class="order-name">{{ historyWhen(v) }} <small>{{ v.source === 'server' ? 'server' : 'this browser' }}</small></span>
+            <button class="btn blue" :disabled="historyBusy" @click="loadVersion(v)">Load</button>
+          </li>
+          <li v-if="historyBusy && !historyRows.length" class="hint">Reading the history…</li>
+          <li v-else-if="!historyRows.length" class="hint">No older versions yet: they are kept from the next edit on.</li>
+        </ul>
+        <ul v-else class="pick-list">
+          <li v-for="v in saveRows" :key="v.editedAt" class="pick-row">
+            <span class="order-name">{{ saveWhen(v) }} <small>{{ v.source === 'server' ? 'server' : 'this browser' }}</small></span>
+            <button class="btn blue" :disabled="historyBusy" @click="loadSave(v)">Load</button>
+          </li>
+          <li v-if="historyBusy && !saveRows.length" class="hint">Reading the history…</li>
+          <li v-else-if="!saveRows.length" class="hint">No saves kept yet: they are kept from the next save on.</li>
+        </ul>
       </div>
     </div>
 

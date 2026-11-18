@@ -8,6 +8,18 @@
 //                  → merged per entry, newest `editedAt` wins; returns the bucket
 //
 // Entry = { editedAt: number, level: object | null }   (a cutscene's script sits in `level` too)
+//
+// ─── Level history (one version per level per day, kept apart from the bucket; KV keys `hist:…`) ───
+//   Every level an edit carries is also kept as that day's version of its slot / saved level: the LATEST edit of
+//   a day wins (an edit at 9 am is replaced by one at 11 pm), earlier days stay. The version an edit overwrites is
+//   kept too, so the first edit after this shipped still leaves the old level behind. A POST may send `tz`
+//   (the editor's Date#getTimezoneOffset, minutes) so "a day" is the designer's local day; default UTC.
+//   GET /levels/history?section=campaign|library&key=<slot id | name>
+//        → { versions: [{ day: 'YYYY-MM-DD', editedAt }] }, newest day first        Authorization: Bearer <EDITOR_TOKEN>
+//   GET /levels/history?section=…&key=…&day=YYYY-MM-DD → { day, editedAt, level }     (404 no such version)
+//   Beside the days, the last 50 SAVES of each level are kept (every edit, not one per day; the oldest drops out):
+//   GET /levels/history?section=…&key=…&saves=1 → { versions: [{ editedAt }] }, newest first
+//   GET /levels/history?section=…&key=…&saves=1&at=<editedAt> → { editedAt, level }   (404 no such save)
 // Secret: `npx wrangler secret put EDITOR_TOKEN`.
 //
 // ─── Level images (the pictures on a level's picture boards; same KV namespace, keys `img:<id>`) ───
@@ -54,16 +66,59 @@ const isEntry = (e) =>
   e.editedAt < Date.now() + 86_400_000 && // a skewed clock must not pin an entry forever
   (e.level === null || (typeof e.level === 'object' && !Array.isArray(e.level)))
 
-const mergeSection = (into, from) => {
-  if (!from || typeof from !== 'object') return 0
+const HISTORY_SECTIONS = ['campaign', 'library']
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/
+const MAX_SAVES = 50
+const MAX_HISTORY_WRITES = 20 // per request: a Worker has a subrequest budget, and the save itself must never fail on history
+
+/** The local calendar day of an edit: `tz` is Date#getTimezoneOffset (minutes behind UTC). */
+const dayOf = (at, tz) => new Date(at - tz * 60_000).toISOString().slice(0, 10)
+/** KV keys hold a fixed-length digest of the level's key (a name may hold any characters and be long). */
+const historyPrefix = async (section, key) => `hist:${section}:${await hashId(new TextEncoder().encode(key))}:`
+
+/** Keeps `entry` as the version of its day, unless that day already holds a later edit. */
+async function recordVersion(env, section, key, entry, tz) {
+  if (!entry.level || key === 'order') return
+  const kvKey = (await historyPrefix(section, key)) + dayOf(entry.editedAt, tz)
+  const have = (await env.LEVELS.list({ prefix: kvKey })).keys.find((k) => k.name === kvKey)
+  if ((have?.metadata?.editedAt ?? 0) >= entry.editedAt) return
+  await env.LEVELS.put(kvKey, JSON.stringify({ editedAt: entry.editedAt, level: entry.level }), { metadata: { editedAt: entry.editedAt } })
+}
+
+/** The last MAX_SAVES saves of a level: one KV key per save, named by its zero-padded edit time so a listing is oldest first. */
+async function recordSave(env, section, key, entry) {
+  if (!entry.level || key === 'order') return
+  const prefix = (await historyPrefix(section, key)).replace('hist:', 'saves:')
+  const kvKey = prefix + String(entry.editedAt).padStart(15, '0')
+  const names = []
+  let cursor
+  do {
+    const page = await env.LEVELS.list({ prefix, cursor })
+    for (const k of page.keys) names.push(k.name)
+    cursor = page.list_complete ? undefined : page.cursor
+  } while (cursor)
+  if (names.includes(kvKey)) return
+  if (names.length >= MAX_SAVES && kvKey < names[0]) return // older than all 50 kept
+  await env.LEVELS.put(kvKey, JSON.stringify({ editedAt: entry.editedAt, level: entry.level }), { metadata: { editedAt: entry.editedAt } })
+  names.push(kvKey)
+  names.sort()
+  for (const old of names.slice(0, Math.max(0, names.length - MAX_SAVES))) await env.LEVELS.delete(old)
+}
+
+const mergeSection = (into, from, section, tz, saved) => {
+  if (!from || typeof from !== 'object') return { changed: 0 }
   let changed = 0
   for (const [k, e] of Object.entries(from)) {
     if (k.length > 200 || !isEntry(e)) continue
+    // Every valid version goes to the history, also one that lost the merge (an offline edit pushed late).
+    if (e.level && HISTORY_SECTIONS.includes(section)) saved.push([section, k, { editedAt: e.editedAt, level: e.level }])
     if ((into[k]?.editedAt ?? 0) >= e.editedAt) continue
+    // The copy this edit replaces is kept as its own day's version (a no-op when that day is already kept).
+    if (into[k]?.level && HISTORY_SECTIONS.includes(section)) saved.push([section, k, into[k]])
     into[k] = { editedAt: e.editedAt, level: e.level }
     changed++
   }
-  return changed
+  return { changed }
 }
 
 const read = async (env) => {
@@ -87,6 +142,7 @@ export default {
     try {
       if (url.pathname.startsWith('/community/')) return await community(req, env, url)
       if (url.pathname === '/images' || url.pathname.startsWith('/images/')) return await images(req, env, url)
+      if (url.pathname === '/levels/history') return await history(req, env, url)
       if (url.pathname !== '/levels') return json({ error: 'not found' }, 404)
       return await handle(req, env)
     } catch (e) {
@@ -107,9 +163,60 @@ async function handle(req, env) {
   try { body = JSON.parse(text) } catch { return json({ error: 'bad json' }, 400) }
 
   const bucket = await read(env)
-  const changed = mergeSection(bucket.campaign, body.campaign) + mergeSection(bucket.library, body.library) + mergeSection(bucket.cutscenes, body.cutscenes)
+  const tz = Number.isFinite(body.tz) ? Math.max(-840, Math.min(840, Math.round(body.tz))) : 0
+  const saved = []
+  const changed = mergeSection(bucket.campaign, body.campaign, 'campaign', tz, saved).changed +
+    mergeSection(bucket.library, body.library, 'library', tz, saved).changed +
+    mergeSection(bucket.cutscenes, body.cutscenes, 'cutscenes', tz, saved).changed
   if (changed) await env.LEVELS.put(KEY, JSON.stringify(bucket))
+  // History after the bucket write, newest first (so a level pushed twice keeps its latest), and never at the save's expense.
+  saved.sort((a, b) => b[2].editedAt - a[2].editedAt)
+  for (const [section, key, entry] of saved.slice(0, MAX_HISTORY_WRITES)) {
+    try { await recordVersion(env, section, key, entry, tz); await recordSave(env, section, key, entry) } catch { /* the level is saved; its history entry is not worth failing the request */ }
+  }
   return json({ ...bucket, changed })
+}
+
+async function history(req, env, url) {
+  if (req.method !== 'GET') return json({ error: 'method not allowed' }, 405)
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!env.EDITOR_TOKEN || !sameToken(token, env.EDITOR_TOKEN)) return json({ error: 'wrong editor password' }, 401)
+  const section = url.searchParams.get('section') ?? ''
+  const key = url.searchParams.get('key') ?? ''
+  if (!HISTORY_SECTIONS.includes(section) || !key || key.length > 200) return json({ error: 'bad section or key' }, 400)
+  const prefix = await historyPrefix(section, key)
+  if (url.searchParams.get('saves')) {
+    const sp = prefix.replace('hist:', 'saves:')
+    const at = url.searchParams.get('at')
+    if (at !== null) {
+      if (!/^\d{1,15}$/.test(at)) return json({ error: 'bad save' }, 400)
+      const v = await env.LEVELS.get(sp + at.padStart(15, '0'), 'json')
+      return v ? json({ editedAt: v.editedAt, level: v.level }) : json({ error: 'not found' }, 404)
+    }
+    const saves = []
+    let c
+    do {
+      const page = await env.LEVELS.list({ prefix: sp, cursor: c })
+      for (const k of page.keys) saves.push({ editedAt: k.metadata?.editedAt ?? Number(k.name.slice(sp.length)) })
+      c = page.list_complete ? undefined : page.cursor
+    } while (c)
+    return json({ versions: saves.sort((a, b) => b.editedAt - a.editedAt) })
+  }
+  const day = url.searchParams.get('day')
+  if (day !== null) {
+    if (!DAY_RE.test(day)) return json({ error: 'bad day' }, 400)
+    const v = await env.LEVELS.get(prefix + day, 'json')
+    return v ? json({ day, editedAt: v.editedAt, level: v.level }) : json({ error: 'not found' }, 404)
+  }
+  const versions = []
+  let cursor
+  do {
+    const page = await env.LEVELS.list({ prefix, cursor })
+    for (const k of page.keys) versions.push({ day: k.name.slice(prefix.length), editedAt: k.metadata?.editedAt ?? 0 })
+    cursor = page.list_complete ? undefined : page.cursor
+  } while (cursor)
+  versions.sort((a, b) => (a.day < b.day ? 1 : -1))
+  return json({ versions })
 }
 
 // ─── Level images ────────────────────────────────────────────────────────
