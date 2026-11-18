@@ -379,4 +379,4 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 
 ## Revision 18
 **Level editor**
-· History for every edited level (designer, File > History): one version per day (the latest edit of the day) and the last 50 saves, kept on the levels server and in the browser; loading one opens it in the editor, nothing is replaced until it is saved.
+· History for every edited level (designer, Level > History): one version per day (the latest edit of the day) and the last 50 saves, kept on the levels server and in the browser; loading one opens it in the editor, nothing is replaced until it is saved.

@@ -980,10 +980,10 @@ watch(designer, (on) => {
   applyLocaleDirection('en')
 }, { immediate: true })
 const menus = computed(() => [
-  { id: 'file', items: ['new', 'open', 'save', ...(designer.value ? ['history'] : []), '-', 'importLevel', 'exportLevel', '-', 'back'] },
+  { id: 'file', items: ['new', 'open', 'save', '-', 'importLevel', 'exportLevel', '-', 'back'] },
   { id: 'edit', items: ['undo', 'redo', '-', 'duplicate', 'delete', 'multiSelect', 'deselect'] },
   { id: 'view', items: ['fullscreen', 'fit', 'zoomIn', 'zoomOut', '-', 'snap', 'animate', 'mobile', ...(isLantern ? ['-', 'paperWind'] : [])] },
-  { id: 'level', items: ['test', 'prevLevel', 'nextLevel', '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
+  { id: 'level', items: ['test', 'prevLevel', 'nextLevel', ...(designer.value ? ['history'] : []), '-', 'share', ...(communityEnabled ? ['submit'] : [])] },
   ...(designer.value ? [{ id: 'campaign', items: ['campaignOverwrite', 'campaignReplace', 'campaignRevert', 'reorder', '-', 'sync', 'password', '-', 'exportLibrary', 'importLibrary'] }] : []),
   { id: 'help', items: ['shortcuts'] }
 ])
