@@ -7,11 +7,11 @@
 // every such line folds away
 // (tests/umbrella/vectorGolden.test.ts pins the vector path call for call).
 
-import { channelOn, checkpointBox, contactOf, isVanishCloud, liveWind, STAR_R, platformActive, platformMoving, type Hazard, type Platform, type World } from './engine'
+import { channelOn, timerReadout, checkpointBox, contactOf, isVanishCloud, liveWind, STAR_R, platformActive, platformMoving, type Hazard, type Platform, type World } from './engine'
 import { drawPrickbait, drawPweeg, drawUmbrella, drawWalldorf, heldAt, type PweegLook, type PweegPose } from './characters'
 import type { Tuning } from './tuning'
 import { spikeAngle } from './spikeGeometry'
-import { DEFAULT_COLLECT_SHAPE, MEDALLION_PAINT, type MedallionColor, type ButtonDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
+import { DEFAULT_COLLECT_SHAPE, MEDALLION_PAINT, type MedallionColor, type ButtonDef, type TimerDef, type CheckpointDef, type CollectShape, type WindDef } from './levels'
 import { artLayer, isLantern, paintedGame } from './kite'
 import { kiteArt } from './art/hooks'
 import { drawSignVector } from './signArt'
@@ -337,6 +337,45 @@ export const drawButton = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: bool
     ctx.arc(b.x + b.w / 2, b.y + b.h - capH / 2 - 2, 3, 0, Math.PI * 2)
     ctx.fill()
   }
+}
+
+/** A timer: a dashed box in its channel's colour (the player's trigger zone) with a small clock and the time it counts.
+ *  `read`: the seconds left while it runs (`held`: waiting for the player to step off); absent: idle, showing its full time. */
+export const drawTimer = (ctx: CanvasRenderingContext2D, tm: TimerDef, read: { left: number; span: number; held: boolean } | null, time: number) => {
+  const col = channelColor(tm.channel)
+  ctx.save()
+  ctx.fillStyle = col
+  ctx.globalAlpha = read ? 0.2 : 0.1
+  ctx.fillRect(tm.x, tm.y, tm.w, tm.h)
+  ctx.globalAlpha = tm.onCollision || tm.onRelease ? 0.8 : 0.4
+  ctx.strokeStyle = col
+  ctx.lineWidth = 2
+  ctx.setLineDash([8, 6])
+  ctx.strokeRect(tm.x + 1, tm.y + 1, tm.w - 2, tm.h - 2)
+  ctx.setLineDash([])
+  ctx.globalAlpha = 1
+  // The clock face in the middle, its hand showing how much of the time is gone.
+  const cx = tm.x + tm.w / 2
+  const cy = tm.y + tm.h / 2
+  const r = Math.max(8, Math.min(tm.w, tm.h) * 0.3)
+  const frac = read ? Math.max(0, Math.min(1, read.left / read.span)) : 1
+  ctx.fillStyle = FG
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+  ctx.strokeStyle = col
+  ctx.lineWidth = Math.max(2, r * 0.22)
+  ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); ctx.stroke()
+  ctx.strokeStyle = BG
+  ctx.lineWidth = 2
+  const a = -Math.PI / 2 + Math.PI * 2 * (1 - frac)
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * r * 0.7, cy + Math.sin(a) * r * 0.7); ctx.stroke()
+  const shown = read ? read.left : tm.duration
+  if (read?.held && Math.floor(time * 3) % 2 === 0) ctx.globalAlpha = 0.6
+  ctx.fillStyle = col
+  ctx.font = '700 14px system-ui, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'bottom'
+  ctx.fillText(`${Math.ceil(shown)}s`, cx, tm.y - 3)
+  ctx.restore()
 }
 
 /** A checkpoint flag: grey until touched, green and waving once it is yours. */
@@ -1102,6 +1141,8 @@ export interface RenderOptions {
   windStyle?: 'arrows' | 'squiggles'
   /** Canvas px at the bottom kept clear of the level for the touch controls (landscape; see cameraFor). */
   padBottom?: number
+  /** The editor: draw things that are invisible in play (a timer without `visible`). */
+  showHidden?: boolean
 }
 
 /** Draws a frame and returns the camera it used (to draw more on top in world space). */
@@ -1217,6 +1258,13 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
         // A motion-switched platform is always there; it dims while it stands still.
         if (!platformMoving(w, p)) ctx.globalAlpha = 0.6
         if (p.cloud && !p.finish) fillCloud(p); else ctx.fillRect(p.x, p.y, p.w, p.h)
+        // A countdown door that is open and lowering: a dashed ghost of the gap still to close.
+        if (p.fullH !== undefined && p.h < p.fullH - 0.5) {
+          ctx.globalAlpha = 0.55
+          ctx.lineWidth = 2
+          ctx.setLineDash([8, 6])
+          ctx.strokeRect(p.x + 1, p.y + p.h + 1, p.w - 2, p.fullH - p.h - 2)
+        }
       } else {
         // Switched off: a dashed ghost of where it will appear.
         ctx.globalAlpha = 0.55
@@ -1270,6 +1318,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     else drawButton(ctx, b, on, left)
     ctx.globalAlpha = 1
   }
+  ;(w.level.timers ?? []).forEach((tm, i) => { if (tm.visible || opts.showHidden) drawTimer(ctx, tm, timerReadout(w, i), w.time) })
   for (const h of w.hazards) drawHazard(ctx, h, w)
   for (const p of w.platforms) if (p.finish) drawPlatform(p)
 

@@ -28,7 +28,7 @@ import { useI18n } from 'vue-i18n'
 import { applyLocaleDirection } from '@/i18n'
 import { useRouter } from 'vue-router'
 import { isTurned, spikeAngle, spikeBounds } from '@/umbrella/spikeGeometry'
-import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, LESSON_H, LESSON_KINDS, LESSON_W, PICTURE_PAD_MAX, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, MEDALLION_COLORS, type MedallionColor, type MedallionDef, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type LessonDef, type LessonKind, type PictureDef, type SignDef, type ButtonDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
+import { ARROW_DEFAULT_ANGLE, ARROW_SIZE, LESSON_H, LESSON_KINDS, LESSON_W, PICTURE_PAD_MAX, CHANNELS, COLLECT_SHAPES, DEFAULT_COLLECT_SHAPE, LEVELS, MEDALLION_COLORS, type MedallionColor, type MedallionDef, PICTURE_H, PICTURE_W, SIGN_H, SIGN_W, type ArrowDef, type LessonDef, type LessonKind, type PictureDef, type SignDef, type ButtonDef, type TimerDef, type CollectShape, type CheckpointDef, type GateDef, type HazardDef, type LevelDef, type Motion, type PlatformDef, type StarDef, type Vec, type WalldorfContact, type WindDef, type WindDir } from '@/umbrella/levels'
 import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS, DEFAULT_TRIGGER_REACH, motionRad, poseMovers, step, triggerZone, TRIGGER_MARGIN, type Input, type World } from '@/umbrella/engine'
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { arrowBox, pictureInset } from '@/umbrella/pictureArt'
@@ -87,11 +87,11 @@ import {
 import { historyKey, localSave, localSaves, localVersion, localVersions, mergeSaves, mergeVersions, SAVE_LIMIT, type HistoryVersion, type SaveVersion } from '@/umbrella/levelHistory'
 
 type Tool =
-  | 'select' | 'platform' | 'cloud' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'star' | 'medallion' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
+  | 'select' | 'platform' | 'cloud' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'timer' | 'star' | 'medallion' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
-type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'checkpoints' | 'stars' | 'medallions' | 'gates' | 'signs' | 'arrows' | 'pictures' | 'lessons'
+type Group = 'platforms' | 'winds' | 'hazards' | 'buttons' | 'timers' | 'checkpoints' | 'stars' | 'medallions' | 'gates' | 'signs' | 'arrows' | 'pictures' | 'lessons'
 type Entity = { group: Group; i: number }
 /** `arm`: a swing's rest point (sets its arc angle and rope); `phase`: a circle's start pin. */
 type HandleKey = 'a' | 'b' | 'center' | 'pivot' | 'arm' | 'phase' | 'turn' | 'rotate'
@@ -145,7 +145,8 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys; /*
     { id: 'spikes-down', icon: '▼', keys: { key: 'x', shift: true } }
   ] },
   { id: 'switches', tools: [
-    { id: 'button', icon: '◉', keys: { key: 't' } }
+    { id: 'button', icon: '◉', keys: { key: 't' } },
+    { id: 'timer', icon: '⏱', keys: { key: 'j' } }
   ] }
 ]
 const TOOLS = TOOL_GROUPS.flatMap((g) => g.tools)
@@ -268,8 +269,8 @@ const redo = () => {
 }
 
 // ── Geometry helpers ──
-const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | CheckpointDef | StarDef | MedallionDef | GateDef | SignDef | ArrowDef | PictureDef | LessonDef)[] =>
-  g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= [])
+const listIn = (L: LevelDef, g: Group): (PlatformDef | WindDef | HazardDef | ButtonDef | TimerDef | CheckpointDef | StarDef | MedallionDef | GateDef | SignDef | ArrowDef | PictureDef | LessonDef)[] =>
+  g === 'platforms' ? L.platforms : g === 'winds' ? L.winds : g === 'hazards' ? (L.hazards ??= []) : g === 'buttons' ? (L.buttons ??= []) : g === 'timers' ? (L.timers ??= [])
     : g === 'medallions' ? (L.medallion ? [L.medallion] : []) : g === 'stars' ? (L.stars ??= []) : g === 'gates' ? (L.gates ??= []) : g === 'signs' ? (L.signs ??= []) : g === 'arrows' ? (L.arrows ??= []) : g === 'pictures' ? (L.pictures ??= []) : g === 'lessons' ? (L.lessons ??= []) : (L.checkpoints ??= [])
 const listOf = (g: Group) => listIn(level.value, g)
 const hazards = () => (level.value.hazards ??= [])
@@ -292,6 +293,7 @@ const shownRect = (e: Entity): { x: number; y: number; w: number; h: number } =>
     : e.group === 'platforms' ? world.platforms[e.i]!
       : e.group === 'hazards' ? hazardRect(world.hazards[e.i]!)
         : e.group === 'buttons' ? level.value.buttons![e.i]!
+          : e.group === 'timers' ? level.value.timers![e.i]!
           : e.group === 'gates' ? level.value.gates![e.i]!
             : e.group === 'signs' ? level.value.signs![e.i]!
             : e.group === 'arrows' ? arrowBox(level.value.arrows![e.i]!)
@@ -441,7 +443,7 @@ const hitTest = (p: Vec): { sel: Selection; handle?: HandleKey; resize?: boolean
     const near = nearSmall(p)
     if (near) return { sel: near }
   }
-  for (const group of ['medallions', 'stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures', 'lessons'] as Group[]) {
+  for (const group of ['medallions', 'stars', 'checkpoints', 'buttons', 'timers', 'gates', 'arrows', 'hazards', 'platforms', 'winds', 'signs', 'pictures', 'lessons'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) if (inside(localOf(p, { group, i }), shownRect({ group, i }), 3)) return { sel: { type: 'entity', group, i } }
   }
@@ -459,7 +461,7 @@ const nearSmall = (p: Vec): Selection => {
   const sp = level.value.spawn
   const dSpawn = distToRect(p, { x: sp.x - tuning.playerWidth / 2, y: sp.y - tuning.playerHeight, w: tuning.playerWidth, h: tuning.playerHeight })
   if (dSpawn <= bestD) { best = { type: 'spawn' }; bestD = dSpawn }
-  for (const group of ['medallions', 'stars', 'checkpoints', 'buttons', 'gates', 'arrows', 'hazards', 'platforms'] as Group[]) {
+  for (const group of ['medallions', 'stars', 'checkpoints', 'buttons', 'timers', 'gates', 'arrows', 'hazards', 'platforms'] as Group[]) {
     const list = listOf(group)
     for (let i = list.length - 1; i >= 0; i--) {
       const d = distToRect(localOf(p, { group, i }), shownRect({ group, i }))
@@ -470,6 +472,12 @@ const nearSmall = (p: Vec): Selection => {
 }
 
 // ── Placing ──
+/** The first channel no timer sends on yet (a new timer gets its own, so two doors do not open together). */
+const usedChannelFree = (L: LevelDef): number => {
+  const used = new Set((L.timers ?? []).map((m) => m.channel))
+  for (let c = 1; c <= CHANNELS; c++) if (!used.has(c)) return c
+  return 1
+}
 const place = (t: Tool, a: Vec, b: Vec) => {
   const x = snapV(Math.min(a.x, b.x))
   const y = snapV(Math.min(a.y, b.y))
@@ -521,6 +529,13 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       const list = (L.buttons ??= [])
       list.push({ x: snapV(a.x - 30), y: snapV(a.y) - 14, w: 60, h: 14, channel: 1 })
       sel = { type: 'entity', group: 'buttons', i: list.length - 1 }
+      break
+    }
+    case 'timer': {
+      // Centred on the click: the box is the zone the player touches (with "when touched") to start it.
+      const list = (L.timers ??= [])
+      list.push({ x: snapV(a.x - 40), y: snapV(a.y - 40), w: 80, h: 80, channel: usedChannelFree(L), duration: 10, onRelease: true })
+      sel = { type: 'entity', group: 'timers', i: list.length - 1 }
       break
     }
     case 'star': {
@@ -707,7 +722,7 @@ const selectionBoxHits = (box: { x: number; y: number; w: number; h: number }): 
   const out: Selection[] = []
   const sp = level.value.spawn
   if (inside({ x: sp.x, y: sp.y - tuning.playerHeight / 2 }, box)) out.push({ type: 'spawn' })
-  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'medallions', 'gates', 'signs', 'arrows', 'pictures', 'lessons'] as Group[]) {
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'timers', 'checkpoints', 'stars', 'medallions', 'gates', 'signs', 'arrows', 'pictures', 'lessons'] as Group[]) {
     listOf(group).forEach((_, i) => {
       const r = shownRect({ group, i })
       if (inside({ x: r.x + r.w / 2, y: r.y + r.h / 2 }, box)) out.push({ type: 'entity', group, i })
@@ -1049,7 +1064,7 @@ const selected = computed(() => {
   return ent ? { ...s, ent } : null
 })
 /** Things with a hitbox rectangle the designer can pull in or push out (`inset`). */
-const INSET_GROUPS: Group[] = ['platforms', 'winds', 'hazards', 'buttons', 'gates']
+const INSET_GROUPS: Group[] = ['platforms', 'winds', 'hazards', 'buttons', 'timers', 'gates']
 const selectedInset = computed(() => (selected.value && INSET_GROUPS.includes(selected.value.group) ? (selected.value.ent as unknown as { inset?: number }) : null))
 /** Set the collision inset (px, negative allowed: a hitbox bigger than the drawing); 0 removes it. */
 const setInset = (v: number) => {
@@ -1395,7 +1410,7 @@ const setAngle = (pf: PlatformDef, deg: number) => {
   if (Math.abs(d) < 0.05 || Math.abs(Math.abs(d) - 360) < 0.05) delete pf.angle
   else pf.angle = d
 }
-const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMotion' | 'once' | 'cloud' | 'outline' | 'vanish' | 'camouflage', on: boolean) => {
+const setFlag = (ent: object, key: 'super' | 'harmless' | 'closing' | 'visible' | 'onCollision' | 'onRelease' | 'whenOff' | 'switchMotion' | 'once' | 'cloud' | 'outline' | 'vanish' | 'camouflage', on: boolean) => {
   const o = ent as Record<string, unknown>
   if (on) o[key] = true
   else delete o[key]
@@ -1403,7 +1418,7 @@ const setFlag = (ent: object, key: 'super' | 'harmless' | 'whenOff' | 'switchMot
 
 // ── Switches: platforms and currents on a button channel ──
 const setChannel = (ent: PlatformDef | WindDef, v: string) => {
-  if (v === '') { delete ent.channel; delete (ent as PlatformDef).whenOff; delete (ent as PlatformDef).switchMotion; delete (ent as WindDef).switched; return }
+  if (v === '') { delete ent.channel; delete (ent as PlatformDef).closing; delete (ent as PlatformDef).whenOff; delete (ent as PlatformDef).switchMotion; delete (ent as WindDef).switched; return }
   ent.channel = Number(v)
   if ('dir' in ent) ent.switched ??= { speed: 0 }
 }
@@ -1421,6 +1436,19 @@ const setSwitchedSpeed = (w: WindDef, v: string) => {
 const setButtonMode = (b: ButtonDef, timed: boolean) => {
   if (timed) b.duration ??= 5
   else delete b.duration
+}
+const selectedTimer = computed(() => (selected.value?.group === 'timers' ? (selected.value.ent as TimerDef) : null))
+/** The button channels a timer can be started by (not the one it sends on itself). */
+const timerTriggerChannels = computed(() => Array.from({ length: CHANNELS }, (_, i) => i + 1).filter((c) => c !== selectedTimer.value?.channel))
+const setTimerTrigger = (m: TimerDef, v: string) => {
+  if (v === '') delete m.trigger
+  else m.trigger = Number(v)
+}
+/** A countdown door: it shuts by lowering, so it neither moves nor is a cloud / finish / vanishing one. */
+const setClosing = (p: PlatformDef, on: boolean) => {
+  setFlag(p, 'closing', on)
+  if (on) { delete p.motion; delete p.switchMotion; delete p.whenOff; delete p.angle }
+  rebuildWorld()
 }
 const selectedButton = computed(() => (selected.value?.group === 'buttons' ? (selected.value.ent as ButtonDef) : null))
 /** The look of the next collectible placed; picking a look for a selected one also makes it the default. */
@@ -1453,7 +1481,7 @@ const selectedKind = computed(() => {
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
   if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : (s.ent as PlatformDef).cloud ? 'cloud' : 'platform'
-  return s.group === 'buttons' ? 'button' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'lessons' ? 'lesson' : s.group === 'stars' ? 'star' : s.group === 'medallions' ? 'medallion' : 'checkpoint'
+  return s.group === 'buttons' ? 'button' : s.group === 'timers' ? 'timer' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'lessons' ? 'lesson' : s.group === 'stars' ? 'star' : s.group === 'medallions' ? 'medallion' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */
 /** The other gates of this level a selected gate can lead out of. */
@@ -1475,7 +1503,7 @@ const problems = computed(() => {
   const sp = L.spawn
   if (sp.x < 0 || sp.y < 0 || sp.x > L.world.w || sp.y > L.world.h) out.push(t('umbrellaEditor.problem.spawnOutside'))
   if (L.view && L.view.w >= L.world.w && L.view.h >= L.world.h) out.push(t('umbrellaEditor.problem.noScroll'))
-  const used = new Set((L.buttons ?? []).map((b) => b.channel))
+  const used = new Set([...(L.buttons ?? []), ...(L.timers ?? [])].map((b) => b.channel))
   const switched = [...L.platforms, ...L.winds].some((x) => x.channel !== undefined && !used.has(x.channel))
   if (switched) out.push(t('umbrellaEditor.problem.noButton'))
   return out
@@ -2074,7 +2102,7 @@ const paint = (now: number) => {
   // Fit the world plus a margin, then the wheel zoom and the pan on top.
   const s = Math.min(cw / (L.world.w * (1 + 2 * MARGIN)), ch / (L.world.h * (1 + 2 * MARGIN))) * zoom
   view = { s, ox: (cw - L.world.w * s) / 2 + pan.x, oy: (ch - L.world.h * s) / 2 + pan.y }
-  render(ctx, world, { finish: t('umbrella.finish') }, tuning, 0, view)
+  render(ctx, world, { finish: t('umbrella.finish') }, tuning, 0, view, { showHidden: true })
 
   // Overlay in world space.
   ctx.setTransform(s, 0, 0, s, view.ox, view.oy)
@@ -2099,7 +2127,7 @@ const paint = (now: number) => {
   // A camouflaged removable cloud looks like any cloud: the editor marks it with a dashed outline so it is not lost.
   for (const p of world.platforms) if (p.vanish && p.camouflage) strokeRect(ctx, p, 'rgba(255,170,60,0.85)', [5 / s, 4 / s])
   // Off-world things (a lunge resting off-screen) still need an outline to grab.
-  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'checkpoints', 'stars', 'medallions', 'gates', 'signs', 'arrows', 'pictures', 'lessons'] as Group[]) {
+  for (const group of ['platforms', 'winds', 'hazards', 'buttons', 'timers', 'checkpoints', 'stars', 'medallions', 'gates', 'signs', 'arrows', 'pictures', 'lessons'] as Group[]) {
     listOf(group).forEach((_, i) => {
       const r = shownRect({ group, i })
       const off = r.x < 0 || r.y < 0 || r.x + r.w > L.world.w || r.y + r.h > L.world.h
@@ -2643,13 +2671,15 @@ onUnmounted(() => {
               </select>
             </label>
             <template v-if="selectedPlatform && selectedPlatform.channel !== undefined">
-              <label class="row">{{ t('umbrellaEditor.prop.switchEffect') }}
+              <label v-if="!selectedPlatform.finish && !selectedPlatform.cloud" class="check"><input type="checkbox" :checked="!!selectedPlatform.closing" @change="setClosing(selectedPlatform, ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.closingDoor') }}</label>
+              <p v-if="selectedPlatform.closing" class="hint">{{ t('umbrellaEditor.closingHint') }}</p>
+              <label v-if="!selectedPlatform.closing" class="row">{{ t('umbrellaEditor.prop.switchEffect') }}
                 <select class="field" :value="selectedPlatform.switchMotion ? 'motion' : 'presence'" @change="setFlag(selectedPlatform, 'switchMotion', ($event.target as HTMLSelectElement).value === 'motion')">
                   <option value="presence">{{ t('umbrellaEditor.prop.effectPresence') }}</option>
                   <option value="motion">{{ t('umbrellaEditor.prop.effectMotion') }}</option>
                 </select>
               </label>
-              <label class="row">{{ t(selectedPlatform.switchMotion ? 'umbrellaEditor.prop.platformMoves' : 'umbrellaEditor.prop.platformShows') }}
+              <label v-if="!selectedPlatform.closing" class="row">{{ t(selectedPlatform.switchMotion ? 'umbrellaEditor.prop.platformMoves' : 'umbrellaEditor.prop.platformShows') }}
                 <select class="field" :value="selectedPlatform.whenOff ? 'off' : 'on'" @change="setFlag(selectedPlatform, 'whenOff', ($event.target as HTMLSelectElement).value === 'off')">
                   <option value="on">{{ t('umbrellaEditor.prop.whileOn') }}</option>
                   <option value="off">{{ t('umbrellaEditor.prop.whileOff') }}</option>
@@ -2693,6 +2723,26 @@ onUnmounted(() => {
               </select>
             </label>
             <p class="hint">{{ t('umbrellaEditor.gateHint') }}</p>
+          </template>
+          <template v-if="selectedTimer">
+            <label class="row">{{ t('umbrellaEditor.prop.timerSends') }}
+              <select v-model.number="selectedTimer.channel" class="field">
+                <option v-for="c in CHANNELS" :key="c" :value="c" :style="{ color: channelColor(c) }">● {{ t('umbrellaEditor.prop.channel', { n: c }) }}</option>
+              </select>
+            </label>
+            <label class="row">{{ t('umbrellaEditor.prop.timerSeconds') }}
+              <input v-model.number="selectedTimer.duration" class="field num" type="number" min="1" step="1" />
+            </label>
+            <label class="row">{{ t('umbrellaEditor.prop.timerStartedBy') }}
+              <select class="field" :value="selectedTimer.trigger ?? ''" @change="setTimerTrigger(selectedTimer, ($event.target as HTMLSelectElement).value)">
+                <option value="">{{ t('umbrellaEditor.prop.timerNoButton') }}</option>
+                <option v-for="c in timerTriggerChannels" :key="c" :value="c" :style="{ color: channelColor(c) }">● {{ t('umbrellaEditor.prop.channel', { n: c }) }}</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" :checked="!!selectedTimer.onCollision" @change="setFlag(selectedTimer, 'onCollision', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.timerOnCollision') }}</label>
+            <label class="check"><input type="checkbox" :checked="!!selectedTimer.onRelease" @change="setFlag(selectedTimer, 'onRelease', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.timerOnRelease') }}</label>
+            <label class="check"><input type="checkbox" :checked="!!selectedTimer.visible" @change="setFlag(selectedTimer, 'visible', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.timerVisible') }}</label>
+            <p class="hint">{{ t('umbrellaEditor.timerHint', { s: selectedTimer.duration }) }}</p>
           </template>
           <template v-if="selectedButton">
             <label class="row">{{ t('umbrellaEditor.prop.channelLabel') }}

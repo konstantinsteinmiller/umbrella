@@ -49,7 +49,7 @@ type Frame = Vec & { airborne: boolean; vx: number }
 /** Chad's float, simulated: from `from`, right held, on the level without its finish
  *  (he is showing the move, not winning). Null when he does not get across cleanly. */
 export const simulateChad = (l: LevelDef, from: Vec, tuning: Tuning, dt = 1 / 120): Frame[] | null => {
-  const level: LevelDef = { ...l, spawn: from, platforms: l.platforms.map((p) => ({ ...p, finish: false })), hazards: [], buttons: [] }
+  const level: LevelDef = { ...l, spawn: from, platforms: l.platforms.map((p) => ({ ...p, finish: false })), hazards: [], buttons: [], timers: [] }
   const w = createWorld(level, { w: tuning.playerWidth, h: tuning.playerHeight })
   const frames: Frame[] = []
   const start = from.x

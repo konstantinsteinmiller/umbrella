@@ -32,6 +32,8 @@ const NO_INPUT: Input = { left: false, right: false, toggle: false }
 const fork = (w: World): World => ({
   ...w,
   channels: { ...w.channels },
+  channelSpan: { ...w.channelSpan },
+  timers: w.timers.map((x) => ({ ...x })),
   buttonsDown: [...w.buttonsDown],
   buttonsUsed: w.buttonsUsed && [...w.buttonsUsed],
   starsGot: [...w.starsGot],

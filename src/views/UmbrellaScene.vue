@@ -15,7 +15,7 @@ import {
   activeTimeLimit, campaignOrder, chapterRanges, customLevels, customPlay, editorUnlocked, isJamBuild, jamPlay, keepSharedLevel,
   setEditorUnlocked, setJamTest, startLevelIndex, testLevel, testLevelLabel, type CustomPlay
 } from '@/umbrella/customLevels'
-import { checkpointBox, createWorld, gateExit, starBox, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
+import { checkpointBox, createWorld, gateExit, hudTimer, starBox, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
 import { artLayer, isKite, paintedGame } from '@/umbrella/kite'
@@ -521,6 +521,18 @@ watch(clockEl, (el) => {
   clockSizer.observe(el)
 })
 const timeLeft = ref(0)
+// ── Door timers (a level's timer elements): an LCD readout top right, shown while one is held or counting ──
+const doorTimer = ref<{ left: number; span: number; held: boolean } | null>(null)
+const doorText = computed(() => {
+  const s = Math.ceil((doorTimer.value?.left ?? 0) - 1e-6)
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+})
+const syncDoorTimer = () => {
+  const r = hudTimer(world)
+  const cur = doorTimer.value
+  if (!r) { if (cur) doorTimer.value = null; return }
+  if (!cur || cur.held !== r.held || cur.span !== r.span || Math.abs(cur.left - r.left) > 0.02) doorTimer.value = { ...r }
+}
 const clockText = computed(() => formatClock(timeLeft.value))
 const clockBlink = computed(() => timeLimit.value > 0 && timeLeft.value > 0 && timeLeft.value <= blinkFrom(timeLimit.value))
 /** Run out: 00:00, held still in red while the player plays on. */
@@ -605,6 +617,7 @@ const checkSeeThrough = (cam: { s: number; ox: number; oy: number }, now: number
     ...world.platforms,
     ...world.hazards,
     ...(L.buttons ?? []),
+    ...(L.timers ?? []),
     ...(L.gates ?? []),
     ...(L.checkpoints ?? []).map(checkpointBox),
     ...(L.stars ?? []).map(starBox)
@@ -909,6 +922,7 @@ const tick = () => {
   // Run out, the clock holds at 00:00 and the level plays on (timeStars.ts).
   runClock(input)
   const events = step(world, input, DT, tuning)
+  syncDoorTimer()
   if (umbrellaOpen.value !== world.player.open) umbrellaOpen.value = world.player.open
   onEvents(events, vyBefore)
   if (events.includes('star') || events.includes('medallion')) syncStars()
@@ -1499,6 +1513,17 @@ onUnmounted(() => {
       <span class="clock-face"><i :style="{ transform: `rotate(${360 * (1 - timeLeft / timeLimit)}deg)` }" /></span>
       <span class="clock-time">{{ clockText }}</span>
       <span class="clock-bar"><i :style="{ transform: `scaleX(${timeLeft / timeLimit})` }" /></span>
+    </div>
+    <!-- A door timer (a timer element of the level): held at its full time while the player stands on the button, counting down once he steps off. -->
+    <div
+      v-if="doorTimer && started && !introOn"
+      class="door-timer"
+      :class="{ held: doorTimer.held, low: !doorTimer.held && doorTimer.left <= 5, below: !!timeLimit }"
+      role="timer"
+      :aria-label="t('umbrella.doorTimer', { t: doorText })"
+    >
+      <span class="door-timer-icon" aria-hidden="true" />
+      <span class="door-timer-digits">{{ doorText }}</span>
     </div>
     <!-- The rating of a timed level, over the player's head when he lands on the finish. -->
     <div v-if="rating" :key="rating.key" ref="ratingEl" class="rating-card" role="status">
@@ -2190,6 +2215,29 @@ html[lang^='ar'] .chapter-title { letter-spacing: 0; }
   from { border-color: #ff6b5e; box-shadow: 0 0 0 2px #0d1226, 0 0 22px rgba(255, 90, 80, 0.9); }
   to { border-color: #c9d6ff; box-shadow: 0 0 0 2px #0d1226, 0 4px 14px rgba(0, 0, 0, 0.45); }
 }
+.door-timer {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 8px;
+  border-radius: 8px;
+  background: #1a2418;
+  border: 2px solid #c9d6ff;
+  box-shadow: 0 0 0 2px #0d1226, 0 4px 14px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.door-timer.below { top: calc(70px + env(safe-area-inset-top, 0px)); }
+.clock.below ~ .door-timer.below { top: calc(124px + env(safe-area-inset-top, 0px)); }
+.door-timer-icon { width: 14px; height: 14px; border: 2px solid #9dffa4; border-radius: 3px; box-sizing: border-box; }
+.door-timer-digits { font: 800 24px ui-monospace, 'Courier New', monospace; letter-spacing: 0.06em; color: #9dffa4; text-shadow: 0 0 8px rgba(157, 255, 164, 0.7); font-variant-numeric: tabular-nums; }
+.door-timer.held .door-timer-digits { animation: door-timer-hold 1s steps(2, jump-none) infinite; }
+.door-timer.low { border-color: #ff6b5e; }
+.door-timer.low .door-timer-digits { color: #ff6b5e; text-shadow: 0 0 8px rgba(255, 107, 94, 0.7); }
+@keyframes door-timer-hold { 50% { opacity: 0.55; } }
 @keyframes clock-shake { 0%, 100% { rotate: 0deg; } 25% { rotate: -2deg; } 75% { rotate: 2deg; } }
 
 .rating-card { position: fixed; left: 0; top: 0; z-index: 7; pointer-events: none; will-change: transform; }

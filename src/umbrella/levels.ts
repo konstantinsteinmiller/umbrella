@@ -77,6 +77,9 @@ export interface PlatformDef {
   /** With a `channel`: the channel switches the platform's MOTION, not its presence. It is always there and solid, glides
    *  while the channel is on (or off, with `whenOff`) and stands still otherwise, taking up again where it stopped. */
   switchMotion?: boolean
+  /** A countdown door (with a `channel`, not turned or moving): shut while the channel is off; when it turns on the door
+   *  swings open (nothing left of it) and then lowers from its top edge as the countdown runs, shut again at 0. */
+  closing?: boolean
 }
 
 /** A floor button: touching it switches its channel. Without `duration` each press
@@ -92,6 +95,31 @@ export interface ButtonDef {
   duration?: number
   /** One-time only: it works the first time it is pressed and never again (a toggle stays as that press left it). */
   once?: boolean
+}
+
+/** A timer: a box that counts down `duration` s and holds its output `channel` on meanwhile (off again at 0), so a door,
+ *  platform or current on that channel is open / active until the time is up. It starts when the `trigger` channel (a
+ *  button's) turns on, and, with `onCollision`, when the player touches the box. Starting it again restarts the count. */
+export interface TimerDef {
+  /** Collision inset in px: the hitbox is this much smaller than the drawing on every side (negative: bigger). Absent: the drawing. */
+  inset?: number
+  x: number
+  y: number
+  w: number
+  h: number
+  /** The channel it sends: on while counting down. */
+  channel: number
+  /** Countdown length in seconds. */
+  duration: number
+  /** A button channel that starts the countdown when it turns on (absent: no button starts it). */
+  trigger?: number
+  /** The player touching the timer's box starts it. */
+  onCollision?: boolean
+  /** The countdown begins when the player LEAVES: while he stands on the trigger button (or in the box, with
+   *  `onCollision`) the channel stays on, the door stays open and the timer shows its full time. Absent: it counts at once. */
+  onRelease?: boolean
+  /** Drawn in the game (a box and a clock). Absent: invisible in play; the editor always shows it. */
+  visible?: boolean
 }
 
 /** A checkpoint flag standing on (x, y): touch it and a death respawns you there. */
@@ -241,6 +269,7 @@ export interface LevelDef {
   winds: WindDef[]
   hazards?: HazardDef[]
   buttons?: ButtonDef[]
+  timers?: TimerDef[]
   checkpoints?: CheckpointDef[]
   stars?: StarDef[]
   /** The level's one medallion coin (absent: none). */

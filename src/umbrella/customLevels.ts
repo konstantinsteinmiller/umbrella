@@ -68,6 +68,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
     (h.angle === undefined || num(h.angle)) &&
     (h.bounce === undefined || (num(h.bounce) && h.bounce > 0))))) return null
   if (l.buttons && (!Array.isArray(l.buttons) || !l.buttons.every((b) => isRect(b) && num(b.channel) && (b.duration === undefined || (num(b.duration) && b.duration > 0))))) return null
+  if (l.timers && (!Array.isArray(l.timers) || !l.timers.every((m) => isRect(m) && num(m.channel) && num(m.duration) && m.duration > 0 && (m.trigger === undefined || num(m.trigger)) && (m.onCollision === undefined || typeof m.onCollision === 'boolean') && (m.onRelease === undefined || typeof m.onRelease === 'boolean') && (m.visible === undefined || typeof m.visible === 'boolean')))) return null
   if (l.checkpoints && (!Array.isArray(l.checkpoints) || !l.checkpoints.every((c) => !!c && num(c.x) && num(c.y)))) return null
   if (l.stars && (!Array.isArray(l.stars) || !l.stars.every((s) => !!s && num(s.x) && num(s.y) && (s.shape === undefined || COLLECT_SHAPES.includes(s.shape))))) return null
   if (l.medallion !== undefined && (!l.medallion || !num(l.medallion.x) || !num(l.medallion.y) || !MEDALLION_COLORS.includes(l.medallion.color))) return null
@@ -82,7 +83,7 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.platforms.some((p) => p.channel !== undefined && !num(p.channel))) return null
   if (l.platforms.some((p) => p.angle !== undefined && !num(p.angle))) return null
   const badInset = (list: { inset?: number }[] | undefined) => !!list && list.some((e) => e.inset !== undefined && !num(e.inset))
-  if (badInset(l.platforms) || badInset(l.winds) || badInset(l.hazards) || badInset(l.buttons) || badInset(l.gates)) return null
+  if (badInset(l.platforms) || badInset(l.winds) || badInset(l.hazards) || badInset(l.buttons) || badInset(l.timers) || badInset(l.gates)) return null
   if (l.winds.some((w) => w.switched !== undefined && (typeof w.switched !== 'object' || !w.switched ||
     (w.switched.speed !== undefined && (!num(w.switched.speed) || w.switched.speed < 0)) ||
     (w.switched.dir !== undefined && !['up', 'down', 'left', 'right'].includes(w.switched.dir))))) return null

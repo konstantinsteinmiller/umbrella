@@ -29,6 +29,8 @@ export interface Platform extends PlatformDef {
   dy: number
   /** A motion-switched platform's own movement clock: it only runs while the platform moves. */
   mt?: number
+  /** A countdown door's full height (its `h` shrinks while it is open and lowering). */
+  fullH?: number
 }
 
 export interface Hazard extends HazardDef {
@@ -112,6 +114,10 @@ export interface World {
   channels: Record<number, number>
   /** Buttons the player touched last tick: a press is the first touch. */
   buttonsDown: boolean[]
+  /** Per channel: how long its current timed run lasts (s), so a countdown door knows how far along it is. */
+  channelSpan: Record<number, number>
+  /** Per timer: its trigger channel was on last tick, and the player was inside last tick (a start is the first touch). */
+  timers: { prevIn: boolean; down: boolean; held?: boolean }[]
   /** Per button: a one-time button has been pressed already (later presses do nothing). */
   buttonsUsed?: boolean[]
   /** The last checkpoint touched (index into level.checkpoints), or -1. */
@@ -141,9 +147,38 @@ export const channelOn = (w: World, channel: number | undefined): boolean =>
 /** A removable cloud blocks nothing: it is only puffs the player wipes away. */
 export const isVanishCloud = (p: PlatformDef): boolean => !!p.vanish && !!p.cloud && !p.finish
 
+/** What a timer shows: seconds left, its full length, and whether it is still held (not yet counting). */
+export interface TimerReadout { left: number; span: number; held: boolean }
+export const timerReadout = (w: World, i: number): TimerReadout | null => {
+  const tm = w.level.timers?.[i]
+  if (!tm || !channelOn(w, tm.channel)) return null
+  const until = w.channels[tm.channel] ?? 0
+  if (!Number.isFinite(until)) return w.timers[i]?.held ? { left: tm.duration, span: tm.duration, held: true } : null
+  return { left: Math.max(0, until - w.time), span: tm.duration, held: false }
+}
+/** The one timer the HUD shows: the held ones at full time, else the one that runs out first. */
+export const hudTimer = (w: World): TimerReadout | null => {
+  let best: TimerReadout | null = null
+  for (let i = 0; i < (w.level.timers?.length ?? 0); i++) {
+    const r = timerReadout(w, i)
+    if (r && (!best || (r.held && !best.held) || (r.held === best.held && r.left < best.left))) best = r
+  }
+  return best
+}
+
+/** How shut a countdown door is: 1 when its channel is off, 0 when it just opened, back to 1 as the countdown runs out. */
+export const doorShut = (w: World, p: PlatformDef): number => {
+  if (!channelOn(w, p.channel)) return 1
+  const left = (w.channels[p.channel!] ?? 0) - w.time
+  const span = w.channelSpan[p.channel!]
+  return span && Number.isFinite(left) ? Math.max(0, Math.min(1, 1 - left / span)) : 0
+}
+
 /** A switched platform is solid (and drawn) only while its channel says so. */
 export const platformActive = (w: World, p: PlatformDef): boolean =>
-  !isVanishCloud(p) && (p.channel === undefined || !!p.switchMotion || channelOn(w, p.channel) !== !!p.whenOff)
+  p.closing && p.channel !== undefined
+    ? p.h > 0.5
+    : !isVanishCloud(p) && (p.channel === undefined || !!p.switchMotion || channelOn(w, p.channel) !== !!p.whenOff)
 
 /** Is this platform moving right now? Only a motion-switched one ever stands still (its channel decides). */
 export const platformMoving = (w: World, p: PlatformDef): boolean =>
@@ -280,7 +315,7 @@ const freshPuffs = (level: LevelDef, kept?: Record<number, number[]>): Record<nu
   return out
 }
 export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }, checkpoint = -1, opts: WorldOptions = {}): World => {
-  const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0 }))
+  const platforms = level.platforms.map((p) => ({ ...p, dx: 0, dy: 0, ...(p.closing && p.channel !== undefined && !p.motion ? { fullH: p.h } : {}) }))
   for (const p of platforms) placeMover(p, 0)
   const hazards = (level.hazards ?? []).map((h) => ({ ...h, dx: 0, dy: 0 }))
   for (const h of hazards) placeMover(h, 0)
@@ -293,6 +328,8 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
     : -1
   return {
     channels: {},
+    channelSpan: {},
+    timers: (level.timers ?? []).map(() => ({ prevIn: false, down: false })),
     buttonsDown: (level.buttons ?? []).map(() => false),
     buttonsUsed: (level.buttons ?? []).map(() => false),
     checkpoint: cp ? checkpoint : -1,
@@ -580,6 +617,11 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   if (w.phase === 'play' && clashMines(w)) events.push('mine-clash')
   // Timed channels run out.
   for (const [c, until] of Object.entries(w.channels)) if (until <= w.time && until > 0) w.channels[Number(c)] = 0
+  // Countdown doors: open when their channel turns on, lowering from the top edge until it runs out.
+  for (const p of w.platforms) {
+    if (p.fullH === undefined) continue
+    p.h = p.fullH * doorShut(w, p)
+  }
   // Harmless enemies are solid: you bump into and stand on them like platforms.
   // A switched-off platform stays in the list (indices stay stable) but is skipped.
   const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => contactOf(h) === 'solid')].map(colOf)
@@ -904,11 +946,39 @@ pl.standing = standing
     const down = overlaps(pl.x, pl.y, pl.w, pl.h, colOf(b))
     if (down && !w.buttonsDown[i] && !(b.once && w.buttonsUsed?.[i])) {
       ;(w.buttonsUsed ??= [])[i] = true
-      if (b.duration) w.channels[b.channel] = w.time + b.duration
+      if (b.duration) { w.channels[b.channel] = w.time + b.duration; w.channelSpan[b.channel] = b.duration }
       else w.channels[b.channel] = channelOn(w, b.channel) ? 0 : Infinity
       events.push('button')
     }
     w.buttonsDown[i] = down
+  }
+  // Timers: a button channel turning on, or (if set) the player touching the box, starts the countdown on its channel.
+  const timers = w.level.timers ?? []
+  for (let i = 0; i < timers.length; i++) {
+    const tm = timers[i]!
+    const st = (w.timers[i] ??= { prevIn: false, down: false })
+    const own = tm.trigger !== undefined && tm.trigger !== tm.channel
+    const fed = own && channelOn(w, tm.trigger)
+    const down = !!tm.onCollision && overlaps(pl.x, pl.y, pl.w, pl.h, colOf(tm))
+    if (tm.onRelease) {
+      // Held open while a trigger button is stood on (or the box is touched); the countdown starts on stepping off.
+      const held = down || (own && buttons.some((b, k) => b.channel === tm.trigger && w.buttonsDown[k]))
+      if (held) {
+        if (!st.held) events.push('button')
+        w.channels[tm.channel] = Infinity
+        w.channelSpan[tm.channel] = 0
+      } else if (st.held) {
+        w.channels[tm.channel] = w.time + tm.duration
+        w.channelSpan[tm.channel] = tm.duration
+      }
+      st.held = held
+    } else if ((fed && !st.prevIn) || (down && !st.down)) {
+      w.channels[tm.channel] = w.time + tm.duration
+      w.channelSpan[tm.channel] = tm.duration
+      events.push('button')
+    }
+    st.prevIn = fed
+    st.down = down
   }
   // Checkpoints: the last one touched is where a death brings you back.
   const cps = w.level.checkpoints ?? []
