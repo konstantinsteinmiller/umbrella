@@ -423,38 +423,14 @@ export const drawPuffCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: 
 }
 
 let scratch: HTMLCanvasElement | null = null
-/** A removable cloud that looks exactly like a normal one. It is drawn by `body` (the normal cloud's own drawing) into a scratch
- *  canvas, then every touched puff's spot is erased with a hole that opens over PUFF_FADE s (the cloud's overhang at the
- *  edges goes with its edge cells), so the touched part melts away and the rest stays as it was. Untouched: drawn directly. */
-export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number }, clocks: number[] | undefined, time: number, body: (c: CanvasRenderingContext2D) => void) => {
-  const layout = puffLayout(p.w, p.h)
-  const touched = layout.some((_, k) => (clocks?.[k] ?? Infinity) !== Infinity)
-  if (!touched || typeof document === 'undefined') { body(ctx); return }
-  const wisps: { pf: Puff; u: number; k: number }[] = []
-  const holes: { cx: number; cy: number; r: number; e: number; edge: { l: boolean; r: boolean; t: boolean; b: boolean } }[] = []
-  for (let k = 0; k < layout.length; k++) {
-    const pf = layout[k]!
-    const el = time - (clocks?.[k] ?? Infinity)
-    if (el === -Infinity || el >= 0 && el >= PUFF_FADE) { holes.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1, edge: { l: pf.x < 1, r: pf.x + pf.w > p.w - 1, t: pf.y < 1, b: pf.y + pf.h > p.h - 1 } }); continue }
-    if (el <= 0) continue
-    const u = el / PUFF_FADE
-    wisps.push({ pf, u, k })
-    holes.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1 - (1 - u) * (1 - u) * (1 - u), edge: { l: pf.x < 1, r: pf.x + pf.w > p.w - 1, t: pf.y < 1, b: pf.y + pf.h > p.h - 1 } })
-  }
-  if (holes.length === layout.length && holes.every((h) => h.e >= 1)) return // all gone
-  const PAD = 40
-  const m = ctx.getTransform()
-  const sc = Math.max(0.5, Math.hypot(m.a, m.b))
-  const cw = Math.ceil((p.w + PAD * 2) * sc)
-  const ch = Math.ceil((p.h + PAD * 2) * sc)
-  scratch ??= document.createElement('canvas')
-  if (scratch.width < cw || scratch.height < ch) { scratch.width = Math.max(scratch.width, cw); scratch.height = Math.max(scratch.height, ch) }
-  const g = scratch.getContext('2d')
-  if (!g) { body(ctx); return }
-  g.setTransform(1, 0, 0, 1, 0, 0)
-  g.clearRect(0, 0, scratch.width, scratch.height)
-  g.setTransform(sc, 0, 0, sc, (PAD - p.x) * sc, (PAD - p.y) * sc)
-  body(g)
+interface CloudHole { cx: number; cy: number; r: number; e: number; edge: { l: boolean; r: boolean; t: boolean; b: boolean } }
+/** The cloud as it stands once every finished puff is gone, baked once per cloud (rebuilt only when another puff finishes). */
+const settledBake = new WeakMap<object, { key: string; canvas: HTMLCanvasElement }>()
+const CLOUD_PAD = 40
+const MAX_BAKE_PIXELS = 12_000_000
+
+/** Erase the holes from a canvas already holding the cloud (its origin at p.x, p.y, PAD margin). */
+const eraseCloudHoles = (g: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number }, holes: CloudHole[]) => {
   g.globalCompositeOperation = 'destination-out'
   for (const h of holes) {
     const x = p.x + h.cx
@@ -474,7 +450,7 @@ export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: numb
     // The overhang beyond an edge cell fades out only late, so no hard stripe shows mid-animation.
     g.fillStyle = `rgba(0,0,0,${Math.max(0, Math.min(1, (h.e - 0.55) / 0.45))})`
     // An edge cell also takes the cloud's overhang beyond the box with it.
-    const out = PAD * h.e
+    const out = CLOUD_PAD * h.e
     const cell = h.r * 0.9
     if (h.edge.t) g.fillRect(x - cell, p.y - out, cell * 2, out + h.cy)
     if (h.edge.b) g.fillRect(x - cell, y, cell * 2, p.y + p.h - y + out)
@@ -482,7 +458,81 @@ export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: numb
     if (h.edge.r) g.fillRect(x, y - cell, p.x + p.w - x + out, cell * 2)
   }
   g.globalCompositeOperation = 'source-over'
-  ctx.drawImage(scratch, 0, 0, cw, ch, p.x - PAD, p.y - PAD, cw / sc, ch / sc)
+}
+
+/** A removable cloud that looks exactly like a normal one. `body` (the normal cloud's own drawing, returning false when it could
+ *  not paint its final look yet) is drawn once into an offscreen image and every finished puff's spot is erased from it, so a
+ *  settled cloud costs one drawImage per frame however big it is. Only the puffs fading right now (PUFF_FADE s) are erased per
+ *  frame, from a copy of that image; the rest of the cloud stays as it was. Untouched: drawn directly. */
+export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number; outline?: boolean }, clocks: number[] | undefined, time: number, body: (c: CanvasRenderingContext2D) => boolean | void) => {
+  const layout = puffLayout(p.w, p.h)
+  const touched = layout.some((_, k) => (clocks?.[k] ?? Infinity) !== Infinity)
+  if (!touched || typeof document === 'undefined') { body(ctx); return }
+  const wisps: { pf: Puff; u: number; k: number }[] = []
+  const gone: CloudHole[] = []
+  const fading: CloudHole[] = []
+  let goneKey = ''
+  const edgeOf = (pf: Puff) => ({ l: pf.x < 1, r: pf.x + pf.w > p.w - 1, t: pf.y < 1, b: pf.y + pf.h > p.h - 1 })
+  for (let k = 0; k < layout.length; k++) {
+    const pf = layout[k]!
+    const el = time - (clocks?.[k] ?? Infinity)
+    if (el === -Infinity || el >= 0 && el >= PUFF_FADE) { gone.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1, edge: edgeOf(pf) }); goneKey += '1'; continue }
+    goneKey += '0'
+    if (el <= 0) continue
+    const u = el / PUFF_FADE
+    wisps.push({ pf, u, k })
+    fading.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1 - (1 - u) * (1 - u) * (1 - u), edge: edgeOf(pf) })
+  }
+  if (gone.length === layout.length) return // all gone
+  const m = ctx.getTransform()
+  const sc = Math.max(0.5, Math.hypot(m.a, m.b))
+  const cw = Math.ceil((p.w + CLOUD_PAD * 2) * sc)
+  const ch = Math.ceil((p.h + CLOUD_PAD * 2) * sc)
+  const paintInto = (g: CanvasRenderingContext2D): boolean => {
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.clearRect(0, 0, g.canvas.width, g.canvas.height)
+    g.setTransform(sc, 0, 0, sc, (CLOUD_PAD - p.x) * sc, (CLOUD_PAD - p.y) * sc)
+    return body(g) !== false
+  }
+  if (cw * ch > MAX_BAKE_PIXELS) {
+    // Too big to keep an image of: the old per-frame route (rare).
+    scratch ??= document.createElement('canvas')
+    if (scratch.width < cw || scratch.height < ch) { scratch.width = Math.max(scratch.width, cw); scratch.height = Math.max(scratch.height, ch) }
+    const g = scratch.getContext('2d')
+    if (!g) { body(ctx); return }
+    paintInto(g)
+    eraseCloudHoles(g, p, gone.concat(fading))
+    ctx.drawImage(scratch, 0, 0, cw, ch, p.x - CLOUD_PAD, p.y - CLOUD_PAD, cw / sc, ch / sc)
+    for (const d of wisps) drawDispersal(ctx, d.pf, p.x, p.y, d.u, d.k, FG, '#dfe8f0', false)
+    return
+  }
+  const key = `${goneKey}|${sc}|${p.x},${p.y},${p.w},${p.h},${p.outline ? 1 : 0}`
+  let base = settledBake.get(p)
+  if (!base || base.key !== key) {
+    const canvas = base?.canvas ?? document.createElement('canvas')
+    canvas.width = cw
+    canvas.height = ch
+    const g = canvas.getContext('2d')
+    if (!g) { body(ctx); return }
+    const final = paintInto(g)
+    eraseCloudHoles(g, p, gone)
+    base = { key: final ? key : '', canvas }
+    settledBake.set(p, base)
+  }
+  if (!fading.length) {
+    ctx.drawImage(base.canvas, 0, 0, cw, ch, p.x - CLOUD_PAD, p.y - CLOUD_PAD, cw / sc, ch / sc)
+    return
+  }
+  scratch ??= document.createElement('canvas')
+  if (scratch.width < cw || scratch.height < ch) { scratch.width = Math.max(scratch.width, cw); scratch.height = Math.max(scratch.height, ch) }
+  const g = scratch.getContext('2d')
+  if (!g) { ctx.drawImage(base.canvas, 0, 0, cw, ch, p.x - CLOUD_PAD, p.y - CLOUD_PAD, cw / sc, ch / sc); return }
+  g.setTransform(1, 0, 0, 1, 0, 0)
+  g.clearRect(0, 0, cw, ch)
+  g.drawImage(base.canvas, 0, 0)
+  g.setTransform(sc, 0, 0, sc, (CLOUD_PAD - p.x) * sc, (CLOUD_PAD - p.y) * sc)
+  eraseCloudHoles(g, p, fading)
+  ctx.drawImage(scratch, 0, 0, cw, ch, p.x - CLOUD_PAD, p.y - CLOUD_PAD, cw / sc, ch / sc)
   for (const d of wisps) drawDispersal(ctx, d.pf, p.x, p.y, d.u, d.k, FG, '#dfe8f0', false)
 }
 
@@ -1135,13 +1185,14 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     if (isVanishCloud(p) && p.camouflage) {
       // Looks like the normal cloud, painted build included; only touching it shows it melts.
       drawCamouflagedCloud(ctx, p, w.puffs[w.platforms.indexOf(p)], w.time, (c) => {
-        if (artLayer && kiteArt.platform?.(c, p, true, null)) return
+        if (artLayer && kiteArt.platform?.(c, p, true, null)) return true
         c.fillStyle = FG
         c.strokeStyle = '#000'
         c.lineJoin = 'round'
         cloudPath(c, p.x, p.y, p.w, p.h)
         c.fill()
         if (p.outline) { c.lineWidth = 1; c.stroke() }
+        return !artLayer // a painted build's art not loaded yet: this is only the stand-in, so it is not kept
       })
       return
     }
