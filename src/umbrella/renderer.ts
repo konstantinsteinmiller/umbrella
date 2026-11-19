@@ -339,6 +339,37 @@ export const drawButton = (ctx: CanvasRenderingContext2D, b: ButtonDef, on: bool
   }
 }
 
+/** A door: a lintel across the top and, hanging from it, a door of cross-rungs that is as tall as `p.h` now (it lowers from
+ *  the top as the countdown runs); the gap still to close is a dashed outline down to its floor slot. */
+export const drawDoor = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number }, full: number, col: string) => {
+  ctx.save()
+  // The slot in the floor it closes into.
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'
+  ctx.fillRect(p.x - 6, p.y + full - 2, p.w + 12, 4)
+  if (p.h < full - 0.5) {
+    ctx.globalAlpha = 0.5
+    ctx.strokeStyle = col
+    ctx.lineWidth = 2
+    ctx.setLineDash([8, 6])
+    ctx.strokeRect(p.x + 1, p.y + p.h + 1, p.w - 2, full - p.h - 2)
+    ctx.setLineDash([])
+    ctx.globalAlpha = 1
+  }
+  if (p.h > 1) {
+    ctx.fillStyle = col
+    ctx.fillRect(p.x, p.y, p.w, p.h)
+    // Cross-rungs, like the sketch's ladder-like door.
+    ctx.fillStyle = BG
+    for (let y = p.y + 14; y < p.y + p.h - 4; y += 22) ctx.fillRect(p.x + 5, y, p.w - 10, 5)
+    ctx.fillStyle = FG
+    ctx.fillRect(p.x, p.y + p.h - 5, p.w, 5)
+  }
+  // The lintel the door slides out of.
+  ctx.fillStyle = FG
+  ctx.fillRect(p.x - 12, p.y - 10, p.w + 24, 10)
+  ctx.restore()
+}
+
 /** A timer: a dashed box in its channel's colour (the player's trigger zone) with a small clock and the time it counts.
  *  `read`: the seconds left while it runs (`held`: waiting for the player to step off); absent: idle, showing its full time. */
 export const drawTimer = (ctx: CanvasRenderingContext2D, tm: TimerDef, read: { left: number; span: number; held: boolean } | null, time: number) => {
@@ -1242,6 +1273,7 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
       drawPuffCloud(ctx, p, w.puffs[i], w.time, paintedGame ? '#fff8e8' : '#ffffff', paintedGame ? '#e8d9b8' : '#cfdcea')
       return
     }
+    if (p.door && p.fullH !== undefined) { drawDoor(ctx, p, p.fullH, channelColor(p.channel!)); return }
     const drawn = artLayer ? kiteArt.platform?.(ctx, p, platformActive(w, p), p.channel === undefined ? null : channelColor(p.channel)) : false
     const painted = !!drawn
     // The kite build dresses its painted finish instead of labelling it, and so does the lantern

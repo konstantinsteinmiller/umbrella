@@ -87,7 +87,7 @@ import {
 import { historyKey, localSave, localSaves, localVersion, localVersions, mergeSaves, mergeVersions, SAVE_LIMIT, type HistoryVersion, type SaveVersion } from '@/umbrella/levelHistory'
 
 type Tool =
-  | 'select' | 'platform' | 'cloud' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'timer' | 'star' | 'medallion' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
+  | 'select' | 'platform' | 'cloud' | 'finish' | 'spawn' | 'checkpoint' | 'button' | 'timer' | 'door' | 'star' | 'medallion' | 'gate' | 'sign' | 'sign-float' | 'arrow' | 'picture' | 'lesson'
   | 'wind-up' | 'wind-down' | 'wind-left' | 'wind-right' | 'super'
   | 'pillar' | 'mine' | 'fan' | 'spikes-up' | 'spikes-down'
 
@@ -146,7 +146,8 @@ const TOOL_GROUPS: { id: string; tools: { id: Tool; icon: string; keys: Keys; /*
   ] },
   { id: 'switches', tools: [
     { id: 'button', icon: '◉', keys: { key: 't' } },
-    { id: 'timer', icon: '⏱', keys: { key: 'j' } }
+    { id: 'timer', icon: '⏱', keys: { key: 'j' } },
+    { id: 'door', icon: '🚪', keys: { key: 'l' } }
   ] }
 ]
 const TOOLS = TOOL_GROUPS.flatMap((g) => g.tools)
@@ -529,6 +530,13 @@ const place = (t: Tool, a: Vec, b: Vec) => {
       const list = (L.buttons ??= [])
       list.push({ x: snapV(a.x - 30), y: snapV(a.y) - 14, w: 60, h: 14, channel: 1 })
       sel = { type: 'entity', group: 'buttons', i: list.length - 1 }
+      break
+    }
+    case 'door': {
+      // Its foot on the click (the floor), standing up: wired to the first timer's channel when there is one.
+      const ch = L.timers?.[0]?.channel ?? 1
+      L.platforms.push({ x: snapV(a.x - 20), y: snapV(a.y) - 200, w: 40, h: 200, channel: ch, closing: true, door: true })
+      sel = { type: 'entity', group: 'platforms', i: L.platforms.length - 1 }
       break
     }
     case 'timer': {
@@ -1418,7 +1426,7 @@ const setFlag = (ent: object, key: 'super' | 'harmless' | 'closing' | 'visible' 
 
 // ── Switches: platforms and currents on a button channel ──
 const setChannel = (ent: PlatformDef | WindDef, v: string) => {
-  if (v === '') { delete ent.channel; delete (ent as PlatformDef).closing; delete (ent as PlatformDef).whenOff; delete (ent as PlatformDef).switchMotion; delete (ent as WindDef).switched; return }
+  if (v === '') { delete ent.channel; delete (ent as PlatformDef).closing; delete (ent as PlatformDef).door; delete (ent as PlatformDef).whenOff; delete (ent as PlatformDef).switchMotion; delete (ent as WindDef).switched; return }
   ent.channel = Number(v)
   if ('dir' in ent) ent.switched ??= { speed: 0 }
 }
@@ -1480,7 +1488,7 @@ const selectedKind = computed(() => {
   if (!s) return ''
   if (s.group === 'hazards') return (s.ent as HazardDef).kind
   if (s.group === 'winds') return (s.ent as WindDef).super ? 'super' : 'wind'
-  if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : (s.ent as PlatformDef).cloud ? 'cloud' : 'platform'
+  if (s.group === 'platforms') return (s.ent as PlatformDef).finish ? 'finish' : (s.ent as PlatformDef).door ? 'door' : (s.ent as PlatformDef).cloud ? 'cloud' : 'platform'
   return s.group === 'buttons' ? 'button' : s.group === 'timers' ? 'timer' : s.group === 'gates' ? 'gate' : s.group === 'signs' ? ((s.ent as SignDef).kind === 'float' ? 'sign-float' : 'sign') : s.group === 'arrows' ? 'arrow' : s.group === 'pictures' ? 'picture' : s.group === 'lessons' ? 'lesson' : s.group === 'stars' ? 'star' : s.group === 'medallions' ? 'medallion' : 'checkpoint'
 })
 /** The campaign levels a gate can lead to, for its dropdown. */

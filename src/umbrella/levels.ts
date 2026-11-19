@@ -80,6 +80,8 @@ export interface PlatformDef {
   /** A countdown door (with a `channel`, not turned or moving): shut while the channel is off; when it turns on the door
    *  swings open (nothing left of it) and then lowers from its top edge as the countdown runs, shut again at 0. */
   closing?: boolean
+  /** Drawn as a door: a lintel across the top and a rung-ed door body hanging from it (with `closing`). */
+  door?: boolean
 }
 
 /** A floor button: touching it switches its channel. Without `duration` each press
