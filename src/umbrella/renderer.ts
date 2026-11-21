@@ -496,6 +496,7 @@ export const drawPuffCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: 
 }
 
 let scratch: HTMLCanvasElement | null = null
+let holeMask: HTMLCanvasElement | null = null
 interface CloudHole { cx: number; cy: number; r: number; e: number; edge: { l: boolean; r: boolean; t: boolean; b: boolean } }
 /** The cloud as it stands once every finished puff is gone, baked once per cloud (rebuilt only when another puff finishes). */
 const settledBake = new WeakMap<object, { key: string; canvas: HTMLCanvasElement }>()
@@ -512,24 +513,40 @@ const eraseCloudHoles = (g: CanvasRenderingContext2D, p: { x: number; y: number;
     // The cloud itself fades away in place (its alpha drops, nothing shrinks or drifts), as one single layer.
     const R = h.r * 1.35
     const a = Math.max(0, Math.min(1, h.e))
-    if (a > 0.003) {
-      const eraser = g.createRadialGradient(x, y, 0, x, y, R)
-      eraser.addColorStop(0, `rgba(0,0,0,${a})`)
-      eraser.addColorStop(0.55, `rgba(0,0,0,${a})`)
+    if (a <= 0.003) continue
+    // The hole's whole shape is built at full strength on a mask, then taken out once at the hole's own strength,
+    // so overlapping blobs never stack into darker bands while it fades.
+    holeMask ??= document.createElement('canvas')
+    if (holeMask.width !== g.canvas.width || holeMask.height !== g.canvas.height) { holeMask.width = g.canvas.width; holeMask.height = g.canvas.height }
+    const mg = holeMask.getContext('2d')
+    if (!mg) continue
+    mg.setTransform(1, 0, 0, 1, 0, 0)
+    mg.clearRect(0, 0, holeMask.width, holeMask.height)
+    mg.setTransform(g.getTransform())
+    const blob = (bx: number, by: number) => {
+      const eraser = mg.createRadialGradient(bx, by, 0, bx, by, R)
+      eraser.addColorStop(0, 'rgba(0,0,0,1)')
+      eraser.addColorStop(0.45, 'rgba(0,0,0,0.92)')
+      eraser.addColorStop(0.75, 'rgba(0,0,0,0.4)')
       eraser.addColorStop(1, 'rgba(0,0,0,0)')
-      g.fillStyle = eraser
-      g.beginPath()
-      g.arc(x, y, R, 0, Math.PI * 2)
-      g.fill()
+      mg.fillStyle = eraser
+      mg.fillRect(bx - R, by - R, R * 2, R * 2)
     }
-    g.fillStyle = `rgba(0,0,0,${a})`
-    // An edge cell also takes the cloud's overhang beyond the box with it.
+    blob(x, y)
+    // An edge cell also takes the cloud's overhang beyond the box with it: a chain of the same soft blobs reaching outward
+    // (round and feathered, never a rectangle).
     const out = CLOUD_PAD
-    const cell = h.r * 0.9
-    if (h.edge.t) g.fillRect(x - cell, p.y - out, cell * 2, out + h.cy)
-    if (h.edge.b) g.fillRect(x - cell, y, cell * 2, p.y + p.h - y + out)
-    if (h.edge.l) g.fillRect(p.x - out, y - cell, out + h.cx, cell * 2)
-    if (h.edge.r) g.fillRect(x, y - cell, p.x + p.w - x + out, cell * 2)
+    const step = R * 0.6
+    if (h.edge.t) for (let d = step; d <= h.cy + out; d += step) blob(x, y - d)
+    if (h.edge.b) for (let d = step; d <= p.h - h.cy + out; d += step) blob(x, y + d)
+    if (h.edge.l) for (let d = step; d <= h.cx + out; d += step) blob(x - d, y)
+    if (h.edge.r) for (let d = step; d <= p.w - h.cx + out; d += step) blob(x + d, y)
+    const t = g.getTransform()
+    g.setTransform(1, 0, 0, 1, 0, 0)
+    g.globalAlpha = a
+    g.drawImage(holeMask, 0, 0)
+    g.globalAlpha = 1
+    g.setTransform(t)
   }
   g.globalCompositeOperation = 'source-over'
 }

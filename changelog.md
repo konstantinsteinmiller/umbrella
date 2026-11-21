@@ -1,6 +1,7 @@
 Umbrella — changelog (newest first)
 
 == Revision 19 — 2026-11-21 ==
+- [x] The camouflaged removable cloud's melting holes are soft round shapes again: no more rectangular cuts or darker bands at the cloud's edges while it fades.
 - [x] Picture boards turn: a rotation handle on the selected board (like platforms), a Rotation slider / number box and a 0° reset in its properties (`angle` in the level); a hung board keeps its ropes and sways as before.
 - [x] Platforms can be One-way (jump up through it from below or the side; it only stops a fall from above) and / or Drop-through (opening the umbrella while standing on it sinks the player through) — `oneWay` and `dropThrough` in the level; plain upright platforms only (turning one clears both). New strings in all 21 languages.
 - [x] Level sound effects (designer): upload an .ogg (up to 250 kB and 12 s) per game event under Sound effects in the level properties — open, close, land, finish, splat, hit, out of bounds, umbrella break, button, checkpoint, collectible, medallion, cloud melting, Bonus Room — to replace the built-in sound on that level (`sounds` in the level: event → file id). Files go to the levels server (POST /sounds, editor password; kept in the browser and uploaded on the next sync when offline) and are baked into builds with the levels (public/level-sounds). English only (designer tools).
