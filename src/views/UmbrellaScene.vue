@@ -43,7 +43,8 @@ import { ARRIVE_TIME, drawWarp, startWarp, warpPosition, warpTime, type Warp } f
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
 import { createEnemyCues, ENEMY_BED_IDLE } from '@/umbrella/enemySounds'
-import { playEnemySfx, playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience, updateEnemyBed } from '@/umbrella/audio'
+import { levelSoundBuffer, preloadLevelSounds, type LevelSoundSlot } from '@/umbrella/levelSounds'
+import { playEnemySfx, playLevelBuffer, playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience, updateEnemyBed } from '@/umbrella/audio'
 import { AMBIENCE_IDLE, type AmbienceState } from '@/umbrella/soundKit'
 import { getState, setState } from '@/use/useEpicState'
 import { mobileCheck } from '@/utils/function'
@@ -541,6 +542,7 @@ const clockOver = computed(() => timeLimit.value > 0 && timeLeft.value <= 0)
 const timeStarBest = ref<Record<number, number>>(getState<Record<number, number>>('umb_time_stars', {}))
 const startClock = () => {
   timeLimit.value = activeTimeLimit(levelDef(), { test: !!testing })
+  preloadLevelSounds(levelDef())
   timeLeft.value = timeLimit.value
   clockArmed = false
   rating.value = null
@@ -738,10 +740,29 @@ const STRIDE = 64
 let stepDist = 0
 let danceHops = 0
 
+/** The level's own uploaded sound for a game event (levelSounds.ts), played instead of the built-in one; true when it played. */
+const playOwnSound = (slot: LevelSoundSlot, pan: number): boolean => {
+  const id = world.level.sounds?.[slot]
+  if (!id) return false
+  const buf = levelSoundBuffer(id)
+  if (!buf) return false // still loading or unavailable: the built-in sound stands in
+  playLevelBuffer(buf, pan)
+  return true
+}
 const onEvents = (events: GameEvent[], vyBefore: number) => {
   const pan = playerPan()
   const pl = world.player
   for (const e of events) {
+    // A designer's uploaded sound replaces the built-in one for these events (the effects around it still run).
+    if (e !== 'bump' && e !== 'charge-bump' && e !== 'mine-clash' && playOwnSound(e, pan)) {
+      if (e === 'win') { danceHops = 0; if (timeLimit.value) showRating(timeStars(timeLeft.value, timeLimit.value)) }
+      else if (e === 'land') stepDist = 0
+      else if (e === 'hit') mineDeath = (paintedGame || !artLayer) && touchedHazard() === 'mine'
+      else if (e === 'splat') mineDeath = false
+      else if (e === 'break') brokenFlash.value = true
+      else if (e === 'gate') { if (linkedGate(world.level.gates![world.gate]!) || (!challenge.value?.ret && !testReturn && !customReturn)) enterGate(world.level.gates![world.gate]!) }
+      continue
+    }
     switch (e) {
       case 'open':
       case 'close': {

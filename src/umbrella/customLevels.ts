@@ -29,7 +29,7 @@ import { getState, setState } from '@/use/useEpicState'
 import overridesFromDisk from 'virtual:campaign-overrides'
 import orderFromDisk from 'virtual:campaign-order'
 import { isKite } from './kite'
-import { COLLECT_SHAPES, MEDALLION_COLORS, LEVELS, LESSON_KINDS, isImageId, type LevelDef } from './levels'
+import { COLLECT_SHAPES, MEDALLION_COLORS, LEVELS, LESSON_KINDS, LEVEL_SOUND_SLOTS, isImageId, isSoundId, type LevelDef } from './levels'
 import { parseTimeLimit } from './timeStars'
 import { historyKey, recordSave, recordVersion, type HistoryVersion, type SaveVersion } from './levelHistory'
 
@@ -78,10 +78,12 @@ export const parseLevel = (data: unknown): LevelDef | null => {
   if (l.ceiling !== undefined && !num(l.ceiling)) return null
   if (l.signs && (!Array.isArray(l.signs) || !l.signs.every((g) => isRect(g) && (g.kind === undefined || g.kind === 'drop' || g.kind === 'float')))) return null
   if (l.arrows && (!Array.isArray(l.arrows) || !l.arrows.every((a) => !!a && num(a.x) && num(a.y) && num(a.size) && a.size > 0 && (a.angle === undefined || num(a.angle))))) return null
-  if (l.pictures && (!Array.isArray(l.pictures) || !l.pictures.every((p) => isRect(p) && (p.image === undefined || isImageId(p.image)) && (p.frame === undefined || typeof p.frame === 'boolean') && (p.ropes === undefined || typeof p.ropes === 'boolean') && (p.pad === undefined || (num(p.pad) && p.pad >= 0 && p.pad <= 200))))) return null
+  if (l.pictures && (!Array.isArray(l.pictures) || !l.pictures.every((p) => isRect(p) && (p.image === undefined || isImageId(p.image)) && (p.frame === undefined || typeof p.frame === 'boolean') && (p.ropes === undefined || typeof p.ropes === 'boolean') && (p.angle === undefined || num(p.angle)) && (p.pad === undefined || (num(p.pad) && p.pad >= 0 && p.pad <= 200))))) return null
   if (l.lessons && (!Array.isArray(l.lessons) || !l.lessons.every((p) => isRect(p) && LESSON_KINDS.includes(p.kind) && (p.ropes === undefined || typeof p.ropes === 'boolean')))) return null
   if (l.platforms.some((p) => p.channel !== undefined && !num(p.channel))) return null
   if (l.platforms.some((p) => p.angle !== undefined && !num(p.angle))) return null
+  if (l.platforms.some((p) => (p.returnAfter !== undefined && (!num(p.returnAfter) || p.returnAfter < 0)) || (p.oneWay !== undefined && typeof p.oneWay !== 'boolean') || (p.dropThrough !== undefined && typeof p.dropThrough !== 'boolean'))) return null
+  if (l.sounds !== undefined && (!l.sounds || typeof l.sounds !== 'object' || Array.isArray(l.sounds) || !Object.entries(l.sounds).every(([k, v]) => (LEVEL_SOUND_SLOTS as string[]).includes(k) && isSoundId(v)))) return null
   const badInset = (list: { inset?: number }[] | undefined) => !!list && list.some((e) => e.inset !== undefined && !num(e.inset))
   if (badInset(l.platforms) || badInset(l.winds) || badInset(l.hazards) || badInset(l.buttons) || badInset(l.timers) || badInset(l.gates)) return null
   if (l.winds.some((w) => w.switched !== undefined && (typeof w.switched !== 'object' || !w.switched ||

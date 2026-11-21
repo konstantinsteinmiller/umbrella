@@ -129,6 +129,12 @@ export interface World {
   /** Removable clouds: per platform index, the world time each puff was touched (Infinity: still there, -Infinity: gone
    *  before this world began). A puff never comes back. */
   puffs: Record<number, number[]>
+  /** Removable clouds that come back (`returnAfter`): per platform index, the world time the cloud last returned, so it can fade in. */
+  puffBack: Record<number, number>
+  /** Removable clouds that come back: per platform index, the last world time the player touched the cloud. */
+  puffContact: Record<number, number>
+  /** The drop-through ledge (index into platforms) he is sinking through, ignored until he has cleared it; -1: none. */
+  dropIgnore: number
   /** Per gate: the player is inside it with the umbrella open (the warp fires on becoming true, not while it stays true). */
   gateInside: boolean[]
   /** The gate entered this run (index into level.gates), or -1. */
@@ -145,6 +151,22 @@ export const channelOn = (w: World, channel: number | undefined): boolean =>
   channel !== undefined && (w.channels[channel] ?? 0) > w.time
 
 /** A removable cloud blocks nothing: it is only puffs the player wipes away. */
+/** The turn of a removable cloud about its centre (radians, clockwise) with that centre, or null when it stands upright. */
+const cloudFrame = (p: PlatformDef): { cx: number; cy: number; a: number } | null =>
+  isTurned(p) ? { cx: p.x + p.w / 2, cy: p.y + p.h / 2, a: ((p.angle ?? 0) * Math.PI) / 180 } : null
+/** An upright box as seen from a turned cloud's own frame (the cloud upright at the origin): its centre carried back by the turn,
+ *  and its bounds widened to what the turned box covers. */
+const inCloudFrame = (b: { x: number; y: number; w: number; h: number }, f: { cx: number; cy: number; a: number }, pw: number, ph: number) => {
+  const c = Math.cos(f.a)
+  const s = Math.sin(f.a)
+  const dx = b.x + b.w / 2 - f.cx
+  const dy = b.y + b.h / 2 - f.cy
+  const lx = dx * c + dy * s
+  const ly = -dx * s + dy * c
+  const w = Math.abs(b.w * c) + Math.abs(b.h * s)
+  const h = Math.abs(b.w * s) + Math.abs(b.h * c)
+  return { x: lx + pw / 2 - w / 2, y: ly + ph / 2 - h / 2, w, h }
+}
 export const isVanishCloud = (p: PlatformDef): boolean => !!p.vanish && !!p.cloud && !p.finish
 
 /** What a timer shows: seconds left, its full length, and whether it is still held (not yet counting). */
@@ -310,7 +332,8 @@ const freshPuffs = (level: LevelDef, kept?: Record<number, number[]>): Record<nu
   level.platforms.forEach((p, i) => {
     if (!isVanishCloud(p)) return
     const n = puffLayout(p.w, p.h).length
-    out[i] = Array.from({ length: n }, (_, k) => (kept?.[i]?.[k] !== undefined && kept[i]![k] !== Infinity ? -Infinity : Infinity))
+    // A cloud that comes back (`returnAfter`) starts whole again on every revive; the others stay carved.
+    out[i] = Array.from({ length: n }, (_, k) => (!p.returnAfter && kept?.[i]?.[k] !== undefined && kept[i]![k] !== Infinity ? -Infinity : Infinity))
   })
   return out
 }
@@ -336,6 +359,9 @@ export const createWorld = (level: LevelDef, size = { w: PLAYER_W, h: PLAYER_H }
     starsGot: (level.stars ?? []).map((_, i) => !!opts.starsGot?.[i]),
     medallionGot: !!opts.medallionGot,
     puffs: freshPuffs(level, opts.puffs),
+    puffBack: {},
+    puffContact: {},
+    dropIgnore: -1,
     gateInside: (level.gates ?? []).map(() => open),
     gate: -1,
     moved: false,
@@ -627,7 +653,10 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   const solids: (Platform | Hazard)[] = [...w.platforms, ...w.hazards.filter((h) => contactOf(h) === 'solid')].map(colOf)
   const solid = (i: number) => i >= w.platforms.length || platformActive(w, w.platforms[i]!)
   // Turned platforms collide by their slanted faces (below), not as the upright box the loops use.
-  const flat = (i: number) => solid(i) && !(i < w.platforms.length && isTurned(w.platforms[i]!))
+  const flat = (i: number) => solid(i) && i !== w.dropIgnore && !(i < w.platforms.length && isTurned(w.platforms[i]!))
+  // A one-way ledge has no sides and no underside: only the vertical pass below lets it stop a fall from above.
+  const oneWay = (i: number) => i < w.platforms.length && !!w.platforms[i]!.oneWay && !w.platforms[i]!.finish
+  const flatSide = (i: number) => flat(i) && !oneWay(i)
 
   const pl = w.player
   // Live hitbox resize from the tuning panel: keep the feet and centre in place.
@@ -665,6 +694,13 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
       pl.open = false
       events.push('close')
     } else if (!pl.broken) {
+      // Opening the umbrella on a drop-through ledge sinks him through it.
+      const under = pl.grounded && pl.standing >= 0 ? w.platforms[pl.standing] : undefined
+      if (under?.dropThrough && !under.finish && !isTurned(under)) {
+        w.dropIgnore = pl.standing
+        pl.grounded = false
+        pl.standing = -1
+      }
       if (!pl.grounded && pl.vy >= t.terminalVelocity * t.breakFraction) {
         pl.broken = true
         events.push('break')
@@ -742,7 +778,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   pl.x += pl.vx * dt
   for (let i = 0; i < solids.length; i++) {
     const p = solids[i]!
-    if (!flat(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
+    if (!flatSide(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
     // Already in the platform's columns last tick: it met us from above or
     // below (a rising finish under a lander) — the vertical pass resolves it.
     if (prevX + pl.w > p.x - p.dx && prevX < p.x - p.dx + p.w) continue
@@ -757,7 +793,7 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
   // either frame and would pass straight through: sweep it, and carry the player ahead of it.
   for (let i = 0; i < solids.length; i++) {
     const p = solids[i]!
-    if (!flat(i) || Math.abs(p.dx) < 1) continue
+    if (!flatSide(i) || Math.abs(p.dx) < 1) continue
     if (pl.y + pl.h <= p.y || pl.y >= p.y + p.h) continue
     const from = p.x - p.dx
     const lo = Math.min(p.x, from)
@@ -787,6 +823,8 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     const p = solids[i]!
     if (!flat(i) || !overlaps(pl.x, pl.y, pl.w, pl.h, p)) continue
     const fromAbove = pl.y + pl.h - p.y <= Math.max(8, pl.vy * dt + Math.abs(p.dy) + 2)
+    // A one-way ledge only catches a fall: rising through it, or inside it from the side, he passes.
+    if (oneWay(i) && (!fromAbove || pl.vy < 0)) continue
     if (fromAbove) {
       pl.y = p.y - pl.h
       pl.vy = 0
@@ -842,6 +880,11 @@ export const step = (w: World, input: Input, dt: number, t: Tuning): GameEvent[]
     }
   }
 pl.standing = standing
+  // The ledge he sank through is solid again once he has cleared it.
+  if (w.dropIgnore >= 0) {
+    const dp = solids[w.dropIgnore]
+    if (!dp || !overlaps(pl.x, pl.y, pl.w, pl.h, dp)) w.dropIgnore = -1
+  }
 
   // A cloud platform is soft to the eye, so the open canopy never clips into it: the canopy stops
   // against a cloud's underside (or side) like the body does. Airborne only, and clouds only —
@@ -849,7 +892,7 @@ pl.standing = standing
   if (pl.open && !pl.grounded) {
     for (let i = 0; i < w.platforms.length; i++) {
       const p = solids[i] as Platform
-      if (!p.cloud || p.finish || !solid(i)) continue
+      if (!p.cloud || p.finish || !solid(i) || p.oneWay || i === w.dropIgnore) continue
       if (isTurned(p)) {
         // A turned cloud: each canopy strip is pushed out along the cloud's own faces.
         for (let k = 0; k < UMBRELLA_STRIPS; k++) {
@@ -1011,21 +1054,38 @@ pl.standing = standing
       events.push('medallion')
     }
   }
-  // Removable clouds: every puff the body or the open canopy touches is wiped away for good (nothing is blocked).
+  // Removable clouds: every puff the body or the open canopy touches is wiped away (nothing is blocked), for good or,
+  // with `returnAfter`, until the player has been away from the cloud that many seconds. A turned cloud is tested in its own frame.
   {
     const ib = itemBox(pl)
     const ub = pl.open ? umbrellaBox(pl) : null
     let wiped = false
     for (const [key, clocks] of Object.entries(w.puffs)) {
-      const p = w.platforms[Number(key)]
+      const idx = Number(key)
+      const p = w.platforms[idx]
       if (!p) continue
       const layout = puffLayout(p.w, p.h)
+      const a = cloudFrame(p)
+      const bi = a ? inCloudFrame(ib, a, p.w, p.h) : ib
+      const bu = ub ? (a ? inCloudFrame(ub, a, p.w, p.h) : ub) : null
+      const ox = a ? 0 : p.x
+      const oy = a ? 0 : p.y
+      let touching = false
       for (let k = 0; k < layout.length; k++) {
+        const hit = puffTouched(layout[k]!, ox, oy, bi) || (bu && puffTouched(layout[k]!, ox, oy, bu))
+        if (!hit) continue
+        touching = true
         if (clocks[k] !== Infinity) continue
-        if (puffTouched(layout[k]!, p.x, p.y, ib) || (ub && puffTouched(layout[k]!, p.x, p.y, ub))) {
-          clocks[k] = w.time
-          wiped = true
-        }
+        clocks[k] = w.time
+        wiped = true
+      }
+      if (!p.returnAfter) continue
+      if (touching) { w.puffContact[idx] = w.time; continue }
+      // Left the cloud: once it has been away long enough, everything that melted fades back in.
+      const last = w.puffContact[idx]
+      if (last !== undefined && w.time - last >= p.returnAfter && clocks.some((c) => c !== Infinity)) {
+        for (let k = 0; k < clocks.length; k++) clocks[k] = Infinity
+        w.puffBack[idx] = w.time
       }
     }
     if (wiped) events.push('puff')

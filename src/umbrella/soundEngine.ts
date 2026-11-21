@@ -30,6 +30,8 @@ export interface SoundEngine {
   readonly kit: Kit
   /** Play a one-shot at `at` (default now), panned −1..1. */
   play: (name: SfxName, params?: SfxParams & { pan?: number }, at?: number) => void
+  /** Play a recorded one-shot (a designer's uploaded effect) on the SFX bus, panned −1..1. */
+  playBuffer: (buffer: AudioBuffer, pan?: number, gain?: number) => void
   /** Start the wind layers (idempotent). */
   startAmbience: (at?: number) => void
   setAmbience: (s: AmbienceState, at?: number) => void
@@ -132,6 +134,19 @@ export const createSoundEngine = (ctx: BaseAudioContext, dest: AudioNode, seed: 
       }
       const d = SFX_DUCK[name]
       if (d && (composer || track)) duck(d[0], d[1], at)
+    },
+    playBuffer: (buffer, pan = 0, gain = 1) => {
+      prune()
+      const dry = ctx.createGain()
+      dry.gain.value = gain
+      const p = ctx.createStereoPanner()
+      p.pan.value = Math.max(-1, Math.min(1, pan))
+      dry.connect(p).connect(mix.sfx.dry)
+      const src = ctx.createBufferSource()
+      src.buffer = buffer
+      src.connect(dry)
+      src.start(now())
+      voices.add({ gains: [dry], until: now() + buffer.duration + 0.2 })
     },
     startAmbience: (at = now()) => {
       if (ambience) return

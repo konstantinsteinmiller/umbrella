@@ -7,9 +7,9 @@
 import { readFileSync, writeFileSync, existsSync, renameSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
-import { imageIdsIn } from './level-image-ids.mjs'
+import { imageIdsIn, soundIdsIn } from './level-image-ids.mjs'
 
-export { imageIdsIn }
+export { imageIdsIn, soundIdsIn }
 
 export const OVERRIDES_FILE = resolve(fileURLToPath(new URL('../data/campaign-overrides.json', import.meta.url)))
 export const ORDER_FILE = resolve(fileURLToPath(new URL('../data/campaign-order.json', import.meta.url)))
@@ -43,6 +43,29 @@ export const pullImages = async (bucketUrl, docs, dir = IMAGES_DIR) => {
       if (!ext) continue
       mkdirSync(dir, { recursive: true })
       writeFileSync(resolve(dir, `${id}.${ext}`), bytes)
+      got.push(id)
+    } catch { /* next build */ }
+  }
+  return got
+}
+
+export const SOUNDS_DIR = resolve(fileURLToPath(new URL('../public/level-sounds', import.meta.url)))
+
+/** Bakes the sound effects levels use into public/level-sounds/<id>.ogg, so a build ships them. Only missing files are fetched.
+ *  Returns the ids fetched. */
+export const pullSounds = async (bucketUrl, docs, dir = SOUNDS_DIR) => {
+  const base = (bucketUrl ?? '').trim().replace(/\/+$/, '')
+  const got = []
+  if (!base) return got
+  for (const id of soundIdsIn(...docs)) {
+    if (existsSync(resolve(dir, `${id}.ogg`))) continue
+    try {
+      const res = await fetch(`${base}/sounds/${id}`, { signal: AbortSignal.timeout(15_000) })
+      if (!res.ok) continue
+      const bytes = Buffer.from(await res.arrayBuffer())
+      if (bytes.length < 4 || bytes.toString('latin1', 0, 4) !== 'OggS') continue
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(resolve(dir, `${id}.ogg`), bytes)
       got.push(id)
     } catch { /* next build */ }
   }
@@ -114,7 +137,8 @@ export const pullLevels = async (bucketUrl, file = OVERRIDES_FILE, orderFile = O
   let order = {}
   try { order = existsSync(orderFile) ? JSON.parse(readFileSync(orderFile, 'utf-8')) : {} } catch { /* none */ }
   const images = await pullImages(base, [disk, order])
-  return { ok: true, changed, message: `levels bucket: ${changed} campaign level${changed === 1 ? '' : 's'} updated${images.length ? `, ${images.length} picture${images.length === 1 ? '' : 's'} baked` : ''}` }
+  const sounds = await pullSounds(base, [disk, order])
+  return { ok: true, changed, message: `levels bucket: ${changed} campaign level${changed === 1 ? '' : 's'} updated${images.length ? `, ${images.length} picture${images.length === 1 ? '' : 's'} baked` : ''}${sounds.length ? `, ${sounds.length} sound${sounds.length === 1 ? '' : 's'} baked` : ''}` }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

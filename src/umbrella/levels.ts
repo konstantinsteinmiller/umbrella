@@ -61,11 +61,18 @@ export interface PlatformDef {
   /** A cloud drawn with a thin black outline (absent: no outline, the default). */
   outline?: boolean
   /** A removable cloud (a `cloud` only): a bank of puffs that blocks nothing. Whatever the player (or his open umbrella)
-   *  touches vanishes for good, so a secret can hide behind it and be found by walking or flying through. Never turned. */
+   *  touches vanishes (for good, or until `returnAfter`), so a secret can hide behind it and be found by walking or flying through. May be turned. */
   vanish?: boolean
   /** With `vanish`: drawn exactly like a normal cloud (not as puffs), so it can hide a path. Whatever is touched
    *  melts away in a round hole; the rest of the cloud stays. */
   camouflage?: boolean
+  /** With `vanish`: seconds after the player has left the cloud when everything that melted comes back (fading in). Absent / 0: it never returns. */
+  returnAfter?: number
+  /** A ledge you can jump up through from below and stand on (not a finish, not turned): it only stops a fall from above. */
+  oneWay?: boolean
+  /** Opening the umbrella while standing on it sinks the player through (not a finish, not turned). Combine with `oneWay`
+   *  for a ledge you pass going up and can also drop through. */
+  dropThrough?: boolean
   /** Turned by this many degrees (clockwise, about its centre); absent or 0: upright. A turned platform
    *  is solid along its slanted faces; a finish pad is never turned. */
   angle?: number
@@ -183,6 +190,8 @@ export interface PictureDef {
   x: number; y: number; w: number; h: number; image?: string; frame?: boolean
   /** Hang from two ropes above the screen's top edge and sway in the wind. Absent / false: the board stands still, no ropes. */
   ropes?: boolean
+  /** Turned by this many degrees clockwise about its centre (absent / 0: upright). Decoration only. */
+  angle?: number
   /** The space between the board's edge and the image, in world units. Absent: the default (14, less on a small board);
    *  0: no padding, the image fills the whole board. Not used without the paper board (`frame: false`). */
   pad?: number
@@ -204,7 +213,12 @@ export const LESSON_W = 280
 export const LESSON_H = 180
 export const PICTURE_W = 200
 export const PICTURE_H = 140
+export const isSoundId = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{24}$/.test(v)
 export const isImageId = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{24}$/.test(v)
+
+/** The game events whose sound a level can replace with an uploaded file. */
+export type LevelSoundSlot = 'open' | 'close' | 'land' | 'win' | 'splat' | 'hit' | 'out' | 'break' | 'button' | 'checkpoint' | 'star' | 'medallion' | 'puff' | 'gate'
+export const LEVEL_SOUND_SLOTS: LevelSoundSlot[] = ['open', 'close', 'land', 'win', 'splat', 'hit', 'out', 'break', 'button', 'checkpoint', 'star', 'medallion', 'puff', 'gate']
 
 /** How many button channels the editor offers (each has its own colour). */
 export const CHANNELS = 6
@@ -285,6 +299,9 @@ export interface LevelDef {
   pictures?: PictureDef[]
   /** Controls boards: animated how-to-play lessons (decoration). */
   lessons?: LessonDef[]
+  /** Sound effects the designer uploaded (.ogg, levelSounds.ts): the id of a file in the levels bucket per game event,
+   *  played instead of the built-in sound on this level. */
+  sounds?: Partial<Record<LevelSoundSlot, string>>
   /** Seconds to reach the finish, counted from the spawn (timeStars.ts): running out restarts the
    *  level at the spawn, and the time left rates the finish with 1–3 stars. Absent: no limit. */
   timeLimit?: number

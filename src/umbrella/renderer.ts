@@ -461,13 +461,16 @@ const drawDispersal = (ctx: CanvasRenderingContext2D, pf: Puff, ox: number, oy: 
 
 /** A removable cloud: a lumpy mass of round, softly shaded puffs. A touched puff shrinks and drifts away (PUFF_FADE s);
  *  a gone one is not drawn, so the cloud is carved out round where the player went through. */
-export const drawPuffCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number; outline?: boolean }, clocks: number[] | undefined, time: number, tint = '#ffffff', shade = '#cfdcea') => {
+export const drawPuffCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number; outline?: boolean }, clocks: number[] | undefined, time: number, tint = '#ffffff', shade = '#cfdcea', back = -Infinity) => {
   const layout = puffLayout(p.w, p.h)
   const live: { cx: number; cy: number; r: number; a: number }[] = []
   const going: { pf: Puff; u: number; k: number }[] = []
   for (let k = 0; k < layout.length; k++) {
     const pf = layout[k]!
-    const el = time - (clocks?.[k] ?? Infinity)
+    const c = clocks?.[k] ?? Infinity
+    const el = time - c
+    // Melted before the cloud last came back: it grows back in.
+    if (c < back) { const u = (time - back) / PUFF_FADE; if (u < 1) live.push({ cx: p.x + pf.cx, cy: p.y + pf.cy, r: pf.r, a: u }); else live.push({ cx: p.x + pf.cx, cy: p.y + pf.cy, r: pf.r, a: 1 }); continue }
     if (el >= PUFF_FADE) continue
     if (el > 0) { going.push({ pf, u: el / PUFF_FADE, k }); continue }
     live.push({ cx: p.x + pf.cx, cy: p.y + pf.cy, r: pf.r, a: 1 })
@@ -506,21 +509,22 @@ const eraseCloudHoles = (g: CanvasRenderingContext2D, p: { x: number; y: number;
     const x = p.x + h.cx
     const y = p.y + h.cy
     // A soft-edged hole, so the cloud thins out into vapour instead of being cut.
-    const R = h.r * 1.35 * h.e
-    if (R > 0.5) {
+    // The cloud itself fades away in place (its alpha drops, nothing shrinks or drifts), as one single layer.
+    const R = h.r * 1.35
+    const a = Math.max(0, Math.min(1, h.e))
+    if (a > 0.003) {
       const eraser = g.createRadialGradient(x, y, 0, x, y, R)
-      eraser.addColorStop(0, 'rgba(0,0,0,1)')
-      eraser.addColorStop(0.55, 'rgba(0,0,0,1)')
+      eraser.addColorStop(0, `rgba(0,0,0,${a})`)
+      eraser.addColorStop(0.55, `rgba(0,0,0,${a})`)
       eraser.addColorStop(1, 'rgba(0,0,0,0)')
       g.fillStyle = eraser
       g.beginPath()
       g.arc(x, y, R, 0, Math.PI * 2)
       g.fill()
     }
-    // The overhang beyond an edge cell fades out only late, so no hard stripe shows mid-animation.
-    g.fillStyle = `rgba(0,0,0,${Math.max(0, Math.min(1, (h.e - 0.55) / 0.45))})`
+    g.fillStyle = `rgba(0,0,0,${a})`
     // An edge cell also takes the cloud's overhang beyond the box with it.
-    const out = CLOUD_PAD * h.e
+    const out = CLOUD_PAD
     const cell = h.r * 0.9
     if (h.edge.t) g.fillRect(x - cell, p.y - out, cell * 2, out + h.cy)
     if (h.edge.b) g.fillRect(x - cell, y, cell * 2, p.y + p.h - y + out)
@@ -534,25 +538,30 @@ const eraseCloudHoles = (g: CanvasRenderingContext2D, p: { x: number; y: number;
  *  not paint its final look yet) is drawn once into an offscreen image and every finished puff's spot is erased from it, so a
  *  settled cloud costs one drawImage per frame however big it is. Only the puffs fading right now (PUFF_FADE s) are erased per
  *  frame, from a copy of that image; the rest of the cloud stays as it was. Untouched: drawn directly. */
-export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number; outline?: boolean }, clocks: number[] | undefined, time: number, body: (c: CanvasRenderingContext2D) => boolean | void) => {
+export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: number; y: number; w: number; h: number; outline?: boolean }, clocks: number[] | undefined, time: number, body: (c: CanvasRenderingContext2D) => boolean | void, back = -Infinity) => {
   const layout = puffLayout(p.w, p.h)
-  const touched = layout.some((_, k) => (clocks?.[k] ?? Infinity) !== Infinity)
-  if (!touched || typeof document === 'undefined') { body(ctx); return }
-  const wisps: { pf: Puff; u: number; k: number }[] = []
   const gone: CloudHole[] = []
   const fading: CloudHole[] = []
   let goneKey = ''
   const edgeOf = (pf: Puff) => ({ l: pf.x < 1, r: pf.x + pf.w > p.w - 1, t: pf.y < 1, b: pf.y + pf.h > p.h - 1 })
   for (let k = 0; k < layout.length; k++) {
     const pf = layout[k]!
-    const el = time - (clocks?.[k] ?? Infinity)
-    if (el === -Infinity || el >= 0 && el >= PUFF_FADE) { gone.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1, edge: edgeOf(pf) }); goneKey += '1'; continue }
+    const c = clocks?.[k] ?? Infinity
+    if (c === Infinity) { goneKey += '0'; continue }
+    // Melted before the cloud last came back: its hole closes again (the cloud fades back in).
+    if (c < back) {
+      const u = (time - back) / PUFF_FADE
+      goneKey += '0'
+      if (u < 1) fading.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1 - u, edge: edgeOf(pf) })
+      continue
+    }
+    const el = time - c
+    if (el === Infinity || el >= PUFF_FADE) { gone.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1, edge: edgeOf(pf) }); goneKey += '1'; continue }
     goneKey += '0'
     if (el <= 0) continue
-    const u = el / PUFF_FADE
-    wisps.push({ pf, u, k })
-    fading.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: 1 - (1 - u) * (1 - u) * (1 - u), edge: edgeOf(pf) })
+    fading.push({ cx: pf.cx, cy: pf.cy, r: pf.r, e: el / PUFF_FADE, edge: edgeOf(pf) })
   }
+  if ((!gone.length && !fading.length) || typeof document === 'undefined') { body(ctx); return }
   if (gone.length === layout.length) return // all gone
   const m = ctx.getTransform()
   const sc = Math.max(0.5, Math.hypot(m.a, m.b))
@@ -573,7 +582,6 @@ export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: numb
     paintInto(g)
     eraseCloudHoles(g, p, gone.concat(fading))
     ctx.drawImage(scratch, 0, 0, cw, ch, p.x - CLOUD_PAD, p.y - CLOUD_PAD, cw / sc, ch / sc)
-    for (const d of wisps) drawDispersal(ctx, d.pf, p.x, p.y, d.u, d.k, FG, '#dfe8f0', false)
     return
   }
   const key = `${goneKey}|${sc}|${p.x},${p.y},${p.w},${p.h},${p.outline ? 1 : 0}`
@@ -603,7 +611,6 @@ export const drawCamouflagedCloud = (ctx: CanvasRenderingContext2D, p: { x: numb
   g.setTransform(sc, 0, 0, sc, (CLOUD_PAD - p.x) * sc, (CLOUD_PAD - p.y) * sc)
   eraseCloudHoles(g, p, fading)
   ctx.drawImage(scratch, 0, 0, cw, ch, p.x - CLOUD_PAD, p.y - CLOUD_PAD, cw / sc, ch / sc)
-  for (const d of wisps) drawDispersal(ctx, d.pf, p.x, p.y, d.u, d.k, FG, '#dfe8f0', false)
 }
 
 /** The level's medallion coin: a rimmed disc in its colour with a lit facet and a little star, bobbing and glinting.
@@ -1256,7 +1263,8 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
     // A removable cloud is always the puffs (the painted platform sheets never draw it).
     if (isVanishCloud(p) && p.camouflage) {
       // Looks like the normal cloud, painted build included; only touching it shows it melts.
-      drawCamouflagedCloud(ctx, p, w.puffs[w.platforms.indexOf(p)], w.time, (c) => {
+      const pi = w.platforms.indexOf(p)
+      drawCamouflagedCloud(ctx, p, w.puffs[pi], w.time, (c) => {
         if (artLayer && kiteArt.platform?.(c, p, true, null)) return true
         c.fillStyle = FG
         c.strokeStyle = '#000'
@@ -1265,12 +1273,12 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
         c.fill()
         if (p.outline) { c.lineWidth = 1; c.stroke() }
         return !artLayer // a painted build's art not loaded yet: this is only the stand-in, so it is not kept
-      })
+      }, w.puffBack?.[pi])
       return
     }
     if (isVanishCloud(p)) {
       const i = w.platforms.indexOf(p)
-      drawPuffCloud(ctx, p, w.puffs[i], w.time, paintedGame ? '#fff8e8' : '#ffffff', paintedGame ? '#e8d9b8' : '#cfdcea')
+      drawPuffCloud(ctx, p, w.puffs[i], w.time, paintedGame ? '#fff8e8' : '#ffffff', paintedGame ? '#e8d9b8' : '#cfdcea', w.puffBack?.[i])
       return
     }
     if (p.door && p.fullH !== undefined) { drawDoor(ctx, p, p.fullH, channelColor(p.channel!)); return }
@@ -1329,7 +1337,17 @@ export const render = (ctx: CanvasRenderingContext2D, w: World, labels: Labels, 
   // the player goes over it (the lantern dais is wider than its platform and was overlapped).
   // A turned platform is drawn upright about its own centre under a turn of the canvas.
   const drawTurnedPlatform = (p: Platform): void => {
-    if (!isTurned(p) || p.finish || isVanishCloud(p)) return drawPlatform(p)
+    if (!isTurned(p) || p.finish) return drawPlatform(p)
+    // A removable cloud keeps its own identity (its puffs and image are kept per platform): the canvas is turned about its centre instead.
+    if (isVanishCloud(p)) {
+      ctx.save()
+      ctx.translate(p.x + p.w / 2, p.y + p.h / 2)
+      ctx.rotate(((p.angle ?? 0) * Math.PI) / 180)
+      ctx.translate(-(p.x + p.w / 2), -(p.y + p.h / 2))
+      drawPlatform(p)
+      ctx.restore()
+      return
+    }
     ctx.save()
     ctx.translate(p.x + p.w / 2, p.y + p.h / 2)
     ctx.rotate(((p.angle ?? 0) * Math.PI) / 180)

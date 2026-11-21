@@ -106,6 +106,13 @@ export const playSfx = (name: SfxName, params?: SfxParams & { pan?: number }): v
   e.play(name, params)
 }
 
+/** Play a designer's uploaded effect (decoded in levelSounds.ts) behind the same gate as `playSfx`. */
+export const playLevelBuffer = (buffer: AudioBuffer, pan = 0): void => {
+  const e = engine
+  if (!e || !live(e)) return
+  e.playBuffer(buffer, pan)
+}
+
 /** An enemy one-shot (enemySounds.ts), behind the same gate as `playSfx`. */
 export const playEnemySfx = (name: EnemySfxName, params?: EnemySfxParams): void => {
   const e = engine

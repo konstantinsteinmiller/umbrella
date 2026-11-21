@@ -33,6 +33,8 @@ import { checkpointBox, contactOf, createWorld, starBox, DEFAULT_TRIGGER_RADIUS,
 import { cameraFor, channelColor, render, type Camera } from '@/umbrella/renderer'
 import { arrowBox, pictureInset } from '@/umbrella/pictureArt'
 import { addImage, IMAGE_ACCEPT, imageIdsOf, levelImage, looksLikeImage, uploadPending } from '@/umbrella/levelImages'
+import { addSound, levelSoundBuffer, LEVEL_SOUND_SLOTS, SOUND_ACCEPT, SOUND_MAX_SECONDS, uploadPendingSounds, type LevelSoundSlot } from '@/umbrella/levelSounds'
+import { playLevelBuffer } from '@/umbrella/audio'
 import { WALLDORF_COLORS } from '@/umbrella/characters'
 import CutsceneEditor from './CutsceneEditor.vue'
 import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
@@ -400,13 +402,15 @@ const turnHandle = (a: ArrowDef): Vec => {
 
 // ── Turned platforms: a platform or cloud can be turned about its centre (`angle`, degrees, clockwise) ──
 /** The platform's turn in radians (0 for everything that does not turn). */
-const turnOf = (e: Entity): number => (e.group === 'platforms' ? (((level.value.platforms[e.i]?.angle ?? 0) % 360) * Math.PI) / 180 : 0)
+/** The record that carries the `angle` of a platform or picture board (the only things that turn about their centre). */
+const turnable = (e: Entity): { angle?: number } | undefined => (e.group === 'platforms' ? level.value.platforms[e.i] : e.group === 'pictures' ? level.value.pictures?.[e.i] : undefined)
+const turnOf = (e: Entity): number => (((turnable(e)?.angle ?? 0) % 360) * Math.PI) / 180
 const centerOf = (r: { x: number; y: number; w: number; h: number }): Vec => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 })
 const turnAbout = (p: Vec, c: Vec, a: number): Vec => ({ x: c.x + (p.x - c.x) * Math.cos(a) - (p.y - c.y) * Math.sin(a), y: c.y + (p.x - c.x) * Math.sin(a) + (p.y - c.y) * Math.cos(a) })
 /** A world point in the entity's own upright frame (the identity for anything not turned). */
 const localOf = (p: Vec, e: Entity): Vec => { const a = turnOf(e); return a ? turnAbout(p, centerOf(shownRect(e)), -a) : p }
 /** Only platforms turn, and not the finish pad. */
-const canTurn = (e: Entity): boolean => e.group === 'platforms' && !level.value.platforms[e.i]?.finish && !level.value.platforms[e.i]?.vanish
+const canTurn = (e: Entity): boolean => e.group === 'pictures' || (e.group === 'platforms' && !level.value.platforms[e.i]?.finish)
 /** The turn handle: above the middle of the top edge, turned with the platform. */
 const rotateHandle = (e: Entity): Vec => {
   const r = shownRect(e)
@@ -830,7 +834,7 @@ const onPointerMove = (e: PointerEvent) => {
     }
     if (drag.key === 'rotate') {
       // The platform turns to face the pointer (straight up = 0°); 15° steps while snapping.
-      const pf = level.value.platforms[drag.target.i]
+      const pf = turnable(drag.target)
       if (pf) {
         const c = centerOf(shownRect(drag.target))
         const deg = (Math.atan2(p.x - c.x, -(p.y - c.y)) * 180) / Math.PI
@@ -1117,6 +1121,46 @@ const setLessonKind = (k: LessonKind) => {
   if (!l) return
   l.kind = k
   lessonKind.value = k
+}
+// ── Sound effects: an uploaded .ogg replaces the built-in sound of a game event on this level (designer) ──
+const SOUND_LABELS: Record<LevelSoundSlot, string> = {
+  open: 'Umbrella opens', close: 'Umbrella closes', land: 'Landing', win: 'Reaching the finish', splat: 'Splat', hit: 'Hit by a hazard',
+  out: 'Falling out of bounds', break: 'Umbrella breaks', button: 'Button pressed', checkpoint: 'Checkpoint', star: 'Collectible',
+  medallion: 'Medallion', puff: 'Cloud melting', gate: 'Bonus Room entered'
+}
+const soundSlots = LEVEL_SOUND_SLOTS
+const soundBusy = ref<LevelSoundSlot | null>(null)
+const soundPicker = ref<HTMLInputElement | null>(null)
+let soundPickSlot: LevelSoundSlot | null = null
+const pickSound = (slot: LevelSoundSlot) => { soundPickSlot = slot; soundPicker.value?.click() }
+const onSoundFile = async (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  const slot = soundPickSlot
+  if (!file || !slot || !designer.value || soundBusy.value) return
+  soundBusy.value = slot
+  try {
+    const snd = await addSound(file)
+    level.value.sounds = { ...(level.value.sounds ?? {}), [slot]: snd.id }
+    flash(snd.uploaded ? 'Sound saved on the server' : 'Sound kept in this browser — it uploads on the next sync (needs the editor password)')
+  } catch (err) {
+    const why = (err as Error).message
+    flash(why === 'type' ? 'Only .ogg sound files can be used' : why === 'size' ? 'That sound file is too big (250 kB at most)' : why === 'long' ? `That sound is too long (${SOUND_MAX_SECONDS} s at most)` : 'Could not read that sound file')
+  } finally {
+    soundBusy.value = null
+  }
+}
+const removeSound = (slot: LevelSoundSlot) => {
+  const next = { ...(level.value.sounds ?? {}) }
+  delete next[slot]
+  if (Object.keys(next).length) level.value.sounds = next
+  else delete level.value.sounds
+}
+const previewSound = (slot: LevelSoundSlot) => {
+  const buf = levelSoundBuffer(level.value.sounds?.[slot])
+  if (buf) playLevelBuffer(buf, 0)
+  else flash('Loading the sound… try again in a moment')
 }
 const selectedPicture = computed(() => (selected.value?.group === 'pictures' ? (selected.value.ent as PictureDef) : null))
 const pictureBusy = ref(false)
@@ -1413,12 +1457,17 @@ const setContact = (h: HazardDef, c: WalldorfContact) => {
   if (c !== 'bounce') delete h.bounce
 }
 /** Turn a platform to `deg` (-180..180, clockwise); 0 removes the field. */
-const setAngle = (pf: PlatformDef, deg: number) => {
+const setAngle = (pf: { angle?: number }, deg: number) => {
   const d = Math.round(wrapDeg(Number.isFinite(deg) ? deg : 0, -180) * 10) / 10
   if (Math.abs(d) < 0.05 || Math.abs(Math.abs(d) - 360) < 0.05) delete pf.angle
-  else pf.angle = d
+  else {
+    pf.angle = d
+    // A turned platform collides by its slanted faces: it can no longer be one-way or drop-through.
+    delete (pf as PlatformDef).oneWay
+    delete (pf as PlatformDef).dropThrough
+  }
 }
-const setFlag = (ent: object, key: 'super' | 'harmless' | 'closing' | 'visible' | 'onCollision' | 'onRelease' | 'whenOff' | 'switchMotion' | 'once' | 'cloud' | 'outline' | 'vanish' | 'camouflage', on: boolean) => {
+const setFlag = (ent: object, key: 'super' | 'harmless' | 'closing' | 'visible' | 'onCollision' | 'onRelease' | 'whenOff' | 'switchMotion' | 'once' | 'cloud' | 'outline' | 'vanish' | 'camouflage' | 'oneWay' | 'dropThrough', on: boolean) => {
   const o = ent as Record<string, unknown>
   if (on) o[key] = true
   else delete o[key]
@@ -1473,11 +1522,24 @@ const setMedallionColor = (m: MedallionDef, color: MedallionColor) => {
   m.color = color
   medallionColor.value = color
 }
-/** A removable cloud blocks nothing and is never turned. */
+/** A removable cloud blocks nothing (it may be turned); it is never one-way or drop-through. */
 const setVanish = (p: PlatformDef, on: boolean) => {
   setFlag(p, 'vanish', on)
-  if (on) delete p.angle
-  else delete p.camouflage
+  if (on) { delete p.oneWay; delete p.dropThrough }
+  else { delete p.camouflage; delete p.returnAfter }
+  rebuildWorld()
+}
+/** Seconds after the player has left a removable cloud when it comes back; empty / 0: never. */
+const setReturnAfter = (p: PlatformDef, v: string) => {
+  const n = Number(v)
+  if (v === '' || !Number.isFinite(n) || n <= 0) delete p.returnAfter
+  else p.returnAfter = Math.min(600, Math.round(n * 10) / 10)
+  rebuildWorld()
+}
+/** One-way / drop-through ledges: plain upright platforms (no finish, door, turn or removable cloud). */
+const canLedge = (p: PlatformDef): boolean => !p.finish && !p.vanish && !p.door && !p.closing && !p.angle
+const setLedge = (p: PlatformDef, key: 'oneWay' | 'dropThrough', on: boolean) => {
+  setFlag(p, key, on)
   rebuildWorld()
 }
 const selectedGate = computed(() => (selected.value?.group === 'gates' ? (selected.value.ent as GateDef) : null))
@@ -1979,6 +2041,7 @@ const syncing = ref(false)
 const onSync = async () => {
   syncing.value = true
   await syncBucket()
+  void uploadPendingSounds()
   const up = await uploadPending()
   syncing.value = false
   const imgs = up.sent ? ` · ${up.sent} image${up.sent === 1 ? '' : 's'} uploaded` : up.left ? ` · ${up.left} image${up.left === 1 ? '' : 's'} still waiting for the password` : ''
@@ -2250,7 +2313,7 @@ const paint = (now: number) => {
       ctx.lineWidth = Math.max(1, cssPx(2))
       ctx.stroke()
       ctx.lineWidth = 1
-      const deg = Math.round(((level.value.platforms[sel.i]?.angle ?? 0) + Number.EPSILON) * 10) / 10
+      const deg = Math.round(((turnable(sel)?.angle ?? 0) + Number.EPSILON) * 10) / 10
       ctx.fillStyle = '#e8f6ff'
       ctx.font = `600 ${cssPx(12)}px system-ui, sans-serif`
       ctx.textAlign = 'left'
@@ -2403,7 +2466,7 @@ const paintPhone = (el: HTMLCanvasElement | null, dt: number) => {
 
 onMounted(() => {
   // The designer's editor always starts from the bucket's newest levels (the game pulled once at boot).
-  if (designer.value) { void syncBucket(); void uploadPending() }
+  if (designer.value) { void syncBucket(); void uploadPending(); void uploadPendingSounds() }
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('keyup', onKeyUp)
   document.addEventListener('fullscreenchange', onFullscreenChange)
@@ -2611,6 +2674,18 @@ onUnmounted(() => {
         <label class="check" :class="{ off: !level.timeLimit }"><input type="checkbox" :disabled="!level.timeLimit" :checked="!!level.timeLimitJamOnly" @change="setTimeLimitJamOnly(($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.timeLimitJamOnly') }}</label>
         <p class="hint">{{ t('umbrellaEditor.timeLimitHint') }}</p>
 
+        <template v-if="designer">
+          <div class="head">Sound effects</div>
+          <p class="hint">Upload an .ogg file (up to {{ SOUND_MAX_SECONDS }} s) to replace the built-in sound of a game event on this level.</p>
+          <div v-for="slot in soundSlots" :key="slot" class="row sfx-row">
+            <span class="sfx-name">{{ SOUND_LABELS[slot] }}</span>
+            <button class="mini" :disabled="soundBusy !== null" @click="pickSound(slot)">{{ soundBusy === slot ? 'Saving…' : level.sounds?.[slot] ? 'Replace' : 'Upload' }}</button>
+            <button v-if="level.sounds?.[slot]" class="mini" :aria-label="`Play ${SOUND_LABELS[slot]}`" @click="previewSound(slot)">▶</button>
+            <button v-if="level.sounds?.[slot]" class="mini danger" :aria-label="`Remove ${SOUND_LABELS[slot]}`" @click="removeSound(slot)">✕</button>
+          </div>
+          <input ref="soundPicker" type="file" :accept="SOUND_ACCEPT" hidden @change="onSoundFile" />
+        </template>
+
         <div class="head">{{ t('umbrellaEditor.selectionTitle') }}</div>
         <template v-if="multi.length > 1">
           <div class="kind">{{ t('umbrellaEditor.multiSelected', { n: multi.length }) }}</div>
@@ -2650,7 +2725,14 @@ onUnmounted(() => {
             <label v-if="selectedPlatform.cloud && !selectedPlatform.finish" class="check" :title="t('umbrellaEditor.prop.vanishHint')"><input type="checkbox" :checked="!!selectedPlatform.vanish" @change="setVanish(selectedPlatform, ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.vanish') }}</label>
             <label v-if="selectedPlatform.vanish" class="check"><input type="checkbox" :checked="!!selectedPlatform.camouflage" @change="setFlag(selectedPlatform, 'camouflage', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.camouflage') }}</label>
             <p v-if="selectedPlatform.vanish" class="hint">{{ t('umbrellaEditor.prop.vanishHint') }}</p>
-            <div v-if="!selectedPlatform.finish && !selectedPlatform.vanish" class="row rot">
+            <label v-if="selectedPlatform.vanish" class="row" :title="t('umbrellaEditor.prop.returnAfterHint')">{{ t('umbrellaEditor.prop.returnAfter') }}
+              <input class="field num" type="number" min="0" max="600" step="0.5" :value="selectedPlatform.returnAfter ?? ''" placeholder="0" @change="setReturnAfter(selectedPlatform, ($event.target as HTMLInputElement).value)" />
+            </label>
+            <template v-if="canLedge(selectedPlatform)">
+              <label class="check" :title="t('umbrellaEditor.prop.oneWayHint')"><input type="checkbox" :checked="!!selectedPlatform.oneWay" @change="setLedge(selectedPlatform, 'oneWay', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.oneWay') }}</label>
+              <label class="check" :title="t('umbrellaEditor.prop.dropThroughHint')"><input type="checkbox" :checked="!!selectedPlatform.dropThrough" @change="setLedge(selectedPlatform, 'dropThrough', ($event.target as HTMLInputElement).checked)" /> {{ t('umbrellaEditor.prop.dropThrough') }}</label>
+            </template>
+            <div v-if="!selectedPlatform.finish" class="row rot">
               <span>{{ t('umbrellaEditor.prop.rotation') }}</span>
               <input class="rot-slider" type="range" min="-180" max="180" step="1" :value="selectedPlatform.angle ?? 0" @input="setAngle(selectedPlatform, +($event.target as HTMLInputElement).value)" />
               <input class="field num" type="number" min="-180" max="180" step="1" :value="selectedPlatform.angle ?? 0" @change="setAngle(selectedPlatform, +($event.target as HTMLInputElement).value)" />
@@ -2815,6 +2897,12 @@ onUnmounted(() => {
               <span v-else>Drop an image here, or click to choose one</span>
             </div>
             <input ref="imagePicker" type="file" :accept="IMAGE_ACCEPT" hidden @change="onPictureFile" />
+            <div class="row rot">
+              <span>{{ t('umbrellaEditor.prop.rotation') }}</span>
+              <input class="rot-slider" type="range" min="-180" max="180" step="1" :value="selectedPicture.angle ?? 0" @input="setAngle(selectedPicture, +($event.target as HTMLInputElement).value)" />
+              <input class="field num" type="number" min="-180" max="180" step="1" :value="selectedPicture.angle ?? 0" @change="setAngle(selectedPicture, +($event.target as HTMLInputElement).value)" />
+              <button type="button" class="rot-reset" :aria-label="t('umbrellaEditor.prop.rotationReset')" :title="t('umbrellaEditor.prop.rotationReset')" @click="setAngle(selectedPicture, 0)">0°</button>
+            </div>
             <label class="check"><input type="checkbox" :checked="selectedPicture.ropes === true" @change="setRopes(($event.target as HTMLInputElement).checked)" /> Hang from ropes (sways in the wind)</label>
             <label class="check"><input type="checkbox" :checked="selectedPicture.frame !== false" @change="setPictureFrame(($event.target as HTMLInputElement).checked)" /> Paper board around the image</label>
             <template v-if="selectedPicture.frame !== false">
@@ -3278,6 +3366,8 @@ onUnmounted(() => {
 .rot-slider { flex: 1; min-width: 60px; }
 .rot .field.num { width: 56px; }
 .rot-reset { padding: 2px 6px; cursor: pointer; }
+.sfx-row { display: flex; align-items: center; gap: 6px; }
+.sfx-name { flex: 1; min-width: 0; }
 .check.off { opacity: 0.45; }
 .sync { font-size: 12px; color: #6ee7b7; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sync.bad { color: #fbbf24; }

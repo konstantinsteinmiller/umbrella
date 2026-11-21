@@ -19,3 +19,20 @@ export const imageIdsIn = (...docs) => {
   docs.forEach(walk)
   return [...ids]
 }
+
+/** The uploaded sound ids a set of level documents use (a level's `sounds` map: event name → id). */
+export const soundIdsIn = (...docs) => {
+  const ids = new Set()
+  const walk = (v) => {
+    if (!v || typeof v !== 'object') return
+    if (Array.isArray(v)) { v.forEach(walk); return }
+    for (const [k, x] of Object.entries(v)) {
+      if (k === 'sounds' && x && typeof x === 'object' && !Array.isArray(x)) {
+        for (const id of Object.values(x)) if (typeof id === 'string' && ID_RE.test(id)) ids.add(id)
+      }
+      walk(x)
+    }
+  }
+  docs.forEach(walk)
+  return [...ids]
+}

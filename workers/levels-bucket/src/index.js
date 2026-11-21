@@ -28,6 +28,11 @@
 //                      → { id }, id = first 24 hex digits of the SHA-256 of the bytes (the editor computes the
 //                        same, so an upload is confirmed by the name). Re-uploading the same bytes is a no-op.
 //
+// ─── Level sounds (the sound effects a designer uploads for a level; keys `snd:<id>`) ───
+//   GET  /sounds/:id   → the .ogg file (public, cached for a year: the id is a hash of the bytes)
+//   POST /sounds       body = the Ogg bytes (≤ 260 kB); Authorization: Bearer <EDITOR_TOKEN>
+//                      → { id }, id = first 24 hex digits of the SHA-256 of the bytes. Re-uploading the same bytes is a no-op.
+//
 // ─── Community levels (D1 binding COMMUNITY, schema in migrations/) ───────
 //   GET  /community/levels?sort=rating|newest|plays&page=1&size=12
 //        → { items: (Meta & { code })[], total, page, pageSize }   (size ≤ 50; code draws the preview)
@@ -141,6 +146,7 @@ export default {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
     try {
       if (url.pathname.startsWith('/community/')) return await community(req, env, url)
+      if (url.pathname === '/sounds' || url.pathname.startsWith('/sounds/')) return await sounds(req, env, url)
       if (url.pathname === '/images' || url.pathname.startsWith('/images/')) return await images(req, env, url)
       if (url.pathname === '/levels/history') return await history(req, env, url)
       if (url.pathname !== '/levels') return json({ error: 'not found' }, 404)
@@ -254,6 +260,28 @@ async function images(req, env, url) {
   if (!type) return json({ error: 'not a webp, png or jpeg image' }, 415)
   const id = await hashId(bytes)
   if (!(await env.LEVELS.get(`img:${id}`, 'arrayBuffer'))) await env.LEVELS.put(`img:${id}`, bytes, { metadata: { type } })
+  return json({ id })
+}
+
+// ─── Level sounds ────────────────────────────────────────────────────────
+const MAX_SOUND = 260_000
+async function sounds(req, env, url) {
+  if (req.method === 'GET') {
+    const id = url.pathname.slice('/sounds/'.length)
+    if (!IMAGE_ID_RE.test(id)) return json({ error: 'not found' }, 404)
+    const bytes = await env.LEVELS.get(`snd:${id}`, 'arrayBuffer')
+    if (!bytes) return json({ error: 'not found' }, 404)
+    return new Response(bytes, { headers: { ...cors, 'Content-Type': 'audio/ogg', 'Cache-Control': 'public, max-age=31536000, immutable' } })
+  }
+  if (req.method !== 'POST' || url.pathname !== '/sounds') return json({ error: 'method not allowed' }, 405)
+  const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!env.EDITOR_TOKEN || !sameToken(token, env.EDITOR_TOKEN)) return json({ error: 'wrong editor password' }, 401)
+  const bytes = await req.arrayBuffer()
+  if (bytes.byteLength > MAX_SOUND) return json({ error: 'too large' }, 413)
+  const b = new Uint8Array(bytes)
+  if (!(b.length > 4 && b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53)) return json({ error: 'not an ogg file' }, 415)
+  const id = await hashId(bytes)
+  if (!(await env.LEVELS.get(`snd:${id}`, 'arrayBuffer'))) await env.LEVELS.put(`snd:${id}`, bytes)
   return json({ id })
 }
 

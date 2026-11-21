@@ -212,7 +212,19 @@ const drawRope = (ctx: CanvasRenderingContext2D, ax: number, ay: number, kx: num
   ctx.restore()
 }
 
-export const drawPicture = (ctx: CanvasRenderingContext2D, p: PictureDef, time: number): void => drawHung(ctx, p, time, () => drawBoard(ctx, p), p.ropes === true)
+export const drawPicture = (ctx: CanvasRenderingContext2D, p: PictureDef, time: number): void =>
+  drawHung(ctx, p, time, () => {
+    // A turned board is drawn upright about its own centre under a turn of the canvas.
+    if (!p.angle) { drawBoard(ctx, p); return }
+    const cx = p.x + p.w / 2
+    const cy = p.y + p.h / 2
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate((p.angle * Math.PI) / 180)
+    ctx.translate(-cx, -cy)
+    drawBoard(ctx, p)
+    ctx.restore()
+  }, p.ropes === true)
 
 /** Any board hung from two ropes above the screen's top edge, swaying a little in the wind: `body` draws the board itself where
  *  it is (it is moved and turned for the sway; the ropes and knots are drawn here). */

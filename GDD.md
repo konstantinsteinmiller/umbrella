@@ -380,3 +380,10 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 ## Revision 18
 **Level editor**
 · History for every edited level (designer, Level > History): one version per day (the latest edit of the day) and the last 50 saves, kept on the levels server and in the browser; loading one opens it in the editor, nothing is replaced until it is saved.
+
+## Revision 19
+**Level editor**
+· Picture boards can be turned (rotation handle and number box).
+· Platforms: One-way (pass up through, only stops a fall from above) and Drop-through (open the umbrella on it to sink through).
+· Sound effects (designer): upload .ogg files to replace a game event's sound (umbrella open / close, landing, finish, hit, collectibles, cloud melting...) on a level.
+· Removable clouds can be turned; the camouflaged one fades out as one layer without particles, and with "Returns after (s)" comes back once the player has left it.
