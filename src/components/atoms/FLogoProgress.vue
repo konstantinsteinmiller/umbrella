@@ -325,6 +325,9 @@ watch(done, (isDone) => {
 
   &, & *
     -webkit-user-drag: none
+    user-select: none
+    -webkit-user-select: none
+    caret-color: transparent
 
 .splash-title
   color: #ffb15a
