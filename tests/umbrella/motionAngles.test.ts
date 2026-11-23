@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createWorld, poseMovers } from '@/umbrella/engine'
-import { KITE_LEVELS } from '@/umbrella/kiteLevels'
+import { DRAGON_LEVELS } from '@/umbrella/dragonLevels'
 import { LEVELS, type LevelDef, type Motion } from '@/umbrella/levels'
 import { decodeLevel, encodeLevel } from '@/umbrella/levelCode'
 
@@ -80,7 +80,7 @@ describe('circle start phase', () => {
 describe('built-in levels', () => {
   it('every circle and swing mover is where it was before the new fields', () => {
     let seen = 0
-    for (const level of [...LEVELS, ...KITE_LEVELS]) {
+    for (const level of [...LEVELS, ...DRAGON_LEVELS]) {
       const movers = [...level.platforms, ...(level.hazards ?? [])]
       for (const t of TIMES) {
         const w = createWorld(level)

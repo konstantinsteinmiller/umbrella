@@ -63,8 +63,9 @@ describe('the lantern build', () => {
     const kite = await import('@/umbrella/kite')
     expect([kite.isLantern, kite.isKite, kite.artLayer]).toEqual([true, false, true])
     const { LEVELS } = await import('@/umbrella/levels')
-    const { KITE_LEVELS } = await import('@/umbrella/kiteLevels')
-    expect(LEVELS[0]).not.toEqual(KITE_LEVELS[0])
+    const { DRAGON_LEVELS } = await import('@/umbrella/dragonLevels')
+    // The lantern build is the plain campaign: the dragon chapter belongs to the dragon kite skin alone.
+    expect(LEVELS.some((l) => DRAGON_LEVELS.some((d) => d.id === l.id))).toBe(false)
   })
 })
 

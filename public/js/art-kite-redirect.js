@@ -1,6 +1,6 @@
 // `?art=kite` / `?art=lantern` (before or after the #) open a painted-art version of the game.
 // Each is its own build (it folds its art flag at compile time), served beside the normal one:
-//   /umbrella/?art=kite        → /umbrella/kite/        (the kite art and its 100 levels)
+//   /umbrella/?art=kite        → /umbrella/kite/        (the dragon kite skin: the normal game in the kite art)
 //   /umbrella/?art=lantern     → /umbrella/lantern/     (the normal game in the "Paper Moon" art)
 //   /umbrella/11/?art=kite     → /umbrella/11/kite/     (every revision from 11 on; lantern likewise)
 // A classic script, first in <head>, so the normal game never even starts. Only the GitHub Pages paths

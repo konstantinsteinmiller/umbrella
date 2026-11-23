@@ -4,8 +4,7 @@
 import { isPlaygama, isPoki } from '@/use/useUser'
 
 export const COMMUNITY_URL: string = (import.meta.env.VITE_APP_LEVELS_BUCKET_URL ?? '').trim().replace(/\/+$/, '')
-/** On for the kite build as well (?art=kite is the same game): the community list and submissions are shared. Only the
- *  campaign sync stays off there (customLevels.ts) — the kite levels are not the server's. */
+/** On for the dragon kite skin as well (?art=kite is the same game): the community list, submissions and the campaign sync are shared. */
 export const communityEnabled: boolean = COMMUNITY_URL !== '' && !isPoki && !isPlaygama
 
 /** The community list opens to a player who has won this campaign level (its number, from 1): before it, the

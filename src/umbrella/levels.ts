@@ -3,8 +3,6 @@
 // World coordinates: y grows downward. Levels 1–9 are one 1280×720 screen;
 // 10–12 are larger worlds the camera zooms out to fit ("far away").
 
-import { isKite } from './kite'
-import { KITE_LEVELS } from './kiteLevels'
 import { FIN, MINE, P, PILLAR, SCREEN, SPIKES, SUPER, UP, WIND } from './levelKit'
 
 export type Vec = { x: number; y: number }
@@ -538,7 +536,6 @@ const CAMPAIGN: LevelDef[] = [
   }
 ]
 
-/** The levels the game plays: the campaign, or on the kite build (/umbrella/kite/) the
- *  100 kite levels instead — never both. customLevels.ts rebuilds this array in place
- *  (order, editor overrides), so it is a copy of its own. */
-export const LEVELS: LevelDef[] = isKite ? [...KITE_LEVELS] : CAMPAIGN
+/** The levels the game plays: the campaign. customLevels.ts rebuilds this array in place
+ *  (order, editor overrides, the dragon kite's first chapter), so it is a copy of its own. */
+export const LEVELS: LevelDef[] = [...CAMPAIGN]

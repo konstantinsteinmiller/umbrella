@@ -1,14 +1,16 @@
-// ─── The kite build: /umbrella/kite/ ─────────────────────────────────────────
+// ─── The dragon kite skin: /umbrella/kite/ (?art=kite) ───────────────────────
 //
-// A separate deployment of the game (`pnpm build:kite`, VITE_APP_KITE=true):
-//   · the 100 kite levels (kiteLevels.ts) instead of the server's campaign,
-//   · the painted art (art overrides on) instead of the vector drawing,
-//   · no levels bucket: nothing is pulled from or pushed to the server; the player
-//     can still edit the levels locally in the level editor.
+// The normal game in a painted skin (`pnpm build:kite`, VITE_APP_KITE=true), like the lantern:
+//   · the painted baby-dragon kite art (art overrides on) instead of the vector drawing,
+//   · the same campaign, levels server, community, tuning and save as the normal game, so the editor lists the
+//     same levels and the same My Levels,
+//   · one addition: its own first chapter of five onboarding levels (dragonLevels.ts), played before the campaign.
 // Literal env read so Vite folds it per build.
 import { devArtParam } from './devArt'
 
-export const isKite = import.meta.env.VITE_APP_KITE === 'true'
+// On a dev server `?art=kite` turns it on at runtime, like `?art=lantern` (the cheat-mode Art dropdown, artMode.ts);
+// `import.meta.env.DEV` folds that away in every build.
+export const isKite = import.meta.env.VITE_APP_KITE === 'true' || (import.meta.env.DEV && devArtParam() === 'kite')
 
 // The lantern build: /umbrella/lantern/ (`pnpm build:lantern`, VITE_APP_LANTERN=true,
 // opened by ?art=lantern). The normal game — campaign, server levels, save — drawn

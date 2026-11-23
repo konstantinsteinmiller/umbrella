@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Dragon kite — four art styles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>:root{color-scheme:dark;--ground:#14161c;--board:#1d2029;--line:#2e3240;--ink:#eceae4;--muted:#9a9eac;--gold:#f2c14e;--sky:#7cc4e8;--display:"Young Serif",Georgia,serif;--body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;--navy:#1b2130}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.55 var(--body)}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{padding-block:40px 20px;display:grid;gap:14px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--sky)}
+h1{font:400 clamp(34px,5vw,58px)/1.05 var(--display);margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--gold)}
+.lede{max-width:72ch;color:var(--muted);margin:0}
+.rules{display:flex;flex-wrap:wrap;gap:8px}
+.rule{font-size:12.5px;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+.rule b{color:var(--ink)}
+nav.rail{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--ground) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.rail .wrap{display:flex;gap:6px;padding-block:10px;overflow-x:auto;scrollbar-width:none}
+nav.rail a{flex:none;font:600 13px var(--body);color:var(--muted);text-decoration:none;padding:7px 12px;border-radius:8px;border:1px solid transparent}
+nav.rail a:hover{color:var(--ink);border-color:var(--line)}
+nav.rail .score{font:500 11px var(--mono);color:var(--gold);margin-left:6px}
+a:focus-visible,button:focus-visible,textarea:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+.ground{background:radial-gradient(120% 90% at 50% 0%,#232b40 0%,var(--navy) 55%,#151a28 100%)}
+[data-bg=sky] .ground,.ground[data-bgv=sky]{background:linear-gradient(#8fd0f2,#d8f1fb)}
+[data-bg=paper] .ground,.ground[data-bgv=paper]{background:#f4e9d0}
+section.concept{padding-block:52px 8px;scroll-margin-top:60px}
+.c-head{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px;align-items:start;margin-bottom:18px}
+.c-num{font:500 12px var(--mono);color:var(--muted);letter-spacing:.1em}
+.c-name{font:400 clamp(28px,3.6vw,42px)/1.1 var(--display);margin:4px 0 8px}
+.pitch{margin:0 0 10px;color:var(--muted);max-width:58ch}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--board);border:1px solid var(--line)}
+dl.theme{margin:0;display:grid;gap:8px}
+dl.theme div{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px}
+dt{font:500 11px/1.9 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+dd{margin:0;font-size:14px}
+.swatches{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.swatches small{color:var(--muted);margin-left:6px;font-size:12.5px}
+.sw{display:inline-block;width:18px;height:18px;border-radius:50%;border:1px solid #ffffff30}
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;background:var(--board);padding:10px;border-radius:14px;border:1px solid var(--line)}
+.board figure{margin:0;position:relative;min-width:0;border-radius:10px;overflow:hidden;display:grid;place-items:center;padding:14px}
+.board figure.lead{grid-column:1/-1;aspect-ratio:21/9}
+.board figure.sq{aspect-ratio:1/1}
+.board figure img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+.board figure.sq img{width:100%;height:100%}
+.board figcaption{position:absolute;left:8px;bottom:8px;font:500 11px var(--mono);letter-spacing:.06em;background:rgba(10,12,16,.72);padding:3px 8px;border-radius:4px;pointer-events:none;color:var(--ink)}
+.missing{color:var(--muted);font-size:13px;border:1px dashed var(--line);padding:20px;border-radius:8px}
+.strip{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px;margin-top:10px}
+.scene{position:relative;aspect-ratio:16/9;border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.scene>div{position:absolute}
+.scene img,.sizes img{display:block;width:100%;height:100%;object-fit:contain}
+.sc-cloud{left:3%;bottom:6%;width:60%;height:30%}
+.sc-closed{left:14%;bottom:26%;width:16%;height:40%}
+.sc-wall{right:9%;bottom:6%;width:10%;height:64%}
+.sc-mine{right:25%;top:12%;width:12%;height:20%}
+.sc-open{left:34%;top:6%;width:26%;height:34%}
+.scene .cap{position:absolute;left:10px;bottom:6px;font:500 10.5px var(--mono);color:#ffffff99;mix-blend-mode:normal}
+[data-bg=paper] .scene .cap,[data-bgv=sky] .scene .cap{color:#00000099}
+.sizes{border-radius:14px;border:1px solid var(--line);padding:14px 16px}
+.sizes h3,.rate h3,.reco h3,.decision h3{margin:0 0 8px;font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.sizes h3{color:#cfd6e6}
+.sz-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 18px}
+.sz{display:grid;justify-items:center;gap:4px}
+.sz small{font:500 10.5px var(--mono);color:#cfd6e6}
+.sz span[class^=h]{display:block}.sz .h48{height:48px}.sz .h64{height:64px}.sz .h72{height:72px}.sz .h96{height:96px}
+.sz img{width:auto;height:100%}
+.sizes .note{color:#aeb7cc}
+.rate{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1.3fr);gap:22px;align-items:start;margin-top:14px;padding:16px 18px;border:1px solid var(--line);border-radius:14px}
+.radio{display:flex;gap:8px;align-items:center;margin-bottom:6px;cursor:pointer}
+.stars{display:flex;gap:2px}
+.stars button{background:none;border:0;padding:2px;cursor:pointer;font-size:26px;line-height:1;color:#3a3f4f}
+.stars button.on{color:var(--gold)}
+textarea{width:100%;min-height:76px;resize:vertical;background:var(--ground);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:14px/1.45 var(--body)}
+.saved{font:500 11px var(--mono);color:var(--muted);margin-top:4px;min-height:1em}
+.ref{border-left:1px dashed var(--line);padding-left:18px;display:grid;gap:6px}
+.ref h3{color:var(--sky)}
+.ref-grid{display:grid;gap:6px}
+.ref-crit{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--muted)}
+.fixed{color:var(--sky);letter-spacing:1px;white-space:nowrap}.fixed i{font-style:normal;color:#3a3f4f}
+.why{margin:0;font-size:14px;max-width:70ch}
+.muted{color:var(--muted)}.sm{font-size:12px}
+section#compare{padding-block:56px 24px;scroll-margin-top:60px}
+.cmp-head{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:14px;margin-bottom:14px}
+.cmp-head h2,.ranking h2,.appendix h2{font:400 clamp(26px,3vw,36px) var(--display);margin:0}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--board);padding:4px;border-radius:10px;border:1px solid var(--line)}
+.seg button{font:600 13px var(--body);color:var(--muted);background:none;border:0;padding:7px 12px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--ground)}
+.wall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.wall figure{margin:0;min-width:0}
+.wall .w{aspect-ratio:4/5;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;padding:10px;position:relative;overflow:hidden}
+.wall .w img{max-width:100%;max-height:100%;object-fit:contain}
+.wall .w .scene{position:absolute;inset:0;border:0;border-radius:0;aspect-ratio:auto;background:none}
+.wall figcaption{display:flex;justify-content:space-between;gap:8px;padding:6px 2px 0;font-size:13.5px;font-weight:600}
+.wall figcaption span{font:500 12px var(--mono);color:var(--gold)}
+.note{color:var(--muted);font-size:13px;margin-top:10px}
+.ranking{margin-top:36px;border-top:1px solid var(--line);padding-top:22px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}
+th{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+td.claude{color:var(--sky)}td.num{font-family:var(--mono)}
+.tbl{overflow-x:auto}
+.reco,.decision{margin-top:18px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--board)}
+.reco p{margin:0;max-width:80ch}
+.decision button{font:600 13px var(--body);background:var(--ink);color:var(--ground);border:0;padding:8px 14px;border-radius:8px;cursor:pointer}
+.mono{font-family:var(--mono);font-size:13px}
+.appendix{padding-block:36px 8px}
+details{border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:10px 14px;background:var(--board)}
+summary{cursor:pointer;font-weight:600}
+pre{white-space:pre-wrap;font:12.5px/1.5 var(--mono);color:var(--muted);margin:8px 0}
+h4{margin:14px 0 2px}
+footer{padding-block:40px;color:var(--muted);font-size:13px}
+dialog{border:0;padding:0;background:transparent;max-width:96vw;max-height:94vh}
+dialog::backdrop{background:rgba(5,6,9,.92)}
+dialog img{display:block;max-width:96vw;max-height:86vh;border-radius:8px;background:var(--navy)}
+dialog p{text-align:center;margin:10px 0 0;font-weight:600}
+@media(max-width:900px){.c-head,.strip,.rate{grid-template-columns:minmax(0,1fr)}.wall{grid-template-columns:repeat(2,minmax(0,1fr))}.ref{border-left:0;padding-left:0}.board figure.lead{aspect-ratio:16/9}}
+@media(max-width:520px){.board{grid-template-columns:minmax(0,1fr)}.wall{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+.pending{font:500 11px var(--mono);color:var(--gold);border:1px dashed var(--line);border-radius:4px;padding:1px 6px}
+.board figure.sq img{position:absolute;inset:14px;width:calc(100% - 28px);height:calc(100% - 28px);object-fit:contain}
+.board figure.sq .missing{position:absolute;inset:14px;display:grid;place-items:center;text-align:center}
+.board figure.lead img{max-height:100%}
+.wall .w img{position:absolute;inset:10px;width:calc(100% - 20px);height:calc(100% - 20px);object-fit:contain}
+.wall .w .missing{position:relative;z-index:1}
+.chosen{font:600 12px var(--mono);letter-spacing:.1em;background:var(--gold);color:#14161c;padding:3px 9px;border-radius:5px;vertical-align:middle;margin-left:10px}
+
+.board figure.wide{grid-column:1/-1;aspect-ratio:16/5}
+.board figure.wide img{width:100%;height:100%;object-fit:contain}
+</style></head>
+<body>
+<header class="top wrap">
+  <div class="eyebrow">Umbrella · art=kite · new skin</div>
+  <h1>The <em>Drachen</em> kite, four ways</h1>
+  <p class="lede">In German, <i>Drachen</i> is both a kite and a dragon. Three concepts make the kite itself the dragon; a fourth is the literal reddish baby dragon. Each is painted as the same four pieces so they compare like for like: the character in kite-closed and kite-open, the cloud platform, Walldorf idle, and the mine idle.</p>
+  <div class="rules"><span class="rule"><b>1</b> Character · closed + open</span><span class="rule"><b>2</b> Cloud platform</span><span class="rule"><b>3</b> Walldorf idle</span><span class="rule"><b>4</b> Mine idle</span><span class="rule"><b>5</b> Finish platform (D only)</span><span class="rule">Test ground · <b>night navy</b></span></div>
+</header>
+<nav class="rail"><div class="wrap"><a href="#gouache">A · Jade Gouache Storybook <span class="score">26</span></a><a href="#folk">B · Folk-Art Silk &amp; Bamboo <span class="score">21</span></a><a href="#candy">C · Candy Sticker Pop <span class="score">25</span></a><a href="#crayon">D · Ember Crayon Baby Dragon <span class="score">21</span></a><a href="#compare">Side by side</a><a href="#decide">Decide</a><a href="#how">How</a></div></nav>
+<main class="wrap">
+
+<section class="concept" id="gouache">
+  <div class="c-head">
+    <div>
+      <div class="c-num">A · DRACHEN — THE KITE IS THE DRAGON</div>
+      <h2 class="c-name">Jade Gouache Storybook</h2>
+      <p class="pitch">A cosy bedtime-story dragon: opaque matte gouache, soft rounded shapes, warm jade and apricot.</p>
+      <div class="tags"><span class="tag">Drachen</span><span class="tag">matte gouache</span><span class="tag">jade + apricot</span><span class="tag">teal-brown line</span></div>
+    </div>
+    <dl class="theme">
+      <div><dt>Finish</dt><dd>Opaque matte gouache, soft brush-pen outline in deep teal-brown, one soft shadow tone, a chalky highlight dab.</dd></div>
+      <div><dt>Palette</dt><dd class="swatches"><span class="sw" style="background:#58b59b" title="#58b59b"></span><span class="sw" style="background:#2f8a7a" title="#2f8a7a"></span><span class="sw" style="background:#f4b96a" title="#f4b96a"></span><span class="sw" style="background:#fbe9c4" title="#fbe9c4"></span><span class="sw" style="background:#e8644f" title="#e8644f"></span><span class="sw" style="background:#2c3e3a" title="#2c3e3a"></span><small>jade, apricot, cream, coral</small></dd></div>
+      <div><dt>Strength</dt><dd>The clearest Drachen of the set: one jade diamond with a face, a soft snout patch, horns and a scale belly; the open wings carry cream cloud swirls. The cloud, Walldorf and mine come back in exactly the same hand (teal line, coral swirls, speckles). Warm and soft, so it feels like the game's current look grown up.</dd></div>
+      <div><dt>Risk</dt><dd>Softest outline of the four, so at 48 px the silhouette leans on the horns and the tail; and it is the least surprising next to the existing crayon kite.</dd></div>
+    </dl>
+  </div>
+
+  <div class="board">
+    <figure class="lead ground"><img class="zoom" src="img/gouache-character.webp" alt="Jade Gouache Storybook: character reference, kite closed and kite open"><figcaption>1 · CHARACTER — KITE CLOSED + KITE OPEN</figcaption></figure>
+    <figure class="ground sq"><img class="zoom" src="img/gouache-cloud.webp" alt="Jade Gouache Storybook: cloud platform"><figcaption>2 · CLOUD PLATFORM</figcaption></figure>
+    <figure class="ground sq"><img class="zoom" src="img/gouache-walldorf.webp" alt="Jade Gouache Storybook: Walldorf idle"><figcaption>3 · WALLDORF IDLE</figcaption></figure>
+    <figure class="ground sq"><img class="zoom" src="img/gouache-mine.webp" alt="Jade Gouache Storybook: mine idle"><figcaption>4 · MINE IDLE</figcaption></figure>
+    
+  </div>
+
+  <div class="strip">
+    <div class="scene ground" aria-label="Jade Gouache Storybook in a mock-up scene">
+      <div class="sc-cloud"><img class="" src="img/gouache-cloud.webp" alt="gouache-cloud"></div>
+      <div class="sc-closed"><img class="" src="img/gouache-closed.webp" alt="gouache-closed"></div>
+      <div class="sc-wall"><img class="" src="img/gouache-walldorf.webp" alt="gouache-walldorf"></div>
+      <div class="sc-mine"><img class="" src="img/gouache-mine.webp" alt="gouache-mine"></div>
+      <div class="sc-open"><img class="" src="img/gouache-open.webp" alt="gouache-open"></div>
+      <span class="cap">Mock-up: the four pieces together at roughly in-game proportions</span>
+    </div>
+    <div class="sizes ground">
+      <h3>Small-size test</h3>
+      <div class="sz-row">
+        <span class="sz"><span class="h48"><img class="" src="img/gouache-closed.webp" alt="gouache-closed"></span><small>48px</small></span><span class="sz"><span class="h72"><img class="" src="img/gouache-closed.webp" alt="gouache-closed"></span><small>72px</small></span><span class="sz"><span class="h96"><img class="" src="img/gouache-closed.webp" alt="gouache-closed"></span><small>96px</small></span>
+        <span class="sz"><span class="h48"><img class="" src="img/gouache-open.webp" alt="gouache-open"></span><small>open 48px</small></span><span class="sz"><span class="h72"><img class="" src="img/gouache-open.webp" alt="gouache-open"></span><small>open 72px</small></span>
+        <span class="sz"><span class="h64"><img class="" src="img/gouache-mine.webp" alt="gouache-mine"></span><small>mine 64</small></span>
+        <span class="sz"><span class="h96"><img class="" src="img/gouache-walldorf.webp" alt="gouache-walldorf"></span><small>wall 96</small></span>
+      </div>
+      <p class="note">611 distinct colours in the character sheet (a measure of how busy it is).</p>
+    </div>
+  </div>
+
+  
+  <div class="rate">
+    <div class="pick">
+      <h3>Your call</h3>
+      <label class="radio"><input type="radio" name="pick" value="gouache"> Go with <b>A · Jade Gouache Storybook</b></label>
+      <div class="stars" data-style="gouache" role="group" aria-label="Your rating for Jade Gouache Storybook"><button type="button" data-n="1" aria-label="1 stars">★</button><button type="button" data-n="2" aria-label="2 stars">★</button><button type="button" data-n="3" aria-label="3 stars">★</button><button type="button" data-n="4" aria-label="4 stars">★</button><button type="button" data-n="5" aria-label="5 stars">★</button></div>
+    </div>
+    <div>
+      <h3>Notes</h3>
+      <textarea data-notes="gouache" placeholder="What you like, what you would change…"></textarea>
+      <div class="saved" data-saved="gouache"></div>
+    </div>
+    <div class="ref">
+      <h3>Claude's read</h3>
+      <div class="ref-grid"><div class="ref-overall"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span> <span class="muted">26 / 30</span> <span class="muted sm">· supporting pieces painted: 3 / 3</span></div>
+      <div class="ref-crit"><span>Cuteness <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>Reads as Drachen <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>Legible at 48 px <span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></span><span>Looks new <span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></span><span>Cheap to animate <span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></span><span>Fits the game <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>One family across 4 pieces <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span></div></div>
+      <p class="why">Best all-rounder. It is the only style where all four pieces are painted, and they are visibly one family. The kite is the dragon, the face is cute, and the colour (jade on a navy night) separates it from every other build. I would take this one and tune the line weight up a touch.</p>
+    </div>
+  </div>
+</section>
+
+<section class="concept" id="folk">
+  <div class="c-head">
+    <div>
+      <div class="c-num">B · DRACHEN — THE KITE IS THE DRAGON</div>
+      <h2 class="c-name">Folk-Art Silk &amp; Bamboo</h2>
+      <p class="pitch">A real kite-maker's dragon: bold flat colour on painted silk, ink outlines, scale and cloud-scroll patterns.</p>
+      <div class="tags"><span class="tag">Drachen</span><span class="tag">folk-art silk</span><span class="tag">vermilion + gold + turquoise</span><span class="tag">ink outline</span></div>
+    </div>
+    <dl class="theme">
+      <div><dt>Finish</dt><dd>Bold flat colour fields, thick black-brown ink outline, scale arcs and cloud-scroll patterns instead of shading, bamboo spars with nodes.</dd></div>
+      <div><dt>Palette</dt><dd class="swatches"><span class="sw" style="background:#d9382c" title="#d9382c"></span><span class="sw" style="background:#f2b705" title="#f2b705"></span><span class="sw" style="background:#1fa3a3" title="#1fa3a3"></span><span class="sw" style="background:#243a73" title="#243a73"></span><span class="sw" style="background:#fff1d0" title="#fff1d0"></span><span class="sw" style="background:#26140f" title="#26140f"></span><small>vermilion, gold, turquoise, indigo, cream</small></dd></div>
+      <div><dt>Strength</dt><dd>The most dragon and the most distinctive: antler horns, a gold scale belly, turquoise cloud-scrolls on the wings, a leaf-tipped tail. It looks like a kite a real maker would paint, which is the strongest story for a German Drachen.</dd></div>
+      <div><dt>Risk</dt><dd>Busiest: 800+ distinct colours in the character sheet, so 16-frame sheets are the hardest to keep identical, and the face (snout patch with a small curl) is the least cute of the three kite versions.</dd></div>
+    </dl>
+  </div>
+
+  <div class="board">
+    <figure class="lead ground"><img class="zoom" src="img/folk-character.webp" alt="Folk-Art Silk &amp; Bamboo: character reference, kite closed and kite open"><figcaption>1 · CHARACTER — KITE CLOSED + KITE OPEN</figcaption></figure>
+    
+    
+  </div>
+
+  
+  <div class="rate">
+    <div class="pick">
+      <h3>Your call</h3>
+      <label class="radio"><input type="radio" name="pick" value="folk"> Go with <b>B · Folk-Art Silk &amp; Bamboo</b></label>
+      <div class="stars" data-style="folk" role="group" aria-label="Your rating for Folk-Art Silk &amp; Bamboo"><button type="button" data-n="1" aria-label="1 stars">★</button><button type="button" data-n="2" aria-label="2 stars">★</button><button type="button" data-n="3" aria-label="3 stars">★</button><button type="button" data-n="4" aria-label="4 stars">★</button><button type="button" data-n="5" aria-label="5 stars">★</button></div>
+    </div>
+    <div>
+      <h3>Notes</h3>
+      <textarea data-notes="folk" placeholder="What you like, what you would change…"></textarea>
+      <div class="saved" data-saved="folk"></div>
+    </div>
+    <div class="ref">
+      <h3>Claude's read</h3>
+      <div class="ref-grid"><div class="ref-overall"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span> <span class="muted">21 / 30</span> <span class="muted sm">· supporting pieces painted: 0 / 3</span></div>
+      <div class="ref-crit"><span>Cuteness <span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></span><span>Reads as Drachen <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>Legible at 48 px <span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></span><span>Looks new <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>Cheap to animate <span class="fixed" aria-label="2 of 5">★★<i>★★★</i></span></span><span>Fits the game <span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></span><span>One family across 4 pieces <span class="pending">pending</span></span></div></div>
+      <p class="why">The boldest choice and a great art story, but the pattern work makes every animation sheet expensive and the face is the weakest point. Cloud, Walldorf and mine are not painted yet (the image quota ran out), so its family fit is unproven.</p>
+    </div>
+  </div>
+</section>
+
+<section class="concept" id="candy">
+  <div class="c-head">
+    <div>
+      <div class="c-num">C · DRACHEN — THE KITE IS THE DRAGON</div>
+      <h2 class="c-name">Candy Sticker Pop</h2>
+      <p class="pitch">A premium mobile-game dragon: clean thick outlines, two-tone cel shading, bright happy candy colour.</p>
+      <div class="tags"><span class="tag">Drachen</span><span class="tag">clean cel</span><span class="tag">mint + aqua + tangerine</span><span class="tag">indigo outline</span></div>
+    </div>
+    <dl class="theme">
+      <div><dt>Finish</dt><dd>Perfectly smooth flat fills, one hard-edged shade tone, a four-point sparkle, a thick even deep-indigo outline.</dd></div>
+      <div><dt>Palette</dt><dd class="swatches"><span class="sw" style="background:#5ee0b8" title="#5ee0b8"></span><span class="sw" style="background:#4cc3f0" title="#4cc3f0"></span><span class="sw" style="background:#ffd23f" title="#ffd23f"></span><span class="sw" style="background:#ff8a3d" title="#ff8a3d"></span><span class="sw" style="background:#a78bfa" title="#a78bfa"></span><span class="sw" style="background:#2a2350" title="#2a2350"></span><small>mint, aqua, yellow, tangerine, lavender</small></dd></div>
+      <div><dt>Strength</dt><dd>Strongest silhouette and the cheapest to animate: thick even line, flat fills, instantly readable at 48 px, and the wings (aqua with yellow edge and lavender spars) pop against the navy.</dd></div>
+      <div><dt>Risk</dt><dd>The right eye came back as an oversized white patch with a small pupil, which reads as an eye-patch (a re-roll fixes it). It is also the most generic mobile look and the furthest from the hand-drawn world of the existing game.</dd></div>
+    </dl>
+  </div>
+
+  <div class="board">
+    <figure class="lead ground"><img class="zoom" src="img/candy-character.webp" alt="Candy Sticker Pop: character reference, kite closed and kite open"><figcaption>1 · CHARACTER — KITE CLOSED + KITE OPEN</figcaption></figure>
+    
+    
+  </div>
+
+  
+  <div class="rate">
+    <div class="pick">
+      <h3>Your call</h3>
+      <label class="radio"><input type="radio" name="pick" value="candy"> Go with <b>C · Candy Sticker Pop</b></label>
+      <div class="stars" data-style="candy" role="group" aria-label="Your rating for Candy Sticker Pop"><button type="button" data-n="1" aria-label="1 stars">★</button><button type="button" data-n="2" aria-label="2 stars">★</button><button type="button" data-n="3" aria-label="3 stars">★</button><button type="button" data-n="4" aria-label="4 stars">★</button><button type="button" data-n="5" aria-label="5 stars">★</button></div>
+    </div>
+    <div>
+      <h3>Notes</h3>
+      <textarea data-notes="candy" placeholder="What you like, what you would change…"></textarea>
+      <div class="saved" data-saved="candy"></div>
+    </div>
+    <div class="ref">
+      <h3>Claude's read</h3>
+      <div class="ref-grid"><div class="ref-overall"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span> <span class="muted">25 / 30</span> <span class="muted sm">· supporting pieces painted: 0 / 3</span></div>
+      <div class="ref-crit"><span>Cuteness <span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></span><span>Reads as Drachen <span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></span><span>Legible at 48 px <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>Looks new <span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></span><span>Cheap to animate <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>Fits the game <span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></span><span>One family across 4 pieces <span class="pending">pending</span></span></div></div>
+      <p class="why">The safest for readability and production. It trades warmth for polish: it would make the game look like many others. Cloud, Walldorf and mine are not painted yet (image quota).</p>
+    </div>
+  </div>
+</section>
+
+<section class="concept" id="crayon">
+  <div class="c-head">
+    <div>
+      <div class="c-num">D · BABY DRAGON CREATURE</div>
+      <h2 class="c-name">Ember Crayon Baby Dragon <span class="chosen">CHOSEN</span></h2>
+      <p class="pitch">The literal baby dragon in the game's own hand-drawn finish: a chubby reddish hatchling, crayon and coloured pencil.</p>
+      <div class="tags"><span class="tag">literal baby dragon</span><span class="tag">game's own crayon finish</span><span class="tag">ember red + gold</span><span class="tag">brown crayon line</span></div>
+    </div>
+    <dl class="theme">
+      <div><dt>Finish</dt><dd>The game's existing hand-drawn finish: brown crayon outline, pencil-grain fills, one cel shadow, one highlight.</dd></div>
+      <div><dt>Palette</dt><dd class="swatches"><span class="sw" style="background:#d9533c" title="#d9533c"></span><span class="sw" style="background:#a8382b" title="#a8382b"></span><span class="sw" style="background:#fbe6c0" title="#fbe6c0"></span><span class="sw" style="background:#f2b84b" title="#f2b84b"></span><span class="sw" style="background:#6f94b8" title="#6f94b8"></span><span class="sw" style="background:#3b2a20" title="#3b2a20"></span><small>ember red, brick, cream, gold, dusty blue</small></dd></div>
+      <div><dt>Strength</dt><dd>The cutest face of all four: big shiny eyes, blush cheeks, gold horns and ear fins, a cream belly. The open pose, with red kite-wings and gold edge, is lovely and the finish already matches every sheet in the kite build.</dd></div>
+      <div><dt>Risk</dt><dd>It reads as a baby dragon with wings, not as a kite: the closed state has no kite body at all, so the kite identity (and the Drachen idea) rests only on the wings and the ribbon tail. The red body on a warm world also gives less hue contrast than jade.</dd></div>
+    </dl>
+  </div>
+
+  <div class="board">
+    <figure class="lead ground"><img class="zoom" src="img/crayon-character.webp" alt="Ember Crayon Baby Dragon: character reference, kite closed and kite open"><figcaption>1 · CHARACTER — KITE CLOSED + KITE OPEN</figcaption></figure>
+    <figure class="ground sq"><img class="zoom" src="img/crayon-cloud.webp" alt="Ember Crayon Baby Dragon: cloud platform"><figcaption>2 · CLOUD PLATFORM</figcaption></figure>
+    <figure class="ground sq"><img class="zoom" src="img/crayon-walldorf.webp" alt="Ember Crayon Baby Dragon: Walldorf idle"><figcaption>3 · WALLDORF IDLE</figcaption></figure>
+    <figure class="ground sq"><img class="zoom" src="img/crayon-mine.webp" alt="Ember Crayon Baby Dragon: mine idle"><figcaption>4 · MINE IDLE</figcaption></figure>
+    <figure class="ground wide"><img class="zoom" src="img/crayon-finish.webp" alt="Ember Crayon Baby Dragon: finish platform"><figcaption>5 · FINISH PLATFORM</figcaption></figure>
+  </div>
+
+  <div class="strip">
+    <div class="scene ground" aria-label="Ember Crayon Baby Dragon in a mock-up scene">
+      <div class="sc-cloud"><img class="" src="img/crayon-cloud.webp" alt="crayon-cloud"></div>
+      <div class="sc-closed"><img class="" src="img/crayon-closed.webp" alt="crayon-closed"></div>
+      <div class="sc-wall"><img class="" src="img/crayon-walldorf.webp" alt="crayon-walldorf"></div>
+      <div class="sc-mine"><img class="" src="img/crayon-mine.webp" alt="crayon-mine"></div>
+      <div class="sc-open"><img class="" src="img/crayon-open.webp" alt="crayon-open"></div>
+      <span class="cap">Mock-up: the four pieces together at roughly in-game proportions</span>
+    </div>
+    <div class="sizes ground">
+      <h3>Small-size test</h3>
+      <div class="sz-row">
+        <span class="sz"><span class="h48"><img class="" src="img/crayon-closed.webp" alt="crayon-closed"></span><small>48px</small></span><span class="sz"><span class="h72"><img class="" src="img/crayon-closed.webp" alt="crayon-closed"></span><small>72px</small></span><span class="sz"><span class="h96"><img class="" src="img/crayon-closed.webp" alt="crayon-closed"></span><small>96px</small></span>
+        <span class="sz"><span class="h48"><img class="" src="img/crayon-open.webp" alt="crayon-open"></span><small>open 48px</small></span><span class="sz"><span class="h72"><img class="" src="img/crayon-open.webp" alt="crayon-open"></span><small>open 72px</small></span>
+        <span class="sz"><span class="h64"><img class="" src="img/crayon-mine.webp" alt="crayon-mine"></span><small>mine 64</small></span>
+        <span class="sz"><span class="h96"><img class="" src="img/crayon-walldorf.webp" alt="crayon-walldorf"></span><small>wall 96</small></span>
+      </div>
+      <p class="note">508 distinct colours in the character sheet (a measure of how busy it is).</p>
+    </div>
+  </div>
+
+  
+  <div class="rate">
+    <div class="pick">
+      <h3>Your call</h3>
+      <label class="radio"><input type="radio" name="pick" value="crayon"> Go with <b>D · Ember Crayon Baby Dragon</b></label>
+      <div class="stars" data-style="crayon" role="group" aria-label="Your rating for Ember Crayon Baby Dragon"><button type="button" data-n="1" aria-label="1 stars">★</button><button type="button" data-n="2" aria-label="2 stars">★</button><button type="button" data-n="3" aria-label="3 stars">★</button><button type="button" data-n="4" aria-label="4 stars">★</button><button type="button" data-n="5" aria-label="5 stars">★</button></div>
+    </div>
+    <div>
+      <h3>Notes</h3>
+      <textarea data-notes="crayon" placeholder="What you like, what you would change…"></textarea>
+      <div class="saved" data-saved="crayon"></div>
+    </div>
+    <div class="ref">
+      <h3>Claude's read</h3>
+      <div class="ref-grid"><div class="ref-overall"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span> <span class="muted">21 / 30</span> <span class="muted sm">· supporting pieces painted: 3 / 3</span></div>
+      <div class="ref-crit"><span>Cuteness <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>Reads as Drachen <span class="fixed" aria-label="2 of 5">★★<i>★★★</i></span></span><span>Legible at 48 px <span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></span><span>Looks new <span class="fixed" aria-label="2 of 5">★★<i>★★★</i></span></span><span>Cheap to animate <span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></span><span>Fits the game <span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></span><span>One family across 4 pieces <span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></span></div></div>
+      <p class="why">The best character, the weakest kite. Pick it if you prefer a creature hero over a kite-shaped one; it is the least new, so it ships the most consistently. Its cloud, Walldorf, mine and finish platform are now painted in the same crayon hand (family 4/5: the Walldorf face sits off-centre and the finish cloud has a lavender back layer worth a re-roll).</p>
+    </div>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="cmp-head"><h2>Side by side</h2>
+    <div class="seg" id="seg-piece"><button type="button" data-piece="character" aria-pressed="true">Character</button><button type="button" data-piece="cloud" aria-pressed="false">Cloud</button><button type="button" data-piece="walldorf" aria-pressed="false">Walldorf</button><button type="button" data-piece="mine" aria-pressed="false">Mine</button><button type="button" data-piece="finish" aria-pressed="false">Finish</button><button type="button" data-piece="scene" aria-pressed="false">Mock-up</button></div>
+    <div class="seg" id="seg-bg"><button type="button" data-bg="navy" aria-pressed="true">Night navy</button><button type="button" data-bg="sky" aria-pressed="false">Day sky</button><button type="button" data-bg="paper" aria-pressed="false">Cream</button></div>
+  </div>
+  <div class="wall" id="wall">
+    <figure><div class="ground w" data-style="gouache"></div><figcaption>A · Jade Gouache Storybook <span>26 / 30</span></figcaption></figure><figure><div class="ground w" data-style="folk"></div><figcaption>B · Folk-Art Silk &amp; Bamboo <span>21 / 30</span></figcaption></figure><figure><div class="ground w" data-style="candy"></div><figcaption>C · Candy Sticker Pop <span>25 / 30</span></figcaption></figure><figure><div class="ground w" data-style="crayon"></div><figcaption>D · Ember Crayon Baby Dragon <span>21 / 30</span></figcaption></figure>
+  </div>
+  <p class="note">The checks that decide it: does it still read when small (set the page to a phone size), against both night and day grounds, and is it one family across all four pieces.</p>
+</section>
+
+<section class="ranking" id="decide">
+  <h2>Scores and decision</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Criterion</th><th>A · Jade Gouache Storybook</th><th>B · Folk-Art Silk &amp; Bamboo</th><th>C · Candy Sticker Pop</th><th>D · Ember Crayon Baby Dragon</th></tr></thead>
+    <tbody><tr><td>Cuteness<br><span class="muted sm">Would a player want to hug it?</span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td><td class="claude"><span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></td><td class="claude"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td></tr><tr><td>Reads as Drachen<br><span class="muted sm">Kite AND dragon in one object, not a creature next to a kite.</span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td><td class="claude"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></td><td class="claude"><span class="fixed" aria-label="2 of 5">★★<i>★★★</i></span></td></tr><tr><td>Legible at 48 px<br><span class="muted sm">Silhouette and face still read on a phone.</span></td><td class="claude"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></td><td class="claude"><span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td><td class="claude"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></td></tr><tr><td>Looks new<br><span class="muted sm">Different from the drawn, lantern and current crayon kite builds.</span></td><td class="claude"><span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td><td class="claude"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></td><td class="claude"><span class="fixed" aria-label="2 of 5">★★<i>★★★</i></span></td></tr><tr><td>Cheap to animate<br><span class="muted sm">Fewer details to keep identical across 16-frame sheets.</span></td><td class="claude"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></td><td class="claude"><span class="fixed" aria-label="2 of 5">★★<i>★★★</i></span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td><td class="claude"><span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></td></tr><tr><td>Fits the game<br><span class="muted sm">Sits with the existing world, the navy night ground and the kite mechanics.</span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td><td class="claude"><span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></td><td class="claude"><span class="fixed" aria-label="3 of 5">★★★<i>★★</i></span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td></tr><tr><td>One family across 4 pieces<br><span class="muted sm">Cloud, Walldorf and mine look painted by the same hand as the character.</span></td><td class="claude"><span class="fixed" aria-label="5 of 5">★★★★★<i></i></span></td><td class="claude"><span class="pending">pending</span></td><td class="claude"><span class="pending">pending</span></td><td class="claude"><span class="fixed" aria-label="4 of 5">★★★★<i>★</i></span></td></tr>
+    <tr><td><b>Total</b></td><td class="num claude"><b>26</b> / 30</td><td class="num claude"><b>21</b> / 30</td><td class="num claude"><b>25</b> / 30</td><td class="num claude"><b>21</b> / 30</td></tr></tbody>
+  </table></div>
+  <div class="reco"><h3>Decision</h3><p>DECIDED: D · Ember Crayon Baby Dragon. The reddish baby dragon in the game's own crayon finish is the direction. The other styles stay in this report as the record of what was considered; their remaining pieces will not be painted. D's cloud, Walldorf, mine and finish platform are painted; the full kite sheets are next.</p></div>
+  <div class="decision"><h3>Your decision</h3><p id="decision-line" class="mono">Nothing picked yet.</p><button type="button" id="copy">Copy decision</button></div>
+</section>
+
+<section class="appendix" id="how">
+  <h2>How it was made</h2>
+  <p>Every piece was painted through the Art Desk's Gemini window: the character reference first, from a flat grey layout built from the shipped Pweeg-Kite silhouettes (closed and deployed at the game's own proportions), then the cloud, Walldorf and the mine, each with that style's finished character attached as the <b>style anchor</b> so the four pieces come from one hand. Magenta ground keyed out for this page. Nothing here is wired into the game yet.</p>
+  <p><b>Status:</b> all four characters are painted and style D was chosen. D's cloud, Walldorf, mine and finish platform are now painted too, so its four supporting pieces can be judged as one family. A's cloud, Walldorf and mine exist; the other styles' remaining pieces were cancelled. Nothing is wired into the game yet.</p>
+  <details><summary>The two character designs</summary>
+    <h4>Pweeg-Drachen — German "Drachen" means kite AND dragon: the kite itself is the dragon.</h4><pre>THE CHARACTER — Pweeg-Drachen. In German the word "Drachen" means BOTH a kite and a dragon, and he is both at once: A KITE THAT IS A DRAGON. He is NOT a dragon creature holding, wearing or standing in front of a kite: THE KITE ITSELF IS THE DRAGON, one single object, cute, round, friendly, never scary.
+· HEAD AND BODY IN ONE: a single diamond-shaped paper kite, seen flat-on like a paper kite. A cute face is painted right ON the diamond's sail: two dark dot eyes, a small smile, a soft rounded snout patch on the right-hand side of the face with two tiny nostril dots, and two short curly whiskers. There is NO separate head, NO neck and NO creature body behind or in front of the sail.
+· DRAGON FEATURES BUILT INTO THE KITE: two short curved horns growing from the top corner of the diamond, two small leaf-shaped ear fins at its side corners, a row of little spine fins along its top edges, the crossed bamboo spars showing as lines with a few stitches, and the lower half of the sail painted as a lighter belly panel with rows of small scale arcs. He NEVER wears sunglasses, goggles or glasses.
+· LIMBS: like a cute kite mascot — two stubby little arms from the sides and two stubby little legs from the bottom corner of the diamond.
+· TAIL: the kite's tail is a dragon tail: a long ribbon-like tail with two or three small ribbon bows, ending in a leaf-shaped tuft.
+· CLOSED: the wings are folded flat against the sail as two narrow folded panels along the sides of the diamond, so the closed hero is the compact diamond standing on his stubby legs.
+· DEPLOYED (kite open): wide delta kite-wings spread out from both sides of the SAME diamond — taut sails over spars like dragon-wing fingers with a scalloped trailing edge, together spanning about three times the width of the closed diamond. The face stays on the central diamond, the stubby legs dangle below, and the long tail with its ribbons streams below.
+· The closed and the deployed drawing are the SAME character: identical face, proportions, colours, line and shading.</pre><h4>Pweeg-Drake — The literal baby dragon: a chubby hatchling whose wings are the kite.</h4><pre>THE CHARACTER — Pweeg-Drake, a cute BABY DRAGON hatchling whose wings are his kite: chubby, big-headed, round, friendly, never scary.
+· BODY: a plump little dragon standing upright on two stubby legs with two stubby arms, facing RIGHT: a big round head with a short soft snout (two tiny nostril dots), two short curved horns, two small leaf-shaped ear fins, big shiny dot eyes and a small happy smile; a round tummy with a lighter belly panel carrying a few rows of small scale arcs; a row of little spine fins down his back.
+· TAIL: a short curly dragon tail ending in a leaf-shaped tuft, with a short string of two or three small ribbon bows trailing from it like a kite tail.
+· CLOSED: his wings are folded flat against his back as two small neat folded panels.
+· DEPLOYED (kite open): the folded wings spring open into two wide delta KITE-WINGS, each a taut sail stretched over spars like dragon-wing fingers with a scalloped trailing edge, together spanning about three times the width of his closed body. Head, face and belly stay in the middle, his little legs dangle below, and the long tail with its ribbons streams down and behind.
+· He NEVER wears sunglasses, goggles or glasses. The closed and the deployed drawing are the SAME character: identical face, proportions, colours, line and shading.</pre>
+  </details>
+  <details><summary>The four style prompts (finish and palette)</summary>
+    <h4>A · Jade Gouache Storybook</h4><pre>OPAQUE MATTE GOUACHE on soft paper, as in a modern picture book. Flat-ish fills laid in with visible brush dabs and a little dry-brush grain at the edges of each shape; ONE soft-edged shadow tone on the side away from a gentle upper-left light, and ONE small chalky white highlight dab. Outlines are a soft brush-pen line in a DEEP COLOURED tone (dark teal-brown #2c3e3a), medium weight, slightly uneven, never pure black and never a clean vector line. Soft, rounded, chunky, friendly shapes. A few tiny paint-speckle dots here and there, nothing else decorative.
+
+Palette: jade green #58b59b with a deeper jade #2f8a7a shadow, warm apricot #f4b96a, cream belly #fbe9c4, coral-vermilion accents #e8644f, soft butter yellow #f7dc8a, dusty teal-blue #6aa6b8; warm and gentle, slightly muted, never neon</pre><h4>B · Folk-Art Silk &amp; Bamboo</h4><pre>HAND-PAINTED TRADITIONAL FOLK KITE, as a Weifang kite-maker would paint it on silk over bamboo: bold FLAT colour fields, a strong confident ink outline in black-brown (#26140f) of even weight, and DECORATIVE PATTERN used instead of soft shading — rows of scale arcs, cloud-scroll curls, dotted borders and tiny wave lines. Shadow is only a darker flat tone or hatch lines, never a gradient. Bamboo spars are pale tan with small node rings. A hair of woodblock-print imperfection (a colour fill slightly off its outline in places) is welcome. One small white highlight dot per eye, nothing else glossy.
+
+Palette: vermilion red #d9382c, imperial gold #f2b705, turquoise #1fa3a3, deep indigo #243a73, cream #fff1d0 and a little jade green #3f9b6a; saturated and warm, very graphic</pre><h4>C · Candy Sticker Pop</h4><pre>CLEAN MODERN MOBILE-GAME CEL ART, like a premium sticker: perfectly smooth flat fills with NO texture, NO grain and NO pencil or brush marks; ONE crisp hard-edged darker shade tone, a soft lighter rim on the upper-left, and ONE small four-point sparkle highlight. A thick, perfectly even deep-indigo outline (#2a2350) with rounded joins. Simplified geometric, bubbly shapes, glossy-cute, instantly readable as a tiny icon.
+
+Palette: candy mint #5ee0b8, sky aqua #4cc3f0, sunny yellow #ffd23f, tangerine #ff8a3d, blue-violet lavender #a78bfa, cream #fff6dc; bright, saturated and happy</pre><h4>D · Ember Crayon Baby Dragon</h4><pre>HAND-DRAWN ON CREAM PAPER, SOFT CRAYON AND COLOURED-PENCIL, CEL-SHADED, CUTE AND COZY — the finish this game already has. Soft crayon outlines in a warm dark brown (#3b2a20), never pure black and never a clean vector line: slightly wobbly and grainy like a real crayon, heavy enough to hold at thumbnail size. Colour laid in like crayon and coloured pencil: flat-ish fills with visible soft pencil grain inside them, ONE crisp-edged cel shadow tone on the side away from a soft upper-left light, and ONE small highlight. No airbrush gradients, no rendered 3D look, no glossy plastic.
+
+Palette: ember red #d9533c with a brick-red #a8382b shadow, warm cream belly #fbe6c0, golden yellow #f2b84b, dusty blue #6f94b8, warm browns, a touch of moss green; warm storybook colours, slightly muted, never neon</pre>
+  </details>
+  <details><summary>If you pick one — what happens next</summary>
+    <ol><li>Paint D's cloud, Walldorf idle and mine idle so the four pieces can be checked as one family (node art-sheets/dragon-kite/run.mjs art-sheets/dragon-kite/jobs-crayon.json, then key.py and build-report.mjs).</li><li>Use the approved crayon-character image as the new style sheet (art-sheets/umbrella/style/) for the baby-dragon skin.</li><li>Add the baby dragon's design, finish and palette to the kite manifest as a new art set, export the layout references, and paint the model sheet first, then idle, walk, hover (wings open), fall, terminal, broken, cheer, flattened, destroyed and front, then the world sheets.</li><li>Decide how the closed state keeps the kite idea (the folded wings and the ribbon tail are all that say 'kite'), and give the open state the kite spars and the scalloped wing edge so it still reads as the kite mechanic.</li><li>Slice and compress through the Art Desk, add the art switch and build script, then run the sharpness probe on the live build.</li></ol>
+  </details>
+</section>
+</main>
+<footer class="wrap">Painted with the Art Desk (Gemini) · pieces on this page are style proposals, not shipped game art.</footer>
+<dialog id="lb"><img alt=""><p></p></dialog>
+<script>const DATA={"styles":[{"id":"gouache","letter":"A","name":"Jade Gouache Storybook"},{"id":"folk","letter":"B","name":"Folk-Art Silk & Bamboo"},{"id":"candy","letter":"C","name":"Candy Sticker Pop"},{"id":"crayon","letter":"D","name":"Ember Crayon Baby Dragon"}],"total":{"gouache":26,"folk":21,"candy":25,"crayon":21}};const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)]
+const store = { get(k) { try { return localStorage.getItem('dk:' + k) } catch { return null } }, set(k, v) { try { localStorage.setItem('dk:' + k, v) } catch {} } }
+const styleOf = (id) => DATA.styles.find((s) => s.id === id)
+const im = (stem) => `<img src="img/${stem}.webp" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'missing',textContent:'not painted yet'}))">`
+const sceneHtml = (id) => `<div class="scene"><div class="sc-cloud">${im(id + '-cloud')}</div><div class="sc-closed">${im(id + '-closed')}</div><div class="sc-wall">${im(id + '-walldorf')}</div><div class="sc-mine">${im(id + '-mine')}</div><div class="sc-open">${im(id + '-open')}</div></div>`
+// compare wall
+let piece = 'character', bg = 'navy'
+const paintWall = () => {
+  $('#wall').dataset.bg = bg
+  $$('#wall .w').forEach((w) => { const id = w.dataset.style; w.innerHTML = piece === 'scene' ? sceneHtml(id) : im(id + '-' + piece) })
+  $$('#wall .w').forEach((w) => { w.style.aspectRatio = piece === 'character' || piece === 'cloud' || piece === 'finish' ? '16/10' : piece === 'scene' ? '4/3' : '1/1' })
+}
+$('#seg-piece').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; piece = b.dataset.piece; $$('#seg-piece button').forEach((x) => x.setAttribute('aria-pressed', x === b)); paintWall() })
+$('#seg-bg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; bg = b.dataset.bg; $$('#seg-bg button').forEach((x) => x.setAttribute('aria-pressed', x === b)); paintWall() })
+paintWall()
+// ratings, notes, pick
+const paintStars = (el, n) => $$('button', el).forEach((b) => b.classList.toggle('on', Number(b.dataset.n) <= n))
+$$('.stars').forEach((el) => { const id = el.dataset.style; paintStars(el, Number(store.get('stars:' + id) || 0)); el.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const n = Number(b.dataset.n); paintStars(el, n); store.set('stars:' + id, n); decision() }) })
+$$('textarea[data-notes]').forEach((t) => { const id = t.dataset.notes; t.value = store.get('notes:' + id) || ''; t.addEventListener('input', () => { store.set('notes:' + id, t.value); $(`[data-saved=${id}]`).textContent = 'saved in this browser'; decision() }) })
+const picked = store.get('pick')
+$$('input[name=pick]').forEach((r) => { r.checked = r.value === picked; r.addEventListener('change', () => { store.set('pick', r.value); decision() }) })
+function decision() {
+  const p = $('input[name=pick]:checked')
+  const lines = DATA.styles.map((s) => { const n = Number(store.get('stars:' + s.id) || 0); const t = store.get('notes:' + s.id) || ''; return n || t ? `${s.letter} ${s.name}: ${n ? n + '/5' : 'unrated'}${t ? ' — ' + t.replace(/\s+/g, ' ') : ''}` : '' }).filter(Boolean)
+  $('#decision-line').textContent = (p ? `Go with ${styleOf(p.value).letter} · ${styleOf(p.value).name}.` : 'Nothing picked yet.') + (lines.length ? '\n' + lines.join('\n') : '')
+  $('#decision-line').style.whiteSpace = 'pre-wrap'
+}
+decision()
+$('#copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText($('#decision-line').textContent); $('#copy').textContent = 'Copied' } catch { $('#copy').textContent = 'Select the text and copy it' } setTimeout(() => ($('#copy').textContent = 'Copy decision'), 1800) })
+// lightbox
+const lb = $('#lb')
+document.addEventListener('click', (e) => { const i = e.target.closest('img.zoom'); if (!i) return; $('img', lb).src = i.src; $('p', lb).textContent = i.alt; lb.showModal() })
+lb.addEventListener('click', () => lb.close())
+</script>
+</body></html>

@@ -18,7 +18,7 @@ import {
 import { checkpointBox, createWorld, gateExit, hudTimer, starBox, liveWinds, step, windInfluence, type GameEvent, type Input, type World } from '@/umbrella/engine'
 import { clearLevelParam, decodeLevel, levelParam } from '@/umbrella/levelCode'
 import { communityEnabled, communityUnlocked, countPlay } from '@/umbrella/community'
-import { artLayer, isKite, paintedGame } from '@/umbrella/kite'
+import { artLayer, paintedGame } from '@/umbrella/kite'
 import { setStillSkyCanvas, watchFrame } from '@/umbrella/liteMode'
 import { ART_MODES, artModeUrl, currentArtMode, switchArtMode, type ArtMode } from '@/umbrella/artMode'
 import { editorAllowed } from '@/umbrella/editorAccess'
@@ -120,7 +120,7 @@ const backToEditor = () => {
 const openEditor = () => void router.push('/editor')
 // The art switch under it: the drawn game or the lantern origami, each its own build (artMode.ts).
 const artMode = currentArtMode()
-const artSwitch = !isKite && artModeUrl(window.location.href, 'drawn') !== null
+const artSwitch = artModeUrl(window.location.href, 'drawn') !== null
 const pickArt = (e: Event) => switchArtMode((e.target as HTMLSelectElement).value as ArtMode)
 
 // ── Player levels: share links, the community list, stars ──

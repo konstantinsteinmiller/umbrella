@@ -19,15 +19,15 @@
 //     for one playtest before navigating there.
 // Everything persists through the one-blob state layer (useEpicState).
 //
-// The kite build (kite.ts) plays its own 100 levels: the repo's campaign overrides and
-// order (they belong to the server campaign) are not read, nothing is written to the
-// repo, and there is no levels bucket. Edits stay in this browser, in the kite build's
-// own save (useEpicState keeps a separate key for it).
+// The dragon kite skin (kite.ts) is the same game as the normal build (same campaign, repo files, bucket and save)
+// with its own first chapter in front (dragonLevels.ts): those five levels live in code, so an edit of one stays in
+// this browser and never reaches the repo file or the levels server.
 
 import { ref } from 'vue'
 import { getState, setState } from '@/use/useEpicState'
 import overridesFromDisk from 'virtual:campaign-overrides'
 import orderFromDisk from 'virtual:campaign-order'
+import { DRAGON_CHAPTER, DRAGON_ENTRIES, isDragonId } from './dragonLevels'
 import { isKite } from './kite'
 import { COLLECT_SHAPES, MEDALLION_COLORS, LEVELS, LESSON_KINDS, LEVEL_SOUND_SLOTS, isImageId, isSoundId, type LevelDef } from './levels'
 import { parseTimeLimit } from './timeStars'
@@ -154,8 +154,7 @@ const loadOverrides = (): Record<number, LevelDef> => {
     if (l) out[Number(k)] = l
   }
   // The repo copy wins unless this browser holds a newer edit of the slot.
-  // (The repo's file is the server campaign's: the kite levels never take it.)
-  for (const [k, v] of Object.entries(isKite ? {} : overridesFromDisk)) {
+  for (const [k, v] of Object.entries(overridesFromDisk)) {
     const l = parseLevel(v)
     if (l && (l.editedAt ?? 0) >= (out[Number(k)]?.editedAt ?? 0)) out[Number(k)] = l
   }
@@ -165,7 +164,7 @@ export const campaignOverrides = ref<Record<number, LevelDef>>(loadOverrides())
 
 /** Dev server only (the endpoint does not exist in a build): mirror into the repo file. */
 const postToDisk = (path: string, body: object) => {
-  if (!import.meta.env.DEV || isKite) return
+  if (!import.meta.env.DEV) return
   fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     .catch(() => { /* no dev server: localStorage stays the copy */ })
 }
@@ -282,7 +281,7 @@ export const parseOrder = (data: unknown): CampaignOrder | null => {
 }
 const loadOrder = (): CampaignOrder | null => {
   const local = parseOrder(getState<unknown>(ORDER_KEY, null))
-  const disk = isKite ? null : parseOrder(orderFromDisk)
+  const disk = parseOrder(orderFromDisk)
   // The repo copy wins unless this browser holds a newer order.
   return disk && disk.editedAt >= (local?.editedAt ?? 0) ? disk : local
 }
@@ -350,9 +349,12 @@ export const setJamTest = (on: boolean) => {
 export const activeTimeLimit = (l: LevelDef, opts: { test?: boolean } = {}): number =>
   l.timeLimit && (!l.timeLimitJamOnly || jamPlay.value || opts.test) ? l.timeLimit : 0
 
-/** Index in LEVELS where a new player begins: the start chapter's first level (0 in the jam chapter). */
+/** The dragon kite skin (?art=kite) plays its onboarding chapter first, then the campaign. The jam build never has it. */
+const dragonFirst = (): boolean => isKite && !playsJam()
+
+/** Index in LEVELS where a new player begins: the start chapter's first level (0 in the jam chapter and in the dragon chapter). */
 export const startLevelIndex = (): number => {
-  if (playsJam()) return 0
+  if (playsJam() || dragonFirst()) return 0
   const chapters = campaignChapters()
   const from = chapters.findIndex((c) => c.id === startChapterId())
   for (const c of [...chapters.slice(from), ...chapters.slice(0, from)]) {
@@ -365,12 +367,14 @@ export const startLevelIndex = (): number => {
 export const chapterRanges = (): { id: string; name?: string; subtitle?: string; n: number; from: number; to: number }[] => {
   const o = campaignOrder.value
   if (playsJam()) return [{ id: JAM_CHAPTER, name: o?.jamName, subtitle: o?.jamSubtitle, n: 1, from: 0, to: LEVELS.length }]
-  let at = 0
-  return campaignChapters().map((c, i) => {
-    const r = { id: c.id, name: c.name, subtitle: c.subtitle, n: i + 1, from: at, to: at + c.levels.length }
+  // The dragon kite skin opens with its own chapter, ahead of the campaign (dragonLevels.ts).
+  const lead = dragonFirst() ? [{ id: DRAGON_CHAPTER.id, name: DRAGON_CHAPTER.name, subtitle: DRAGON_CHAPTER.subtitle, n: 1, from: 0, to: DRAGON_ENTRIES.length }] : []
+  let at = lead.length ? DRAGON_ENTRIES.length : 0
+  return [...lead, ...campaignChapters().map((c, i) => {
+    const r = { id: c.id, name: c.name, subtitle: c.subtitle, n: i + 1 + lead.length, from: at, to: at + c.levels.length }
     at = r.to
     return r
-  })
+  })]
 }
 /** Authored levels the designer has deleted from the campaign. */
 export const campaignRemoved = (): number[] => [...(campaignOrder.value?.removed ?? [])]
@@ -386,7 +390,7 @@ const baseLevel = (id: number): LevelDef | undefined => {
 /** Rebuilds LEVELS in place from the order (or the jam chapter) and the overrides: every reader keeps its array. */
 const rebuildLevels = () => {
   const next: LevelDef[] = []
-  for (const e of playsJam() ? jamEntries() : campaignEntries()) {
+  for (const e of playsJam() ? jamEntries() : [...(dragonFirst() ? DRAGON_ENTRIES : []), ...campaignEntries()]) {
     // A jam snapshot carries its own level; a campaign slot is the authored / added one.
     const l = campaignOverrides.value[e.id] ?? (e.level ? cloneLevel(e.level) : baseLevel(e.id))
     if (l) next.push({ ...cloneLevel(l), id: e.id })
@@ -442,6 +446,8 @@ const putOverride = (id: number, level: LevelDef | null) => {
   else delete next[id]
   campaignOverrides.value = next
   setState(OVERRIDES_KEY, next)
+  // The dragon chapter's levels live in code (dragonLevels.ts): an edit stays in this browser, never in the designers' file.
+  if (isDragonId(id)) { rebuildLevels(); return }
   if (level) postToDisk('/__maw/save-override', { id, stage: next[id] })
   else postToDisk('/__maw/clear-override', { id })
   rebuildLevels()
@@ -450,12 +456,14 @@ export const saveCampaignOverride = (id: number, level: LevelDef, editedAt = Dat
   const l = { ...stamp(level, editedAt), id }
   putOverride(id, l)
   setTombstone(`c:${id}`, null)
+  if (isDragonId(id)) return
   pushEntry('campaign', String(id), l, editedAt)
 }
 export const clearCampaignOverride = (id: number) => {
   const at = Date.now()
   putOverride(id, null)
   setTombstone(`c:${id}`, at)
+  if (isDragonId(id)) return
   pushEntry('campaign', String(id), null, at)
 }
 
@@ -474,8 +482,8 @@ export const localEditedAt = (section: 'campaign' | 'library', key: string): num
 export interface BucketEntry { editedAt: number; level: LevelDef | null }
 export interface Bucket { campaign: Record<string, BucketEntry>; library: Record<string, BucketEntry> }
 
-/** Empty on the kite build: no pull, no push, no sync (cutsceneStore.ts shares it). */
-export const BUCKET_URL: string = isKite ? '' : (import.meta.env.VITE_APP_LEVELS_BUCKET_URL ?? '').trim().replace(/\/+$/, '')
+/** The levels server (empty in a build without one: no pull, no push, no sync; cutsceneStore.ts shares it). */
+export const BUCKET_URL: string = (import.meta.env.VITE_APP_LEVELS_BUCKET_URL ?? '').trim().replace(/\/+$/, '')
 const PASSWORD_KEY = 'umb_levels_bucket_password'
 const readPassword = (): string => {
   try { return localStorage.getItem(PASSWORD_KEY) ?? '' } catch { return '' }

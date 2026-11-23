@@ -1,8 +1,8 @@
-// ─── Level builders, shared by the campaign (levels.ts) and the kite levels ──
+// ─── Level builders, shared by the campaign (levels.ts) and the dragon chapter ──
 //
 // Tiny constructors for the level data format (types in levels.ts). Kept in a
-// module of their own so kiteLevels.ts can use them without importing levels.ts
-// at runtime (levels.ts picks the kite levels, so that would be an import cycle).
+// module of their own so dragonLevels.ts can use them without importing levels.ts
+// at runtime (customLevels.ts imports both, so that would be an import cycle).
 // Type-only imports: nothing here runs levels.ts.
 
 import type { ButtonDef, CheckpointDef, HazardDef, Motion, PlatformDef, WalldorfContact, WindDef, WindDir } from './levels'

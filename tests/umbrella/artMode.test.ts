@@ -8,6 +8,13 @@ describe('the designers\' art switch', () => {
     expect(artModeUrl('https://x.github.io/umbrella/lantern/#/editor', 'drawn', false)).toBe('https://x.github.io/umbrella/#/editor')
   })
 
+  it('opens the dragon kite build through ?art=kite, and leaves it again', () => {
+    expect(artModeUrl('https://x.github.io/umbrella/12/#/', 'kite', false)).toBe('https://x.github.io/umbrella/12/?art=kite#/')
+    expect(artModeUrl('https://x.github.io/umbrella/12/kite/?art=kite#/', 'drawn', false)).toBe('https://x.github.io/umbrella/12/#/')
+    expect(artModeUrl('https://x.github.io/umbrella/kite/#/editor', 'lantern', false)).toBe('https://x.github.io/umbrella/?art=lantern#/editor')
+    expect(artModeUrl('http://127.0.0.1:5173/?art=lantern#/', 'kite', true)).toBe('http://127.0.0.1:5173/?art=kite#/')
+  })
+
   it('drops a flag hidden in the hash route\'s query too', () => {
     expect(artModeUrl('https://x.github.io/umbrella/12/lantern/#/?art=lantern', 'drawn', false)).toBe('https://x.github.io/umbrella/12/#/')
   })

@@ -15,12 +15,12 @@
 // inside an updraft). The first layer that lands on the Finish is the fastest win
 // this search found.
 //
-// Pure TypeScript with no Vite-only imports, so scripts/kite-solve.mjs runs it in
+// Pure TypeScript with no Vite-only imports, so it runs in
 // Node worker threads and the vitest suite runs it in-process.
 
 import { contactOf, createWorld, step, type Input, type World } from '@/umbrella/engine'
 import type { LevelDef } from '@/umbrella/levels'
-import { KITE_TUNING as DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
+import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 
 export const DT = 1 / 120
 /** Ticks per decision: 0.1 s, a pace a person keeps up with. */

@@ -533,8 +533,7 @@ export default defineConfig(({ mode, command }) => {
   // editor saves persist to `data/campaign-overrides.json` in the repo.
   // Every build (portal builds too) pulls the bucket into the repo file; only the Pages
   // and dev builds also read it at runtime (their env files carry the URL).
-  // The kite build is its own game: it never pulls the server's campaign.
-  const levelsBucketUrl = env.VITE_APP_KITE === 'true' ? '' : (env.VITE_APP_LEVELS_BUCKET_URL || loadEnv('production', process.cwd(), '').VITE_APP_LEVELS_BUCKET_URL || '').trim()
+  const levelsBucketUrl = (env.VITE_APP_LEVELS_BUCKET_URL || loadEnv('production', process.cwd(), '').VITE_APP_LEVELS_BUCKET_URL || '').trim()
   plugins.push(mawCampaignOverridesPlugin(command === 'build' ? levelsBucketUrl : ''))
 
   // Drop-in override manifest — so the runtime probes only request art/SFX

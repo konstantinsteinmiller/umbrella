@@ -3,7 +3,8 @@ name: Deploy Static Content to Pages
 # Publishes:
 #   /umbrella/      → latest main
 #   /umbrella/<N>/  → every GDD revision (N = scripts/revision.mjs)
-#   (the kite build, /umbrella/kite/, is no longer built: obsolete for now)
+#   /umbrella/kite/   → the dragon kite skin (the normal game in the painted baby-dragon kite art, with its own first chapter); opened by
+#                     `?art=kite` (and /umbrella/<N>/kite/ for the current revision) — the cheat-mode Art dropdown's "Dragon Kite"
 #   /umbrella/lantern/ → the normal game in the painted "Paper Moon" lantern art; opened by
 #                     `?art=lantern` (and /umbrella/<N>/lantern/ per revision from 11 on)
 #   /umbrella/sounds/ → sound + music listening page (latest)
@@ -108,6 +109,20 @@ jobs:
         env:
           VITE_APP_LANTERN: 'true'
         run: npx vite build --mode lantern --base=/umbrella/lantern/ --outDir="$GITHUB_WORKSPACE/dist/lantern"
+
+      - name: Build current revision's dragon kite skin → /umbrella/<N>/kite/
+        working-directory: main
+        env:
+          VITE_APP_KITE: 'true'
+        run: |
+          N="${{ steps.rev.outputs.n }}"
+          npx vite build --mode kite --base="/umbrella/$N/kite/" --outDir="$GITHUB_WORKSPACE/dist/$N/kite"
+
+      - name: Build the dragon kite skin → /umbrella/kite/
+        working-directory: main
+        env:
+          VITE_APP_KITE: 'true'
+        run: npx vite build --mode kite --base=/umbrella/kite/ --outDir="$GITHUB_WORKSPACE/dist/kite"
 
       - name: Build sound listening page → /umbrella/sounds/
         working-directory: main

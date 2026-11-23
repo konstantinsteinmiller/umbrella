@@ -1,6 +1,5 @@
 import { ref, type Ref } from 'vue'
 import { onGameSuspended, USES_PAGE_VISIBILITY } from '@/use/useGamePause'
-import { isKite } from '@/umbrella/kite'
 
 /**
  * Single-blob localStorage layer for Umbrella.
@@ -31,12 +30,11 @@ import { isKite } from '@/umbrella/kite'
 // GitHub Pages serves every GDD revision on one origin (/umbrella/1/,
 // /umbrella/2/, …): each revision build keeps its own save so tuning from one
 // revision never leaks into another. Latest (/umbrella/) and portal builds
-// (base ./) keep the plain key. The kite build (/umbrella/kite/, its own 100 levels)
-// keeps a save of its own too: its progress, level edits and tuning never mix with
-// the normal game's on the same origin.
-// The lantern build is the same game, so /umbrella/<N>/lantern/ shares revision N's save.
-const REVISION_BASE = /\/(\d+)\/(?:lantern\/)?$/.exec(import.meta.env.BASE_URL ?? '')
-export const STATE_KEY = REVISION_BASE ? `umbrella_state_rev${REVISION_BASE[1]}` : isKite ? 'umbrella_state_kite' : 'umbrella_state'
+// (base ./) keep the plain key.
+// The lantern and the dragon kite builds are the same game in another skin, so /umbrella/<N>/lantern/ and
+// /umbrella/<N>/kite/ share revision N's save (progress, My Levels, editor work), and so do /umbrella/lantern/ and /umbrella/kite/ with the latest.
+const REVISION_BASE = /\/(\d+)\/(?:lantern\/|kite\/)?$/.exec(import.meta.env.BASE_URL ?? '')
+export const STATE_KEY = REVISION_BASE ? `umbrella_state_rev${REVISION_BASE[1]}` : 'umbrella_state'
 
 /** Persisted values may be bare strings ("en"), stringified numbers ("120"),
  *  or stringified JSON. JSON.parse round-trips numbers/objects; bare strings
