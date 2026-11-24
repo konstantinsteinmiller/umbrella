@@ -13,7 +13,7 @@
 // follows Pweeg) is one painted part moved by code (ANIMATE.md).
 import { contactOf, STAR_R, type Hazard, type World } from '../engine'
 import { channelColor, type Camera } from '../renderer'
-import { isLantern, paintedGame } from '../kite'
+import { isKite, isLantern, paintedGame } from '../kite'
 import { cloudPath, cloudPuffs } from '../cloudShape'
 import { drawSignLantern, setPaintedSignPart } from '../signArt'
 import hintArrowUrl from '@/assets/umbrella-ui/hint-arrow.webp'
@@ -534,7 +534,9 @@ const walldorf = (ctx: CanvasRenderingContext2D, h: Hazard, w: World): boolean =
     const k = (box.drawSize ?? box.size) * sc
     watchingPupils(ctx, frame, ex, eyes.top, k, gazeOf(h, ex, eyes.top, pl.x + pl.w / 2, pl.y + pl.h / 2))
   } else {
-    blit(ctx, face, faceImg, frame, eyes.ex, eyes.top, eyes.er / 9, eyes.er / 9, facing < 0)
+    // The dragon kite's painted eyes are centred in their panel, so they sit in the middle of the pillar (the vector
+    // drawing leans them towards the player by 18 % of the width); they still turn to look at the player.
+    blit(ctx, face, faceImg, frame, isKite ? cx : eyes.ex, eyes.top, eyes.er / 9, eyes.er / 9, facing < 0)
   }
   ctx.restore()
   return true
