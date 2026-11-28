@@ -26,6 +26,7 @@
     "download:recordings": "node tools/poki-deploy/download-recordings.mjs",
     "deploy:poki:lantern": "node tools/poki-deploy/deploy.mjs --art lantern",
     "build:poki-playtest": "vite build --mode poki-playtest --base=./ && cd dist && tar -a -cf ../umbrella-poki-playtest.zip * && cd .. && move umbrella-poki-playtest.zip dist\\",
+    "build:poki-jam-playtest": "node tools/build-art.mjs poki-playtest --jam",
     "deploy:poki-quick-playtest": "node tools/poki-deploy/deploy.mjs --skip-qa-testing --playtest-chapter",
     "deploy:poki-quick-playtest-lantern": "node tools/poki-deploy/deploy.mjs --skip-qa-testing --art lantern --playtest-chapter",
     "build:kite": "vite build --mode kite --base=/umbrella/kite/ --outDir=dist/kite",

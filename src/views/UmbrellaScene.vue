@@ -44,7 +44,7 @@ import { DEFAULT_TUNING, type Tuning } from '@/umbrella/tuning'
 import { applyTuning, createTuningGui, exportTuning, type TuningExport, type TuningGui } from '@/umbrella/tuningGui'
 import { createEnemyCues, ENEMY_BED_IDLE } from '@/umbrella/enemySounds'
 import { levelSoundBuffer, preloadLevelSounds, type LevelSoundSlot } from '@/umbrella/levelSounds'
-import { playEnemySfx, playLevelBuffer, playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience, updateEnemyBed } from '@/umbrella/audio'
+import { playCoinPickup, playEnemySfx, playLevelBuffer, playSfx, setAudioLevels, setAudioMuted, unlockAudio, updateAmbience, updateEnemyBed } from '@/umbrella/audio'
 import { AMBIENCE_IDLE, type AmbienceState } from '@/umbrella/soundKit'
 import { getState, setState } from '@/use/useEpicState'
 import { mobileCheck } from '@/utils/function'
@@ -794,8 +794,11 @@ const onEvents = (events: GameEvent[], vyBefore: number) => {
       case 'button': playSfx('step', { intensity: 1, pan }); break
       case 'checkpoint': playSfx('open', { intensity: 0.5, pan }); break
       case 'puff': playSfx('step', { intensity: 0.15, quick: true, pan }); break
-      case 'medallion': playSfx('open', { intensity: 1, quick: true, pan }); playSfx('step', { intensity: 0.4, pan }); break
-      case 'star': playSfx('open', { intensity: 0.9, quick: true, pan }); playSfx('step', { intensity: 0.3, pan }); break
+      // The recorded coin; the synthesised pair stands in until it has loaded.
+      case 'medallion':
+      case 'star':
+        if (!playCoinPickup(pan)) { playSfx('open', { intensity: 0.9, quick: true, pan }); playSfx('step', { intensity: 0.3, pan }) }
+        break
       case 'gate':
         // Not again from inside the challenge it led to (the way back is the win).
         // A linked gate (to another gate of this level) works anywhere.

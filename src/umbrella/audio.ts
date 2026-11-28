@@ -14,13 +14,14 @@
 // (fetched then, never before the first screen), played on the engine's music
 // bus: the same gate, the same suspend under an ad (it carries on from where it
 // was when the ad closes), and the same ducking under the big one-shots as the
-// synthesised score had.
+// synthesised score had. The one recorded effect is coin-pickup.ogg (every collectible and the medallion).
 //
 // THE MUSIC IS OFF FOR NOW (MUSIC_ENABLED). The track waits, unshipped, in
 // src/assets/audio/bg-cozy.ogg: nothing imports it, so no build carries it and
 // the game never fetches it. To bring it back: move it to public/audio/music/
 // and set MUSIC_ENABLED (the pause menu's Music slider shows itself again).
 
+import coinUrl from '@/assets/audio/coin-pickup.ogg?url'
 import { getAudioContext, isAudioSuspended } from '@/use/useAssets'
 import { createSoundEngine, type MixLevels, type SoundEngine } from './soundEngine'
 import type { AmbienceState, SfxName, SfxParams } from './soundKit'
@@ -40,6 +41,22 @@ let bedsStarted = false
 let levels: MixLevels | null = null
 /** Walldorf / Prickbait voices on the engine's SFX bus (enemySounds.ts). */
 let enemies: EnemySounds | null = null
+
+/** The pickup coin, decoded once the first gesture has unlocked audio (null until then, or if it failed). */
+let coin: AudioBuffer | null = null
+let coinLoading = false
+
+const loadCoin = async (e: SoundEngine): Promise<void> => {
+  if (coinLoading) return
+  coinLoading = true
+  try {
+    const res = await fetch(coinUrl)
+    if (!res.ok) return
+    coin = await e.ctx.decodeAudioData(await res.arrayBuffer())
+  } catch {
+    // No recording: pickups keep their synthesised sound.
+  }
+}
 
 const getEngine = (): SoundEngine | null => {
   if (engine) return engine
@@ -83,6 +100,7 @@ export const unlockAudio = (): void => {
   gestured = true
   const e = getEngine()
   if (!e) return
+  void loadCoin(e)
   if (e.ctx.state === 'suspended' && !muted && !isAudioSuspended()) {
     void (e.ctx as AudioContext).resume().then(startBeds, () => { /* closed */ })
   }
@@ -111,6 +129,13 @@ export const playLevelBuffer = (buffer: AudioBuffer, pan = 0): void => {
   const e = engine
   if (!e || !live(e)) return
   e.playBuffer(buffer, pan)
+}
+
+/** A collectible or medallion picked up, behind the same gate as `playSfx`; false while the recording is not there. */
+export const playCoinPickup = (pan = 0): boolean => {
+  if (!coin) return false
+  playLevelBuffer(coin, pan)
+  return true
 }
 
 /** An enemy one-shot (enemySounds.ts), behind the same gate as `playSfx`. */

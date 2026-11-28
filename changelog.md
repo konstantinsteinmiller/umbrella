@@ -1,5 +1,11 @@
 Umbrella — changelog (newest first)
 
+== Revision 21 — 2026-11-28 ==
+- [x] Picking up a golden umbrella, star, golden cloud or the medallion plays a recorded coin sound (src/assets/audio/coin-pickup.ogg); a level's own uploaded pickup sound still replaces it
+- [x] Tools: `pnpm build:poki-jam-playtest` builds the Poki playtest zip (first 2 rewarded taps free) with the drawn (skinless) look, playing only the jam / Playtest Build chapter (dist/umbrella-poki-playtest-drawn-jam.zip)
+- [x] The loading splash no longer swaps fonts: the display face ('Angry') ships as woff2 inside index.html, its only declaration
+- [x] Levels pulled from the levels server (campaign, order and Playtest Build chapter, level pictures)
+
 == Revision 19 — 2026-11-21 ==
 - [x] The kite skin is now a baby dragon ("Drachen" is both a kite and a dragon): a chubby ember-red dragon with cream belly, gold horns and blue ribbon bows, painted in the game's crayon finish — walk, idle, hover, fall, terminal fall, broken umbrella, cheer, flattened, destroyed, front view, the platforms (plain, finish, switch), Walldorf (body and face), mines, fan, checkpoint flag, button and spikes, and the wind wisps. Chad's kite art is unchanged. Idle breathing keeps the body size within 1.5 % (it no longer swells and shrinks), and the walk was repainted over a proper walk-cycle guide (contact, down, passing, up) so the feet step like a real walk; the front view now faces the viewer (both eyes, both horns, wings spread behind him) and the finish podium's cloud is one plain cream layer with bunting (no lavender layer behind it, no scalloped second band); the dragon skin's Walldorf wears its painted face in the middle of the pillar (it used to sit off to one side) and still turns to look at the player
 - [x] The dragon kite is selectable in the cheat mode's Art dropdown (Drawn / Origami: Lantern / Dragon Kite) and, like the lantern, is the normal game in a skin: same campaign, levels server, community, feel and save, so the level editor lists the same levels and My Levels as the normal game (the separate kite save that hid them is gone). Pages builds also publish /umbrella/kite/ and the current revision's /kite/

@@ -387,3 +387,10 @@ Then add Level 3. Test how it feels when the character drops through the air cur
 · Platforms: One-way (pass up through, only stops a fall from above) and Drop-through (open the umbrella on it to sink through).
 · Sound effects (designer): upload .ogg files to replace a game event's sound (umbrella open / close, landing, finish, hit, collectibles, cloud melting...) on a level.
 · Removable clouds can be turned; the camouflaged one fades out as one layer without particles, and with "Returns after (s)" comes back once the player has left it.
+
+## Revision 21
+**Players**
+· Picking up a collectible (golden umbrella, star, golden cloud) or the medallion plays a recorded coin sound.
+· The loading screen draws in the game's display font from the first frame.
+**Builds**
+· `pnpm build:poki-jam-playtest`: the Poki playtest build in the drawn look, playing only the jam / Playtest Build chapter.

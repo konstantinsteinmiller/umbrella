@@ -1,9 +1,6 @@
-@font-face
-  font-family: 'Angry'
-  font-style: normal
-  font-weight: 700
-  font-display: swap
-  src: url(./font/angrybirds-regular.ttf) format('truetype')
+// 'Angry' (the display face) is declared in index.html as an inline woff2, so the loading
+// splash paints in it from the first frame instead of swapping a late-arriving file in.
+// Do not declare it again here: a second copy would be fetched on top of the inline one.
 
 // HUD numerals (blind playtest run 5: 'Angry''s flat-topped "2" reads as a "Z"
 // at HUD sizes — "ROW ZZ" for ROW 22, "Z31" in the wallet). A DIGITS-ONLY face:

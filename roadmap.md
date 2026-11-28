@@ -69,6 +69,9 @@
 - [ ] #3
 - [ ] #3
 - [ ] #3
+- [ ] #Jam-1 I would like to build some Levels for a game jam build for this jam https://itch.io/jam/harvest#:~:text=MSI%20Stealth%20A16%20AI%2B%20A3HWIG%2D073US%2016%22%20QHD%20Gaming%20Laptop and the jams theme is "bounce back". I think the walldorf is the perfect enemy/obstacle to design perfect levels for this jam theme. Please design 5 levels that help introduce the core game mechanics of opening and closing the umbrella and getting updraft from long wind exposition and bouncing as a means to go over obstacles and others exciting gameplay. All this 5 levels must be of mind-blowing quality and guide the player perfectly to bring excitement and being easy enough for first-time players, so that the judges are impressed and rate the game extraordinarily high in all aspects, fun, progression and visual appeal. All the levels you create via the level editor and save only under "My Levels" as "Kon Level-1...5" so they dont interfere with the level designers work, I will put them in the game jam build (itch.io) later myself. Use all element from the level editor you think are good for the design of the 5 levels that will blow the minds of the judges, chose the length of the levels yourself or do a web-search to this top before starting building the level.
+  there are 5 levels already, but I dont feel like its the optimal level setup yet to really win over the judges, iterate 5 loop over it with 1 sonnet playtester subagent testing the fun and controls clearance to reach a 9/10 on both parts and suggest the most optimal optimizations to get to the 9/10 as fast as possible.
+  those levels are only visible and prepended to the campaign levels on the dragon-kite skin.
 
 - [x] #Play-1 The game needs a full level consistency check with headed browser, use 3 Sonnet subagents (low effort). 
   I need 1 to play on desktop, one mobile portrait and one on mobile landscape.
